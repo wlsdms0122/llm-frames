@@ -44,7 +44,7 @@ final class PackDirectory {
     }
 
     // MARK: - Public
-    // A pack with a manifest for frames 1, in `packs`, the installed packs unless another directory is given.
+    // A pack with a `pack.json` for frames 1, in `packs`, the installed packs unless another directory is given.
     @discardableResult
     func addPack(
         _ name: String,
@@ -53,18 +53,8 @@ final class PackDirectory {
     ) throws -> URL {
         let directory = (packs ?? installed).appendingPathComponent(name, isDirectory: true)
         try write(
-            """
-            [open-package]
-            version = "1.0.0"
-
-            [package]
-            name = "A pack for tests"
-            version = "1.0.0"
-
-            [frames]
-            engine = "\(engine)"
-            """,
-            to: directory.appendingPathComponent("manifest.toml")
+            #"{ "engine": "\#(engine)", "name": "A pack for tests" }"#,
+            to: directory.appendingPathComponent("pack.json")
         )
 
         return directory

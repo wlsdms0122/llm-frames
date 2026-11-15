@@ -6,7 +6,6 @@
 //
 
 enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
-    case manifestSyntax(file: String, line: Int, reason: String)
     case missingManifest(place: Place)
     case invalidEngine(place: Place, engine: String)
     case unsupportedEngine(place: Place, pack: String, engine: String, version: String)
@@ -23,22 +22,19 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Property
     var description: String {
         switch self {
-        case let .manifestSyntax(file, line, reason):
-            "\(file): line \(line): \(reason)"
-
         case let .missingManifest(place):
-            "\(place) (\(PackKeyTable.manifestKind)): a pack holds a manifest.toml, and this one has none"
+            "\(place) (\(PackKeyTable.manifest.kind)): a pack holds a pack.json, and this one has none"
 
         case let .invalidEngine(place, engine):
-            "\(place) (\(PackKeyTable.manifestKind)): \(quoted(engine)) is not a range of versions. "
+            "\(place) (\(PackKeyTable.manifest.kind)): \(quoted(engine)) is not a range of versions. "
                 + "Write ^major, ^major.minor or ^major.minor.patch"
 
         case let .unsupportedEngine(place, pack, engine, version):
-            "\(place) (\(PackKeyTable.manifestKind)): "
+            "\(place) (\(PackKeyTable.manifest.kind)): "
                 + "pack \(quoted(pack)) is written for frames \(engine), and this is frames \(version)"
 
         case let .duplicatePack(place, name, shipped):
-            "\(place) (\(PackKeyTable.manifestKind)): "
+            "\(place) (\(PackKeyTable.manifest.kind)): "
                 + "a pack named \(quoted(name)) ships with frames at \(shipped), so an installed one of that name stops"
 
         case let .unreadableFile(file):

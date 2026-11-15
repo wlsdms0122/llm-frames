@@ -58,12 +58,12 @@ struct PackLibraryTests {
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.pack(named: "shorts") }
-        let manifest = directory.installed.appendingPathComponent("shorts/manifest.toml").path
+        let manifest = directory.installed.appendingPathComponent("shorts/pack.json").path
         let shipped = directory.shipped.appendingPathComponent("shorts").path
         #expect(error?.description == #"\#(manifest): top level (manifest): a pack named "shorts" ships with frames at \#(shipped), so an installed one of that name stops"#)
     }
 
-    @Test("a pack directory without a manifest stops")
+    @Test("a pack directory without a pack.json stops")
     func refusesMissingManifest() throws {
         // Given
         try FileManager.default.createDirectory(
@@ -74,8 +74,8 @@ struct PackLibraryTests {
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.pack(named: "loose") }
-        let manifest = directory.installed.appendingPathComponent("loose/manifest.toml").path
-        #expect(error?.description == "\(manifest): top level (manifest): a pack holds a manifest.toml, and this one has none")
+        let manifest = directory.installed.appendingPathComponent("loose/pack.json").path
+        #expect(error?.description == "\(manifest): top level (manifest): a pack holds a pack.json, and this one has none")
     }
 
     @Test("a pack written for other versions of frames stops, naming both")
@@ -86,8 +86,8 @@ struct PackLibraryTests {
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.pack(named: "future") }
-        let manifest = directory.installed.appendingPathComponent("future/manifest.toml").path
-        #expect(error?.description == #"\#(manifest): frames.engine (manifest): pack "future" is written for frames ^2.1, and this is frames 1.0.0"#)
+        let manifest = directory.installed.appendingPathComponent("future/pack.json").path
+        #expect(error?.description == #"\#(manifest): engine (manifest): pack "future" is written for frames ^2.1, and this is frames 1.0.0"#)
     }
 
     @Test("a pack that is not there is none")

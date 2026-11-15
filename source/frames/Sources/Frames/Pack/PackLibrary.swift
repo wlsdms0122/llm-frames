@@ -47,7 +47,7 @@ struct PackLibrary: Sendable {
         guard isInstalled || isShipped else { return nil }
 
         let directory = isInstalled ? installedDirectory : shippedDirectory
-        let file = directory.appendingPathComponent("manifest.toml").path
+        let file = directory.appendingPathComponent("pack.json").path
         let place = Place(file: file, components: [])
         guard !(isInstalled && isShipped) else {
             throw PackError.duplicatePack(place: place, name: name, shipped: shippedDirectory.path)
@@ -59,7 +59,7 @@ struct PackLibrary: Sendable {
         let manifest = try reader.manifest(from: data, file: file)
         guard manifest.engine.contains(FramesVersion.current) else {
             throw PackError.unsupportedEngine(
-                place: place.appending(key: "frames").appending(key: "engine"),
+                place: place.appending(key: "engine"),
                 pack: name,
                 engine: manifest.engine.text,
                 version: FramesVersion.current
