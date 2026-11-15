@@ -44,11 +44,11 @@ theme
 - The analysis commands (`probe`, `ocr`, `track`, `extract`, `sheet`, `timeline`, `evaluate`, `locate`) report facts to write a document with. `ocr` and `track` use the providers, and `transcode` writes with the encoder role. All of them read media through the decoder role.
 - Paths are absolute. A document argument may also name a pack template, `<pack>/<name>`, or be `-`, read from standard input.
 - A command frames does not have, `frames <name> ...`, runs `frames-<name>` from `PATH` with the global options before the name and the arguments after it, unchanged, and with standard input and output passed through ([FRAMES-25](../FRAMES-25/SPEC.md)).
-- `frames --version` prints the version ([FRAMES-18](../FRAMES-18/SPEC.md)). An extension checks it against the versions it is written for, as a pack does with `[frames] engine`.
+- `frames --version` prints the version ([FRAMES-18](../FRAMES-18/SPEC.md)). An extension checks it against the versions it is written for, as a pack does with `engine` in its `pack.json`.
 - On success, stdout gets one line with the output path and size.
 - On failure, stderr gets `frames: <reason>` and the exit code is 1. Without arguments, frames prints usage and exits with 64.
 - Messages name the place, for example `storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend, side`. A place is a path of keys and indexes from the document, and the document itself is `top level`. A clip or op with an `id` is named with it after its index: `clips[1]#intro`.
-- A message about a file other than the document (a theme, a preset, a template, a document named as media, an args file, a pack manifest) puts that file first, as it was referred to, then the place in that file: `shorts/shorts: defaults.transition (defaults): unknown transition preset "dissolve"`. A pack manifest is named by its path. What resolve finds inside a nested document or a template instance, once each is read and checked, is named by the place of the clip that holds it, continued as `timeline` continues it (`storyline[0].media.storyline[1]`).
+- A message about a file other than the document (a theme, a preset, a template, a document named as media, an args file, a pack's `pack.json`) puts that file first, as it was referred to, then the place in that file: `shorts/shorts: defaults.transition (defaults): unknown transition preset "dissolve"`. A pack's `pack.json` is named by its path. What resolve finds inside a nested document or a template instance, once each is read and checked, is named by the place of the clip that holds it, continued as `timeline` continues it (`storyline[0].media.storyline[1]`).
 
 ### transcode
 
