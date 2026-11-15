@@ -9,19 +9,19 @@
 // not list takes none.
 struct ThemeDefaults: Equatable, Sendable {
     // MARK: - Property
-    let transition: ThemeDefault<TransitionChoice>
-    let titleAnimations: [String: ThemeDefault<AnimationChoice>]
-    let shapeAnimation: ThemeDefault<AnimationChoice>
-    let mediaAnimation: ThemeDefault<AnimationChoice>
-    let adjustAnimation: ThemeDefault<AnimationChoice>
+    let transition: TransitionChoice
+    let titleAnimations: [String: AnimationChoice]
+    let shapeAnimation: AnimationChoice
+    let mediaAnimation: AnimationChoice
+    let adjustAnimation: AnimationChoice
 
     // MARK: - Initializer
     init(
-        transition: ThemeDefault<TransitionChoice>,
-        titleAnimations: [String: ThemeDefault<AnimationChoice>],
-        shapeAnimation: ThemeDefault<AnimationChoice>,
-        mediaAnimation: ThemeDefault<AnimationChoice>,
-        adjustAnimation: ThemeDefault<AnimationChoice>
+        transition: TransitionChoice,
+        titleAnimations: [String: AnimationChoice],
+        shapeAnimation: AnimationChoice,
+        mediaAnimation: AnimationChoice,
+        adjustAnimation: AnimationChoice
     ) {
         self.transition = transition
         self.titleAnimations = titleAnimations

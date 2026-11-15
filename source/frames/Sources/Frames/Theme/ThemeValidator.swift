@@ -31,9 +31,12 @@ struct ThemeValidator: Sendable {
         }
     }
 
-    // The defaults of a merged theme, each with its place. Only a theme merged over something other than the base
-    // theme can lack one, and that stops where it is missing.
-    func defaults(in theme: JSONValue) throws -> ThemeDefaults {
+    // The defaults of a merged theme. Only a theme merged over something other than the base theme can lack one, and
+    // that stops where it is missing. A preset a default names must be there whether or not a clip takes it.
+    func defaults(
+        in theme: JSONValue,
+        presets: any PresetProvider
+    ) throws -> ThemeDefaults {
         let place = Place.root.appending(key: "defaults")
         let defaults = theme.objectValue?["defaults"]?.objectValue ?? JSONObject()
         let animationPlace = place.appending(key: "animation")
@@ -42,53 +45,123 @@ struct ThemeValidator: Sendable {
         let titles = animation["title"]?.objectValue ?? JSONObject()
 
         return ThemeDefaults(
-            transition: try choice(
-                "transition",
-                in: defaults,
-                place: place,
-                kind: ThemeKeyTable.defaults.kind,
-                reading: TransitionChoice.init(value:)
-            ),
+            transition: try transitionChoice(in: defaults, place: place, presets: presets),
             titleAnimations: Dictionary(
                 try titles.members.map { member in
-                    let choice = try choice(
+                    let choice = try animationChoice(
                         member.key,
                         in: titles,
                         place: titlePlace,
                         kind: "title animations",
-                        reading: AnimationChoice.init(value:)
+                        presets: presets
                     )
                     return (member.key, choice)
                 },
                 uniquingKeysWith: { first, _ in first }
             ),
-            shapeAnimation: try animationChoice("shape", in: animation, place: animationPlace),
-            mediaAnimation: try animationChoice("media", in: animation, place: animationPlace),
-            adjustAnimation: try animationChoice("adjust", in: animation, place: animationPlace)
+            shapeAnimation: try animationChoice(
+                "shape",
+                in: animation,
+                place: animationPlace,
+                kind: "animation defaults",
+                presets: presets
+            ),
+            mediaAnimation: try animationChoice(
+                "media",
+                in: animation,
+                place: animationPlace,
+                kind: "animation defaults",
+                presets: presets
+            ),
+            adjustAnimation: try animationChoice(
+                "adjust",
+                in: animation,
+                place: animationPlace,
+                kind: "animation defaults",
+                presets: presets
+            )
         )
     }
 
     // MARK: - Private
-    private func animationChoice(
-        _ key: String,
-        in animation: JSONObject,
-        place: Place
-    ) throws -> ThemeDefault<AnimationChoice> {
-        try choice(key, in: animation, place: place, kind: "animation defaults", reading: AnimationChoice.init(value:))
+    private func transitionChoice(
+        in defaults: JSONObject,
+        place: Place,
+        presets: any PresetProvider
+    ) throws -> TransitionChoice {
+        let kind = ThemeKeyTable.defaults.kind
+        let choice = try choice(
+            "transition",
+            in: defaults,
+            place: place,
+            kind: kind,
+            reading: TransitionChoice.init(value:)
+        )
+
+        switch choice {
+        case .cut:
+            break
+
+        case let .preset(name), let .timed(name, _):
+            guard try presets.transition(named: name) != nil else {
+                throw ThemeError.unknownPreset(
+                    place: place.appending(key: "transition"),
+                    kind: kind,
+                    presetKind: "transition",
+                    name: name
+                )
+            }
+        }
+
+        return choice
     }
 
-    private func choice<Choice: Equatable & Sendable>(
+    // `none` on a side of a split names no preset.
+    private func animationChoice(
+        _ key: String,
+        in object: JSONObject,
+        place: Place,
+        kind: String,
+        presets: any PresetProvider
+    ) throws -> AnimationChoice {
+        let choice = try choice(key, in: object, place: place, kind: kind, reading: AnimationChoice.init(value:))
+        let names: [String] = switch choice {
+        case .none:
+            []
+
+        case let .preset(name):
+            [name]
+
+        case let .split(entrance, exit):
+            [entrance, exit]
+        }
+
+        for name in names where name != "none" {
+            guard try presets.animation(named: name) != nil else {
+                throw ThemeError.unknownPreset(
+                    place: place.appending(key: key),
+                    kind: kind,
+                    presetKind: "animation",
+                    name: name
+                )
+            }
+        }
+
+        return choice
+    }
+
+    private func choice<Choice>(
         _ key: String,
         in object: JSONObject,
         place: Place,
         kind: String,
         reading read: (JSONValue) -> Choice?
-    ) throws -> ThemeDefault<Choice> {
+    ) throws -> Choice {
         guard let choice = object[key].flatMap(read) else {
             throw ModelError.missingKey(place: place, kind: kind, keys: [key])
         }
 
-        return ThemeDefault(choice: choice, place: place.appending(key: key), kind: kind)
+        return choice
     }
 
     private func walk(

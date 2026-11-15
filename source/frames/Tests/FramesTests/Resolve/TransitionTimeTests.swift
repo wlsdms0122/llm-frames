@@ -179,12 +179,12 @@ struct TransitionTimeTests {
         #expect(error?.description == message)
     }
 
-    @Test("a default transition naming a preset that is not there stops at its place in the theme")
+    @Test("a default transition naming a preset that is not there stops at its place in the theme, even when no clip takes it")
     func refusesUnknownDefaultTransition() throws {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "dissolve" } }, "storyline": [
-              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 }
+              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": "cut" }
             ] }
             """##)
 

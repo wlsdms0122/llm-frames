@@ -42,7 +42,7 @@ struct TimePlanner: Sendable {
         }
 
         let merged = try self.theme(of: sequence, over: theme)
-        let defaults = try validator.defaults(in: merged)
+        let defaults = try validator.defaults(in: merged, presets: presets)
         let sources = try sequence.storyline.map { clip in try source(of: clip, theme: merged) }
         let storyline = try layOut(sequence.storyline, sources: sources, defaults: defaults)
         let duration = storyline[storyline.count - 1].edit.end
@@ -238,37 +238,29 @@ struct TimePlanner: Sendable {
             return nil
         }
 
-        let lengths = [sources[index - 1].duration, sources[index].duration]
-        guard let choice = clip.transition else {
-            return try transitionPlan(
-                defaults.transition.choice,
-                origin: ChoiceOrigin(defaults.transition),
-                editPoint: editPoint,
-                lengths: lengths
-            )
-        }
-
         return try transitionPlan(
-            choice,
-            origin: .clip(place: clip.place, kind: kind),
+            clip.transition ?? defaults.transition,
             editPoint: editPoint,
-            lengths: lengths
+            lengths: [sources[index - 1].duration, sources[index].duration],
+            place: clip.place,
+            kind: kind
         )
     }
 
     // A preset named alone lasts its own seconds.
     private func transitionPlan(
         _ choice: TransitionChoice,
-        origin: ChoiceOrigin,
         editPoint: Double,
-        lengths: [Double]
+        lengths: [Double],
+        place: Place,
+        kind: ClipKind
     ) throws -> TransitionPlan? {
         switch choice {
         case .cut:
             return nil
 
         case let .preset(name):
-            let definition = try transitionPreset(named: name, origin: origin)
+            let definition = try transitionPreset(named: name, place: place, kind: kind)
             return transitionPlan(
                 name,
                 seconds: definition.seconds,
@@ -278,7 +270,7 @@ struct TimePlanner: Sendable {
             )
 
         case let .timed(name, seconds):
-            let definition = try transitionPreset(named: name, origin: origin)
+            let definition = try transitionPreset(named: name, place: place, kind: kind)
             return transitionPlan(
                 name,
                 seconds: seconds,
@@ -306,12 +298,15 @@ struct TimePlanner: Sendable {
         )
     }
 
+    // The presets a theme default names were found when the theme was validated, so only a clip's own choice stops
+    // here.
     private func transitionPreset(
         named name: String,
-        origin: ChoiceOrigin
+        place: Place,
+        kind: ClipKind
     ) throws -> TransitionPreset {
         guard let preset = try presets.transition(named: name) else {
-            throw origin.unknownPreset(kind: "transition", name: name)
+            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: name)
         }
 
         return preset
@@ -567,18 +562,15 @@ struct TimePlanner: Sendable {
         kind: ClipKind,
         defaults: ThemeDefaults
     ) throws -> AnimationPlan {
-        if let choice = clip.animation {
-            return try animationPlan(choice, origin: .clip(place: clip.place, kind: kind))
-        }
-        guard let themeDefault = defaultAnimation(for: clip.content, in: defaults) else { return .none }
+        guard let choice = clip.animation ?? defaultAnimation(for: clip.content, in: defaults) else { return .none }
 
-        return try animationPlan(themeDefault.choice, origin: ChoiceOrigin(themeDefault))
+        return try animationPlan(choice, place: clip.place, kind: kind)
     }
 
     private func defaultAnimation(
         for content: ClipContent,
         in defaults: ThemeDefaults
-    ) -> ThemeDefault<AnimationChoice>? {
+    ) -> AnimationChoice? {
         switch content {
         case let .title(style):
             defaults.titleAnimations[style]
@@ -596,14 +588,15 @@ struct TimePlanner: Sendable {
 
     private func animationPlan(
         _ choice: AnimationChoice,
-        origin: ChoiceOrigin
+        place: Place,
+        kind: ClipKind
     ) throws -> AnimationPlan {
         switch choice {
         case .none:
             return .none
 
         case let .preset(name):
-            let preset = try animationPreset(named: name, origin: origin)
+            let preset = try animationPreset(named: name, place: place, kind: kind)
             return AnimationPlan(
                 entrance: preset?.entrance.map { PresetSpan(preset: name, span: $0) },
                 loop: preset?.loop.map { PresetSpan(preset: name, span: $0) },
@@ -611,8 +604,8 @@ struct TimePlanner: Sendable {
             )
 
         case let .split(entrance, exit):
-            let entrancePreset = try animationPreset(named: entrance, origin: origin)
-            let exitPreset = try animationPreset(named: exit, origin: origin)
+            let entrancePreset = try animationPreset(named: entrance, place: place, kind: kind)
+            let exitPreset = try animationPreset(named: exit, place: place, kind: kind)
             return AnimationPlan(
                 entrance: entrancePreset?.entrance.map { PresetSpan(preset: entrance, span: $0) },
                 loop: nil,
@@ -621,14 +614,16 @@ struct TimePlanner: Sendable {
         }
     }
 
-    // `none` names no preset, so it is nil without a lookup.
+    // `none` names no preset, so it is nil without a lookup. The presets a theme default names were found when the
+    // theme was validated, so only a clip's own choice stops here.
     private func animationPreset(
         named name: String,
-        origin: ChoiceOrigin
+        place: Place,
+        kind: ClipKind
     ) throws -> AnimationPreset? {
         guard name != "none" else { return nil }
         guard let preset = try presets.animation(named: name) else {
-            throw origin.unknownPreset(kind: "animation", name: name)
+            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "animation", name: name)
         }
 
         return preset
