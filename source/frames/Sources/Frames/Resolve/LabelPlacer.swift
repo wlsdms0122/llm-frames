@@ -13,6 +13,7 @@
 struct LabelPlacer: Sendable {
     // MARK: - Property
     private let conformer = CropConformer()
+    private let sideFinder = LabelSideFinder()
 
     // MARK: - Initializer
     init() { }
@@ -46,13 +47,13 @@ struct LabelPlacer: Sendable {
             theme: theme
         )
         let sides = theme.labelSides
-        guard let side = sides.first(where: { room.contains(rectangle(of: text.size, beside: box, on: $0)) }) else {
+        guard let side = sideFinder.side(of: text.size, beside: box, in: room, sides: sides) else {
             throw ResolveError.labelWithoutRoom(
                 place: written.place.appending(key: "label"),
                 kind: .clip(clip.kind),
                 label: written.label ?? "",
                 sides: sides,
-                isInOutput: isInOutput
+                room: isInOutput ? "output frame" : "content rect"
             )
         }
 
@@ -168,50 +169,18 @@ struct LabelPlacer: Sendable {
         return isBand ? motion.carryBand(interpolated) : motion.carry(interpolated)
     }
 
-    // The tip sits at the middle of the area's side, and the box is as wide as the head or the line, whichever is
-    // wider. Theme lengths stay in output pixels under a zoom.
+    // Theme lengths stay in output pixels under a zoom.
     private func arrow(
         pointingAt area: Rectangle,
         from side: Side,
         scale: Double,
         theme: MergedTheme
     ) -> Rectangle {
-        let length = theme.arrowLength * scale
-        let breadth = max(theme.arrowHead, theme.arrowWidth) * scale
-
-        return switch side {
-        case .left:
-            Rectangle(x: area.x - length, y: area.center.y - breadth / 2, width: length, height: breadth)
-
-        case .right:
-            Rectangle(x: area.maxX, y: area.center.y - breadth / 2, width: length, height: breadth)
-
-        case .top:
-            Rectangle(x: area.center.x - breadth / 2, y: area.y - length, width: breadth, height: length)
-
-        case .bottom:
-            Rectangle(x: area.center.x - breadth / 2, y: area.maxY, width: breadth, height: length)
-        }
-    }
-
-    // Outside the box on that side, its background touching it, centred along it.
-    private func rectangle(
-        of size: Size,
-        beside box: Rectangle,
-        on side: Side
-    ) -> Rectangle {
-        switch side {
-        case .left:
-            Rectangle(x: box.x - size.width, y: box.center.y - size.height / 2, width: size.width, height: size.height)
-
-        case .right:
-            Rectangle(x: box.maxX, y: box.center.y - size.height / 2, width: size.width, height: size.height)
-
-        case .top:
-            Rectangle(x: box.center.x - size.width / 2, y: box.y - size.height, width: size.width, height: size.height)
-
-        case .bottom:
-            Rectangle(x: box.center.x - size.width / 2, y: box.maxY, width: size.width, height: size.height)
-        }
+        sideFinder.arrowBox(
+            pointingAt: area,
+            from: side,
+            length: theme.arrowLength * scale,
+            breadth: max(theme.arrowHead, theme.arrowWidth) * scale
+        )
     }
 }

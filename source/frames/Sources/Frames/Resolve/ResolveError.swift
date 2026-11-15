@@ -35,7 +35,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
-    case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side], isInOutput: Bool)
+    case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side], room: String)
 
     // MARK: - Property
     var description: String {
@@ -142,9 +142,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
 
-        case let .labelWithoutRoom(place, kind, label, sides, isInOutput):
-            "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the "
-                + "\(isInOutput ? "output frame" : "content rect") on none of the sides "
+        case let .labelWithoutRoom(place, kind, label, sides, room):
+            "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the \(room) on none of the sides "
                 + sides.map(\.rawValue).joined(separator: ", ")
         }
     }
