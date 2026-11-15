@@ -53,7 +53,10 @@ struct PresetLibrary: PresetProvider {
 
         let file: URL? = switch reference {
         case let .builtIn(preset):
-            builtIn.appendingPathComponent(kind, isDirectory: true).appendingPathComponent(preset).appendingPathExtension("json")
+            builtIn
+                .appendingPathComponent(kind, isDirectory: true)
+                .appendingPathComponent(preset)
+                .appendingPathExtension("json")
 
         case .pack, .path:
             try packs.file(of: reference, in: "presets/\(kind)", pathExtension: "json")

@@ -230,13 +230,13 @@ struct StorylineTimeTests {
         #expect(plan.storyline[0].mediaTime(atSequenceTime: 9) < 6)
     }
 
-    @Test("a document or theme named by path waits for the stage that reads it")
-    func refusesUnreadReference() throws {
+    @Test("a document named by a path that is not there stops")
+    func refusesMissingDocument() throws {
         // Given
         let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/intro.json" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error == .unreadReference(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: .genericClip(.storyline), reference: "/abs/intro.json"))
+        #expect(error == .unprobedMedia(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: .genericClip(.storyline), reference: "/abs/intro.json"))
     }
 }

@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `media` is the file, or nil for a solid or a document written in place. `clip` is `[in, out)` on its clip time.
+// `media` is the file as the document wrote it, or nil for a solid, a document written in place and a template
+// instance. `clip` is `[in, out)` on its clip time.
 struct TimelineStorylineEntry: Equatable, Sendable {
     // MARK: - Property
     let place: Place

@@ -5,6 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
+import Foundation
+
 @testable import Frames
 
 enum Fixture {
@@ -39,8 +41,7 @@ enum Fixture {
             "/abs/card.png": ProbedMedia(kind: .image),
             "/abs/log.png": ProbedMedia(kind: .image),
             "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20),
-            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5),
-            "/abs/intro.json": ProbedMedia(kind: .sequence)
+            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5)
         ],
         imageSequences: ["/abs/frames": 12]
     )
@@ -64,7 +65,22 @@ enum Fixture {
         ]
     )
 
-    static let planner = TimePlanner(mediaFacts: mediaFacts, presets: presets)
+    // No pack is installed or shipped, so only absolute paths name anything.
+    static let library = ReferenceLibrary(
+        packs: PackLibrary(installed: emptyDirectory, shipped: emptyDirectory),
+        mediaFacts: mediaFacts
+    )
+
+    static let planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+
+    static let documentPlanner = DocumentPlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+
+    private static let emptyDirectory: URL = {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("frames-empty-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }()
 
     private static func transition(seconds: Double) -> TransitionPreset {
         TransitionPreset(description: "", seconds: seconds, over: .incoming, incoming: nil, outgoing: nil, cover: nil, matte: nil)

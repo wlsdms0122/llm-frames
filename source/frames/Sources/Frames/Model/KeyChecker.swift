@@ -79,6 +79,15 @@ struct KeyChecker: Sendable {
         )
     }
 
+    // The kind of media that passed the checks, as its probe or its form gives it.
+    func mediaKind(
+        of media: JSONValue,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        try mediaKind(of: media, place: place, kind: kind, scope: DocumentScope())
+    }
+
     // MARK: - Private
     private func check(
         _ value: JSONValue,
@@ -392,6 +401,15 @@ struct KeyChecker: Sendable {
     ) throws -> MediaKind {
         try checkMedia(value, place: place, kind: kind, scope: &scope)
 
+        return try mediaKind(of: value, place: place, kind: kind, scope: scope)
+    }
+
+    private func mediaKind(
+        of value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: DocumentScope
+    ) throws -> MediaKind {
         switch value {
         case let .string(reference):
             return try probedKind(of: reference, place: place, kind: kind)

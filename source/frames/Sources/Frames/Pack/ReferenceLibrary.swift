@@ -45,7 +45,7 @@ struct ReferenceLibrary: MediaKindProvider {
     }
 
     func templateKind(of name: String) throws -> MediaKind? {
-        try template(named: name)?.document.kind
+        try template(named: name)?.kind
     }
 
     // MARK: - Public
@@ -59,14 +59,23 @@ struct ReferenceLibrary: MediaKindProvider {
     func template(named name: String) throws -> Template? {
         guard let (file, value) = try value(named: name, in: "templates", pathExtension: "json") else { return nil }
 
-        let place = Place(file: name, components: [])
-        let references = try KeyChecker(mediaKinds: reading(file: file, name: name)).check(template: value, place: place)
-        let parameters = (value.objectValue?["params"]?.objectValue?.members ?? []).compactMap { member in
+        return try reading(file: file, name: name).template(value, place: Place(file: name, components: []))
+    }
+
+    // A template written at `place`, checked against its parameter types with what this library finds.
+    func template(
+        _ document: JSONValue,
+        place: Place
+    ) throws -> Template {
+        let references = try KeyChecker(mediaKinds: self).check(template: document, place: place)
+        let parameters = (document.objectValue?["params"]?.objectValue?.members ?? []).compactMap { member in
             parameter(member.key, member.value.objectValue ?? JSONObject())
         }
 
         return Template(
-            document: DocumentFile(name: name, file: file, value: value, kind: kind(of: value)),
+            document: document,
+            place: place,
+            kind: kind(of: document),
             parameters: parameters,
             references: references
         )

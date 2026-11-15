@@ -8,19 +8,20 @@
 // Plans a sequence's time without rendering and reports it as `timeline` prints it. It stops wherever the plan does.
 struct TimelineReporter: Sendable {
     // MARK: - Property
-    private let planner: TimePlanner
+    private let planner: DocumentPlanner
 
     // MARK: - Initializer
-    init(planner: TimePlanner) {
+    init(planner: DocumentPlanner) {
         self.planner = planner
     }
 
     // MARK: - Public
     func report(
         of document: JSONValue,
-        theme: MergedTheme = .base
+        theme: String? = nil,
+        arguments: ArgumentFile? = nil
     ) throws -> TimelineReport {
-        report(of: try planner.plan(document: document, theme: theme))
+        report(of: try planner.plan(document, theme: theme, arguments: arguments))
     }
 
     func report(of plan: TimePlan) -> TimelineReport {
@@ -36,7 +37,7 @@ struct TimelineReporter: Sendable {
         TimelineStorylineEntry(
             place: clip.place,
             id: clip.id,
-            media: clip.source.media?.file,
+            media: clip.source.media?.reference,
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,

@@ -12,8 +12,8 @@ import Testing
 @Suite("MediaTiming Tests")
 struct MediaTimingTests {
     // MARK: - Property
-    private let video = ResolvedMedia(kind: .video, file: "/abs/short.mp4", duration: 4, fps: 1, frames: 0...3)
-    private let sound = ResolvedMedia(kind: .audio, file: "/abs/ding.wav", duration: 1.5)
+    private let video = ResolvedMedia(kind: .video, reference: "/abs/short.mp4", file: "/abs/short.mp4", duration: 4, fps: 1, frames: 0...3)
+    private let sound = ResolvedMedia(kind: .audio, reference: "/abs/ding.wav", file: "/abs/ding.wav", duration: 1.5)
 
     // MARK: - Initializer
     // MARK: - Test

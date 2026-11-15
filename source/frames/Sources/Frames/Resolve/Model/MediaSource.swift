@@ -5,12 +5,13 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The forms a document names media in. A template instance and a parameter reference are filled before time is planned.
+// The forms a document names media in. `argument` is media a template instance was given, which keeps `theme`, the
+// theme in effect where the instance is written, since that is the document that wrote it.
 enum MediaSource: Equatable, Sendable {
     case file(String)
     case imageSequence(directory: String, fps: Double)
     case compound(SequenceDocument)
     case document(JSONObject)
-    case template(String)
-    case parameter(String)
+    case template(name: String, arguments: JSONObject)
+    indirect case argument(MediaSource, theme: MergedTheme)
 }

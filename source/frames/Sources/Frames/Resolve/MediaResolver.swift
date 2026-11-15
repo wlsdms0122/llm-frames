@@ -6,23 +6,34 @@
 //
 
 // Turns the media a document names into what time knows of it: the probed facts of a file, the length and frames an
-// image sequence's rate gives, and the time plan of a compound clip.
+// image sequence's rate gives, and the time plan of a compound clip, a document named by its file or a template
+// instance. Media named by `<pack>/<file>` is found through the library before it is probed.
 struct MediaResolver: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
     private let presets: any PresetProvider
+    private let library: ReferenceLibrary
+    private let instantiator: TemplateInstantiator
+
+    // A planner holds a resolver, so the one for nested documents is made when it is needed.
+    private var planner: TimePlanner {
+        TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+    }
 
     // MARK: - Initializer
     init(
         mediaFacts: any MediaFactProvider,
-        presets: any PresetProvider
+        presets: any PresetProvider,
+        library: ReferenceLibrary
     ) {
         self.mediaFacts = mediaFacts
         self.presets = presets
+        self.library = library
+        self.instantiator = TemplateInstantiator(mediaKinds: library)
     }
 
     // MARK: - Public
-    // `theme` is the theme in effect where the media is written, which a compound clip's own theme merges over.
+    // `theme` is the theme in effect where the media is written, which a nested document's own theme merges over.
     func media(
         of source: MediaSource,
         place: Place,
@@ -30,32 +41,39 @@ struct MediaResolver: Sendable {
         theme: MergedTheme
     ) throws -> ResolvedMedia {
         switch source {
-        case let .file(file):
-            guard let probed = mediaFacts.probedMedia(of: file) else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: file)
-            }
-            // A document named by its path is read with packs and templates, before time is planned.
-            guard probed.kind != .sequence else {
-                throw ResolveError.unreadReference(place: place, kind: kind, reference: file)
+        case let .file(reference) where library.isDocument(reference):
+            return try document(named: reference, place: place, kind: kind, theme: theme)
+
+        case let .file(reference):
+            guard
+                let file = try library.mediaFile(named: reference),
+                let probed = mediaFacts.probedMedia(of: file)
+            else {
+                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
 
             return ResolvedMedia(
                 kind: probed.kind,
+                reference: reference,
                 file: file,
                 duration: probed.duration,
                 fps: probed.fps,
                 frames: frames(of: probed)
             )
 
-        case let .imageSequence(directory, fps):
-            guard let count = mediaFacts.frameCount(ofImageSequence: directory) else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: directory)
+        case let .imageSequence(reference, fps):
+            guard
+                let directory = try library.mediaFile(named: reference),
+                let count = mediaFacts.frameCount(ofImageSequence: directory)
+            else {
+                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
             let duration = Double(count) / fps
             return ResolvedMedia(
                 kind: .video,
+                reference: reference,
                 file: directory,
                 duration: duration,
                 fps: fps,
@@ -63,25 +81,83 @@ struct MediaResolver: Sendable {
             )
 
         case let .compound(document):
-            let nested = try TimePlanner(mediaFacts: mediaFacts, presets: presets).plan(document, theme: theme)
-            // A compound clip is evaluated at whatever time is asked, clamped into [0, duration).
-            return ResolvedMedia(
-                kind: .sequence,
-                file: nil,
-                duration: nested.duration,
-                frames: 0...nested.duration.nextDown,
-                nested: nested
-            )
+            return nested(try planner.plan(document, theme: theme), reference: nil)
 
         case .document:
-            return ResolvedMedia(kind: .image, file: nil, duration: 0)
+            return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
 
-        case let .template(name), let .parameter(name):
-            throw ResolveError.unreadReference(place: place, kind: kind, reference: name)
+        case let .template(name, arguments):
+            return try instance(of: name, arguments: arguments, place: place, kind: kind, theme: theme)
+
+        case let .argument(source, argumentTheme):
+            return try media(of: source, place: place, kind: kind, theme: argumentTheme)
         }
     }
 
     // MARK: - Private
+    // A document named by its file stands as if written there, so it starts from the theme in effect there.
+    private func document(
+        named reference: String,
+        place: Place,
+        kind: PlaceKind,
+        theme: MergedTheme
+    ) throws -> ResolvedMedia {
+        guard let document = try library.document(named: reference) else {
+            throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
+        }
+        guard document.kind == .sequence else {
+            return ResolvedMedia(kind: .image, reference: reference, file: nil, duration: 0)
+        }
+
+        let sequence = SequenceReader().sequence(from: document.value, place: place)
+        return nested(try planner.plan(sequence, theme: theme), reference: reference)
+    }
+
+    // A template resolves on the base theme and its own, so only its arguments change it. Media it was given keeps
+    // `theme`, the theme where the instance is written.
+    private func instance(
+        of name: String,
+        arguments: JSONObject,
+        place: Place,
+        kind: PlaceKind,
+        theme: MergedTheme
+    ) throws -> ResolvedMedia {
+        guard let template = try library.template(named: name) else {
+            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind.label, name: name)
+        }
+
+        let instance = try instantiator.instance(
+            of: template,
+            arguments: arguments,
+            place: place.appending(key: "args")
+        )
+        guard instance.kind == .sequence else {
+            return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
+        }
+
+        let argumentThemes = Dictionary(
+            instance.arguments.map { argument in (place.appending(argument), theme) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let sequence = SequenceReader(arguments: argumentThemes).sequence(from: instance.document, place: place)
+        return nested(try planner.plan(sequence, theme: .base), reference: nil)
+    }
+
+    // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration).
+    private func nested(
+        _ plan: TimePlan,
+        reference: String?
+    ) -> ResolvedMedia {
+        ResolvedMedia(
+            kind: .sequence,
+            reference: reference,
+            file: nil,
+            duration: plan.duration,
+            frames: 0...plan.duration.nextDown,
+            nested: plan
+        )
+    }
+
     private func frames(of probed: ProbedMedia) -> ClosedRange<Double>? {
         guard probed.kind == .video else { return nil }
         guard let first = probed.frames.first, let last = probed.frames.last else { return 0...probed.duration }

@@ -10,6 +10,7 @@
 struct TimePlanner: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
+    private let library: ReferenceLibrary
     private let resolver: MediaResolver
     private let reader = SequenceReader()
     private let merger = ThemeMerger()
@@ -18,10 +19,12 @@ struct TimePlanner: Sendable {
     // MARK: - Initializer
     init(
         mediaFacts: any MediaFactProvider,
-        presets: any PresetProvider
+        presets: any PresetProvider,
+        library: ReferenceLibrary
     ) {
         self.presets = presets
-        self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets)
+        self.library = library
+        self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
     // MARK: - Public
@@ -76,19 +79,21 @@ struct TimePlanner: Sendable {
         of sequence: SequenceDocument,
         over theme: MergedTheme
     ) throws -> MergedTheme {
+        let place = sequence.place.appending(key: "theme")
+
         switch sequence.theme {
         case nil:
             return theme
 
         case let .object(layer):
-            return try merger.merge([ThemeLayer(value: layer, place: sequence.place.appending(key: "theme"))], over: theme)
+            return try merger.merge([ThemeLayer(value: layer, place: place)], over: theme)
 
         case let .named(name):
-            throw ResolveError.unreadReference(
-                place: sequence.place.appending(key: "theme"),
-                kind: .sequence,
-                reference: name
-            )
+            guard let layer = try library.theme(named: name) else {
+                throw ResolveError.unknownTheme(place: place, kind: .sequence, name: name)
+            }
+
+            return try merger.merge([layer], over: theme)
         }
     }
 

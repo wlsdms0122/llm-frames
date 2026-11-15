@@ -8,7 +8,7 @@
 enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
     case unprobedMedia(place: Place, kind: PlaceKind, reference: String)
-    case unreadReference(place: Place, kind: PlaceKind, reference: String)
+    case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
     case nonPositiveDuration(place: Place, kind: PlaceKind, duration: Double)
     case emptyClipRange(place: Place, kind: PlaceKind, in: Double, out: Double)
@@ -36,8 +36,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unprobedMedia(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) has no probed facts"
 
-        case let .unreadReference(place, kind, reference):
-            "\(place) (\(kind.label)): \(quoted(reference)) is not read before time is planned"
+        case let .unknownTheme(place, kind, name):
+            "\(place) (\(kind.label)): unknown theme \(quoted(name)). "
+                + "A theme is named <pack>/<name> or by an absolute path"
 
         case let .missingKey(place, kind, key):
             "\(place) (\(kind.label)): missing key \(quoted(key))"

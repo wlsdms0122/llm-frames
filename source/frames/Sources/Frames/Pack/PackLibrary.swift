@@ -94,7 +94,10 @@ struct PackLibrary: Sendable {
     // A file that is not there is nil, and one that is there but cannot be read stops.
     func contents(of file: URL) throws -> Data? {
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: file.path, isDirectory: &isDirectory), !isDirectory.boolValue else {
+        guard
+            FileManager.default.fileExists(atPath: file.path, isDirectory: &isDirectory),
+            !isDirectory.boolValue
+        else {
             return nil
         }
         guard let data = FileManager.default.contents(atPath: file.path) else {

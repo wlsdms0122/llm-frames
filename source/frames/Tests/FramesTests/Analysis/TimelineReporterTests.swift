@@ -12,7 +12,7 @@ import Testing
 @Suite("TimelineReporter Tests")
 struct TimelineReporterTests {
     // MARK: - Property
-    private let sut = TimelineReporter(planner: Fixture.planner)
+    private let sut = TimelineReporter(planner: Fixture.documentPlanner)
     private let document = ##"""
         { "kind": "sequence",
           "storyline": [

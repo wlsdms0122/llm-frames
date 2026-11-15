@@ -29,7 +29,10 @@ struct ManifestReader: Sendable {
 
         let engine = frames["engine"]?.stringValue ?? ""
         guard let range = EngineRange(engine) else {
-            throw PackError.invalidEngine(place: place.appending(key: "frames").appending(key: "engine"), engine: engine)
+            throw PackError.invalidEngine(
+                place: place.appending(key: "frames").appending(key: "engine"),
+                engine: engine
+            )
         }
 
         return PackManifest(
