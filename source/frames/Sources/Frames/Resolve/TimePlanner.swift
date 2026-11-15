@@ -201,7 +201,7 @@ struct TimePlanner: Sendable {
             )
         }
 
-        return try clips.indices.map { index in
+        return clips.indices.map { index in
             let edit = TimeRange(start: editPoints[index], end: editPoints[index + 1])
             let outgoing = transitions.indices.contains(index + 1) ? transitions[index + 1] : nil
             let drawn = TimeRange(
@@ -212,7 +212,6 @@ struct TimePlanner: Sendable {
             let keyframes = clips[index].keyframes.map { keyframe in
                 keyframe.moved(to: map.sequenceTime(ofClipTime: keyframe.at))
             }
-            try checkKeyframes(keyframes, visible: drawn, place: clips[index].place, kind: sources[index].kind)
 
             return StorylinePlan(
                 place: clips[index].place,
@@ -353,7 +352,6 @@ struct TimePlanner: Sendable {
         let keyframes = clip.keyframes.map { keyframe in
             keyframe.moved(to: clock.sequenceTime(ofClipTime: keyframe.at))
         }
-        try checkKeyframes(keyframes, visible: visible, place: clip.place, kind: kind)
 
         return ClipPlan(
             place: clip.place,
@@ -635,34 +633,5 @@ struct TimePlanner: Sendable {
         }
 
         return preset
-    }
-
-    // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
-    // value.
-    private func checkKeyframes(
-        _ keyframes: [KeyframeInstant],
-        visible: TimeRange,
-        place: Place,
-        kind: ClipKind
-    ) throws {
-        let properties = keyframes.flatMap(\.properties).reduce(into: [String]()) { properties, property in
-            guard !properties.contains(property) else { return }
-
-            properties.append(property)
-        }
-
-        for property in properties {
-            let instants = keyframes.filter { $0.properties.contains(property) }.map(\.at)
-            let isBefore = instants.allSatisfy { $0 < visible.start }
-            let isAfter = instants.allSatisfy { $0 >= visible.end }
-            guard !isBefore, !isAfter else {
-                throw ResolveError.keyframesOutsideVisibleRange(
-                    place: place.appending(key: "keyframes"),
-                    kind: .clip(kind),
-                    property: property,
-                    visible: visible
-                )
-            }
-        }
     }
 }

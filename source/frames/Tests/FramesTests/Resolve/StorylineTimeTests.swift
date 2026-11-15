@@ -196,20 +196,6 @@ struct StorylineTimeTests {
         #expect(plan.storyline[0].source.clipRange == TimeRange(start: 0, end: 4))
     }
 
-    @Test("a property whose keyframes all lie outside the drawn range stops")
-    func refusesKeyframesOutsideDrawnRange() throws {
-        // Given
-        let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] }
-            ] }
-            """#)
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"storyline[0].keyframes (video): every keyframe of "crop" lies outside [0, 6), so only one of its values would ever show"#)
-    }
-
     @Test("a compound clip plays its nested sequence, whose duration is its media length")
     func timesCompoundClip() throws {
         // Given

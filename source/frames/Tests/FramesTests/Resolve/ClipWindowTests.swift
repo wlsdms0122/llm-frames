@@ -218,18 +218,6 @@ struct ClipWindowTests {
         #expect(plan.clips[1].keyframes.map(\.at) == [1, 2])
     }
 
-    @Test("a clip property whose keyframes all lie outside its visible window stops")
-    func refusesKeyframesOutsideWindow() throws {
-        // Given
-        let document = try sequence(connected: #"""
-            { "at": [2, 4], "title": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] }
-            """#)
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"storyline[1].connected[0].keyframes (title): every keyframe of "opacity" lies outside [2, 3), so only one of its values would ever show"#)
-    }
-
     @Test("every clip with a picture has lane 1 unless it says otherwise, and lane 0 stops")
     func givesLanes() throws {
         // Given

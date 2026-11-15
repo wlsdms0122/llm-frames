@@ -26,6 +26,10 @@ extension MergedTheme {
         number(at: ["placement", "padding"])
     }
 
+    var arrowWidth: Double {
+        number(at: ["shapes", "arrow", "width"])
+    }
+
     var arrowLength: Double {
         number(at: ["shapes", "arrow", "length"])
     }
@@ -45,6 +49,11 @@ extension MergedTheme {
 
     // MARK: - Initializer
     // MARK: - Public
+    // The length scale of a place `width` wide: theme lengths are points at `baseWidth`.
+    func lengthScale(at width: Double) -> Double {
+        width / baseWidth
+    }
+
     // A colour is written as `#RRGGBB`, `#RRGGBBAA` or the name of a theme colour, which the reference checks found.
     func color(_ written: String) -> Color {
         guard !written.hasPrefix("#") else { return Color(written: written) }

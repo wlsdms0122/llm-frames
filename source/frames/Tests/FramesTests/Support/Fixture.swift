@@ -34,12 +34,18 @@ enum Fixture {
 
     static let mediaFacts = MediaFactTable(
         files: [
-            "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97),
-            "/abs/short.mp4": ProbedMedia(kind: .video, duration: 4, fps: 1, frames: [0, 1, 2, 3]),
-            "/abs/light-leak.mov": ProbedMedia(kind: .video, duration: 4, fps: 23.976),
-            "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5),
-            "/abs/card.png": ProbedMedia(kind: .image),
-            "/abs/log.png": ProbedMedia(kind: .image),
+            "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920)),
+            "/abs/short.mp4": ProbedMedia(
+                kind: .video,
+                duration: 4,
+                fps: 1,
+                frames: [0, 1, 2, 3],
+                size: Size(width: 1080, height: 1920)
+            ),
+            "/abs/light-leak.mov": ProbedMedia(kind: .video, duration: 4, fps: 23.976, size: Size(width: 1920, height: 1080)),
+            "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5, size: Size(width: 1079, height: 1919)),
+            "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
+            "/abs/log.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
             "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20),
             "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5),
             "/abs/screen.mp4": ProbedMedia(
@@ -83,6 +89,21 @@ enum Fixture {
     )
 
     static let planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+
+    // "Send" is on every frame of `/abs/short.mp4`, and "Total" on every frame of `/abs/screen.mp4`.
+    static let ocr = OCRTable([
+        "/abs/short.mp4": [(from: 0, lines: [RecognisedLine(text: "Send", rectangle: send)])],
+        "/abs/screen.mp4": [(from: 0, lines: [RecognisedLine(text: "Total", rectangle: total)])]
+    ])
+    static let send = Rectangle(x: 400, y: 1200, width: 200, height: 60)
+    static let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
+
+    // The target is followed on every frame and holds still.
+    static let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": screenFrameTimes, "/abs/short.mp4": [0, 1, 2, 3]])
+
+    static let shaper = ShaperTable()
+
+    static let sequencePlanner = SequencePlanner(ocr: ocr, tracker: tracker, shaper: shaper, library: library)
 
     static let documentPlanner = DocumentPlanner(mediaFacts: mediaFacts, presets: presets, library: library)
 
