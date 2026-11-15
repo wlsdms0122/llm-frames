@@ -26,6 +26,22 @@ struct TimelineReporterTests {
           ] }
         """##
 
+    // "Total" is followed in `/abs/screen.mp4` up to media second 1.9, so a box on it from clip second 1.5 is visible
+    // until the frame shown then ends.
+    private let trackingReporter = TimelineReporter(
+        planner: DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            tracker: TrackerTable(
+                frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
+                followed: ["/abs/screen.mp4": 0...1.9]
+            ),
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+    )
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("the machine output is the timeline object FRAMES-23 gives, with places, ranges, transitions and parents")
@@ -255,6 +271,35 @@ struct TimelineReporterTests {
         ])
     }
 
+    @Test("a text area found by OCR, a track, a title and a labelled shape report, with the window tracking leaves")
+    func reportsAreasTrackingAndLabels() throws {
+        // Given
+        let value = try Fixture.json(tracked(sides: #"["top", "bottom"]"#))
+
+        // When
+        let report = try trackingReporter.report(of: value)
+
+        // Then
+        let expected = #"""
+            {"timeline": "1.0.0", "duration": 2, "storyline": [\#
+            {"place": "storyline[0]", "id": null, "media": "/abs/screen.mp4", "edit": [0, 2], "drawn": [0, 2], "clip": [1, 3], "speed": 1, "transition": null}], \#
+            "clips": [\#
+            {"place": "storyline[0].connected[0]", "id": null, "kind": "box", "visible": [0.5, 1], "lane": 1, "parent": "storyline[0]", "animation": null}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 2], "lane": 1, "parent": null, "animation": null}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("a label with no room stops timeline with resolve's message")
+    func stopsOnLabelWithoutRoom() throws {
+        // Given
+        let value = try Fixture.json(tracked(sides: #"["left"]"#))
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try trackingReporter.report(of: value) }
+        #expect(error?.description == #"storyline[0].connected[0].label (box): the label "Total" fits inside the content rect on none of the sides left"#)
+    }
+
     @Test("timeline stops wherever resolve stops, with the same message")
     func stopsWithPlan() throws {
         // Given
@@ -263,5 +308,16 @@ struct TimelineReporterTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.report(of: value) }
         #expect(error == .transitionOnFirstClip(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("transition")]), kind: .clip(.media(.video))))
+    }
+
+    // MARK: - Private
+    // A box on the text "Total", tracked, with a label tried on `sides`, and a title over the whole sequence.
+    private func tracked(sides: String) -> String {
+        #"""
+        { "kind": "sequence", "theme": { "shapes": { "label": { "sides": \#(sides) } } },
+          "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
+            "connected": [ { "shape": "box", "area": "Total", "at": [1.5, 3], "track": "Total", "label": "Total" } ] } ],
+          "clips": [ { "at": [0, 2], "title": "Pay now", "style": "headline" } ] }
+        """#
     }
 }
