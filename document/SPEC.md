@@ -167,7 +167,7 @@ Text is laid out by resolve, with real fonts, so line breaks, sizes and label si
 
 ## 5. Documents
 
-Every document is a JSON object with a `kind` of `image`, `layout` or `sequence`. A document may carry a `theme` (a theme object, or a theme by name, `<pack>/<name>` or absolute path), which is merged over the theme in effect (section 14), and `params`, which make it a template (section 10.2).
+Every document is a JSON object with a `kind` of `image`, `layout` or `sequence`. A document may carry a `theme` (a theme object, or a theme file, `<pack>/<name>` or an absolute path), which is merged over the theme in effect (section 14), and `params`, which make it a template (section 10.2).
 
 ## 6. image document
 
@@ -655,8 +655,9 @@ A pack is a set of looks and edits that someone made to share or sell. It is an 
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a `lut` op |
 | `media/` | mattes, overlays, stingers and other media, with image sequences as folders and documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for a sequence, wherever media is taken |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
+| `guide.md`, `examples/` | the guide and example documents of the form a pack is for (section 17) | read by people and agents, not by frames |
 
-- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. Installing a pack is copying its directory there. frames has no network command.
+- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. The packs that ship with frames (section 17) are found as if installed, and an installed pack of the same name stops. Installing a pack is copying its directory there. frames has no network command.
 - A bare name is built in. An unknown pack, or a name a pack does not hold, stops.
 - This specification is contract 1. A pack written for another contract stops when it is used, naming both, as a resolved document of an unknown version does.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
@@ -819,7 +820,7 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 
 ## 14. Theme (must)
 
-`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of section 9.5, so a template that leaves a key unset gets the same value on every frames of its contract. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take the name of a theme frames ships, `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
+`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of section 9.5, so a template that leaves a key unset gets the same value on every frames of its contract. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
 Merging goes key by key through the theme's own structure: the top-level groups, each colour, each style and its properties, each shape and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a transition choice like `{preset, seconds}`, a list.
 
@@ -893,9 +894,9 @@ A style is a named set of text properties. Any name is allowed, and frames reads
 
 `defaults` holds the presets a form uses when a clip names none. They are part of a form's look, which is why they live in the theme: shorts pop their subtitles, evidence does not. `animation` holds `title` (keyed by style name, which covers labels through the `label` style), `shape`, `media` and `adjust`. Anything not listed is `none`, the transition default is `cut`, and the filter default is `none`. A clip whose media is a compound clip or a template instance takes no default filter, since the clips inside it already took theirs.
 
-### 14.4 The shorts theme
+### 14.4 A form's theme
 
-frames ships one form theme, `shorts`, and its values are part of this contract like the base theme's.
+A form's theme lives in its pack (section 17) and holds only the keys it changes. The `shorts` pack's theme, `shorts/shorts`:
 
 ```json
 { "baseWidth": 1080,
@@ -914,7 +915,7 @@ frames ships one form theme, `shorts`, and its values are part of this contract 
 ## 15. Command line (must)
 
 ```
-frames [--theme <name | pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] [--encoder <name>] [--ocr <name>] [--shaper <name>] [--tracker <name>] <command> ...
+frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] [--encoder <name>] [--ocr <name>] [--shaper <name>] [--tracker <name>] <command> ...
 
 render    <document.json> -o <out.mov | out.mp4 | out.png> [--args <args.json>]
 still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
@@ -1013,7 +1014,7 @@ These are the acceptance tests.
 
 Guides, how-tos and extensions sit outside the engine. They only use what frames already has.
 
-A guide belongs to one form. Each form has a guide (`document/guide/<form>.md`), a theme when its look differs from the base theme (`themes/<form>.json`, only the keys it changes, shipped with frames and named `<form>`) and an example (`document/example/<form>.json`, runs once its paths are changed). A form's edits differ in how many clips, boxes and lines they hold, so a form is taught, not templated. A guide holds:
+A form is a kind of result (a PR screenshot, a vertical short, a demo) and is a pack (section 10.1): its guide (`guide.md`), a theme when its look differs from the base theme (`themes/`, only the keys it changes), its examples (`examples/`, each runs once its paths are changed), and any presets and templates of its own. Adding a form is adding a pack, and this contract does not change. A form's edits differ in how many clips, boxes and lines they hold, so a form is taught, not templated. A guide holds:
 
 - what the form is for: who watches it, and where
 - its theme
@@ -1052,10 +1053,10 @@ An extension reads what frames reports (section 15.2) and writes or changes docu
 - `frames <name>` runs `frames-<name>` from `PATH`, so an extension is installed by putting it there.
 - An extension acts before resolve. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again, and a pack stays data that every role can draw.
 
-First guides:
+Forms that ship with frames, as packs:
 
 - **pr-evidence:** the base theme. The conclusion and the reason go in the banner. Crops are bands (`{"band": ...}`), since evidence keeps whole lines. Labels never go above a box, where they would cover the line above, which is why the base theme leaves `top` out of `shapes.label.sides`. Only the reason lines get a box. Personal data is covered with an opaque `fill` at opacity 1 with no animation, on every clip and every frame that shows it: on video a tracked area, or area keyframes from `ocr --json` where it leaves the screen and comes back. A template is a closed box, so a recording given to one is covered first: render it with its covers to a master and pass that file. The finished file is checked with `ocr`. No filters and no music. Transitions are `fade` at 0.3 to 0.5.
-- **shorts:** Korean vertical short-form, 9:16. A headline in the top band, outlined subtitles with `pop`, `push-up` between scenes.
+- **shorts:** Korean vertical short-form, 9:16, with the theme `shorts/shorts` (section 14.4). A headline in the top band, outlined subtitles with `pop`, `push-up` between scenes.
 - **demo:** a feature demo on the base theme.
 
 First how-tos:
@@ -1141,15 +1142,14 @@ frames/
     SPEC.md                this document
     GUIDE.md               how to make anything, how to write a guide or a how-to
     PRESET.md              how to write a preset
-    PACK.md                how to make a pack and a template
-    guide/<form>.md
+    PACK.md                how to make a pack, a form and a template
     howto/<name>.md
-    example/<form>.json
   presets/                 built in, laid out as in a pack
     transition/*.json
     animation/*.json
     filter/*.json
-  themes/<form>.json
+  packs/                   the forms that ship with frames
+    pr-evidence/  shorts/  demo/
   source/                  the sources and the built tool
 ```
 
@@ -1160,7 +1160,7 @@ frames/
 3. Evaluate: display lists at a time and the mix plan, tested as data without drawing.
 4. The Swift roles: the decoder, the renderer (pictures, fills, strokes, arrows, glyphs, adjustments, filters, LUTs, blend modes, mattes), the mixer, and the encoder for ProRes and H.264. Checked against section 16 with `still` and `sheet`.
 5. `transcode`, `probe`, `extract`, `sheet`, `ocr`, `track`, `evaluate`, `locate`, `packs`, and the machine output of section 15.2.
-6. The 42 presets, the base theme, the form themes, the guides, the examples and the first how-tos.
+6. The 42 presets, the base theme, the form packs (themes, guides, examples) and the first how-tos.
 
 ---
 
