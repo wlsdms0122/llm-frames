@@ -24,7 +24,7 @@ frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere
 | Principle | Meaning |
 | --- | --- |
 | The editing model is the product | Documents, time, text areas, presets, themes, templates, text layout (fonts, line breaks, wrapping, boxes) and evaluation at a time are defined once, here, and implemented once. Recognising text, shaping it and tracking are providers (section 13.1) |
-| Rendering is replaceable roles | A decoder reads media files, a renderer draws display lists, a mixer mixes the mix plan, and an encoder writes the file (section 13). None of them knows clips, keyframes or presets. Swift fills every role first. A renderer is a 2D compositor with a font rasterizer (Core Graphics and Core Image, Skia), and ffmpeg can fill the decoder, the mixer or the encoder |
+| Rendering is replaceable roles | A decoder reads media files, a renderer draws display lists, a mixer mixes the mix plan, and an encoder writes the file (section 13). None of them knows clips, keyframes or presets. Apple's frameworks fill every role first (AVFoundation, and Core Graphics with Core Image as `quartz`). A renderer is a 2D compositor with a font rasterizer (Core Graphics and Core Image, Skia), and ffmpeg can fill the decoder, the mixer or the encoder |
 | Standard vocabulary | Names come from NLEs and compositing tools: storyline, connected clip, in and out points, lane, keyframe, transition, crop, title, parenting, compound clip, published parameter, blend mode, LUT, matte, display list |
 | Composite, do not generate | Anything beyond titles and shapes arrives as media |
 | Tools, not purposes | frames gives editing tools: clips, shapes, tracking, filters. What to do with them for a purpose (hiding personal data, choosing highlights, cutting to a beat) is composition: the theme, template, guide and data of the next row, or an extension, a program that reads what frames reports and writes documents (section 17.1). The test: a new form or purpose is added without changing frames |
@@ -34,7 +34,7 @@ frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere
 | A value that still does what it says is clamped, one that cannot stops | A transition longer than its clips, an out point past the end of the media, an area partly outside the picture: each is cut to what fits and still does its job. A clip that is never visible, an area wholly outside the picture, a one-line label that does not fit: each stops |
 | No legacy keys | When a key changes, old documents stop. There is no compatibility branch |
 | Master at full quality, deliver separately | `render` writes a master that never trades quality for size. Delivery files are made from the same frames (`--deliver`) or from it (`transcode`) |
-| Reproducible from the resolved document | What can differ between machines is fixed into the resolved document. Recognised text, tracks, text layout, themes, presets and templates are written out as values, and the files the roles still open (media, mattes, LUTs, fonts) are pinned by hash. Rendering it again on the same decoder and renderer gives the same frames on any machine that has the same files |
+| Reproducible from the resolved document | What can differ between machines is fixed into the resolved document. Recognised text, tracks, text layout, themes, presets and templates are written out as values, and the files the roles still open (media, mattes, LUTs, fonts) are pinned by hash. Rendering it again with the same version of frames and the same roles gives the same text, places and timing on any machine that has the same files, and the same frames on the same machine |
 | Sound is media | frames places sound files on the timeline. Speech synthesis, recording and transcription happen outside |
 
 ## 3. Shape of the system
@@ -68,7 +68,7 @@ every media file is read through the decoder
 | Time | seconds, as a number. Which clock a time is on is section 8.3 |
 | Area in media | media pixels: pixels of the media picture as it is displayed, origin at the top left, rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
-| Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture (section 4.2) |
+| Theme lengths (text size, stroke, the theme's paddings, line width, filter radius) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture (section 4.2) |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size, its box before any scale (a label's own box for a label animation). In a transition, multiples of the content rect |
 
 | Angles | degrees, clockwise positive |
@@ -130,6 +130,7 @@ Any property marked keyframable takes a static value or a list of keyframes. A k
 - A property that no keyframe names uses its static value, or its default. A property written both as a static value and in a keyframe stops (section 8.2).
 - A keyframe's `ease` shapes the span leaving it, towards the next keyframe of each property it names, as in CSS and Lottie. The default is `linear`. An `ease` on a keyframe that no later keyframe follows for any of its properties stops.
 - A keyframe's `at` is an instant on the clock of its clip (section 8.3).
+- A property whose keyframes all lie before the range its clip is visible in (a storyline clip's drawn range, any other clip's visible window), or all after it, stops, since only one of its values would ever show.
 - Numbers and points interpolate per component. An `area` interpolates per component. A `crop` interpolates its centre per component and its size geometrically (in log space), so a zoom keeps one speed. Crops are conformed to one aspect ratio first (section 8.5), so the ratio holds between keyframes.
 - An area given by text resolves at its own keyframe's time before it interpolates (on a tracked clip it is then brought back through the motion, as every value is, section 8.10).
 
@@ -199,17 +200,17 @@ An image document edits one picture with an ordered list of operations.
 - A drawing wholly outside the canvas at its operation stops. A label's room is measured on the canvas at its shape's operation.
 - Coordinates outside the source picture reach into pads and banners only for drawings after those operations, so a title at `y: -20` after a top pad sits in that pad.
 - `adjust` is an adjustment layer: it changes everything drawn before it, inside its area or over the whole canvas, so a box drawn before a pixelate is pixelated and a box drawn after it is not.
-- Any op may carry an `id` (section 8.2).
+- Any op may carry an `id` and `metadata` (section 8.2).
 - Wherever a picture is taken (a layout item, a storyline clip, a connected clip), an image document can stand in for a path.
 
 | op | Keys | What it does |
 | --- | --- | --- |
 | `crop` | area | Keeps the area, clipped to the picture |
 | `resize` | `{scale}`, `{width}` or `{height}` | Resizes and keeps the aspect ratio |
-| `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, `color` optional | Adds a margin. The default colour is the theme `background` |
+| `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, in pixels of the canvas at that operation, `color` optional | Adds a margin. The default colour is the theme `background` |
 | `shape` | `box`, `fill`, `dim` or `arrow`, with `id`, `area`, `label`, `side`, `color` | Draws a shape (section 8.9) |
 | `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |
-| `title` | text, `position` (media `[x, y]` or a point of an area), `anchor`, `style` | Places a title (section 8.8), its anchor point at `position` as on a sequence (section 4.5) |
+| `title` | text, `position` (media `[x, y]` or a point of an area), `anchor`, `style`, `width` | Places a title (section 8.8), its anchor point at `position` as on a sequence (section 4.5). `width` is in media pixels of `source`, and defaults to the width of the canvas at that operation minus twice the placement padding |
 | `banner` | lines, `edge` (`top` or `bottom`) | Extends the picture with a band as tall as its text. A line is a string, in the `banner` style, or `{text, style}` |
 | `border` | `true` (the `border` colour) or a colour | Draws a border around the picture with the theme `shapes.border.width` |
 
@@ -281,13 +282,13 @@ A layout places pictures on a grid.
 | --- | --- |
 | sequence | `kind, format, theme, params, storyline, clips` |
 | format | `size, fps, background, inset, conform` |
-| storyline clip, timed media (video, image sequence, compound) | `id, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image, image or layout document) | `id, media, duration, crop, filter, transition, keyframes, connected` |
-| storyline clip, solid | `id, solid, duration, transition, connected` |
-| every connected and sequence clip | `id, at, lane, opacity, animation, keyframes` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image, image or layout document) | `id, metadata, media, duration, crop, filter, transition, keyframes, connected` |
+| storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
+| every connected and sequence clip | `id, metadata, at, lane, opacity, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip's, `track, anchor, media, in, out, speed, loop, volume, fadeIn, fadeOut, placement, position, parent, scale, rotation, crop, conform, filter, blend, width, height, radius, border, shadow` |
 | still media clip (image, image or layout document) | every clip's, `track, anchor, media, placement, position, parent, scale, rotation, crop, conform, filter, blend, width, height, radius, border, shadow` |
-| audio clip | `id, at, media, in, out, speed, loop, volume, fadeIn, fadeOut, keyframes` |
+| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, fadeIn, fadeOut, keyframes` |
 | title clip | every clip's, `track, anchor, title, style, width, placement, position, parent, scale, rotation, blend` |
 | shape clip | every clip's, `shape, area, track, label, labelAnimation, color, blend`, and `side` for an arrow |
 | adjustment clip | every clip's, `adjust, area, track` |
@@ -301,6 +302,8 @@ A layout places pictures on a grid.
 | parameter | `type, default, description`, and `options` for a choice |
 
 `id` names a clip or op for whatever reads or changes the document from outside (section 17.1), since a place like `storyline[1].connected[0]` moves when clips are added. It is a string, unique within its document (a nested document has its own), and a duplicate stops. Messages and machine output give it with the place.
+
+`metadata` is an object that frames does not read: what the programs that read and change a document keep on a clip or op (section 17.1), such as which extension added it and why, as an NLE keeps keywords and notes. Its contents are not checked, and resolve does not carry it into the resolved document.
 
 Which media row applies depends on what the media holds, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row (section 10.2).
 
@@ -320,7 +323,7 @@ Keys are checked over the whole JSON tree before any value is read, except the m
 
 Three clocks meet on a sequence. **Clip time** is the time inside one storyline clip. **Sequence time** is the time of the output. **Media time** (section 4.1) is the clock of a media file itself.
 
-**Instants are on the clock of their owner. Durations are sequence seconds.**
+**Instants are on the clock of what they belong to: a storyline clip, or the sequence. Durations are sequence seconds.**
 
 | Instant | Clock |
 | --- | --- |
@@ -331,7 +334,7 @@ Three clocks meet on a sequence. **Clip time** is the time inside one storyline 
 
 Durations (a media clip's natural length, `duration`, transition and animation `seconds`, loop `period`, `fadeIn`, `fadeOut`) are always sequence seconds. A sound connected to a clip at speed 2 plays its full length at its own speed, and an entrance takes the same time on every clip.
 
-Clip time is the media time of a video, image sequence or compound clip, and the seconds since the clip started for a still or solid clip. It lets an agent take times straight from frames it extracted from a recording. Trimming or speeding up an earlier clip does not move anything connected to a later one.
+Clip time is the media time of a video, image sequence or compound clip, and the seconds since the clip started for a still or solid clip. It lets an agent take times straight from frames it extracted from a recording, and a connected clip's keyframes say where things are in its storyline clip's media. Trimming or speeding up an earlier clip does not move anything connected to a later one. A clip's `at` and keyframes are on one clock, so moving a clip in time moves both.
 
 A storyline clip starts at `start` on the sequence clock and lasts `duration`:
 
@@ -427,7 +430,7 @@ A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in outpu
 
 ### 8.10 Tracking (must)
 
-`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area in one of the finding forms of section 4.2, or `true` for the clip's own `area` (a shape or adjustment) or `crop` (a storyline clip). The area is found at the clip's instant (section 4.2), before padding, and the tracker provider (section 13.1) follows it backwards and forwards over every frame the picture draws, handles included, giving the target's rectangle on each.
+`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area in one of the finding forms of section 4.2, or `true` for the clip's own `area` (a shape or adjustment) or `crop` (a storyline clip). The area is found at the clip's instant (section 4.2), before padding, and the tracker provider (section 13.1) follows it backwards and forwards from that frame until it has covered every frame the picture draws, handles included, and the frames between them and the instant, giving the target's rectangle on each.
 
 - The track is a motion: on each frame, the similarity transform (a move, and one uniform scale about the target's centre) that takes the target's rectangle at the instant to its rectangle on that frame. The scale is the geometric mean of the width and height ratios, so a crop keeps its aspect ratio.
 - The motion acts as a moving parent. Every value of the clip's geometry (its `area`, its `position`, a storyline clip's `crop`) is where it is at its own time, as a rectangle `ocr --json` gives for that time is: a keyframe's value at the keyframe's time, found by text or written as a rectangle, and a static value at the instant. Each is brought back through the inverse of the motion at its time, interpolated there, and carried by the motion on each frame. So a box stays on a scrolling line, a title beside a button stays beside it when the screen zooms (section 4.5), and a zoom keyframed on a crop goes on while the crop follows a card.
@@ -551,7 +554,7 @@ A span is:
 
 ### 9.4 filter
 
-A filter preset is a chain of operations from this table, applied in order. The operations are frames vocabulary, so every renderer maps them to its own.
+A filter preset is a chain of operations from this table, applied in order. The operations are frames vocabulary and their formulas are the contract, so every renderer maps them to its own and a preset looks the same on each.
 
 ```json
 { "description": "...", "ops": [ { "op": "saturation", "amount": 0 }, { "op": "contrast", "amount": 1.3 } ] }
@@ -560,24 +563,25 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | op | Parameters | Meaning |
 | --- | --- | --- |
 | `exposure` | `ev` | multiplies linear light by 2^ev |
-| `contrast` | `amount` (1 is none) | contrast around middle grey |
-| `saturation` | `amount` (0 is grey, 1 is none) | colour saturation |
-| `temperature` | `kelvin` (positive is warmer) | white balance shift |
-| `hue` | `degrees` | rotates hue |
-| `sepia` | `amount` (0 to 1) | sepia tone |
+| `contrast` | `amount` (1 is none) | (v - 0.5) × amount + 0.5 |
+| `saturation` | `amount` (0 is grey, 1 is none) | L + amount × (v - L) |
+| `temperature` | `kelvin` (positive is warmer) | multiplies linear light, channel by channel, by the colour of a blackbody at 6500 - kelvin K over its colour at 6500 K, each in linear sRGB at equal luminance (CIE 1931 2° observer), with the temperature kept between 1000 and 40000 K |
+| `hue` | `degrees` | the `hue-rotate()` matrix of W3C Filter Effects |
+| `sepia` | `amount` (0 to 1) | the `sepia()` matrix of W3C Filter Effects at that amount |
 | `levels` | `input: [black, white]`, `output: [black, white]` (0 to 1) | maps input levels to output levels |
 | `lut` | `file` (a `.cube` 3D LUT), `amount` (0 to 1) | maps colours through the LUT, applied to sRGB-encoded values with trilinear interpolation, and blends the result by `amount` |
-| `blur` | `radius` (theme length) | Gaussian blur |
-| `sharpen` | `amount`, `radius` | unsharp mask |
-| `bloom` | `amount`, `radius`, `color` optional | bright areas glow, in that colour when one is given (halation) |
-| `vignette` | `amount`, `radius` (fraction of half the diagonal) | darkens towards the edges |
+| `blur` | `radius` (theme length) | Gaussian blur whose standard deviation is `radius` |
+| `sharpen` | `amount`, `radius` | unsharp mask: v + amount × (v - the blur of v at `radius`) |
+| `bloom` | `amount`, `radius`, `color` optional | adds amount × the blur at `radius` of the bright parts (each pixel times smoothstep(0.5, 1, L)), times `color` when one is given (halation) |
+| `vignette` | `amount`, `radius` (fraction of half the diagonal) | multiplies by 1 - amount × smoothstep(radius, 1, d), where d is the distance from the centre over half the diagonal |
 | `pixelate` | `size` (theme length) | square blocks, each filled with the mean colour of the pixels it covers |
-| `grain` | `amount` (0 to 1), `size` (theme length) | monochrome film grain, strongest in the midtones. Evaluation writes its `seed` (section 12), so a render made again has the same grain |
+| `grain` | `amount` (0 to 1), `size` (theme length) | adds amount × 4L(1 - L) × n to each channel, where n is monochrome noise with standard deviation 1 and grains `size` across. Evaluation writes its `seed` (section 12), so a render made again has the same grain |
 
 - An unknown op stops when the preset is read.
 - Parameters are numbers, lists of numbers, colours, or for `lut` a file: `<pack>/<name>` for `luts/<name>.cube` in a pack, or an absolute path.
-- The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) are cropped back to the original size.
-- Renderers keep the meaning of each operation, in the working space (section 13). Identical pixels across renderers are not part of the contract.
+- v is a channel of a pixel's colour with alpha unpremultiplied, and L is its luminance (section 13). Colour operations leave alpha as it is, and every operation's result is clamped to 0 to 1. smoothstep is as in GLSL.
+- The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) read the edge pixels extended outward, and are cropped back to the original size.
+- Every renderer computes these formulas in the working space (section 13). Pixels differ between renderers only by rounding, and grain by its noise generator, which is the renderer's.
 
 ### 9.5 Presets to ship
 
@@ -660,8 +664,8 @@ A pack is a set of looks and edits that someone made to share or sell. It is an 
 
 - Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. The packs that ship with frames (section 17) are found as if installed, and an installed pack of the same name stops. Installing a pack is copying its directory there. frames has no network command.
 - A bare name is built in. An unknown pack, or a name a pack does not hold, stops.
-- frames is versioned `major.minor.patch` (semantic versioning), and this specification, at 1.0.0, is what the version is about: document keys and values, presets, themes, templates, packs, commands, and the values of the base theme and of the presets frames ships. An addition (a key, an op, a preset, a form of a value, a command) raises the minor number. A removal, a renamed key, or a changed value of the base theme or a preset raises the major number. A fix that brings an implementation to this specification raises the patch number. A name never changes its meaning within a major version: a new meaning takes a new name.
-- The resolved document, the display list, the mix plan and each machine output object carry their own schema version (sections 11, 15.2), which their readers (frames, the roles, extensions) check. A change to one raises that number, not the major version of frames, so a pack that never reads it keeps working.
+- frames is versioned `major.minor.patch` (semantic versioning), and this specification, at 1.0.0, is what the version is about: document keys and values, presets, themes, templates, packs, commands, the values of the base theme and of the presets frames ships, and what frames writes for others to read: the resolved document, the display list, the mix plan and machine output. An addition (a key, an op, a preset, a form of a value, a command) raises the minor number. A removal, a renamed key, or a changed value of the base theme or a preset raises the major number. A fix that brings an implementation to this specification raises the patch number. A name never changes its meaning within a major version: a new meaning takes a new name.
+- The resolved document, the display list, the mix plan and each machine output object carry the version of the frames that wrote them (sections 11, 15.2). A new key in one is an addition, and a removed or changed one a major change, so a resolved document stays readable by every later frames of its major version.
 - A pack names the versions of frames it is written for as a range in `[frames] engine`, where `"^1.2"` is 1.2.0 or later before 2.0.0. Outside it, the pack stops when it is used, naming both.
 - A document names no version. It is resolved by the frames that reads it, and what it resolved to is kept in its resolved document (section 11), so a document that must be made again the same way keeps its resolved document. A pack is checked because it is made once and used by many frames.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
@@ -700,7 +704,7 @@ A template is a document with published parameters, as an NLE's motion graphics 
 
 ## 11. Resolved document (must)
 
-The resolved document is frames' own lockfile: what `resolve` writes, and what evaluation and `render` read. It is not an exchange format, and frames reads only what resolve wrote. It is JSON of the same kind as its document, with `"resolved": 1`, the version of its schema.
+The resolved document is frames' own lockfile: what `resolve` writes, and what evaluation and `render` read. It is not an exchange format, and frames reads only what resolve wrote. It is JSON of the same kind as its document, with `"resolved"` set to the version of the frames that wrote it (section 10.1).
 
 What resolve has already done:
 
@@ -719,7 +723,7 @@ What resolve has already done:
 
 ```json
 {
-  "kind": "sequence", "resolved": 1,
+  "kind": "sequence", "resolved": "1.0.0",
   "format": { "size": [1080, 1920], "fps": 30, "duration": 13.95, "background": "#000000FF",
               "content": [40, 420, 1000, 1380], "conform": "fit" },
   "storyline": [
@@ -762,8 +766,8 @@ An image document and a layout resolve to their final size and one list of drawi
 
 - Resolve is deterministic for the same document, arguments, media, theme, presets, packs, fonts, recognised text and tracks.
 - Evaluating and rendering a resolved document needs its pinned files and nothing else.
-- Evaluation refuses a `resolved` version it does not know.
-- Display lists and the mix plan have a JSON form too, with `"displayList": 1` and `"mixPlan": 1`, so what evaluation gives a role can be checked, recorded and replayed apart from it. A role refuses a version it does not know.
+- A frames reads a resolved document written by a frames of its own major version at its minor version or an earlier one, and refuses any other, naming both versions. Made again by the version that wrote it, a resolved document gives the same result. A later version gives the same result too, except where a patch brought evaluation or a role back to this specification.
+- Display lists and the mix plan have a JSON form too, with `"displayList"` and `"mixPlan"` set to the version of the frames that wrote them, so what evaluation gives a role can be checked, recorded and replayed apart from it. They are read by the same rule as a resolved document.
 - Evaluation and `render` trust a resolved document as they trust resolve. They check its version, and `render` its hashes, not its rules again. Evaluation opens no file.
 
 ## 12. Evaluation, display lists and the mix plan (must)
@@ -809,9 +813,9 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 - `render` writes a master: a `.mov` (ProRes 422 HQ, or ProRes 4444 when the frames carry alpha, with 24-bit PCM sound), or a PNG for images, layouts and stills. `--deliver` also writes a delivery file from the same frames in the same step: H.264 at the encoder's highest quality with AAC at 256 kbps or more.
 - The working space is sRGB. Decoded pictures are converted to it (section 4.1), and every renderer composites, blends, filters and measures matte luminance on sRGB-encoded values, the values W3C Compositing writes its formulas for. `exposure` alone works in linear light: it decodes to linear, multiplies, and encodes back. Luminance is the Rec. 709 luma of the encoded values.
 - No role leaves temporary files.
-- The same display lists on the same decoder and renderer give the same frames before encoding, on any machine with the same files. File bytes are not promised, since hardware encoders differ. Two renderers give the same geometry, text, timing and operations in the same working space, not the same pixels. The same mix plan on the same decoder and mixer gives the same samples.
+- The same display lists on the same decoder and renderer, of the same version of frames, give the same frames before encoding on the same machine, and on another one to within the rounding of its GPU. File bytes are not promised, since hardware encoders differ. Two renderers give the same geometry, text, timing and operations in the same working space, not the same pixels. The same mix plan on the same decoder and mixer gives the same samples.
 
-`--decoder`, `--renderer`, `--mixer` and `--encoder` pick each role. Each defaults to `swift`.
+`--decoder`, `--renderer`, `--mixer` and `--encoder` pick each role by the name of its implementation. The renderer defaults to `quartz` (Core Graphics and Core Image), and the others to `avfoundation`.
 
 ### 13.1 Providers
 
@@ -822,7 +826,7 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 | tracker | pictures from the decoder around one frame, and a rectangle on that frame | a rectangle in media pixels on each frame before and after it, out to where it reports the target lost in each direction |
 
 - What makes one line is the OCR provider's. A document can resolve on one provider and stop on another, where a line is split or joined differently, and the resolved document keeps what was found. The same holds for what a tracker followed.
-- `--ocr`, `--shaper` and `--tracker` pick each provider. Each defaults to `swift` (Vision and Core Text).
+- `--ocr`, `--shaper` and `--tracker` pick each provider by the name of its implementation. OCR and the tracker default to `vision`, and shaping to `coretext`.
 
 ## 14. Theme (must)
 
@@ -943,13 +947,13 @@ theme
 ```
 
 - Every command that takes a document (`render`, `still`, `timeline`, `evaluate`, `locate`, `extract`, `sheet`) also takes a resolved document, which it uses as it is. `render` takes a document, a template with `--args`, or a resolved document. A resolved document with `--theme` or `--args` stops, since both are already written in. A template renders with its defaults when every parameter has one. A template with `--theme` stops, since only its arguments change it.
-- `still` draws sequence frames at the given sequence times without encoding a video. Several times go side by side, each labelled with its time in the `label` style, laid out by resolve like any title. It is the cheap check while a sequence is being written.
+- `still` draws sequence frames at the given sequence times without encoding a video. Several times go side by side, each labelled with its time in the base theme's `label` style, laid out by resolve like any title, so a form's theme does not change how a check looks. It is the cheap check while a sequence is being written.
 - `timeline` resolves without rendering and prints, for every storyline clip, its edit range, drawn range, clip range (`[in, out)` on its clip time), speed, and incoming transition with its length, and for every other clip, its visible range, kind, animation and place (`storyline[1].connected[0]`). Everything resolve stops on (an unknown preset, a clip that is never visible, a label with no room, a bad argument) stops here too. It writes no file.
-- `evaluate` prints what is drawn at sequence time t, clip by clip. `locate` maps a point of the output at t back to the document (section 15.2).
+- `evaluate` prints the display list at sequence time t as machine output, item by item, with the clip or op that drew each. `locate` maps a point of the output at t back to the document (section 15.2).
 - `probe` prints the kind, size, duration, frame rate, alpha, and audio channels and sample rate.
 - `ocr` prints `size WxH` on the first line, then one line per recognised line, `[x, y, w, h]  text`, in media pixels. Over a range it does this for each frame, under a line with its media time.
 - `track` follows an area (section 4.2) found at media time `--at`, backwards and forwards with the tracker provider, as `track` on a clip does.
-- `extract` writes frames as PNG files. `sheet` lays frames out in one picture, each labelled with its time. Given a document they take composite frames at sequence times, as `still` draws them.
+- `extract` writes frames as PNG files. `sheet` lays frames out in one picture, each labelled with its time as `still` labels it. Given a document they take composite frames at sequence times, as `still` draws them.
 - `presets` lists presets with their descriptions, or prints one preset's JSON. `packs` lists installed packs, or what one pack holds.
 - The analysis commands (`probe`, `ocr`, `track`, `extract`, `sheet`) use the providers, and `transcode` writes with the encoder role. All of them read media through the decoder role.
 - Paths are absolute. A document argument may also name a pack template, `<pack>/<name>`, or be `-`, read from standard input.
@@ -981,18 +985,18 @@ theme
 
 ### 15.2 Machine output
 
-What frames reports about a document or a medium is a contract, so programs outside frames can build on it. With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name with the version of its schema. The text output is for people and is not part of the contract.
+What frames reports about a document or a medium is a contract, so programs outside frames can build on it. With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name, set to the version of the frames that printed it. The text output is for people and is not part of the contract.
 
 | Command | Object |
 | --- | --- |
-| `probe` | `{"probe": 1, kind, size, duration, fps, alpha, audio}`, `audio` as `{channels, sampleRate}` or `null` |
-| `ocr` | `{"ocr": 1, size, frames}`, each frame `{time, lines}` and each line `{text, rect}`. An image has one frame at time 0 |
-| `track` | `{"track": 1, frames}`, each frame followed as `{time, rect}`, in time order |
-| `timeline` | `{"timeline": 1, duration, storyline, clips}`. A storyline entry has `place, id, media` (the file, or `null`), `edit`, `drawn`, `clip` (each `[start, end)`), `speed` and `transition` (`{preset, seconds}` or `null`). A clips entry has `place, id, kind, visible, lane, parent` (the place of its storyline clip, or `null`) and `animation`. An entry whose media is a compound clip or a template instance also has `nested`, the timeline object of the document inside, with places continued from the entry's. Section 8.3 maps sequence time to clip time and media time from these values |
-| `evaluate` | `{"evaluate": 1, time, size, items}`, bottom first, each `{place, id, kind, bounds, opacity}`: the clip or op that drew it (`null` for the background, a transition cover and the fill outside the content rect), and the output rectangle it covers after its transform and mask. Inside a nested document a place continues the place of the clip that holds it (`storyline[0].media.storyline[2]`) |
-| `locate` | `{"locate": 1, hits}`, topmost first: every item under the point, each `{place, id, kind}`, and for a picture of a media file also `{media, mediaTime, point}`, the point in that media's pixels |
+| `probe` | `{"probe": "1.0.0", kind, size, duration, fps, alpha, audio}`, `audio` as `{channels, sampleRate}` or `null` |
+| `ocr` | `{"ocr": "1.0.0", size, frames}`, each frame `{time, lines}` and each line `{text, rect}`. An image has one frame at time 0 |
+| `track` | `{"track": "1.0.0", frames}`, each frame followed as `{time, rect}`, in time order |
+| `timeline` | `{"timeline": "1.0.0", duration, storyline, clips}`. A storyline entry has `place, id, media` (the file, or `null`), `edit`, `drawn`, `clip` (each `[start, end)`), `speed` and `transition` (`{preset, seconds}` or `null`). A clips entry has `place, id, kind, visible, lane, parent` (the place of its storyline clip, or `null`) and `animation`. An entry whose media is a compound clip or a template instance also has `nested`, the timeline object of the document inside, with places continued from the entry's. Section 8.3 maps sequence time to clip time and media time from these values |
+| `evaluate` | `{"evaluate": "1.0.0", time, size, items}`, bottom first, each `{place, id, kind, bounds, opacity}`: the clip or op that drew it (`null` for the background, a transition cover and the fill outside the content rect), and the output rectangle it covers after its transform and mask. Inside a nested document a place continues the place of the clip that holds it (`storyline[0].media.storyline[2]`) |
+| `locate` | `{"locate": "1.0.0", hits}`, topmost first: every item under the point, each `{place, id, kind}`, and for a picture of a media file also `{media, mediaTime, point}`, the point in that media's pixels |
 
-- A change to an object raises its version, and the old form is no longer printed (section 2, no legacy keys).
+- Fields follow section 10.1: a new field is an addition, and a removed or changed one a major change. The old form is no longer printed (section 2, no legacy keys).
 - Places are those of section 15 messages.
 - The display list and the mix plan are the roles' wire forms (section 11.3), not part of this output.
 
@@ -1060,7 +1064,7 @@ An extension reads what frames reports (section 15.2) and writes or changes docu
 - It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws from the same resolve. An extension that must be sure of what is drawn, such as one that covers personal data, resolves the document once, checks that resolved document with `evaluate`, `still` and `extract`, and has the same resolved document rendered. It passes the resolved document on and does not read it, since its form is frames' own (section 11). An extension that gives a resolved document ends the chain: only frames commands take it after that, so such an extension runs last, and a chain has one.
 - It gives a document on standard output, and `timeline` checks it like any other. Extensions chain: `frames autocut doc.json | frames privacy - | frames render - -o out.mov`.
 - `frames <name>` runs `frames-<name>` from `PATH`, so an extension is installed by putting it there.
-- An extension that splits a clip keeps the clip's `id` on the first part and gives every other part a new one. An unparented connected clip goes with the part that holds its start and plays on as before. A parented clip is part of its picture, so one whose window crosses the cut is copied onto each part it crosses, the first copy keeping its `id` and the others taking new ones. Clip time is media time, so the copies keep their `at`.
+- An edit (a blade, a trim, a ripple delete, a move) is a document in and a document out, since frames keeps no state between commands for an edit to act on. So editing a document is the agent's or an extension's work, and `timeline` checks the result like any other document. GUIDE.md teaches how to make an edit without changing what is shown: the first part of a split keeps the clip's `id` and the others take new ones, and its incoming transition and `fadeIn` stay on the first part and its `fadeOut` on the last; an unparented connected clip goes with the part that holds its start; a parented clip that crosses the cut is copied onto each part, keeping its `at` (clip time is media time), with its exit turned off before the cut and its entrance after it (`{entrance, exit}` with `none`); a ripple moves every later sequence clip's `at` and keyframes by the same amount.
 - An extension acts before resolve. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again, and a pack stays data that every role can draw.
 
 Forms that ship with frames, as packs:
@@ -1151,7 +1155,7 @@ frames/
   README.md                commands and the document reference
   document/
     SPEC.md                this document
-    GUIDE.md               how to make anything, how to write a guide or a how-to
+    GUIDE.md               how to make anything, how to write a guide, a how-to or an extension
     PRESET.md              how to write a preset
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
@@ -1169,7 +1173,7 @@ frames/
 1. The contract as data: key tables, the base theme, presets, spans and easing. Pure data with easy unit tests.
 2. Resolve and `timeline`: templates, packs, text areas, text layout and the time plan without rendering, tested against section 8.3.
 3. Evaluate: display lists at a time and the mix plan, tested as data without drawing.
-4. The Swift roles: the decoder, the renderer (pictures, fills, strokes, arrows, glyphs, adjustments, filters, LUTs, blend modes, mattes), the mixer, and the encoder for ProRes and H.264. Checked against section 16 with `still` and `sheet`.
+4. The first roles, `avfoundation` and `quartz`: the decoder, the renderer (pictures, fills, strokes, arrows, glyphs, adjustments, filters, LUTs, blend modes, mattes), the mixer, and the encoder for ProRes and H.264. Checked against section 16 with `still` and `sheet`.
 5. `transcode`, `probe`, `extract`, `sheet`, `ocr`, `track`, `evaluate`, `locate`, `packs`, and the machine output of section 15.2.
 6. The 42 presets, the base theme, the form packs (themes, guides, examples) and the first how-tos.
 
