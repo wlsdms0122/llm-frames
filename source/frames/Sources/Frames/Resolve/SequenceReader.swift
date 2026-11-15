@@ -147,7 +147,7 @@ struct SequenceReader: Sendable {
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)
         }
-        guard object["kind"] == .string("sequence") else { return .document(object) }
+        guard MediaKind(document: value) == .sequence else { return .document(object) }
 
         return .compound(sequence(from: value, place: place))
     }
