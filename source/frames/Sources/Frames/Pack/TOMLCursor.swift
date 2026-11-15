@@ -5,93 +5,159 @@
 //  Created by JSilver on 11/15/26.
 //
 
+// Reads the one value on the right of a `key =`. A `#` starts a comment only outside a string.
 struct TOMLCursor {
     // MARK: - Property
-    let bytes: [UInt8]
-    let file: String
-    var offset = 0
-
-    var isAtEnd: Bool {
-        offset >= bytes.count
-    }
+    private let characters: [Character]
+    private let file: String
+    private let line: Int
+    private var index = 0
 
     // MARK: - Initializer
     init(
-        bytes: [UInt8],
-        file: String
+        text: String,
+        file: String,
+        line: Int
     ) {
-        self.bytes = bytes
+        self.characters = Array(text)
         self.file = file
+        self.line = line
     }
 
     // MARK: - Public
-    func peek(_ ahead: Int = 0) -> UInt8? {
-        offset + ahead < bytes.count ? bytes[offset + ahead] : nil
-    }
+    mutating func value() throws -> JSONValue {
+        skipWhitespace()
+        guard let head = peek() else { throw error("missing value") }
 
-    func peek(_ word: String) -> Bool {
-        let wordBytes = Array(word.utf8)
-        guard offset + wordBytes.count <= bytes.count else { return false }
+        switch head {
+        case "\"":
+            return .string(try string())
 
-        return Array(bytes[offset..<offset + wordBytes.count]) == wordBytes
-    }
+        case "[":
+            return .array(try array())
 
-    mutating func advance(_ count: Int = 1) {
-        offset += count
-    }
-
-    // Spaces and tabs only, since a line ends a key/value pair.
-    mutating func skipSpaces() {
-        while let byte = peek(), byte == 0x20 || byte == 0x09 {
-            advance()
+        default:
+            return try literal()
         }
     }
 
-    mutating func skipComment() {
-        guard peek() == UInt8(ascii: "#") else { return }
+    mutating func expectEnd() throws {
+        skipWhitespace()
+        guard let head = peek(), head != "#" else { return }
 
-        while let byte = peek(), byte != 0x0A {
-            advance()
-        }
-    }
-
-    // Blank lines, comments and the ends of lines between the parts of an array.
-    mutating func skipBlank() {
-        while true {
-            skipSpaces()
-            skipComment()
-            guard let byte = peek(), byte == 0x0A || byte == 0x0D else { return }
-
-            advance()
-        }
-    }
-
-    mutating func expect(_ byte: UInt8, _ reason: String) throws {
-        guard peek() == byte else { throw error(reason) }
-
-        advance()
-    }
-
-    // A pair or header is followed only by a comment before the end of its line.
-    mutating func expectEndOfLine() throws {
-        skipSpaces()
-        skipComment()
-        if peek() == 0x0D, peek(1) == 0x0A {
-            advance()
-        }
-        guard isAtEnd || peek() == 0x0A else { throw error("expected the end of the line") }
-
-        advance()
-    }
-
-    func error(_ reason: String) -> PackError {
-        let consumed = bytes[..<min(offset, bytes.count)]
-        let line = consumed.filter { $0 == 0x0A }.count + 1
-        let lineStart = consumed.lastIndex(of: 0x0A).map { $0 + 1 } ?? 0
-        // A UTF-8 continuation byte belongs to the character it continues, so only the other bytes start a column.
-        let column = consumed[lineStart...].filter { !(0x80..<0xC0).contains($0) }.count + 1
-        return .manifestSyntax(file: file, line: line, column: column, reason: reason)
+        throw error("unexpected text after the value: \(String(characters[index...]))")
     }
 
     // MARK: - Private
+    private mutating func string() throws -> String {
+        advance()
+
+        var result = ""
+        while let character = peek() {
+            advance()
+
+            switch character {
+            case "\"":
+                return result
+
+            case "\\":
+                result.append(try escape())
+
+            default:
+                result.append(character)
+            }
+        }
+
+        throw error("a string is not closed")
+    }
+
+    private mutating func escape() throws -> Character {
+        guard let character = peek() else { throw error("a string ends with a backslash") }
+
+        advance()
+        switch character {
+        case "n":
+            return "\n"
+
+        case "t":
+            return "\t"
+
+        case "\"":
+            return "\""
+
+        case "\\":
+            return "\\"
+
+        default:
+            throw error("unknown escape \\\(character)")
+        }
+    }
+
+    private mutating func array() throws -> [JSONValue] {
+        advance()
+
+        var elements: [JSONValue] = []
+        while true {
+            skipWhitespace()
+            guard let head = peek() else { throw error("a list is not closed") }
+
+            if head == "]" {
+                advance()
+                return elements
+            }
+
+            elements.append(try value())
+            skipWhitespace()
+            if peek() == "," {
+                advance()
+            } else if peek() != "]" {
+                throw error("expected \",\" between the elements of a list")
+            }
+        }
+    }
+
+    // Only integers, true and false are written unquoted, so a date, a float or a bare word does not pass for one.
+    private mutating func literal() throws -> JSONValue {
+        var word = ""
+        while let character = peek(), !character.isWhitespace, ![",", "]", "#"].contains(character) {
+            word.append(character)
+            advance()
+        }
+
+        switch word {
+        case "true":
+            return .bool(true)
+
+        case "false":
+            return .bool(false)
+
+        case "":
+            throw error("unreadable value")
+
+        default:
+            guard let integer = Int(word) else {
+                throw error("unquoted value \(word). Write a string as \"\(word)\"")
+            }
+
+            return .number(Double(integer))
+        }
+    }
+
+    private func peek() -> Character? {
+        index < characters.count ? characters[index] : nil
+    }
+
+    private mutating func advance() {
+        index += 1
+    }
+
+    private mutating func skipWhitespace() {
+        while let character = peek(), character.isWhitespace {
+            advance()
+        }
+    }
+
+    private func error(_ reason: String) -> PackError {
+        .manifestSyntax(file: file, line: line, reason: reason)
+    }
 }

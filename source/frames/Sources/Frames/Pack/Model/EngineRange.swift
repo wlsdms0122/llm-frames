@@ -16,11 +16,12 @@ struct EngineRange: Equatable, Sendable {
     init?(_ text: String) {
         guard text.hasPrefix("^") else { return nil }
 
+        // Only digits, so a sign or a space does not pass for a number.
         let parts = text.dropFirst().split(separator: ".", omittingEmptySubsequences: false)
-        let numbers = parts.compactMap { part in part.allSatisfy(\.isASCII) ? Int(part) : nil }
-        guard (1...3).contains(parts.count), numbers.count == parts.count, numbers.allSatisfy({ $0 >= 0 }) else {
-            return nil
+        let numbers = parts.compactMap { part in
+            part.allSatisfy { $0.isASCII && $0.isNumber } ? Int(part) : nil
         }
+        guard (1...3).contains(parts.count), numbers.count == parts.count else { return nil }
 
         self.text = text
         self.lowest = numbers + Array(repeating: 0, count: 3 - numbers.count)

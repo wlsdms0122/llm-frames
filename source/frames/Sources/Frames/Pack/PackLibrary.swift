@@ -37,7 +37,8 @@ struct PackLibrary: Sendable {
     }
 
     // MARK: - Public
-    // A pack is checked each time it is used, since what is installed can change between uses.
+    // A pack is the directory it is in, whatever its manifest calls it. It is checked each time it is used, since what
+    // is installed can change between uses.
     func pack(named name: String) throws -> Pack? {
         let installedDirectory = installed.appendingPathComponent(name, isDirectory: true)
         let shippedDirectory = shipped.appendingPathComponent(name, isDirectory: true)
@@ -56,13 +57,6 @@ struct PackLibrary: Sendable {
         }
 
         let manifest = try reader.manifest(from: data, file: file)
-        guard manifest.name == name else {
-            throw PackError.misnamedPack(
-                place: place.appending(key: PackKeyTable.openPackage).appending(key: "name"),
-                name: manifest.name,
-                directory: name
-            )
-        }
         guard manifest.engine.contains(FramesVersion.current) else {
             throw PackError.unsupportedEngine(
                 place: place.appending(key: "frames").appending(key: "engine"),
@@ -72,7 +66,7 @@ struct PackLibrary: Sendable {
             )
         }
 
-        return Pack(name: name, directory: directory)
+        return Pack(name: name, directory: directory, manifest: manifest)
     }
 
     // The file a reference names: a path as it is, and `<pack>/<name>` in a folder of its pack, with the extension

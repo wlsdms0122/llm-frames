@@ -6,11 +6,10 @@
 //
 
 enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
-    case manifestSyntax(file: String, line: Int, column: Int, reason: String)
+    case manifestSyntax(file: String, line: Int, reason: String)
     case missingManifest(place: Place)
     case invalidEngine(place: Place, engine: String)
     case unsupportedEngine(place: Place, pack: String, engine: String, version: String)
-    case misnamedPack(place: Place, name: String, directory: String)
     case duplicatePack(place: Place, name: String, shipped: String)
     case unreadableFile(file: String)
     case circularReference(place: Place, files: [String])
@@ -24,8 +23,8 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Property
     var description: String {
         switch self {
-        case let .manifestSyntax(file, line, column, reason):
-            "\(file): line \(line), column \(column): \(reason)"
+        case let .manifestSyntax(file, line, reason):
+            "\(file): line \(line): \(reason)"
 
         case let .missingManifest(place):
             "\(place) (\(PackKeyTable.manifestKind)): a pack holds a manifest.toml, and this one has none"
@@ -37,10 +36,6 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unsupportedEngine(place, pack, engine, version):
             "\(place) (\(PackKeyTable.manifestKind)): "
                 + "pack \(quoted(pack)) is written for frames \(engine), and this is frames \(version)"
-
-        case let .misnamedPack(place, name, directory):
-            "\(place) (\(PackKeyTable.manifestKind)): "
-                + "the pack is named \(quoted(name)), but its directory is \(quoted(directory))"
 
         case let .duplicatePack(place, name, shipped):
             "\(place) (\(PackKeyTable.manifestKind)): "
