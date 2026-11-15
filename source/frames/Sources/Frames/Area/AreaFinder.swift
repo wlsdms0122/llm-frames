@@ -69,11 +69,16 @@ struct AreaFinder: Sendable {
         place: Place,
         kind: String
     ) throws -> [RecognisedLine] {
-        guard let file = picture.file else {
-            throw AreaError.textInDrawnPicture(place: place, kind: kind, picture: picture.name)
-        }
+        switch picture.source {
+        case let .mediaFile(file):
+            return ordered(try ocr.lines(in: file, atMediaTime: time))
 
-        return ordered(try ocr.lines(in: file, atMediaTime: time))
+        case .document:
+            throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)
+
+        case .solid:
+            throw AreaError.textInSolid(place: place, kind: kind)
+        }
     }
 
     // The rectangle around the lines, grown by the padding. The target is the same rectangle before padding.
@@ -113,7 +118,8 @@ struct AreaFinder: Sendable {
             picture: picture.name,
             mediaTime: time,
             text: text,
-            nth: nth
+            nth: nth,
+            matchCount: matches.count
         )
 
         guard let nth else {

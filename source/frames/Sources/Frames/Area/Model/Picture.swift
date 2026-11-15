@@ -5,13 +5,12 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What an area is found in: a picture of `size` in its own pixels. `file` is the media file or image sequence
-// directory text is recognised in, and nil for a picture that is drawn, not read. `name` names it in messages, as the
+// What an area is found in: a picture of `size` in its own pixels, from `source`. `name` names it in messages, as the
 // document wrote it.
 struct Picture: Equatable, Sendable {
     // MARK: - Property
     let name: String
-    let file: String?
+    let source: PictureSource
     let size: Size
 
     var bounds: Rectangle {
@@ -21,11 +20,11 @@ struct Picture: Equatable, Sendable {
     // MARK: - Initializer
     init(
         name: String,
-        file: String?,
+        source: PictureSource,
         size: Size
     ) {
         self.name = name
-        self.file = file
+        self.source = source
         self.size = size
     }
 

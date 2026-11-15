@@ -41,10 +41,21 @@ enum Fixture {
             "/abs/card.png": ProbedMedia(kind: .image),
             "/abs/log.png": ProbedMedia(kind: .image),
             "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20),
-            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5)
+            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5),
+            "/abs/screen.mp4": ProbedMedia(
+                kind: .video,
+                duration: 4,
+                fps: 10,
+                frames: screenFrameTimes,
+                size: Size(width: 1206, height: 2622)
+            ),
+            "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800))
         ],
         imageSequences: ["/abs/frames": 12]
     )
+
+    // A screen recording at 10 frames a second, whose frame i starts at media second i / 10.
+    static let screenFrameTimes = (0..<40).map { Double($0) / 10 }
 
     static let presets = PresetTable(
         transitions: [
