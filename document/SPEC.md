@@ -68,8 +68,8 @@ every media file is read through the decoder
 | Time | seconds, as a number. Which clock a time is on is section 8.3 |
 | Area in media | media pixels: pixels of the media picture as it is displayed, origin at the top left, rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
-| Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the scale of the place they are drawn (below). Area padding is the exception and is measured in its picture (section 4.2) |
-| Animation offsets `x`, `y` | multiples of the animated thing's own size. In a transition, multiples of the content rect |
+| Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture (section 4.2) |
+| Animation offsets `x`, `y` | multiples of the animated thing's own size, its box before any scale (a label's own box for a label animation). In a transition, multiples of the content rect |
 
 | Angles | degrees, clockwise positive |
 | Colours | `#RRGGBB`, `#RRGGBBAA`, or the name of a theme colour |
@@ -78,7 +78,7 @@ A clip's own size is that of its box: a title's text box, a media clip's box, a 
 
 Media time, in media seconds, is a media file's presentation timeline after its edit list, with 0 at the first presented frame. The decoder converts pictures to sRGB and tone maps HDR sources. Everything that reads media reads it by these definitions.
 
-Scale is `width / baseWidth`, where width is the output width for a sequence, the width of the canvas at that operation for an image document, and the widest item for a layout.
+The length scale is `width / baseWidth`, where width is the output width for a sequence, the width of the canvas at that operation for an image document, and the widest item for a layout.
 
 ### 4.2 Areas (must)
 
@@ -149,8 +149,8 @@ Any property marked keyframable takes a static value or a list of keyframes. A k
 A clip on a sequence that is not placed by an area is placed by `placement` or by `position`, never both. A clip with both stops.
 
 - `placement` is a name: `top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right`. The clip sits inside the output frame, inset by the theme `placement.padding` on every side. A text style's `offset` replaces that inset on the top or bottom edge, when the name has one (a subtitle sits `offset` above the bottom of the output).
-- `position` is `[x, y]`, where the clip's anchor point goes, in output pixels, or in the media pixels of its picture for a parented clip (section 8.7). It is keyframable.
-- `anchor` names the clip's anchor point, as in an NLE: one of the placement names, a point of the clip's box (`top-left` is its top left corner). The default is `center`. Under a parent's zoom or a track's scale the anchor point stays on its place in the picture and the clip keeps its size, so a clip next to something stays on it when it is anchored on the side that faces it: a title left of a button is anchored `right`.
+- `position` is `[x, y]`, where the clip's anchor point goes, in output pixels, or in the media pixels of its picture for a parented clip (section 8.7). On a parented clip it may also be `{area, point}`: the point (a placement name) of an area found as section 4.2 says, padding included, so a title sits beside a button by its text: `{"area": "Send", "point": "left"}` with `anchor: "right"`. It is keyframable.
+- `anchor` names the clip's anchor point, as in an NLE: one of the placement names, a point of the clip's box (`top-left` is its top left corner). The default is `center`, or the point the placement names for a clip placed by `placement` (a `bottom` subtitle grows from its bottom edge). Keyframed and animated scale and rotation both act around it, as in an NLE. Under a parent's zoom or a track's scale the anchor point stays on its place in the picture and the clip keeps its size, so a clip next to something stays on it when it is anchored on the side that faces it: a title left of a button is anchored `right`.
 
 Placement is measured on the output frame, not the content rect, so a title can sit in the band an inset leaves. The default is the text style's placement for titles and `center` for media. A parented title or media clip has no default and needs `position`.
 
@@ -209,7 +209,7 @@ An image document edits one picture with an ordered list of operations.
 | `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, `color` optional | Adds a margin. The default colour is the theme `background` |
 | `shape` | `box`, `fill`, `dim` or `arrow`, with `id`, `area`, `label`, `side`, `color` | Draws a shape (section 8.9) |
 | `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |
-| `title` | text, `position` (media `[x, y]`), `style` | Places a title (section 8.8) |
+| `title` | text, `position` (media `[x, y]` or a point of an area), `anchor`, `style` | Places a title (section 8.8), its anchor point at `position` as on a sequence (section 4.5) |
 | `banner` | lines, `edge` (`top` or `bottom`) | Extends the picture with a band as tall as its text. A line is a string, in the `banner` style, or `{text, style}` |
 | `border` | `true` (the `border` colour) or a colour | Draws a border around the picture with the theme `shapes.border.width` |
 
@@ -353,7 +353,7 @@ The map is the same line outside the clip, so a keyframe before `in` keeps its t
 - Every range and window holds its start and not its end, so a frame at an edit point belongs to the clip that starts there.
 - `at` is `[start, end]` or a single start. A window's start and end are both instants. A single start is an instant followed by a duration, the clip's natural length `(out - in) / speed` for video, audio, image sequence and compound media. Under a storyline clip whose speed is not 1 the two forms differ: `[2, 6]` ends at clip second 6, and `2` ends when the media does. When titles, shapes, adjustments and still images take `at`, it is `[start, end]`. A connected clip without `at` spans its storyline clip's drawn range when it is parented and its edit range otherwise, and a sequence clip without `at` spans the whole sequence. A parented clip whose window starts at the clip's `in` starts at the edit point, inside the transition, so one meant for the whole picture leaves out `at`. A parented clip without `at` takes no entrance and no exit, since it comes and goes with its picture.
 - A media clip plays from `in` at its own `speed` (default 1), whatever the speed of its storyline clip. When its window is longer than the media, video holds its last frame and audio goes silent, unless `loop` is true, in which case it repeats from `in` to `out` to fill the window.
-- An unparented connected clip with a picture is visible where its window meets its storyline clip's edit range. It disappears at the edit point in the middle of a transition and never stays over the next clip.
+- An unparented connected clip is attached by its start, as in an NLE, and plays its whole window across edit points and transitions, over whatever is below it. Only the end of the sequence cuts it.
 - A parented connected clip (section 8.7) is visible where its window meets its storyline clip's drawn range. It is composited with its picture, so a transition covers, wipes or moves it exactly as it does its picture.
 - A connected clip with a picture whose window does not meet the range it is visible in stops ("never visible").
 - A connected audio clip is only anchored by its start. It plays its window, or its natural length, across transitions. One whose start lies outside its storyline clip's drawn range stops.
@@ -476,9 +476,9 @@ Every preset has a `description`: one line on how it looks and when to use it, w
 | Property | Default | Meaning |
 | --- | --- | --- |
 | `opacity` | 1 | opacity |
-| `scale` | 1 | scale around the centre |
+| `scale` | 1 | scale around the anchor point (section 4.5), or the centre of the box for a clip placed by an area |
 | `x`, `y` | 0 | offset in multiples of the thing's own size, or of the content rect in a transition. Down is positive |
-| `rotation` | 0 | degrees, clockwise positive |
+| `rotation` | 0 | degrees, clockwise positive, around the same point as `scale` |
 | `reveal` | 1 | 0 shows nothing, 1 shows everything. How it reveals depends on what receives it (below) |
 | `nudge` | 0 | moves an arrow towards what it points at by multiples of its length. Only arrows read it |
 
@@ -521,7 +521,7 @@ A span is:
 - Every span is optional. Without one the clip simply shows.
 - On a short clip the entrance runs first and the exit takes what time is left.
 - `{entrance, exit}` as a choice takes the entrance from one preset and the exit from another.
-- An animation is applied over the clip's keyframes: its scale and opacity multiply, and its x, y and rotation add.
+- An animation is applied over the clip's keyframes, about the same point: its scale and opacity multiply, and its x, y and rotation add. A preset's look is the same for every anchor point, made about that point.
 
 ### 9.3 transition
 
@@ -710,7 +710,7 @@ What resolve has already done:
 - **Decisions are written down.** Label sides, conformed crops and tracks (the target's rectangle on each frame followed) are values, not rules to apply again.
 - **Anchor points are applied.** A `position` is written as the top left of the clip's box, and the anchor point that scale and rotation act around as `anchor`, a point in the box's own pixels.
 - **Clips are named.** Every clip keeps its place in the document and its `id`, so `evaluate` and `locate` can name what made each thing drawn.
-- **No names.** Theme colours, styles, presets and template arguments are written out as values. Theme lengths are already multiplied by their scale. Colours are `#RRGGBBAA`.
+- **No names.** Theme colours, styles, presets and template arguments are written out as values. Theme lengths are already multiplied by their length scale. Colours are `#RRGGBBAA`.
 - **Text is shaped.** Every title and label carries its glyph runs (font file, face, hash, size, colour, glyph ids and positions in its own box), its box size, stroke and background.
 - **One clock.** Every instant on a sequence is sequence time, and keyframes keep their eases. Media keeps `in`, `out` and `speed` in media time.
 - **Lanes kept.** Clips keep document order and carry their signed `lane`, so evaluation stacks them by section 8.6. The order of units during a transition (`over`) is applied at each time.
@@ -763,7 +763,7 @@ An image document and a layout resolve to their final size and one list of drawi
 - Resolve is deterministic for the same document, arguments, media, theme, presets, packs, fonts, recognised text and tracks.
 - Evaluating and rendering a resolved document needs its pinned files and nothing else.
 - Evaluation refuses a `resolved` version it does not know.
-- Display lists and the mix plan have a JSON form too, with `"displayList": 1` and `"mixPlan": 1`, so a role in another process or language reads them. A role refuses a version it does not know.
+- Display lists and the mix plan have a JSON form too, with `"displayList": 1` and `"mixPlan": 1`, so what evaluation gives a role can be checked, recorded and replayed apart from it. A role refuses a version it does not know.
 - Evaluation and `render` trust a resolved document as they trust resolve. They check its version, and `render` its hashes, not its rules again. Evaluation opens no file.
 
 ## 12. Evaluation, display lists and the mix plan (must)
@@ -805,6 +805,7 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 - A renderer draws glyphs from the font files and faces named, at the positions written, and shapes no text. It draws each frame's items as written: rounded rectangles, holes, trimmed strokes, arrows and glyphs. An engine that only runs a filter graph over time fills the decoder, the mixer or the encoder, not the renderer.
 - Every decoder keeps sections 4.1 and 4.3, and frames are named by index. Frame i is the frame at `frames[i]`: a decoder checks a file's timestamps against the pinned ones and refuses before it starts when it counts them differently. So the text resolve recognised and the pixels a renderer draws come from the same frame, whichever decoder renders.
 - A sequence output lasts `duration` to within one frame.
+- Every file is tagged with the working space's encoding: BT.709 primaries and the sRGB transfer (IEC 61966-2-1) in a video, an sRGB chunk in a PNG, so every encoder's output looks the same in a player.
 - `render` writes a master: a `.mov` (ProRes 422 HQ, or ProRes 4444 when the frames carry alpha, with 24-bit PCM sound), or a PNG for images, layouts and stills. `--deliver` also writes a delivery file from the same frames in the same step: H.264 at the encoder's highest quality with AAC at 256 kbps or more.
 - The working space is sRGB. Decoded pictures are converted to it (section 4.1), and every renderer composites, blends, filters and measures matte luminance on sRGB-encoded values, the values W3C Compositing writes its formulas for. `exposure` alone works in linear light: it decodes to linear, multiplies, and encodes back. Luminance is the Rec. 709 luma of the encoded values.
 - No role leaves temporary files.
@@ -1004,7 +1005,7 @@ These are the acceptance tests.
 - The first frame is not black or empty unless the storyline opens with a solid. A clip visible from 0 shows on the first frame.
 - Nothing of a cropped, filled or moving storyline clip shows outside the content rect.
 - During a transition both units show, stacked as section 8.6 says.
-- An unparented connected clip disappears at the middle of a transition and does not stay over the next clip.
+- An unparented connected clip plays its whole window, across edit points.
 - A parented clip goes with its picture: a transition covers, wipes or moves it exactly as it does its picture.
 - A connected shape follows the crop and stays on the text it points at.
 - The output length matches the `timeline` duration to within one frame.
@@ -1046,20 +1047,20 @@ How to make anything:
 
 ### 17.1 Extensions
 
-Three kinds of thing are added to frames without changing it.
+Three kinds of thing are added to frames without changing this specification.
 
 | Kind | What is added | Section |
 | --- | --- | --- |
 | data | presets, themes, templates, LUTs, mattes and media, in packs | 9, 10 |
-| implementations | a decoder, renderer, mixer or encoder, an OCR, shaping or tracker provider | 13 |
+| implementations | a decoder, renderer, mixer or encoder, an OCR, shaping or tracker provider, built into frames under the name `--decoder` and the other options pick | 13 |
 | extensions | programs that take a document and give a document | here |
 
 An extension reads what frames reports (section 15.2) and writes or changes documents. It finds personal data and covers it, cuts silence, places captions from a transcript, cuts to a beat, translates titles, or bakes an effect frames has no op for. Its interface is documents and the machine output, so frames has no extension API.
 
-- It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws from the same resolve. An extension that must be sure of what is drawn, such as one that covers personal data, resolves the document once, checks that resolved document with `evaluate`, `still` and `extract`, and has the same resolved document rendered. It passes the resolved document on and does not read it, since its form is frames' own (section 11).
-- It gives a document on standard output, and `timeline` checks it like any other. Extensions chain: `frames privacy doc.json | frames autocut - | frames render - -o out.mov`.
+- It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws from the same resolve. An extension that must be sure of what is drawn, such as one that covers personal data, resolves the document once, checks that resolved document with `evaluate`, `still` and `extract`, and has the same resolved document rendered. It passes the resolved document on and does not read it, since its form is frames' own (section 11). An extension that gives a resolved document ends the chain: only frames commands take it after that, so such an extension runs last, and a chain has one.
+- It gives a document on standard output, and `timeline` checks it like any other. Extensions chain: `frames autocut doc.json | frames privacy - | frames render - -o out.mov`.
 - `frames <name>` runs `frames-<name>` from `PATH`, so an extension is installed by putting it there.
-- An extension that splits a clip keeps the clip's `id` on the first part and gives every other part a new one. Connected clips go with the part that holds their start, so no `id` is copied and the ids earlier extensions wrote still point where they did.
+- An extension that splits a clip keeps the clip's `id` on the first part and gives every other part a new one. An unparented connected clip goes with the part that holds its start and plays on as before. A parented clip is part of its picture, so one whose window crosses the cut is copied onto each part it crosses, the first copy keeping its `id` and the others taking new ones. Clip time is media time, so the copies keep their `at`.
 - An extension acts before resolve. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again, and a pack stays data that every role can draw.
 
 Forms that ship with frames, as packs:
