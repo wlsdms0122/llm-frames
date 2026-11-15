@@ -9,6 +9,7 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownColor(place: Place, kind: String, name: String)
     case unknownStyle(place: Place, kind: String, name: String)
     case unknownPreset(place: Place, kind: String, presetKind: String, name: String)
+    case styleWithoutSize(place: Place, kind: String, name: String)
 
     // MARK: - Property
     var description: String {
@@ -21,6 +22,9 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPreset(place, kind, presetKind, name):
             "\(place) (\(kind)): unknown \(presetKind) preset \"\(name)\""
+
+        case let .styleWithoutSize(place, kind, name):
+            "\(place) (\(kind)): style \"\(name)\" has no size, and text is set only in a style with one"
         }
     }
 

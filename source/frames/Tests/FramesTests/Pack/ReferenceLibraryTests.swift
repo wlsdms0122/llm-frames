@@ -36,7 +36,7 @@ struct ReferenceLibraryTests {
         let bareTheme = try sut.theme(named: "shorts")
 
         // Then
-        #expect(packTheme == ThemeLayer(value: try Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: Place(file: "shorts/shorts", components: [])))
+        #expect(packTheme == ThemeLayer(value: try Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: Place(file: "shorts/shorts", components: []), pack: "shorts"))
         #expect(pathTheme?.place.description == "\(file.path): top level")
         #expect(bareTheme == nil)
     }

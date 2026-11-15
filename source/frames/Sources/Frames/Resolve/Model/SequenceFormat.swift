@@ -5,17 +5,28 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The format keys the time plan reads. Each is nil when the document leaves it to its default.
+// The format keys resolve reads. Each is nil when the document leaves it to its default.
 struct SequenceFormat: Equatable, Sendable {
     // MARK: - Property
     private static let frameRates: [Double] = [24, 25, 30, 50, 60]
     private static let defaultFrameRate: Double = 30
 
     let fps: Double?
+    let size: Size?
+    let inset: Inset?
+    let conform: Conform?
 
     // MARK: - Initializer
-    init(fps: Double? = nil) {
+    init(
+        fps: Double? = nil,
+        size: Size? = nil,
+        inset: Inset? = nil,
+        conform: Conform? = nil
+    ) {
         self.fps = fps
+        self.size = size
+        self.inset = inset
+        self.conform = conform
     }
 
     // MARK: - Public

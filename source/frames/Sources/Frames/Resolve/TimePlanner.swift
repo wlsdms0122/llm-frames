@@ -70,7 +70,9 @@ struct TimePlanner: Sendable {
             duration: duration,
             fps: sequence.format.frameRate(of: sources.compactMap(\.media)),
             storyline: storyline,
-            clips: connected + clips
+            clips: connected + clips,
+            sequence: sequence,
+            theme: merged
         )
     }
 
@@ -577,7 +579,7 @@ struct TimePlanner: Sendable {
         in defaults: ThemeDefaults
     ) -> AnimationChoice? {
         switch content {
-        case let .title(style):
+        case let .title(_, style):
             defaults.titleAnimations[style]
 
         case .shape:

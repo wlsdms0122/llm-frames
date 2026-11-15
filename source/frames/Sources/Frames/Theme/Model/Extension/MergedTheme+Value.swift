@@ -1,0 +1,106 @@
+//
+//  MergedTheme+Value.swift
+//  Frames
+//
+//  Created by JSilver on 11/16/26.
+//
+
+// The values resolve reads from a merged theme, typed. The base theme holds every key below, and the key tables and
+// reference checks let only these shapes through, so a value is always there. Lengths come back in points unless a
+// length scale is given.
+extension MergedTheme {
+    // MARK: - Property
+    var baseWidth: Double {
+        number(at: ["baseWidth"])
+    }
+
+    var areaPadding: Double {
+        number(at: ["area", "padding"])
+    }
+
+    var cropPadding: Double {
+        number(at: ["area", "cropPadding"])
+    }
+
+    var placementPadding: Double {
+        number(at: ["placement", "padding"])
+    }
+
+    var arrowLength: Double {
+        number(at: ["shapes", "arrow", "length"])
+    }
+
+    var arrowHead: Double {
+        number(at: ["shapes", "arrow", "head"])
+    }
+
+    var labelSides: [Side] {
+        (value(at: ["shapes", "label", "sides"])?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(Side.init) }
+    }
+
+    // Where the font list was written, which a stop on it names.
+    var fontPlace: Place {
+        place(of: Place(components: [.key("font")]))
+    }
+
+    // MARK: - Initializer
+    // MARK: - Public
+    // A colour is written as `#RRGGBB`, `#RRGGBBAA` or the name of a theme colour, which the reference checks found.
+    func color(_ written: String) -> Color {
+        guard !written.hasPrefix("#") else { return Color(written: written) }
+
+        return Color(written: value(at: ["colors", written])?.stringValue ?? "#000000")
+    }
+
+    // A style with its lengths multiplied by `scale`. Its line height defaults to 1.25 times its size, and a property
+    // it leaves out to the plain value: regular, the `text` and `emphasis` colours, left, and no stroke or background.
+    func style(
+        named name: String,
+        scale: Double
+    ) throws -> TextStyle {
+        let style = value(at: ["styles", name])?.objectValue ?? JSONObject()
+        guard let size = style["size"]?.numberValue else {
+            throw ThemeError.styleWithoutSize(
+                place: place(of: Place(components: [.key("styles"), .key(name)])),
+                kind: "style",
+                name: name
+            )
+        }
+
+        let font = Place(components: [.key("font")])
+        return TextStyle(
+            families: (value(at: ["font"])?.arrayValue ?? []).compactMap(\.stringValue),
+            pack: pack(of: font),
+            size: size * scale,
+            weight: style["weight"]?.stringValue.flatMap(FontWeight.init) ?? .regular,
+            color: color(style["color"]?.stringValue ?? "text"),
+            emphasis: color(style["emphasis"]?.stringValue ?? "emphasis"),
+            lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
+            stroke: style["stroke"]?.objectValue.map { stroke in
+                TextStroke(
+                    width: (stroke["width"]?.numberValue ?? 0) * scale,
+                    color: color(stroke["color"]?.stringValue ?? "text")
+                )
+            },
+            background: style["background"]?.objectValue.map { background in
+                let padding = background["padding"]?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
+                return TextBackground(
+                    color: color(background["color"]?.stringValue ?? "background"),
+                    padding: Size(width: padding[1] * scale, height: padding[0] * scale),
+                    radius: (background["radius"]?.numberValue ?? 0) * scale
+                )
+            },
+            align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
+            isOneLine: style["lines"]?.numberValue == 1
+        )
+    }
+
+    // MARK: - Private
+    private func value(at path: [String]) -> JSONValue? {
+        path.reduce(Optional(value)) { value, key in value?.objectValue?[key] }
+    }
+
+    private func number(at path: [String]) -> Double {
+        value(at: path)?.numberValue ?? 0
+    }
+}

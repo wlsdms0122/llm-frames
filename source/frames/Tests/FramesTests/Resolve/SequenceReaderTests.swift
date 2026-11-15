@@ -46,7 +46,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].media == ClipMedia(source: .file("/abs/run.mp4"), in: 2, out: 8, speed: 2))
         #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, properties: ["crop"])])
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
-        #expect(sequence.storyline[0].connected[0].content == .title(style: "subtitle"))
+        #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].hasArea)
         #expect(sequence.storyline[1].transition == .timed(preset: "wipe-right", seconds: 0.5))

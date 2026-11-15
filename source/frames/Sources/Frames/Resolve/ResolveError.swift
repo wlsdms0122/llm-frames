@@ -26,6 +26,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case parentWithPlacement(place: Place, kind: PlaceKind)
     case parentOnSequenceClip(place: Place, kind: PlaceKind)
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
+    case missingFormatSize(place: Place, kind: PlaceKind)
+    case noContentRect(place: Place, kind: PlaceKind, size: Size)
+    case unresolvedDocumentPicture(place: Place, kind: PlaceKind)
+    case areaPositionWithoutParent(place: Place, kind: PlaceKind)
+    case trackWithoutVideo(place: Place, kind: PlaceKind)
+    case trackOwnWithoutArea(place: Place, kind: PlaceKind)
+    case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
+    case trackLost(place: Place, kind: PlaceKind, time: Double, edit: TimeRange)
+    case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side])
 
     // MARK: - Property
     var description: String {
@@ -96,6 +105,38 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .keyframesOutsideVisibleRange(place, kind, property, visible):
             "\(place) (\(kind.label)): every keyframe of \(quoted(property)) lies outside \(written(visible)), "
                 + "so only one of its values would ever show"
+
+        case let .missingFormatSize(place, kind):
+            "\(place) (\(kind.label)): the storyline has no video and its first clip is a solid, which has no size, "
+                + "so the format needs \"size\""
+
+        case let .noContentRect(place, kind, size):
+            "\(place) (\(kind.label)): the inset leaves no content rect in the output of "
+                + "\(number(size.width))x\(number(size.height))"
+
+        case let .unresolvedDocumentPicture(place, kind):
+            "\(place) (\(kind.label)): the picture of an image or layout document used as media is not resolved yet"
+
+        case let .areaPositionWithoutParent(place, kind):
+            "\(place) (\(kind.label)): a position given by an area is in the picture of a parented clip, "
+                + "so it needs \"parent\": true"
+
+        case let .trackWithoutVideo(place, kind):
+            "\(place) (\(kind.label)): track follows the video or image sequence of a storyline clip, "
+                + "and there is none to follow here"
+
+        case let .trackOwnWithoutArea(place, kind):
+            "\(place) (\(kind.label)): \"track\": true follows the clip's own area or crop, and it has none given as an area"
+
+        case let .trackOwnOnNamingClip(place, kind):
+            "\(place) (\(kind.label)): a title or media clip names the area it tracks, so it cannot take \"track\": true"
+
+        case let .trackLost(place, kind, time, edit):
+            "\(place) (\(kind.label)): the tracker lost its target at \(number(time)), inside the edit range \(written(edit))"
+
+        case let .labelWithoutRoom(place, kind, label, sides):
+            "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the content rect on none of its sides "
+                + sides.map(\.rawValue).joined(separator: ", ")
         }
     }
 

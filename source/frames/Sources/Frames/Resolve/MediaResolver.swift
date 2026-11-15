@@ -53,26 +53,30 @@ struct MediaResolver: Sendable {
                 file: file,
                 duration: probed.duration,
                 fps: probed.fps,
-                frames: frames(of: probed)
+                frames: frames(of: probed),
+                size: probed.size,
+                frameTimes: probed.frames
             )
 
         case let .imageSequence(reference, fps):
             guard
                 let directory = try library.mediaFile(named: reference),
-                let count = mediaFacts.frameCount(ofImageSequence: directory)
+                let probed = mediaFacts.probedImageSequence(at: directory)
             else {
                 throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
-            let duration = Double(count) / fps
+            let duration = Double(probed.frameCount) / fps
             return ResolvedMedia(
                 kind: .video,
                 reference: reference,
                 file: directory,
                 duration: duration,
                 fps: fps,
-                frames: 0...max(duration - 1 / fps, 0)
+                frames: 0...max(duration - 1 / fps, 0),
+                size: probed.size,
+                frameTimes: (0..<probed.frameCount).map { Double($0) / fps }
             )
 
         case let .compound(document):

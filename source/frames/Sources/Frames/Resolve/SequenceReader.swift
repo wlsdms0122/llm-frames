@@ -36,7 +36,7 @@ struct SequenceReader: Sendable {
         return SequenceDocument(
             place: place,
             theme: object["theme"].flatMap(theme),
-            format: SequenceFormat(fps: object["format"]?.objectValue?["fps"]?.numberValue),
+            format: format(object["format"]?.objectValue ?? JSONObject()),
             storyline: storyline,
             clips: clips
         )
@@ -63,6 +63,8 @@ struct SequenceReader: Sendable {
             duration: object["duration"]?.numberValue,
             transition: object["transition"].flatMap(TransitionChoice.init(value:)),
             keyframes: keyframes(object["keyframes"]),
+            crop: property("crop", of: object, read: CropForm.init(value:)),
+            track: object["track"].flatMap(TrackTarget.init(value:)),
             connected: connected
         )
     }
@@ -86,7 +88,14 @@ struct SequenceReader: Sendable {
             hasPlacement: object.contains("placement"),
             hasArea: object.contains("area") || hasKeyframedArea,
             animation: object["animation"].flatMap(AnimationChoice.init(value:)),
-            keyframes: keyframes
+            keyframes: keyframes,
+            area: property("area", of: object, read: AreaForm.init(value:)),
+            position: property("position", of: object, read: PositionForm.init(value:)),
+            crop: property("crop", of: object, read: CropForm.init(value:)),
+            track: object["track"].flatMap(TrackTarget.init(value:)),
+            label: object["label"]?.stringValue,
+            side: object["side"]?.stringValue.flatMap(Side.init),
+            width: object["width"]?.numberValue
         )
     }
 
@@ -100,8 +109,8 @@ struct SequenceReader: Sendable {
         if let shape = object["shape"]?.stringValue {
             return .shape(shape)
         }
-        if object.contains("title") {
-            return .title(style: object["style"]?.stringValue ?? "")
+        if let title = object["title"]?.stringValue {
+            return .title(text: title, style: object["style"]?.stringValue ?? "")
         }
 
         return .adjust
@@ -150,6 +159,40 @@ struct SequenceReader: Sendable {
         guard MediaKind(document: value) == .sequence else { return .document(object) }
 
         return .compound(sequence(from: value, place: place))
+    }
+
+    private func format(_ object: JSONObject) -> SequenceFormat {
+        let size = object["size"]?.arrayValue?.compactMap(\.numberValue) ?? []
+        let inset = object["inset"]?.arrayValue?.compactMap(\.numberValue) ?? []
+
+        return SequenceFormat(
+            fps: object["fps"]?.numberValue,
+            size: size.count == 2 ? Size(width: size[0], height: size[1]) : nil,
+            inset: inset.count == 4 ? Inset(top: inset[0], right: inset[1], bottom: inset[2], left: inset[3]) : nil,
+            conform: object["conform"]?.stringValue.flatMap(Conform.init)
+        )
+    }
+
+    // A property no keyframe names is its static value, or nil when it has none.
+    private func property<Value>(
+        _ key: String,
+        of object: JSONObject,
+        read: (JSONValue) -> Value?
+    ) -> PropertyValue<Value>? {
+        if let value = object[key] {
+            return read(value).map { .value($0) }
+        }
+
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
+            element.objectValue.flatMap { keyframe -> TimedValue<Value>? in
+                guard let at = keyframe["at"]?.numberValue, let value = keyframe[key].flatMap(read) else { return nil }
+
+                return TimedValue(index: index, at: at, value: value, ease: keyframe["ease"].flatMap(Ease.init) ?? .linear)
+            }
+        }
+        guard !keyframes.isEmpty else { return nil }
+
+        return .keyframes(keyframes)
     }
 
     private func theme(_ value: JSONValue) -> ThemeReference {

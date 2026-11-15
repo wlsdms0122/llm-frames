@@ -8,7 +8,7 @@
 // What a connected or sequence clip is, by the one kind key it holds.
 enum ClipContent: Equatable, Sendable {
     case media(ClipMedia)
-    case title(style: String)
+    case title(text: String, style: String)
     case shape(String)
     case adjust
 }

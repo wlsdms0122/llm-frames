@@ -56,5 +56,23 @@ struct ClipPlan: Equatable, Sendable {
     }
 
     // MARK: - Public
+    func narrowed(to visible: TimeRange) -> ClipPlan {
+        ClipPlan(
+            place: place,
+            id: id,
+            kind: kind,
+            storyline: storyline,
+            isParented: isParented,
+            lane: lane,
+            clock: clock,
+            window: window,
+            visible: visible,
+            animation: animation,
+            media: media,
+            timing: timing,
+            keyframes: keyframes
+        )
+    }
+
     // MARK: - Private
 }
