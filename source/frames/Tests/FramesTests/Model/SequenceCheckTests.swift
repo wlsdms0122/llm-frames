@@ -189,6 +189,16 @@ struct SequenceCheckTests {
         #expect(error?.description == #"clips[0] (title): missing key "style""#)
     }
 
+    @Test("an arrow names its side")
+    func requiresArrowSide() throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10] } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"clips[0] (arrow): missing key "side""#)
+    }
+
     @Test("a property written both as a static value and in a keyframe stops")
     func refusesStaticAndKeyframed() throws {
         // Given

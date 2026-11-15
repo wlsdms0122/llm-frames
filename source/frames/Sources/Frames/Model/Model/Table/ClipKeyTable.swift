@@ -18,7 +18,8 @@ enum ClipKeyTable {
     ) -> ObjectTable {
         let names = keys(for: kind, in: place)
         let rules = names.map { name in
-            KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style")
+            // An arrow's side is the document's, since the engine has no rule to choose one.
+            KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style" || name == "side")
         }
 
         return ObjectTable(kind: kind.label, rules: rules)

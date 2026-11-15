@@ -44,7 +44,7 @@ enum ImageKeyTable {
             )
 
         case "shape":
-            let side = shape == "arrow" ? [KeyRule("side", .literal(VocabularyTable.sides))] : []
+            let side = shape == "arrow" ? [KeyRule("side", .literal(VocabularyTable.sides), isRequired: true)] : []
             return ObjectTable(
                 kind: shape ?? operation,
                 rules: common + [
