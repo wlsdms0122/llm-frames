@@ -57,4 +57,14 @@ struct KeyframeReaderTests {
         // When, Then
         try sut.checkEases(in: keyframes, place: .root)
     }
+
+    @Test("a later keyframe at the same instant does not follow, since the span between them has no length")
+    func refusesEaseFollowedAtSameInstant() throws {
+        // Given
+        let keyframes = try Fixture.json(#"[ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1, "opacity": 1 } ]"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkEases(in: keyframes, place: .root) }
+        #expect(error?.description == #"[0] (keyframe): "ease" shapes no span, since no later keyframe names opacity"#)
+    }
 }

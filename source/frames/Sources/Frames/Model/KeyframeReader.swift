@@ -22,8 +22,9 @@ struct KeyframeReader: Sendable {
 
         for (position, entry) in ordered.enumerated() where entry.keyframe.contains("ease") {
             let properties = entry.keyframe.keys.filter { !Self.keyframeKeys.contains($0) }
+            // A later keyframe at the same instant ends a span of no length, which no ease can shape.
             let isFollowed = ordered[(position + 1)...].contains { later in
-                properties.contains(where: later.keyframe.contains)
+                later.at > entry.at && properties.contains(where: later.keyframe.contains)
             }
             guard isFollowed else {
                 throw ModelError.easeWithoutFollowingKeyframe(
@@ -51,15 +52,13 @@ struct KeyframeReader: Sendable {
     }
 
     // MARK: - Private
-    private func sorted(_ keyframes: JSONValue) -> [(index: Int, keyframe: JSONObject)] {
+    private func sorted(_ keyframes: JSONValue) -> [(index: Int, at: Double, keyframe: JSONObject)] {
         let entries = (keyframes.arrayValue ?? []).enumerated().compactMap { index, value in
-            value.objectValue.map { (index: index, keyframe: $0) }
+            value.objectValue.map { (index: index, at: $0["at"]?.numberValue ?? 0, keyframe: $0) }
         }
 
         return entries.sorted { left, right in
-            let leftAt = left.keyframe["at"]?.numberValue ?? 0
-            let rightAt = right.keyframe["at"]?.numberValue ?? 0
-            return leftAt == rightAt ? left.index < right.index : leftAt < rightAt
+            left.at == right.at ? left.index < right.index : left.at < right.at
         }
     }
 }

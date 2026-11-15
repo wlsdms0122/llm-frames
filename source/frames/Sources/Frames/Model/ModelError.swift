@@ -6,7 +6,6 @@
 //
 
 enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
-    case syntax(line: Int, column: Int, reason: String)
     case unknownKey(place: Place, kind: String, key: String, allowed: [String])
     case missingKey(place: Place, kind: String, keys: [String])
     case conflictingKeys(place: Place, kind: String, keys: [String])
@@ -20,15 +19,13 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case unusedParameter(place: Place, name: String)
     case nestedTemplate(place: Place, kind: String)
     case unprobedMedia(place: Place, kind: String, reference: String)
+    case ambiguousTemplateKind(place: Place, kind: String, name: String, templates: [String], kinds: [MediaKind])
     case misplacedMedia(place: Place, kind: String, reason: String)
     case easeWithoutFollowingKeyframe(place: Place, properties: [String])
 
     // MARK: - Property
     var description: String {
         switch self {
-        case let .syntax(line, column, reason):
-            "line \(line), column \(column): \(reason)"
-
         case let .unknownKey(place, kind, key, allowed):
             "\(place) (\(kind)): unknown key \"\(key)\". Allowed: \(allowed.joined(separator: ", "))"
 
@@ -70,6 +67,10 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unprobedMedia(place, kind, reference):
             "\(place) (\(kind)): media \"\(reference)\" has no probed kind"
+
+        case let .ambiguousTemplateKind(place, kind, name, templates, kinds):
+            "\(place) (\(kind)): parameter \"\(name)\" names templates of different kinds: "
+                + zip(templates, kinds).map { "\"\($0)\" is \($1.rawValue)" }.joined(separator: ", ")
 
         case let .misplacedMedia(place, kind, reason):
             "\(place) (\(kind)): \(reason)"

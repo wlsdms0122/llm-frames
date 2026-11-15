@@ -43,6 +43,7 @@ evaluate(resolved, t):
 
 | Module | Owns |
 | --- | --- |
+| json | reading JSON into a tree, with errors that name a line and column |
 | model | document types and the key tables |
 | theme | the base theme, merging, scale |
 | preset | reading presets, spans, easing |

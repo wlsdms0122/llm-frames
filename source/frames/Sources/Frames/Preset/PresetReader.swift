@@ -162,22 +162,9 @@ struct PresetReader: Sendable {
             throw PresetError.parameterOutOfRange(
                 place: place.appending(key: parameter),
                 kind: name,
-                value: written(value),
+                value: value.written,
                 range: range.description
             )
-        }
-    }
-
-    private func written(_ value: JSONValue) -> String {
-        switch value {
-        case let .number(number):
-            number.rounded() == number && abs(number) < 1e15 ? "\(Int(number))" : "\(number)"
-
-        case let .array(elements):
-            "[\(elements.map(written).joined(separator: ", "))]"
-
-        default:
-            "\(value)"
         }
     }
 

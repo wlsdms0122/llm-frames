@@ -65,7 +65,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1, "blur": 1 } ] } }"#, #"exit.keys[0] (span key): unknown key "blur". Allowed: t, opacity, scale, x, y, rotation, reveal, nudge"#),
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "opacity": 1 } ] } }"#, #"exit.keys[0] (span key): missing key "t""#),
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1.5, "opacity": 1 } ] } }"#, "exit.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 1.5"),
-            (#"{ "description": "x", "entrance": { "seconds": 0 } }"#, "entrance.seconds (entrance): a span runs for more than 0 seconds, found 0.0"),
+            (#"{ "description": "x", "entrance": { "seconds": 0 } }"#, "entrance.seconds (entrance): a span runs for more than 0 seconds, found 0"),
             (#"{ "description": "x", "entrance": { "seconds": 1, "revealFrom": "middle" } }"#, #"entrance.revealFrom (entrance): unknown value "middle". Allowed: left, right, top, bottom"#),
             (#"{ "description": "x", "intro": {} }"#, #"top level (animation): unknown key "intro". Allowed: description, entrance, loop, exit"#)
         ]

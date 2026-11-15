@@ -54,11 +54,12 @@ struct JSONCursor {
         }
     }
 
-    func error(_ reason: String) -> ModelError {
+    func error(_ reason: String) -> JSONError {
         let consumed = bytes[..<min(offset, bytes.count)]
         let line = consumed.filter { $0 == 0x0A }.count + 1
         let lineStart = consumed.lastIndex(of: 0x0A).map { $0 + 1 } ?? 0
-        let column = offset - lineStart + 1
+        // A UTF-8 continuation byte belongs to the character it continues, so only the other bytes start a column.
+        let column = consumed[lineStart...].filter { !(0x80..<0xC0).contains($0) }.count + 1
         return .syntax(line: line, column: column, reason: reason)
     }
 

@@ -59,10 +59,10 @@ struct KeyChecker: Sendable {
             return
 
         case .argument:
-            // An argument's type is the template's to say, but a document given as one is checked as any document.
-            guard isDocument(value) else { return }
+            // An argument's type is the template's to say, but the only object one can be is media.
+            guard case .object = value else { return }
 
-            _ = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
+            try checkMedia(value, place: place, kind: kind, scope: &scope)
 
         case let .exactly(expected):
             guard value == expected else { throw wrongType(value, type, place, kind) }
@@ -129,7 +129,7 @@ struct KeyChecker: Sendable {
             }
 
         case .media:
-            _ = try checkMedia(value, place: place, kind: kind, lookup: false, scope: &scope)
+            try checkMedia(value, place: place, kind: kind, scope: &scope)
 
         case .document:
             _ = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
@@ -315,29 +315,24 @@ struct KeyChecker: Sendable {
         _ value: JSONValue,
         place: Place,
         kind: String,
-        lookup: Bool,
         scope: inout DocumentScope
-    ) throws -> MediaKind? {
+    ) throws {
         switch value {
-        case let .string(reference):
-            return try lookup ? probedKind(of: reference, place: place, kind: kind) : nil
+        case .string:
+            return
 
         case let .object(object) where object.contains("param"):
-            return try checkMediaParameter(object, place: place, kind: kind, scope: &scope)
+            try checkParameterReference(object, as: .media, place: place, kind: kind, scope: &scope)
+            _ = try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
         case let .object(object) where object.contains("kind"):
-            let documentKind = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
-            return documentKind == "sequence" ? .sequence : .image
+            _ = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
 
         case let .object(object) where object.contains("imageSequence"):
             try checkObject(object, as: TemplateKeyTable.imageSequence, place: place, scope: &scope)
-            return .video
 
         case let .object(object) where object.contains("template"):
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
-            guard lookup, let template = object["template"]?.stringValue else { return nil }
-
-            return try probedKind(of: template, place: place, kind: kind)
 
         case .object:
             throw ModelError.missingKey(place: place, kind: "media", keys: ["kind", "imageSequence", "template"])
@@ -345,6 +340,54 @@ struct KeyChecker: Sendable {
         default:
             throw wrongType(value, .media, place, kind)
         }
+    }
+
+    private func probeMedia(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws -> MediaKind {
+        try checkMedia(value, place: place, kind: kind, scope: &scope)
+
+        switch value {
+        case let .string(reference):
+            return try probedKind(of: reference, place: place, kind: kind)
+
+        case let .object(object) where object.contains("param"):
+            return try parameterKind(of: object, place: place, kind: kind, scope: scope)
+
+        case let .object(object) where object.contains("kind"):
+            return object["kind"] == .string("sequence") ? .sequence : .image
+
+        case let .object(object) where object.contains("template"):
+            return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
+
+        default:
+            // The shape check lets nothing else through than an image sequence.
+            return .video
+        }
+    }
+
+    private func templateKind(
+        of template: JSONValue,
+        place: Place,
+        kind: String,
+        scope: DocumentScope
+    ) throws -> MediaKind {
+        guard case let .object(reference) = template else {
+            return try probedKind(of: template.stringValue ?? "", place: place, kind: kind)
+        }
+
+        // The shape check lets only a choice name a template, and the clip takes the one kind all its options share.
+        let name = reference["param"]?.stringValue ?? ""
+        let templates = scope.parameters[name]?["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
+        let kinds = try templates.map { template in try probedKind(of: template, place: place, kind: kind) }
+        guard let first = kinds.first, kinds.allSatisfy({ $0 == first }) else {
+            throw ModelError.ambiguousTemplateKind(place: place, kind: kind, name: name, templates: templates, kinds: kinds)
+        }
+
+        return first
     }
 
     private func probedKind(
@@ -395,13 +438,20 @@ struct KeyChecker: Sendable {
             return documentKind
         }
 
-        // Parameters are read first, so a reference written before `params` still finds its declaration.
+        // Declarations are checked before anything refers to them, so a broken one is reported where it is written,
+        // and a reference written before `params` still finds its declaration.
+        if let declarations = object["params"], let rule = table.rule(named: "params") {
+            try check(declarations, as: rule.type, place: place.appending(key: "params"), kind: table.kind, scope: &scope)
+            scope.parameters = Dictionary(
+                (declarations.objectValue?.members ?? []).compactMap { member in
+                    member.value.objectValue.map { (member.key, $0) }
+                },
+                uniquingKeysWith: { first, _ in first }
+            )
+        }
+        try checkObject(object, as: table, place: place, skipping: ["params"], scope: &scope)
+
         let parameters = object["params"]?.objectValue?.members ?? []
-        scope.parameters = Dictionary(
-            parameters.compactMap { member in member.value.objectValue.map { (member.key, $0) } },
-            uniquingKeysWith: { first, _ in first }
-        )
-        try checkObject(object, as: table, place: place, scope: &scope)
 
         for member in parameters where !scope.usedParameters.contains(member.key) {
             throw ModelError.unusedParameter(place: place.appending(key: "params").appending(key: member.key), name: member.key)
@@ -454,17 +504,12 @@ struct KeyChecker: Sendable {
 
         switch key {
         case "media":
-            let media = object["media"] ?? .null
-            let mediaKind = try checkMedia(
-                media,
+            let mediaKind = try probeMedia(
+                object["media"] ?? .null,
                 place: place.appending(key: "media"),
                 kind: generic,
-                lookup: true,
                 scope: &scope
             )
-            guard let mediaKind else {
-                throw ModelError.unprobedMedia(place: place.appending(key: "media"), kind: generic, reference: "\(media)")
-            }
             guard clipPlace != .storyline || mediaKind != .audio else {
                 throw ModelError.misplacedMedia(
                     place: place,
@@ -647,14 +692,12 @@ struct KeyChecker: Sendable {
         }
     }
 
-    private func checkMediaParameter(
-        _ object: JSONObject,
+    private func parameterKind(
+        of object: JSONObject,
         place: Place,
         kind: String,
-        scope: inout DocumentScope
+        scope: DocumentScope
     ) throws -> MediaKind {
-        try checkParameterReference(object, as: .media, place: place, kind: kind, scope: &scope)
-
         let name = object["param"]?.stringValue ?? ""
         let parameterType = scope.parameters[name]?["type"]?.stringValue ?? ""
         guard let mediaKind = MediaKind(rawValue: parameterType) else {
@@ -731,10 +774,6 @@ struct KeyChecker: Sendable {
         default:
             true
         }
-    }
-
-    private func isDocument(_ value: JSONValue) -> Bool {
-        value.objectValue?.contains("kind") ?? false
     }
 
     private func elementPlace(
@@ -862,23 +901,14 @@ struct KeyChecker: Sendable {
 
     private func finding(of value: JSONValue) -> String {
         switch value {
-        case .null:
-            "null"
-
-        case let .bool(bool):
-            "\(bool)"
-
-        case let .number(number):
-            number.rounded() == number && abs(number) < 1e15 ? "\(Int(number))" : "\(number)"
-
-        case let .string(string):
-            "\"\(string)\""
-
         case let .array(elements):
             "a list of \(elements.count)"
 
         case .object:
             "an object"
+
+        default:
+            value.written
         }
     }
 }

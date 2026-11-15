@@ -68,7 +68,7 @@ struct JSONReaderTests {
         let text = #"{ "in": 1, "in": 2 }"#
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+        let error = #expect(throws: JSONError.self) { try sut.read(text) }
         #expect(error?.description == #"line 1, column 12: key "in" is written twice"#)
     }
 
@@ -78,7 +78,7 @@ struct JSONReaderTests {
         let text = "{\n  \"a\": 1,\n  \"b\" 2\n}"
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+        let error = #expect(throws: JSONError.self) { try sut.read(text) }
         #expect(error == .syntax(line: 3, column: 7, reason: "expected \":\" after a key"))
     }
 
@@ -101,6 +101,16 @@ struct JSONReaderTests {
     )
     func refusesMalformedText(text: String) {
         // Given, When, Then
-        #expect(throws: ModelError.self) { try sut.read(text) }
+        #expect(throws: JSONError.self) { try sut.read(text) }
+    }
+
+    @Test("a column counts characters, not bytes")
+    func countsColumnsInCharacters() {
+        // Given
+        let text = #"{ "제목": "안녕" x }"#
+
+        // When, Then
+        let error = #expect(throws: JSONError.self) { try sut.read(text) }
+        #expect(error == .syntax(line: 1, column: 14, reason: "expected \",\" or \"}\" in an object"))
     }
 }

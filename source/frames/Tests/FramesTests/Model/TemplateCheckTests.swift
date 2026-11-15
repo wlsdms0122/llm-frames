@@ -149,4 +149,73 @@ struct TemplateCheckTests {
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == #"storyline[0].media.args.shot (image): unknown key "opz". Allowed: kind, source, time, theme, params, ops"#)
     }
+
+    @Test("a template named by a choice parameter takes the probed kind its options share")
+    func readsTemplateNamedByChoice() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"] } },
+              "storyline": [ { "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
+            """#)
+        let checker = KeyChecker(mediaKinds: MediaKindTable(["pack/intro": .sequence, "pack/outro": .sequence]))
+
+        // When, Then
+        try checker.check(document: document)
+    }
+
+    @Test("a template named by a choice whose options are of different kinds stops")
+    func refusesTemplateChoiceOfMixedKinds() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/card"] } },
+              "storyline": [ { "media": { "template": { "param": "t" }, "args": {} } } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0].media (storyline clip): parameter "t" names templates of different kinds: "pack/intro" is sequence, "pack/card" is image"#)
+    }
+
+    @Test("a parameter used only inside a template instance given as an argument counts as used")
+    func recordsParameterInsideArgumentInstance() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "p": { "type": "text" } },
+              "storyline": [ { "media": { "template": "pack/intro", "args": { "x": { "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test("a media object given as an argument is checked like any media")
+    func checksMediaArgument() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "frames": { "imageSequence": "/abs/frames" } } } } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0].media.args.frames (image sequence): missing key "fps""#)
+    }
+
+    @Test(
+        "a broken declaration in params is reported where it is, wherever params is written",
+        arguments: [
+            (#"{ "clip": { "type": "videoo" } }"#, #"params.clip.type (parameter): unknown value "videoo". Allowed: video, sequence, image, audio, text, color, number, choice"#),
+            (#"{ "clip": "video" }"#, #"params.clip (parameter): expected an object (parameter), found "video""#)
+        ]
+    )
+    func reportsBrokenDeclarationFirst(
+        parameters: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "param": "clip" } } ], "params": \#(parameters) }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
 }
