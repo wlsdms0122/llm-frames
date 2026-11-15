@@ -63,7 +63,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         let nested = try #require(plan.time.storyline[0].source.media?.nested)
@@ -85,7 +85,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         let template = try #require(plan.time.storyline[0].source.media?.nested)
@@ -103,7 +103,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         let intro = try #require(plan.time.storyline[0].source.media?.nested?.storyline[1].source.media?.nested)
@@ -118,7 +118,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         let nested = try #require(plan.time.storyline[0].source.media?.nested)
@@ -135,7 +135,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         #expect(plan.time.storyline.map(\.edit) == [TimeRange(start: 0, end: 4), TimeRange(start: 4, end: 5)])
@@ -148,7 +148,7 @@ struct DocumentPlannerTests {
         let document = try Fixture.json(intro)
 
         // When
-        let plan = try sut.plan(document, theme: "shorts/shorts")
+        let plan = try #require(try sut.plan(document, theme: "shorts/shorts").sequence)
 
         // Then
         #expect(plan.time.storyline[1].transition?.preset == "flash")
@@ -209,7 +209,7 @@ struct DocumentPlannerTests {
         let list = ArgumentFile(name: "/abs/args.json", value: try Fixture.json("[1]"))
 
         // When
-        let plan = try sut.plan(document, arguments: arguments)
+        let plan = try #require(try sut.plan(document, arguments: arguments).sequence)
 
         // Then
         #expect(plan.time.storyline[0].source.media?.reference == "shorts/leak.mov")
@@ -283,7 +283,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(document)
+        let plan = try #require(try sut.plan(document).sequence)
 
         // Then
         #expect(plan.time.duration == 2)

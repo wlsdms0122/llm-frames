@@ -1,0 +1,342 @@
+//
+//  PicturePlannerTests.swift
+//  FramesTests
+//
+//  Created by JSilver on 11/16/26.
+//
+
+import Testing
+
+@testable import Frames
+
+@Suite("PicturePlanner Tests")
+struct PicturePlannerTests {
+    // MARK: - Property
+    private let sut = Fixture.documentPlanner
+
+    // `/abs/page.png` is 1000x800, and the base theme's `baseWidth` is 1206.
+    private let baseWidth = 1206.0
+
+    // MARK: - Initializer
+
+    // MARK: - Test
+    @Test("canvas operations crop, scale and pad the source, which keeps its crop in its own pixels")
+    func runsCanvasOperations() throws {
+        // Given
+        let document = #"""
+            { "kind": "image", "source": "/abs/page.png",
+              "ops": [ { "crop": [100, 100, 400, 200] }, { "resize": { "width": 800 } }, { "pad": 20 }, { "border": true } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let frame = Rectangle(x: 20, y: 20, width: 800, height: 400)
+        #expect(plan.size == Size(width: 840, height: 440))
+        #expect(plan.steps.first == DrawingStep(
+            content: .picture(
+                .media(try media("/abs/page.png"), time: 0),
+                crop: Rectangle(x: 100, y: 100, width: 400, height: 200),
+                frame: frame
+            ),
+            clip: frame
+        ))
+        let fills = plan.steps.compactMap { step -> Rectangle? in
+            guard case let .fill(rectangle, color) = step.content, color == Color(written: "#FFFFFF") else { return nil }
+
+            return rectangle
+        }
+        #expect(fills.count == 4)
+        let room: Double = fills.map { $0.width * $0.height }.reduce(0, +)
+        #expect(room == 840 * 440 - 800 * 400)
+        #expect(plan.steps.last?.content == .border(
+            Rectangle(x: 0, y: 0, width: 840, height: 440),
+            width: 3 * (840 / baseWidth),
+            color: Color(written: "#D9D9D9")
+        ))
+    }
+
+    @Test(
+        "an area is written in the source's media pixels and a drawing's lengths scale with the canvas it is drawn on",
+        arguments: [
+            #"[ { "crop": [100, 100, 400, 200] }, { "shape": "box", "area": [150, 150, 100, 50] }, { "resize": { "scale": 2 } } ]"#,
+            #"[ { "crop": [100, 100, 400, 200] }, { "resize": { "scale": 2 } }, { "shape": "box", "area": [150, 150, 100, 50] } ]"#
+        ]
+    )
+    func mapsAreasThroughCanvasOperations(operations: String) throws {
+        // Given
+        let document = #"{ "kind": "image", "source": "/abs/page.png", "ops": \#(operations) }"#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let box = try #require(plan.steps.first { if case .box = $0.content { true } else { false } })
+        guard case let .box(rectangle, width, radius, _) = box.content else { return }
+        #expect(rectangle == Rectangle(x: 100, y: 100, width: 200, height: 100))
+        #expect(abs(width - 8 * 800 / baseWidth) < 1e-9)
+        #expect(abs(radius - 18 * 800 / baseWidth) < 1e-9)
+        #expect(box.clip == Rectangle(x: 0, y: 0, width: 800, height: 400))
+    }
+
+    @Test("a later crop clips what was drawn, and a later pad never reveals it")
+    func clipsEarlierDrawings() throws {
+        // Given
+        let document = #"""
+            { "kind": "image", "source": "/abs/page.png",
+              "ops": [ { "shape": "fill", "area": [0, 0, 500, 500] }, { "crop": [100, 100, 200, 200] }, { "pad": 10 } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        #expect(plan.steps[1].content == .fill(Rectangle(x: -90, y: -90, width: 500, height: 500), color: Color(written: "#FFD43B80")))
+        #expect(plan.steps[1].clip == Rectangle(x: 10, y: 10, width: 200, height: 200))
+    }
+
+    @Test(
+        "coordinates outside the source reach into a pad only after it, and a drawing wholly outside its canvas stops",
+        arguments: [
+            (#"[ { "pad": 20 }, { "shape": "fill", "area": [-20, -20, 10, 10] } ]"#, nil),
+            (
+                #"[ { "shape": "fill", "area": [-20, -20, 10, 10] }, { "pad": 20 } ]"#,
+                "ops[0].area (fill): lies wholly outside the canvas of 1000x800 at its operation"
+            ),
+            (
+                #"[ { "crop": [0, 0, 100, 100] }, { "title": "Hi", "style": "label", "position": [500, 500] } ]"#,
+                "ops[1].position (title): lies wholly outside the canvas of 100x100 at its operation"
+            )
+        ] as [(String, String?)]
+    )
+    func reachesIntoPads(
+        operations: String,
+        message: String?
+    ) throws {
+        // Given
+        let document = #"{ "kind": "image", "source": "/abs/page.png", "ops": \#(operations) }"#
+
+        // When, Then
+        guard let message else {
+            let plan = try picture(document)
+            #expect(plan.steps.last?.content == .fill(Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FFD43B80")))
+            return
+        }
+        let error = #expect(throws: ResolveError.self) { try picture(document) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a text area is found on the source picture at the document's time, grown by padding in its pixels")
+    func findsTextAreas() throws {
+        // Given
+        let document = ##"""
+            { "kind": "image", "source": "/abs/short.mp4", "time": 1,
+              "ops": [ { "shape": "dim", "area": "Send", "color": "#00000080" } ] }
+            """##
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let padding = 14 * (1080 / baseWidth)
+        #expect(plan.steps[0].content == .picture(
+            .media(try media("/abs/short.mp4"), time: 1),
+            crop: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
+            frame: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
+        ))
+        guard case let .dim(area, color) = plan.steps[1].content else {
+            Issue.record("the dim is not drawn")
+            return
+        }
+        #expect(isClose(area, Fixture.send.grown(by: padding)))
+        #expect(color == Color(written: "#00000080"))
+    }
+
+    @Test("a label goes on the first theme side where it fits on the canvas, and stops when it fits on none")
+    func placesLabels() throws {
+        // Given
+        let fits = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "box", "area": [100, 100, 100, 100], "label": "Here" } ] }"#
+        let tight = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "crop": [0, 0, 120, 120] }, { "shape": "box", "area": [2, 2, 116, 116], "label": "A label longer than the canvas" } ] }"#
+
+        // When
+        let plan = try picture(fits)
+
+        // Then
+        guard case let .text(_, frame) = plan.steps.last?.content else {
+            Issue.record("the label is not drawn last")
+            return
+        }
+        #expect(frame.x == 200)
+        #expect(frame.center.y == 150)
+        let error = #expect(throws: ResolveError.self) { try picture(tight) }
+        #expect(error?.description == #"ops[1].label (box): the label "A label longer than the canvas" fits inside the canvas on none of the sides right, bottom, left, top"#)
+    }
+
+    @Test("a title's anchor point sits at its position, and an adjustment covers its area or the canvas")
+    func placesTitlesAndAdjustments() throws {
+        // Given
+        let document = #"""
+            { "kind": "image", "source": "/abs/page.png",
+              "ops": [ { "title": "Hi", "style": "label", "position": [500, 400] }, { "adjust": "warm" }, { "adjust": ["warm", "none"], "area": [0, 0, 10, 10] } ] }
+            """#
+        let unknown = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "adjust": "cold" } ] }"#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        guard case let .text(_, frame) = plan.steps[1].content else {
+            Issue.record("the title is not drawn")
+            return
+        }
+        #expect(frame.center == Point(x: 500, y: 400))
+        #expect(plan.steps[2].content == .adjustment([], area: Rectangle(x: 0, y: 0, width: 1000, height: 800)))
+        #expect(plan.steps[3].content == .adjustment([], area: Rectangle(x: 0, y: 0, width: 10, height: 10)))
+        let error = #expect(throws: ResolveError.self) { try picture(unknown) }
+        #expect(error?.description == #"ops[0].adjust (adjust): unknown filter preset "cold""#)
+    }
+
+    @Test("a banner extends the canvas by a band as tall as its text, and the picture moves with it")
+    func extendsBanners() throws {
+        // Given
+        let top = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "banner": ["Line"], "edge": "top" } ] }"#
+        let bottom = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "banner": ["Line"], "edge": "bottom" } ] }"#
+
+        // When
+        let above = try picture(top)
+        let below = try picture(bottom)
+
+        // Then
+        let height = above.size.height - 800
+        #expect(height > 0)
+        #expect(below.size == above.size)
+        guard case let .picture(_, _, frame) = above.steps[0].content, case let .text(_, line) = above.steps.last?.content else {
+            Issue.record("the banner is not drawn")
+            return
+        }
+        #expect(frame.y == height)
+        #expect(line.maxY < height)
+        guard case let .text(_, lowLine) = below.steps.last?.content else { return }
+        #expect(lowLine.y > 800)
+    }
+
+    @Test("a layout puts items on one row by default, each centred in its cell, with a border around every cell")
+    func plansLayout() throws {
+        // Given
+        let document = #"""
+            { "kind": "layout",
+              "items": [ { "image": "/abs/card.png" }, { "image": { "kind": "image", "source": "/abs/page.png" } } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let scale = 1080 / baseWidth
+        let padding = 40 * scale
+        let gap = 40 * scale
+        let width: Double = padding * 2 + 1080 + 1000 + gap
+        let height: Double = padding * 2 + 1350
+        #expect(plan.size == Size(width: width.rounded(.up), height: height.rounded(.up)))
+        let pictures = plan.steps.compactMap { step -> Rectangle? in
+            guard case let .picture(_, _, frame) = step.content else { return nil }
+
+            return frame
+        }
+        #expect(pictures.count == 2)
+        #expect(isClose(pictures[0], Rectangle(x: padding, y: padding, width: 1080, height: 1350)))
+        #expect(isClose(pictures[1], Rectangle(x: padding + 1080 + gap, y: padding + 275, width: 1000, height: 800)))
+        let borders = plan.steps.filter { if case .border = $0.content { true } else { false } }
+        #expect(borders.count == 2)
+    }
+
+    @Test("a heading sits above its cell, and columns wrap the items into rows")
+    func plansLayoutRows() throws {
+        // Given
+        let document = #"""
+            { "kind": "layout", "columns": 1, "border": false,
+              "items": [ { "heading": "Before", "image": "/abs/page.png" }, { "image": "/abs/card.png" } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let pictures = plan.steps.compactMap { step -> Rectangle? in
+            guard case let .picture(_, _, frame) = step.content else { return nil }
+
+            return frame
+        }
+        guard case let .text(heading, frame) = plan.steps[1].content else {
+            Issue.record("the heading is not drawn")
+            return
+        }
+        #expect(abs(frame.maxY - pictures[0].y) < 1e-9)
+        #expect(pictures[0].x == pictures[1].x + 40)
+        let gap: Double = 40 * 1080 / baseWidth
+        #expect(abs(pictures[1].y - (pictures[0].maxY + gap)) < 1e-9)
+        #expect(heading.lineCount == 1)
+        #expect(!plan.steps.contains { if case .border = $0.content { true } else { false } })
+    }
+
+    @Test(
+        "a layout of no items or no columns stops, and so does sound where a picture is taken",
+        arguments: [
+            (#"{ "kind": "layout", "items": [] }"#, "items (layout): a layout needs at least one item"),
+            (#"{ "kind": "layout", "columns": 0, "items": [ { "image": "/abs/card.png" } ] }"#, "columns (layout): columns must be 1 or more, found 0"),
+            (#"{ "kind": "image", "source": "/abs/bgm.m4a" }"#, #"source (image): media "/abs/bgm.m4a" is sound, and a picture is taken here"#)
+        ]
+    )
+    func refusesPictures(
+        document: String,
+        message: String
+    ) throws {
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try picture(document) }
+        #expect(error?.description == message)
+    }
+
+    @Test("an image document stands in for a path on a storyline, its resolved size the picture's size")
+    func standsInForPath() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence",
+              "storyline": [ { "media": { "kind": "image", "source": "/abs/page.png", "ops": [ { "pad": 20 } ] }, "duration": 1 } ] }
+            """#
+
+        // When
+        let plan = try #require(try sut.plan(Fixture.json(document)).sequence)
+
+        // Then
+        #expect(plan.format.size == Size(width: 1040, height: 840))
+        #expect(plan.storyline[0].nested?.size == Size(width: 1040, height: 840))
+    }
+
+    // MARK: - Private
+    private func isClose(
+        _ rectangle: Rectangle,
+        _ other: Rectangle
+    ) -> Bool {
+        [
+            rectangle.x - other.x,
+            rectangle.y - other.y,
+            rectangle.width - other.width,
+            rectangle.height - other.height
+        ].allSatisfy { abs($0) < 1e-9 }
+    }
+
+    private func picture(_ document: String) throws -> PicturePlan {
+        guard case let .picture(plan) = try sut.plan(Fixture.json(document)) else {
+            Issue.record("the document does not plan as a picture")
+            return PicturePlan(size: Size(width: 0, height: 0), steps: [])
+        }
+
+        return plan
+    }
+
+    private func media(_ file: String) throws -> ResolvedMedia {
+        try MediaResolver(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: Fixture.library)
+            .media(of: .file(file), place: .root, kind: .image, theme: .base)
+    }
+}

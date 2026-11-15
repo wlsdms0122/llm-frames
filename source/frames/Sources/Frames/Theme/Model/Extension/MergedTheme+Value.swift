@@ -38,6 +38,30 @@ extension MergedTheme {
         number(at: ["shapes", "arrow", "head"])
     }
 
+    var boxWidth: Double {
+        number(at: ["shapes", "box", "width"])
+    }
+
+    var boxRadius: Double {
+        number(at: ["shapes", "box", "radius"])
+    }
+
+    var borderWidth: Double {
+        number(at: ["shapes", "border", "width"])
+    }
+
+    var bannerPadding: Double {
+        number(at: ["image", "bannerPadding"])
+    }
+
+    var layoutGap: Double {
+        number(at: ["layout", "gap"])
+    }
+
+    var layoutPadding: Double {
+        number(at: ["layout", "padding"])
+    }
+
     var labelSides: [Side] {
         (value(at: ["shapes", "label", "sides"])?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(Side.init) }
     }
@@ -59,6 +83,11 @@ extension MergedTheme {
         guard !written.hasPrefix("#") else { return Color(written: written) }
 
         return Color(written: value(at: ["colors", written])?.stringValue ?? "#000000")
+    }
+
+    // A shape's theme colour, which a document's `color` replaces.
+    func shapeColor(of shape: String) -> Color {
+        color(value(at: ["shapes", shape, "color"])?.stringValue ?? "accent")
     }
 
     // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the

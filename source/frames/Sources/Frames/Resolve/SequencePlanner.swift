@@ -12,28 +12,29 @@ struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
     private let tracker: TrackPlanner
-    private let fonts: FontFinder
-    private let typesetter: Typesetter
+    private let text: ThemeTypesetter
     private let placer = LabelPlacer()
+    private let pictures: PicturePlanner
 
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
+        presets: any PresetProvider,
         library: ReferenceLibrary
     ) {
         self.finder = GeometryFinder(ocr: ocr)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
-        self.fonts = FontFinder(shaper: shaper, library: library)
-        self.typesetter = Typesetter(shaper: shaper)
+        self.text = ThemeTypesetter(shaper: shaper, library: library)
+        self.pictures = PicturePlanner(ocr: ocr, tracker: tracker, shaper: shaper, presets: presets, library: library)
     }
 
     // MARK: - Public
     func plan(_ time: TimePlan) throws -> SequencePlan {
-        // A compound clip's picture is its nested document's output, so the nested plans come first.
-        let storylineNested = try time.storyline.map { plan in try plan.source.media?.nested.map(self.plan) }
-        let clipNested = try time.clips.map { plan in try plan.media?.nested.map(self.plan) }
+        // A compound clip's or a document's picture is its nested document's output, so the nested plans come first.
+        let storylineNested = try time.storyline.map { plan in try plan.source.media.flatMap(nested) }
+        let clipNested = try time.clips.map { plan in try plan.media.flatMap(nested) }
         let format = try self.format(of: time, nested: storylineNested)
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
 
@@ -87,10 +88,18 @@ struct SequencePlanner: Sendable {
     }
 
     // MARK: - Private
+    private func nested(_ media: ResolvedMedia) throws -> DocumentPlan? {
+        if let nested = media.nested {
+            return .sequence(try plan(nested))
+        }
+
+        return try media.picture.map { .picture(try pictures.plan($0)) }
+    }
+
     // The content rect lies inside the output frame by the inset, and an inset that leaves none stops.
     private func format(
         of time: TimePlan,
-        nested: [SequencePlan?]
+        nested: [DocumentPlan?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
         let size = try format.size ?? defaultSize(of: time, nested: nested)
@@ -116,7 +125,7 @@ struct SequencePlanner: Sendable {
     // even numbers. A solid has no size of its own.
     private func defaultSize(
         of time: TimePlan,
-        nested: [SequencePlan?]
+        nested: [DocumentPlan?]
     ) throws -> Size {
         let index = time.storyline.firstIndex { $0.source.kind == .media(.video) } ?? 0
         let plan = time.storyline[index]
@@ -136,7 +145,7 @@ struct SequencePlanner: Sendable {
     // A solid fills the content rect, so its picture is that rect's size.
     private func picture(
         of plan: StorylinePlan,
-        nested: SequencePlan?,
+        nested: DocumentPlan?,
         format: FormatPlan
     ) throws -> Picture {
         guard let media = plan.source.media else {
@@ -150,22 +159,21 @@ struct SequencePlanner: Sendable {
         return try picture(of: media, kind: plan.source.kind, nested: nested, place: plan.place.appending(key: "media"))
     }
 
-    // A media file's picture is its probed size. A compound clip's is the output of its nested document, which is
-    // drawn, not read. An image or layout document's is resolved later.
+    // A media file's picture is its probed size. A compound clip's or an image or layout document's is the output of
+    // its nested document, which is drawn, not read.
     private func picture(
         of media: ResolvedMedia,
         kind: ClipKind,
-        nested: SequencePlan?,
+        nested: DocumentPlan?,
         place: Place
     ) throws -> Picture {
         if let nested {
-            return Picture(name: media.reference ?? place.description, source: .document, size: nested.format.size)
+            return Picture(name: media.reference ?? place.description, source: .document, size: nested.size)
         }
-        guard let file = media.file else {
-            throw ResolveError.unresolvedDocumentPicture(place: place, kind: .clip(kind))
-        }
+        // Only a document has no file, and it has a nested plan.
+        let file = media.file ?? ""
         guard let size = media.size else {
-            throw ResolveError.unprobedMedia(place: place, kind: .clip(kind), reference: media.reference ?? file)
+            throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: media.reference ?? file)
         }
 
         return Picture(name: media.reference ?? file, source: .mediaFile(file), size: size)
@@ -179,7 +187,7 @@ struct SequencePlanner: Sendable {
     private func crop(
         of plan: StorylinePlan,
         written: StorylineClip,
-        nested: SequencePlan?,
+        nested: DocumentPlan?,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> PropertyValue<FoundArea>? {
@@ -203,9 +211,9 @@ struct SequencePlanner: Sendable {
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
-        nested: SequencePlan?,
+        nested: DocumentPlan?,
         time: TimePlan,
-        storylineNested: [SequencePlan?],
+        storylineNested: [DocumentPlan?],
         format: FormatPlan
     ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
         let theme = time.theme
@@ -301,7 +309,7 @@ struct SequencePlanner: Sendable {
         guard case let .title(text, style) = written.content else { return nil }
 
         let scale = theme.lengthScale(at: format.size.width)
-        return try layout(
+        return try self.text.layout(
             text,
             style: style,
             width: written.width ?? format.size.width - theme.placementPadding * scale * 2,
@@ -325,7 +333,7 @@ struct SequencePlanner: Sendable {
     ) throws -> LabelPlan? {
         guard let label = written.label else { return nil }
 
-        let text = try layout(
+        let text = try self.text.layout(
             label,
             style: "label",
             width: nil,
@@ -356,22 +364,6 @@ struct SequencePlanner: Sendable {
             format: format,
             theme: time.theme
         )
-    }
-
-    // Lengths in a style are multiplied by the length scale of the place the text is drawn.
-    private func layout(
-        _ text: String,
-        style name: String,
-        width: Double?,
-        theme: MergedTheme,
-        scale: Double,
-        place: Place,
-        kind: String
-    ) throws -> TextLayout {
-        let style = theme.style(named: name, scale: scale)
-        let face = try fonts.face(for: style, place: theme.fontPlace)
-
-        return try typesetter.layout(text, style: style, face: face, width: width, place: place, kind: kind)
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one

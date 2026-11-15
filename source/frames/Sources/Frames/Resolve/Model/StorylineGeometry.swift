@@ -11,13 +11,13 @@ struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?
     let track: Track?
-    let nested: SequencePlan?
+    let nested: DocumentPlan?
 
     // MARK: - Initializer
     init(
         crop: PropertyValue<FoundArea>?,
         track: Track?,
-        nested: SequencePlan?
+        nested: DocumentPlan?
     ) {
         self.crop = crop
         self.track = track

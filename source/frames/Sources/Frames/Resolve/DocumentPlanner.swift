@@ -13,6 +13,8 @@ struct DocumentPlanner: Sendable {
     private let library: ReferenceLibrary
     private let planner: TimePlanner
     private let sequencePlanner: SequencePlanner
+    private let resolver: MediaResolver
+    private let pictures: PicturePlanner
     private let checker: KeyChecker
     private let reader: TemplateReader
     private let instantiator: TemplateInstantiator
@@ -29,7 +31,15 @@ struct DocumentPlanner: Sendable {
     ) {
         self.library = library
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
-        self.sequencePlanner = SequencePlanner(ocr: ocr, tracker: tracker, shaper: shaper, library: library)
+        self.sequencePlanner = SequencePlanner(
+            ocr: ocr,
+            tracker: tracker,
+            shaper: shaper,
+            presets: presets,
+            library: library
+        )
+        self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
+        self.pictures = PicturePlanner(ocr: ocr, tracker: tracker, shaper: shaper, presets: presets, library: library)
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
@@ -41,7 +51,7 @@ struct DocumentPlanner: Sendable {
         _ document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
-    ) throws -> SequencePlan {
+    ) throws -> DocumentPlan {
         let template = try reader.template(from: document, place: .root)
         let documentKind = document.objectValue?["kind"]?.stringValue ?? ""
 
@@ -50,7 +60,12 @@ struct DocumentPlanner: Sendable {
                 throw PackError.argumentsWithoutTemplate(place: .root, kind: documentKind)
             }
 
-            return try sequencePlanner.plan(try planner.plan(document: document, theme: try self.theme(named: theme)))
+            let merged = try self.theme(named: theme)
+            guard MediaKind(document: document) == .sequence else {
+                return try picture(PictureReader().picture(from: document), theme: merged)
+            }
+
+            return .sequence(try sequencePlanner.plan(try planner.plan(document: document, theme: merged)))
         }
         guard theme == nil else { throw PackError.themeOnTemplate(place: .root, kind: documentKind) }
 
@@ -71,12 +86,25 @@ struct DocumentPlanner: Sendable {
         )
         // The command line is the caller, and it gives a template no theme, so what it was given starts from the base.
         let argumentThemes = ArgumentThemeTable(instance: instance, place: .root, theme: .base, passedOnThemes: .empty)
+        guard instance.kind == .sequence else {
+            let picture = PictureReader(argumentThemes: argumentThemes).picture(from: instance.document)
+
+            return try self.picture(picture, theme: .base)
+        }
+
         let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document)
 
-        return try sequencePlanner.plan(try planner.plan(sequence, theme: .base))
+        return .sequence(try sequencePlanner.plan(try planner.plan(sequence, theme: .base)))
     }
 
     // MARK: - Private
+    private func picture(
+        _ document: PictureDocument,
+        theme: MergedTheme
+    ) throws -> DocumentPlan {
+        .picture(try pictures.plan(try resolver.picture(of: document, theme: theme)))
+    }
+
     private func theme(named name: String?) throws -> MergedTheme {
         guard let name else { return .base }
         guard let layer = try library.theme(named: name) else { throw PackError.unknownThemeOption(name: name) }

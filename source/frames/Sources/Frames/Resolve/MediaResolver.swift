@@ -103,6 +103,31 @@ struct MediaResolver: Sendable {
         }
     }
 
+    // An image or layout document merges its own theme over the one in effect, which the media it takes starts from.
+    func picture(
+        of document: PictureDocument,
+        theme: MergedTheme
+    ) throws -> NestedPicture {
+        switch document {
+        case let .image(image):
+            try picture(document, theme: image.theme, place: image.place, kind: .image, over: theme) { merged in
+                [try media(of: image.source, place: image.place.appending(key: "source"), kind: .image, theme: merged)]
+            }
+
+        case let .layout(layout):
+            try picture(document, theme: layout.theme, place: layout.place, kind: .layout, over: theme) { merged in
+                try layout.items.map { item in
+                    try media(
+                        of: item.source,
+                        place: item.place.appending(key: "image"),
+                        kind: .layoutItem,
+                        theme: merged
+                    )
+                }
+            }
+        }
+    }
+
     // MARK: - Private
     // A document named by its file stands as if written there, so it starts from the theme in effect there. What it
     // holds is read on the way through its file, so media that holds the document again stops.
@@ -164,32 +189,18 @@ struct MediaResolver: Sendable {
         return nested(try planner(library: inner).plan(sequence, theme: .base), reference: nil)
     }
 
-    // An image or layout document merges its own theme over the one in effect, which the media it takes starts from.
     private func picture(
         _ document: PictureDocument,
         reference: String?,
         theme: MergedTheme
     ) throws -> ResolvedMedia {
-        let nested = switch document {
-        case let .image(image):
-            try picture(document, theme: image.theme, place: image.place, kind: .image, over: theme) { merged in
-                [try media(of: image.source, place: image.place.appending(key: "source"), kind: .image, theme: merged)]
-            }
-
-        case let .layout(layout):
-            try picture(document, theme: layout.theme, place: layout.place, kind: .layout, over: theme) { merged in
-                try layout.items.map { item in
-                    try media(
-                        of: item.source,
-                        place: item.place.appending(key: "image"),
-                        kind: .layoutItem,
-                        theme: merged
-                    )
-                }
-            }
-        }
-
-        return ResolvedMedia(kind: .image, reference: reference, file: nil, duration: 0, picture: nested)
+        ResolvedMedia(
+            kind: .image,
+            reference: reference,
+            file: nil,
+            duration: 0,
+            picture: try picture(of: document, theme: theme)
+        )
     }
 
     private func picture(

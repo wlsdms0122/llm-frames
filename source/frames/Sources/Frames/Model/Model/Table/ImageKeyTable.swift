@@ -96,9 +96,9 @@ enum ImageKeyTable {
     private static let resize = ObjectTable(
         kind: "resize",
         rules: [
-            KeyRule("scale", .number),
-            KeyRule("width", .number),
-            KeyRule("height", .number)
+            KeyRule("scale", .positiveNumber),
+            KeyRule("width", .positiveNumber),
+            KeyRule("height", .positiveNumber)
         ],
         group: KeyGroup(keys: ["scale", "width", "height"], isExclusive: true)
     )

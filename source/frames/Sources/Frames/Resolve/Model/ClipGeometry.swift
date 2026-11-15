@@ -17,7 +17,7 @@ struct ClipGeometry: Equatable, Sendable {
     let track: Track?
     let title: TextLayout?
     let label: LabelPlan?
-    let nested: SequencePlan?
+    let nested: DocumentPlan?
 
     // MARK: - Initializer
     init(
@@ -27,7 +27,7 @@ struct ClipGeometry: Equatable, Sendable {
         track: Track?,
         title: TextLayout?,
         label: LabelPlan?,
-        nested: SequencePlan?
+        nested: DocumentPlan?
     ) {
         self.area = area
         self.position = position

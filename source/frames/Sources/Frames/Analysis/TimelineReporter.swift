@@ -22,7 +22,14 @@ struct TimelineReporter: Sendable {
         theme: String? = nil,
         arguments: ArgumentFile? = nil
     ) throws -> TimelineReport {
-        report(of: try planner.plan(document, theme: theme, arguments: arguments))
+        switch try planner.plan(document, theme: theme, arguments: arguments) {
+        case let .sequence(plan):
+            return report(of: plan)
+
+        // An image or layout document has no time, so its report holds nothing once it resolves.
+        case .picture:
+            return TimelineReport(duration: 0, storyline: [], clips: [])
+        }
     }
 
     func report(of plan: SequencePlan) -> TimelineReport {
@@ -53,7 +60,7 @@ struct TimelineReporter: Sendable {
             clip: clip.source.clipRange,
             speed: clip.source.speed,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
-            nested: geometry.nested.map { report(of: $0) }
+            nested: geometry.nested?.sequence.map { report(of: $0) }
         )
     }
 
@@ -79,7 +86,7 @@ struct TimelineReporter: Sendable {
                     loop: animation.loop.map(span),
                     exit: animation.exit.map(span)
                 ),
-            nested: geometry.nested.map { report(of: $0) }
+            nested: geometry.nested?.sequence.map { report(of: $0) }
         )
     }
 

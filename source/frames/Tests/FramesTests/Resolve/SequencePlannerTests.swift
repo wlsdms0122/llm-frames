@@ -78,10 +78,6 @@ struct SequencePlannerTests {
             (
                 #"{ "kind": "sequence", "format": { "inset": [1000, 0, 920, 0] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
                 "format.inset (sequence): the inset leaves no content rect in the output of 1080x1920"
-            ),
-            (
-                #"{ "kind": "sequence", "storyline": [ { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 1 } ] }"#,
-                "storyline[0].media (image): the picture of an image or layout document used as media is not resolved yet"
             )
         ]
     )
@@ -337,8 +333,8 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.format.size == Size(width: 1080, height: 1920))
-        #expect(plan.clips[0].nested?.format.size == Size(width: 640, height: 480))
-        #expect(plan.storyline[1].nested?.format.size == Size(width: 640, height: 480))
+        #expect(plan.clips[0].nested?.size == Size(width: 640, height: 480))
+        #expect(plan.storyline[1].nested?.size == Size(width: 640, height: 480))
         #expect(plan.storyline[0].nested == nil)
     }
 
@@ -355,6 +351,7 @@ struct SequencePlannerTests {
                 followed: ["/abs/screen.mp4": followed]
             ),
             shaper: Fixture.shaper,
+            presets: Fixture.presets,
             library: Fixture.library
         )
     }
