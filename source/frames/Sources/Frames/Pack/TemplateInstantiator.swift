@@ -44,7 +44,7 @@ struct TemplateInstantiator: Sendable {
         return TemplateInstance(
             document: removingParameters(from: document),
             kind: template.kind,
-            arguments: given.map { Place(components: $0.place.components) }
+            arguments: given.map { ParameterReference(place: Place(components: $0.place.components), name: $0.name) }
         )
     }
 

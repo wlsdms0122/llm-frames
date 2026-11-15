@@ -86,8 +86,15 @@ struct MediaResolver: Sendable {
         case .document:
             return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
 
-        case let .template(name, arguments):
-            return try instance(of: name, arguments: arguments, place: place, kind: kind, theme: theme)
+        case let .template(name, arguments, argumentThemes):
+            return try instance(
+                of: name,
+                arguments: arguments,
+                argumentThemes: argumentThemes,
+                place: place,
+                kind: kind,
+                theme: theme
+            )
 
         case let .argument(source, argumentTheme):
             return try media(of: source, place: place, kind: kind, theme: argumentTheme)
@@ -114,10 +121,12 @@ struct MediaResolver: Sendable {
     }
 
     // A template resolves on the base theme and its own, so only its arguments change it. Media it was given keeps
-    // `theme`, the theme where the instance is written.
+    // `theme`, the theme where the instance is written, unless it is passed on from a template that was given it,
+    // where it keeps the theme of the document that wrote it.
     private func instance(
         of name: String,
         arguments: JSONObject,
+        argumentThemes: [String: MergedTheme],
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
@@ -135,11 +144,13 @@ struct MediaResolver: Sendable {
             return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
         }
 
-        let argumentThemes = Dictionary(
-            instance.arguments.map { argument in (place.appending(argument), theme) },
+        let themes = Dictionary(
+            instance.arguments.map { argument in
+                (place.appending(argument.place), argumentThemes[argument.name] ?? theme)
+            },
             uniquingKeysWith: { first, _ in first }
         )
-        let sequence = SequenceReader(arguments: argumentThemes).sequence(from: instance.document, place: place)
+        let sequence = SequenceReader(arguments: themes).sequence(from: instance.document, place: place)
         return nested(try planner.plan(sequence, theme: .base), reference: nil)
     }
 

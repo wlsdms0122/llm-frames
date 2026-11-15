@@ -128,6 +128,47 @@ struct TimelineReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
+    @Test("a document a template passes on to another template keeps the theme of the document that wrote it")
+    func keepsThemeOfPassedOnArgument() throws {
+        // Given
+        let directory = try PackDirectory()
+        try directory.addPack("shorts")
+        try directory.write(
+            #"""
+            { "kind": "sequence", "theme": { "defaults": { "transition": "push-up" } },
+              "params": { "body": { "type": "sequence" } },
+              "storyline": [ { "media": { "template": "shorts/inner", "args": { "body": { "param": "body" } } } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/outer.json"
+        )
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "body": { "type": "sequence" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
+            in: "shorts",
+            at: "templates/inner.json"
+        )
+        let sut = TimelineReporter(
+            planner: DocumentPlanner(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: directory.library())
+        )
+        let value = try Fixture.json(##"""
+            { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
+              "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
+                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+              } } } ] }
+            """##)
+
+        // When
+        let report = try sut.report(of: value)
+
+        // Then
+        let outer = report.machineOutput.objectValue?["storyline"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue
+        let inner = outer?["storyline"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue
+        let body = inner?["storyline"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue
+        let entry = try #require(body?["storyline"]?.arrayValue?.last?.objectValue)
+        #expect(entry["place"] == .string("storyline[0].media.storyline[0].media.storyline[0].media.storyline[1]"))
+        #expect(entry["transition"]?.objectValue?["preset"] == .string("flash"))
+    }
+
     @Test("the text output gives one line per clip, for people")
     func writesText() throws {
         // Given

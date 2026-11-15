@@ -6,12 +6,13 @@
 //
 
 // The forms a document names media in. `argument` is media a template instance was given, which keeps `theme`, the
-// theme in effect where the instance is written, since that is the document that wrote it.
+// theme in effect where the instance is written, since that is the document that wrote it. A template's
+// `argumentThemes` are the themes its arguments already keep, by name, when a template passes its own on.
 enum MediaSource: Equatable, Sendable {
     case file(String)
     case imageSequence(directory: String, fps: Double)
     case compound(SequenceDocument)
     case document(JSONObject)
-    case template(name: String, arguments: JSONObject)
+    case template(name: String, arguments: JSONObject, argumentThemes: [String: MergedTheme])
     indirect case argument(MediaSource, theme: MergedTheme)
 }

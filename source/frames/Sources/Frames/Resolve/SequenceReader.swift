@@ -139,7 +139,13 @@ struct SequenceReader: Sendable {
         guard let object = value.objectValue else { return .file(value.stringValue ?? "") }
 
         if let template = object["template"]?.stringValue {
-            return .template(name: template, arguments: object["args"]?.objectValue ?? JSONObject())
+            let arguments = object["args"]?.objectValue ?? JSONObject()
+            let argumentsPlace = place.appending(key: "args")
+            let argumentThemes = arguments.keys.reduce(into: [String: MergedTheme]()) { themes, name in
+                themes[name] = self.arguments[argumentsPlace.appending(key: name)]
+            }
+
+            return .template(name: template, arguments: arguments, argumentThemes: argumentThemes)
         }
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)

@@ -100,7 +100,7 @@ struct SequenceReaderTests {
 
         // Then
         let arguments = try Fixture.object(#"{ "clip": "/abs/run.mp4" }"#)
-        #expect(sequence.storyline[0].media?.source == .template(name: "shorts/leak", arguments: arguments))
+        #expect(sequence.storyline[0].media?.source == .template(name: "shorts/leak", arguments: arguments, argumentThemes: [:]))
         #expect(sequence.storyline[1].media?.source == .argument(.file("/abs/run.mp4"), theme: theme))
     }
 }

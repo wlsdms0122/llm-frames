@@ -48,7 +48,7 @@ struct TemplateInstantiatorTests {
             """##)
         #expect(instance.document == expected)
         #expect(instance.kind == .sequence)
-        #expect(instance.arguments == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
+        #expect(instance.arguments == [ParameterReference(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), name: "clip")])
     }
 
     @Test("an argument the template does not declare stops")
@@ -136,7 +136,7 @@ struct TemplateInstantiatorTests {
         let instance = try sut.instance(of: template, arguments: arguments, place: place)
 
         // Then
-        #expect(instance.arguments.map(\.description) == ["storyline[0].media", "storyline[2].media"])
+        #expect(instance.arguments.map(\.place.description) == ["storyline[0].media", "storyline[2].media"])
     }
 
     // MARK: - Private

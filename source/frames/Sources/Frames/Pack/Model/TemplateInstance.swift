@@ -6,18 +6,19 @@
 //
 
 // A template with its arguments filled in: a document of plain values. `arguments` are the places, from the top of
-// the document, where media given as an argument stands, since that media keeps the look of the document that gave it.
+// the document, where media given as an argument stands, with the parameter it was given for, since that media keeps
+// the look of the document that gave it.
 struct TemplateInstance: Equatable, Sendable {
     // MARK: - Property
     let document: JSONValue
     let kind: MediaKind
-    let arguments: [Place]
+    let arguments: [ParameterReference]
 
     // MARK: - Initializer
     init(
         document: JSONValue,
         kind: MediaKind,
-        arguments: [Place]
+        arguments: [ParameterReference]
     ) {
         self.document = document
         self.kind = kind
