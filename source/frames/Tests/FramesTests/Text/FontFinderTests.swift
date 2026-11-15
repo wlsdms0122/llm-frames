@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import Foundation
 import Testing
 
 @testable import Frames
@@ -37,6 +38,18 @@ struct FontFinderTests {
         // Then
         #expect(files.map { $0.split(separator: "/").last.map(String.init) } == ["Inter-Bold.otf", "Pretendard-Bold.otf"])
         #expect(none.isEmpty)
+    }
+
+    @Test("a pack's fonts folder that is there but cannot be read stops")
+    func refusesUnreadableFonts() throws {
+        // Given
+        let sut = directory.library()
+        let fonts = URL(fileURLWithPath: fontFile).deletingLastPathComponent().path
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: fonts)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: fonts) }
+
+        // When, Then
+        #expect(throws: PackError.unreadableFile(file: fonts)) { try sut.fontFiles(inPack: "shorts") }
     }
 
     @Test("a family the pack carries is taken from the pack before the machine's")
