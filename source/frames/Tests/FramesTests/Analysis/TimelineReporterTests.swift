@@ -53,7 +53,7 @@ struct TimelineReporterTests {
     func roundsTimes() throws {
         // Given
         let value = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 0.1 }, { "solid": "#FFFFFF", "duration": 0.2 } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 0.1 }, { "solid": "#FFFFFF", "duration": 0.2 } ] }
             """##)
 
         // When
@@ -71,7 +71,7 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ],
+              { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
                            "clips": [ { "title": "a", "style": "headline" } ] } }
             ] }
             """##)
@@ -100,9 +100,16 @@ struct TimelineReporterTests {
         )
         try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov", "out": 1 } ] }"#, in: "shorts", at: "media/intro.json")
         let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
-        let mediaFacts = MediaFactTable(files: [leak: ProbedMedia(kind: .video, duration: 2, fps: 24)])
+        let mediaFacts = MediaFactTable(files: [leak: ProbedMedia(kind: .video, duration: 2, fps: 24, size: Size(width: 1080, height: 1920))])
         let sut = TimelineReporter(
-            planner: DocumentPlanner(mediaFacts: mediaFacts, presets: Fixture.presets, library: directory.library(mediaFacts: mediaFacts))
+            planner: DocumentPlanner(
+                mediaFacts: mediaFacts,
+                presets: Fixture.presets,
+                ocr: Fixture.ocr,
+                tracker: Fixture.tracker,
+                shaper: Fixture.shaper,
+                library: directory.library(mediaFacts: mediaFacts)
+            )
         )
         let value = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
@@ -148,12 +155,19 @@ struct TimelineReporterTests {
             at: "templates/inner.json"
         )
         let sut = TimelineReporter(
-            planner: DocumentPlanner(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: directory.library())
+            planner: DocumentPlanner(
+                mediaFacts: Fixture.mediaFacts,
+                presets: Fixture.presets,
+                ocr: Fixture.ocr,
+                tracker: Fixture.tracker,
+                shaper: Fixture.shaper,
+                library: directory.library()
+            )
         )
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
               "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 
@@ -179,7 +193,7 @@ struct TimelineReporterTests {
             { "kind": "sequence", "theme": { "defaults": { "transition": "push-up" } },
               "params": { "body": { "type": "sequence" } },
               "storyline": [ { "media": { "template": "shorts/inner", "args": { "body":
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
               } } } ] }
             """##,
             in: "shorts",
@@ -191,12 +205,19 @@ struct TimelineReporterTests {
             at: "templates/inner.json"
         )
         let sut = TimelineReporter(
-            planner: DocumentPlanner(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: directory.library())
+            planner: DocumentPlanner(
+                mediaFacts: Fixture.mediaFacts,
+                presets: Fixture.presets,
+                ocr: Fixture.ocr,
+                tracker: Fixture.tracker,
+                shaper: Fixture.shaper,
+                library: directory.library()
+            )
         )
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
               "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 

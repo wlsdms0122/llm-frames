@@ -12,6 +12,7 @@ struct DocumentPlanner: Sendable {
     // MARK: - Property
     private let library: ReferenceLibrary
     private let planner: TimePlanner
+    private let sequencePlanner: SequencePlanner
     private let checker: KeyChecker
     private let reader: TemplateReader
     private let instantiator: TemplateInstantiator
@@ -21,10 +22,14 @@ struct DocumentPlanner: Sendable {
     init(
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider,
+        ocr: any OCRProvider,
+        tracker: any TrackerProvider,
+        shaper: any ShapingProvider,
         library: ReferenceLibrary
     ) {
         self.library = library
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+        self.sequencePlanner = SequencePlanner(ocr: ocr, tracker: tracker, shaper: shaper, library: library)
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
@@ -36,7 +41,7 @@ struct DocumentPlanner: Sendable {
         _ document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
-    ) throws -> TimePlan {
+    ) throws -> SequencePlan {
         let template = try reader.template(from: document, place: .root)
         let documentKind = document.objectValue?["kind"]?.stringValue ?? ""
 
@@ -45,7 +50,7 @@ struct DocumentPlanner: Sendable {
                 throw PackError.argumentsWithoutTemplate(place: .root, kind: documentKind)
             }
 
-            return try planner.plan(document: document, theme: try self.theme(named: theme))
+            return try sequencePlanner.plan(try planner.plan(document: document, theme: try self.theme(named: theme)))
         }
         guard theme == nil else { throw PackError.themeOnTemplate(place: .root, kind: documentKind) }
 
@@ -68,7 +73,7 @@ struct DocumentPlanner: Sendable {
         let argumentThemes = ArgumentThemeTable(instance: instance, place: .root, theme: .base, passedOnThemes: .empty)
         let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document)
 
-        return try planner.plan(sequence, theme: .base)
+        return try sequencePlanner.plan(try planner.plan(sequence, theme: .base))
     }
 
     // MARK: - Private

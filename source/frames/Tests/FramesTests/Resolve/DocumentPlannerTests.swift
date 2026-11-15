@@ -21,9 +21,11 @@ struct DocumentPlannerTests {
           "params": { "clip": { "type": "video" }, "intro": { "type": "sequence", "default": "shorts/intro.json" } },
           "storyline": [ { "media": { "param": "clip" }, "in": 1, "out": 3 }, { "media": { "param": "intro" } } ] }
         """#
-    // A document of two solids, so the theme it starts from decides the transition between them.
+    // A document of two solids, so the theme it starts from decides the transition between them. Solids have no size,
+    // so it gives its own.
     private let intro = ##"""
-        { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 }, { "solid": "#FFFFFF", "duration": 1 } ] }
+        { "kind": "sequence", "format": { "size": [1080, 1920] },
+          "storyline": [ { "solid": "#000000", "duration": 1 }, { "solid": "#FFFFFF", "duration": 1 } ] }
         """##
 
     // MARK: - Initializer
@@ -37,12 +39,19 @@ struct DocumentPlannerTests {
         let media = directory.installed.appendingPathComponent("shorts/media", isDirectory: true)
         let mediaFacts = MediaFactTable(
             files: [
-                media.appendingPathComponent("leak.mov").path: ProbedMedia(kind: .video, duration: 4, fps: 24),
-                "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97)
+                media.appendingPathComponent("leak.mov").path: ProbedMedia(kind: .video, duration: 4, fps: 24, size: Size(width: 1080, height: 1920)),
+                "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920))
             ],
             imageSequences: [media.appendingPathComponent("frames").path: 12]
         )
-        sut = DocumentPlanner(mediaFacts: mediaFacts, presets: Fixture.presets, library: directory.library(mediaFacts: mediaFacts))
+        sut = DocumentPlanner(
+            mediaFacts: mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            tracker: Fixture.tracker,
+            shaper: Fixture.shaper,
+            library: directory.library(mediaFacts: mediaFacts)
+        )
     }
 
     // MARK: - Test
@@ -57,9 +66,9 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        let nested = try #require(plan.storyline[0].source.media?.nested)
-        #expect(plan.storyline[0].source.media?.reference == nil)
-        #expect(plan.duration == 4)
+        let nested = try #require(plan.time.storyline[0].source.media?.nested)
+        #expect(plan.time.storyline[0].source.media?.reference == nil)
+        #expect(plan.time.duration == 4)
         #expect(nested.storyline.map(\.place.description) == ["storyline[0].media.storyline[0]", "storyline[0].media.storyline[1]"])
         #expect(nested.storyline[0].source.media?.reference == "shorts/leak.mov")
         #expect(nested.storyline[0].source.media?.file == directory.installed.appendingPathComponent("shorts/media/leak.mov").path)
@@ -79,7 +88,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        let template = try #require(plan.storyline[0].source.media?.nested)
+        let template = try #require(plan.time.storyline[0].source.media?.nested)
         let argument = try #require(template.storyline[1].source.media?.nested)
         #expect(template.storyline[1].transition == nil)
         #expect(argument.storyline[1].transition?.preset == "flash")
@@ -97,7 +106,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        let intro = try #require(plan.storyline[0].source.media?.nested?.storyline[1].source.media?.nested)
+        let intro = try #require(plan.time.storyline[0].source.media?.nested?.storyline[1].source.media?.nested)
         #expect(intro.storyline[1].transition == nil)
     }
 
@@ -112,8 +121,8 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        let nested = try #require(plan.storyline[0].source.media?.nested)
-        #expect(plan.storyline[0].source.media?.reference == "shorts/intro.json")
+        let nested = try #require(plan.time.storyline[0].source.media?.nested)
+        #expect(plan.time.storyline[0].source.media?.reference == "shorts/intro.json")
         #expect(nested.storyline[1].place.description == "storyline[0].media.storyline[1]")
         #expect(nested.storyline[1].transition?.preset == "flash")
     }
@@ -129,8 +138,8 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        #expect(plan.storyline.map(\.edit) == [TimeRange(start: 0, end: 4), TimeRange(start: 4, end: 5)])
-        #expect(plan.storyline[1].source.media?.reference == "shorts/frames")
+        #expect(plan.time.storyline.map(\.edit) == [TimeRange(start: 0, end: 4), TimeRange(start: 4, end: 5)])
+        #expect(plan.time.storyline[1].source.media?.reference == "shorts/frames")
     }
 
     @Test("--theme merges over the base theme, under the document's own theme")
@@ -142,7 +151,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document, theme: "shorts/shorts")
 
         // Then
-        #expect(plan.storyline[1].transition?.preset == "flash")
+        #expect(plan.time.storyline[1].transition?.preset == "flash")
     }
 
     @Test(
@@ -203,8 +212,8 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document, arguments: arguments)
 
         // Then
-        #expect(plan.storyline[0].source.media?.reference == "shorts/leak.mov")
-        #expect(plan.storyline[0].place.description == "storyline[0]")
+        #expect(plan.time.storyline[0].source.media?.reference == "shorts/leak.mov")
+        #expect(plan.time.storyline[0].place.description == "storyline[0]")
         let wrongError = #expect(throws: (any Error).self) { try sut.plan(document, arguments: wrong) }
         #expect(wrongError.map { "\($0)" } == "/abs/args.json: clip (template arguments): expected a media reference, found 3")
         let listError = #expect(throws: ModelError.self) { try sut.plan(document, arguments: list) }
@@ -277,7 +286,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        #expect(plan.duration == 2)
+        #expect(plan.time.duration == 2)
     }
 
     @Test("a template's default document that holds an instance of that template stops instead of never ending")

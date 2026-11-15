@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Plans a sequence's time without rendering and reports it as `timeline` prints it. It stops wherever the plan does.
+// Plans a sequence without rendering and reports its time as `timeline` prints it, with every window as tracking
+// leaves it. It stops wherever the plan does.
 struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
@@ -24,16 +25,25 @@ struct TimelineReporter: Sendable {
         report(of: try planner.plan(document, theme: theme, arguments: arguments))
     }
 
-    func report(of plan: TimePlan) -> TimelineReport {
-        TimelineReport(
-            duration: plan.duration,
-            storyline: plan.storyline.map(entry),
-            clips: plan.clips.map { clip in entry(of: clip, storyline: plan.storyline) }
+    func report(of plan: SequencePlan) -> TimelineReport {
+        let time = plan.time
+
+        return TimelineReport(
+            duration: time.duration,
+            storyline: time.storyline.indices.map { index in
+                entry(of: time.storyline[index], geometry: plan.storyline[index])
+            },
+            clips: time.clips.indices.map { index in
+                entry(of: time.clips[index], geometry: plan.clips[index], storyline: time.storyline)
+            }
         )
     }
 
     // MARK: - Private
-    private func entry(of clip: StorylinePlan) -> TimelineStorylineEntry {
+    private func entry(
+        of clip: StorylinePlan,
+        geometry: StorylineGeometry
+    ) -> TimelineStorylineEntry {
         TimelineStorylineEntry(
             place: clip.place,
             id: clip.id,
@@ -43,12 +53,13 @@ struct TimelineReporter: Sendable {
             clip: clip.source.clipRange,
             speed: clip.source.speed,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
-            nested: clip.source.media?.nested.map { report(of: $0) }
+            nested: geometry.nested.map { report(of: $0) }
         )
     }
 
     private func entry(
         of clip: ClipPlan,
+        geometry: ClipGeometry,
         storyline: [StorylinePlan]
     ) -> TimelineClipEntry {
         let animation = clip.animation
@@ -68,7 +79,7 @@ struct TimelineReporter: Sendable {
                     loop: animation.loop.map(span),
                     exit: animation.exit.map(span)
                 ),
-            nested: clip.media?.nested.map { report(of: $0) }
+            nested: geometry.nested.map { report(of: $0) }
         )
     }
 

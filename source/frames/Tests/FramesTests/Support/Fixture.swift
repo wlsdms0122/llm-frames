@@ -105,7 +105,14 @@ enum Fixture {
 
     static let sequencePlanner = SequencePlanner(ocr: ocr, tracker: tracker, shaper: shaper, library: library)
 
-    static let documentPlanner = DocumentPlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+    static let documentPlanner = DocumentPlanner(
+        mediaFacts: mediaFacts,
+        presets: presets,
+        ocr: ocr,
+        tracker: tracker,
+        shaper: shaper,
+        library: library
+    )
 
     private static let emptyDirectory: URL = {
         let directory = FileManager.default.temporaryDirectory
