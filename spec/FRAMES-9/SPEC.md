@@ -23,7 +23,7 @@ Vertical shorts and evidence shots need a content rect smaller than the frame, a
 
 ### Storyline clips
 
-- `in` defaults to 0 and `out` to the end of the media, here and on media clips. A video, image sequence or compound clip needs `in < out` and `speed > 0`. An `out` past the end of the media is trimmed to the end.
+- `in` defaults to 0 and `out` to the end of the media, here and on media clips. A video, image sequence or compound clip needs `in < out` and `speed > 0`. An `out` past the end of the media is trimmed to the end, and an `in` before 0 is moved to 0. These defaults, and the need for `in < out` and `speed > 0`, hold on every timed media clip, connected and sequence clips and sounds included.
 - A still or solid clip needs `duration > 0`. `solid` is a colour, and fills the content rect.
 - An empty storyline stops, and so does a storyline clip whose media holds only sound.
 - `crop` is the region of the media shown in the content rect. It is an area, or `{scale: s}` for a centred region `1/s` the size of the picture (`s = 1` is the whole picture). It is keyframable, which gives a pan and zoom (Ken Burns).

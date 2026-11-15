@@ -89,6 +89,7 @@ A span is:
 | `matte` | `{media, softness, invert}`: a luma wipe (below) |
 
 - A storyline picture reads opacity, scale, x, y, rotation and reveal. Scale, x, y and rotation act around the centre of the content rect, and reveal shows the content rect from the `revealFrom` side.
+- `seconds` in a `{preset, seconds}` choice is above 0, as a preset's own is, and 0 or less stops.
 - `seconds` or `period` inside a span stops. A transition's time is its length.
 - To change scenes while the cover hides them, cut the incoming opacity from 0 to 1 at that point.
 - `matte.media` is a greyscale image or video, stretched over the content rect. The incoming unit shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a track-matte wipe that shows the incoming unit where it is black. Either gives any wipe shape without code. A matte reveals the incoming unit, so a transition with both `matte` and `"over": "outgoing"` stops.
