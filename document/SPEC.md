@@ -32,7 +32,7 @@ frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere
 | A value that still does what it says is clamped, one that cannot stops | A transition longer than its clips, an out point past the end of the media, an area partly outside the picture: each is cut to what fits and still does its job. A clip that is never visible, an area wholly outside the picture, a one-line label that does not fit: each stops |
 | No legacy keys | When a key changes, old documents stop. There is no compatibility branch |
 | Render at full quality, deliver separately | Rendering never trades quality for size. `transcode` does that |
-| Reproducible from the resolved document | What can differ between machines (recognised text, fonts, themes, presets) is fixed into the resolved document. Drawing it again on the same engine gives the same result |
+| Reproducible from the resolved document | What can differ between machines (recognised text, fonts, themes, presets) is fixed into the resolved document. Drawing it again on the same engine gives the same result on any machine that has the same media and font files |
 | Sound is media | frames places sound files on the timeline. Speech synthesis, recording and transcription happen outside |
 
 ## 3. Shape of the system
@@ -63,12 +63,14 @@ analysis: probe, ocr, extract, sheet          delivery: transcode
 | Value | Unit |
 | --- | --- |
 | Time | seconds, as a number. Which clock a time is on is section 8.3 |
-| Area in source media | pixels of the source picture, origin at the top left |
+| Area in source media | pixels of the source picture as it is displayed, origin at the top left: rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
 | Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the scale of the place they are drawn (below) |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size. In a transition, multiples of the content rect |
 | Angles | degrees, clockwise positive |
 | Colours | `#RRGGBB`, `#RRGGBBAA`, or the name of a theme colour |
+
+Source seconds are the media's presentation timeline after its edit list, with 0 at the first presented frame. Decoded pictures are converted to sRGB, and HDR sources are tone mapped by the engine. Providers and engines read media by these definitions.
 
 Scale is `width / baseWidth`, where width is the output width for a sequence, the width of the picture at that operation for an image document, and the widest item for a layout.
 
@@ -81,7 +83,7 @@ A place in a picture is given in one of four forms. Coordinates are source pixel
 | `[x, y, w, h]` | that rectangle |
 | `"text"` | the one recognised line that contains the text |
 | `{"text": "...", "nth": 1}` | the nth line (from 0) among the lines that contain the text |
-| `{"from": "...", "to": "...", "from_nth": 0, "to_nth": 0}` | the rectangle around both lines and every line between them |
+| `{"from": "...", "to": "...", "fromNth": 0, "toNth": 0}` | the rectangle around both lines and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
 
 - Text is compared with whitespace removed. A line matches when it contains the text.
 - A text form without `nth` that matches more than one line stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` form.
@@ -96,7 +98,7 @@ A place in a picture is given in one of four forms. Coordinates are source pixel
 | --- | --- |
 | `"/abs/file"` | an image, video or audio file, judged by its contents |
 | `{"sequence": "/abs/dir", "fps": 30}` | a numbered image sequence: every PNG in the directory, in natural order (runs of digits compare as numbers), at that rate. It plays like a video: its seconds are frame index / fps, and it takes `in`, `out` and `speed` |
-| an image document object | the picture that document draws (section 6) |
+| an image or layout document object | the picture that document draws (sections 6 and 7) |
 | a sequence document object | a compound clip: the nested sequence plays as a video with sound, its seconds are its media seconds, and its theme is merged over the one in effect |
 
 - Paths are absolute.
@@ -167,7 +169,7 @@ An image document edits one picture with an ordered list of operations.
     { "crop": { "from": "Certificate", "to": "Last line" } },
     { "shape": "box", "area": "serialNumber: 9190809", "label": "matches the server" },
     { "shape": "dim", "area": { "from": "LV2", "to": "Cert,O=" } },
-    { "filter": "pixelate", "area": "issuerDn:" },
+    { "adjust": "pixelate", "area": "issuerDn:" },
     { "shape": "arrow", "area": "serialNumber", "side": "right", "label": "here" },
     { "title": "Note", "position": [40, 40], "style": "label" },
     { "resize": { "width": 800 } },
@@ -180,7 +182,7 @@ An image document edits one picture with an ordered list of operations.
 
 - `source` is any media reference that gives a picture. For a video, `time` picks the frame in source seconds.
 - **Every area and point is written in source coordinates.** frames maps source coordinates through the crops, resizes, pads and banners before them. Coordinates outside the source picture reach into pads and banners, so a title at `y: -20` sits in a top pad.
-- `crop`, `resize`, `pad` and `banner` change the canvas. `shape`, `filter`, `title` and `border` draw on it. Operations run in order, as layers: a drawing is made at its operation with theme lengths scaled by the width of the picture at that point, and later canvas operations move and scale it with the picture. A `filter` with an area works as an adjustment layer: it changes everything drawn before it inside the area, so a box drawn before a pixelate is pixelated and a box drawn after it is not.
+- `crop`, `resize`, `pad` and `banner` change the canvas. `shape`, `adjust`, `title` and `border` draw on it. Operations run in order, as layers: a drawing is made at its operation with theme lengths scaled by the width of the picture at that point, and later canvas operations move and scale it with the picture. `adjust` is an adjustment layer: it changes everything drawn before it, inside its area or over the whole picture, so a box drawn before a pixelate is pixelated and a box drawn after it is not.
 - Wherever a picture is taken (a layout item, a storyline clip, a connected clip), an image document can stand in for a path.
 
 | op | Keys | What it does |
@@ -189,7 +191,7 @@ An image document edits one picture with an ordered list of operations.
 | `resize` | `{scale}`, `{width}` or `{height}` | Resizes and keeps the aspect ratio |
 | `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, `color` optional | Adds a margin. The default colour is the theme `background` |
 | `shape` | `box`, `highlight`, `dim` or `arrow`, with `area`, `label`, `side`, `color` | Draws a shape (section 8.9) |
-| `filter` | preset, `area` optional | Applies a filter preset, inside the area when one is given |
+| `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |
 | `title` | text, `position` (source `[x, y]`), `style` | Places a title (section 8.8) |
 | `banner` | lines, `edge` (`top` or `bottom`) | Extends the picture with a band of text. The first line takes the `bannerHead` style and the rest take `banner` |
 | `border` | `true` (the `border` colour) or a colour | Draws a border around the picture with the theme `shapes.border.width` |
@@ -261,12 +263,16 @@ A layout places pictures on a grid.
 | --- | --- |
 | sequence | `kind, format, theme, storyline, clips` |
 | format | `size, fps, background, inset, conform` |
-| storyline clip | `media` or `solid`, `in, out, speed, duration, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected` |
-| connected clip and sequence clip, common | `at, lane, placement, position, scale, rotation, opacity, animation, keyframes` |
-| media clip | common, `media, in, out, speed, loop, volume, fadeIn, fadeOut, crop, filter, width, height, radius, border, shadow` |
-| title clip | common, `title, style, width` |
-| shape clip | common, `shape, area, label, side, color` |
-| adjustment clip | common, `adjust, area` |
+| storyline clip, timed media (video, image sequence, compound) | `media, in, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image, image or layout document) | `media, duration, crop, filter, transition, keyframes, connected` |
+| storyline clip, solid | `solid, duration, transition, connected` |
+| every connected and sequence clip | `at, lane, opacity, animation, keyframes` |
+| visual media clip (video, image sequence, compound) | every clip's, `media, in, out, speed, loop, volume, fadeIn, fadeOut, placement, position, parent, scale, rotation, crop, filter, width, height, radius, border, shadow` |
+| still media clip (image, image or layout document) | every clip's, `media, placement, position, parent, scale, rotation, crop, filter, width, height, radius, border, shadow` |
+| audio clip | `at, media, in, out, speed, loop, volume, fadeIn, fadeOut, keyframes` |
+| title clip | every clip's, `title, style, width, placement, position, parent, scale, rotation` |
+| shape clip | every clip's, `shape, area, label, color`, and `side` for an arrow |
+| adjustment clip | every clip's, `adjust, area` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset name, an absolute path, `"cut"`, or `{preset, seconds}` |
 | animation choice | a preset name, an absolute path, or `{entrance, exit}` |
@@ -274,17 +280,19 @@ A layout places pictures on a grid.
 | image document | `kind, source, time, theme, ops`, and each op's keys from section 6 |
 | layout document | `kind, theme, banner, columns, border, items`. An item takes `heading, image` |
 
+Which media row applies depends on what the file holds, so those keys are checked once the media has been probed.
+
 Keyframable properties:
 
 | Clip | Properties |
 | --- | --- |
 | storyline clip | `crop, volume` |
-| media clip | `position, scale, rotation, opacity, crop, volume` |
+| media clip | `position, scale, rotation, opacity, crop, volume` (audio clips: `volume`) |
 | title clip | `position, scale, rotation, opacity` |
 | shape clip | `area, opacity` |
 | adjustment clip | `area, opacity` |
 
-Keys are checked over the whole JSON tree before any value is read. A value of the wrong type also stops, with its place.
+Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place. A property written both as a static value and in a keyframe stops, since the static value would never show.
 
 ### 8.3 Time (must, the most important rule)
 
@@ -301,22 +309,23 @@ A sequence has two clocks. **Source time** is the time inside one storyline clip
 
 Durations (a media clip's natural length, `duration`, transition and animation `seconds`, loop `period`, `fadeIn`, `fadeOut`) are always sequence seconds. A sound connected to a clip at speed 2 plays its full length at its own speed, and an entrance takes the same time on every clip.
 
-Source time is the seconds of the source video for a video clip, and the seconds since the clip started for an image, solid or compound clip without trimming. It lets an agent take times straight from frames it extracted from a recording. Trimming or speeding up an earlier clip does not move anything connected to a later one.
+Source time is the media's own seconds for a video, image sequence or compound clip, and the seconds since the clip started for a still or solid clip. It lets an agent take times straight from frames it extracted from a recording. Trimming or speeding up an earlier clip does not move anything connected to a later one.
 
 A storyline clip starts at `start` on the sequence clock and lasts `duration`:
 
 ```
-video or compound clip: duration = (out - in) / speed
-image or solid clip:    duration = duration key
+timed media clip:       duration = (out - in) / speed
+still or solid clip:    duration = duration key
 
 source time t to sequence time:
-  video or compound clip: start + (clamp(t, in, out) - in) / speed
-  image or solid clip:    start + clamp(t, 0, duration)
+  timed media clip:       start + (clamp(t, in, out) - in) / speed
+  still or solid clip:    start + clamp(t, 0, duration)
 ```
 
 - The first storyline clip starts at 0. Each next clip starts at the previous clip's end minus their overlap. The sequence ends where the last storyline clip ends.
+- The first storyline clip takes no default transition. A transition written on it brings it in over the background, with the first half of its overlap taken from its own start. To end on black, end the storyline with a solid clip and a transition.
 - A transition belongs to the clip it brings in. The two clips overlap by `min(transition seconds, previous duration / 2, next duration / 2)`.
-- `at` is `[start, end]` or a single start. A window's start and end are both instants. A single start is an instant followed by a duration, the clip's natural length `(out - in) / speed` for video, audio, image sequence and compound media. Under a storyline clip whose speed is not 1 the two forms differ: `[2, 6]` ends at source second 6, and `2` ends when the media does. Titles, shapes, adjustments and still images need `[start, end]`. A sequence clip without `at` spans the whole sequence.
+- `at` is `[start, end]` or a single start. A window's start and end are both instants. A single start is an instant followed by a duration, the clip's natural length `(out - in) / speed` for video, audio, image sequence and compound media. Under a storyline clip whose speed is not 1 the two forms differ: `[2, 6]` ends at source second 6, and `2` ends when the media does. Titles, shapes, adjustments and still images need `[start, end]`. A connected clip without `at` spans its storyline clip, and a sequence clip without `at` spans the whole sequence.
 - A media clip plays from `in` at its own `speed` (default 1), whatever the speed of its storyline clip. When its window is longer than the media, video holds its last frame and audio goes silent, unless `loop` is true, in which case it repeats from `in` to `out` to fill the window.
 - A connected clip is visible where its window meets `[start + incoming overlap / 2, end - outgoing overlap / 2]` of its storyline clip. It disappears at the middle of a transition and never stays over the next clip.
 - A connected clip whose window does not meet that range stops ("never visible").
@@ -334,7 +343,7 @@ source time t to sequence time:
 ### 8.5 Storyline clips (must)
 
 - A video or compound clip needs `in < out` and `speed > 0`. An `out` past the end of the media is cut to the end.
-- An image or solid clip needs `duration > 0`.
+- A still or solid clip needs `duration > 0`. `solid` is a colour, and fills the content rect.
 - An empty storyline stops.
 - `crop` is the region of the source shown in the content rect. It is an area, or `{scale: s}` for a centred region `1/s` the size of the picture (`s = 1` is the whole picture). It is keyframable, which gives a pan and zoom (Ken Burns).
 - Resolve conforms every crop to the aspect ratio of the content rect around its centre. `fit` grows it until the written region fits inside, and what lies beyond the picture shows the background. `fill` shrinks it until it lies inside the written region. The conformed crop is exactly what fills the content rect, and keyframes between conformed crops keep their ratio.
@@ -356,7 +365,7 @@ background < storyline < transition cover colour < background outside the conten
 
 ### 8.7 Parenting (must)
 
-A connected clip placed by `area` is parented to its storyline clip's picture. Its area stays in the source coordinates of that picture and follows the crop and the transition motion, so a box stays on the text it points at while the picture zooms. It takes its parent's clip as well, so it stays inside the content rect and is wiped away with its picture. A sequence clip's `area` takes only `[x, y, w, h]` in output pixels.
+A connected clip can be parented to its storyline clip's picture. Shapes and adjustments placed by `area` always are. A title or media clip is when it has `parent: true`, and then its `position` is in the source pixels of that picture. A parented clip stays in the source coordinates of its picture and follows the crop and the transition motion, so a box, or a title beside a button, stays on what it points at while the picture zooms. It takes its parent's clip as well, so it stays inside the content rect and is wiped away with its picture. A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in output pixels.
 
 ### 8.8 Titles (must)
 
@@ -374,7 +383,7 @@ A connected clip placed by `area` is parented to its storyline clip's picture. I
 | `arrow` | an arrow pointing at the area from the side named by `side` (`left`, `right`, `top`, `bottom`) |
 
 - `label` adds a one-line label in the `label` style. It goes to the right of the shape, else below it, else to its left: the first side where it fits inside the content rect (the output frame for a sequence clip), measured at the shape's keyframed geometry without animation. A label never goes above a shape, where it would cover the line above. When no side fits, it stops.
-- Evaluation chooses the side at the clip's first visible frame and keeps it for the clip's life. `timeline` evaluates that frame, so a label with no room stops there too.
+- The side is measured at the clip's first visible instant at which its storyline clip is out of every transition, and kept for the clip's life. Resolve evaluates that instant and writes the side into the resolved document, so `timeline` stops on a label with no room. Motion the document asks for later (area keyframes, a zoom) may carry the label partly out of the content rect, and then it is clipped like the shape.
 - `color` replaces the shape's theme colour.
 - A label moves with its shape, and animates with the `label` entry of `defaults.animation.title`.
 
@@ -385,11 +394,11 @@ A connected clip placed by `area` is parented to its storyline clip's picture. I
 - `crop` and `filter` work as on a storyline clip, with the clip's own box in place of the content rect.
 - A video media clip is picture in picture, and an image sequence with alpha is how a motion graphic made elsewhere comes in.
 
-### 8.12 Adjustment clips (must)
+### 8.11 Adjustment clips (must)
 
-An adjustment clip applies a filter preset (`adjust`) to everything below it, inside `area` or over the whole output when there is none, as an NLE's adjustment layer. Placed by an area on a connected clip, it is parented like a shape, so a pixelate keeps hiding the same text while the picture moves. Its `opacity` blends the filtered result with what is below.
+An adjustment clip applies a filter preset (`adjust`) to everything below it, inside `area` or over the whole output when there is none, as an NLE's adjustment layer. Placed by an area on a connected clip, it is parented like a shape. Its filter lengths are output pixels and do not grow with a zoom. Its `opacity` blends the filtered result with what is below.
 
-### 8.11 Audio (must)
+### 8.12 Audio (must)
 
 - A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept.
 - `fadeIn` and `fadeOut` are seconds, and ramp the volume from and to 0 at the ends of the clip's window.
@@ -422,15 +431,15 @@ Every preset has a `description`: one line on how it looks and when to use it, w
 | Receiver of `reveal` | How it reveals |
 | --- | --- |
 | box | the border is drawn around |
-| highlight | painted from the `reveal_from` side |
+| highlight | painted from the `revealFrom` side |
 | dim | closes in from the whole content rect to the area |
 | arrow | grows from its tail to its head |
-| title, media, adjustment, storyline picture | wiped from the `reveal_from` side |
+| title, media, adjustment, storyline picture | wiped from the `revealFrom` side |
 
 A span is:
 
 ```json
-{ "seconds": 0.35, "ease": "back-out", "reveal_from": "left",
+{ "seconds": 0.35, "ease": "back-out", "revealFrom": "left",
   "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "scale": 1 } ] }
 ```
 
@@ -438,7 +447,7 @@ A span is:
 - Each property joins only the keys that name it, in straight lines. Opacity can finish at 30% while scale runs to the end.
 - A property the span does not name takes its default.
 - `ease` bends the progress first, and the bent value drives every property.
-- `reveal_from` is `left`, `right`, `top` or `bottom`. The default is `left`.
+- `revealFrom` is `left`, `right`, `top` or `bottom`. The default is `left`.
 
 ### 9.2 animation
 
@@ -479,7 +488,7 @@ A span is:
 | `outgoing` | motion of the outgoing clip |
 | `cover` | one colour over both clips. Only opacity is read |
 
-- A storyline picture reads opacity, scale, x, y, rotate and reveal. Scale, x, y and rotate act around the centre of the content rect, and reveal shows the content rect from the `reveal_from` side.
+- A storyline picture reads opacity, scale, x, y, rotate and reveal. Scale, x, y and rotate act around the centre of the content rect, and reveal shows the content rect from the `revealFrom` side.
 - `seconds` or `period` inside a span stops. A transition's time is its overlap.
 - To change scenes while the cover hides them, cut the incoming opacity from 0 to 1 at that point.
 
@@ -581,9 +590,11 @@ The resolved document is what `resolve` writes and what evaluation reads. `rende
 What resolve has already done:
 
 - **Keys are checked.** A resolved document carries only the keys below.
-- **No anchors.** Every area is `[x, y, w, h]`. A storyline crop and a parented area stay in the source pixels of their picture. Every other area on a sequence is in output pixels.
+- **No anchors.** Every area is `[x, y, w, h]`. A storyline crop and a parented area or position stay in the source pixels of their picture. Every other area on a sequence is in output pixels.
+- **Fonts are pinned.** Every font is written as its file, face and the SHA-256 of the file. Evaluation and engines refuse a font file whose hash differs.
+- **Decisions are written down.** Label sides and conformed crops are values, not rules to apply again.
 - **No names.** Theme colours, styles and presets are written out as values. Theme lengths are already multiplied by their scale. Colours are `#RRGGBBAA`.
-- **Text is shaped.** Every title and label carries its glyph runs (font file, face, size, colour, glyph ids and positions in its own box), its box size, stroke and background.
+- **Text is shaped.** Every title and label carries its glyph runs (font file, face, hash, size, colour, glyph ids and positions in its own box), its box size, stroke and background.
 - **One clock.** Every instant on a sequence is sequence time, and keyframes keep their eases. Media keeps `in`, `out` and `speed` in its own seconds.
 - **One order.** Lanes are flattened into a single list, bottom first.
 
@@ -634,12 +645,13 @@ An image document and a layout resolve to their final size and one list of drawi
 - Resolve is deterministic for the same document, media, theme, presets, fonts and recognised text.
 - Evaluating and drawing a resolved document needs its media and font files and nothing else.
 - Evaluation refuses a `resolved` version it does not know.
+- A resolved document is what resolve writes. Evaluation and `render` trust it as they trust resolve, and check its version and font hashes, not its rules again.
 
 ## 11. Evaluation, display lists and the mix plan (must)
 
 `evaluate(resolved, t)` gives the display list at sequence time t: the frame size, its background, and drawing items bottom first, every value already sampled at t. Frame k of a sequence is `evaluate(resolved, k / fps)`, and an image or layout has one display list.
 
-Every item has `transform` (an affine matrix `[a, b, c, d, tx, ty]` in output pixels), `opacity`, and `clip` (a rectangle in output pixels, or `null`).
+Every item has `transform` (an affine matrix `[a, b, c, d, tx, ty]` in output pixels), `opacity`, `clip` (a rectangle in output pixels, or `null`) and `reveal` (a rectangle in the item's own coordinates before its transform, or `null`). `reveal` turns with the item, so a wipe on a rotated title follows the title.
 
 | Item | Fields | Draws |
 | --- | --- | --- |
@@ -663,15 +675,17 @@ The mix plan is the sound of a whole sequence: a list of segments, each with a s
 - A sequence output lasts `duration` to within one frame. A clip that ends near the end of its media never stalls the export.
 - Glyphs are drawn from the font files and faces named, at the positions written. An engine shapes no text.
 - Output is PNG for images, layouts and stills, and MP4 with H.264 at the engine's highest quality, with AAC at 256 kbps or more, for sequences.
-- Colour is sRGB.
+- Colour is sRGB, as section 4.1 defines for sources.
 - An engine leaves no temporary files.
-- The same display lists on the same engine give the same output. Two engines give the same geometry, text and timing, not the same pixels.
+- The same display lists on the same engine give the same output on any machine. Two engines give the same geometry, text and timing, not the same pixels.
 
 `--engine` picks the engine. The default is `swift`.
 
 ## 13. Theme (must)
 
-`theme` prints the built-in theme, and that output is also the list of every key a theme can hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops.
+`theme` prints the built-in theme, and that output is also the list of every key a theme can hold. `colors` and `styles` are open maps: any name may be added. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops.
+
+Merging goes key by key through the theme's own structure: the top-level groups, each colour, each style and its properties, each shape and its properties, and each entry of `defaults`. Below that every value replaces the one under it whole: a `background`, a `stroke`, a transition choice like `{preset, seconds}`, a list.
 
 Precedence, from weakest:
 
@@ -716,7 +730,7 @@ built-in theme < --theme file < document theme < keys on the clip or op
   "image":     { "bannerPadding": 40 },
   "layout":    { "gap": 40, "padding": 40 },
   "defaults":  { "transition": "cut", "filter": "none",
-                 "animation": { "title": { "label": "pop" } } }
+                 "animation": { "title": { "label": "pop" }, "shape": "none", "media": "none", "adjust": "none" } }
 }
 ```
 
@@ -875,7 +889,7 @@ Adding any of these later does not break the contract. Whoever adds one updates 
 
 ```
 1. check      walk the JSON tree against the key tables
-2. read       theme, presets, media facts
+2. read       theme, presets, media facts (probe), then check the media rows
 3. resolve    anchors (OCR provider), text layout (text provider), scale, styles,
               the time plan (durations, overlaps, starts, visible windows), one clip order.
               timeline stops here, resolve writes it out
