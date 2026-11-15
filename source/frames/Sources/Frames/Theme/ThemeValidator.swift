@@ -31,6 +31,17 @@ struct ThemeValidator: Sendable {
             theme: theme
         )
 
+        // A style without a size can set no text, and it may take its size from a weaker layer, so the merged one
+        // decides.
+        let stylePlace = Place.root.appending(key: "styles")
+        for member in object["styles"]?.objectValue?.members ?? [] where member.value.objectValue?["size"] == nil {
+            throw ThemeError.styleWithoutSize(
+                place: theme.place(of: stylePlace.appending(key: member.key)),
+                kind: ThemeKeyTable.style.kind,
+                name: member.key
+            )
+        }
+
         let styles = Set(object["styles"]?.objectValue?.keys ?? [])
         let titlePlace = Place.root.appending(key: "defaults").appending(key: "animation").appending(key: "title")
         let titles = object["defaults"]?.objectValue?["animation"]?.objectValue?["title"]?.objectValue?.keys ?? []

@@ -52,20 +52,16 @@ extension MergedTheme {
         return Color(written: value(at: ["colors", written])?.stringValue ?? "#000000")
     }
 
-    // A style with its lengths multiplied by `scale`. Its line height defaults to 1.25 times its size, and a property
-    // it leaves out to the plain value: regular, the `text` and `emphasis` colours, left, and no stroke or background.
+    // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the
+    // `text` and `emphasis` colours, a line height of 1.25 times its size, left, no stroke, no background and no limit
+    // on lines. A background leaves out the `background` colour, no padding and no radius, and a stroke the `text`
+    // colour. Every style has a size, since the merged theme stopped on one without.
     func style(
         named name: String,
         scale: Double
-    ) throws -> TextStyle {
+    ) -> TextStyle {
         let style = value(at: ["styles", name])?.objectValue ?? JSONObject()
-        guard let size = style["size"]?.numberValue else {
-            throw ThemeError.styleWithoutSize(
-                place: place(of: Place(components: [.key("styles"), .key(name)])),
-                kind: "style",
-                name: name
-            )
-        }
+        let size = style["size"]?.numberValue ?? 0
 
         let font = Place(components: [.key("font")])
         return TextStyle(

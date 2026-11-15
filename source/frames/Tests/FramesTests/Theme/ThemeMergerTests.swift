@@ -105,7 +105,7 @@ struct ThemeMergerTests {
         // Given
         let colour = try Fixture.json(#"{ "styles": { "caption": { "size": 30, "color": "brand" } } }"#)
         let style = try Fixture.json(#"{ "defaults": { "animation": { "title": { "caption": "pop" } } } }"#)
-        let defined = try Fixture.json(##"{ "colors": { "brand": "#123456" }, "styles": { "caption": { "color": "brand" } }, "defaults": { "animation": { "title": { "caption": "pop" } } } }"##)
+        let defined = try Fixture.json(##"{ "colors": { "brand": "#123456" }, "styles": { "caption": { "size": 30, "color": "brand" } }, "defaults": { "animation": { "title": { "caption": "pop" } } } }"##)
 
         // When, Then
         let colourError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: colour, place: .root)]) }

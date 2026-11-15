@@ -22,7 +22,7 @@ enum TextError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and a cut line would say something else"
 
         case let .lineBreakOnOneLine(place, kind):
-            "\(place) (\(kind)): the text breaks its line, and its style keeps it on one line"
+            "\(place) (\(kind)): the text has a line break, and its style keeps it on one line"
         }
     }
 
