@@ -100,6 +100,16 @@ struct ThemeMergerTests {
         #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, emphasis, lineHeight, stroke, background, placement, offset, align, lines"#)
     }
 
+    @Test("a stroke without a width stops as a missing key, since it replaces the one under it whole")
+    func refusesStrokeWithoutWidth() throws {
+        // Given
+        let file = try Fixture.json(##"{ "styles": { "subtitle": { "stroke": { "color": "#000000" } } } }"##)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
+        #expect(error?.description == #"styles.subtitle.stroke (stroke): missing key "width""#)
+    }
+
     @Test("a reference to a colour or style that the merged theme lacks stops")
     func refusesMissingReference() throws {
         // Given

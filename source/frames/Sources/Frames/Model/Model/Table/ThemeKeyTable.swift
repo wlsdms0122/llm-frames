@@ -32,7 +32,7 @@ enum ThemeKeyTable {
             KeyRule("stroke", .object(ObjectTable(
                 kind: "stroke",
                 rules: [
-                    KeyRule("width", .number),
+                    KeyRule("width", .number, isRequired: true),
                     KeyRule("color", .color)
                 ]
             ))),
