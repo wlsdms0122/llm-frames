@@ -8,7 +8,7 @@
 import Foundation
 
 // Reads the TOML subset open-package writes a manifest in into the tree a JSON file reads into, each table an
-// object: one level of `[table]` headers, and `key = value` on one line, with a string, an integer, true or false, or
+// object: one level of `[table]` headers, each written once, and `key = value` on one line, with a string, an integer, true or false, or
 // a list of them. Anything else is refused with its line rather than taken for some other shape.
 struct TOMLReader: Sendable {
     // MARK: - Property
@@ -34,8 +34,16 @@ struct TOMLReader: Sendable {
 
             if line.hasPrefix("[") {
                 let name = try header(line, line: number)
+                guard !root.contains(name) else {
+                    throw PackError.manifestSyntax(
+                        file: file,
+                        line: number,
+                        reason: "the table \(quoted(name)) is written twice"
+                    )
+                }
+
                 table = name
-                root = root.setting(name, to: root[name] ?? .object(JSONObject()))
+                root = root.setting(name, to: .object(JSONObject()))
                 continue
             }
 
@@ -72,13 +80,15 @@ struct TOMLReader: Sendable {
     }
 
     private func header(
-        _ line: String,
+        _ text: String,
         line number: Int
     ) throws -> String {
         // Checked before the brackets are taken off, or `[[command]]` would read as a table named `[command]`.
-        guard !line.hasPrefix("[[") else {
+        guard !text.hasPrefix("[[") else {
             throw PackError.manifestSyntax(file: file, line: number, reason: "an array of tables is not read here")
         }
+
+        let line = withoutComment(text)
         guard line.hasSuffix("]") else {
             throw PackError.manifestSyntax(file: file, line: number, reason: "a table header is not closed with \"]\"")
         }
@@ -120,6 +130,27 @@ struct TOMLReader: Sendable {
         try cursor.expectEnd()
 
         return (key, value)
+    }
+
+    // A `#` starts a comment outside a string, as it does after a value.
+    private func withoutComment(_ line: String) -> String {
+        var isInString = false
+        var isEscaped = false
+        for index in line.indices {
+            let character = line[index]
+
+            if isEscaped {
+                isEscaped = false
+            } else if isInString, character == "\\" {
+                isEscaped = true
+            } else if character == "\"" {
+                isInString.toggle()
+            } else if character == "#", !isInString {
+                return line[..<index].trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        return line
     }
 
     // A name is written plainly or not at all, so a quoted one is not stored under a key nothing looks up.

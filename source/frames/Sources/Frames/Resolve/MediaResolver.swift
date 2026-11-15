@@ -15,11 +15,6 @@ struct MediaResolver: Sendable {
     private let library: ReferenceLibrary
     private let instantiator: TemplateInstantiator
 
-    // A planner holds a resolver, so the one for nested documents is made when it is needed.
-    private var planner: TimePlanner {
-        TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
-    }
-
     // MARK: - Initializer
     init(
         mediaFacts: any MediaFactProvider,
@@ -81,7 +76,7 @@ struct MediaResolver: Sendable {
             )
 
         case let .compound(document):
-            return nested(try planner.plan(document, theme: theme), reference: nil)
+            return nested(try planner(library: library).plan(document, theme: theme), reference: nil)
 
         case .document:
             return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
@@ -102,7 +97,8 @@ struct MediaResolver: Sendable {
     }
 
     // MARK: - Private
-    // A document named by its file stands as if written there, so it starts from the theme in effect there.
+    // A document named by its file stands as if written there, so it starts from the theme in effect there. What it
+    // holds is read on the way through its file, so media that holds the document again stops.
     private func document(
         named reference: String,
         place: Place,
@@ -116,8 +112,9 @@ struct MediaResolver: Sendable {
             return ResolvedMedia(kind: .image, reference: reference, file: nil, duration: 0)
         }
 
+        let inner = try library.reading(file: document.file, name: reference)
         let sequence = SequenceReader().sequence(from: document.value, place: place)
-        return nested(try planner.plan(sequence, theme: theme), reference: reference)
+        return nested(try planner(library: inner).plan(sequence, theme: theme), reference: reference)
     }
 
     // A template resolves on the base theme and its own, so only its arguments change it. Media it was given keeps
@@ -151,7 +148,7 @@ struct MediaResolver: Sendable {
             uniquingKeysWith: { first, _ in first }
         )
         let sequence = SequenceReader(arguments: themes).sequence(from: instance.document, place: place)
-        return nested(try planner.plan(sequence, theme: .base), reference: nil)
+        return nested(try planner(library: library).plan(sequence, theme: .base), reference: nil)
     }
 
     // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration).
@@ -167,6 +164,11 @@ struct MediaResolver: Sendable {
             frames: 0...plan.duration.nextDown,
             nested: plan
         )
+    }
+
+    // A planner holds a resolver, so the one for nested documents is made when it is needed.
+    private func planner(library: ReferenceLibrary) -> TimePlanner {
+        TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
     private func frames(of probed: ProbedMedia) -> ClosedRange<Double>? {

@@ -235,6 +235,75 @@ struct DocumentPlannerTests {
         #expect(argumentsError?.description == "top level (sequence): the document declares no params, so it takes no arguments")
     }
 
+    @Test("a document given to a template as an argument that holds that document stops instead of never ending")
+    func refusesSelfReferenceThroughArgument() throws {
+        // Given
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            in: "shorts",
+            at: "templates/wrap.json"
+        )
+        try directory.write(
+            #"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/wrap", "args": { "clip": "shorts/loop.json" } } } ] }"#,
+            in: "shorts",
+            at: "media/loop.json"
+        )
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/loop.json" } ] }"#)
+        let loop = directory.installed.appendingPathComponent("shorts/media/loop.json").path
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+        #expect(error == .circularReference(place: Place(file: "shorts/loop.json", components: []), files: [loop, loop]))
+    }
+
+    @Test("a template may be given a document that holds another instance of it, since that instance ends")
+    func plansInstanceInsideArgument() throws {
+        // Given
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            in: "shorts",
+            at: "templates/wrap.json"
+        )
+        try directory.write(
+            #"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/wrap", "args": { "clip": "shorts/intro.json" } } } ] }"#,
+            in: "shorts",
+            at: "media/outro.json"
+        )
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": { "template": "shorts/wrap", "args": { "clip": "shorts/outro.json" } } } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document)
+
+        // Then
+        #expect(plan.duration == 2)
+    }
+
+    @Test("a template's default document that holds an instance of that template stops instead of never ending")
+    func refusesSelfReferenceThroughDefault() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "clip": { "type": "sequence", "default": "shorts/loop.json" } },
+              "storyline": [ { "media": { "param": "clip" } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/wrap.json"
+        )
+        try directory.write(
+            #"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/wrap" } } ] }"#,
+            in: "shorts",
+            at: "media/loop.json"
+        )
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/loop.json" } ] }"#)
+        let loop = directory.installed.appendingPathComponent("shorts/media/loop.json").path
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+        #expect(error == .circularReference(place: Place(file: "shorts/loop.json", components: []), files: [loop, loop]))
+    }
+
     @Test("an unknown template stops where it is named")
     func refusesUnknownTemplate() throws {
         // Given

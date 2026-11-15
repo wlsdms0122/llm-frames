@@ -50,6 +50,7 @@ struct TOMLReaderTests {
             ("[[command]]", "line 3: an array of tables is not read here"),
             ("[command.nested]", #"line 3: "command.nested" is a nested table, and tables here have one level"#),
             ("[\"command\"]", #"line 3: "\"command\"" is not a table name"#),
+            ("[command # note]", #"line 3: a table header is not closed with "]""#),
             ("open-package.version = \"1.0.0\"", #"line 3: "open-package.version" is a dotted key. Write a [table] header"#),
             ("name = \"\"\"long\"\"\"", #"line 3: unexpected text after the value: "long""""#),
             ("name = 'literal'", #"line 3: unquoted value 'literal'. Write a string as "'literal'""#),
@@ -81,15 +82,25 @@ struct TOMLReaderTests {
         #expect(error?.description == #"/packs/shorts/manifest.toml: line 1: "name" is written before any [table] header"#)
     }
 
-    @Test("a table header may be written again, and its keys still may not")
-    func reopensTable() throws {
+    @Test("a comment after a table header is not part of its name")
+    func readsHeaderComment() throws {
         // Given
-        let data = Data("[package]\nname = \"x\"\n[frames]\nengine = \"^1\"\n[package]\nversion = \"1.0.0\"".utf8)
+        let data = Data("[package]   # what the pack calls itself\nname = \"x\"".utf8)
 
         // When
         let value = try sut.read(data)
 
         // Then
-        #expect(value == (try Fixture.json(#"{ "package": { "name": "x", "version": "1.0.0" }, "frames": { "engine": "^1" } }"#)))
+        #expect(value == (try Fixture.json(#"{ "package": { "name": "x" } }"#)))
+    }
+
+    @Test("a table header written twice is refused")
+    func refusesReopenedTable() throws {
+        // Given
+        let data = Data("[package]\nname = \"x\"\n[frames]\nengine = \"^1\"\n[package] # again\nversion = \"1.0.0\"".utf8)
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.read(data) }
+        #expect(error?.description == #"/packs/shorts/manifest.toml: line 5: the table "package" is written twice"#)
     }
 }
