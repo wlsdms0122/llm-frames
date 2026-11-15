@@ -2,7 +2,7 @@
 
 frames is an image and video editing tool that an agent drives. The agent writes a document in JSON, frames resolves and evaluates it, and a decoder, a renderer, a mixer and an encoder turn the result into a PNG, a master file or a delivery file.
 
-This document is the contract, numbered as section 10.1 says. It says what frames takes, what it gives back, and how it behaves, and leaves out how any implementation is built.
+This document is the contract, versioned as section 10.1 says. It says what frames takes, what it gives back, and how it behaves, and leaves out how any implementation is built.
 
 - **Must:** behaviour an implementation keeps. Document shapes, time and coordinate rules, packs and templates, the resolved document, the display list, the role contracts and error behaviour are here.
 - **Recommended:** structure that makes the contract easier to keep. An implementation may ignore it.
@@ -33,7 +33,7 @@ frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere
 | Ambiguity stops | A text anchor that matches more than one line stops and lists the matches |
 | A value that still does what it says is clamped, one that cannot stops | A transition longer than its clips, an out point past the end of the media, an area partly outside the picture: each is cut to what fits and still does its job. A clip that is never visible, an area wholly outside the picture, a one-line label that does not fit: each stops |
 | No legacy keys | When a key changes, old documents stop. There is no compatibility branch |
-| Master at full quality, deliver separately | `render` writes a master that never trades quality for size. Delivery files are made from it |
+| Master at full quality, deliver separately | `render` writes a master that never trades quality for size. Delivery files are made from the same frames (`--deliver`) or from it (`transcode`) |
 | Reproducible from the resolved document | What can differ between machines is fixed into the resolved document. Recognised text, tracks, text layout, themes, presets and templates are written out as values, and the files the roles still open (media, mattes, LUTs, fonts) are pinned by hash. Rendering it again on the same decoder and renderer gives the same frames on any machine that has the same files |
 | Sound is media | frames places sound files on the timeline. Speech synthesis, recording and transcription happen outside |
 
@@ -68,7 +68,7 @@ every media file is read through the decoder
 | Time | seconds, as a number. Which clock a time is on is section 8.3 |
 | Area in media | media pixels: pixels of the media picture as it is displayed, origin at the top left, rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
-| Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the scale of the place they are drawn (below) |
+| Theme lengths (text size, stroke, padding, line width, filter radius) | points at the theme `baseWidth`, multiplied by the scale of the place they are drawn (below). Anchor padding is the exception and is measured in its picture (section 4.2) |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size. In a transition, multiples of the content rect |
 
 A clip's own size, and the centre its scale and rotation act around, are those of its box: a title's text box, a media clip's box, a shape's area (an arrow's from tail to head). A label is not part of it.
@@ -94,7 +94,7 @@ A place in a picture is given in one of these forms. Coordinates are media pixel
 - Text is compared with whitespace removed. A line matches when it contains the text.
 - A text form without `nth` that matches more than one line stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` form.
 - Text that matches no line stops, naming the media, the text and the nth.
-- An area found by text grows outward by the theme `anchor.padding`, or by `anchor.cropPadding` when it is a crop. Padding is added once the area is found and before a band widens it. A tracker follows the area before padding (section 8.10).
+- An area found by text grows outward by the theme `anchor.padding`, or by `anchor.cropPadding` when it is a crop. Padding is added once the area is found and before a band widens it. A tracker follows the area before padding (section 8.10). Both paddings are lengths in the picture the area is in: their points are multiplied by that picture's width over `baseWidth`, giving media pixels, so padding is fixed in the picture and grows with it under a zoom like the text it surrounds.
 - On video, the text is searched in the frame at the instant where the area takes effect: a connected clip's start (its storyline clip's `in` when it has no `at`), a keyframe's time, or a storyline clip's `in` for a static crop. A clip's `track` finds its target at that instant too (section 8.10). The instant is turned into the media time of the clip that owns the area through that clip's time map (its `in` and `speed`), so a text anchor on a picture-in-picture clip's crop searches that clip's own frame. An image document's `time` picks its frame.
 - Text is only recognised in media files. On an image document used as a source, a text anchor finds the text in that document's `source` and follows its operations to where that text ended up. A compound clip takes no text anchor from outside, since its picture is drawn, not read. Text inside it is pointed at from the nested document.
 
@@ -130,7 +130,7 @@ Any property marked keyframable takes a static value or a list of keyframes. A k
 - A keyframe's `ease` shapes the span leaving it, towards the next keyframe of each property it names, as in CSS and Lottie. The default is `linear`. An `ease` on a keyframe that no later keyframe follows for any of its properties stops.
 - A keyframe's `at` is an instant on the clock of its clip (section 8.3).
 - Numbers and points interpolate per component. An `area` interpolates per component. A `crop` interpolates its centre per component and its size geometrically (in log space), so a zoom keeps one speed. Crops are conformed to one aspect ratio first (section 8.5), so the ratio holds between keyframes.
-- An area given by text resolves at its own keyframe's time before it interpolates.
+- An area given by text resolves at its own keyframe's time before it interpolates (on a tracked clip it is then brought back through the motion, section 8.10).
 
 | ease | f(u), u from 0 to 1 |
 | --- | --- |
@@ -405,7 +405,7 @@ A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in outpu
 
 ### 8.8 Titles (must)
 
-- `title` is the text. `style` names a theme style (section 14.2), and the default is `subtitle`.
+- `title` is the text. `style` names a theme style (section 14.2) and is required, since which kind of text a title is belongs to the document.
 - `width` is the wrapping width in output pixels. The default is the output width minus twice the placement padding.
 - Layout follows section 4.6.
 
@@ -427,7 +427,10 @@ A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in outpu
 
 `track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area in one of the finding forms of section 4.2, or `true` for the clip's own `area` (a shape or adjustment) or `crop` (a storyline clip). The area is found at the clip's instant (section 4.2), before padding, and the tracker provider (section 13.1) follows it backwards and forwards over every frame the picture draws, handles included, giving the target's rectangle on each.
 
-- The track is motion: on each frame, how far the target's centre has moved and how much its size has changed since the instant. It is applied on top of the clip's keyframed geometry. An area moves and scales with it, a `position` moves with it, and a crop's centre moves with it and its size scales with it. So a box stays on a scrolling line, a title stays beside a button, and a zoom keyframed on a crop goes on while the crop follows a card.
+- The track is a motion: on each frame, the similarity transform (a move, and one uniform scale about the target's centre) that takes the target's rectangle at the instant to its rectangle on that frame. The scale is the geometric mean of the width and height ratios, so a crop keeps its aspect ratio.
+- The motion acts as a moving parent. The clip's geometry (its `area`, its `position`, a storyline clip's `crop`, and their keyframes) is written in the picture as it is at the instant, and each frame applies the motion to it. So a box stays on a scrolling line, a title beside a button keeps its offset when the screen zooms, and a zoom keyframed on a crop goes on while the crop follows a card.
+- A keyframe value found by text at its own time is where the text is at that time, so it is brought back through the inverse of the motion at that time before it interpolates.
+- `true` follows the clip's own area or crop as it is at the instant. It is taken by a shape, an adjustment, and a storyline clip whose crop is an area. Elsewhere it stops: a title or media clip names its target. A media clip's own `crop` is in its own media and is not moved.
 - A band keeps the full width of its picture and takes the vertical part of the motion.
 - `track` is taken by a storyline clip of video or image sequence, which follows its own media, and by a parented connected clip on one, which follows that storyline clip's media. Anywhere else (a sequence clip, an unparented clip, a still or compound storyline clip) it stops, since there is nothing to follow.
 - A connected clip is visible only on the frames followed: its window is narrowed to them, as section 8.3 narrows any window. A storyline clip whose target is lost inside its edit range stops, naming the time. In a handle its motion holds the nearest value followed, as a handle past the end of the media holds its edge frame.
@@ -642,7 +645,7 @@ The names and how each looks are the contract. The numbers are the implementatio
 
 ### 10.1 Packs
 
-A pack is a set of looks and edits that someone made to share or sell. It is an open-package directory: a `manifest.toml` with an `[open-package]` table that names the pack, its version and its licence, a `[frames]` table with the `contract` it is written for, and any of these folders.
+A pack is a set of looks and edits that someone made to share or sell. It is an open-package directory: a `manifest.toml` with an `[open-package]` table that names the pack, its version and its licence, a `[frames]` table with the `engine` versions it is written for, and any of these folders.
 
 | Folder | Holds | Named as |
 | --- | --- | --- |
@@ -656,9 +659,10 @@ A pack is a set of looks and edits that someone made to share or sell. It is an 
 
 - Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. The packs that ship with frames (section 17) are found as if installed, and an installed pack of the same name stops. Installing a pack is copying its directory there. frames has no network command.
 - A bare name is built in. An unknown pack, or a name a pack does not hold, stops.
-- This specification is contract 1.0, `major.minor`. An addition (a key, an op, a preset, a form of a value, a command) raises the minor number. A removal, a renamed key, or a changed value of the base theme or a preset raises the major number. A name never changes its meaning under the same contract major: a new meaning takes a new name.
-- A pack names the contract it is written for in `[frames] contract`, and works on the same major number at that minor number or later. On any other it stops when it is used, naming both, as a resolved document of an unknown version does.
-- A document names no contract. It is resolved by the frames that reads it, and what it resolved to is kept in its resolved document (section 11), so a document that must be made again the same way keeps its resolved document. A pack is checked because it is made once and used by many frames.
+- frames is versioned `major.minor.patch` (semantic versioning), and this specification, at 1.0.0, is what the version is about: document keys and values, presets, themes, templates, packs, commands, and the values of the base theme and of the presets frames ships. An addition (a key, an op, a preset, a form of a value, a command) raises the minor number. A removal, a renamed key, or a changed value of the base theme or a preset raises the major number. A fix that brings an implementation to this specification raises the patch number. A name never changes its meaning within a major version: a new meaning takes a new name.
+- The resolved document, the display list, the mix plan and each machine output object carry their own schema version (sections 11, 15.2), which their readers (roles and extensions) check. A change to one raises that number, not the major version of frames, so a pack that never reads it keeps working.
+- A pack names the versions of frames it is written for as a range in `[frames] engine`, where `"^1.2"` is 1.2.0 or later before 2.0.0. Outside it, the pack stops when it is used, naming both.
+- A document names no version. It is resolved by the frames that reads it, and what it resolved to is kept in its resolved document (section 11), so a document that must be made again the same way keeps its resolved document. A pack is checked because it is made once and used by many frames.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
 - A pack's files name each other by `<pack>/<name>`, as anything outside does, so every name has one spelling and a pack works wherever `FRAMES_HOME` is. The pack's name is the one in its manifest, and a pack whose directory has another name stops.
 - What resolve takes from a pack goes into the resolved document like anything else (section 11): presets, themes and templates as values, media and LUTs pinned by hash. A resolved document does not depend on what is installed later.
@@ -815,11 +819,12 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 | tracker | pictures from the decoder around one frame, and a rectangle on that frame | a rectangle in media pixels on each frame before and after it, out to where it reports the target lost in each direction |
 
 - What makes one line is the OCR provider's. A document can resolve on one provider and stop on another, where a line is split or joined differently, and the resolved document keeps what was found. The same holds for what a tracker followed.
+- A provider gives the same result for the same files on the same machine and the same provider version, as a decoder gives the same frames.
 - `--ocr`, `--shaper` and `--tracker` pick each provider. Each defaults to `swift` (Vision and Core Text).
 
 ## 14. Theme (must)
 
-`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of section 9.5, so a template that leaves a key unset gets the same value on every frames of its contract's major number. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
+`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of section 9.5, so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
 Merging goes key by key through the theme's own structure: the top-level groups, each colour, each style and its properties, each shape and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a transition choice like `{preset, seconds}`, a list.
 
@@ -1013,7 +1018,7 @@ These are the acceptance tests.
 
 Guides, how-tos and extensions sit outside the engine. They only use what frames already has.
 
-A form is a kind of result (a PR screenshot, a vertical short, a demo) and is a pack (section 10.1): its guide (`guide.md`), a theme when its look differs from the base theme (`themes/`, only the keys it changes), its examples (`examples/`, each runs once its paths are changed), and any presets and templates of its own. Adding a form is adding a pack, and this contract does not change. A form's edits differ in how many clips, boxes and lines they hold, so a form is taught, not templated. A guide holds:
+A form is a kind of result (a PR screenshot, a vertical short, a demo) and is a pack (section 10.1): its guide (`guide.md`), a theme when its look differs from the base theme (`themes/`, only the keys it changes), its examples (`examples/`, each runs once its paths are changed), and any presets and templates of its own. Adding a form is adding a pack, and frames does not change. A form's edits differ in how many clips, boxes and lines they hold, so a form is taught, not templated. A guide holds:
 
 - what the form is for: who watches it, and where
 - its theme
@@ -1037,7 +1042,7 @@ How to make anything:
 
 ### 17.1 Extensions
 
-Three kinds of thing are added to frames without changing this contract.
+Three kinds of thing are added to frames without changing it.
 
 | Kind | What is added | Section |
 | --- | --- | --- |
@@ -1047,7 +1052,7 @@ Three kinds of thing are added to frames without changing this contract.
 
 An extension reads what frames reports (section 15.2) and writes or changes documents. It finds personal data and covers it, cuts silence, places captions from a transcript, cuts to a beat, translates titles, or bakes an effect frames has no op for. Its interface is documents and the machine output, so frames has no extension API.
 
-- It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws.
+- It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws from the same resolve. An extension that must be sure of what is drawn, such as one that covers personal data, ends its chain with `resolve`, checks the resolved document, and has that rendered.
 - It gives a document on standard output, and `timeline` checks it like any other. Extensions chain: `frames privacy doc.json | frames autocut - | frames render - -o out.mov`.
 - `frames <name>` runs `frames-<name>` from `PATH`, so an extension is installed by putting it there.
 - An extension acts before resolve. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again, and a pack stays data that every role can draw.
@@ -1072,7 +1077,7 @@ First how-tos:
 - Generating graphics. They arrive as media.
 - Fetching packs over the network. Installing is copying.
 
-Adding any of these later raises the contract's minor number (section 10.1). Whoever adds one updates the key tables, the README and this document together.
+Adding any of these later raises the minor version (section 10.1). Whoever adds one updates the key tables, the README and this document together.
 
 ---
 
