@@ -1,6 +1,6 @@
 # FRAMES-11: Titles, shapes, media and adjustment clips
 
-Status: draft
+Status: accepted
 
 ## Summary
 

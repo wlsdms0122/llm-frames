@@ -1,6 +1,6 @@
 # FRAMES-8: Time
 
-Status: draft
+Status: accepted
 
 ## Summary
 

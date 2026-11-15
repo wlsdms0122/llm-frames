@@ -1,6 +1,6 @@
 # FRAMES-22: Theme
 
-Status: draft
+Status: accepted
 
 ## Summary
 

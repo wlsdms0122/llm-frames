@@ -1,6 +1,6 @@
 # FRAMES-7: The sequence document and its keys
 
-Status: draft
+Status: accepted
 
 ## Summary
 

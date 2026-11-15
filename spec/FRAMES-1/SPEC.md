@@ -1,6 +1,6 @@
 # FRAMES-1: Units, placement and anchor points
 
-Status: draft
+Status: accepted
 
 ## Summary
 

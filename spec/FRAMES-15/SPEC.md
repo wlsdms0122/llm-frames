@@ -1,6 +1,6 @@
 # FRAMES-15: Filter
 
-Status: draft
+Status: accepted
 
 ## Summary
 

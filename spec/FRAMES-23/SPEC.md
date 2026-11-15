@@ -1,6 +1,6 @@
 # FRAMES-23: Command line and machine output
 
-Status: draft
+Status: accepted
 
 ## Summary
 

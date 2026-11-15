@@ -1,6 +1,6 @@
 # FRAMES-2: Areas
 
-Status: draft
+Status: accepted
 
 ## Summary
 

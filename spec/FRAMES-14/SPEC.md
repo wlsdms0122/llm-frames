@@ -1,6 +1,6 @@
 # FRAMES-14: Presets: motion, animation and transition
 
-Status: draft
+Status: accepted
 
 ## Summary
 

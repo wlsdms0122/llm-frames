@@ -1,6 +1,6 @@
 # FRAMES-12: Tracking
 
-Status: draft
+Status: accepted
 
 ## Summary
 

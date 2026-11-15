@@ -1,6 +1,6 @@
 # FRAMES-25: Forms, guides and extensions
 
-Status: draft
+Status: accepted
 
 ## Summary
 

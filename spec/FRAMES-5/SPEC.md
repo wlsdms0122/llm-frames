@@ -1,6 +1,6 @@
 # FRAMES-5: Text layout
 
-Status: draft
+Status: accepted
 
 ## Summary
 

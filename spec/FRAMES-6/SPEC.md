@@ -1,6 +1,6 @@
 # FRAMES-6: Documents, image and layout
 
-Status: draft
+Status: accepted
 
 ## Summary
 

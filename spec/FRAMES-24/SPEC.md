@@ -1,6 +1,6 @@
 # FRAMES-24: What a correct result keeps
 
-Status: draft
+Status: accepted
 
 ## Summary
 

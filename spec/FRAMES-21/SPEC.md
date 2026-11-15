@@ -1,6 +1,6 @@
 # FRAMES-21: Roles and providers
 
-Status: draft
+Status: accepted
 
 ## Summary
 

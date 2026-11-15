@@ -1,6 +1,6 @@
 # FRAMES-10: Parenting
 
-Status: draft
+Status: accepted
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # FRAMES-9: Format, storyline clips and lanes
 
-Status: draft
+Status: accepted
 
 ## Summary
 

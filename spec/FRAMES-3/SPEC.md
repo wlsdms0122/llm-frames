@@ -1,6 +1,6 @@
 # FRAMES-3: Media references
 
-Status: draft
+Status: accepted
 
 ## Summary
 

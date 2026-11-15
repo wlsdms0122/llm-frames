@@ -1,6 +1,6 @@
 # FRAMES-17: Packs and templates
 
-Status: draft
+Status: accepted
 
 ## Summary
 

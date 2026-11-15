@@ -1,6 +1,6 @@
 # FRAMES-13: Audio
 
-Status: draft
+Status: accepted
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # FRAMES-18: Versions
 
-Status: draft
+Status: accepted
 
 ## Summary
 

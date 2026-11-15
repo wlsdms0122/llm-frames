@@ -1,6 +1,6 @@
 # FRAMES-19: The resolved document
 
-Status: draft
+Status: accepted
 
 ## Summary
 

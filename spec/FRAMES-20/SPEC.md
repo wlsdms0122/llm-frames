@@ -1,6 +1,6 @@
 # FRAMES-20: Evaluation, display lists and the mix plan
 
-Status: draft
+Status: accepted
 
 ## Summary
 

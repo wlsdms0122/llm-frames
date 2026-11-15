@@ -1,6 +1,6 @@
 # FRAMES-4: Keyframes and easing
 
-Status: draft
+Status: accepted
 
 ## Summary
 

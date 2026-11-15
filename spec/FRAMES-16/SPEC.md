@@ -1,6 +1,6 @@
 # FRAMES-16: Presets that ship
 
-Status: draft
+Status: accepted
 
 ## Summary
 
