@@ -13,6 +13,7 @@ struct DocumentPlanner: Sendable {
     private let library: ReferenceLibrary
     private let planner: TimePlanner
     private let checker: KeyChecker
+    private let reader: TemplateReader
     private let instantiator: TemplateInstantiator
     private let merger = ThemeMerger()
 
@@ -25,6 +26,7 @@ struct DocumentPlanner: Sendable {
         self.library = library
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
         self.checker = KeyChecker(mediaKinds: library)
+        self.reader = TemplateReader(mediaKinds: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
     }
 
@@ -35,10 +37,10 @@ struct DocumentPlanner: Sendable {
         theme: String? = nil,
         arguments: ArgumentFile? = nil
     ) throws -> TimePlan {
-        let template = try library.template(document, place: .root)
+        let template = try reader.template(from: document, place: .root)
         let documentKind = document.objectValue?["kind"]?.stringValue ?? ""
 
-        guard document.objectValue?.contains("params") == true else {
+        guard template.declaresParameters else {
             guard arguments == nil else {
                 throw PackError.argumentsWithoutTemplate(place: .root, kind: documentKind)
             }

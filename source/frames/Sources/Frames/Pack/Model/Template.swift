@@ -15,6 +15,11 @@ struct Template: Equatable, Sendable {
     let parameters: [TemplateParameter]
     let references: [ParameterReference]
 
+    // A document read as a template is one only when it declares `params`, even none, so a plain document is not.
+    var declaresParameters: Bool {
+        document.objectValue?.contains("params") == true
+    }
+
     // MARK: - Initializer
     init(
         document: JSONValue,

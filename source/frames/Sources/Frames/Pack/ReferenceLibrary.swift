@@ -59,26 +59,8 @@ struct ReferenceLibrary: MediaKindProvider {
     func template(named name: String) throws -> Template? {
         guard let (file, value) = try value(named: name, in: "templates", pathExtension: "json") else { return nil }
 
-        return try reading(file: file, name: name).template(value, place: Place(file: name, components: []))
-    }
-
-    // A template written at `place`, checked against its parameter types with what this library finds.
-    func template(
-        _ document: JSONValue,
-        place: Place
-    ) throws -> Template {
-        let references = try KeyChecker(mediaKinds: self).check(template: document, place: place)
-        let parameters = (document.objectValue?["params"]?.objectValue?.members ?? []).compactMap { member in
-            parameter(member.key, member.value.objectValue ?? JSONObject())
-        }
-
-        return Template(
-            document: document,
-            place: place,
-            kind: kind(of: document),
-            parameters: parameters,
-            references: references
-        )
+        return try TemplateReader(mediaKinds: reading(file: file, name: name))
+            .template(from: value, place: Place(file: name, components: []))
     }
 
     // A document used as media is a `.json` file, by path or in a pack's `media/`.
@@ -87,7 +69,7 @@ struct ReferenceLibrary: MediaKindProvider {
 
         try KeyChecker(mediaKinds: reading(file: file, name: reference))
             .check(nestedDocument: value, place: Place(file: reference, components: []))
-        return DocumentFile(name: reference, file: file, value: value, kind: kind(of: value))
+        return DocumentFile(name: reference, file: file, value: value, kind: MediaKind(document: value))
     }
 
     func isDocument(_ reference: String) -> Bool {
@@ -128,24 +110,5 @@ struct ReferenceLibrary: MediaKindProvider {
         guard let data = try packs.contents(of: file) else { return nil }
 
         return (file.path, try JSONReader(file: name).read(data))
-    }
-
-    // The checker let only these kinds through, and image and layout documents both draw a picture.
-    private func kind(of document: JSONValue) -> MediaKind {
-        document.objectValue?["kind"] == .string("sequence") ? .sequence : .image
-    }
-
-    private func parameter(
-        _ name: String,
-        _ declaration: JSONObject
-    ) -> TemplateParameter? {
-        guard let type = declaration["type"]?.stringValue.flatMap(ParameterType.init(rawValue:)) else { return nil }
-
-        return TemplateParameter(
-            name: name,
-            type: type,
-            defaultValue: declaration["default"],
-            options: declaration["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        )
     }
 }

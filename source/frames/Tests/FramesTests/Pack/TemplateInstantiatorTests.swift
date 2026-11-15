@@ -141,6 +141,7 @@ struct TemplateInstantiatorTests {
 
     // MARK: - Private
     private func template(_ text: String) throws -> Template {
-        try Fixture.library.template(Fixture.json(text), place: Place(file: "shorts/leak", components: []))
+        try TemplateReader(mediaKinds: Fixture.library)
+            .template(from: Fixture.json(text), place: Place(file: "shorts/leak", components: []))
     }
 }
