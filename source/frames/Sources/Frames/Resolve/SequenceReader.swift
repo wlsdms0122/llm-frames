@@ -6,16 +6,16 @@
 //
 
 // Reads a sequence document that passed the key tables into model types, once, with every clip's place.
-// `arguments` are the themes media a template instance was given keeps, by its place.
+// `argumentThemes` are the themes media a template instance was given keeps, by its place.
 struct SequenceReader: Sendable {
     // MARK: - Property
     private static let keyframeKeys: Set<String> = ["at", "ease"]
 
-    private let arguments: ArgumentThemeTable
+    private let argumentThemes: ArgumentThemeTable
 
     // MARK: - Initializer
-    init(arguments: ArgumentThemeTable = .empty) {
-        self.arguments = arguments
+    init(argumentThemes: ArgumentThemeTable = .empty) {
+        self.argumentThemes = argumentThemes
     }
 
     // MARK: - Public
@@ -126,7 +126,7 @@ struct SequenceReader: Sendable {
         place: Place
     ) -> MediaSource {
         let source = writtenSource(value, place: place)
-        guard let theme = arguments.theme(at: place) else { return source }
+        guard let theme = argumentThemes.theme(at: place) else { return source }
 
         return .argument(source, theme: theme)
     }
@@ -141,7 +141,7 @@ struct SequenceReader: Sendable {
             return .template(
                 name: template,
                 arguments: object["args"]?.objectValue ?? JSONObject(),
-                argumentThemes: arguments.kept(inArgumentsAt: place.appending(key: "args"))
+                passedOnThemes: argumentThemes.passedOnThemes(inArgumentsAt: place.appending(key: "args"))
             )
         }
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {

@@ -19,19 +19,19 @@ struct ArgumentThemeTable: Equatable, Sendable {
     }
 
     // An instance at `place` is written where `theme` is in effect, so what it was given keeps that theme, except
-    // media an argument already keeps another theme for, which `kept` gives.
+    // media an argument already keeps another theme for, which `passedOnThemes` gives.
     init(
         instance: TemplateInstance,
         place: Place,
         theme: MergedTheme,
-        kept: PassedOnThemeTable
+        passedOnThemes: PassedOnThemeTable
     ) {
         var themes = [Place: MergedTheme]()
         for argument in instance.arguments {
             let argumentPlace = place.appending(argument.place)
             themes[argumentPlace] = theme
-            for (keptPlace, keptTheme) in kept.themes(inArgument: argument.name) {
-                themes[argumentPlace.appending(keptPlace)] = keptTheme
+            for (passedOnPlace, passedOnTheme) in passedOnThemes.themes(inArgument: argument.name) {
+                themes[argumentPlace.appending(passedOnPlace)] = passedOnTheme
             }
         }
 
@@ -44,9 +44,9 @@ struct ArgumentThemeTable: Equatable, Sendable {
     }
 
     // The themes kept in the arguments written in the `args` at `place`, at any depth.
-    func kept(inArgumentsAt place: Place) -> PassedOnThemeTable {
+    func passedOnThemes(inArgumentsAt place: Place) -> PassedOnThemeTable {
         let depth = place.components.count
-        let kept = themes.reduce(into: [String: [Place: MergedTheme]]()) { kept, entry in
+        let passedOnThemes = themes.reduce(into: [String: [Place: MergedTheme]]()) { passedOnThemes, entry in
             let components = entry.key.components
             guard
                 components.count > depth,
@@ -56,10 +56,10 @@ struct ArgumentThemeTable: Equatable, Sendable {
                 return
             }
 
-            kept[name, default: [:]][Place(components: Array(components.dropFirst(depth + 1)))] = entry.value
+            passedOnThemes[name, default: [:]][Place(components: Array(components.dropFirst(depth + 1)))] = entry.value
         }
 
-        return PassedOnThemeTable(themes: kept)
+        return PassedOnThemeTable(themes: passedOnThemes)
     }
 
     // MARK: - Private

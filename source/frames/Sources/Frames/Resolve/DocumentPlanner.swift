@@ -65,8 +65,8 @@ struct DocumentPlanner: Sendable {
             place: argumentPlace
         )
         // The command line is the caller, and it gives a template no theme, so what it was given starts from the base.
-        let themes = ArgumentThemeTable(instance: instance, place: .root, theme: .base, kept: .empty)
-        let sequence = SequenceReader(arguments: themes).sequence(from: instance.document)
+        let argumentThemes = ArgumentThemeTable(instance: instance, place: .root, theme: .base, passedOnThemes: .empty)
+        let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document)
 
         return try planner.plan(sequence, theme: .base)
     }

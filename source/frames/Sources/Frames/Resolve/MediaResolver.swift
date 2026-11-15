@@ -81,11 +81,11 @@ struct MediaResolver: Sendable {
         case .document:
             return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
 
-        case let .template(name, arguments, argumentThemes):
+        case let .template(name, arguments, passedOnThemes):
             return try instance(
                 of: name,
                 arguments: arguments,
-                argumentThemes: argumentThemes,
+                passedOnThemes: passedOnThemes,
                 place: place,
                 kind: kind,
                 theme: theme
@@ -124,7 +124,7 @@ struct MediaResolver: Sendable {
     private func instance(
         of name: String,
         arguments: JSONObject,
-        argumentThemes: PassedOnThemeTable,
+        passedOnThemes: PassedOnThemeTable,
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
@@ -143,8 +143,13 @@ struct MediaResolver: Sendable {
         }
 
         let inner = try library.reading(instanceOf: name, values: instance.values)
-        let themes = ArgumentThemeTable(instance: instance, place: place, theme: theme, kept: argumentThemes)
-        let sequence = SequenceReader(arguments: themes).sequence(from: instance.document, place: place)
+        let argumentThemes = ArgumentThemeTable(
+            instance: instance,
+            place: place,
+            theme: theme,
+            passedOnThemes: passedOnThemes
+        )
+        let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document, place: place)
         return nested(try planner(library: inner).plan(sequence, theme: .base), reference: nil)
     }
 
