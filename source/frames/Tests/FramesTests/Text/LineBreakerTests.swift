@@ -35,6 +35,16 @@ struct LineBreakerTests {
         ("word\u{2014}word", ["word", "\u{2014}", "word"]),
         ("1.5", ["1.5"])
     ]
+    // Words as keep-all keeps them: breaks between letters, numbers, ideographs and Hangul fall inside a word.
+    private static let words: [(String, [String])] = [
+        ("결제하기 버튼을 누르세요", ["결제하기 ", "버튼을 ", "누르세요"]),
+        ("iPhone에서", ["iPhone에서"]),
+        ("1,000원", ["1,000원"]),
+        ("결제(하기)", ["결제", "(하기)"]),
+        ("결제-하기", ["결제-", "하기"]),
+        ("漢字。", ["漢字。"]),
+        ("hello world", ["hello ", "world"])
+    ]
 
     private let sut = LineBreaker()
 
@@ -57,6 +67,24 @@ struct LineBreakerTests {
         // Then
         #expect(split(scalars, at: breaks) == pieces)
         #expect(!breaks.contains(.mandatory))
+    }
+
+    @Test(
+        "a break UAX #14 allows between two letter units is inside a word, as keep-all sees one",
+        arguments: words
+    )
+    func keepsWords(
+        text: String,
+        words: [String]
+    ) {
+        // Given
+        let scalars = Array(text.unicodeScalars)
+
+        // When
+        let breaks = sut.breaks(in: scalars)
+
+        // Then
+        #expect(split(scalars, at: breaks.map { $0 == .insideWord ? .prohibited : $0 }) == words)
     }
 
     @Test(

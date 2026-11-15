@@ -90,6 +90,41 @@ struct TypesetterTests {
     }
 
     @Test(
+        "words are kept whole as keep-all keeps them, so Korean and a word of letters and Hangul wrap at spaces",
+        arguments: [
+            ("결제하기 버튼을 누르세요", 190.0, ["결제하기 버튼을 ", "누르세요"]),
+            ("go iPhone에서", 170.0, ["go ", "iPhone에서"])
+        ]
+    )
+    func keepsWordsWhole(
+        text: String,
+        width: Double,
+        lines: [String]
+    ) throws {
+        // Given
+        let style = style()
+
+        // When
+        let layout = try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == lines.map(ids))
+    }
+
+    @Test("a Korean word wider than its line starts a line and breaks inside it, where UAX #14 allows")
+    func breaksWideWordInside() throws {
+        // Given
+        let style = style()
+
+        // When
+        let layout = try sut.layout("가 결제하기버튼", style: style, face: face, width: 100, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [ids("가 "), ids("결제하기버"), ids("튼")])
+        #expect(layout.size.width == 100)
+    }
+
+    @Test(
         "lines align left, centre or right in the box of the widest",
         arguments: [(TextAlignment.left, 0.0), (.center, 35), (.right, 70)]
     )
@@ -151,14 +186,19 @@ struct TypesetterTests {
     }
 
     @Test(
-        "a one-line style stops on text wider than its room, and on a line break",
+        "a one-line style stops on text wider than its room, a word it would break inside too, and on a line break",
         arguments: [
             (
                 "aa bb cc",
                 "title (label): the text is 140 wide on one line, wider than its room of 100, and a cut line would "
                     + "say something else"
             ),
-            ("a\nb", "title (label): the text has a line break, and its style keeps it on one line")
+            ("a\nb", "title (label): the text has a line break, and its style keeps it on one line"),
+            (
+                "결제하기버튼",
+                "title (label): the text is 120 wide on one line, wider than its room of 100, and a cut line would "
+                    + "say something else"
+            )
         ]
     )
     func refusesOneLineOverflow(

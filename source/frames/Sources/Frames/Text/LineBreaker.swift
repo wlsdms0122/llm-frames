@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Finds where lines may break by the pair rules of UAX #14, LB4 to LB31, over the classes `LineBreakClass` tells.
+// Finds where lines may break by the pair rules of UAX #14, LB4 to LB31, over the classes `LineBreakClass` tells, and
+// which of those breaks fall inside a word as CSS `word-break: keep-all` sees one.
 struct LineBreaker: Sendable {
     // MARK: - Property
     private static let hardBreaks: [LineBreakClass] = [.mandatoryBreak, .carriageReturn, .lineFeed, .nextLine]
@@ -15,6 +16,8 @@ struct LineBreaker: Sendable {
     private static let jamo: [LineBreakClass] = [
         .leadingJamo, .vowelJamo, .trailingJamo, .twoJamoSyllable, .threeJamoSyllable
     ]
+    // Keep-all suppresses breaks between letter units of these classes, Hangul counting as ideographic.
+    private static let wordLetters: [LineBreakClass] = [.numeric, .alphabetic, .ideographic] + jamo
     // LB30 keeps an opening bracket on a letter only when the bracket is not wide, and wide forms start here.
     private static let firstWide: UInt32 = 0x2E80
     private static let numberParts: [LineBreakClass] = [
@@ -33,7 +36,10 @@ struct LineBreaker: Sendable {
         return scalars.indices.map { index in
             guard index > 0 else { return .prohibited }
 
-            return lineBreak(before: index, classes: classes, written: written, scalars: scalars)
+            let lineBreak = lineBreak(before: index, classes: classes, written: written, scalars: scalars)
+            let isInsideWord = [classes[index - 1], classes[index]].allSatisfy(Self.wordLetters.contains)
+
+            return lineBreak == .allowed && isInsideWord ? .insideWord : lineBreak
         }
     }
 

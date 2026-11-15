@@ -6,7 +6,8 @@
 //
 
 // Sets text in a style: `**text**` in the emphasis colour, runs shaped by the shaping provider, lines broken by UAX #14
-// at `\n` and at the wrapping width, and placed in a box by the style's line height, alignment and background.
+// with words kept whole as `word-break: keep-all` keeps them, at `\n` and at the wrapping width, and placed in a box by
+// the style's line height, alignment and background.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -94,8 +95,9 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Lines fill up to the width, broken only where UAX #14 allows, and spaces at the end of a line hang outside it.
-    // A piece wider than the width alone overflows on its own line. Without a width only a mandatory break ends one.
+    // Lines fill up to the width, broken only between words, and spaces at the end of a line hang outside it. A word
+    // wider than the width starts a line of its own and breaks inside where UAX #14 allows, and a piece of it still
+    // wider overflows alone. Without a width only a mandatory break ends a line.
     private func lines(
         of paragraph: [TextSpan],
         face: FontFace,
@@ -105,21 +107,29 @@ struct Typesetter: Sendable {
         let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
         let glyphs = shaped(paragraph, face: face, size: size)
         let breaks = breaker.breaks(in: scalars)
-        let starts = [0] + scalars.indices.filter { $0 > 0 && breaks[$0] != .prohibited }
+        let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
 
         var lines: [[ColoredGlyph]] = []
         var current: [ColoredGlyph] = []
         for (index, start) in starts.enumerated() {
             let end = starts.indices.contains(index + 1) ? starts[index + 1] : scalars.count
-            let piece = glyphs.filter { (start..<end).contains($0.glyph.offset) }
-            let candidate = current + piece
-            let overflows = width.map { !current.isEmpty && visibleWidth(of: candidate, scalars: scalars) > $0 }
-
-            if overflows ?? false {
+            let word = glyphs.filter { (start..<end).contains($0.glyph.offset) }
+            let isTooWide = width.map { visibleWidth(of: word, scalars: scalars) > $0 } ?? false
+            if isTooWide && !current.isEmpty {
                 lines.append(current)
-                current = piece
-            } else {
-                current = candidate
+                current = []
+            }
+
+            for piece in isTooWide ? pieces(of: word, breaks: breaks) : [word] {
+                let candidate = current + piece
+                let overflows = width.map { !current.isEmpty && visibleWidth(of: candidate, scalars: scalars) > $0 }
+
+                if overflows ?? false {
+                    lines.append(current)
+                    current = piece
+                } else {
+                    current = candidate
+                }
             }
             if end < scalars.count, breaks[end] == .mandatory {
                 lines.append(current)
@@ -129,6 +139,20 @@ struct Typesetter: Sendable {
         lines.append(current)
 
         return lines.map { glyphs in TextLine(glyphs: glyphs, width: visibleWidth(of: glyphs, scalars: scalars)) }
+    }
+
+    // A word's glyphs split where a break falls inside it. Glyphs of one scalar stay together.
+    private func pieces(
+        of word: [ColoredGlyph],
+        breaks: [LineBreak]
+    ) -> [[ColoredGlyph]] {
+        word.reduce(into: [[ColoredGlyph]]()) { pieces, glyph in
+            let offset = glyph.glyph.offset
+            if pieces.last?.last.map({ $0.glyph.offset != offset && breaks[offset] == .insideWord }) ?? true {
+                pieces.append([])
+            }
+            pieces[pieces.count - 1].append(glyph)
+        }
     }
 
     // Each span is shaped on its own, since a colour change is a run boundary, and its glyphs are told by the scalar
