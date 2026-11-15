@@ -9,11 +9,8 @@
 // and the window of every other clip, with every stop of time on the way.
 struct TimePlanner: Sendable {
     // MARK: - Property
-    private static let frameRates: [Double] = [24, 25, 30, 50, 60]
-    private static let defaultFrameRate: Double = 30
-
-    private let mediaFacts: any MediaFactProvider
     private let presets: any PresetProvider
+    private let resolver: MediaResolver
     private let reader = SequenceReader()
     private let merger = ThemeMerger()
 
@@ -22,8 +19,8 @@ struct TimePlanner: Sendable {
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider
     ) {
-        self.mediaFacts = mediaFacts
         self.presets = presets
+        self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets)
     }
 
     // MARK: - Public
@@ -60,7 +57,7 @@ struct TimePlanner: Sendable {
 
         return TimePlan(
             duration: duration,
-            fps: sequence.format.fps ?? frameRate(of: sources),
+            fps: sequence.format.frameRate(of: sources.compactMap(\.media)),
             storyline: storyline,
             clips: connected + clips
         )
@@ -92,7 +89,7 @@ struct TimePlanner: Sendable {
             return StorylineSource(kind: .solid, media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
-        let media = try resolve(clipMedia.source, place: clip.place.appending(key: "media"), kind: "storyline clip", theme: theme)
+        let media = try resolver.media(of: clipMedia.source, place: clip.place.appending(key: "media"), kind: "storyline clip", theme: theme)
         let kind = ClipKind.media(media.kind)
         guard media.kind != .image else {
             let duration = try stillDuration(of: clip, kind: kind)
@@ -105,71 +102,6 @@ struct TimePlanner: Sendable {
             clipRange: try clipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
             speed: try speed(of: clipMedia, place: clip.place, kind: kind)
         )
-    }
-
-    private func resolve(
-        _ source: MediaSource,
-        place: Place,
-        kind: String,
-        theme: JSONValue
-    ) throws -> ResolvedMedia {
-        switch source {
-        case let .file(file):
-            guard let probed = mediaFacts.probedMedia(of: file) else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: file)
-            }
-            // A document named by its path is read with packs and templates, before time is planned.
-            guard probed.kind != .sequence else {
-                throw ResolveError.unreadReference(place: place, kind: kind, reference: file)
-            }
-
-            return ResolvedMedia(
-                kind: probed.kind,
-                file: file,
-                duration: probed.duration,
-                fps: probed.fps,
-                frames: frames(of: probed)
-            )
-
-        case let .imageSequence(directory, fps):
-            guard let count = mediaFacts.frameCount(ofImageSequence: directory) else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: directory)
-            }
-
-            // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
-            let duration = Double(count) / fps
-            return ResolvedMedia(
-                kind: .video,
-                file: directory,
-                duration: duration,
-                fps: fps,
-                frames: 0...max(duration - 1 / fps, 0)
-            )
-
-        case let .compound(document):
-            let nested = try plan(document, theme: theme)
-            // A compound clip is evaluated at whatever time is asked, clamped into [0, duration).
-            return ResolvedMedia(
-                kind: .sequence,
-                file: nil,
-                duration: nested.duration,
-                frames: 0...nested.duration.nextDown,
-                nested: nested
-            )
-
-        case .document:
-            return ResolvedMedia(kind: .image, file: nil, duration: 0)
-
-        case let .template(name), let .parameter(name):
-            throw ResolveError.unreadReference(place: place, kind: kind, reference: name)
-        }
-    }
-
-    private func frames(of probed: ProbedMedia) -> ClosedRange<Double>? {
-        guard probed.kind == .video else { return nil }
-        guard let first = probed.frames.first, let last = probed.frames.last else { return 0...probed.duration }
-
-        return first...last
     }
 
     private func stillDuration(
@@ -332,7 +264,7 @@ struct TimePlanner: Sendable {
     ) throws -> ClipPlan {
         let clipMedia = media(of: clip)
         let media = try clipMedia.map { clipMedia in
-            try resolve(clipMedia.source, place: clip.place.appending(key: "media"), kind: "clip", theme: theme)
+            try resolver.media(of: clipMedia.source, place: clip.place.appending(key: "media"), kind: "clip", theme: theme)
         }
         let kind = kind(of: clip, media: media)
         let isParented = try parented(clip, kind: kind)
@@ -619,12 +551,5 @@ struct TimePlanner: Sendable {
                 )
             }
         }
-    }
-
-    // The nominal rate of the first video on the storyline, to the nearest common rate.
-    private func frameRate(of sources: [StorylineSource]) -> Double {
-        guard let rate = sources.first(where: { $0.media?.kind == .video })?.media?.fps else { return Self.defaultFrameRate }
-
-        return Self.frameRates.min { abs($0 - rate) < abs($1 - rate) } ?? Self.defaultFrameRate
     }
 }
