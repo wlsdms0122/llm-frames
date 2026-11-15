@@ -10,10 +10,9 @@
 struct TimePlanner: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
-    private let library: ReferenceLibrary
     private let resolver: MediaResolver
     private let reader = SequenceReader()
-    private let merger = ThemeMerger()
+    private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
 
     // MARK: - Initializer
@@ -23,7 +22,7 @@ struct TimePlanner: Sendable {
         library: ReferenceLibrary
     ) {
         self.presets = presets
-        self.library = library
+        self.themes = DocumentThemeResolver(library: library)
         self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
@@ -44,7 +43,7 @@ struct TimePlanner: Sendable {
             throw ResolveError.emptyStoryline(place: sequence.place.appending(key: "storyline"), kind: .sequence)
         }
 
-        let merged = try self.theme(of: sequence, over: theme)
+        let merged = try themes.theme(sequence.theme, of: sequence.place, kind: .sequence, over: theme)
         let defaults = try validator.defaults(in: merged, presets: presets)
         let sources = try sequence.storyline.map { clip in try source(of: clip, theme: merged) }
         let storyline = try layOut(sequence.storyline, sources: sources, defaults: defaults)
@@ -77,28 +76,6 @@ struct TimePlanner: Sendable {
     }
 
     // MARK: - Private
-    private func theme(
-        of sequence: SequenceDocument,
-        over theme: MergedTheme
-    ) throws -> MergedTheme {
-        let place = sequence.place.appending(key: "theme")
-
-        switch sequence.theme {
-        case nil:
-            return theme
-
-        case let .object(layer):
-            return try merger.merge([ThemeLayer(value: layer, place: place, pack: library.pack)], over: theme)
-
-        case let .named(name):
-            guard let layer = try library.theme(named: name) else {
-                throw ResolveError.unknownTheme(place: place, kind: .sequence, name: name)
-            }
-
-            return try merger.merge([layer], over: theme)
-        }
-    }
-
     private func source(
         of clip: StorylineClip,
         theme: MergedTheme

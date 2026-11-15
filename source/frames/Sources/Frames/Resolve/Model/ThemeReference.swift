@@ -9,4 +9,18 @@
 enum ThemeReference: Equatable, Sendable {
     case named(String)
     case object(JSONValue)
+
+    // MARK: - Property
+    // MARK: - Initializer
+    init(value: JSONValue) {
+        guard let name = value.stringValue else {
+            self = .object(value)
+            return
+        }
+
+        self = .named(name)
+    }
+
+    // MARK: - Public
+    // MARK: - Private
 }

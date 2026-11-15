@@ -35,11 +35,22 @@ struct SequenceReader: Sendable {
 
         return SequenceDocument(
             place: place,
-            theme: object["theme"].flatMap(theme),
+            theme: object["theme"].map(ThemeReference.init(value:)),
             format: format(object["format"]?.objectValue ?? JSONObject()),
             storyline: storyline,
             clips: clips
         )
+    }
+
+    // Media as written at `place`, which keeps its theme when it is a template's argument.
+    func source(
+        _ value: JSONValue,
+        place: Place
+    ) -> MediaSource {
+        let source = writtenSource(value, place: place)
+        guard let theme = argumentThemes.theme(at: place) else { return source }
+
+        return .argument(source, theme: theme)
     }
 
     // MARK: - Private
@@ -130,15 +141,6 @@ struct SequenceReader: Sendable {
         )
     }
 
-    private func source(
-        _ value: JSONValue,
-        place: Place
-    ) -> MediaSource {
-        let source = writtenSource(value, place: place)
-        guard let theme = argumentThemes.theme(at: place) else { return source }
-
-        return .argument(source, theme: theme)
-    }
 
     private func writtenSource(
         _ value: JSONValue,
@@ -156,7 +158,9 @@ struct SequenceReader: Sendable {
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)
         }
-        guard MediaKind(document: value) == .sequence else { return .document(object) }
+        guard MediaKind(document: value) == .sequence else {
+            return .picture(PictureReader(argumentThemes: argumentThemes).picture(from: value, place: place))
+        }
 
         return .compound(sequence(from: value, place: place))
     }
@@ -198,12 +202,6 @@ struct SequenceReader: Sendable {
         guard !keyframes.isEmpty else { return nil }
 
         return .keyframes(keyframes)
-    }
-
-    private func theme(_ value: JSONValue) -> ThemeReference {
-        guard let name = value.stringValue else { return .object(value) }
-
-        return .named(name)
     }
 
     private func window(_ value: JSONValue) -> ClipWindow? {

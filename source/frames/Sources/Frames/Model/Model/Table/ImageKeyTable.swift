@@ -49,7 +49,7 @@ enum ImageKeyTable {
                 kind: shape ?? operation,
                 rules: common + [
                     KeyRule("shape", .literal(VocabularyTable.shapes)),
-                    KeyRule("area", .area),
+                    KeyRule("area", .area, isRequired: true),
                     KeyRule("label", .text),
                     KeyRule("color", .color)
                 ] + side
@@ -69,7 +69,7 @@ enum ImageKeyTable {
                 kind: operation,
                 rules: common + [
                     KeyRule("title", .text),
-                    KeyRule("position", .oneOf([.numbers(2), .object(AreaKeyTable.point)])),
+                    KeyRule("position", .oneOf([.numbers(2), .object(AreaKeyTable.point)]), isRequired: true),
                     KeyRule("anchor", .literal(VocabularyTable.placementNames)),
                     KeyRule("style", .name, isRequired: true),
                     KeyRule("width", .number)
@@ -81,7 +81,7 @@ enum ImageKeyTable {
                 kind: operation,
                 rules: common + [
                     KeyRule("banner", .list(bannerLine)),
-                    KeyRule("edge", .literal(["top", "bottom"]))
+                    KeyRule("edge", .literal(["top", "bottom"]), isRequired: true)
                 ]
             )
 

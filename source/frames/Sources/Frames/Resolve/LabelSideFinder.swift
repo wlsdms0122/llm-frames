@@ -10,7 +10,6 @@
 // measured against. For an arrow the box is the one it fills from tail to head.
 struct LabelSideFinder: Sendable {
     // MARK: - Property
-
     // MARK: - Initializer
     init() { }
 

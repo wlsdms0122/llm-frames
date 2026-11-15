@@ -10,7 +10,8 @@
 // opens, and nil for a document or a template instance, whose plan is `nested`.
 // `frames` is the first and last media time a picture exists at, nil for a still, which simply goes on, and for sound.
 // `fps` is the nominal frame rate, when the media has one. `size` is the picture's, nil for sound and for a document,
-// whose size is its own, and `frameTimes` holds the media time of each frame of a video or image sequence.
+// whose size is its own, and `frameTimes` holds the media time of each frame of a video or image sequence. `picture`
+// is an image or layout document's, which draws its picture.
 struct ResolvedMedia: Equatable, Sendable {
     // MARK: - Property
     let kind: MediaKind
@@ -22,6 +23,7 @@ struct ResolvedMedia: Equatable, Sendable {
     let nested: TimePlan?
     let size: Size?
     let frameTimes: [Double]
+    let picture: NestedPicture?
 
     // MARK: - Initializer
     init(
@@ -33,7 +35,8 @@ struct ResolvedMedia: Equatable, Sendable {
         frames: ClosedRange<Double>? = nil,
         nested: TimePlan? = nil,
         size: Size? = nil,
-        frameTimes: [Double] = []
+        frameTimes: [Double] = [],
+        picture: NestedPicture? = nil
     ) {
         self.kind = kind
         self.reference = reference
@@ -44,6 +47,7 @@ struct ResolvedMedia: Equatable, Sendable {
         self.nested = nested
         self.size = size
         self.frameTimes = frameTimes
+        self.picture = picture
     }
 
     // MARK: - Public
