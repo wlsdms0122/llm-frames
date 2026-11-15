@@ -22,8 +22,8 @@ struct BaseThemeTests {
         let validator = ThemeValidator()
 
         // When, Then
-        try validator.checkKeys(of: sut)
-        try validator.checkReferences(in: sut)
+        try validator.checkKeys(of: ThemeLayer(value: sut, place: .root))
+        try validator.checkReferences(in: MergedTheme(value: sut, layers: []))
     }
 
     @Test("the base theme holds the values the specification gives")

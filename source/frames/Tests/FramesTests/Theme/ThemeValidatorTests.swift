@@ -54,7 +54,7 @@ struct ThemeValidatorTests {
         message: String
     ) throws {
         // Given
-        let theme = try ThemeMerger().merge([Fixture.json(layer)])
+        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(layer), place: .root)])
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.defaults(in: theme, presets: Fixture.presets) }
@@ -65,10 +65,10 @@ struct ThemeValidatorTests {
     func readsKnownPresets() throws {
         // Given
         let theme = try ThemeMerger().merge([
-            Fixture.json(#"""
+            ThemeLayer(value: Fixture.json(#"""
                 { "defaults": { "transition": { "preset": "flash", "seconds": 1 }, "filter": ["warm", "none"],
                                 "animation": { "title": { "headline": "fade" }, "shape": { "entrance": "draw", "exit": "none" } } } }
-                """#)
+                """#), place: .root)
         ])
 
         // When

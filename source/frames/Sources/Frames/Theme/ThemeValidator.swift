@@ -13,22 +13,30 @@ struct ThemeValidator: Sendable {
     init() { }
 
     // MARK: - Public
-    func checkKeys(of layer: JSONValue) throws {
-        try checker.check(layer, as: ThemeKeyTable.theme)
+    func checkKeys(of layer: ThemeLayer) throws {
+        try checker.check(layer.value, as: ThemeKeyTable.theme, place: layer.place)
     }
 
-    // References are checked on the merged theme, since a layer may name a colour or style that a weaker layer holds.
-    func checkReferences(in theme: JSONValue) throws {
-        let object = theme.objectValue ?? JSONObject()
+    // References are checked on the merged theme, since a layer may name a colour or style that a weaker layer holds,
+    // and each is reported in the layer that wrote it.
+    func checkReferences(in theme: MergedTheme) throws {
+        let object = theme.value.objectValue ?? JSONObject()
         let colors = Set(object["colors"]?.objectValue?.keys ?? [])
-        try walk(theme, as: .object(ThemeKeyTable.theme), place: .root, kind: ThemeKeyTable.theme.kind, colors: colors)
+        try walk(
+            theme.value,
+            as: .object(ThemeKeyTable.theme),
+            place: .root,
+            kind: ThemeKeyTable.theme.kind,
+            colors: colors,
+            theme: theme
+        )
 
         let styles = Set(object["styles"]?.objectValue?.keys ?? [])
         let titlePlace = Place.root.appending(key: "defaults").appending(key: "animation").appending(key: "title")
         let titles = object["defaults"]?.objectValue?["animation"]?.objectValue?["title"]?.objectValue?.keys ?? []
         for name in titles where !styles.contains(name) {
             throw ThemeError.unknownStyle(
-                place: titlePlace.appending(key: name),
+                place: theme.place(of: titlePlace.appending(key: name)),
                 kind: ThemeKeyTable.titleAnimationKind,
                 name: name
             )
@@ -38,19 +46,19 @@ struct ThemeValidator: Sendable {
     // The defaults of a merged theme. Only a theme merged over something other than the base theme can lack one, and
     // that stops where it is missing. A preset a default names must be there whether or not a clip takes it.
     func defaults(
-        in theme: JSONValue,
+        in theme: MergedTheme,
         presets: any PresetProvider
     ) throws -> ThemeDefaults {
         let place = Place.root.appending(key: "defaults")
-        let defaults = theme.objectValue?["defaults"]?.objectValue ?? JSONObject()
+        let defaults = theme.value.objectValue?["defaults"]?.objectValue ?? JSONObject()
         let animationPlace = place.appending(key: "animation")
         let animation = defaults["animation"]?.objectValue ?? JSONObject()
         let titlePlace = animationPlace.appending(key: "title")
         let titles = animation["title"]?.objectValue ?? JSONObject()
-        try checkFilter(defaults["filter"], place: place.appending(key: "filter"), presets: presets)
+        try checkFilter(defaults["filter"], place: place.appending(key: "filter"), theme: theme, presets: presets)
 
         return ThemeDefaults(
-            transition: try transitionChoice(in: defaults, place: place, presets: presets),
+            transition: try transitionChoice(in: defaults, place: place, theme: theme, presets: presets),
             titleAnimations: Dictionary(
                 try titles.members.map { member in
                     let choice = try animationChoice(
@@ -58,6 +66,7 @@ struct ThemeValidator: Sendable {
                         in: titles,
                         place: titlePlace,
                         kind: ThemeKeyTable.titleAnimationKind,
+                        theme: theme,
                         presets: presets
                     )
                     return (member.key, choice)
@@ -69,6 +78,7 @@ struct ThemeValidator: Sendable {
                 in: animation,
                 place: animationPlace,
                 kind: ThemeKeyTable.animationDefaults.kind,
+                theme: theme,
                 presets: presets
             ),
             mediaAnimation: try animationChoice(
@@ -76,6 +86,7 @@ struct ThemeValidator: Sendable {
                 in: animation,
                 place: animationPlace,
                 kind: ThemeKeyTable.animationDefaults.kind,
+                theme: theme,
                 presets: presets
             ),
             adjustAnimation: try animationChoice(
@@ -83,6 +94,7 @@ struct ThemeValidator: Sendable {
                 in: animation,
                 place: animationPlace,
                 kind: ThemeKeyTable.animationDefaults.kind,
+                theme: theme,
                 presets: presets
             )
         )
@@ -92,6 +104,7 @@ struct ThemeValidator: Sendable {
     private func transitionChoice(
         in defaults: JSONObject,
         place: Place,
+        theme: MergedTheme,
         presets: any PresetProvider
     ) throws -> TransitionChoice {
         let kind = ThemeKeyTable.defaults.kind
@@ -100,6 +113,7 @@ struct ThemeValidator: Sendable {
             in: defaults,
             place: place,
             kind: kind,
+            theme: theme,
             reading: TransitionChoice.init(value:)
         )
 
@@ -110,7 +124,7 @@ struct ThemeValidator: Sendable {
         case let .preset(name), let .timed(name, _):
             guard try presets.transition(named: name) != nil else {
                 throw ThemeError.unknownPreset(
-                    place: place.appending(key: "transition"),
+                    place: theme.place(of: place.appending(key: "transition")),
                     kind: kind,
                     presetKind: "transition",
                     name: name
@@ -125,6 +139,7 @@ struct ThemeValidator: Sendable {
     private func checkFilter(
         _ value: JSONValue?,
         place: Place,
+        theme: MergedTheme,
         presets: any PresetProvider
     ) throws {
         let names: [(name: String, place: Place)] = switch value {
@@ -143,7 +158,7 @@ struct ThemeValidator: Sendable {
         for (name, place) in names where name != "none" {
             guard try presets.filter(named: name) != nil else {
                 throw ThemeError.unknownPreset(
-                    place: place,
+                    place: theme.place(of: place),
                     kind: ThemeKeyTable.defaults.kind,
                     presetKind: "filter",
                     name: name
@@ -158,9 +173,17 @@ struct ThemeValidator: Sendable {
         in object: JSONObject,
         place: Place,
         kind: String,
+        theme: MergedTheme,
         presets: any PresetProvider
     ) throws -> AnimationChoice {
-        let choice = try choice(key, in: object, place: place, kind: kind, reading: AnimationChoice.init(value:))
+        let choice = try choice(
+            key,
+            in: object,
+            place: place,
+            kind: kind,
+            theme: theme,
+            reading: AnimationChoice.init(value:)
+        )
         let names: [String] = switch choice {
         case .none:
             []
@@ -175,7 +198,7 @@ struct ThemeValidator: Sendable {
         for name in names where name != "none" {
             guard try presets.animation(named: name) != nil else {
                 throw ThemeError.unknownPreset(
-                    place: place.appending(key: key),
+                    place: theme.place(of: place.appending(key: key)),
                     kind: kind,
                     presetKind: "animation",
                     name: name
@@ -191,10 +214,11 @@ struct ThemeValidator: Sendable {
         in object: JSONObject,
         place: Place,
         kind: String,
+        theme: MergedTheme,
         reading read: (JSONValue) -> Choice?
     ) throws -> Choice {
         guard let choice = object[key].flatMap(read) else {
-            throw ModelError.missingKey(place: place, kind: kind, keys: [key])
+            throw ModelError.missingKey(place: theme.place(of: place), kind: kind, keys: [key])
         }
 
         return choice
@@ -205,34 +229,56 @@ struct ThemeValidator: Sendable {
         as type: ValueType,
         place: Place,
         kind: String,
-        colors: Set<String>
+        colors: Set<String>,
+        theme: MergedTheme
     ) throws {
         switch (type, value) {
         case let (.color, .string(name)) where !name.hasPrefix("#"):
             guard colors.contains(name) else {
-                throw ThemeError.unknownColor(place: place, kind: kind, name: name)
+                throw ThemeError.unknownColor(place: theme.place(of: place), kind: kind, name: name)
             }
 
         case let (.object(table), .object(object)):
             for member in object.members {
                 guard let rule = table.rule(named: member.key) else { continue }
 
-                try walk(member.value, as: rule.type, place: place.appending(key: member.key), kind: table.kind, colors: colors)
+                try walk(
+                    member.value,
+                    as: rule.type,
+                    place: place.appending(key: member.key),
+                    kind: table.kind,
+                    colors: colors,
+                    theme: theme
+                )
             }
 
         case let (.map(valueType, mapKind), .object(object)):
             for member in object.members {
-                try walk(member.value, as: valueType, place: place.appending(key: member.key), kind: mapKind, colors: colors)
+                try walk(
+                    member.value,
+                    as: valueType,
+                    place: place.appending(key: member.key),
+                    kind: mapKind,
+                    colors: colors,
+                    theme: theme
+                )
             }
 
         case let (.list(elementType), .array(elements)):
             for (index, element) in elements.enumerated() {
-                try walk(element, as: elementType, place: place.appending(index: index), kind: kind, colors: colors)
+                try walk(
+                    element,
+                    as: elementType,
+                    place: place.appending(index: index),
+                    kind: kind,
+                    colors: colors,
+                    theme: theme
+                )
             }
 
         case let (.oneOf(types), _):
             for type in types {
-                try walk(value, as: type, place: place, kind: kind, colors: colors)
+                try walk(value, as: type, place: place, kind: kind, colors: colors, theme: theme)
             }
 
         default:

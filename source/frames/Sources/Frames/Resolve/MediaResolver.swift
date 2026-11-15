@@ -27,7 +27,7 @@ struct MediaResolver: Sendable {
         of source: MediaSource,
         place: Place,
         kind: PlaceKind,
-        theme: JSONValue
+        theme: MergedTheme
     ) throws -> ResolvedMedia {
         switch source {
         case let .file(file):

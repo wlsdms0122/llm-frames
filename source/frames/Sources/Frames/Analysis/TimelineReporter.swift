@@ -18,7 +18,7 @@ struct TimelineReporter: Sendable {
     // MARK: - Public
     func report(
         of document: JSONValue,
-        theme: JSONValue = BaseTheme.value
+        theme: MergedTheme = .base
     ) throws -> TimelineReport {
         report(of: try planner.plan(document: document, theme: theme))
     }

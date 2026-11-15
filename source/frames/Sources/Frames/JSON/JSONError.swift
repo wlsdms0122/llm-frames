@@ -5,14 +5,15 @@
 //  Created by JSilver on 11/15/26.
 //
 
+// `file` names a file other than the document, as it was referred to.
 enum JSONError: Error, Equatable, CustomStringConvertible, Sendable {
-    case syntax(line: Int, column: Int, reason: String)
+    case syntax(file: String? = nil, line: Int, column: Int, reason: String)
 
     // MARK: - Property
     var description: String {
         switch self {
-        case let .syntax(line, column, reason):
-            "line \(line), column \(column): \(reason)"
+        case let .syntax(file, line, column, reason):
+            (file.map { "\($0): " } ?? "") + "line \(line), column \(column): \(reason)"
         }
     }
 

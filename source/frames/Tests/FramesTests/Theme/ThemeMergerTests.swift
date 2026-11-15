@@ -33,7 +33,7 @@ struct ThemeMergerTests {
         let file = try Fixture.json(shorts)
 
         // When
-        let theme = try #require(try sut.merge([file]).objectValue)
+        let theme = try #require(try sut.merge([ThemeLayer(value: file, place: .root)]).value.objectValue)
 
         // Then
         let colors = theme["colors"]?.objectValue
@@ -62,7 +62,7 @@ struct ThemeMergerTests {
         let file = try Fixture.json(#"{ "font": ["Inter"], "styles": { "subtitle": { "background": { "radius": 4 } } } }"#)
 
         // When
-        let theme = try #require(try sut.merge([file]).objectValue)
+        let theme = try #require(try sut.merge([ThemeLayer(value: file, place: .root)]).value.objectValue)
 
         // Then
         #expect(theme["font"] == .array([.string("Inter")]))
@@ -77,17 +77,17 @@ struct ThemeMergerTests {
         let clip = ClipThemeLayer.layer(forClip: try Fixture.object(##"{ "shape": "box", "color": "#444444" }"##), kind: .shape("box"))
 
         // When
-        let documentTheme = try sut.merge([file, document])
-        let clipTheme = try sut.merge([clip], over: documentTheme)
+        let documentTheme = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
+        let clipTheme = try sut.merge([ThemeLayer(value: clip, place: .root)], over: documentTheme)
 
         // Then
-        let colors = documentTheme.objectValue?["colors"]?.objectValue
+        let colors = documentTheme.value.objectValue?["colors"]?.objectValue
         #expect(colors?["accent"] == .string("#333333"))
         #expect(colors?["text"] == .string("#222222"))
         #expect(colors?["border"] == .string("#D9D9D9"))
-        #expect(documentTheme.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("text"))
-        #expect(clipTheme.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("#444444"))
-        #expect(clipTheme.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["width"] == .number(8))
+        #expect(documentTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("text"))
+        #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("#444444"))
+        #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["width"] == .number(8))
     }
 
     @Test("a layer with an unknown key stops before anything is merged")
@@ -96,7 +96,7 @@ struct ThemeMergerTests {
         let file = try Fixture.json(#"{ "styles": { "caption": { "size": 30, "font": "Inter" } } }"#)
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.merge([file]) }
+        let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
         #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, emphasis, lineHeight, stroke, background, placement, offset, align, lines"#)
     }
 
@@ -108,11 +108,11 @@ struct ThemeMergerTests {
         let defined = try Fixture.json(##"{ "colors": { "brand": "#123456" }, "styles": { "caption": { "color": "brand" } }, "defaults": { "animation": { "title": { "caption": "pop" } } } }"##)
 
         // When, Then
-        let colourError = #expect(throws: ThemeError.self) { try sut.merge([colour]) }
-        let styleError = #expect(throws: ThemeError.self) { try sut.merge([style]) }
+        let colourError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: colour, place: .root)]) }
+        let styleError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: style, place: .root)]) }
         #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors"#)
         #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles"#)
-        try sut.merge([defined])
+        try sut.merge([ThemeLayer(value: defined, place: .root)])
     }
 
     @Test("a colour named by a weaker layer can be referred to by a stronger one")
@@ -122,7 +122,7 @@ struct ThemeMergerTests {
         let document = try Fixture.json(#"{ "shapes": { "arrow": { "color": "brand" } } }"#)
 
         // When, Then
-        try sut.merge([file, document])
+        try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
     }
 
     @Test("a colour in colors is written in hexadecimal")
@@ -131,7 +131,7 @@ struct ThemeMergerTests {
         let file = try Fixture.json(#"{ "colors": { "brand": "accent" } }"#)
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.merge([file]) }
+        let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
         #expect(error?.description == #"colors.brand (colors): "accent" is not #RRGGBB or #RRGGBBAA"#)
     }
 
@@ -141,7 +141,7 @@ struct ThemeMergerTests {
         let file = try Fixture.json(#"{ "defaults": { "transition": { "preset": "flash", "seconds": 0 } } }"#)
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.merge([file]) }
+        let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
         #expect(error?.description == "defaults.transition.seconds (transition choice): expected a number above 0, found 0")
     }
 }

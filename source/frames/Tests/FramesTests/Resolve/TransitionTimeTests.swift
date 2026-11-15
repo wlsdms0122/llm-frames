@@ -144,7 +144,7 @@ struct TransitionTimeTests {
     @Test("the theme in effect where the document is written gives the default under the document's own theme")
     func takesThemeInEffect() throws {
         // Given
-        let theme = try ThemeMerger().merge([Fixture.json(#"{ "defaults": { "transition": "flash" } }"#)])
+        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: .root)])
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
             """##)
@@ -190,6 +190,6 @@ struct TransitionTimeTests {
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"defaults.transition (defaults): unknown transition preset "dissolve""#)
+        #expect(error?.description == #"theme.defaults.transition (defaults): unknown transition preset "dissolve""#)
     }
 }

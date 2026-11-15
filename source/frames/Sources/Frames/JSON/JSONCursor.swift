@@ -8,6 +8,7 @@
 struct JSONCursor {
     // MARK: - Property
     let bytes: [UInt8]
+    let file: String?
     var offset = 0
 
     var isAtEnd: Bool {
@@ -15,8 +16,12 @@ struct JSONCursor {
     }
 
     // MARK: - Initializer
-    init(bytes: [UInt8]) {
+    init(
+        bytes: [UInt8],
+        file: String?
+    ) {
         self.bytes = bytes
+        self.file = file
     }
 
     // MARK: - Public
@@ -60,7 +65,7 @@ struct JSONCursor {
         let lineStart = consumed.lastIndex(of: 0x0A).map { $0 + 1 } ?? 0
         // A UTF-8 continuation byte belongs to the character it continues, so only the other bytes start a column.
         let column = consumed[lineStart...].filter { !(0x80..<0xC0).contains($0) }.count + 1
-        return .syntax(line: line, column: column, reason: reason)
+        return .syntax(file: file, line: line, column: column, reason: reason)
     }
 
     // MARK: - Private

@@ -9,12 +9,17 @@ import Foundation
 
 struct JSONReader: Sendable {
     // MARK: - Property
+    // The file other than the document that is read, as it was referred to, so its errors name it.
+    private let file: String?
+
     // MARK: - Initializer
-    init() { }
+    init(file: String? = nil) {
+        self.file = file
+    }
 
     // MARK: - Public
     func read(_ data: Data) throws -> JSONValue {
-        var cursor = JSONCursor(bytes: Array(data))
+        var cursor = JSONCursor(bytes: Array(data), file: file)
         cursor.skipWhitespace()
         let value = try readValue(&cursor)
         cursor.skipWhitespace()

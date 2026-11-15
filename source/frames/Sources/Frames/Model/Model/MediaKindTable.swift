@@ -20,5 +20,9 @@ struct MediaKindTable: MediaKindProvider {
         kinds[reference]
     }
 
+    func templateKind(of name: String) -> MediaKind? {
+        kinds[name]
+    }
+
     // MARK: - Private
 }

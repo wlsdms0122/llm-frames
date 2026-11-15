@@ -15,17 +15,19 @@ struct ThemeMerger: Sendable {
 
     // MARK: - Public
     func merge(
-        _ layers: [JSONValue],
-        over base: JSONValue = BaseTheme.value
-    ) throws -> JSONValue {
+        _ layers: [ThemeLayer],
+        over base: MergedTheme = .base
+    ) throws -> MergedTheme {
         for layer in layers {
             try validator.checkKeys(of: layer)
         }
 
-        let merged = layers.reduce(base) { under, over in
-            merge(under, over, rule: .theme)
+        let value = layers.reduce(base.value) { under, over in
+            merge(under, over.value, rule: .theme)
         }
+        let merged = MergedTheme(value: value, layers: base.layers + layers)
         try validator.checkReferences(in: merged)
+
         return merged
     }
 

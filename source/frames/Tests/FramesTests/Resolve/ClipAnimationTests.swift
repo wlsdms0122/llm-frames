@@ -103,11 +103,11 @@ struct ClipAnimationTests {
         arguments: [
             (
                 #"{ "animation": { "shape": "spin" } }"#,
-                #"defaults.animation.shape (animation defaults): unknown animation preset "spin""#
+                #"theme.defaults.animation.shape (animation defaults): unknown animation preset "spin""#
             ),
             (
                 #"{ "animation": { "title": { "subtitle": "spin" } } }"#,
-                #"defaults.animation.title.subtitle (title animations): unknown animation preset "spin""#
+                #"theme.defaults.animation.title.subtitle (title animations): unknown animation preset "spin""#
             )
         ]
     )

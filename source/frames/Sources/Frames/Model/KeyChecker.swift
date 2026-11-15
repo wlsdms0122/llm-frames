@@ -16,27 +16,65 @@ struct KeyChecker: Sendable {
     }
 
     // MARK: - Public
-    func check(document: JSONValue) throws {
+    func check(
+        document: JSONValue,
+        place: Place = .root
+    ) throws {
+        _ = try check(template: document, place: place)
+    }
+
+    // A document checked as a template, with the place of every parameter reference in it, so they can be filled.
+    func check(
+        template: JSONValue,
+        place: Place
+    ) throws -> [ParameterReference] {
+        var scope = DocumentScope()
+        _ = try checkDocument(
+            template,
+            place: place,
+            kind: "document",
+            isNested: false,
+            scope: &scope
+        )
+
+        return scope.references
+    }
+
+    // A document named by its file where media is taken, which stands as if written there.
+    func check(
+        nestedDocument document: JSONValue,
+        place: Place
+    ) throws {
         var scope = DocumentScope()
         _ = try checkDocument(
             document,
-            place: .root,
+            place: place,
             kind: "document",
-            isNested: false,
+            isNested: true,
             scope: &scope
         )
     }
 
     func check(
         _ value: JSONValue,
-        as table: ObjectTable
+        as table: ObjectTable,
+        place: Place = .root
+    ) throws {
+        try check(value, as: .object(table), place: place, kind: table.kind)
+    }
+
+    func check(
+        _ value: JSONValue,
+        as type: ValueType,
+        place: Place,
+        kind: String
     ) throws {
         var scope = DocumentScope()
         try check(
             value,
-            as: .object(table),
-            place: .root,
-            kind: table.kind,
+            as: type,
+            place: place,
+            kind: kind,
             scope: &scope
         )
     }
@@ -380,13 +418,15 @@ struct KeyChecker: Sendable {
         scope: DocumentScope
     ) throws -> MediaKind {
         guard case let .object(reference) = template else {
-            return try probedKind(of: template.stringValue ?? "", place: place, kind: kind)
+            return try probedKind(ofTemplate: template.stringValue ?? "", place: place, kind: kind)
         }
 
         // The shape check lets only a choice name a template, and the clip takes the one kind all its options share.
         let name = reference["param"]?.stringValue ?? ""
         let templates = scope.parameters[name]?["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        let probed = try templates.map { template in ProbedTemplate(name: template, kind: try probedKind(of: template, place: place, kind: kind)) }
+        let probed = try templates.map { template in
+            ProbedTemplate(name: template, kind: try probedKind(ofTemplate: template, place: place, kind: kind))
+        }
         guard let first = probed.first?.kind, probed.allSatisfy({ $0.kind == first }) else {
             throw ModelError.ambiguousTemplateKind(place: place, kind: kind, name: name, templates: probed)
         }
@@ -399,8 +439,20 @@ struct KeyChecker: Sendable {
         place: Place,
         kind: String
     ) throws -> MediaKind {
-        guard let mediaKind = mediaKinds.mediaKind(of: reference) else {
+        guard let mediaKind = try mediaKinds.mediaKind(of: reference) else {
             throw ModelError.unprobedMedia(place: place, kind: kind, reference: reference)
+        }
+
+        return mediaKind
+    }
+
+    private func probedKind(
+        ofTemplate name: String,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        guard let mediaKind = try mediaKinds.templateKind(of: name) else {
+            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind, name: name)
         }
 
         return mediaKind
@@ -682,6 +734,7 @@ struct KeyChecker: Sendable {
         }
 
         scope.usedParameters.insert(name)
+        scope.references.append(ParameterReference(place: place, name: name))
 
         let parameterType = parameter["type"]?.stringValue ?? ""
         guard parameterType != "choice" else {

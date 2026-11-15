@@ -20,15 +20,19 @@ struct PresetReader: Sendable {
         try animation(from: reader.read(data))
     }
 
-    func animation(from value: JSONValue) throws -> AnimationPreset {
-        try checker.check(value, as: PresetKeyTable.animation)
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func animation(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> AnimationPreset {
+        try checker.check(value, as: PresetKeyTable.animation, place: place)
 
         let object = value.objectValue ?? JSONObject()
         return AnimationPreset(
             description: object["description"]?.stringValue ?? "",
-            entrance: try animationSpan(object, "entrance", length: "seconds", ease: .easeOut),
-            loop: try animationSpan(object, "loop", length: "period", ease: .easeInOut),
-            exit: try animationSpan(object, "exit", length: "seconds", ease: .easeIn)
+            entrance: try animationSpan(object, "entrance", length: "seconds", ease: .easeOut, place: place),
+            loop: try animationSpan(object, "loop", length: "period", ease: .easeInOut, place: place),
+            exit: try animationSpan(object, "exit", length: "seconds", ease: .easeIn, place: place)
         )
     }
 
@@ -36,18 +40,22 @@ struct PresetReader: Sendable {
         try transition(from: reader.read(data))
     }
 
-    func transition(from value: JSONValue) throws -> TransitionPreset {
-        try checker.check(value, as: PresetKeyTable.transition)
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func transition(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> TransitionPreset {
+        try checker.check(value, as: PresetKeyTable.transition, place: place)
 
         let object = value.objectValue ?? JSONObject()
         let seconds = object["seconds"]?.numberValue ?? 0
         guard seconds > 0 else {
-            throw PresetError.nonPositiveLength(place: Place.root.appending(key: "seconds"), kind: "transition", length: seconds)
+            throw PresetError.nonPositiveLength(place: place.appending(key: "seconds"), kind: "transition", length: seconds)
         }
 
         let over = object["over"]?.stringValue.flatMap(TransitionOrder.init(rawValue:)) ?? .incoming
         guard over == .incoming || !object.contains("matte") else {
-            throw PresetError.matteOverOutgoing(place: .root)
+            throw PresetError.matteOverOutgoing(place: place)
         }
 
         let ease = object["ease"].flatMap(Ease.init(value:)) ?? .linear
@@ -55,9 +63,9 @@ struct PresetReader: Sendable {
             description: object["description"]?.stringValue ?? "",
             seconds: seconds,
             over: over,
-            incoming: try object["incoming"].map { try span($0, place: Place.root.appending(key: "incoming"), ease: ease) },
-            outgoing: try object["outgoing"].map { try span($0, place: Place.root.appending(key: "outgoing"), ease: ease) },
-            cover: try object["cover"].map { try cover($0, ease: ease) },
+            incoming: try object["incoming"].map { try span($0, place: place.appending(key: "incoming"), ease: ease) },
+            outgoing: try object["outgoing"].map { try span($0, place: place.appending(key: "outgoing"), ease: ease) },
+            cover: try object["cover"].map { try cover($0, place: place.appending(key: "cover"), ease: ease) },
             matte: object["matte"].map { matte($0, ease: ease) }
         )
     }
@@ -66,13 +74,17 @@ struct PresetReader: Sendable {
         try filter(from: reader.read(data))
     }
 
-    func filter(from value: JSONValue) throws -> FilterPreset {
-        try checker.check(value, as: PresetKeyTable.filter)
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func filter(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> FilterPreset {
+        try checker.check(value, as: PresetKeyTable.filter, place: place)
 
         let object = value.objectValue ?? JSONObject()
         let objects = (object["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
         for (index, operation) in objects.enumerated() {
-            try checkRanges(of: operation, place: Place.root.appending(key: "ops").appending(index: index))
+            try checkRanges(of: operation, place: place.appending(key: "ops").appending(index: index))
         }
 
         let operations = objects.map(operation)
@@ -84,11 +96,12 @@ struct PresetReader: Sendable {
         _ object: JSONObject,
         _ name: String,
         length lengthKey: String,
-        ease: Ease
+        ease: Ease,
+        place presetPlace: Place
     ) throws -> AnimationSpan? {
         guard let value = object[name] else { return nil }
 
-        let place = Place.root.appending(key: name)
+        let place = presetPlace.appending(key: name)
         let length = value.objectValue?[lengthKey]?.numberValue ?? 0
         guard length > 0 else {
             throw PresetError.nonPositiveLength(place: place.appending(key: lengthKey), kind: name, length: length)
@@ -130,12 +143,13 @@ struct PresetReader: Sendable {
 
     private func cover(
         _ value: JSONValue,
+        place: Place,
         ease: Ease
     ) throws -> Cover {
         let object = value.objectValue ?? JSONObject()
         let source: CoverSource = object["media"]?.stringValue.map(CoverSource.media)
             ?? .color(object["color"]?.stringValue ?? "")
-        return Cover(source: source, span: try span(value, place: Place.root.appending(key: "cover"), ease: ease))
+        return Cover(source: source, span: try span(value, place: place, ease: ease))
     }
 
     private func matte(

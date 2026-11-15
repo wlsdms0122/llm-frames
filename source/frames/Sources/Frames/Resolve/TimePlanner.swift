@@ -28,14 +28,14 @@ struct TimePlanner: Sendable {
     // `theme` is the theme in effect where the document is written: the base theme with a --theme file over it.
     func plan(
         document: JSONValue,
-        theme: JSONValue = BaseTheme.value
+        theme: MergedTheme = .base
     ) throws -> TimePlan {
         try plan(reader.sequence(from: document), theme: theme)
     }
 
     func plan(
         _ sequence: SequenceDocument,
-        theme: JSONValue
+        theme: MergedTheme
     ) throws -> TimePlan {
         guard !sequence.storyline.isEmpty else {
             throw ResolveError.emptyStoryline(place: sequence.place.appending(key: "storyline"), kind: .sequence)
@@ -74,14 +74,14 @@ struct TimePlanner: Sendable {
     // MARK: - Private
     private func theme(
         of sequence: SequenceDocument,
-        over theme: JSONValue
-    ) throws -> JSONValue {
+        over theme: MergedTheme
+    ) throws -> MergedTheme {
         switch sequence.theme {
         case nil:
             return theme
 
         case let .object(layer):
-            return try merger.merge([layer], over: theme)
+            return try merger.merge([ThemeLayer(value: layer, place: sequence.place.appending(key: "theme"))], over: theme)
 
         case let .named(name):
             throw ResolveError.unreadReference(
@@ -94,7 +94,7 @@ struct TimePlanner: Sendable {
 
     private func source(
         of clip: StorylineClip,
-        theme: JSONValue
+        theme: MergedTheme
     ) throws -> StorylineSource {
         guard let clipMedia = clip.media else {
             let duration = try stillDuration(of: clip, kind: .solid)
@@ -318,7 +318,7 @@ struct TimePlanner: Sendable {
         storyline: [StorylinePlan],
         duration: Double,
         defaults: ThemeDefaults,
-        theme: JSONValue
+        theme: MergedTheme
     ) throws -> ClipPlan {
         let source = try source(of: clip, theme: theme)
         let kind = source.kind
@@ -374,7 +374,7 @@ struct TimePlanner: Sendable {
 
     private func source(
         of clip: Clip,
-        theme: JSONValue
+        theme: MergedTheme
     ) throws -> ClipSource {
         switch clip.content {
         case let .media(clipMedia):
