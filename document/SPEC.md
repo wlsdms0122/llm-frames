@@ -88,7 +88,7 @@ A place in a picture is given in one of these forms. Coordinates are media pixel
 | --- | --- |
 | `[x, y, w, h]` | that rectangle |
 | `"text"` | the whole recognised line that contains the text. A text area names a line by part of its text, and the area is the line |
-| `{"text": "...", "nth": 1}` | the nth line (from 0) among the lines that contain the text, counted top to bottom by the top of each line, then left to right |
+| `{"text": "...", "nth": 1}` | the nth line (from 0) among the lines that contain the text, counted top to bottom by row and left to right within a row, where lines whose vertical centres lie within half the shorter one's height of each other are one row |
 | `{"from": "...", "to": "...", "fromNth": 0, "toNth": 0}` | the rectangle around both lines and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
 | `{"band": <area>}` | the full width of the picture, between the top and bottom of the inner area, which is one of the forms above |
 
@@ -105,7 +105,7 @@ A place in a picture is given in one of these forms. Coordinates are media pixel
 | --- | --- |
 | `"/abs/file"` | an image, video or audio file, judged by its contents, or a `.json` document, which stands as if written there |
 | `"<pack>/<name.ext>"` | a file in a pack's `media/` (section 10.1), a `.json` document there included |
-| `{"sequence": "/abs/dir", "fps": 30}` | a numbered image sequence (the directory may be `<pack>/<dir>`, a folder in a pack's `media/`): every PNG in the directory, in natural order (runs of digits compare as numbers), at that rate. It plays like a video: its media seconds are frame index / fps, and it takes `in`, `out` and `speed` |
+| `{"imageSequence": "/abs/dir", "fps": 30}` | a numbered image sequence (the directory may be `<pack>/<dir>`, a folder in a pack's `media/`): every PNG in the directory, in natural order (runs of digits compare as numbers), at that rate. It plays like a video: its media seconds are frame index / fps, and it takes `in`, `out` and `speed` |
 | an image or layout document object | the picture that document draws (sections 6 and 7) |
 | a sequence document object | a compound clip: the nested sequence plays as a video with sound, and its sequence time is its media time |
 | `{"template": "<pack>/<name>", "args": {...}}` | a template instance (section 10.2). The template is `<pack>/<name>` or an absolute path |
@@ -159,7 +159,7 @@ Placement is measured on the output frame, not the content rect, so a title can 
 
 Text is laid out by resolve, with real fonts, so line breaks, sizes and label sides are part of the resolved document and are the same on every renderer.
 
-- A style's font is the first family in the theme `font` list that its pack carries (section 10.1) or the machine has installed, in the style's weight. Characters that face lacks fall back to the platform's fallback fonts. A list with no family on the machine stops, naming the families.
+- A style's font is the first family in the theme `font` list that its pack carries (section 10.1) or the machine has installed, in the style's weight. Characters that face lacks fall back to a face the shaping provider finds on the machine, and the resolved document keeps the face it found, as it keeps recognised text (section 13.1). A list with no family on the machine stops, naming the families.
 - Lines break by Unicode line breaking (UAX #14) at the wrapping width, and at `\n`.
 - Resolve shapes each run of text with the shaping provider, which gives glyph ids and advances. frames breaks, wraps and places the lines. The resolved document carries glyph runs (font file, face, size, colour, glyph ids and positions) and the box they fill. A renderer draws the glyphs where they are written and shapes nothing.
 - `**text**` takes the style's `emphasis` colour.
@@ -421,7 +421,7 @@ A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in outpu
 | `box` | a rounded border around the area |
 | `fill` | the area filled with a colour |
 | `dim` | darkens everything but the area: the content rect for a connected clip, the output frame for a sequence clip, the canvas in an image document |
-| `arrow` | an arrow pointing at the area from the side named by `side` (`left`, `right`, `top`, `bottom`) |
+| `arrow` | an arrow pointing at the area from the side named by `side` (`left`, `right`, `top`, `bottom`): `shapes.arrow.length` long from tail to tip, its tip at the middle of that side of the area (padding included), with a head `shapes.arrow.head` long and wide |
 
 - `label` adds a one-line label in the `label` style. It goes on the first side in the theme `shapes.label.sides` where it fits inside the content rect (the output frame for a sequence clip), measured at the shape's keyframed geometry without animation. When no side fits, it stops.
 - The side is measured at the clip's first visible instant at which its storyline clip is out of every transition, or at the middle of its visible window when all of that window falls in transitions. A sequence clip's side is measured at its first visible instant. Resolve evaluates that instant and writes the side into the resolved document, so `timeline` stops on a label with no room. Motion after that instant (area keyframes, tracking, a zoom) may carry the label partly out of the content rect, and then it is clipped like the shape.
@@ -658,7 +658,7 @@ A pack is a set of looks and edits that someone made to share or sell. It is an 
 | `themes/` | themes | `<pack>/<name>` in `--theme` or a document `theme` |
 | `templates/` | templates (section 10.2) | `<pack>/<name>` in a template instance |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a `lut` op |
-| `media/` | mattes, overlays, stingers and other media, with image sequences as folders and documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for a sequence, wherever media is taken |
+| `media/` | mattes, overlays, stingers and other media, with image sequences as folders and documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for an image sequence, wherever media is taken |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
 | `guide.md`, `examples/` | the guide and example documents of the form a pack is for (section 17) | read by people and agents, not by frames |
 
@@ -765,7 +765,7 @@ An image document and a layout resolve to their final size and one list of drawi
 ### 11.3 Rules
 
 - Resolve is deterministic for the same document, arguments, media, theme, presets, packs, fonts, recognised text and tracks.
-- Evaluating and rendering a resolved document needs its pinned files and nothing else.
+- Evaluating and rendering a resolved document needs its pinned files and nothing else. It names no role: the command that renders it picks them (section 13), and the same result is promised for the same ones.
 - A frames reads a resolved document written by a frames of its own major version at its minor version or an earlier one, and refuses any other, naming both versions. Made again by the version that wrote it, a resolved document gives the same result. A later version gives the same result too, except where a patch brought evaluation or a role back to this specification.
 - Display lists and the mix plan have a JSON form too, with `"displayList"` and `"mixPlan"` set to the version of the frames that wrote them, so what evaluation gives a role can be checked, recorded and replayed apart from it. They are read by the same rule as a resolved document.
 - Evaluation and `render` trust a resolved document as they trust resolve. They check its version, and `render` its hashes, not its rules again. Evaluation opens no file.
@@ -780,11 +780,12 @@ Every item has `transform` (an affine matrix `[a, b, c, d, tx, ty]` in output pi
 | --- | --- | --- |
 | `picture` | `source` (a frame of a media file or image sequence, by index, or a nested display list), `rect` (the media region), `dest` (the output rectangle it fills), `filter` (op list, applied at `dest` size), `matte` (`{source, frame, progress, softness, invert}` or `null`), `radius`, `border` `{width, color}`, `shadow` `{radius, offset, color}` | a region of a media picture scaled into a rectangle, filtered, then masked by its matte |
 | `fill` | `rect`, `radius`, `color`, `hole` (`{rect, radius}` or `null`) | a filled rounded rectangle, with an optional rounded hole |
-| `stroke` | `rect`, `radius`, `width`, `color`, `trim` (0 to 1, from the top left clockwise) | the outline of a rounded rectangle, drawn as far as `trim` |
+| `stroke` | `rect`, `radius`, `width`, `color`, `trim` (0 to 1, from the top left clockwise) | the outline of a rounded rectangle, centred on its edge, drawn as far as `trim` |
 | `arrow` | `tail`, `head` (points), `width`, `headSize`, `color` | a straight arrow |
-| `glyphs` | `runs` (font file, face, size, colour, glyph ids and positions), `stroke` `{width, color}`, `box` `{rect, radius, color}` | glyphs, with their outline and background box |
+| `glyphs` | `runs` (font file, face, size, colour, glyph ids and positions), `stroke` `{width, color}`, `background` `{rect, radius, color}` | glyphs, with their outline and background |
 | `adjust` | `rect` (or `null` for the whole frame), `filter` | the filter applied to everything drawn below it, inside the rect |
 
+- Corners given by `radius` are circular arcs. A `shadow` radius is the standard deviation of its Gaussian blur, as for `blur`.
 - Evaluation picks a media source's frame by section 4.3 from the pinned timestamps, and the renderer draws that frame.
 - Evaluation writes `seed` into every `grain` op: the number of the output frame being drawn, k for frame k of the outermost sequence (evaluated at k / fps), the frame whose interval holds t for `still` and `evaluate`, and 0 for a picture. Nested lists take the outer frame's seed, so grain belongs to the output frame and two units in a transition share it.
 - A nested display list stands for an image or layout document, a compound clip at its mapped time, or a storyline unit. It is drawn at its own size, and the picture's `rect`, `dest`, `filter`, `radius`, `border` and `shadow` apply to it as to any source.
@@ -792,7 +793,7 @@ Every item has `transform` (an affine matrix `[a, b, c, d, tx, ty]` in output pi
 - A storyline unit (section 8.6) is one `picture` whose source is the unit's nested display list, the size of the content rect: its parented clips and its media picture (the conformed crop as `rect`, with its filter), in unit order and in content rect coordinates. The outer picture takes the transition's transform, opacity, reveal and matte, with the content rect as its mask, so they act on the unit as one picture, and a blend or an adjustment inside the unit reaches only the unit.
 - Evaluation has done everything above pixels: keyframes and eases, animation spans and how they combine, transition motion, cover and matte progress, reveal (as the item's `reveal` rectangle, a `trim`, a shorter arrow or a moving hole), compositing units, parent transforms and masks, tracked motion, label sides, and the visible windows.
 
-The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its media start and speed, the sequence times it starts and ends, and a gain envelope of points `[t, gain]` joined in straight lines. The envelope already holds volume keyframes and their eases (sampled at the frame rate), fades and crossfades. A loop is one segment per repeat, and a compound clip's sounds are segments of their own.
+The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its channels, its media start and speed, the sequence times it starts and ends, and a gain envelope of points `[t, gain]` joined in straight lines. The envelope already holds volume keyframes and their eases (sampled at the frame rate), fades and crossfades. A loop is one segment per repeat, and a compound clip's sounds are segments of their own.
 
 ## 13. Roles (must)
 
@@ -810,10 +811,10 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 - Every decoder keeps sections 4.1 and 4.3, and frames are named by index. Frame i is the frame at `frames[i]`: a decoder checks a file's timestamps against the pinned ones and refuses before it starts when it counts them differently. So the text resolve recognised and the pixels a renderer draws come from the same frame, whichever decoder renders.
 - A sequence output lasts `duration` to within one frame.
 - Every file is tagged with the working space's encoding: BT.709 primaries and the sRGB transfer (IEC 61966-2-1) in a video, an sRGB chunk in a PNG, so every encoder's output looks the same in a player.
-- `render` writes a master: a `.mov` (ProRes 422 HQ, or ProRes 4444 when the frames carry alpha, with 24-bit PCM sound), or a PNG for images, layouts and stills. `--deliver` also writes a delivery file from the same frames in the same step: H.264 at the encoder's highest quality with AAC at 256 kbps or more.
+- `render` writes a master: a `.mov` (ProRes 422 HQ, or ProRes 4444 when the format's `background` is not opaque, so the frames carry alpha, with 24-bit PCM sound at 48 kHz in stereo), or a PNG for images, layouts and stills. `--deliver` also writes a delivery file from the same frames in the same step: H.264 at the encoder's highest quality with AAC at 256 kbps or more, with transparent parts over black.
 - The working space is sRGB. Decoded pictures are converted to it (section 4.1), and every renderer composites, blends, filters and measures matte luminance on sRGB-encoded values, the values W3C Compositing writes its formulas for. `exposure` alone works in linear light: it decodes to linear, multiplies, and encodes back. Luminance is the Rec. 709 luma of the encoded values.
 - No role leaves temporary files.
-- The same display lists on the same decoder and renderer, of the same version of frames, give the same frames before encoding on the same machine, and on another one to within the rounding of its GPU. File bytes are not promised, since hardware encoders differ. Two renderers give the same geometry, text, timing and operations in the same working space, not the same pixels. The same mix plan on the same decoder and mixer gives the same samples.
+- The same display lists on the same decoder and renderer, of the same version of frames, give the same frames before encoding on the same machine, and on another one to within the rounding of its GPU. File bytes are not promised, since hardware encoders differ. Two renderers give the same geometry, text, timing and operations in the same working space, not the same pixels. The same mix plan on the same decoder and mixer gives the same samples. Every mixer mixes at 48 kHz in stereo: a mono source plays at the same level on both channels, and a source with more channels is downmixed by ITU-R BS.775, so two mixers give the same levels and channels.
 
 `--decoder`, `--renderer`, `--mixer` and `--encoder` pick each role by the name of its implementation. The renderer defaults to `quartz` (Core Graphics and Core Image), and the others to `avfoundation`.
 
@@ -872,7 +873,7 @@ The base theme is the floor every theme merges over, not the look of a form. Its
     "box":       { "width": 8, "radius": 18, "color": "accent" },
     "fill":      { "color": "#FFD43B80" },
     "dim":       { "color": "#0000008C" },
-    "arrow":     { "width": 10, "length": 160, "color": "accent" },
+    "arrow":     { "width": 10, "length": 160, "head": 32, "color": "accent" },
     "border":    { "width": 3 },
     "shadow":    { "radius": 24, "offset": [0, 8], "color": "shadow" },
     "label":     { "sides": ["right", "bottom", "left", "top"] }
@@ -955,7 +956,7 @@ theme
 - `track` follows an area (section 4.2) found at media time `--at`, backwards and forwards with the tracker provider, as `track` on a clip does.
 - `extract` writes frames as PNG files. `sheet` lays frames out in one picture, each labelled with its time as `still` labels it. Given a document they take composite frames at sequence times, as `still` draws them.
 - `presets` lists presets with their descriptions, or prints one preset's JSON. `packs` lists installed packs, or what one pack holds.
-- The analysis commands (`probe`, `ocr`, `track`, `extract`, `sheet`) use the providers, and `transcode` writes with the encoder role. All of them read media through the decoder role.
+- The analysis commands (`probe`, `ocr`, `track`, `extract`, `sheet`, `timeline`, `evaluate`, `locate`) report facts to write a document with. `ocr` and `track` use the providers, and `transcode` writes with the encoder role. All of them read media through the decoder role.
 - Paths are absolute. A document argument may also name a pack template, `<pack>/<name>`, or be `-`, read from standard input.
 - A command frames does not have, `frames <name> ...`, runs `frames-<name>` from `PATH` with the global options before the name and the arguments after it, unchanged, and with standard input and output passed through (section 17.1).
 - `frames --version` prints the version (section 10.1). An extension checks it against the versions it is written for, as a pack does with `[frames] engine`.
@@ -1075,13 +1076,15 @@ Forms that ship with frames, as packs:
 
 First how-tos:
 
-- **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"sequence": ...}` media.
+- **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"imageSequence": ...}` media.
 - **effects:** an effect beyond the filter ops (particles, a glitch, a shader of one's own) is made outside. Render it as a video with alpha and lay it over with a `blend`, or `extract` the frames of the clip's media file over its range, process them, and point the clip's `media` at the result.
 
 ## 18. Out of scope
 
 - Effects as code run by a renderer: shaders and scripts. Packs carry data only, so every role can draw them. Filters, LUTs, matte transitions and blend modes cover most of what such effects are bought for, and the rest is made outside and arrives as media (the effects how-to). A per-pixel kernel carried as data in a portable shading language is where a later contract would add them.
 - Stabilisation, audio filters beyond volume, per-character text animation.
+- Reverse, hold and speed ramps (time remapping). A clip's time map is a straight line with `speed > 0`, which is what lets clip time be media time (section 8.3).
+- Right-to-left and mixed-direction text. Text is laid out left to right, so `align` names physical sides.
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.
@@ -1143,7 +1146,7 @@ evaluate(resolved, t):
 | resolve | the time plan, timeline, the resolved document |
 | evaluate | display lists at a time, the mix plan |
 | decoder, renderer, mixer, encoder | one module per backend for each role |
-| analysis | probe, ocr, track, extract, sheet, evaluate, locate, and the machine output |
+| analysis | probe, ocr, track, extract, sheet, evaluate, locate, the report `timeline` prints, and the machine output |
 | transcode | image, audio and video delivery files |
 | cli | commands, arguments, error output |
 
