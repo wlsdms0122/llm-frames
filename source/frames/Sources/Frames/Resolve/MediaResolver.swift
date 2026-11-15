@@ -124,7 +124,7 @@ struct MediaResolver: Sendable {
     private func instance(
         of name: String,
         arguments: JSONObject,
-        argumentThemes: [String: MergedTheme],
+        argumentThemes: [String: [Place: MergedTheme]],
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
@@ -143,12 +143,7 @@ struct MediaResolver: Sendable {
         }
 
         let inner = try library.reading(instanceOf: name, values: instance.values)
-        let themes = Dictionary(
-            instance.arguments.map { argument in
-                (place.appending(argument.place), argumentThemes[argument.name] ?? theme)
-            },
-            uniquingKeysWith: { first, _ in first }
-        )
+        let themes = ArgumentThemeTable(instance: instance, place: place, theme: theme, kept: argumentThemes)
         let sequence = SequenceReader(arguments: themes).sequence(from: instance.document, place: place)
         return nested(try planner(library: inner).plan(sequence, theme: .base), reference: nil)
     }

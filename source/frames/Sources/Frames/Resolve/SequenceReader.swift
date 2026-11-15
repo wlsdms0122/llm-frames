@@ -6,16 +6,15 @@
 //
 
 // Reads a sequence document that passed the key tables into model types, once, with every clip's place.
-// `arguments` are the places of media a template instance was given, with the theme in effect where the instance is
-// written.
+// `arguments` are the themes media a template instance was given keeps, by its place.
 struct SequenceReader: Sendable {
     // MARK: - Property
     private static let keyframeKeys: Set<String> = ["at", "ease"]
 
-    private let arguments: [Place: MergedTheme]
+    private let arguments: ArgumentThemeTable
 
     // MARK: - Initializer
-    init(arguments: [Place: MergedTheme] = [:]) {
+    init(arguments: ArgumentThemeTable = .empty) {
         self.arguments = arguments
     }
 
@@ -127,7 +126,7 @@ struct SequenceReader: Sendable {
         place: Place
     ) -> MediaSource {
         let source = writtenSource(value, place: place)
-        guard let theme = arguments[place] else { return source }
+        guard let theme = arguments.theme(at: place) else { return source }
 
         return .argument(source, theme: theme)
     }
@@ -139,13 +138,11 @@ struct SequenceReader: Sendable {
         guard let object = value.objectValue else { return .file(value.stringValue ?? "") }
 
         if let template = object["template"]?.stringValue {
-            let arguments = object["args"]?.objectValue ?? JSONObject()
-            let argumentsPlace = place.appending(key: "args")
-            let argumentThemes = arguments.keys.reduce(into: [String: MergedTheme]()) { themes, name in
-                themes[name] = self.arguments[argumentsPlace.appending(key: name)]
-            }
-
-            return .template(name: template, arguments: arguments, argumentThemes: argumentThemes)
+            return .template(
+                name: template,
+                arguments: object["args"]?.objectValue ?? JSONObject(),
+                argumentThemes: arguments.kept(inArgumentsAt: place.appending(key: "args"))
+            )
         }
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)

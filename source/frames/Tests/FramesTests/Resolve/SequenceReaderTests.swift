@@ -93,7 +93,7 @@ struct SequenceReaderTests {
             """#)
         let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: .root)])
         let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("media")])
-        let sut = SequenceReader(arguments: [place: theme])
+        let sut = SequenceReader(arguments: ArgumentThemeTable(themes: [place: theme]))
 
         // When
         let sequence = sut.sequence(from: document)

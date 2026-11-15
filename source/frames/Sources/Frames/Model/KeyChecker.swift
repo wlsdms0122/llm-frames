@@ -418,7 +418,7 @@ struct KeyChecker: Sendable {
             return try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
         case let .object(object) where object.contains("kind"):
-            return object["kind"] == .string("sequence") ? .sequence : .image
+            return MediaKind(document: value)
 
         case let .object(object) where object.contains("template"):
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
