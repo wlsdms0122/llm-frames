@@ -382,9 +382,9 @@ struct KeyChecker: Sendable {
         // The shape check lets only a choice name a template, and the clip takes the one kind all its options share.
         let name = reference["param"]?.stringValue ?? ""
         let templates = scope.parameters[name]?["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        let kinds = try templates.map { template in try probedKind(of: template, place: place, kind: kind) }
-        guard let first = kinds.first, kinds.allSatisfy({ $0 == first }) else {
-            throw ModelError.ambiguousTemplateKind(place: place, kind: kind, name: name, templates: templates, kinds: kinds)
+        let probed = try templates.map { template in ProbedTemplate(name: template, kind: try probedKind(of: template, place: place, kind: kind)) }
+        guard let first = probed.first?.kind, probed.allSatisfy({ $0.kind == first }) else {
+            throw ModelError.ambiguousTemplateKind(place: place, kind: kind, name: name, templates: probed)
         }
 
         return first
@@ -606,6 +606,13 @@ struct KeyChecker: Sendable {
         let isChoice = type == "choice"
         if isChoice, !object.contains("options") {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: ["options"])
+        }
+        if isChoice, object["options"]?.arrayValue?.isEmpty == true {
+            throw ModelError.invalidValue(
+                place: place.appending(key: "options"),
+                kind: table.kind,
+                reason: "a choice offers at least one option"
+            )
         }
         if !isChoice, object.contains("options") {
             throw ModelError.unknownKey(

@@ -67,4 +67,14 @@ struct KeyframeReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.checkEases(in: keyframes, place: .root) }
         #expect(error?.description == #"[0] (keyframe): "ease" shapes no span, since no later keyframe names opacity"#)
     }
+
+    @Test("a later keyframe at the same instant takes the span, even when another keyframe follows")
+    func refusesEaseWhoseSpanIsTakenAtSameInstant() throws {
+        // Given
+        let keyframes = try Fixture.json(#"[ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1, "opacity": 0.5 }, { "at": 2, "opacity": 1 } ]"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkEases(in: keyframes, place: .root) }
+        #expect(error?.description == #"[0] (keyframe): "ease" shapes no span, since no later keyframe names opacity"#)
+    }
 }

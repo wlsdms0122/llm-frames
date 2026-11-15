@@ -22,11 +22,12 @@ struct KeyframeReader: Sendable {
 
         for (position, entry) in ordered.enumerated() where entry.keyframe.contains("ease") {
             let properties = entry.keyframe.keys.filter { !Self.keyframeKeys.contains($0) }
-            // A later keyframe at the same instant ends a span of no length, which no ease can shape.
-            let isFollowed = ordered[(position + 1)...].contains { later in
-                later.at > entry.at && properties.contains(where: later.keyframe.contains)
+            // As in KeyframeTrack, a span opens at the last keyframe of an instant, so the next keyframe of the property must come later.
+            let opensSpan = properties.contains { property in
+                guard let next = ordered[(position + 1)...].first(where: { $0.keyframe.contains(property) }) else { return false }
+                return next.at > entry.at
             }
-            guard isFollowed else {
+            guard opensSpan else {
                 throw ModelError.easeWithoutFollowingKeyframe(
                     place: place.appending(index: entry.index),
                     properties: properties

@@ -93,6 +93,7 @@ struct TemplateCheckTests {
         arguments: [
             (#"{ "type": "text", "options": ["a"] }"#, #"params.p (parameter): unknown key "options". Allowed: type, default, description"#),
             (#"{ "type": "choice" }"#, #"params.p (parameter): missing key "options""#),
+            (#"{ "type": "choice", "options": [] }"#, #"params.p.options (parameter): a choice offers at least one option"#),
             (#"{ "type": "font" }"#, #"params.p.type (parameter): unknown value "font". Allowed: video, sequence, image, audio, text, color, number, choice"#),
             (#"{ "type": "number", "default": "2" }"#, #"params.p.default (parameter): expected a number, found "2""#),
             (#"{ "type": "choice", "options": ["a", "b"], "default": "c" }"#, #"params.p.default (parameter): unknown value "c". Allowed: a, b"#),
