@@ -1,0 +1,15 @@
+# The specification is `open-package spec`
+
+[open-package]
+version = "1.0.0"
+
+[package]
+name = "frames"
+version = "0.1.0"
+description = "Edits images and video from a JSON timeline an agent writes, on a render engine that can be swapped"
+requires = []
+
+[command]
+# Commands run from the package root, and no name means anything but this line.
+# Arguments are appended, unless the line places "$@" itself.
+verify = "! echo 'verify is not written yet' >&2"
