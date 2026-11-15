@@ -9,13 +9,13 @@ import Foundation
 
 // Reads what a document names by `<pack>/<name>` or an absolute path: themes, templates, documents used as media and
 // media files. A file read here is checked where it is read, and its errors name it as it was referred to.
-// `reading` holds the files being read on the way here, so a document that names itself stops instead of never
-// ending.
+// `reading` holds the files and template instances being read on the way here, so a document or an instance that
+// holds itself stops instead of never ending.
 struct ReferenceLibrary: MediaKindProvider {
     // MARK: - Property
     private let packs: PackLibrary
     private let mediaFacts: any MediaFactProvider
-    private let reading: [String]
+    private let reading: [ReadingEntry]
 
     // MARK: - Initializer
     init(
@@ -28,7 +28,7 @@ struct ReferenceLibrary: MediaKindProvider {
     private init(
         packs: PackLibrary,
         mediaFacts: any MediaFactProvider,
-        reading: [String]
+        reading: [ReadingEntry]
     ) {
         self.packs = packs
         self.mediaFacts = mediaFacts
@@ -89,17 +89,32 @@ struct ReferenceLibrary: MediaKindProvider {
         file: String,
         name: String
     ) throws -> ReferenceLibrary {
-        if let start = reading.firstIndex(of: file) {
-            throw PackError.circularReference(
-                place: Place(file: name, components: []),
-                files: Array(reading[start...]) + [file]
-            )
-        }
+        try reading(ReadingEntry(name: file, values: nil), name: name)
+    }
 
-        return ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, reading: reading + [file])
+    // The library to plan an instance of the template `name` with, once `values` are given to its parameters.
+    func reading(
+        instanceOf name: String,
+        values: [String: JSONValue]
+    ) throws -> ReferenceLibrary {
+        try reading(ReadingEntry(name: name, values: values), name: name)
     }
 
     // MARK: - Private
+    private func reading(
+        _ entry: ReadingEntry,
+        name: String
+    ) throws -> ReferenceLibrary {
+        if let start = reading.firstIndex(of: entry) {
+            throw PackError.circularReference(
+                place: Place(file: name, components: []),
+                files: (reading[start...] + [entry]).map(\.name)
+            )
+        }
+
+        return ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, reading: reading + [entry])
+    }
+
     private func value(
         named name: String,
         in folder: String,

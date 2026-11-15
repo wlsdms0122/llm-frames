@@ -304,6 +304,43 @@ struct DocumentPlannerTests {
         #expect(error == .circularReference(place: Place(file: "shorts/loop.json", components: []), files: [loop, loop]))
     }
 
+    @Test("a template whose default is an instance of itself stops instead of never ending")
+    func refusesSelfInstanceThroughDefault() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": { "template": "shorts/self" } } },
+              "storyline": [ { "media": { "param": "m" } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/self.json"
+        )
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/self" } } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+        #expect(error == .circularReference(place: Place(file: "shorts/self", components: []), files: ["shorts/self", "shorts/self"]))
+    }
+
+    @Test("a template that passes its own argument on to an instance of itself stops instead of never ending")
+    func refusesSelfInstancePassingArgument() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": "shorts/intro.json" } },
+              "storyline": [ { "media": { "template": "shorts/self", "args": { "m": { "param": "m" } } } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/self.json"
+        )
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/self" } } ] }"#)
+        let file = directory.installed.appendingPathComponent("shorts/templates/self.json").path
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+        #expect(error == .circularReference(place: Place(file: "shorts/self", components: []), files: [file, file]))
+    }
+
     @Test("an unknown template stops where it is named")
     func refusesUnknownTemplate() throws {
         // Given

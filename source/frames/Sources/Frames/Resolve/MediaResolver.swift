@@ -119,7 +119,8 @@ struct MediaResolver: Sendable {
 
     // A template resolves on the base theme and its own, so only its arguments change it. Media it was given keeps
     // `theme`, the theme where the instance is written, unless it is passed on from a template that was given it,
-    // where it keeps the theme of the document that wrote it.
+    // where it keeps the theme of the document that wrote it. An instance plans the same each time, so one that holds
+    // the same template with the same values again would never end.
     private func instance(
         of name: String,
         arguments: JSONObject,
@@ -141,6 +142,7 @@ struct MediaResolver: Sendable {
             return ResolvedMedia(kind: .image, reference: nil, file: nil, duration: 0)
         }
 
+        let inner = try library.reading(instanceOf: name, values: instance.values)
         let themes = Dictionary(
             instance.arguments.map { argument in
                 (place.appending(argument.place), argumentThemes[argument.name] ?? theme)
@@ -148,7 +150,7 @@ struct MediaResolver: Sendable {
             uniquingKeysWith: { first, _ in first }
         )
         let sequence = SequenceReader(arguments: themes).sequence(from: instance.document, place: place)
-        return nested(try planner(library: library).plan(sequence, theme: .base), reference: nil)
+        return nested(try planner(library: inner).plan(sequence, theme: .base), reference: nil)
     }
 
     // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration).
