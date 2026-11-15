@@ -14,7 +14,7 @@ Looks and reusable pieces made once and used by many need one way to be found, n
 
 ### Packs
 
-A pack is a set of looks and edits that someone made to share or sell. It is an open-package directory: a `manifest.toml` with an `[open-package]` table that names the pack, its version and its licence, a `[frames]` table with the `engine` versions it is written for, and any of these folders.
+A pack is a set of looks and edits that someone made to share or sell. It is an open-package directory: a `manifest.toml` as open-package writes it, where `[open-package] version` is the open-package version the pack is written for and `[package]` gives what the pack calls itself (`name`), its version (`version`) and an optional `description`, with a `[frames]` table that gives the `engine` versions of frames it is written for ([FRAMES-18](../FRAMES-18/SPEC.md)), and any of these folders. A pack carries its licence as a `LICENSE` file, which frames does not read.
 
 | Folder | Holds | Named as |
 | --- | --- | --- |
@@ -27,9 +27,10 @@ A pack is a set of looks and edits that someone made to share or sell. It is an 
 | `guide.md`, `examples/` | the guide and example documents of the form a pack is for ([FRAMES-25](../FRAMES-25/SPEC.md)) | read by people and agents, not by frames |
 
 - Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. The packs that ship with frames ([FRAMES-25](../FRAMES-25/SPEC.md)) are found as if installed, and an installed pack of the same name stops. Installing a pack is copying its directory there. frames has no network command.
-- A bare name is built in. An unknown pack, or a name a pack does not hold, stops.
+- A name is an absolute path, `<pack>/<name>` with one `/` and no empty, `.` or `..` part, or a bare name, which is built in. Any other spelling names nothing. An unknown pack, or a name a pack does not hold, stops.
+- A pack directory without a `manifest.toml` stops, and so does a manifest that misses `[open-package] version`, `[package] name`, `[package] version` or `[frames] engine`, writes one of them as another type than a string, or holds a key in `[frames]` other than `engine`. The other keys and tables of the manifest belong to open-package, and frames leaves them to it.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
-- A pack's files name each other by `<pack>/<name>`, as anything outside does, so every name has one spelling and a pack works wherever `FRAMES_HOME` is. The pack's name is the one in its manifest, and a pack whose directory has another name stops.
+- A pack's files name each other by `<pack>/<name>`, as anything outside does, so every name has one spelling and a pack works wherever `FRAMES_HOME` is. Which pack it is, is the directory it is in: the `<pack>` of `<pack>/<name>` is the directory's name, and `[package] name` is only what the pack calls itself, so nothing has to match.
 - What resolve takes from a pack goes into the resolved document like anything else ([FRAMES-19](../FRAMES-19/SPEC.md)): presets, themes and templates as values, media and LUTs pinned by hash. A resolved document does not depend on what is installed later.
 - `frames packs` lists the installed packs, and `frames packs <pack>` lists what one holds, with descriptions.
 
