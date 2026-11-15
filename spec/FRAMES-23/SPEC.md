@@ -47,7 +47,7 @@ theme
 - `frames --version` prints the version ([FRAMES-18](../FRAMES-18/SPEC.md)). An extension checks it against the versions it is written for, as a pack does with `[frames] engine`.
 - On success, stdout gets one line with the output path and size.
 - On failure, stderr gets `frames: <reason>` and the exit code is 1. Without arguments, frames prints usage and exits with 64.
-- Messages name the place, for example `storyline[2].connected[0] (arrow): unknown key "anim". Allowed: at, lane, opacity, animation, keyframes, shape, area, label, labelAnimation, color, blend, side`.
+- Messages name the place, for example `storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend, side`. A place is a path of keys and indexes from the document, and the document itself is `top level`. A clip or op with an `id` is named with it after its index: `clips[1]#intro`.
 
 ### transcode
 
