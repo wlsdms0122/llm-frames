@@ -12,7 +12,7 @@ enum ChoiceKeyTable {
             kind: "transition choice",
             rules: [
                 KeyRule("preset", .name, isRequired: true),
-                KeyRule("seconds", .number, isRequired: true)
+                KeyRule("seconds", .positiveNumber, isRequired: true)
             ]
         ))
     ])

@@ -26,7 +26,7 @@ enum TemplateKeyTable {
         kind: "image sequence",
         rules: [
             KeyRule("imageSequence", .name, isRequired: true),
-            KeyRule("fps", .number, isRequired: true)
+            KeyRule("fps", .positiveNumber, isRequired: true)
         ]
     )
 }

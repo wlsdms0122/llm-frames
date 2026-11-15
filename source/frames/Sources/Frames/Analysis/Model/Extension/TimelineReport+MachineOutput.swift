@@ -12,7 +12,7 @@ extension TimelineReport {
     var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "timeline", value: .string(FramesVersion.current)),
-            JSONMember(key: "duration", value: .number(duration)),
+            JSONMember(key: "duration", value: .time(duration)),
             JSONMember(key: "storyline", value: .array(storyline.map(output))),
             JSONMember(key: "clips", value: .array(clips.map(output)))
         ]))
@@ -25,7 +25,7 @@ extension TimelineReport {
         let transition = entry.transition.map { transition in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "preset", value: .string(transition.preset)),
-                JSONMember(key: "seconds", value: .number(transition.seconds))
+                JSONMember(key: "seconds", value: .time(transition.seconds))
             ]))
         }
         let members = [
@@ -45,9 +45,9 @@ extension TimelineReport {
     private func output(_ entry: TimelineClipEntry) -> JSONValue {
         let animation = entry.animation.map { animation in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "entrance", value: text(animation.entrance)),
-                JSONMember(key: "loop", value: text(animation.loop)),
-                JSONMember(key: "exit", value: text(animation.exit))
+                JSONMember(key: "entrance", value: output(animation.entrance, length: "seconds")),
+                JSONMember(key: "loop", value: output(animation.loop, length: "period")),
+                JSONMember(key: "exit", value: output(animation.exit, length: "seconds"))
             ]))
         }
         let members = [
@@ -63,8 +63,21 @@ extension TimelineReport {
         return .object(JSONObject(members: members + nested(entry.nested)))
     }
 
+    // A span writes its length under the key its preset uses for it.
+    private func output(
+        _ span: TimelineSpan?,
+        length key: String
+    ) -> JSONValue {
+        guard let span else { return .null }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "preset", value: .string(span.preset)),
+            JSONMember(key: key, value: .time(span.length))
+        ]))
+    }
+
     private func output(_ range: TimeRange) -> JSONValue {
-        .array([.number(range.start), .number(range.end)])
+        .array([.time(range.start), .time(range.end)])
     }
 
     private func text(_ string: String?) -> JSONValue {

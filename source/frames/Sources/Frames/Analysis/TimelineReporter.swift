@@ -62,8 +62,16 @@ struct TimelineReporter: Sendable {
             parent: parent,
             animation: animation.isEmpty
                 ? nil
-                : TimelineAnimation(entrance: animation.entrance?.preset, loop: animation.loop?.preset, exit: animation.exit?.preset),
+                : TimelineAnimation(
+                    entrance: animation.entrance.map(span),
+                    loop: animation.loop.map(span),
+                    exit: animation.exit.map(span)
+                ),
             nested: clip.media?.nested.map { report(of: $0) }
         )
+    }
+
+    private func span(_ span: PresetSpan) -> TimelineSpan {
+        TimelineSpan(preset: span.preset, length: span.span.length)
     }
 }

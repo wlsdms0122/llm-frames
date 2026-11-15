@@ -136,12 +136,13 @@ struct StorylineTimeTests {
     }
 
     @Test(
-        "fps defaults to the first video's nominal rate rounded to a common rate, or 30",
+        "fps defaults to the first video's nominal rate rounded to a common rate, the lower on a tie, or 30",
         arguments: [
             (#"[ { "media": "/abs/card.png", "duration": 1 }, { "media": "/abs/run.mp4" } ]"#, "", 30.0),
             (#"[ { "media": "/abs/light-leak.mov" }, { "media": "/abs/run.mp4" } ]"#, "", 24.0),
             (#"[ { "media": "/abs/card.png", "duration": 1 } ]"#, "", 30.0),
-            (#"[ { "media": "/abs/light-leak.mov" } ]"#, #""format": { "fps": 60 }, "#, 60.0)
+            (#"[ { "media": "/abs/light-leak.mov" } ]"#, #""format": { "fps": 60 }, "#, 60.0),
+            (#"[ { "media": "/abs/halfway.mp4" } ]"#, "", 25.0)
         ]
     )
     func defaultsFrameRate(
@@ -163,7 +164,8 @@ struct StorylineTimeTests {
         "a storyline clip that cannot play stops",
         arguments: [
             (#"[ { "media": "/abs/short.mp4", "in": 3, "out": 2 } ]"#, "storyline[0] (video): in 3 is not before out 2 of the media"),
-            (#"[ { "media": "/abs/short.mp4", "in": 5 } ]"#, "storyline[0] (video): in 5 is not before out 4 of the media"),
+            (#"[ { "media": "/abs/short.mp4", "in": 5 } ]"#, "storyline[0] (video): in 5 is at or after the end of the media at 4"),
+            (#"[ { "media": "/abs/short.mp4", "in": -2, "out": -1 } ]"#, "storyline[0] (video): out -1 is at or before the start of the media"),
             (#"[ { "media": "/abs/short.mp4", "speed": 0 } ]"#, "storyline[0].speed (video): speed must be above 0, found 0"),
             (#"[ { "media": "/abs/card.png", "duration": 0 } ]"#, "storyline[0].duration (image): a still or solid clip needs a duration above 0, found 0"),
             (##"[ { "solid": "#000000" } ]"##, #"storyline[0] (solid): missing key "duration""#),
@@ -235,6 +237,6 @@ struct StorylineTimeTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error == .unreadReference(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: "storyline clip", reference: "/abs/intro.json"))
+        #expect(error == .unreadReference(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: .genericClip(.storyline), reference: "/abs/intro.json"))
     }
 }

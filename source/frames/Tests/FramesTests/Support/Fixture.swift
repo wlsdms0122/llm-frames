@@ -35,6 +35,7 @@ enum Fixture {
             "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97),
             "/abs/short.mp4": ProbedMedia(kind: .video, duration: 4, fps: 1, frames: [0, 1, 2, 3]),
             "/abs/light-leak.mov": ProbedMedia(kind: .video, duration: 4, fps: 23.976),
+            "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5),
             "/abs/card.png": ProbedMedia(kind: .image),
             "/abs/log.png": ProbedMedia(kind: .image),
             "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20),

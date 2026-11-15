@@ -26,7 +26,7 @@ struct MediaResolver: Sendable {
     func media(
         of source: MediaSource,
         place: Place,
-        kind: String,
+        kind: PlaceKind,
         theme: JSONValue
     ) throws -> ResolvedMedia {
         switch source {

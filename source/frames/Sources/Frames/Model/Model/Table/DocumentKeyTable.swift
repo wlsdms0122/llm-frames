@@ -22,7 +22,7 @@ enum DocumentKeyTable {
         kind: "format",
         rules: [
             KeyRule("size", .numbers(2)),
-            KeyRule("fps", .number),
+            KeyRule("fps", .positiveNumber),
             KeyRule("background", .color),
             KeyRule("inset", .numbers(4)),
             KeyRule("conform", .literal(VocabularyTable.conforms))

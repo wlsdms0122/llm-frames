@@ -160,7 +160,6 @@ struct TransitionTimeTests {
         "a transition that cannot play stops",
         arguments: [
             (#""dissolve""#, #"storyline[1] (solid): unknown transition preset "dissolve""#),
-            (#"{ "preset": "flash", "seconds": 0 }"#, "storyline[1].transition (solid): a transition lasts more than 0 seconds, found 0"),
             (#"{ "preset": "dissolve", "seconds": 1 }"#, #"storyline[1] (solid): unknown transition preset "dissolve""#)
         ]
     )
@@ -178,5 +177,19 @@ struct TransitionTimeTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
         #expect(error?.description == message)
+    }
+
+    @Test("a default transition naming a preset that is not there stops at its place in the theme")
+    func refusesUnknownDefaultTransition() throws {
+        // Given
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "theme": { "defaults": { "transition": "dissolve" } }, "storyline": [
+              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 }
+            ] }
+            """##)
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try sut.plan(document: document) }
+        #expect(error?.description == #"defaults.transition (defaults): unknown transition preset "dissolve""#)
     }
 }

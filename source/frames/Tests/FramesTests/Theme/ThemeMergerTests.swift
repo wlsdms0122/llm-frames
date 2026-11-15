@@ -134,4 +134,14 @@ struct ThemeMergerTests {
         let error = #expect(throws: ModelError.self) { try sut.merge([file]) }
         #expect(error?.description == #"colors.brand (colors): "accent" is not #RRGGBB or #RRGGBBAA"#)
     }
+
+    @Test("a default transition of 0 seconds or less stops at its place in the theme")
+    func refusesNonPositiveDefaultTransition() throws {
+        // Given
+        let file = try Fixture.json(#"{ "defaults": { "transition": { "preset": "flash", "seconds": 0 } } }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.merge([file]) }
+        #expect(error?.description == "defaults.transition.seconds (transition choice): expected a number above 0, found 0")
+    }
 }

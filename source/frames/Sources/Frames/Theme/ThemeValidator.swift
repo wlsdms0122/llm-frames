@@ -31,7 +31,66 @@ struct ThemeValidator: Sendable {
         }
     }
 
+    // The defaults of a merged theme, each with its place. Only a theme merged over something other than the base
+    // theme can lack one, and that stops where it is missing.
+    func defaults(in theme: JSONValue) throws -> ThemeDefaults {
+        let place = Place.root.appending(key: "defaults")
+        let defaults = theme.objectValue?["defaults"]?.objectValue ?? JSONObject()
+        let animationPlace = place.appending(key: "animation")
+        let animation = defaults["animation"]?.objectValue ?? JSONObject()
+        let titlePlace = animationPlace.appending(key: "title")
+        let titles = animation["title"]?.objectValue ?? JSONObject()
+
+        return ThemeDefaults(
+            transition: try choice(
+                "transition",
+                in: defaults,
+                place: place,
+                kind: ThemeKeyTable.defaults.kind,
+                reading: TransitionChoice.init(value:)
+            ),
+            titleAnimations: Dictionary(
+                try titles.members.map { member in
+                    let choice = try choice(
+                        member.key,
+                        in: titles,
+                        place: titlePlace,
+                        kind: "title animations",
+                        reading: AnimationChoice.init(value:)
+                    )
+                    return (member.key, choice)
+                },
+                uniquingKeysWith: { first, _ in first }
+            ),
+            shapeAnimation: try animationChoice("shape", in: animation, place: animationPlace),
+            mediaAnimation: try animationChoice("media", in: animation, place: animationPlace),
+            adjustAnimation: try animationChoice("adjust", in: animation, place: animationPlace)
+        )
+    }
+
     // MARK: - Private
+    private func animationChoice(
+        _ key: String,
+        in animation: JSONObject,
+        place: Place
+    ) throws -> ThemeDefault<AnimationChoice> {
+        try choice(key, in: animation, place: place, kind: "animation defaults", reading: AnimationChoice.init(value:))
+    }
+
+    private func choice<Choice: Equatable & Sendable>(
+        _ key: String,
+        in object: JSONObject,
+        place: Place,
+        kind: String,
+        reading read: (JSONValue) -> Choice?
+    ) throws -> ThemeDefault<Choice> {
+        guard let choice = object[key].flatMap(read) else {
+            throw ModelError.missingKey(place: place, kind: kind, keys: [key])
+        }
+
+        return ThemeDefault(choice: choice, place: place.appending(key: key), kind: kind)
+    }
+
     private func walk(
         _ value: JSONValue,
         as type: ValueType,

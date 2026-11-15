@@ -97,4 +97,35 @@ struct ClipAnimationTests {
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
         #expect(error?.description == #"clips[0] (title): unknown animation preset "spin""#)
     }
+
+    @Test(
+        "a default animation naming a preset that is not there stops at its place in the theme",
+        arguments: [
+            (
+                #"{ "animation": { "shape": "spin" } }"#,
+                #"{ "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10] }"#,
+                #"defaults.animation.shape (animation defaults): unknown animation preset "spin""#
+            ),
+            (
+                #"{ "animation": { "title": { "subtitle": "spin" } } }"#,
+                #"{ "at": [0, 1], "title": "a", "style": "subtitle" }"#,
+                #"defaults.animation.title.subtitle (title animations): unknown animation preset "spin""#
+            )
+        ]
+    )
+    func refusesUnknownDefaultAnimation(
+        defaults: String,
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "theme": { "defaults": \#(defaults) },
+              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clip) ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try sut.plan(document: document) }
+        #expect(error?.description == message)
+    }
 }

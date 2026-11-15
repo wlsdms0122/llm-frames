@@ -44,7 +44,11 @@ struct SequenceReader: Sendable {
     ) -> StorylineClip {
         let connectedPlace = place.appending(key: "connected")
         let connected = (object["connected"]?.arrayValue ?? []).enumerated().map { index, element in
-            clip(element.objectValue ?? JSONObject(), place: elementPlace(connectedPlace, index, element), in: .connected)
+            clip(
+                element.objectValue ?? JSONObject(),
+                place: elementPlace(connectedPlace, index, element),
+                in: .connected
+            )
         }
 
         return StorylineClip(
@@ -72,7 +76,7 @@ struct SequenceReader: Sendable {
             clipPlace: clipPlace,
             content: content(of: object, place: place),
             at: object["at"].flatMap(window),
-            lane: object["lane"]?.numberValue.map { Int($0) },
+            lane: object["lane"]?.numberValue.flatMap { Int(exactly: $0) },
             hasParent: object["parent"]?.boolValue ?? false,
             hasPlacement: object.contains("placement"),
             hasArea: object.contains("area") || hasKeyframedArea,
@@ -124,8 +128,8 @@ struct SequenceReader: Sendable {
         if let template = object["template"] {
             return .template(template.stringValue ?? template.written)
         }
-        if let directory = object["imageSequence"]?.stringValue {
-            return .imageSequence(directory: directory, fps: object["fps"]?.numberValue ?? 0)
+        if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
+            return .imageSequence(directory: directory, fps: fps)
         }
         guard object["kind"] == .string("sequence") else { return .document(object) }
 

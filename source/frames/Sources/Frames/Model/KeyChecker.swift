@@ -70,8 +70,12 @@ struct KeyChecker: Sendable {
         case .anyObject, .bool, .number, .text, .name:
             guard admits(type, value) else { throw wrongType(value, type, place, kind) }
 
+        case .positiveNumber:
+            guard let number = value.numberValue, number > 0 else { throw wrongType(value, type, place, kind) }
+
         case .integer:
-            guard let number = value.numberValue, number.rounded() == number else {
+            // A whole number that does not fit an integer could not be read as one.
+            guard let number = value.numberValue, Int(exactly: number) != nil else {
                 throw wrongType(value, type, place, kind)
             }
 
@@ -466,7 +470,7 @@ struct KeyChecker: Sendable {
         in clipPlace: ClipPlace,
         scope: inout DocumentScope
     ) throws {
-        let generic = clipPlace == .storyline ? "storyline clip" : "clip"
+        let generic = clipPlace.label
         guard let object = value.objectValue else {
             throw wrongType(value, .object(ObjectTable(kind: generic, rules: [])), place, generic)
         }
@@ -500,7 +504,7 @@ struct KeyChecker: Sendable {
         in clipPlace: ClipPlace,
         scope: inout DocumentScope
     ) throws -> ClipKind {
-        let generic = clipPlace == .storyline ? "storyline clip" : "clip"
+        let generic = clipPlace.label
 
         switch key {
         case "media":
@@ -765,7 +769,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .integer:
+        case .number, .positiveNumber, .integer:
             parameterType == "number"
 
         default:
@@ -805,7 +809,7 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.integer, .number):
+        case (.number, .number), (.positiveNumber, .number), (.integer, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -858,6 +862,9 @@ struct KeyChecker: Sendable {
 
         case .number:
             "a number"
+
+        case .positiveNumber:
+            "a number above 0"
 
         case .integer:
             "a whole number"

@@ -33,7 +33,7 @@ extension TimelineReport {
         }
         let clipLines = clips.flatMap { entry in
             let animation = entry.animation.map { animation in
-                [animation.entrance, animation.loop, animation.exit].map { $0 ?? "-" }.joined(separator: " / ")
+                [animation.entrance, animation.loop, animation.exit].map { $0?.preset ?? "-" }.joined(separator: " / ")
             } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",

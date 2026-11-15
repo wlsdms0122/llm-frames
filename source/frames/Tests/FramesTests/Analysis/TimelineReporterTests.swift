@@ -42,11 +42,28 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "speed": 1, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "transition": {"preset": "flash", "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "box", "visible": [0, 2.5], "lane": 1, "parent": "storyline[0]#intro", "animation": {"entrance": null, "loop": "pulse", "exit": null}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "parent": null, "animation": {"entrance": "pop", "loop": null, "exit": null}}, \#
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "box", "visible": [0, 2.5], "lane": 1, "parent": "storyline[0]#intro", "animation": {"entrance": null, "loop": {"preset": "pulse", "period": 1}, "exit": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "parent": null, "animation": {"entrance": {"preset": "pop", "seconds": 0.25}, "loop": null, "exit": null}}, \#
             {"place": "clips[1]", "id": null, "kind": "audio", "visible": [1, 2.5], "lane": null, "parent": null, "animation": null}]}
             """#
         #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("times and lengths are written to the nearest microsecond, in their shortest form")
+    func roundsTimes() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 0.1 }, { "solid": "#FFFFFF", "duration": 0.2 } ] }
+            """##)
+
+        // When
+        let report = try sut.report(of: value)
+
+        // Then
+        let output = report.machineOutput.objectValue
+        #expect(report.duration != 0.3)
+        #expect(output?["duration"] == .number(0.3))
+        #expect(output?["storyline"]?.arrayValue?[1].objectValue?["edit"] == .array([.number(0.1), .number(0.3)]))
     }
 
     @Test("an entry whose media is a compound clip has nested, the timeline object of the document inside")
@@ -97,6 +114,6 @@ struct TimelineReporterTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.report(of: value) }
-        #expect(error == .transitionOnFirstClip(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("transition")]), kind: "video"))
+        #expect(error == .transitionOnFirstClip(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("transition")]), kind: .clip(.media(.video))))
     }
 }

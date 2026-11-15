@@ -361,4 +361,59 @@ struct SequenceCheckTests {
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == #"kind (document): unknown value "movie". Allowed: image, layout, sequence"#)
     }
+
+    @Test(
+        "a rate of 0 or less stops where it is written",
+        arguments: [
+            (
+                #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 0 } } ] }"#,
+                "storyline[0].media.fps (image sequence): expected a number above 0, found 0"
+            ),
+            (
+                #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": -24 } } ] }"#,
+                "storyline[0].media.fps (image sequence): expected a number above 0, found -24"
+            ),
+            (
+                #"{ "kind": "sequence", "format": { "fps": 0 }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+                "format.fps (format): expected a number above 0, found 0"
+            )
+        ]
+    )
+    func refusesNonPositiveRate(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(body)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a whole number is one that fits an integer exactly")
+    func refusesIntegerOutOfRange() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "title": "a", "style": "headline", "lane": 1e20 } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == "clips[0].lane (title): expected a whole number, found 1e+20")
+    }
+
+    @Test("a transition choice of 0 seconds or less stops where it is written")
+    func refusesNonPositiveTransition() throws {
+        // Given
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "storyline": [
+              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "flash", "seconds": 0 } }
+            ] }
+            """##)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == "storyline[1].transition.seconds (transition choice): expected a number above 0, found 0")
+    }
 }

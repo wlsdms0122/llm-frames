@@ -13,6 +13,7 @@ struct TimePlanner: Sendable {
     private let resolver: MediaResolver
     private let reader = SequenceReader()
     private let merger = ThemeMerger()
+    private let validator = ThemeValidator()
 
     // MARK: - Initializer
     init(
@@ -41,14 +42,21 @@ struct TimePlanner: Sendable {
         }
 
         let merged = try self.theme(of: sequence, over: theme)
-        let defaults = ThemeDefaults(theme: merged)
+        let defaults = try validator.defaults(in: merged)
         let sources = try sequence.storyline.map { clip in try source(of: clip, theme: merged) }
         let storyline = try layOut(sequence.storyline, sources: sources, defaults: defaults)
         let duration = storyline[storyline.count - 1].edit.end
 
         let connected = try sequence.storyline.enumerated().flatMap { index, clip in
             try clip.connected.map { connected in
-                try plan(connected, owner: index, storyline: storyline, duration: duration, defaults: defaults, theme: merged)
+                try plan(
+                    connected,
+                    owner: index,
+                    storyline: storyline,
+                    duration: duration,
+                    defaults: defaults,
+                    theme: merged
+                )
             }
         }
         let clips = try sequence.clips.map { clip in
@@ -76,7 +84,11 @@ struct TimePlanner: Sendable {
             return try merger.merge([layer], over: theme)
 
         case let .named(name):
-            throw ResolveError.unreadReference(place: sequence.place.appending(key: "theme"), kind: "sequence", reference: name)
+            throw ResolveError.unreadReference(
+                place: sequence.place.appending(key: "theme"),
+                kind: .sequence,
+                reference: name
+            )
         }
     }
 
@@ -89,7 +101,12 @@ struct TimePlanner: Sendable {
             return StorylineSource(kind: .solid, media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
-        let media = try resolver.media(of: clipMedia.source, place: clip.place.appending(key: "media"), kind: "storyline clip", theme: theme)
+        let media = try resolver.media(
+            of: clipMedia.source,
+            place: clip.place.appending(key: "media"),
+            kind: .genericClip(.storyline),
+            theme: theme
+        )
         let kind = ClipKind.media(media.kind)
         guard media.kind != .image else {
             let duration = try stillDuration(of: clip, kind: kind)
@@ -109,29 +126,40 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> Double {
         guard let duration = clip.duration else {
-            throw ResolveError.missingKey(place: clip.place, kind: kind.label, key: "duration")
+            throw ResolveError.missingKey(place: clip.place, kind: .clip(kind), key: "duration")
         }
         guard duration > 0 else {
-            throw ResolveError.nonPositiveDuration(place: clip.place.appending(key: "duration"), kind: kind.label, duration: duration)
+            throw ResolveError.nonPositiveDuration(
+                place: clip.place.appending(key: "duration"),
+                kind: .clip(kind),
+                duration: duration
+            )
         }
 
         return duration
     }
 
     // `in` defaults to the start of the media and `out` to its end, and each is cut to the media where it lies past it.
+    // A stop names the values as written and the bound they miss.
     private func clipRange(
         of clipMedia: ClipMedia,
         media: ResolvedMedia,
         place: Place,
         kind: ClipKind
     ) throws -> TimeRange {
-        let start = max(clipMedia.in ?? 0, 0)
-        let end = min(clipMedia.out ?? media.duration, media.duration)
+        let start = clipMedia.in ?? 0
+        let end = clipMedia.out ?? media.duration
+        guard max(start, 0) < media.duration else {
+            throw ResolveError.inAtOrAfterMediaEnd(place: place, kind: .clip(kind), in: start, end: media.duration)
+        }
+        guard end > 0 else {
+            throw ResolveError.outAtOrBeforeMediaStart(place: place, kind: .clip(kind), out: end)
+        }
         guard start < end else {
-            throw ResolveError.emptyClipRange(place: place, kind: kind.label, in: start, out: end)
+            throw ResolveError.emptyClipRange(place: place, kind: .clip(kind), in: start, out: end)
         }
 
-        return TimeRange(start: start, end: end)
+        return TimeRange(start: max(start, 0), end: min(end, media.duration))
     }
 
     private func speed(
@@ -141,7 +169,7 @@ struct TimePlanner: Sendable {
     ) throws -> Double {
         let speed = clipMedia.speed ?? 1
         guard speed > 0 else {
-            throw ResolveError.nonPositiveSpeed(place: place.appending(key: "speed"), kind: kind.label, speed: speed)
+            throw ResolveError.nonPositiveSpeed(place: place.appending(key: "speed"), kind: .clip(kind), speed: speed)
         }
 
         return speed
@@ -169,9 +197,14 @@ struct TimePlanner: Sendable {
         return try clips.indices.map { index in
             let edit = TimeRange(start: editPoints[index], end: editPoints[index + 1])
             let outgoing = transitions.indices.contains(index + 1) ? transitions[index + 1] : nil
-            let drawn = TimeRange(start: transitions[index]?.range.start ?? edit.start, end: outgoing?.range.end ?? edit.end)
+            let drawn = TimeRange(
+                start: transitions[index]?.range.start ?? edit.start,
+                end: outgoing?.range.end ?? edit.end
+            )
             let map = TimeMap(origin: edit.start, in: sources[index].clipRange.start, speed: sources[index].speed)
-            let keyframes = clips[index].keyframes.map { keyframe in keyframe.moved(to: map.sequenceTime(ofClipTime: keyframe.at)) }
+            let keyframes = clips[index].keyframes.map { keyframe in
+                keyframe.moved(to: map.sequenceTime(ofClipTime: keyframe.at))
+            }
             try checkKeyframes(keyframes, visible: drawn, place: clips[index].place, kind: sources[index].kind)
 
             return StorylinePlan(
@@ -196,32 +229,63 @@ struct TimePlanner: Sendable {
         let kind = sources[index].kind
         guard index > 0 else {
             guard clip.transition == nil else {
-                throw ResolveError.transitionOnFirstClip(place: clip.place.appending(key: "transition"), kind: kind.label)
+                throw ResolveError.transitionOnFirstClip(
+                    place: clip.place.appending(key: "transition"),
+                    kind: .clip(kind)
+                )
             }
 
             return nil
         }
 
         let lengths = [sources[index - 1].duration, sources[index].duration]
-        switch clip.transition ?? defaults.transition {
+        guard let choice = clip.transition else {
+            return try transitionPlan(
+                defaults.transition.choice,
+                origin: ChoiceOrigin(defaults.transition),
+                editPoint: editPoint,
+                lengths: lengths
+            )
+        }
+
+        return try transitionPlan(
+            choice,
+            origin: .clip(place: clip.place, kind: kind),
+            editPoint: editPoint,
+            lengths: lengths
+        )
+    }
+
+    // A preset named alone lasts its own seconds.
+    private func transitionPlan(
+        _ choice: TransitionChoice,
+        origin: ChoiceOrigin,
+        editPoint: Double,
+        lengths: [Double]
+    ) throws -> TransitionPlan? {
+        switch choice {
         case .cut:
             return nil
 
         case let .preset(name):
-            let definition = try transitionPreset(named: name, place: clip.place, kind: kind)
-            return transitionPlan(name, seconds: definition.seconds, definition: definition, editPoint: editPoint, lengths: lengths)
+            let definition = try transitionPreset(named: name, origin: origin)
+            return transitionPlan(
+                name,
+                seconds: definition.seconds,
+                definition: definition,
+                editPoint: editPoint,
+                lengths: lengths
+            )
 
         case let .timed(name, seconds):
-            guard seconds > 0 else {
-                throw ResolveError.nonPositiveTransition(
-                    place: clip.place.appending(key: "transition"),
-                    kind: kind.label,
-                    seconds: seconds
-                )
-            }
-
-            let definition = try transitionPreset(named: name, place: clip.place, kind: kind)
-            return transitionPlan(name, seconds: seconds, definition: definition, editPoint: editPoint, lengths: lengths)
+            let definition = try transitionPreset(named: name, origin: origin)
+            return transitionPlan(
+                name,
+                seconds: seconds,
+                definition: definition,
+                editPoint: editPoint,
+                lengths: lengths
+            )
         }
     }
 
@@ -233,7 +297,7 @@ struct TimePlanner: Sendable {
         editPoint: Double,
         lengths: [Double]
     ) -> TransitionPlan {
-        let length = ([seconds] + lengths).min() ?? seconds
+        let length = lengths.reduce(seconds, min)
         return TransitionPlan(
             preset: name,
             seconds: length,
@@ -244,11 +308,10 @@ struct TimePlanner: Sendable {
 
     private func transitionPreset(
         named name: String,
-        place: Place,
-        kind: ClipKind
+        origin: ChoiceOrigin
     ) throws -> TransitionPreset {
         guard let preset = try presets.transition(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: kind.label, presetKind: "transition", name: name)
+            throw origin.unknownPreset(kind: "transition", name: name)
         }
 
         return preset
@@ -262,20 +325,16 @@ struct TimePlanner: Sendable {
         defaults: ThemeDefaults,
         theme: JSONValue
     ) throws -> ClipPlan {
-        let clipMedia = media(of: clip)
-        let media = try clipMedia.map { clipMedia in
-            try resolver.media(of: clipMedia.source, place: clip.place.appending(key: "media"), kind: "clip", theme: theme)
-        }
-        let kind = kind(of: clip, media: media)
+        let source = try source(of: clip, theme: theme)
+        let kind = source.kind
         let isParented = try parented(clip, kind: kind)
         let ownerPlan = owner.map { storyline[$0] }
         let clock = ownerPlan?.map ?? .sequence
 
-        let timed = try timedMedia(clipMedia, media: media, place: clip.place, kind: kind)
         let window = try self.window(
             of: clip,
             clock: clock,
-            naturalLength: timed?.naturalLength,
+            naturalLength: source.timing?.naturalLength,
             owner: ownerPlan,
             isParented: isParented,
             duration: duration,
@@ -289,7 +348,9 @@ struct TimePlanner: Sendable {
             duration: duration,
             kind: kind
         )
-        let keyframes = clip.keyframes.map { keyframe in keyframe.moved(to: clock.sequenceTime(ofClipTime: keyframe.at)) }
+        let keyframes = clip.keyframes.map { keyframe in
+            keyframe.moved(to: clock.sequenceTime(ofClipTime: keyframe.at))
+        }
         try checkKeyframes(keyframes, visible: visible, place: clip.place, kind: kind)
 
         return ClipPlan(
@@ -303,42 +364,65 @@ struct TimePlanner: Sendable {
             window: window,
             visible: visible,
             animation: try animation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
-            media: media,
-            timing: timed.map { timed in
+            media: source.media,
+            timing: source.timing.map { timing in
                 MediaTiming(
-                    media: timed.media,
-                    map: TimeMap(origin: window.start, in: timed.map.in, speed: timed.map.speed),
-                    out: timed.out,
-                    loop: timed.loop
+                    media: timing.media,
+                    map: TimeMap(origin: window.start, in: timing.map.in, speed: timing.map.speed),
+                    out: timing.out,
+                    loop: timing.loop
                 )
             },
             keyframes: keyframes
         )
     }
 
-    private func media(of clip: Clip) -> ClipMedia? {
-        guard case let .media(clipMedia) = clip.content else { return nil }
-
-        return clipMedia
-    }
-
-    private func kind(
+    private func source(
         of clip: Clip,
-        media: ResolvedMedia?
-    ) -> ClipKind {
+        theme: JSONValue
+    ) throws -> ClipSource {
         switch clip.content {
-        case .media:
-            .media(media?.kind ?? .image)
+        case let .media(clipMedia):
+            let media = try resolver.media(
+                of: clipMedia.source,
+                place: clip.place.appending(key: "media"),
+                kind: .genericClip(clip.clipPlace),
+                theme: theme
+            )
+            let kind = ClipKind.media(media.kind)
+            return ClipSource(
+                kind: kind,
+                media: media,
+                timing: try timing(of: clipMedia, media: media, place: clip.place, kind: kind)
+            )
 
         case .title:
-            .title
+            return ClipSource(kind: .title)
 
         case let .shape(shape):
-            .shape(shape)
+            return ClipSource(kind: .shape(shape))
 
         case .adjust:
-            .adjust
+            return ClipSource(kind: .adjust)
         }
+    }
+
+    // A timed media clip's edit points, with its window's start left at 0 until the window is known. A still has none.
+    private func timing(
+        of clipMedia: ClipMedia,
+        media: ResolvedMedia,
+        place: Place,
+        kind: ClipKind
+    ) throws -> MediaTiming? {
+        guard media.kind != .image else { return nil }
+
+        let range = try clipRange(of: clipMedia, media: media, place: place, kind: kind)
+        return MediaTiming(
+            media: media,
+            map: TimeMap(origin: 0, in: range.start, speed: try speed(of: clipMedia, place: place, kind: kind)),
+            out: range.end,
+            loop: clipMedia.loop
+        )
     }
 
     // Shapes and adjustments placed by an area are parented, and a title or media clip is when it says so.
@@ -347,12 +431,12 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> Bool {
         guard clip.clipPlace == .connected else {
-            guard !clip.hasParent else { throw ResolveError.parentOnSequenceClip(place: clip.place, kind: kind.label) }
+            guard !clip.hasParent else { throw ResolveError.parentOnSequenceClip(place: clip.place, kind: .clip(kind)) }
 
             return false
         }
         guard !clip.hasParent || !clip.hasPlacement else {
-            throw ResolveError.parentWithPlacement(place: clip.place, kind: kind.label)
+            throw ResolveError.parentWithPlacement(place: clip.place, kind: .clip(kind))
         }
 
         switch clip.content {
@@ -362,24 +446,6 @@ struct TimePlanner: Sendable {
         case .title, .media:
             return clip.hasParent
         }
-    }
-
-    // A timed media clip's edit points, with its window's start left at 0 until the window is known.
-    private func timedMedia(
-        _ clipMedia: ClipMedia?,
-        media: ResolvedMedia?,
-        place: Place,
-        kind: ClipKind
-    ) throws -> MediaTiming? {
-        guard let clipMedia, let media, media.kind != .image else { return nil }
-
-        let range = try clipRange(of: clipMedia, media: media, place: place, kind: kind)
-        return MediaTiming(
-            media: media,
-            map: TimeMap(origin: 0, in: range.start, speed: try speed(of: clipMedia, place: place, kind: kind)),
-            out: range.end,
-            loop: clipMedia.loop
-        )
     }
 
     private func window(
@@ -394,7 +460,12 @@ struct TimePlanner: Sendable {
         switch clip.at {
         case let .range(start, end):
             guard start < end else {
-                throw ResolveError.emptyWindow(place: clip.place.appending(key: "at"), kind: kind.label, start: start, end: end)
+                throw ResolveError.emptyWindow(
+                    place: clip.place.appending(key: "at"),
+                    kind: .clip(kind),
+                    start: start,
+                    end: end
+                )
             }
 
             return TimeRange(start: clock.sequenceTime(ofClipTime: start), end: clock.sequenceTime(ofClipTime: end))
@@ -423,12 +494,17 @@ struct TimePlanner: Sendable {
 
         guard let owner else {
             guard window.start < duration else {
-                throw ResolveError.startsAtOrAfterEnd(place: clip.place, kind: kind.label, start: window.start, end: duration)
+                throw ResolveError.startsAtOrAfterEnd(
+                    place: clip.place,
+                    kind: .clip(kind),
+                    start: window.start,
+                    end: duration
+                )
             }
             guard let visible = window.intersection(sequence) else {
                 throw isAudio
-                    ? ResolveError.neverPlays(place: clip.place, kind: kind.label, window: window)
-                    : ResolveError.neverVisible(place: clip.place, kind: kind.label, window: window, range: sequence)
+                    ? ResolveError.neverPlays(place: clip.place, kind: .clip(kind), window: window)
+                    : ResolveError.neverVisible(place: clip.place, kind: .clip(kind), window: window, range: sequence)
             }
 
             return visible
@@ -438,7 +514,7 @@ struct TimePlanner: Sendable {
             guard owner.drawn.contains(window.start), let visible = window.intersection(sequence) else {
                 throw ResolveError.audioStartOutsideDrawnRange(
                     place: clip.place,
-                    kind: kind.label,
+                    kind: .clip(kind),
                     start: window.start,
                     drawn: owner.drawn
                 )
@@ -450,7 +526,7 @@ struct TimePlanner: Sendable {
         // A parented clip is composited with its picture, and an unparented one plays over whatever is below it.
         let range = isParented ? owner.drawn : sequence
         guard let visible = window.intersection(range) else {
-            throw ResolveError.neverVisible(place: clip.place, kind: kind.label, window: window, range: range)
+            throw ResolveError.neverVisible(place: clip.place, kind: .clip(kind), window: window, range: range)
         }
 
         return visible
@@ -463,7 +539,9 @@ struct TimePlanner: Sendable {
         guard kind != .media(.audio) else { return nil }
 
         let lane = clip.lane ?? 1
-        guard lane != 0 else { throw ResolveError.zeroLane(place: clip.place.appending(key: "lane"), kind: kind.label) }
+        guard lane != 0 else {
+            throw ResolveError.zeroLane(place: clip.place.appending(key: "lane"), kind: .clip(kind))
+        }
 
         return lane
     }
@@ -477,23 +555,55 @@ struct TimePlanner: Sendable {
     ) throws -> AnimationPlan {
         guard kind != .media(.audio) else { return .none }
 
-        let plan = try animationPlan(clip.animation ?? defaults.animation(for: clip.content), place: clip.place, kind: kind)
+        let plan = try animationPlan(of: clip, kind: kind, defaults: defaults)
         guard isParented, clip.at == nil else { return plan }
 
         return plan.withoutEntranceAndExit()
     }
 
+    // A clip that names no animation takes the theme's default for its kind, or for a title its style's.
+    private func animationPlan(
+        of clip: Clip,
+        kind: ClipKind,
+        defaults: ThemeDefaults
+    ) throws -> AnimationPlan {
+        if let choice = clip.animation {
+            return try animationPlan(choice, origin: .clip(place: clip.place, kind: kind))
+        }
+        guard let themeDefault = defaultAnimation(for: clip.content, in: defaults) else { return .none }
+
+        return try animationPlan(themeDefault.choice, origin: ChoiceOrigin(themeDefault))
+    }
+
+    private func defaultAnimation(
+        for content: ClipContent,
+        in defaults: ThemeDefaults
+    ) -> ThemeDefault<AnimationChoice>? {
+        switch content {
+        case let .title(style):
+            defaults.titleAnimations[style]
+
+        case .shape:
+            defaults.shapeAnimation
+
+        case .media:
+            defaults.mediaAnimation
+
+        case .adjust:
+            defaults.adjustAnimation
+        }
+    }
+
     private func animationPlan(
         _ choice: AnimationChoice,
-        place: Place,
-        kind: ClipKind
+        origin: ChoiceOrigin
     ) throws -> AnimationPlan {
         switch choice {
         case .none:
             return .none
 
         case let .preset(name):
-            let preset = try animationPreset(named: name, place: place, kind: kind)
+            let preset = try animationPreset(named: name, origin: origin)
             return AnimationPlan(
                 entrance: preset?.entrance.map { PresetSpan(preset: name, span: $0) },
                 loop: preset?.loop.map { PresetSpan(preset: name, span: $0) },
@@ -501,8 +611,8 @@ struct TimePlanner: Sendable {
             )
 
         case let .split(entrance, exit):
-            let entrancePreset = try animationPreset(named: entrance, place: place, kind: kind)
-            let exitPreset = try animationPreset(named: exit, place: place, kind: kind)
+            let entrancePreset = try animationPreset(named: entrance, origin: origin)
+            let exitPreset = try animationPreset(named: exit, origin: origin)
             return AnimationPlan(
                 entrance: entrancePreset?.entrance.map { PresetSpan(preset: entrance, span: $0) },
                 loop: nil,
@@ -514,18 +624,18 @@ struct TimePlanner: Sendable {
     // `none` names no preset, so it is nil without a lookup.
     private func animationPreset(
         named name: String,
-        place: Place,
-        kind: ClipKind
+        origin: ChoiceOrigin
     ) throws -> AnimationPreset? {
         guard name != "none" else { return nil }
         guard let preset = try presets.animation(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: kind.label, presetKind: "animation", name: name)
+            throw origin.unknownPreset(kind: "animation", name: name)
         }
 
         return preset
     }
 
-    // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one value.
+    // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
+    // value.
     private func checkKeyframes(
         _ keyframes: [KeyframeInstant],
         visible: TimeRange,
@@ -545,7 +655,7 @@ struct TimePlanner: Sendable {
             guard !isBefore, !isAfter else {
                 throw ResolveError.keyframesOutsideVisibleRange(
                     place: place.appending(key: "keyframes"),
-                    kind: kind.label,
+                    kind: .clip(kind),
                     property: property,
                     visible: visible
                 )

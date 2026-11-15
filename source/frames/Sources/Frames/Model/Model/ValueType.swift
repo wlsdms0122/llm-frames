@@ -11,6 +11,7 @@ indirect enum ValueType: Sendable {
     case exactly(JSONValue)
     case bool
     case number
+    case positiveNumber
     case integer
     case text
     case name
