@@ -39,17 +39,5 @@ struct ClipGeometry: Equatable, Sendable {
     }
 
     // MARK: - Public
-    func with(label: LabelPlan?) -> ClipGeometry {
-        ClipGeometry(
-            area: area,
-            position: position,
-            crop: crop,
-            track: track,
-            title: title,
-            label: label,
-            nested: nested
-        )
-    }
-
     // MARK: - Private
 }

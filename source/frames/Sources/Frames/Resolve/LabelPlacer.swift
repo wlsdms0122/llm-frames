@@ -24,7 +24,8 @@ struct LabelPlacer: Sendable {
         _ text: TextLayout,
         of clip: ClipPlan,
         written: Clip,
-        geometry: ClipGeometry,
+        area: PropertyValue<FoundArea>?,
+        track: Track?,
         parent: ParentPicture?,
         storyline: [StorylinePlan],
         format: FormatPlan,
@@ -36,7 +37,8 @@ struct LabelPlacer: Sendable {
         let box = self.box(
             of: clip,
             side: written.side,
-            geometry: geometry,
+            area: area,
+            track: track,
             parent: parent,
             at: instant,
             room: room,
@@ -80,16 +82,17 @@ struct LabelPlacer: Sendable {
     private func box(
         of clip: ClipPlan,
         side: Side?,
-        geometry: ClipGeometry,
+        area: PropertyValue<FoundArea>?,
+        track: Track?,
         parent: ParentPicture?,
         at instant: Double,
         room: Rectangle,
         format: FormatPlan,
         theme: MergedTheme
     ) -> Rectangle {
-        guard let area = geometry.area else { return room }
+        guard let area else { return room }
 
-        let rectangle = output(of: area, track: geometry.track, parent: parent, at: instant, format: format)
+        let rectangle = output(of: area, track: track, parent: parent, at: instant, format: format)
         guard clip.kind == .shape("arrow"), let side else { return rectangle }
 
         return arrow(pointingAt: rectangle, from: side, scale: theme.lengthScale(at: format.size.width), theme: theme)

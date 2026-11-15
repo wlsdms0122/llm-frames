@@ -63,26 +63,24 @@ struct SequencePlanner: Sendable {
         let storyline = time.storyline.indices.map { index in
             StorylineGeometry(crop: crops[index], track: tracked.storyline[index], nested: storylineNested[index])
         }
-        let titled = try tracked.time.clips.indices.map { index in
+        let clips = try tracked.time.clips.indices.map { index in
             ClipGeometry(
                 area: found[index].area,
                 position: found[index].position,
                 crop: found[index].crop,
                 track: tracked.clips[index],
                 title: try title(of: written[index], format: format, theme: time.theme),
-                label: nil,
+                label: try label(
+                    of: tracked.time.clips[index],
+                    written: written[index],
+                    area: found[index].area,
+                    track: tracked.clips[index],
+                    time: tracked.time,
+                    storyline: storyline,
+                    format: format
+                ),
                 nested: clipNested[index]
             )
-        }
-        let clips = try tracked.time.clips.indices.map { index in
-            titled[index].with(label: try label(
-                of: tracked.time.clips[index],
-                written: written[index],
-                geometry: titled[index],
-                time: tracked.time,
-                storyline: storyline,
-                format: format
-            ))
         }
 
         return SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips)
@@ -319,7 +317,8 @@ struct SequencePlanner: Sendable {
     private func label(
         of plan: ClipPlan,
         written: Clip,
-        geometry: ClipGeometry,
+        area: PropertyValue<FoundArea>?,
+        track: Track?,
         time: TimePlan,
         storyline: [StorylineGeometry],
         format: FormatPlan
@@ -336,7 +335,7 @@ struct SequencePlanner: Sendable {
             kind: plan.kind.label
         )
         let parent = try plan.storyline.flatMap { index -> ParentPicture? in
-            guard plan.isParented, geometry.area != nil else { return nil }
+            guard plan.isParented, area != nil else { return nil }
 
             let owner = time.storyline[index]
             return ParentPicture(
@@ -350,7 +349,8 @@ struct SequencePlanner: Sendable {
             text,
             of: plan,
             written: written,
-            geometry: geometry,
+            area: area,
+            track: track,
             parent: parent,
             storyline: time.storyline,
             format: format,

@@ -285,15 +285,8 @@ struct LabelPlacerTests {
             text,
             of: clip,
             written: written,
-            geometry: ClipGeometry(
-                area: area,
-                position: nil,
-                crop: nil,
-                track: track,
-                title: nil,
-                label: nil,
-                nested: nil
-            ),
+            area: area,
+            track: track,
             parent: parent,
             storyline: time.storyline,
             format: format ?? self.format,
