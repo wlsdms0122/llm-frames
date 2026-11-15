@@ -81,4 +81,26 @@ struct SequenceReaderTests {
         #expect(nested.theme == .named("shorts/shorts"))
         #expect(nested.storyline[0].place.description == "storyline[0].media.storyline[0]")
     }
+
+    @Test("a template instance keeps its arguments, and media at an argument place keeps the theme it was given with")
+    func readsInstanceAndArguments() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [
+              { "media": { "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
+              { "media": "/abs/run.mp4" }
+            ] }
+            """#)
+        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: .root)])
+        let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("media")])
+        let sut = SequenceReader(arguments: [place: theme])
+
+        // When
+        let sequence = sut.sequence(from: document)
+
+        // Then
+        let arguments = try Fixture.object(#"{ "clip": "/abs/run.mp4" }"#)
+        #expect(sequence.storyline[0].media?.source == .template(name: "shorts/leak", arguments: arguments))
+        #expect(sequence.storyline[1].media?.source == .argument(.file("/abs/run.mp4"), theme: theme))
+    }
 }

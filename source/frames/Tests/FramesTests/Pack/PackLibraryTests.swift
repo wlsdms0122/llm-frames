@@ -1,0 +1,144 @@
+//
+//  PackLibraryTests.swift
+//  FramesTests
+//
+//  Created by JSilver on 11/15/26.
+//
+
+import Foundation
+import Testing
+
+@testable import Frames
+
+@Suite("PackLibrary Tests")
+struct PackLibraryTests {
+    // MARK: - Property
+    private let directory: PackDirectory
+
+    // MARK: - Initializer
+    init() throws {
+        directory = try PackDirectory()
+    }
+
+    // MARK: - Test
+    @Test("an installed pack is found by the name of its directory, whatever its manifest calls it")
+    func findsInstalledPack() throws {
+        // Given
+        let packDirectory = try directory.addPack("shorts")
+        let sut = directory.packs
+
+        // When
+        let pack = try sut.pack(named: "shorts")
+
+        // Then
+        #expect(pack?.name == "shorts")
+        #expect(pack?.directory.path == packDirectory.path)
+        #expect(pack?.manifest.name == "A pack for tests")
+    }
+
+    @Test("a pack that ships with frames is found as if installed")
+    func findsShippedPack() throws {
+        // Given
+        let packDirectory = try directory.addPack("pr-evidence", in: directory.shipped)
+        let sut = directory.packs
+
+        // When
+        let pack = try sut.pack(named: "pr-evidence")
+
+        // Then
+        #expect(pack?.directory.path == packDirectory.path)
+    }
+
+    @Test("an installed pack of the same name as a shipped one stops")
+    func refusesDuplicatePack() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.addPack("shorts", in: directory.shipped)
+        let sut = directory.packs
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.pack(named: "shorts") }
+        let manifest = directory.installed.appendingPathComponent("shorts/manifest.toml").path
+        let shipped = directory.shipped.appendingPathComponent("shorts").path
+        #expect(error?.description == #"\#(manifest): top level (manifest): a pack named "shorts" ships with frames at \#(shipped), so an installed one of that name stops"#)
+    }
+
+    @Test("a pack directory without a manifest stops")
+    func refusesMissingManifest() throws {
+        // Given
+        try FileManager.default.createDirectory(
+            at: directory.installed.appendingPathComponent("loose", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        let sut = directory.packs
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.pack(named: "loose") }
+        let manifest = directory.installed.appendingPathComponent("loose/manifest.toml").path
+        #expect(error?.description == "\(manifest): top level (manifest): a pack holds a manifest.toml, and this one has none")
+    }
+
+    @Test("a pack written for other versions of frames stops, naming both")
+    func refusesEngineOutOfRange() throws {
+        // Given
+        try directory.addPack("future", engine: "^2.1")
+        let sut = directory.packs
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.pack(named: "future") }
+        let manifest = directory.installed.appendingPathComponent("future/manifest.toml").path
+        #expect(error?.description == #"\#(manifest): frames.engine (manifest): pack "future" is written for frames ^2.1, and this is frames 1.0.0"#)
+    }
+
+    @Test("a pack that is not there is none")
+    func findsNoUnknownPack() throws {
+        // Given
+        let sut = directory.packs
+
+        // When
+        let pack = try sut.pack(named: "missing")
+
+        // Then
+        #expect(pack == nil)
+    }
+
+    @Test("installed packs live at $FRAMES_HOME/packs, and FRAMES_HOME defaults to ~/.config/frames")
+    func findsFramesHome() throws {
+        // Given
+        let home = directory.root.appendingPathComponent("home", isDirectory: true)
+        let framesHome = home.appendingPathComponent(".config/frames", isDirectory: true)
+        try directory.addPack("shorts", in: framesHome.appendingPathComponent("packs", isDirectory: true))
+        let byDefault = PackLibrary(environment: ["HOME": home.path], shipped: directory.shipped)
+        let bySetting = PackLibrary(environment: ["HOME": "/nowhere", "FRAMES_HOME": framesHome.path], shipped: directory.shipped)
+
+        // When
+        let defaultPack = try byDefault.pack(named: "shorts")
+        let settingPack = try bySetting.pack(named: "shorts")
+
+        // Then
+        #expect(defaultPack?.directory.standardizedFileURL.path == framesHome.appendingPathComponent("packs/shorts").path)
+        #expect(settingPack?.directory.standardizedFileURL.path == framesHome.appendingPathComponent("packs/shorts").path)
+    }
+
+    @Test(
+        "a name is an absolute path, <pack>/<name> or a bare built in name, and any other spelling names nothing",
+        arguments: [
+            ("/abs/theme.json", PackReference.path("/abs/theme.json")),
+            ("shorts/shorts", .pack(pack: "shorts", name: "shorts")),
+            ("pop", .builtIn("pop")),
+            ("a/b/c", nil),
+            ("shorts/", nil),
+            ("../shorts", nil),
+            ("shorts/..", nil),
+            ("./x", nil),
+            ("", nil)
+        ]
+    )
+    func spellsNames(name: String, reference: PackReference?) {
+        // Given, When
+        let sut = PackReference(name)
+
+        // Then
+        #expect(sut == reference)
+    }
+}

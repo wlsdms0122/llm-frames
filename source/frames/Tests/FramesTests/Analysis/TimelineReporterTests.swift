@@ -88,6 +88,46 @@ struct TimelineReporterTests {
         #expect(nested["clips"]?.arrayValue?.first?.objectValue?["place"] == .string("storyline[0].media.clips[0]"))
     }
 
+    @Test("a template instance and a document named by its file have nested, with places continued and media as written")
+    func nestsTemplateAndDocumentTimelines() throws {
+        // Given
+        let directory = try PackDirectory()
+        try directory.addPack("shorts")
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            in: "shorts",
+            at: "templates/leak.json"
+        )
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov", "out": 1 } ] }"#, in: "shorts", at: "media/intro.json")
+        let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
+        let mediaFacts = MediaFactTable(files: [leak: ProbedMedia(kind: .video, duration: 2, fps: 24)])
+        let sut = TimelineReporter(
+            planner: DocumentPlanner(mediaFacts: mediaFacts, presets: Fixture.presets, library: directory.library(mediaFacts: mediaFacts))
+        )
+        let value = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [
+              { "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } },
+              { "media": "shorts/intro.json" }
+            ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: value)
+
+        // Then
+        let expected = #"""
+            {"timeline": "1.0.0", "duration": 3, "storyline": [\#
+            {"place": "storyline[0]", "id": null, "media": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "speed": 1, "transition": null, "nested": \#
+            {"timeline": "1.0.0", "duration": 2, "storyline": [\#
+            {"place": "storyline[0].media.storyline[0]", "id": null, "media": "shorts/leak.mov", "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "speed": 1, "transition": null}], "clips": []}}, \#
+            {"place": "storyline[1]", "id": null, "media": "shorts/intro.json", "edit": [2, 3], "drawn": [2, 3], "clip": [0, 1], "speed": 1, "transition": null, "nested": \#
+            {"timeline": "1.0.0", "duration": 1, "storyline": [\#
+            {"place": "storyline[1].media.storyline[0]", "id": null, "media": "shorts/leak.mov", "edit": [0, 1], "drawn": [0, 1], "clip": [0, 1], "speed": 1, "transition": null}], "clips": []}}], \#
+            "clips": []}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
     @Test("the text output gives one line per clip, for people")
     func writesText() throws {
         // Given
