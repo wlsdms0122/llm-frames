@@ -1,0 +1,60 @@
+//
+//  ClipPlan.swift
+//  Frames
+//
+//  Created by JSilver on 11/15/26.
+//
+
+// A connected or sequence clip on the sequence clock. `window` is where its `at` puts it, and `visible` is the part of
+// the window it is seen or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and
+// `clock` maps its instants to sequence time. `keyframes` are in sequence time.
+struct ClipPlan: Equatable, Sendable {
+    // MARK: - Property
+    let place: Place
+    let id: String?
+    let kind: ClipKind
+    let storyline: Int?
+    let isParented: Bool
+    let lane: Int?
+    let clock: TimeMap
+    let window: TimeRange
+    let visible: TimeRange
+    let animation: AnimationPlan
+    let media: ResolvedMedia?
+    let timing: MediaTiming?
+    let keyframes: [KeyframeInstant]
+
+    // MARK: - Initializer
+    init(
+        place: Place,
+        id: String?,
+        kind: ClipKind,
+        storyline: Int?,
+        isParented: Bool,
+        lane: Int?,
+        clock: TimeMap,
+        window: TimeRange,
+        visible: TimeRange,
+        animation: AnimationPlan,
+        media: ResolvedMedia?,
+        timing: MediaTiming?,
+        keyframes: [KeyframeInstant]
+    ) {
+        self.place = place
+        self.id = id
+        self.kind = kind
+        self.storyline = storyline
+        self.isParented = isParented
+        self.lane = lane
+        self.clock = clock
+        self.window = window
+        self.visible = visible
+        self.animation = animation
+        self.media = media
+        self.timing = timing
+        self.keyframes = keyframes
+    }
+
+    // MARK: - Public
+    // MARK: - Private
+}
