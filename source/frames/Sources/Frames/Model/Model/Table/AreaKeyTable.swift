@@ -31,7 +31,7 @@ enum AreaKeyTable {
     static let cropScale = ObjectTable(
         kind: "crop",
         rules: [
-            KeyRule("scale", .number, isRequired: true)
+            KeyRule("scale", .positiveNumber, isRequired: true)
         ]
     )
     static let point = ObjectTable(

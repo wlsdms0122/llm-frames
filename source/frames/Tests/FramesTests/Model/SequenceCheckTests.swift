@@ -292,6 +292,9 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": "1" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "middle": "a" } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": 0 } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": -1 } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "crop": { "scale": 0 } } ] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames" } } ] }"#,
             #"{ "format": { "size": [1080] } }"#,
             #"{ "format": { "conform": "stretch" } }"#
