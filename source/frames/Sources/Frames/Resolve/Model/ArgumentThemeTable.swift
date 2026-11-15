@@ -19,18 +19,18 @@ struct ArgumentThemeTable: Equatable, Sendable {
     }
 
     // An instance at `place` is written where `theme` is in effect, so what it was given keeps that theme, except
-    // media an argument already keeps another theme for, which `kept` gives by argument and by place in it.
+    // media an argument already keeps another theme for, which `kept` gives.
     init(
         instance: TemplateInstance,
         place: Place,
         theme: MergedTheme,
-        kept: [String: [Place: MergedTheme]]
+        kept: PassedOnThemeTable
     ) {
         var themes = [Place: MergedTheme]()
         for argument in instance.arguments {
             let argumentPlace = place.appending(argument.place)
             themes[argumentPlace] = theme
-            for (keptPlace, keptTheme) in kept[argument.name] ?? [:] {
+            for (keptPlace, keptTheme) in kept.themes(inArgument: argument.name) {
                 themes[argumentPlace.appending(keptPlace)] = keptTheme
             }
         }
@@ -43,12 +43,10 @@ struct ArgumentThemeTable: Equatable, Sendable {
         themes[place]
     }
 
-    // The themes kept in each argument written in the `args` at `place`, by argument and by place in it, at any depth,
-    // so the instance they are given to keeps them too.
-    func kept(inArgumentsAt place: Place) -> [String: [Place: MergedTheme]] {
+    // The themes kept in the arguments written in the `args` at `place`, at any depth.
+    func kept(inArgumentsAt place: Place) -> PassedOnThemeTable {
         let depth = place.components.count
-
-        return themes.reduce(into: [String: [Place: MergedTheme]]()) { kept, entry in
+        let kept = themes.reduce(into: [String: [Place: MergedTheme]]()) { kept, entry in
             let components = entry.key.components
             guard
                 components.count > depth,
@@ -60,6 +58,8 @@ struct ArgumentThemeTable: Equatable, Sendable {
 
             kept[name, default: [:]][Place(components: Array(components.dropFirst(depth + 1)))] = entry.value
         }
+
+        return PassedOnThemeTable(themes: kept)
     }
 
     // MARK: - Private

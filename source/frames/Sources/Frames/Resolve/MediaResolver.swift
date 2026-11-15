@@ -124,7 +124,7 @@ struct MediaResolver: Sendable {
     private func instance(
         of name: String,
         arguments: JSONObject,
-        argumentThemes: [String: [Place: MergedTheme]],
+        argumentThemes: PassedOnThemeTable,
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
