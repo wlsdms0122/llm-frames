@@ -15,18 +15,21 @@ struct SequenceFormat: Equatable, Sendable {
     let size: Size?
     let inset: Inset?
     let conform: Conform?
+    let background: String?
 
     // MARK: - Initializer
     init(
         fps: Double? = nil,
         size: Size? = nil,
         inset: Inset? = nil,
-        conform: Conform? = nil
+        conform: Conform? = nil,
+        background: String? = nil
     ) {
         self.fps = fps
         self.size = size
         self.inset = inset
         self.conform = conform
+        self.background = background
     }
 
     // MARK: - Public

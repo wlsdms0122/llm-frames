@@ -173,7 +173,8 @@ struct SequenceReader: Sendable {
             fps: object["fps"]?.numberValue,
             size: size.count == 2 ? Size(width: size[0], height: size[1]) : nil,
             inset: inset.count == 4 ? Inset(top: inset[0], right: inset[1], bottom: inset[2], left: inset[3]) : nil,
-            conform: object["conform"]?.stringValue.flatMap(Conform.init)
+            conform: object["conform"]?.stringValue.flatMap(Conform.init),
+            background: object["background"]?.stringValue
         )
     }
 

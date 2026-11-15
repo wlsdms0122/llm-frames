@@ -30,7 +30,10 @@ struct SequencePlannerTests {
         #expect(plan.format == FormatPlan(
             size: Size(width: 1080, height: 1920),
             content: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
-            conform: .fit
+            conform: .fit,
+            background: Color(written: "#FFFFFF"),
+            fps: 25,
+            duration: 5
         ))
     }
 
@@ -52,11 +55,12 @@ struct SequencePlannerTests {
         #expect(plan.format.size == size)
     }
 
-    @Test("a written size and inset give the content rect, and conform is kept")
+    @Test("a written size and inset give the content rect, and conform, fps and background are kept")
     func readsWrittenFormat() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "format": { "size": [1081, 1920], "inset": [100, 20, 300, 40], "conform": "fill" },
+            { "kind": "sequence",
+              "format": { "size": [1081, 1920], "fps": 60, "background": "accent", "inset": [100, 20, 300, 40], "conform": "fill" },
               "storyline": [ { "media": "/abs/run.mp4" } ] }
             """#)
 
@@ -64,7 +68,10 @@ struct SequencePlannerTests {
         #expect(plan.format == FormatPlan(
             size: Size(width: 1081, height: 1920),
             content: Rectangle(x: 40, y: 100, width: 1021, height: 1520),
-            conform: .fill
+            conform: .fill,
+            background: Color(written: "#ED2929"),
+            fps: 60,
+            duration: 30
         ))
     }
 

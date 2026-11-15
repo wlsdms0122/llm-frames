@@ -96,7 +96,8 @@ struct SequencePlanner: Sendable {
         return try media.picture.map { .picture(try pictures.plan($0)) }
     }
 
-    // The content rect lies inside the output frame by the inset, and an inset that leaves none stops.
+    // The content rect lies inside the output frame by the inset, and an inset that leaves none stops. The background is
+    // the theme `background` unless the format gives one.
     private func format(
         of time: TimePlan,
         nested: [DocumentPlan?]
@@ -118,7 +119,14 @@ struct SequencePlanner: Sendable {
             )
         }
 
-        return FormatPlan(size: size, content: content, conform: format.conform ?? .fit)
+        return FormatPlan(
+            size: size,
+            content: content,
+            conform: format.conform ?? .fit,
+            background: time.theme.color(format.background ?? "background"),
+            fps: time.fps,
+            duration: time.duration
+        )
     }
 
     // The size of the first video on the storyline, or of the first storyline clip when there is no video, rounded to

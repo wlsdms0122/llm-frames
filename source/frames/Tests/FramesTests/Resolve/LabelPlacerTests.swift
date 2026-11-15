@@ -33,7 +33,10 @@ struct LabelPlacerTests {
     private let format = FormatPlan(
         size: Size(width: 1206, height: 2622),
         content: Rectangle(x: 0, y: 0, width: 1206, height: 2622),
-        conform: .fit
+        conform: .fit,
+        background: Color(written: "#FFFFFF"),
+        fps: 30,
+        duration: 4
     )
 
     // MARK: - Initializer
@@ -121,7 +124,10 @@ struct LabelPlacerTests {
         let inset = FormatPlan(
             size: format.size,
             content: Rectangle(x: 0, y: 200, width: 1206, height: 2422),
-            conform: .fit
+            conform: .fit,
+            background: format.background,
+            fps: format.fps,
+            duration: format.duration
         )
 
         // When
