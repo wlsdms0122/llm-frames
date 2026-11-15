@@ -30,7 +30,12 @@ struct AreaFinder: Sendable {
         case let .band(inner):
             let found = try area(inner, in: picture, atMediaTime: time, padding: padding, place: place, kind: kind)
             return FoundArea(
-                rectangle: Rectangle(x: 0, y: found.rectangle.y, width: picture.size.width, height: found.rectangle.height),
+                rectangle: Rectangle(
+                    x: 0,
+                    y: found.rectangle.y,
+                    width: picture.size.width,
+                    height: found.rectangle.height
+                ),
                 target: found.target,
                 isBand: true,
                 mediaTime: time,
@@ -58,7 +63,14 @@ struct AreaFinder: Sendable {
                 !ends.contains(line) && (top...bottom).contains(line.rectangle.center.y)
             }
 
-            return try textArea(ends + between, in: picture, atMediaTime: time, padding: padding, place: place, kind: kind)
+            return try textArea(
+                ends + between,
+                in: picture,
+                atMediaTime: time,
+                padding: padding,
+                place: place,
+                kind: kind
+            )
         }
     }
 

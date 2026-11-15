@@ -31,7 +31,14 @@ struct GeometryFinder: Sendable {
         kind: String
     ) throws -> PropertyValue<FoundArea> {
         try values(property, key: key, clock: clock, instant: instant, place: place) { form, time, place in
-            try area(form, in: picture, at: pictureClock.mediaTime(atSequenceTime: time), padding: padding, place: place, kind: kind)
+            try area(
+                form,
+                in: picture,
+                at: pictureClock.mediaTime(atSequenceTime: time),
+                padding: padding,
+                place: place,
+                kind: kind
+            )
         }
     }
 
@@ -120,8 +127,16 @@ struct GeometryFinder: Sendable {
         case let .keyframes(keyframes):
             return .keyframes(try keyframes.map { keyframe in
                 let time = clock.sequenceTime(ofClipTime: keyframe.at)
-                let keyframePlace = place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: key)
-                return TimedValue(index: keyframe.index, at: time, value: try find(keyframe.value, time, keyframePlace), ease: keyframe.ease)
+                let keyframePlace = place.appending(key: "keyframes")
+                    .appending(index: keyframe.index)
+                    .appending(key: key)
+
+                return TimedValue(
+                    index: keyframe.index,
+                    at: time,
+                    value: try find(keyframe.value, time, keyframePlace),
+                    ease: keyframe.ease
+                )
             })
         }
     }

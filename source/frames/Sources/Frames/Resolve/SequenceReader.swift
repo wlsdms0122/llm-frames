@@ -187,7 +187,12 @@ struct SequenceReader: Sendable {
             element.objectValue.flatMap { keyframe -> TimedValue<Value>? in
                 guard let at = keyframe["at"]?.numberValue, let value = keyframe[key].flatMap(read) else { return nil }
 
-                return TimedValue(index: index, at: at, value: value, ease: keyframe["ease"].flatMap(Ease.init) ?? .linear)
+                return TimedValue(
+                    index: index,
+                    at: at,
+                    value: value,
+                    ease: keyframe["ease"].flatMap(Ease.init(value:)) ?? .linear
+                )
             }
         }
         guard !keyframes.isEmpty else { return nil }

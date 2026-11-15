@@ -7,7 +7,15 @@
 
 enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
     case ambiguousText(place: Place, kind: String, text: String, matches: [RecognisedLine])
-    case noMatch(place: Place, kind: String, picture: String, mediaTime: Double, text: String, nth: Int?, matchCount: Int)
+    case noMatch(
+        place: Place,
+        kind: String,
+        picture: String,
+        mediaTime: Double,
+        text: String,
+        nth: Int?,
+        matchCount: Int
+    )
     case outsidePicture(place: Place, kind: String, rectangle: Rectangle, size: Size)
     case textInDocument(place: Place, kind: String, picture: String)
     case textInSolid(place: Place, kind: String)

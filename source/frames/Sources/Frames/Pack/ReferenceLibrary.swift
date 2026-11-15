@@ -121,7 +121,12 @@ struct ReferenceLibrary: MediaKindProvider {
             )
         }
 
-        return ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, reading: reading + [entry], pack: packName(of: name))
+        return ReferenceLibrary(
+            packs: packs,
+            mediaFacts: mediaFacts,
+            reading: reading + [entry],
+            pack: packName(of: name)
+        )
     }
 
     private func packName(of name: String) -> String? {

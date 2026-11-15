@@ -46,6 +46,7 @@ struct ResolvedMedia: Equatable, Sendable {
         self.frameTimes = frameTimes
     }
 
+    // MARK: - Public
     // The frame after the one shown at the media time, nil when that one is the last.
     func frameTime(after time: Double) -> Double? {
         frameTimes.first { $0 > time }
@@ -56,7 +57,6 @@ struct ResolvedMedia: Equatable, Sendable {
         frameTimes.last { $0 <= time } ?? frameTimes.first
     }
 
-    // MARK: - Public
     func clamped(_ time: Double) -> Double {
         guard let frames else { return time }
 

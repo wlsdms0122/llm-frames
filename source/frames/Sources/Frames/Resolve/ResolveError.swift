@@ -126,10 +126,12 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and there is none to follow here"
 
         case let .trackOwnWithoutArea(place, kind):
-            "\(place) (\(kind.label)): \"track\": true follows the clip's own area or crop, and it has none given as an area"
+            "\(place) (\(kind.label)): \"track\": true follows the clip's own area or crop, "
+                + "and it has none given as an area"
 
         case let .trackOwnOnNamingClip(place, kind):
-            "\(place) (\(kind.label)): a title or media clip names the area it tracks, so it cannot take \"track\": true"
+            "\(place) (\(kind.label)): a title or media clip names the area it tracks, "
+                + "so it cannot take \"track\": true"
 
         case let .trackLost(place, kind, time, edit):
             "\(place) (\(kind.label)): the tracker lost its target at \(number(time)), inside the edit range \(written(edit))"

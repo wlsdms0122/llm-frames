@@ -18,8 +18,8 @@ enum TextError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "is in its pack or on the machine in \(weight.rawValue)"
 
         case let .tooWide(place, kind, width, room):
-            "\(place) (\(kind)): the text is \(number(width)) wide on one line, wider than its room of \(number(room)), "
-                + "and a cut line would say something else"
+            "\(place) (\(kind)): the text is \(number(width)) wide on one line, wider than its room of "
+                + "\(number(room)), and a cut line would say something else"
 
         case let .lineBreakOnOneLine(place, kind):
             "\(place) (\(kind)): the text has a line break, and its style keeps it on one line"

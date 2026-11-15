@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One keyframe's value of a property. `index` is the keyframe's place in the clip's `keyframes`, and `at` its instant
-// on the clip's clock.
+// One keyframe's value of a property. `index` is the keyframe's place in the clip's `keyframes`, and `at` its instant:
+// on the clip's clock as written, and in sequence time once resolve has found it.
 struct TimedValue<Value: Equatable & Sendable>: Equatable, Sendable {
     // MARK: - Property
     let index: Int
