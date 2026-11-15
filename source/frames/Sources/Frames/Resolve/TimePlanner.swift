@@ -365,6 +365,7 @@ struct TimePlanner: Sendable {
             clock: clock,
             window: window,
             visible: visible,
+            instant: clip.at == nil ? ownerPlan?.edit.start ?? window.start : window.start,
             animation: try animation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
             media: source.media,
             timing: source.timing.map { timing in

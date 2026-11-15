@@ -33,7 +33,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
-    case trackLost(place: Place, kind: PlaceKind, time: Double, edit: TimeRange)
+    case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
+    case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
     case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side])
 
     // MARK: - Property
@@ -133,8 +134,13 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a title or media clip names the area it tracks, "
                 + "so it cannot take \"track\": true"
 
-        case let .trackLost(place, kind, time, edit):
-            "\(place) (\(kind.label)): the tracker lost its target at \(number(time)), inside the edit range \(written(edit))"
+        case let .trackLost(place, kind, followed, edit):
+            "\(place) (\(kind.label)): the tracker follows its target only over \(written(followed)) and loses it "
+                + "inside the edit range \(written(edit))"
+
+        case let .neverFollowed(place, kind, visible):
+            "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
+                + "of its visible range \(written(visible))"
 
         case let .labelWithoutRoom(place, kind, label, sides):
             "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the content rect on none of its sides "

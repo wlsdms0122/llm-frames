@@ -21,6 +21,11 @@ struct StorylinePlan: Equatable, Sendable {
         TimeMap(origin: edit.start, in: source.clipRange.start, speed: source.speed)
     }
 
+    // Where a static crop takes effect: the clip's `in`.
+    var instant: Double {
+        edit.start
+    }
+
     // MARK: - Initializer
     init(
         place: Place,
