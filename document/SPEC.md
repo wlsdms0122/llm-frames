@@ -169,7 +169,7 @@ An image document edits one picture with an ordered list of operations.
     { "crop": { "from": "Certificate", "to": "Last line" } },
     { "shape": "box", "area": "serialNumber: 9190809", "label": "matches the server" },
     { "shape": "dim", "area": { "from": "LV2", "to": "Cert,O=" } },
-    { "adjust": "pixelate", "area": "issuerDn:" },
+    { "shape": "redact", "area": "issuerDn:" },
     { "shape": "arrow", "area": "serialNumber", "side": "right", "label": "here" },
     { "title": "Note", "position": [40, 40], "style": "label" },
     { "resize": { "width": 800 } },
@@ -190,7 +190,7 @@ An image document edits one picture with an ordered list of operations.
 | `crop` | area | Keeps the area. A text area crops a full-width band with `anchor.cropPadding` above and below, since evidence keeps whole lines. The band is clipped to the picture |
 | `resize` | `{scale}`, `{width}` or `{height}` | Resizes and keeps the aspect ratio |
 | `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, `color` optional | Adds a margin. The default colour is the theme `background` |
-| `shape` | `box`, `highlight`, `dim` or `arrow`, with `area`, `label`, `side`, `color` | Draws a shape (section 8.9) |
+| `shape` | `box`, `highlight`, `dim`, `arrow` or `redact`, with `area`, `label`, `side`, `color` | Draws a shape (section 8.9), or hides the area (section 8.10) |
 | `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |
 | `title` | text, `position` (source `[x, y]`), `style` | Places a title (section 8.8) |
 | `banner` | lines, `edge` (`top` or `bottom`) | Extends the picture with a band of text. The first line takes the `bannerHead` style and the rest take `banner` |
@@ -247,7 +247,7 @@ A layout places pictures on a grid.
       "keyframes": [ { "at": 3, "position": [600, 500] }, { "at": 4, "position": [330, 900], "scale": 1.5, "ease": "ease-in-out" } ] },
     { "media": "/abs/bgm.m4a", "volume": 0.3, "loop": true, "fadeOut": 1 },
     { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-    { "at": [4, 9], "adjust": "pixelate", "area": [80, 1500, 600, 90] }
+    { "at": [4, 9], "shape": "redact", "area": [80, 1500, 600, 90] }
   ]
 }
 ```
@@ -272,6 +272,7 @@ A layout places pictures on a grid.
 | audio clip | `at, media, in, out, speed, loop, volume, fadeIn, fadeOut, keyframes` |
 | title clip | every clip's, `title, style, width, placement, position, parent, scale, rotation` |
 | shape clip | every clip's, `shape, area, label, color`, and `side` for an arrow |
+| redaction | `at, lane, keyframes, shape, area, color` |
 | adjustment clip | every clip's, `adjust, area` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset name, an absolute path, `"cut"`, or `{preset, seconds}` |
@@ -289,7 +290,7 @@ Keyframable properties:
 | storyline clip | `crop, volume` |
 | media clip | `position, scale, rotation, opacity, crop, volume` (audio clips: `volume`) |
 | title clip | `position, scale, rotation, opacity` |
-| shape clip | `area, opacity` |
+| shape clip | `area, opacity` (a redaction: `area`) |
 | adjustment clip | `area, opacity` |
 
 Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place. A property written both as a static value and in a keyframe stops, since the static value would never show.
@@ -327,7 +328,7 @@ source time t to sequence time:
 - A transition belongs to the clip it brings in. The two clips overlap by `min(transition seconds, previous duration / 2, next duration / 2)`.
 - `at` is `[start, end]` or a single start. A window's start and end are both instants. A single start is an instant followed by a duration, the clip's natural length `(out - in) / speed` for video, audio, image sequence and compound media. Under a storyline clip whose speed is not 1 the two forms differ: `[2, 6]` ends at source second 6, and `2` ends when the media does. Titles, shapes, adjustments and still images need `[start, end]`. A connected clip without `at` spans its storyline clip, and a sequence clip without `at` spans the whole sequence.
 - A media clip plays from `in` at its own `speed` (default 1), whatever the speed of its storyline clip. When its window is longer than the media, video holds its last frame and audio goes silent, unless `loop` is true, in which case it repeats from `in` to `out` to fill the window.
-- A connected clip is visible where its window meets `[start + incoming overlap / 2, end - outgoing overlap / 2]` of its storyline clip. It disappears at the middle of a transition and never stays over the next clip.
+- A connected clip is visible where its window meets `[start + incoming overlap / 2, end - outgoing overlap / 2]` of its storyline clip. It disappears at the middle of a transition and never stays over the next clip. A redaction is the exception (section 8.10).
 - A connected clip whose window does not meet that range stops ("never visible").
 - Sequence clips are cut at the end of the sequence. One that starts at or after the end stops.
 
@@ -387,18 +388,29 @@ A connected clip can be parented to its storyline clip's picture. Shapes and adj
 - `color` replaces the shape's theme colour.
 - A label moves with its shape, and animates with the `label` entry of `defaults.animation.title`.
 
-### 8.10 Media clips (must)
+### 8.10 Redaction (must)
+
+`shape: "redact"` hides what is in its area. Hiding is a guarantee, not a look, so it is built in rather than a preset, and nothing can weaken it.
+
+- It covers the area with square blocks, each filled with the mean colour of the pixels it covers, or with `color` when one is given.
+- A block's edge is the larger of the theme `shapes.redact.size` and the height of the tallest recognised line inside the area, so no glyph stays readable.
+- It takes no `opacity`, `animation`, `label` or placement, and no default animation applies. It is fully drawn from the first frame of its window to the last.
+- On a sequence it is parented like a shape, and it stays for as long as its storyline clip's picture is drawn inside its window, transitions included, since the content shows until its picture is gone.
+- When its area is given by text, resolve looks for that text at the start and end of the window and at every keyframe, and stops if it finds the text outside the redacted area.
+- In an image document it is a drawing operation like a shape.
+
+### 8.11 Media clips (must)
 
 - `width` and `height` size the clip in output pixels. Given one, the other keeps the aspect ratio.
 - `radius` rounds the corners, `border` (`true` for the `border` colour, or a colour) draws a border with `shapes.border.width`, and `shadow: true` draws the theme shadow.
 - `crop` and `filter` work as on a storyline clip, with the clip's own box in place of the content rect.
 - A video media clip is picture in picture, and an image sequence with alpha is how a motion graphic made elsewhere comes in.
 
-### 8.11 Adjustment clips (must)
+### 8.12 Adjustment clips (must)
 
 An adjustment clip applies a filter preset (`adjust`) to everything below it, inside `area` or over the whole output when there is none, as an NLE's adjustment layer. Placed by an area on a connected clip, it is parented like a shape. Its filter lengths are output pixels and do not grow with a zoom. Its `opacity` blends the filtered result with what is below.
 
-### 8.12 Audio (must)
+### 8.13 Audio (must)
 
 - A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept.
 - `fadeIn` and `fadeOut` are seconds, and ramp the volume from and to 0 at the ends of the clip's window.
@@ -513,7 +525,7 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | `sharpen` | `amount`, `radius` | unsharp mask |
 | `bloom` | `amount`, `radius` | bright areas glow |
 | `vignette` | `amount`, `radius` (fraction of half the diagonal) | darkens towards the edges |
-| `pixelate` | `size` (theme length) | square blocks |
+| `pixelate` | `size` (theme length) | square blocks, each filled with the mean colour of the pixels it covers |
 
 - An unknown op stops when the preset is read.
 - Parameters are numbers, lists of numbers, or colours.
@@ -579,7 +591,7 @@ The names and how each looks are the contract. The numbers are the implementatio
 | `sharpen` | crisper text edges |
 | `blur` | blurred |
 | `vignette` | darker edges that pull the eye to the centre |
-| `pixelate` | square blocks, for hiding personal data |
+| `pixelate` | square blocks, as a look. Hiding personal data is `redact` |
 
 ---
 
@@ -721,6 +733,7 @@ built-in theme < --theme file < document theme < keys on the clip or op
     "box":       { "width": 8, "radius": 18, "color": "accent" },
     "highlight": { "color": "#FFD43B80" },
     "dim":       { "color": "#0000008C" },
+    "redact":    { "size": 24 },
     "arrow":     { "width": 10, "length": 160, "color": "accent" },
     "border":    { "width": 3 },
     "shadow":    { "radius": 24, "offset": [0, 8], "color": "shadow" }
@@ -835,6 +848,7 @@ These are the acceptance tests.
 - The output length matches the `timeline` duration to within one frame.
 - Outlined text has round corners and no overlapping strokes.
 - A label never covers the line above its box.
+- A redaction hides its area on every frame its picture is drawn, from its window's first frame to its last.
 - Rendering is lossless or at the highest quality. Only `transcode` makes things smaller.
 - Text in storyline images stays crisp.
 - Evaluating a resolved document at the same time always gives the same display list, and drawing it twice on the same engine gives the same output.
@@ -867,7 +881,7 @@ How to make anything:
 
 First guides:
 
-- **pr-evidence:** the built-in theme. The conclusion and the reason go in the banner. Only the reason lines get a box. No filters and no music. Transitions are `fade` at 0.3 to 0.5.
+- **pr-evidence:** the built-in theme. The conclusion and the reason go in the banner. Only the reason lines get a box, and personal data gets `redact`. No filters and no music. Transitions are `fade` at 0.3 to 0.5.
 - **shorts:** Korean vertical short-form, 9:16. A headline in the top band, outlined subtitles with `pop`, `push-up` between scenes.
 - **demo:** a feature demo on the built-in theme.
 - **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"sequence": ...}` media.
