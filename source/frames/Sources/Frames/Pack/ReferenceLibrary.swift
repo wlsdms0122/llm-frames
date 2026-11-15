@@ -10,29 +10,34 @@ import Foundation
 // Reads what a document names by `<pack>/<name>` or an absolute path: themes, templates, documents used as media and
 // media files. A file read here is checked where it is read, and its errors name it as it was referred to.
 // `reading` holds the files and template instances being read on the way here, so a document or an instance that
-// holds itself stops instead of never ending.
+// holds itself stops instead of never ending. `pack` is the pack of the last of them, when it is named in one, which
+// a theme written in it belongs to.
 struct ReferenceLibrary: MediaKindProvider {
     // MARK: - Property
     private let packs: PackLibrary
     private let mediaFacts: any MediaFactProvider
     private let reading: [ReadingEntry]
 
+    let pack: String?
+
     // MARK: - Initializer
     init(
         packs: PackLibrary,
         mediaFacts: any MediaFactProvider
     ) {
-        self.init(packs: packs, mediaFacts: mediaFacts, reading: [])
+        self.init(packs: packs, mediaFacts: mediaFacts, reading: [], pack: nil)
     }
 
     private init(
         packs: PackLibrary,
         mediaFacts: any MediaFactProvider,
-        reading: [ReadingEntry]
+        reading: [ReadingEntry],
+        pack: String?
     ) {
         self.packs = packs
         self.mediaFacts = mediaFacts
         self.reading = reading
+        self.pack = pack
     }
 
     // MARK: - Lifecycle
@@ -53,7 +58,7 @@ struct ReferenceLibrary: MediaKindProvider {
     func theme(named name: String) throws -> ThemeLayer? {
         guard let value = try value(named: name, in: "themes", pathExtension: "json")?.value else { return nil }
 
-        return ThemeLayer(value: value, place: Place(file: name, components: []))
+        return ThemeLayer(value: value, place: Place(file: name, components: []), pack: packName(of: name))
     }
 
     func template(named name: String) throws -> Template? {
@@ -70,6 +75,10 @@ struct ReferenceLibrary: MediaKindProvider {
         try KeyChecker(mediaKinds: reading(file: file, name: reference))
             .check(nestedDocument: value, place: Place(file: reference, components: []))
         return DocumentFile(name: reference, file: file, value: value, kind: MediaKind(document: value))
+    }
+
+    func fontFiles(inPack name: String) throws -> [String] {
+        try packs.fontFiles(inPack: name)
     }
 
     func isDocument(_ reference: String) -> Bool {
@@ -112,7 +121,13 @@ struct ReferenceLibrary: MediaKindProvider {
             )
         }
 
-        return ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, reading: reading + [entry])
+        return ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, reading: reading + [entry], pack: packName(of: name))
+    }
+
+    private func packName(of name: String) -> String? {
+        guard case let .pack(pack, _) = PackReference(name) else { return nil }
+
+        return pack
     }
 
     private func value(

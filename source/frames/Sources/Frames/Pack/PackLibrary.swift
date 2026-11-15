@@ -91,6 +91,18 @@ struct PackLibrary: Sendable {
         }
     }
 
+    // The font files in a pack's `fonts/`, in name order, so the face a family is found in does not depend on the
+    // order a directory lists them. A pack that is not there, or has no fonts, carries none.
+    func fontFiles(inPack name: String) throws -> [String] {
+        guard let pack = try pack(named: name) else { return [] }
+
+        let directory = pack.directory.appendingPathComponent("fonts", isDirectory: true)
+        guard isDirectory(directory) else { return [] }
+
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return names.filter { !$0.hasPrefix(".") }.sorted().map { directory.appendingPathComponent($0).path }
+    }
+
     // A file that is not there is nil, and one that is there but cannot be read stops.
     func contents(of file: URL) throws -> Data? {
         var isDirectory: ObjCBool = false

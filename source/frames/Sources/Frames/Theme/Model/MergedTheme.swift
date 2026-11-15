@@ -32,6 +32,11 @@ struct MergedTheme: Equatable, Sendable {
         return layer.place.appending(path)
     }
 
+    // The pack the strongest layer that holds the path is written in, nil for the base theme or a layer in no pack.
+    func pack(of path: Place) -> String? {
+        layers.last { holds($0.value, path.components[...]) }?.pack
+    }
+
     // MARK: - Private
     private func holds(
         _ value: JSONValue,

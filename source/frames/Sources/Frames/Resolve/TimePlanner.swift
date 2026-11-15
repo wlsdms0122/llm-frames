@@ -86,7 +86,7 @@ struct TimePlanner: Sendable {
             return theme
 
         case let .object(layer):
-            return try merger.merge([ThemeLayer(value: layer, place: place)], over: theme)
+            return try merger.merge([ThemeLayer(value: layer, place: place, pack: library.pack)], over: theme)
 
         case let .named(name):
             guard let layer = try library.theme(named: name) else {
