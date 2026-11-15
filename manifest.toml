@@ -12,4 +12,5 @@ requires = []
 [command]
 # Commands run from the package root, and no name means anything but this line.
 # Arguments are appended, unless the line places "$@" itself.
-verify = "! echo 'verify is not written yet' >&2"
+verify = "swift test --package-path source/frames"
+test = "swift test --package-path source/frames"
