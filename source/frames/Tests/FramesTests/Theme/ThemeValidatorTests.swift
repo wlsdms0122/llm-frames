@@ -28,6 +28,14 @@ struct ThemeValidatorTests {
                 #"defaults.transition (defaults): unknown transition preset "dissolve""#
             ),
             (
+                #"{ "defaults": { "filter": "grain" } }"#,
+                #"defaults.filter (defaults): unknown filter preset "grain""#
+            ),
+            (
+                #"{ "defaults": { "filter": ["none", "grain"] } }"#,
+                #"defaults.filter[1] (defaults): unknown filter preset "grain""#
+            ),
+            (
                 #"{ "defaults": { "animation": { "media": "spin" } } }"#,
                 #"defaults.animation.media (animation defaults): unknown animation preset "spin""#
             ),
@@ -58,7 +66,7 @@ struct ThemeValidatorTests {
         // Given
         let theme = try ThemeMerger().merge([
             Fixture.json(#"""
-                { "defaults": { "transition": { "preset": "flash", "seconds": 1 },
+                { "defaults": { "transition": { "preset": "flash", "seconds": 1 }, "filter": ["warm", "none"],
                                 "animation": { "title": { "headline": "fade" }, "shape": { "entrance": "draw", "exit": "none" } } } }
                 """#)
         ])

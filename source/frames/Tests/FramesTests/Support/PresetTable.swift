@@ -12,14 +12,17 @@ struct PresetTable: PresetProvider {
     // MARK: - Property
     let transitions: [String: TransitionPreset]
     let animations: [String: AnimationPreset]
+    let filters: [String: FilterPreset]
 
     // MARK: - Initializer
     init(
         transitions: [String: TransitionPreset],
-        animations: [String: AnimationPreset]
+        animations: [String: AnimationPreset],
+        filters: [String: FilterPreset]
     ) {
         self.transitions = transitions
         self.animations = animations
+        self.filters = filters
     }
 
     // MARK: - Public
@@ -29,6 +32,10 @@ struct PresetTable: PresetProvider {
 
     func animation(named name: String) throws -> AnimationPreset? {
         animations[name]
+    }
+
+    func filter(named name: String) throws -> FilterPreset? {
+        filters[name]
     }
 
     // MARK: - Private

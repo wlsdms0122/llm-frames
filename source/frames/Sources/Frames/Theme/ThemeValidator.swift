@@ -43,6 +43,7 @@ struct ThemeValidator: Sendable {
         let animation = defaults["animation"]?.objectValue ?? JSONObject()
         let titlePlace = animationPlace.appending(key: "title")
         let titles = animation["title"]?.objectValue ?? JSONObject()
+        try checkFilter(defaults["filter"], place: place.appending(key: "filter"), presets: presets)
 
         return ThemeDefaults(
             transition: try transitionChoice(in: defaults, place: place, presets: presets),
@@ -114,6 +115,37 @@ struct ThemeValidator: Sendable {
         }
 
         return choice
+    }
+
+    // A filter default is one name or a list of them, and `none` names no preset.
+    private func checkFilter(
+        _ value: JSONValue?,
+        place: Place,
+        presets: any PresetProvider
+    ) throws {
+        let names: [(name: String, place: Place)] = switch value {
+        case let .string(name):
+            [(name, place)]
+
+        case let .array(elements):
+            elements.enumerated().compactMap { index, element in
+                element.stringValue.map { ($0, place.appending(index: index)) }
+            }
+
+        default:
+            []
+        }
+
+        for (name, place) in names where name != "none" {
+            guard try presets.filter(named: name) != nil else {
+                throw ThemeError.unknownPreset(
+                    place: place,
+                    kind: ThemeKeyTable.defaults.kind,
+                    presetKind: "filter",
+                    name: name
+                )
+            }
+        }
     }
 
     // `none` on a side of a split names no preset.

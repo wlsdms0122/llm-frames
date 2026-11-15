@@ -58,6 +58,9 @@ enum Fixture {
             "stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
             "draw": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
             "pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
+        ],
+        filters: [
+            "warm": FilterPreset(description: "", operations: [])
         ]
     )
 

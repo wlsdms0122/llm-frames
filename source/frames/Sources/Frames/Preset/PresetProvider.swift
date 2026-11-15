@@ -10,4 +10,5 @@
 protocol PresetProvider: Sendable {
     func transition(named name: String) throws -> TransitionPreset?
     func animation(named name: String) throws -> AnimationPreset?
+    func filter(named name: String) throws -> FilterPreset?
 }
