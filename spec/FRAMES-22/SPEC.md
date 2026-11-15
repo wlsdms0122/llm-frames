@@ -74,15 +74,17 @@ A style is a named set of text properties. Any name is allowed, and frames reads
 
 | Property | Meaning |
 | --- | --- |
-| `size` | font size |
-| `weight` | `regular` or `bold` |
-| `color`, `emphasis` | text colour, and the colour of `**text**` |
+| `size` | font size. Every style has one |
+| `weight` | `regular` or `bold`. The default is `regular` |
+| `color`, `emphasis` | text colour, and the colour of `**text**`. The defaults are the `text` and `emphasis` colours |
 | `lineHeight` | distance between baselines. The default is 1.25 × size |
-| `stroke` | `{width, color}`: an outline with round joins, where strokes never show overlapping. Absent means none |
-| `background` | `{color, padding, radius}`: a box behind the text, or `false` |
+| `stroke` | `{width, color}`: an outline with round joins, where strokes never show overlapping. Without `color` it takes the `text` colour. Absent means none |
+| `background` | `{color, padding, radius}`: a box behind the text, or `false`. `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `placement`, `offset` | default placement ([FRAMES-1](../FRAMES-1/SPEC.md)) |
-| `align` | `left`, `center` or `right` |
-| `lines` | `1` keeps the text on one line |
+| `align` | `left`, `center` or `right`. The default is `left` |
+| `lines` | `1` keeps the text on one line. Absent means no limit |
+
+A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it.
 
 ### Defaults
 

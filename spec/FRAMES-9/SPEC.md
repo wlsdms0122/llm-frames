@@ -15,6 +15,7 @@ Vertical shorts and evidence shots need a content rect smaller than the frame, a
 ### Format
 
 - `size` defaults to the size of the first video clip on the storyline, or the first storyline clip when there is no video. Width and height round to even numbers.
+- When there is no video and the first storyline clip is a solid, which has no size of its own, `size` must be written, and a format without it stops.
 - `fps` defaults to the nominal frame rate of the first video clip on the storyline, rounded to the nearest of 24, 25, 30, 50 and 60. A rate exactly halfway between two of them rounds to the lower one. It is 30 when that clip has no nominal rate (some variable-rate recordings) or there is no video. A written `fps` is above 0, and 0 or less stops.
 - `background` defaults to the theme `background`. Transparent parts of storyline pictures show it.
 - `inset` is `[top, right, bottom, left]` and shrinks the content rect, where storyline clips are drawn. An inset that leaves no content rect stops.
