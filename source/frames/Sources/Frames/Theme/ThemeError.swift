@@ -7,7 +7,7 @@
 
 enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownColor(place: Place, kind: String, name: String)
-    case unknownStyle(place: Place, name: String)
+    case unknownStyle(place: Place, kind: String, name: String)
     case unknownPreset(place: Place, kind: String, presetKind: String, name: String)
 
     // MARK: - Property
@@ -16,8 +16,8 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownColor(place, kind, name):
             "\(place) (\(kind)): colour \"\(name)\" is not in colors"
 
-        case let .unknownStyle(place, name):
-            "\(place) (title animations): style \"\(name)\" is not in styles"
+        case let .unknownStyle(place, kind, name):
+            "\(place) (\(kind)): style \"\(name)\" is not in styles"
 
         case let .unknownPreset(place, kind, presetKind, name):
             "\(place) (\(kind)): unknown \(presetKind) preset \"\(name)\""

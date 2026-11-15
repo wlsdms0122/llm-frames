@@ -38,7 +38,7 @@ struct TimePlanner: Sendable {
         theme: JSONValue
     ) throws -> TimePlan {
         guard !sequence.storyline.isEmpty else {
-            throw ResolveError.emptyStoryline(place: sequence.place.appending(key: "storyline"))
+            throw ResolveError.emptyStoryline(place: sequence.place.appending(key: "storyline"), kind: .sequence)
         }
 
         let merged = try self.theme(of: sequence, over: theme)

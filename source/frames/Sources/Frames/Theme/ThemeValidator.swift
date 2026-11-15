@@ -21,13 +21,17 @@ struct ThemeValidator: Sendable {
     func checkReferences(in theme: JSONValue) throws {
         let object = theme.objectValue ?? JSONObject()
         let colors = Set(object["colors"]?.objectValue?.keys ?? [])
-        try walk(theme, as: .object(ThemeKeyTable.theme), place: .root, kind: "theme", colors: colors)
+        try walk(theme, as: .object(ThemeKeyTable.theme), place: .root, kind: ThemeKeyTable.theme.kind, colors: colors)
 
         let styles = Set(object["styles"]?.objectValue?.keys ?? [])
         let titlePlace = Place.root.appending(key: "defaults").appending(key: "animation").appending(key: "title")
         let titles = object["defaults"]?.objectValue?["animation"]?.objectValue?["title"]?.objectValue?.keys ?? []
         for name in titles where !styles.contains(name) {
-            throw ThemeError.unknownStyle(place: titlePlace.appending(key: name), name: name)
+            throw ThemeError.unknownStyle(
+                place: titlePlace.appending(key: name),
+                kind: ThemeKeyTable.titleAnimationKind,
+                name: name
+            )
         }
     }
 
@@ -53,7 +57,7 @@ struct ThemeValidator: Sendable {
                         member.key,
                         in: titles,
                         place: titlePlace,
-                        kind: "title animations",
+                        kind: ThemeKeyTable.titleAnimationKind,
                         presets: presets
                     )
                     return (member.key, choice)
@@ -64,21 +68,21 @@ struct ThemeValidator: Sendable {
                 "shape",
                 in: animation,
                 place: animationPlace,
-                kind: "animation defaults",
+                kind: ThemeKeyTable.animationDefaults.kind,
                 presets: presets
             ),
             mediaAnimation: try animationChoice(
                 "media",
                 in: animation,
                 place: animationPlace,
-                kind: "animation defaults",
+                kind: ThemeKeyTable.animationDefaults.kind,
                 presets: presets
             ),
             adjustAnimation: try animationChoice(
                 "adjust",
                 in: animation,
                 place: animationPlace,
-                kind: "animation defaults",
+                kind: ThemeKeyTable.animationDefaults.kind,
                 presets: presets
             )
         )

@@ -82,17 +82,21 @@ enum ThemeKeyTable {
         rules: [
             KeyRule("transition", ChoiceKeyTable.transition),
             KeyRule("filter", ChoiceKeyTable.filter),
-            KeyRule("animation", .object(ObjectTable(
-                kind: "animation defaults",
-                rules: [
-                    KeyRule("title", .map(ChoiceKeyTable.animation, kind: "title animations")),
-                    KeyRule("shape", ChoiceKeyTable.animation),
-                    KeyRule("media", ChoiceKeyTable.animation),
-                    KeyRule("adjust", ChoiceKeyTable.animation)
-                ]
-            )))
+            KeyRule("animation", .object(animationDefaults))
         ]
     )
+    static let animationDefaults = ObjectTable(
+        kind: "animation defaults",
+        rules: [
+            KeyRule("title", titleAnimations),
+            KeyRule("shape", ChoiceKeyTable.animation),
+            KeyRule("media", ChoiceKeyTable.animation),
+            KeyRule("adjust", ChoiceKeyTable.animation)
+        ]
+    )
+    // A map's kind is not readable from its value type, so it is named on its own.
+    static let titleAnimationKind = "title animations"
+    static let titleAnimations = ValueType.map(ChoiceKeyTable.animation, kind: titleAnimationKind)
 
     private static func group(
         _ kind: String,
