@@ -313,6 +313,32 @@ struct PicturePlannerTests {
         #expect(plan.storyline[0].nested?.size == Size(width: 1040, height: 840))
     }
 
+    @Test("a connected clip and a layout item that are image documents are drawn from their own plans")
+    func plansNestedImageDocuments() throws {
+        // Given
+        let image = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "pad": 20 } ] }"#
+        let sequence = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": \#(image), "at": [0, 1] } ] } ] }
+            """#
+        let layout = #"{ "kind": "layout", "items": [ { "image": \#(image) } ] }"#
+
+        // When
+        let sequencePlan = try #require(try sut.plan(Fixture.json(sequence)).sequence)
+        let layoutPlan = try picture(layout)
+
+        // Then
+        #expect(sequencePlan.clips[0].nested == .picture(try picture(image)))
+        let drawn = layoutPlan.steps.compactMap { step -> (DrawnPicture, Rectangle)? in
+            guard case let .picture(picture, _, frame) = step.content else { return nil }
+
+            return (picture, frame)
+        }
+        #expect(drawn.count == 1)
+        #expect(drawn.first?.0 == .picture(try picture(image)))
+        #expect(drawn.first?.1.width == 1040)
+        #expect(drawn.first?.1.height == 840)
+    }
+
     // MARK: - Private
     private func isClose(
         _ rectangle: Rectangle,

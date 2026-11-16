@@ -40,7 +40,8 @@ struct DocumentPlannerTests {
         let mediaFacts = MediaFactTable(
             files: [
                 media.appendingPathComponent("leak.mov").path: ProbedMedia(kind: .video, duration: 4, fps: 24, size: Size(width: 1080, height: 1920)),
-                "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920))
+                "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920)),
+                "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800))
             ],
             imageSequences: [
                 media.appendingPathComponent("frames").path: (1...12).map { media.appendingPathComponent("frames/\($0).png").path }
@@ -220,6 +221,31 @@ struct DocumentPlannerTests {
         #expect(wrongError.map { "\($0)" } == "/abs/args.json: clip (template arguments): expected a media reference, found 3")
         let listError = #expect(throws: ModelError.self) { try sut.plan(document, arguments: list) }
         #expect(listError?.description == "/abs/args.json: top level (template arguments): expected an object, found a list of 1")
+    }
+
+    @Test("an image template given as the document plans as a picture of the image its arguments give")
+    func plansImageTemplateWithArguments() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "image", "params": { "shot": { "type": "image" } }, "source": { "param": "shot" }, "ops": [ { "pad": 20 } ] }
+            """#)
+        let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "shot": "/abs/page.png" }"#))
+
+        // When
+        let plan = try sut.plan(document, arguments: arguments)
+
+        // Then
+        guard case let .picture(picture) = plan else {
+            Issue.record("the template does not plan as a picture")
+            return
+        }
+        #expect(picture.size == Size(width: 1040, height: 840))
+        guard case let .picture(.media(media, _), _, frame) = picture.steps.first?.content else {
+            Issue.record("the image is not drawn first")
+            return
+        }
+        #expect(media.reference == "/abs/page.png")
+        #expect(frame == Rectangle(x: 20, y: 20, width: 1000, height: 800))
     }
 
     @Test("a template given as the document without --args needs a default for every parameter")
