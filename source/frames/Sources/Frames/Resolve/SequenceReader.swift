@@ -117,7 +117,7 @@ struct SequenceReader: Sendable {
         if let media = object["media"] {
             return .media(self.media(media, of: object, place: place.appending(key: "media")))
         }
-        if let shape = object["shape"]?.stringValue {
+        if let shape = object["shape"]?.stringValue.flatMap(ShapeKind.init) {
             return .shape(shape)
         }
         if let title = object["title"]?.stringValue {

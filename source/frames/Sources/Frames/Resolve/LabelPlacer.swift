@@ -36,8 +36,7 @@ struct LabelPlacer: Sendable {
         let isInOutput = clip.storyline == nil
         let room = isInOutput ? format.frame : format.content
         let box = self.box(
-            of: clip,
-            side: written.side,
+            of: written,
             area: area,
             track: track,
             parent: parent,
@@ -81,8 +80,7 @@ struct LabelPlacer: Sendable {
     // The shape's box in output pixels: its area, or an arrow's from tail to head. A shape without an area covers the
     // room it is measured against.
     private func box(
-        of clip: ClipPlan,
-        side: Side?,
+        of written: Clip,
         area: PropertyValue<FoundArea>?,
         track: Track?,
         parent: ParentPicture?,
@@ -94,9 +92,12 @@ struct LabelPlacer: Sendable {
         guard let area else { return room }
 
         let rectangle = output(of: area, track: track, parent: parent, at: instant, format: format)
-        guard clip.kind == .shape("arrow"), let side else { return rectangle }
+        guard case .shape(.arrow) = written.content, let side = written.side else { return rectangle }
 
-        return arrow(pointingAt: rectangle, from: side, scale: theme.lengthScale(at: format.size.width), theme: theme)
+        // Theme lengths stay in output pixels under a zoom.
+        let scale = theme.lengthScale(at: format.size.width)
+
+        return Arrow(pointingAt: rectangle, from: side, theme: theme, scale: scale).box
     }
 
     // A sequence clip's area is in output pixels. A parented one is in its picture, carried by its own track, and
@@ -167,20 +168,5 @@ struct LabelPlacer: Sendable {
         let motion = track?.motion(atMediaTime: mediaTime) ?? .identity
 
         return isBand ? motion.carryBand(interpolated) : motion.carry(interpolated)
-    }
-
-    // Theme lengths stay in output pixels under a zoom.
-    private func arrow(
-        pointingAt area: Rectangle,
-        from side: Side,
-        scale: Double,
-        theme: MergedTheme
-    ) -> Rectangle {
-        sideFinder.arrowBox(
-            pointingAt: area,
-            from: side,
-            length: theme.arrowLength * scale,
-            breadth: max(theme.arrowHead, theme.arrowWidth) * scale
-        )
     }
 }

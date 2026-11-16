@@ -86,8 +86,8 @@ extension MergedTheme {
     }
 
     // A shape's theme colour, which a document's `color` replaces.
-    func shapeColor(of shape: String) -> Color {
-        color(value(at: ["shapes", shape, "color"])?.stringValue ?? "accent")
+    func shapeColor(of shape: ShapeKind) -> Color {
+        color(value(at: ["shapes", shape.rawValue, "color"])?.stringValue ?? "accent")
     }
 
     // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the

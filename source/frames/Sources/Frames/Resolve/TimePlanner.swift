@@ -378,7 +378,7 @@ struct TimePlanner: Sendable {
             return ClipSource(kind: .title)
 
         case let .shape(shape):
-            return ClipSource(kind: .shape(shape))
+            return ClipSource(kind: .shape(shape.rawValue))
 
         case .adjust:
             return ClipSource(kind: .adjust)

@@ -43,28 +43,5 @@ struct LabelSideFinder: Sendable {
         }
     }
 
-    // The tip sits at the middle of the area's side, and the box is as wide as the head or the line, whichever is
-    // wider.
-    func arrowBox(
-        pointingAt area: Rectangle,
-        from side: Side,
-        length: Double,
-        breadth: Double
-    ) -> Rectangle {
-        switch side {
-        case .left:
-            Rectangle(x: area.x - length, y: area.center.y - breadth / 2, width: length, height: breadth)
-
-        case .right:
-            Rectangle(x: area.maxX, y: area.center.y - breadth / 2, width: length, height: breadth)
-
-        case .top:
-            Rectangle(x: area.center.x - breadth / 2, y: area.y - length, width: breadth, height: length)
-
-        case .bottom:
-            Rectangle(x: area.center.x - breadth / 2, y: area.maxY, width: breadth, height: length)
-        }
-    }
-
     // MARK: - Private
 }

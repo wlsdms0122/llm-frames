@@ -111,7 +111,7 @@ struct ImagePlanner: Sendable {
             canvas.extend(by: inset, color: theme.color(color ?? "background"))
 
         case let .shape(shape, form, label, side, color):
-            let kind = PlaceKind.operation(shape)
+            let kind = PlaceKind.operation(shape.rawValue)
             let area = try find(form, "area", kind, theme.areaPadding)
             let box = draw(
                 shape,
@@ -239,10 +239,9 @@ struct ImagePlanner: Sendable {
         return cut
     }
 
-    // Draws a shape on its area and gives the box its label is measured beside: the area, or an arrow's from tail to
-    // head, whose tip is at the middle of the area's side.
+    // Draws a shape on its area and gives the box its label is measured beside: the area, or the arrow's.
     private func draw(
-        _ shape: String,
+        _ shape: ShapeKind,
         area: Rectangle,
         side: Side,
         color: Color,
@@ -251,48 +250,29 @@ struct ImagePlanner: Sendable {
         theme: MergedTheme
     ) -> Rectangle {
         switch shape {
-        case "box":
+        case .box:
             canvas.draw(.box(area, width: theme.boxWidth * scale, radius: theme.boxRadius * scale, color: color))
             return area
 
-        case "fill":
+        case .fill:
             canvas.draw(.fill(area, color: color))
             return area
 
-        case "dim":
+        case .dim:
             canvas.draw(.dim(area, color: color))
             return area
 
-        default:
-            let length = theme.arrowLength * scale
-            let tip = area.point(named: side.rawValue)
-            let tail = switch side {
-            case .left:
-                Point(x: tip.x - length, y: tip.y)
-
-            case .right:
-                Point(x: tip.x + length, y: tip.y)
-
-            case .top:
-                Point(x: tip.x, y: tip.y - length)
-
-            case .bottom:
-                Point(x: tip.x, y: tip.y + length)
-            }
+        case .arrow:
+            let arrow = Arrow(pointingAt: area, from: side, theme: theme, scale: scale)
             canvas.draw(.arrow(
-                tail: tail,
-                tip: tip,
+                tail: arrow.tail,
+                tip: arrow.tip,
                 width: theme.arrowWidth * scale,
                 head: theme.arrowHead * scale,
                 color: color
             ))
 
-            return sideFinder.arrowBox(
-                pointingAt: area,
-                from: side,
-                length: length,
-                breadth: max(theme.arrowHead, theme.arrowWidth) * scale
-            )
+            return arrow.box
         }
     }
 
