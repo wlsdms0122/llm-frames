@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import AVFoundation
 import CoreGraphics
 import Foundation
 import Frames
@@ -16,6 +17,14 @@ import Testing
 @Suite("AVFoundationDecoder Tests", .serialized)
 struct AVFoundationDecoderTests {
     // MARK: - Property
+    // A file name, the times frames are written at, the session's start and end, the delay before the video, the
+    // first written frame that is presented, and the probed frame times and duration.
+    private static let editedVideos: [(String, [Double], Double, Double, Double, Int, [Double], Double)] = [
+        ("cut.mov", thirtieths(30), 0.5, 1, 0, 15, thirtieths(15), 0.5),
+        ("reordered.mp4", thirtieths(30), 0, 1, 0, 0, thirtieths(30), 1),
+        ("delayed.mov", thirtieths(15), 0, 0.5, 0.5, 0, thirtieths(15), 0.5)
+    ]
+
     private let size = Size(width: 320, height: 240)
     private let evenTimes = (0..<30).map { Double($0) / 30 }
 
@@ -88,6 +97,42 @@ struct AVFoundationDecoderTests {
         #expect(probed.frames == times)
         #expect(probed.duration == 1.5)
         #expect(pictures.map(code) == Array(times.indices))
+    }
+
+    @Test(
+        "through a moving edit list, media time starts at the first presented frame and frame i is its i-th",
+        arguments: editedVideos
+    )
+    func readsThroughEditList(
+        name: String,
+        written: [Double],
+        start: Double,
+        end: Double,
+        delay: Double,
+        firstPresented: Int,
+        frames: [Double],
+        duration: Double
+    ) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file(name)
+        let writer = VideoWriter(size: size, frameTimes: written, start: start, end: end, delay: delay)
+        try await writer.write(to: file) { canvas, index in
+            canvas.fill(red: 128, green: 128, blue: 128)
+            canvas.drawCode(index < firstPresented ? 63 : index - firstPresented)
+        }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let probed = try #require(sut.probedMedia(of: file))
+        let media = MediaFile(path: file, size: size, frameTimes: probed.frames)
+        let pictures = try probed.frames.indices.map { try sut.picture(of: media, atFrame: $0) }
+
+        // Then
+        #expect(try await edits(of: file).contains { $0.source.start != $0.target.start })
+        #expect(probed.frames == frames)
+        #expect(probed.duration == duration)
+        #expect(pictures.map(code) == Array(frames.indices))
     }
 
     @Test("a turned video reports the size it is displayed at, and its pictures are turned the same way")
@@ -249,6 +294,18 @@ struct AVFoundationDecoderTests {
     }
 
     // MARK: - Private
+    private static func thirtieths(_ count: Int) -> [Double] {
+        (0..<count).map { Double($0) / 30 }
+    }
+
+    // The edits of the file's picture track, an empty one with no source start.
+    private func edits(of file: String) async throws -> [CMTimeMapping] {
+        let asset = AVURLAsset(url: URL(fileURLWithPath: file))
+        let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
+
+        return try await track.load(.segments).map(\.timeMapping)
+    }
+
     // The number `Canvas.drawCode` drew at the top left.
     private func code(in picture: DecodedPicture) -> Int {
         (0..<6).reduce(0) { value, bit in

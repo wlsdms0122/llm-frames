@@ -11,9 +11,12 @@ import CoreVideo
 import Foundation
 import Frames
 
-// Writes an H.264 video tagged BT.709 primaries and the sRGB transfer, whose frame i is presented at `frameTimes[i]`
+// Writes an H.264 video tagged BT.709 primaries and the sRGB transfer, whose frame i is written at `frameTimes[i]`
 // (in multiples of 1/600 second) and drawn by a test in display pixels. `size` is the stored picture, which
 // `transform` turns for display. With `sound` it also holds an AAC track of a 440 Hz tone over the whole video.
+// The writer's session runs from `start` to `end`, so frames written before `start` are held but never presented.
+// `reordersFrames` lets the encoder write B-frames. A `delay` above 0 gives a movie whose edit list shows nothing for
+// that long before the video, its samples in a file beside it.
 package struct VideoWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
@@ -21,9 +24,12 @@ package struct VideoWriter {
 
     private let size: Size
     private let frameTimes: [Double]
+    private let start: Double
     private let end: Double
     private let transform: CGAffineTransform
     private let sound: Bool
+    private let reordersFrames: Bool
+    private let delay: Double
 
     package var displaySize: Size {
         let turned = CGRect(x: 0, y: 0, width: size.width, height: size.height).applying(transform)
@@ -35,15 +41,21 @@ package struct VideoWriter {
     package init(
         size: Size,
         frameTimes: [Double],
+        start: Double = 0,
         end: Double,
         transform: CGAffineTransform = .identity,
-        sound: Bool = false
+        sound: Bool = false,
+        reordersFrames: Bool = true,
+        delay: Double = 0
     ) {
         self.size = size
         self.frameTimes = frameTimes
+        self.start = start
         self.end = end
         self.transform = transform
         self.sound = sound
+        self.reordersFrames = reordersFrames
+        self.delay = delay
     }
 
     // MARK: - Public
@@ -51,7 +63,8 @@ package struct VideoWriter {
         to path: String,
         drawing: (Canvas, Int) -> Void
     ) async throws {
-        let url = URL(fileURLWithPath: path)
+        let samples = delay > 0 ? (path as NSString).deletingPathExtension + "-samples.mov" : path
+        let url = URL(fileURLWithPath: samples)
         let writer = try AVAssetWriter(outputURL: url, fileType: url.pathExtension == "mp4" ? .mp4 : .mov)
         let video = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
@@ -61,6 +74,9 @@ package struct VideoWriter {
                 AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
                 AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2
+            ],
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAllowFrameReorderingKey: reordersFrames
             ]
         ])
         video.transform = transform
@@ -83,7 +99,7 @@ package struct VideoWriter {
             writer.add(audio)
         }
         guard writer.startWriting() else { throw writer.error ?? TestMediaError.unwritable(path) }
-        writer.startSession(atSourceTime: .zero)
+        writer.startSession(atSourceTime: mediaTime(start))
 
         // Sound goes in beside each frame, so the writer can interleave the two.
         for (index, time) in frameTimes.enumerated() {
@@ -110,6 +126,11 @@ package struct VideoWriter {
         writer.endSession(atSourceTime: mediaTime(end))
         await writer.finishWriting()
         guard writer.status == .completed else { throw writer.error ?? TestMediaError.unwritable(path) }
+        guard delay > 0 else { return }
+
+        let movie = AVMutableMovie(url: url)
+        movie.insertEmptyTimeRange(CMTimeRange(start: .zero, duration: mediaTime(delay)))
+        try movie.writeHeader(to: URL(fileURLWithPath: path), fileType: .mov, options: [])
     }
 
     // MARK: - Private

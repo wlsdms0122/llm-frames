@@ -156,11 +156,11 @@ extension AVFoundationDecoder: MediaDecoder {
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
-        let count = video.presentationTimes.count
+        let count = video.frames.count
         guard file.frameTimes.isEmpty || file.frameTimes.count == count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: count)
         }
-        guard video.presentationTimes.indices.contains(index) else {
+        guard video.frames.indices.contains(index) else {
             throw DecoderError.noFrame(file: file.path, index: index, count: count)
         }
 
