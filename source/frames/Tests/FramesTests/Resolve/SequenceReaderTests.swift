@@ -128,7 +128,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(arrow.area == .value(.band(.range(from: "a", fromNth: nil, to: "b", toNth: 1))))
-        #expect(arrow.side == .left)
+        #expect(arrow.content == .shape(.arrow(.left)))
         #expect(arrow.label == "here")
         #expect(arrow.track == .area(.text("c", nth: 2)))
         #expect(title.width == 300)

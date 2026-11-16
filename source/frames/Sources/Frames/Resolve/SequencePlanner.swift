@@ -440,7 +440,7 @@ struct SequencePlanner: Sendable {
         }
         let color: Color? = switch written.content {
         case let .shape(shape):
-            written.color.map(theme.color) ?? theme.shapeColor(of: shape)
+            written.color.map(theme.color) ?? theme.shapeColor(of: shape.kind)
 
         case .media, .title, .adjust:
             nil

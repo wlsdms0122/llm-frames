@@ -248,6 +248,28 @@ struct DocumentPlannerTests {
         #expect(frame == Rectangle(x: 20, y: 20, width: 1000, height: 800))
     }
 
+    @Test("an instance whose shape choice picks an arrow draws it from the side the template writes")
+    func drawsPickedArrowFromWrittenSide() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "image", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "source": "/abs/page.png",
+              "ops": [ { "shape": { "param": "s" }, "area": [100, 100, 100, 100], "side": "top" } ] }
+            """#)
+        let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "s": "arrow" }"#))
+
+        // When
+        let plan = try sut.plan(document, arguments: arguments)
+
+        // Then
+        guard case let .picture(picture) = plan, case let .arrow(tail, tip, _, _, _) = picture.steps.last?.content else {
+            Issue.record("the arrow is not drawn last")
+            return
+        }
+        #expect(tip.x == 150)
+        #expect(tail.x == tip.x)
+        #expect(tail.y < tip.y)
+    }
+
     @Test("a template given as the document without --args needs a default for every parameter")
     func refusesTemplateWithoutArguments() throws {
         // Given

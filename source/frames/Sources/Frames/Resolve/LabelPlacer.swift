@@ -92,7 +92,7 @@ struct LabelPlacer: Sendable {
         guard let area else { return room }
 
         let rectangle = output(of: area, track: track, parent: parent, at: instant, format: format)
-        guard case .shape(.arrow) = written.content, let side = written.side else { return rectangle }
+        guard case let .shape(.arrow(side)) = written.content else { return rectangle }
 
         // Theme lengths stay in output pixels under a zoom.
         let scale = theme.lengthScale(at: format.size.width)

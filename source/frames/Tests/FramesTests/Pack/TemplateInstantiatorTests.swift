@@ -194,6 +194,31 @@ struct TemplateInstantiatorTests {
         #expect(instance.document == expected)
     }
 
+    @Test(
+        "a shape choice of arrows that names its side fills the shape picked and keeps the side",
+        arguments: [
+            (
+                #"{ "kind": "image", "source": "/abs/page.png", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "top" } ] }"#,
+                #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "top" } ] }"#
+            ),
+            (
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "top" } ] }"#,
+                #"{ "kind": "sequence", "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "top" } ] }"#
+            )
+        ]
+    )
+    func fillsShapeChoiceOfArrows(text: String, filled: String) throws {
+        // Given
+        let template = try template(text)
+        let arguments = try Fixture.object(#"{ "s": "arrow" }"#)
+
+        // When
+        let instance = try sut.instance(of: template, arguments: arguments, place: place)
+
+        // Then
+        #expect(instance.document == (try Fixture.json(filled)))
+    }
+
     @Test("media given as an argument is recorded where it stands, and a default is not")
     func recordsGivenMedia() throws {
         // Given

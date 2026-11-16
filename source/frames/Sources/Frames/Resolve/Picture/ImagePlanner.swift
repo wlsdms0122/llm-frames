@@ -110,14 +110,13 @@ struct ImagePlanner: Sendable {
         case let .pad(inset, color):
             canvas.extend(by: inset, color: theme.color(color ?? "background"))
 
-        case let .shape(shape, form, label, side, color):
-            let kind = PlaceKind.shape(shape)
+        case let .shape(shape, form, label, color):
+            let kind = PlaceKind.shape(shape.kind)
             let area = try find(form, "area", kind, theme.areaPadding)
             let box = draw(
                 shape,
                 area: area,
-                side: side ?? .left,
-                color: color.map(theme.color) ?? theme.shapeColor(of: shape),
+                color: color.map(theme.color) ?? theme.shapeColor(of: shape.kind),
                 on: &canvas,
                 scale: scale,
                 theme: theme
@@ -241,9 +240,8 @@ struct ImagePlanner: Sendable {
 
     // Draws a shape on its area and gives the box its label is measured beside: the area, or the arrow's.
     private func draw(
-        _ shape: ShapeKind,
+        _ shape: ShapeForm,
         area: Rectangle,
-        side: Side,
         color: Color,
         on canvas: inout ImageCanvas,
         scale: Double,
@@ -262,7 +260,7 @@ struct ImagePlanner: Sendable {
             canvas.draw(.dim(area, color: color))
             return area
 
-        case .arrow:
+        case let .arrow(side):
             let arrow = Arrow(pointingAt: area, from: side, theme: theme, scale: scale)
             canvas.draw(.arrow(
                 tail: arrow.tail,

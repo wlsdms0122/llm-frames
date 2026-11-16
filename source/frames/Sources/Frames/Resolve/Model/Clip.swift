@@ -27,7 +27,6 @@ struct Clip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
     let label: String?
-    let side: Side?
     let width: Double?
     let opacity: PropertyValue<Double>?
     let scale: PropertyValue<Double>?
@@ -54,7 +53,6 @@ struct Clip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
         label: String? = nil,
-        side: Side? = nil,
         width: Double? = nil,
         opacity: PropertyValue<Double>? = nil,
         scale: PropertyValue<Double>? = nil,
@@ -79,7 +77,6 @@ struct Clip: Equatable, Sendable {
         self.crop = crop
         self.track = track
         self.label = label
-        self.side = side
         self.width = width
         self.opacity = opacity
         self.scale = scale

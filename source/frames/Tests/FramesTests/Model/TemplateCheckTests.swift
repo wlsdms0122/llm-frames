@@ -219,4 +219,55 @@ struct TemplateCheckTests {
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == message)
     }
+
+    @Test(
+        "a shape taken by a choice checks its object with each option's keys, so a box and an arrow together stop",
+        arguments: [
+            (
+                #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } ] }"#,
+                #"ops[0] (arrow): missing key "side""#
+            ),
+            (
+                #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
+                #"ops[0] (box): unknown key "side". Allowed: id, metadata, shape, area, label, color"#
+            ),
+            (
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } ] }"#,
+                #"clips[0] (arrow): missing key "side""#
+            ),
+            (
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
+                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend"#
+            )
+        ]
+    )
+    func checksShapeChoiceWithEachOption(
+        text: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(text)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a shape choice of arrows that names its side passes, with its references taken once",
+        arguments: [
+            #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }"#
+        ]
+    )
+    func acceptsShapeChoiceOfArrows(text: String) throws {
+        // Given
+        let document = try Fixture.json(text)
+
+        // When
+        let references = try sut.check(template: document, place: .root)
+
+        // Then
+        #expect(references.map(\.name) == ["s", "c"])
+    }
 }
