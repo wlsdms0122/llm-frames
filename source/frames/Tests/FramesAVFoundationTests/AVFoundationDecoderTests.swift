@@ -360,6 +360,26 @@ struct AVFoundationDecoderTests {
         )
     }
 
+    @Test("checking a file before rendering refuses a miscounted video and passes one counted as pinned")
+    func checksPinnedCount() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("even.mp4")
+        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) {
+            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]))
+        }
+
+        // Then
+        #expect(
+            error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
+        )
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes)) }
+    }
+
     // MARK: - Private
     private static func thirtieths(_ count: Int) -> [Double] {
         (0..<count).map { Double($0) / 30 }

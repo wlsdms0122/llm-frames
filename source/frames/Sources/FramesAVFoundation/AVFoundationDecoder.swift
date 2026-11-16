@@ -131,4 +131,20 @@ extension AVFoundationDecoder: MediaDecoder {
             depth: video.depth
         )
     }
+
+    package func check(_ file: MediaFile) throws {
+        if !file.frameFiles.isEmpty {
+            for path in file.frameFiles {
+                guard try StillReader(path: path) != nil else { throw DecoderError.unreadable(file: path) }
+            }
+
+            return
+        }
+        if try StillReader(path: file.path) != nil { return }
+
+        guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
+        guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
+            throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
+        }
+    }
 }

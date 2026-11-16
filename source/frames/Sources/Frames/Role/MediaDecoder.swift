@@ -14,4 +14,8 @@ package protocol MediaDecoder: Sendable {
         of file: MediaFile,
         atFrame index: Int
     ) throws -> Bitmap
+
+    // Refuses, before any frame is read, a file it cannot read or a video whose frames count differently from the
+    // pinned `frameTimes`.
+    func check(_ file: MediaFile) throws
 }
