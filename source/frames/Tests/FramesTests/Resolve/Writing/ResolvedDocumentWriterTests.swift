@@ -21,12 +21,13 @@ struct ResolvedDocumentWriterTests {
     ]))
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
-    // title that pops in, and looping music that fades out.
+    // title that pops in, a picture with a border in the centre, and looping music that fades out.
     private let sequence = #"""
         { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "pop", "position": [75.4, 1709.8] },
+                     { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
@@ -163,6 +164,72 @@ struct ResolvedDocumentWriterTests {
                 "loop": null,
                 "exit": null
               }
+            },
+            {
+              "place": "clips[1]",
+              "id": null,
+              "media": {
+                "file": "/abs/page.png",
+                "sha256": "5d17e0a9b2c4"
+              },
+              "filter": [],
+              "conform": "fit",
+              "radius": 0,
+              "border": {
+                "width": 2.6865671641791047,
+                "color": "#D9D9D9FF"
+              },
+              "shadow": null,
+              "start": 0,
+              "end": 3,
+              "lane": 1,
+              "parent": null,
+              "area": null,
+              "size": [200, 160],
+              "position": [
+                {
+                  "at": 0,
+                  "value": [440, 880],
+                  "ease": "linear"
+                }
+              ],
+              "anchor": [100, 80],
+              "crop": [
+                {
+                  "at": 0,
+                  "value": [0, 0, 1000, 800],
+                  "ease": "linear"
+                }
+              ],
+              "track": null,
+              "label": null,
+              "opacity": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                }
+              ],
+              "scale": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                }
+              ],
+              "rotation": [
+                {
+                  "at": 0,
+                  "value": 0,
+                  "ease": "linear"
+                }
+              ],
+              "blend": "normal",
+              "animation": {
+                "entrance": null,
+                "loop": null,
+                "exit": null
+              }
             }
           ],
           "audio": [
@@ -193,7 +260,7 @@ struct ResolvedDocumentWriterTests {
               "outgoing": null
             },
             {
-              "place": "clips[1]",
+              "place": "clips[2]",
               "media": {
                 "file": "/abs/bgm.m4a",
                 "sha256": "c07d9a1e44f2"
