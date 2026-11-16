@@ -6,13 +6,13 @@
 //
 
 // An outline around the glyphs, its width in output pixels.
-struct TextStroke: Equatable, Sendable {
+package struct TextStroke: Equatable, Sendable {
     // MARK: - Property
-    let width: Double
-    let color: Color
+    package let width: Double
+    package let color: Color
 
     // MARK: - Initializer
-    init(
+    package init(
         width: Double,
         color: Color
     ) {

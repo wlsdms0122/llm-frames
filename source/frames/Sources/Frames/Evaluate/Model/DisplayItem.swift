@@ -8,17 +8,17 @@
 // One drawing step of a display list. `transform` carries the item's own coordinates into output pixels, `blend` is
 // its blend mode by name, `mask` a rectangle in output pixels it is cut to, and `reveal` a rectangle in its own
 // coordinates, before the transform, outside which nothing of it shows, so a wipe turns with the item.
-struct DisplayItem: Equatable, Sendable {
+package struct DisplayItem: Equatable, Sendable {
     // MARK: - Property
-    let transform: AffineTransform
-    let opacity: Double
-    let blend: String
-    let mask: Rectangle?
-    let reveal: Rectangle?
-    let content: DisplayContent
+    package let transform: AffineTransform
+    package let opacity: Double
+    package let blend: String
+    package let mask: Rectangle?
+    package let reveal: Rectangle?
+    package let content: DisplayContent
 
     // MARK: - Initializer
-    init(
+    package init(
         transform: AffineTransform = .identity,
         opacity: Double = 1,
         blend: String = "normal",

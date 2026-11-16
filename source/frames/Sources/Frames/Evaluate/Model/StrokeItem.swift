@@ -7,16 +7,16 @@
 
 // The outline of a rectangle with corners of `radius`, `width` wide and centred on its edge, drawn from the top left
 // clockwise as far as `trim` of its length (0 to 1).
-struct StrokeItem: Equatable, Sendable {
+package struct StrokeItem: Equatable, Sendable {
     // MARK: - Property
-    let rectangle: Rectangle
-    let radius: Double
-    let width: Double
-    let color: Color
-    let trim: Double
+    package let rectangle: Rectangle
+    package let radius: Double
+    package let width: Double
+    package let color: Color
+    package let trim: Double
 
     // MARK: - Initializer
-    init(
+    package init(
         rectangle: Rectangle,
         radius: Double,
         width: Double,

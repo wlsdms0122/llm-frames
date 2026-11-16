@@ -8,11 +8,13 @@
 // Plans the sound of a sequence from its audio entries, with no file opened. A sound with media is heard as segments of
 // its own, and a nested sequence's sounds are heard through it: their times mapped through its clock, cut to where it
 // is heard, and their gains multiplied by its own.
-struct MixPlanner: Sendable {
+package struct MixPlanner: Sendable {
     // MARK: - Property
     // MARK: - Initializer
+    package init() { }
+
     // MARK: - Public
-    func mix(of sequence: ResolvedSequence) -> MixPlan {
+    package func mix(of sequence: ResolvedSequence) -> MixPlan {
         let output = MixPath(
             layers: [],
             heard: TimeRange(start: 0, end: sequence.format.duration),

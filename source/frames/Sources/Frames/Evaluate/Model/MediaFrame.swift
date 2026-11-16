@@ -6,10 +6,10 @@
 //
 
 // One frame of pinned media by its index in frame order. A still has the one frame 0.
-struct MediaFrame: Equatable, Sendable {
+package struct MediaFrame: Equatable, Sendable {
     // MARK: - Property
-    let media: PinnedMedia
-    let index: Int
+    package let media: PinnedMedia
+    package let index: Int
 
     // The file the frame is read from: the media file itself, or an image sequence's file at the index.
     var file: PinnedFile {
@@ -23,7 +23,7 @@ struct MediaFrame: Equatable, Sendable {
     }
 
     // MARK: - Initializer
-    init(
+    package init(
         media: PinnedMedia,
         index: Int
     ) {

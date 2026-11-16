@@ -7,16 +7,16 @@
 
 // A straight arrow from `tail` to the tip of its head at `head`, its line `width` wide and its head `headSize` long
 // and wide.
-struct ArrowItem: Equatable, Sendable {
+package struct ArrowItem: Equatable, Sendable {
     // MARK: - Property
-    let tail: Point
-    let head: Point
-    let width: Double
-    let headSize: Double
-    let color: Color
+    package let tail: Point
+    package let head: Point
+    package let width: Double
+    package let headSize: Double
+    package let color: Color
 
     // MARK: - Initializer
-    init(
+    package init(
         tail: Point,
         head: Point,
         width: Double,

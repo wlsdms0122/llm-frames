@@ -8,7 +8,7 @@
 // Evaluates a resolved document into the display list of one output frame, every value sampled. A sequence is drawn
 // at a sequence time, and an image or layout gives the same list at any time. Lists nested in it, for storyline units,
 // compound clips and pictures, carry its seed.
-struct Evaluator: Sendable {
+package struct Evaluator: Sendable {
     // MARK: - Property
     // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
     private static let transparent = Color(written: "#00000000")
@@ -18,10 +18,10 @@ struct Evaluator: Sendable {
     private let transitionSampler = TransitionSampler()
 
     // MARK: - Initializer
-    init() { }
+    package init() { }
 
     // MARK: - Public
-    func displayList(
+    package func displayList(
         of document: ResolvedDocument,
         at time: Double
     ) -> DisplayList {
