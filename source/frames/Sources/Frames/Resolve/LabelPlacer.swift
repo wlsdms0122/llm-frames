@@ -157,8 +157,7 @@ struct LabelPlacer: Sendable {
             )
         }
 
-        // A crop holds a value or at least one keyframe, so the keyframes always give one.
-        let interpolated = (KeyframeTrack(keyframes: keyframes).value(at: instant) ?? keyframes[0].value).rectangle
+        let interpolated = keyframes.value(at: instant).rectangle
         let motion = track?.motion(atMediaTime: mediaTime) ?? .identity
 
         return isBand ? motion.carryBandCrop(interpolated) : motion.carry(interpolated)
@@ -192,8 +191,7 @@ struct LabelPlacer: Sendable {
             )
         }
 
-        // A property holds a value or at least one keyframe, so the keyframes always give one.
-        let interpolated = KeyframeTrack(keyframes: keyframes).value(at: instant) ?? keyframes[0].value
+        let interpolated = keyframes.value(at: instant)
         let motion = track?.motion(atMediaTime: mediaTime) ?? .identity
 
         return isBand ? motion.carryBand(interpolated) : motion.carry(interpolated)

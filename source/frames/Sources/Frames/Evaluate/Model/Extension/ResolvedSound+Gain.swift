@@ -18,7 +18,7 @@ extension ResolvedSound {
     // MARK: - Initializer
     // MARK: - Public
     func gain(at time: Double) -> Double {
-        let level = KeyframeTrack(keyframes: volume).value(at: time) ?? 1
+        let level = volume.value(at: time)
         let rising = [fadeIn, incoming].compactMap { $0 }.map { ramp(at: time, from: $0.start, to: $0.end) }
         let falling = [fadeOut, outgoing].compactMap { $0 }.map { ramp(at: time, from: $0.end, to: $0.start) }
 
