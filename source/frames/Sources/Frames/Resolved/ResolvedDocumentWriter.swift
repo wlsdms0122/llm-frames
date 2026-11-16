@@ -9,15 +9,15 @@
 // `"resolved"` second, set to the version of this frames. The same plan and the same files give the same bytes.
 struct ResolvedDocumentWriter: Sendable {
     // MARK: - Property
-    private let sequences: SequenceWriter
-    private let pictures: PictureWriter
+    private let sequences: ResolvedSequenceWriter
+    private let pictures: ResolvedPictureWriter
     private let writer = JSONWriter()
 
     // MARK: - Initializer
     init(hashes: any FileHashProvider) {
         let values = ResolvedValueWriter(hashes: hashes)
-        self.sequences = SequenceWriter(values: values)
-        self.pictures = PictureWriter(values: values)
+        self.sequences = ResolvedSequenceWriter(values: values)
+        self.pictures = ResolvedPictureWriter(values: values)
     }
 
     // MARK: - Public

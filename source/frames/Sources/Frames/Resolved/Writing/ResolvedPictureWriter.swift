@@ -1,5 +1,5 @@
 //
-//  PictureWriter.swift
+//  ResolvedPictureWriter.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
@@ -8,7 +8,7 @@
 // Writes what resolve decided for an image or layout document as the members of its resolved document after `kind`:
 // its final size and its drawing steps in operation order, in output pixels, each with what it draws under `draw` and
 // the canvas it is clipped to under `clip`.
-struct PictureWriter: Sendable {
+struct ResolvedPictureWriter: Sendable {
     // MARK: - Property
     private let values: ResolvedValueWriter
 

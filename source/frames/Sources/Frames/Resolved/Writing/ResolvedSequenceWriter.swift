@@ -1,5 +1,5 @@
 //
-//  SequenceWriter.swift
+//  ResolvedSequenceWriter.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
@@ -9,16 +9,16 @@
 // storyline, its other clips in document order, and every source of sound. Instants are sequence time, media keeps
 // `in`, `out` and `speed` in media time, and a compound clip, a template instance or a document met as media carries
 // its nested resolved document in place of a file. Audio clips are drawn by nothing, so they are written as sound only.
-struct SequenceWriter: Sendable {
+struct ResolvedSequenceWriter: Sendable {
     // MARK: - Property
     private let values: ResolvedValueWriter
-    private let pictures: PictureWriter
+    private let pictures: ResolvedPictureWriter
     private let conformer = CropConformer()
 
     // MARK: - Initializer
     init(values: ResolvedValueWriter) {
         self.values = values
-        self.pictures = PictureWriter(values: values)
+        self.pictures = ResolvedPictureWriter(values: values)
     }
 
     // MARK: - Public

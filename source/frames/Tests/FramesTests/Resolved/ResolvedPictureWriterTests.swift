@@ -1,5 +1,5 @@
 //
-//  PictureWriterTests.swift
+//  ResolvedPictureWriterTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/16/26.
@@ -9,8 +9,8 @@ import Testing
 
 @testable import Frames
 
-@Suite("PictureWriter Tests")
-struct PictureWriterTests {
+@Suite("ResolvedPictureWriter Tests")
+struct ResolvedPictureWriterTests {
     // MARK: - Property
     private let sut = ResolvedDocumentWriter(hashes: FileHashTable(["/abs/page.png": "c07d9a1e44f2"]))
 

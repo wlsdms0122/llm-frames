@@ -1,5 +1,5 @@
 //
-//  SequenceWriterTests.swift
+//  ResolvedSequenceWriterTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/16/26.
@@ -9,8 +9,8 @@ import Testing
 
 @testable import Frames
 
-@Suite("SequenceWriter Tests")
-struct SequenceWriterTests {
+@Suite("ResolvedSequenceWriter Tests")
+struct ResolvedSequenceWriterTests {
     // MARK: - Property
     private let sut = ResolvedDocumentWriter(hashes: FileHashTable(["/abs/run.mp4": "9f2c41d07b3e"]))
 
