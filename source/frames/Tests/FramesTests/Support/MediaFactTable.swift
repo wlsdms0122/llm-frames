@@ -7,18 +7,18 @@
 
 @testable import Frames
 
-// A fake probe: the facts of each file and the number of frames in each image sequence directory, whose frames are
-// all `imageSequenceSize`.
+// A fake probe: the facts of each file and the frame files of each image sequence directory, in natural order, whose
+// frames are all `imageSequenceSize`.
 struct MediaFactTable: MediaFactProvider {
     // MARK: - Property
     let files: [String: ProbedMedia]
-    let imageSequences: [String: Int]
+    let imageSequences: [String: [String]]
     let imageSequenceSize = Size(width: 1080, height: 1920)
 
     // MARK: - Initializer
     init(
         files: [String: ProbedMedia],
-        imageSequences: [String: Int] = [:]
+        imageSequences: [String: [String]] = [:]
     ) {
         self.files = files
         self.imageSequences = imageSequences
@@ -30,7 +30,7 @@ struct MediaFactTable: MediaFactProvider {
     }
 
     func probedImageSequence(at directory: String) -> ProbedImageSequence? {
-        imageSequences[directory].map { ProbedImageSequence(frameCount: $0, size: imageSequenceSize) }
+        imageSequences[directory].map { ProbedImageSequence(files: $0, size: imageSequenceSize) }
     }
 
     // MARK: - Private

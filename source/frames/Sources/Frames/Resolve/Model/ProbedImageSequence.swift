@@ -5,18 +5,19 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The probed facts of an image sequence directory: how many frames it holds and the size of their picture.
+// The probed facts of an image sequence directory: the absolute path of each of its frames, every PNG in the directory
+// in natural order, and the size of their picture.
 struct ProbedImageSequence: Equatable, Sendable {
     // MARK: - Property
-    let frameCount: Int
+    let files: [String]
     let size: Size
 
     // MARK: - Initializer
     init(
-        frameCount: Int,
+        files: [String],
         size: Size
     ) {
-        self.frameCount = frameCount
+        self.files = files
         self.size = size
     }
 

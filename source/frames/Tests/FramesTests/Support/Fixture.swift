@@ -64,8 +64,11 @@ enum Fixture {
             ),
             "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800))
         ],
-        imageSequences: ["/abs/frames": 12]
+        imageSequences: ["/abs/frames": imageSequenceFiles]
     )
+
+    // Twelve frames in natural order, so frame 10 comes after frame 9.
+    static let imageSequenceFiles = (1...12).map { "/abs/frames/frame-\($0).png" }
 
     // A screen recording at 10 frames a second, whose frame i starts at media second i / 10.
     static let screenFrameTimes = (0..<40).map { Double($0) / 10 }

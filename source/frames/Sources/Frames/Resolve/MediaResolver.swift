@@ -71,7 +71,7 @@ struct MediaResolver: Sendable {
             }
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
-            let duration = Double(probed.frameCount) / fps
+            let duration = Double(probed.files.count) / fps
             return ResolvedMedia(
                 kind: .video,
                 reference: reference,
@@ -80,7 +80,8 @@ struct MediaResolver: Sendable {
                 fps: fps,
                 frames: 0...max(duration - 1 / fps, 0),
                 size: probed.size,
-                frameTimes: (0..<probed.frameCount).map { Double($0) / fps }
+                frameTimes: probed.files.indices.map { Double($0) / fps },
+                frameFiles: probed.files
             )
 
         case let .compound(document):

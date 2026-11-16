@@ -42,7 +42,9 @@ struct DocumentPlannerTests {
                 media.appendingPathComponent("leak.mov").path: ProbedMedia(kind: .video, duration: 4, fps: 24, size: Size(width: 1080, height: 1920)),
                 "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920))
             ],
-            imageSequences: [media.appendingPathComponent("frames").path: 12]
+            imageSequences: [
+                media.appendingPathComponent("frames").path: (1...12).map { media.appendingPathComponent("frames/\($0).png").path }
+            ]
         )
         sut = DocumentPlanner(
             mediaFacts: mediaFacts,
