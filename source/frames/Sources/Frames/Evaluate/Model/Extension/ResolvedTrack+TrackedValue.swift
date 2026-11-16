@@ -27,9 +27,7 @@ extension ResolvedTrack {
             )
         }
 
-        // A property holds at least one keyframe, so the keyframes always give one.
-        let interpolated = KeyframeTrack(keyframes: brought).value(at: time) ?? brought[0].value
-        return carry(interpolated, toMediaTime: entry.mediaTime(at: time))
+        return carry(brought.value(at: time), toMediaTime: entry.mediaTime(at: time))
     }
 
     func point(
@@ -45,9 +43,7 @@ extension ResolvedTrack {
             )
         }
 
-        // A property holds at least one keyframe, so the keyframes always give one.
-        let interpolated = KeyframeTrack(keyframes: brought).value(at: time) ?? brought[0].value
-        return carry(point: interpolated, toMediaTime: entry.mediaTime(at: time))
+        return carry(point: brought.value(at: time), toMediaTime: entry.mediaTime(at: time))
     }
 
     // MARK: - Private

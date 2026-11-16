@@ -19,7 +19,7 @@ struct ShapeEvaluatorTests {
 
     private let sut = ShapeEvaluator()
 
-    private let space = ClipSpace(room: Self.room)
+    private let space = ClipSpace.output(room: Self.room, frame: Self.room)
     private let text = ResolvedText(size: Size(width: 30, height: 10), lineCount: 1, background: nil, stroke: nil, runs: [])
 
     // MARK: - Initializer

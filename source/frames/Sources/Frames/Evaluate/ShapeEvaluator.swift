@@ -28,30 +28,34 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> [DisplayItem] {
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let shapeArea = area ?? space.room
-        let box = drawer.content(of: drawing, on: shapeArea).box
-        let presentation = ItemPresentation(area: box, opacity: sample.opacity, motion: sample.animation.motion)
-        let shape = item(of: drawing, area: area, in: space, sample: sample, presentation: presentation)
+        let drawn = drawer.content(of: drawing, on: area ?? space.room)
+        let presentation = ItemPresentation(area: drawn.box, opacity: sample.opacity, motion: sample.animation.motion)
+        // A drawer lays a shape drawing only as a box, fill, dim or arrow step.
+        guard let shape = item(of: drawn.content, area: area, in: space, sample: sample, presentation: presentation)
+        else {
+            return []
+        }
         guard let label = clip.label else { return [shape] }
 
-        return [shape, labelItem(of: label, beside: box, sample: sample, presentation: presentation, at: time)]
+        return [shape, labelItem(of: label, beside: drawn.box, sample: sample, presentation: presentation, at: time)]
     }
 
     // MARK: - Private
+    // The item of the step the drawer laid the shape as, on the shape's area or the room. `area` is the shape's own
+    // area, nil without one.
     private func item(
-        of drawing: ShapeDrawing,
+        of content: DrawingContent,
         area: Rectangle?,
         in space: ClipSpace,
         sample: ClipSample,
         presentation: ItemPresentation
-    ) -> DisplayItem {
-        let shapeArea = area ?? space.room
+    ) -> DisplayItem? {
         let reveal = sample.animation.reveal
 
-        switch drawing {
-        case let .box(width, radius, color):
+        switch content {
+        case let .box(rectangle, width, radius, color):
             let stroke = StrokeItem(
-                rectangle: shapeArea,
+                rectangle: rectangle,
                 radius: radius,
                 width: width,
                 color: color,
@@ -64,16 +68,16 @@ struct ShapeEvaluator: Sendable {
                 content: .stroke(stroke)
             )
 
-        case let .fill(color):
+        case let .fill(rectangle, color):
             return DisplayItem(
                 transform: presentation.transform,
                 opacity: presentation.opacity,
                 blend: sample.blend,
-                reveal: reveal.rectangle(wiping: shapeArea, from: sample.animation.revealFrom),
-                content: .fill(FillItem(rectangle: shapeArea, color: color))
+                reveal: reveal.rectangle(wiping: rectangle, from: sample.animation.revealFrom),
+                content: .fill(FillItem(rectangle: rectangle, color: color))
             )
 
-        case let .dim(color):
+        case let .dim(_, color):
             // Without an area a dim darkens the whole room.
             let hole = area.map { area in
                 RoundedRectangle(rectangle: reveal.hole(closingFrom: space.room, to: area), radius: 0)
@@ -86,9 +90,8 @@ struct ShapeEvaluator: Sendable {
                 content: .fill(fill)
             )
 
-        case let .arrow(side, length, width, head, color):
-            let arrow = Arrow(pointingAt: shapeArea, from: side, length: length, breadth: max(head, width))
-            let item = ArrowItem(arrow: arrow, width: width, headSize: head, color: color)
+        case let .arrow(tail, tip, width, head, color):
+            let item = ArrowItem(tail: tail, head: tip, width: width, headSize: head, color: color)
                 .moved(by: sample.animation.motion)
             return DisplayItem(
                 transform: presentation.transform,
@@ -96,6 +99,9 @@ struct ShapeEvaluator: Sendable {
                 blend: sample.blend,
                 content: .arrow(item)
             )
+
+        case .picture, .adjustment, .text, .border:
+            return nil
         }
     }
 
