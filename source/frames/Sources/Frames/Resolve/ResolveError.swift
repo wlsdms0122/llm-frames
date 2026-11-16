@@ -39,6 +39,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
     case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side], room: String)
+    case unreadableFile(path: String)
 
     // MARK: - Property
     var description: String {
@@ -158,6 +159,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .labelWithoutRoom(place, kind, label, sides, room):
             "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the \(room) on none of the sides "
                 + sides.map(\.rawValue).joined(separator: ", ")
+
+        case let .unreadableFile(path):
+            "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"
         }
     }
 
