@@ -8,7 +8,7 @@
 // A connected or sequence clip on the sequence clock. `window` is where its `at` puts it, and `visible` is the part of
 // the window it is seen or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and
 // `clock` maps its instants to sequence time. `instant` is where its areas take effect: the start of its window, or its
-// storyline clip's `in` when it has no `at`. `keyframes` are in sequence time.
+// storyline clip's `in` when it has no `at`. `keyframes` are in sequence time. `labelAnimation` is a shape's label's own animation, none without a label.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -22,6 +22,7 @@ struct ClipPlan: Equatable, Sendable {
     let visible: TimeRange
     let instant: Double
     let animation: AnimationPlan
+    let labelAnimation: AnimationPlan
     let media: ResolvedMedia?
     let timing: MediaTiming?
     let keyframes: [KeyframeInstant]
@@ -39,6 +40,7 @@ struct ClipPlan: Equatable, Sendable {
         visible: TimeRange,
         instant: Double,
         animation: AnimationPlan,
+        labelAnimation: AnimationPlan = .none,
         media: ResolvedMedia?,
         timing: MediaTiming?,
         keyframes: [KeyframeInstant]
@@ -54,6 +56,7 @@ struct ClipPlan: Equatable, Sendable {
         self.visible = visible
         self.instant = instant
         self.animation = animation
+        self.labelAnimation = labelAnimation
         self.media = media
         self.timing = timing
         self.keyframes = keyframes
@@ -73,6 +76,7 @@ struct ClipPlan: Equatable, Sendable {
             visible: visible,
             instant: instant,
             animation: animation,
+            labelAnimation: labelAnimation,
             media: media,
             timing: timing,
             keyframes: keyframes

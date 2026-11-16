@@ -56,7 +56,7 @@ struct LabelPlacer: Sendable {
             )
         }
 
-        return LabelPlan(side: side, instant: instant, text: text)
+        return LabelPlan(side: side, instant: instant, text: text, animation: clip.labelAnimation)
     }
 
     // MARK: - Private
