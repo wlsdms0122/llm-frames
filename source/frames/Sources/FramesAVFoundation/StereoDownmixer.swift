@@ -8,9 +8,9 @@
 import AVFoundation
 import Frames
 
-// Maps a sound's channels onto stereo. One channel plays at the same level on both, two play as they are, and more are
-// downmixed by ITU-R BS.775: a centre at 0.7071 into both, a surround at 0.7071 into its side, a centre surround at 0.5
-// into both, and the low frequency effects dropped.
+// Maps a sound's channels onto stereo. One channel plays at the same level on both, and any other layout is mixed by
+// its labels, by ITU-R BS.775: left and right on their own sides, a centre at 0.7071 into both, a surround at 0.7071
+// into its side, a centre surround at 0.5 into both, and the low frequency effects dropped.
 struct StereoDownmixer {
     // MARK: - Property
     private static let minusThreeDecibels: Float = 0.7071
@@ -20,18 +20,15 @@ struct StereoDownmixer {
     // MARK: - Initializer
     // Nil for a layout with a channel BS.775 names no speaker for.
     init?(layout: ChannelLayout) {
-        switch layout.labels.count {
-        case 1:
+        guard layout.labels.count != 1 else {
             gains = [(1, 1)]
-
-        case 2:
-            gains = [(1, 0), (0, 1)]
-
-        default:
-            let gains = layout.labels.map(Self.gains(of:))
-            guard !gains.contains(where: { $0 == nil }) else { return nil }
-            self.gains = gains.compactMap { $0 }
+            return
         }
+
+        let gains = layout.labels.map(Self.gains(of:))
+        guard !gains.contains(where: { $0 == nil }) else { return nil }
+
+        self.gains = gains.compactMap { $0 }
     }
 
     // MARK: - Public
