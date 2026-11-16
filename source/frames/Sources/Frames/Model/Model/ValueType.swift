@@ -12,6 +12,7 @@ indirect enum ValueType: Equatable, Sendable {
     case bool
     case number
     case positiveNumber
+    case nonNegativeNumber
     case integer
     case pixels
     case text

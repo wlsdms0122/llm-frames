@@ -120,6 +120,9 @@ struct KeyChecker: Sendable {
         case .positiveNumber:
             guard let number = value.numberValue, number > 0 else { throw wrongType(value, type, place, kind) }
 
+        case .nonNegativeNumber:
+            guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
+
         case .integer:
             // A whole number that does not fit an integer could not be read as one.
             guard let number = value.numberValue, Int(exactly: number) != nil else {
@@ -899,7 +902,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .integer, .pixels, .inset:
+        case .number, .positiveNumber, .nonNegativeNumber, .integer, .pixels, .inset:
             parameterType == "number"
 
         default:
@@ -939,7 +942,8 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.integer, .number), (.pixels, .number):
+        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number),
+             (.pixels, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -998,6 +1002,9 @@ struct KeyChecker: Sendable {
 
         case .positiveNumber:
             "a number above 0"
+
+        case .nonNegativeNumber:
+            "a number, 0 or more"
 
         case .integer:
             "a whole number"

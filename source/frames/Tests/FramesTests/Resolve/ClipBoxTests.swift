@@ -219,6 +219,20 @@ struct ClipBoxTests {
         #expect(error == .parentWithoutPosition(place: place, kind: .clip(.media(.image))))
     }
 
+    @Test("a media clip whose crop has no width stops at the crop, so the box it sizes is never empty")
+    func refusesEmptyCrop() throws {
+        // When, Then
+        let error = #expect(throws: AreaError.self) {
+            try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "crop": [100, 100, 0, 200] }"#)
+        }
+        #expect(error == .outsidePicture(
+            place: Place.root.appending(key: "clips").appending(index: 0).appending(key: "crop"),
+            kind: "image",
+            rectangle: Rectangle(x: 100, y: 100, width: 0, height: 200),
+            size: Size(width: 1080, height: 1350)
+        ))
+    }
+
     // MARK: - Private
     private func box(of clip: String) throws -> ClipBox? {
         try geometry(of: clip).box

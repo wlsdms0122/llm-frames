@@ -429,4 +429,39 @@ struct SequenceCheckTests {
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == "storyline[1].transition.seconds (transition choice): expected a number above 0, found 0")
     }
+
+    @Test(
+        "a media clip's width and height are above 0 and its radius 0 or more",
+        arguments: [
+            (#""width": 0"#, "clips[0].width (image): expected a number above 0, found 0"),
+            (#""width": -300"#, "clips[0].width (image): expected a number above 0, found -300"),
+            (#""height": 0"#, "clips[0].height (image): expected a number above 0, found 0"),
+            (#""width": 300, "height": -1"#, "clips[0].height (image): expected a number above 0, found -1"),
+            (#""radius": -8"#, "clips[0].radius (image): expected a number, 0 or more, found -8")
+        ]
+    )
+    func refusesEmptyMediaBox(
+        keys: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/card.png", "at": [0, 1], \#(keys) } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a media clip's radius of 0 leaves square corners")
+    func admitsZeroRadius() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/card.png", "at": [0, 1], "radius": 0 } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
 }
