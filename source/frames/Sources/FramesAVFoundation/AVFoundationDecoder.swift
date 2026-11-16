@@ -12,12 +12,13 @@ import Frames
 import os
 
 // The `avfoundation` decoder: probes media files and image sequence directories, and reads their frames by index as
-// pictures in the working space. A still is read with ImageIO, its orientation applied, and a video with AVFoundation,
-// its preferred transform applied. A video is loaded once and kept.
+// pictures in the working space, and their sound. A still is read with ImageIO, its orientation applied, and a video
+// with AVFoundation, its preferred transform applied. A video and a sound track are loaded once and kept.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     private let converter = PictureConverter()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
+    private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
 
     // MARK: - Initializer
     package init() {}
@@ -30,6 +31,14 @@ package final class AVFoundationDecoder: Sendable {
         videos.withLock { $0[path] = video }
 
         return video
+    }
+
+    private func soundTrack(at path: String) throws -> SoundReader {
+        if let sound = sounds.withLock({ $0[path] }) { return sound }
+        guard let sound = try SoundReader(path: path) else { throw DecoderError.noSound(file: path) }
+        sounds.withLock { $0[path] = sound }
+
+        return sound
     }
 
     private func picture(of still: StillReader, path: String) throws -> Bitmap {
@@ -142,9 +151,22 @@ extension AVFoundationDecoder: MediaDecoder {
         }
         if try StillReader(path: file.path) != nil { return }
 
-        guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
+        // A file without a picture track is sound, or no media at all.
+        guard let video = try video(at: file.path) else {
+            guard (try? soundTrack(at: file.path)) != nil else { throw DecoderError.unreadable(file: file.path) }
+
+            return
+        }
         guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
         }
+    }
+
+    package func sound(
+        of file: String,
+        from start: Double,
+        to end: Double
+    ) throws -> SoundBuffer {
+        try soundTrack(at: file).sound(from: start, to: end, path: file)
     }
 }

@@ -136,7 +136,7 @@ struct FilterChain: Sendable {
         library: KernelLibrary
     ) throws -> CIImage {
         let name = "filterLookUp"
-        let kernel = try library.generalKernel(named: name)
+        let kernel = try library.kernel(named: name)
         let tableExtent = table.image.extent
         let arguments: [Any] = [image, table.image, Double(table.size), table.domainMin, table.domainMax, amount]
         guard let result = kernel.apply(
@@ -168,8 +168,8 @@ struct FilterChain: Sendable {
         )
         let meanName = "filterBlockMean"
         let fillName = "filterBlockFill"
-        let mean = try library.generalKernel(named: meanName)
-        let fill = try library.generalKernel(named: fillName)
+        let mean = try library.kernel(named: meanName)
+        let fill = try library.kernel(named: fillName)
         guard let blocks = mean.apply(
             extent: blockExtent,
             roiCallback: { _, rect in
