@@ -17,6 +17,8 @@ struct FilterChainTests {
     // MARK: - Property
     // A few 1/65535: the kernels compute in 32-bit floats.
     private let tolerance: Float = 4 / 65535
+    // Core Image's blur of a step edge lies within 0.0018 of the continuous Gaussian at deviations 2, 3 and 5.
+    private let blurTolerance: Float = 0.003
 
     // Unpremultiplied colours with their alpha, the last one half transparent.
     private let colors: [[Float]] = [
@@ -90,9 +92,12 @@ struct FilterChainTests {
     @Test("the operations apply in order, so contrast then saturation differs from saturation then contrast")
     func appliesInOrder() throws {
         // Given
-        let grid = PixelGrid(width: 1, height: 1, color: [0.9, 0.3, 0.1, 1])
-        let contrast = ResolvedFilterOperation.contrast(amount: 1.8)
-        let saturation = ResolvedFilterOperation.saturation(amount: 1.6)
+        // Contrast and saturation commute while nothing clamps, as the luma weights sum to 1, so the colour is chosen
+        // for contrast to clamp red and blue before saturation reads them.
+        let color: [Float] = [0.9, 0.2, 0.1, 1]
+        let grid = PixelGrid(width: 1, height: 1, color: color)
+        let contrast = ResolvedFilterOperation.contrast(amount: 2)
+        let saturation = ResolvedFilterOperation.saturation(amount: 0.5)
         let sut = FilterChain()
 
         // When
@@ -100,7 +105,6 @@ struct FilterChainTests {
         let second = PixelGrid(rendering: try sut.apply([saturation, contrast], to: grid.image, seed: 0))
 
         // Then
-        let color: [Float] = [0.9, 0.3, 0.1, 1]
         let expectedFirst = expectedColor(of: saturation, expectedColor(of: contrast, color) + [1])
         let expectedSecond = expectedColor(of: contrast, expectedColor(of: saturation, color) + [1])
         for channel in 0..<3 {
@@ -183,10 +187,9 @@ struct FilterChainTests {
         let result = PixelGrid(rendering: try sut.apply([.blur(radius: radius)], to: grid.image, seed: 0))
 
         // Then
-        // Core Image's blur is an approximation of the Gaussian, measured within 0.006 of it here.
         for column in 0..<64 {
             let expected = Float(gaussianStep(at: Double(column) + 0.5, edge: 32, deviation: radius))
-            #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < 0.006, "column \(column)")
+            #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < blurTolerance, "column \(column)")
         }
     }
 
@@ -207,11 +210,13 @@ struct FilterChainTests {
         let result = PixelGrid(rendering: try sut.apply([operation], to: grid.image, seed: 0))
 
         // Then
+        // The blur's error is scaled by amount.
+        let sharpenTolerance = blurTolerance * Float(amount)
         for column in 0..<64 {
             let value = Double(column) + 0.5 < 32 ? 0.0 : 1.0
             let blurred = gaussianStep(at: Double(column) + 0.5, edge: 32, deviation: radius)
             let expected = Float(min(max(value + amount * (value - blurred), 0), 1))
-            #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < Float(0.006 * amount), "column \(column)")
+            #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < sharpenTolerance, "column \(column)")
         }
     }
 
