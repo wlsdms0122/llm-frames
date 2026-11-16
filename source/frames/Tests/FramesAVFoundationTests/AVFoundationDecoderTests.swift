@@ -380,6 +380,132 @@ struct AVFoundationDecoderTests {
         #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes)) }
     }
 
+    @Test("checking a file passes one with only sound, and still refuses one that is no media")
+    func checksSoundFile() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sound = directory.file("tone.m4a")
+        let broken = directory.file("broken.mp4")
+        try await SoundWriter(end: 1).write(to: sound)
+        try Data("not a video".utf8).write(to: URL(fileURLWithPath: broken))
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken)) }
+
+        // Then
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound)) }
+        #expect(error?.description.hasPrefix("media \(broken) cannot be read") == true, "\(String(describing: error))")
+    }
+
+    @Test("sound over a sub-range has the file's rate and channels, its frame count, and the tone's samples at their time")
+    func readsSoundRange() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        let writer = SoundWriter(end: 1, sampleRate: 44_100, levels: [0.25, 0.1])
+        try await writer.write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: file, from: 0.25, to: 0.75)
+
+        // Then
+        #expect(sound.sampleRate == 44_100 && sound.channels == 2 && sound.layout.labels == [.left, .right])
+        #expect(sound.frameCount == 22_050)
+        let deviation = (0..<sound.frameCount).flatMap { frame in
+            (0..<2).map { channel in
+                abs(Double(sound.samples[frame * 2 + channel]) - writer.sample(channel: channel, at: 11_025 + frame))
+            }
+        }.max()!
+        #expect(deviation < 1.0 / 32_768, "\(deviation)")
+    }
+
+    @Test("an AAC file's sound has its rate, channel count and frames over a sub-range, the tone at its level")
+    func readsAACSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tone.m4a")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: file, from: 0.25, to: 0.5)
+
+        // Then
+        #expect(sound.sampleRate == 48_000 && sound.channels == 1 && sound.layout.labels == [.mono])
+        #expect(sound.frameCount == 12_000)
+        #expect(abs(Double(sound.samples.map(abs).max()!) - 8_000.0 / 32_768) < 0.01)
+    }
+
+    @Test("a range past the end of the sound gives the frames there are, and an empty range none")
+    func readsPastEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let past = try sut.sound(of: file, from: 0.5, to: 2)
+        let empty = try sut.sound(of: file, from: 0.5, to: 0.5)
+
+        // Then
+        #expect(past.frameCount == 24_000)
+        #expect(empty.frameCount == 0 && empty.sampleRate == 48_000 && empty.channels == 1)
+    }
+
+    @Test("a 5.1 file's channels are named in its layout's order")
+    func readsSurroundLayout() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("surround.wav")
+        try await SoundWriter(end: 0.1, levels: Array(repeating: 0.1, count: 6)).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: file, from: 0, to: 0.1)
+
+        // Then
+        #expect(sound.channels == 6)
+        #expect(sound.layout.labels == [.left, .right, .center, .lowFrequencyEffects, .leftSurround, .rightSurround])
+    }
+
+    @Test("sound is read on the presentation timeline, so a video delayed by its edit list has silence first")
+    func readsSoundThroughEditList() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("delayed.mov")
+        let writer = VideoWriter(size: size, frameTimes: Self.thirtieths(15), end: 0.5, sound: true, delay: 0.5)
+        try await writer.write(to: file) { canvas, _ in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: file, from: 0, to: 1)
+
+        // Then
+        #expect(sound.frameCount > 47_000)
+        #expect(sound.samples[0..<21_600].map(abs).max()! < 0.01)
+        #expect(sound.samples[26_400..<45_600].map(abs).max()! > 0.2)
+    }
+
+    @Test("a file without a sound track has no sound, naming the file")
+    func refusesSilentSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("silent.mov")
+        try await VideoWriter(size: size, frameTimes: [0], end: 1).write(to: file) { _, _ in }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.sound(of: file, from: 0, to: 1) }
+
+        // Then
+        #expect(error?.description == "media \(file) has no sound track")
+    }
+
     // MARK: - Private
     private static func thirtieths(_ count: Int) -> [Double] {
         (0..<count).map { Double($0) / 30 }

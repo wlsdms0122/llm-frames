@@ -14,6 +14,7 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case unequalFrame(file: String, size: Size, first: Size)
     case noFrame(file: String, index: Int, count: Int)
     case frameCount(file: String, pinned: Int, counted: Int)
+    case noSound(file: String)
 
     // MARK: - Property
     package var description: String {
@@ -35,6 +36,9 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .frameCount(file, pinned, counted):
             "media \(file) has \(counted) frames where the resolved document pins \(pinned). Resolve it again"
+
+        case let .noSound(file):
+            "media \(file) has no sound track"
         }
     }
 
