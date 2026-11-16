@@ -871,6 +871,33 @@ struct EvaluatorTests {
         #expect(rooms == [inset, Rectangle(x: 0, y: 0, width: 200, height: 100)])
     }
 
+    @Test("a connected adjustment without an area under an inset filters, moves and wipes the whole output frame")
+    func adjustsWholeFrameOfConnectedClip() {
+        // Given
+        let inset = Rectangle(x: 20, y: 10, width: 160, height: 80)
+        let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
+            SpanKey(t: 0, values: [.reveal: 0]),
+            SpanKey(t: 1, values: [.reveal: 1])
+        ]))
+        let adjustment = clip(
+            .adjustment([.blur(radius: 2)]),
+            storyline: 0,
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+        )
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment], content: inset)
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+
+        // Then
+        // Halfway through its entrance the wipe shows the left half of the 200 x 100 output frame, letterbox and all,
+        // since the filter reaches the whole output.
+        #expect(list.items.last == DisplayItem(
+            reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)]))
+        ))
+    }
+
     @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the content rect")
     func agreesWithResolvedLabelSide() throws {
         // Given
@@ -1030,7 +1057,8 @@ struct EvaluatorTests {
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,
         opacity: Double = 1,
-        blend: String = "normal"
+        blend: String = "normal",
+        animation: ResolvedAnimation = .none
     ) -> ResolvedClip {
         let isAdjustment = if case .adjustment = content { true } else { false }
 
@@ -1052,7 +1080,7 @@ struct EvaluatorTests {
             scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: isAdjustment ? nil : blend,
-            animation: .none
+            animation: animation
         )
     }
 
