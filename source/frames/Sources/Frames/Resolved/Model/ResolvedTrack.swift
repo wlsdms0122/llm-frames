@@ -33,5 +33,26 @@ struct ResolvedTrack: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // A rectangle where it is on the frame at a media time, brought back through the motion there to where it is at the
+    // instant. A band keeps the full width of its picture.
+    func bringBack(
+        _ rectangle: Rectangle,
+        fromMediaTime time: Double
+    ) -> Rectangle {
+        let motion = track.motion(atMediaTime: time)
+
+        return isBand ? motion.bringBackBand(rectangle) : motion.bringBack(rectangle)
+    }
+
+    // A rectangle where it is at the instant, carried by the motion to the frame at a media time.
+    func carry(
+        _ rectangle: Rectangle,
+        toMediaTime time: Double
+    ) -> Rectangle {
+        let motion = track.motion(atMediaTime: time)
+
+        return isBand ? motion.carryBand(rectangle) : motion.carry(rectangle)
+    }
+
     // MARK: - Private
 }

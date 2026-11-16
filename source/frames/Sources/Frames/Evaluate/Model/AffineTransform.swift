@@ -60,6 +60,21 @@ struct AffineTransform: Equatable, Sendable {
         self.init(a: scale, b: 0, c: 0, d: scale, tx: center.x * (1 - scale), ty: center.y * (1 - scale))
     }
 
+    // The transform that scales a box of `size` with its top left at the origin onto `rectangle`.
+    init(
+        mapping size: Size,
+        onto rectangle: Rectangle
+    ) {
+        self.init(
+            a: rectangle.width / size.width,
+            b: 0,
+            c: 0,
+            d: rectangle.height / size.height,
+            tx: rectangle.x,
+            ty: rectangle.y
+        )
+    }
+
     // `degrees` turns clockwise.
     init(rotation degrees: Double, about center: Point) {
         let radians = degrees * .pi / 180
