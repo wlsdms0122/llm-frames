@@ -9,9 +9,7 @@ import AVFoundation
 import CoreImage
 import Foundation
 import Frames
-import ImageIO
 import os
-import UniformTypeIdentifiers
 
 // The `avfoundation` decoder: probes media files and image sequence directories, and reads their frames by index as
 // pictures in the working space. A still is read with ImageIO, its orientation applied, and a video with AVFoundation,
@@ -34,51 +32,8 @@ package final class AVFoundationDecoder: Sendable {
         return video
     }
 
-    private func isStill(_ path: String) -> Bool {
-        guard
-            let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-            let type = CGImageSourceGetType(source).flatMap({ UTType($0 as String) })
-        else {
-            return false
-        }
-
-        return type.conforms(to: .image) && CGImageSourceGetCount(source) > 0
-    }
-
-    // A still's size as it is displayed: an orientation that turns it a quarter swaps width and height.
-    private func stillSize(of path: String) -> Size? {
-        guard
-            let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-            let width = properties[kCGImagePropertyPixelWidth] as? Double,
-            let height = properties[kCGImagePropertyPixelHeight] as? Double
-        else {
-            return nil
-        }
-        let orientation = properties[kCGImagePropertyOrientation] as? UInt32 ?? 1
-
-        return orientation >= 5 ? Size(width: height, height: width) : Size(width: width, height: height)
-    }
-
-    private func stillBitsPerComponent(of path: String) -> Int {
-        guard
-            let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        else {
-            return 8
-        }
-
-        return properties[kCGImagePropertyDepth] as? Int ?? 8
-    }
-
-    private func still(at path: String) throws -> DecodedPicture {
-        guard
-            let image = CIImage(contentsOf: URL(fileURLWithPath: path), options: [.applyOrientationProperty: true])
-        else {
-            throw DecoderError.unreadable(file: path)
-        }
-
-        return converter.picture(from: image, bitsPerComponent: stillBitsPerComponent(of: path))
+    private func picture(of still: StillReader, path: String) throws -> DecodedPicture {
+        converter.picture(from: try still.image(path: path), bitsPerComponent: still.bitsPerComponent)
     }
 
     // The PNG files in a directory in natural order, so `frame2` comes before `frame10`.
@@ -98,10 +53,8 @@ extension AVFoundationDecoder: MediaFactProvider {
     // MARK: - Lifecycle
     package func probedMedia(of file: String) throws -> ProbedMedia? {
         guard FileManager.default.fileExists(atPath: file) else { return nil }
-        if isStill(file) {
-            guard let size = stillSize(of: file) else { throw DecoderError.unreadable(file: file) }
-
-            return ProbedMedia(kind: .image, size: size)
+        if let still = try StillReader(path: file) {
+            return ProbedMedia(kind: .image, size: still.displaySize)
         }
         if let video = try video(at: file) {
             return ProbedMedia(
@@ -129,10 +82,12 @@ extension AVFoundationDecoder: MediaFactProvider {
         guard FileManager.default.fileExists(atPath: directory) else { return nil }
         let files = try frameFiles(in: directory)
         guard let first = files.first else { throw DecoderError.emptySequence(directory: directory) }
-        guard let size = stillSize(of: first) else { throw DecoderError.unreadable(file: first) }
+        guard let size = try StillReader(path: first)?.displaySize else { throw DecoderError.unreadable(file: first) }
 
         for file in files.dropFirst() {
-            guard let frameSize = stillSize(of: file) else { throw DecoderError.unreadable(file: file) }
+            guard let frameSize = try StillReader(path: file)?.displaySize else {
+                throw DecoderError.unreadable(file: file)
+            }
             guard frameSize == size else { throw DecoderError.unequalFrame(file: file, size: frameSize, first: size) }
         }
 
@@ -151,12 +106,15 @@ extension AVFoundationDecoder: MediaDecoder {
                 throw DecoderError.noFrame(file: file.path, index: index, count: file.frameFiles.count)
             }
 
-            return try still(at: file.frameFiles[index])
+            let path = file.frameFiles[index]
+            guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+
+            return try picture(of: still, path: path)
         }
-        if isStill(file.path) {
+        if let still = try StillReader(path: file.path) {
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
 
-            return try still(at: file.path)
+            return try picture(of: still, path: file.path)
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
