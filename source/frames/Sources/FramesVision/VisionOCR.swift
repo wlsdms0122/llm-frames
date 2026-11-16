@@ -26,25 +26,13 @@ package struct VisionOCR: Sendable {
 
     // MARK: - Public
     // MARK: - Private
-    // Vision's boxes are fractions of the picture from its bottom left, and lines are in media pixels from the top
-    // left.
     private func line(
         from observation: VNRecognizedTextObservation,
-        width: Double,
-        height: Double
+        in size: Size
     ) -> RecognisedLine? {
         guard let text = observation.topCandidates(1).first?.string else { return nil }
-        let box = observation.boundingBox
 
-        return RecognisedLine(
-            text: text,
-            rectangle: Rectangle(
-                x: box.minX * width,
-                y: (1 - box.maxY) * height,
-                width: box.width * width,
-                height: box.height * height
-            )
-        )
+        return RecognisedLine(text: text, rectangle: Rectangle(visionBox: observation.boundingBox, in: size))
     }
 }
 
@@ -68,8 +56,8 @@ extension VisionOCR: OCRProvider {
         request.minimumTextHeight = 0
         try VNImageRequestHandler(cgImage: image).perform([request])
 
-        return (request.results ?? []).compactMap { observation in
-            line(from: observation, width: Double(picture.width), height: Double(picture.height))
-        }
+        let size = Size(width: Double(picture.width), height: Double(picture.height))
+
+        return (request.results ?? []).compactMap { line(from: $0, in: size) }
     }
 }

@@ -39,7 +39,7 @@ package struct VisionTracker: Sendable {
         let size = Size(width: Double(first.width), height: Double(first.height))
         let handler = VNSequenceRequestHandler()
         let request = VNTrackObjectRequest(detectedObjectObservation: VNDetectedObjectObservation(
-            boundingBox: normalised(target, in: size)
+            boundingBox: target.visionBox(in: size)
         ))
         request.trackingLevel = .accurate
         try handler.perform([request], on: first)
@@ -53,7 +53,7 @@ package struct VisionTracker: Sendable {
             else {
                 break
             }
-            let rectangle = rectangle(of: found.boundingBox, in: size)
+            let rectangle = Rectangle(visionBox: found.boundingBox, in: size)
             frames.append(TrackedFrame(time: file.frameTimes[index], rectangle: rectangle))
             request.inputObservation = found
         }
@@ -66,31 +66,6 @@ package struct VisionTracker: Sendable {
         atFrame index: Int
     ) throws -> CGImage {
         try converter.image(of: try decoder.picture(of: file, atFrame: index), file: file.path, index: index)
-    }
-
-    // Vision's boxes are fractions of the picture from its bottom left.
-    private func normalised(
-        _ rectangle: Rectangle,
-        in size: Size
-    ) -> CGRect {
-        CGRect(
-            x: rectangle.x / size.width,
-            y: 1 - (rectangle.y + rectangle.height) / size.height,
-            width: rectangle.width / size.width,
-            height: rectangle.height / size.height
-        )
-    }
-
-    private func rectangle(
-        of box: CGRect,
-        in size: Size
-    ) -> Rectangle {
-        Rectangle(
-            x: box.minX * size.width,
-            y: (1 - box.maxY) * size.height,
-            width: box.width * size.width,
-            height: box.height * size.height
-        )
     }
 }
 
