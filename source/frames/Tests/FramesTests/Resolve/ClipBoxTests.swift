@@ -139,7 +139,7 @@ struct ClipBoxTests {
             (#""height": 300"#, Size(width: 600, height: 300)),
             (#""width": 300, "height": 300, "conform": "fit""#, Size(width: 300, height: 300)),
             (#""width": 300, "height": 300, "conform": "fill""#, Size(width: 300, height: 300)),
-            (#""conform": "fill""#, Size(width: 400, height: 200))
+            (#""conform": "fill""#, Size(width: 1206, height: 603))
         ]
     )
     func sizesMediaBox(
@@ -157,6 +157,21 @@ struct ClipBoxTests {
 
         // Then
         #expect(box?.size == size)
+    }
+
+    @Test("a media clip given neither width nor height fits the output frame, scaled up or down")
+    func fitsMediaToFrame() throws {
+        // Given
+        let tall = #"{ "media": "/abs/card.png", "at": [0, 3] }"#
+        let small = #"{ "media": "/abs/card.png", "at": [0, 3], "crop": [0, 0, 201, 20] }"#
+
+        // When
+        let tallBox = try box(of: tall)
+        let smallBox = try box(of: small)
+
+        // Then
+        #expect(tallBox?.size == Size(width: 1206, height: 1507.5))
+        #expect(smallBox?.size == Size(width: 1206, height: 120))
     }
 
     @Test(

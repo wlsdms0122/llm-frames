@@ -46,7 +46,13 @@ struct ClipAppearancePlanner: Sendable {
         case .media:
             guard let picture else { return nil }
 
-            size = mediaSize(width: written.width, height: written.height, crop: crop, picture: picture.size)
+            size = mediaSize(
+                width: written.width,
+                height: written.height,
+                crop: crop,
+                picture: picture.size,
+                frame: format.size
+            )
             style = nil
 
         case .shape, .adjust:
@@ -187,12 +193,13 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Private
     // Given one of `width` and `height`, the other follows the aspect ratio of the first crop, or of the picture when
-    // there is no crop. Given neither, the box is that crop or picture at one media pixel to an output pixel.
+    // there is no crop. Given neither, that crop or picture fits the output frame.
     private func mediaSize(
         width: Double?,
         height: Double?,
         crop: PropertyValue<FoundArea>?,
-        picture: Size
+        picture: Size,
+        frame: Size
     ) -> Size {
         let first = crop.map { crop in
             let rectangle = self.first(of: crop).rectangle
@@ -210,7 +217,11 @@ struct ClipAppearancePlanner: Sendable {
             return Size(width: height * first.width / first.height, height: height)
 
         case (.none, .none):
-            return first
+            guard frame.width / first.width > frame.height / first.height else {
+                return Size(width: frame.width, height: first.height * frame.width / first.width)
+            }
+
+            return Size(width: first.width * frame.height / first.height, height: frame.height)
         }
     }
 
