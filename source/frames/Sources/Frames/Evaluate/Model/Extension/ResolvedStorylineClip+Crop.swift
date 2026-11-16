@@ -7,7 +7,8 @@
 
 // A storyline entry's conformed crop at a sequence time, in the media pixels of its picture, interpolated as a `Crop`.
 // A tracked crop is where it is at each keyframe's own time: each keyframe is brought back through the motion at its
-// media time, they are interpolated there, and the result is carried by the motion at the media time shown.
+// media time, they are interpolated there, and the result is carried by the motion at the media time shown. A band
+// crop takes only the vertical move of the motion, so it keeps its ratio.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -18,12 +19,12 @@ extension ResolvedStorylineClip {
         let keyframes = crop.map { keyframe in
             Keyframe(
                 at: keyframe.at,
-                value: Crop(track.bringBack(keyframe.value.rectangle, fromMediaTime: mediaTime(at: keyframe.at))),
+                value: Crop(track.bringBack(crop: keyframe.value.rectangle, fromMediaTime: mediaTime(at: keyframe.at))),
                 ease: keyframe.ease
             )
         }
 
-        return track.carry(value(of: keyframes, at: time), toMediaTime: mediaTime(at: time))
+        return track.carry(crop: value(of: keyframes, at: time), toMediaTime: mediaTime(at: time))
     }
 
     // MARK: - Private

@@ -22,6 +22,11 @@ struct EvaluatorTests {
     private let red = Color(written: "#FF0000")
     // The whole of a 400 x 200 picture, already the content rect's aspect ratio.
     private let whole = Rectangle(x: 0, y: 0, width: 400, height: 200)
+    // From the whole picture at 0 to its middle 200 x 100 at 2.
+    private let zoom = [
+        Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 400, height: 200))),
+        Keyframe(at: 2, value: Crop(Rectangle(x: 100, y: 50, width: 200, height: 100)))
+    ]
     // Frames every quarter second from 0 to 4.75.
     private let first = PinnedMedia(
         source: .file(PinnedFile(path: "/abs/first.mp4", sha256: String(repeating: "a", count: 64))),
@@ -327,6 +332,33 @@ struct EvaluatorTests {
         #expect(rectangle == Rectangle(x: 0, y: 20, width: 200, height: 100))
     }
 
+    @Test("a tracked band crop takes the vertical move of a zooming target but not its scale, so it keeps its ratio")
+    func keepsBandCropRatio() throws {
+        // Given
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 20, width: 20, height: 20))
+        ])
+        let sequence = sequence([
+            storylineClip(
+                .pinned(first),
+                start: 0,
+                end: 4,
+                crop: Rectangle(x: 0, y: 0, width: 200, height: 100),
+                track: track
+            )
+        ])
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        // The target's centre moves down from 5 to 30 and it doubles, but the crop only moves.
+        let rectangle = try #require(mediaPicture(of: list)?.rectangle)
+        #expect(rectangle == Rectangle(x: 0, y: 25, width: 200, height: 100))
+    }
+
     @Test("a `fit` crop beyond the picture is drawn as conformed, leaving what lies outside the picture transparent")
     func drawsCropBeyondPicture() throws {
         // Given
@@ -550,6 +582,313 @@ struct EvaluatorTests {
         ])
     }
 
+    @Test("clips stack by lane and then document order: unparented below and above the units, parented inside theirs")
+    func stacksClipsByLane() {
+        // Given
+        // Each fill is told apart by its area. Parented areas are in the 400 x 200 picture, shown at half size.
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4)],
+            clips: [
+                fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 2),
+                fillClip(Rectangle(x: 10, y: 0, width: 10, height: 10), lane: -1),
+                fillClip(Rectangle(x: 20, y: 0, width: 10, height: 10), lane: 1),
+                fillClip(Rectangle(x: 0, y: 0, width: 20, height: 20), lane: 1, parent: 0),
+                fillClip(Rectangle(x: 20, y: 0, width: 20, height: 20), lane: -1, parent: 0),
+                fillClip(Rectangle(x: 40, y: 0, width: 20, height: 20), lane: -2, parent: 0),
+                fillClip(Rectangle(x: 30, y: 0, width: 10, height: 10), lane: 1, start: 3),
+                fillClip(Rectangle(x: 40, y: 0, width: 10, height: 10), lane: 2)
+            ]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        #expect(list.items == [
+            fillItem(Rectangle(x: 10, y: 0, width: 10, height: 10)),
+            unitItem(
+                [
+                    fillItem(Rectangle(x: 20, y: 0, width: 10, height: 10)),
+                    fillItem(Rectangle(x: 10, y: 0, width: 10, height: 10)),
+                    mediaItem(first, frame: 4),
+                    fillItem(Rectangle(x: 0, y: 0, width: 10, height: 10))
+                ],
+                seed: 10
+            ),
+            outsideItem(),
+            fillItem(Rectangle(x: 20, y: 0, width: 10, height: 10)),
+            fillItem(Rectangle(x: 0, y: 0, width: 10, height: 10)),
+            fillItem(Rectangle(x: 40, y: 0, width: 10, height: 10))
+        ])
+    }
+
+    @Test(
+        "a parented box follows its picture's zooming crop, and its stroke keeps its width in output pixels",
+        arguments: [
+            (0.0, Rectangle(x: 75, y: 37.5, width: 20, height: 10)),
+            (2.0, Rectangle(x: 50, y: 25, width: 40, height: 20))
+        ]
+    )
+    func followsZoomingCrop(
+        time: Double,
+        area: Rectangle
+    ) throws {
+        // Given
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4, crop: zoom)],
+            clips: [
+                clip(
+                    .shape(.box(width: 4, radius: 2, color: red)),
+                    parent: 0,
+                    area: [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))]
+                )
+            ]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: time)
+
+        // Then
+        // The crop is the whole picture at 0, shown at half size, and 200 x 100 from (100, 50) at 2, at full size.
+        let unit = try #require(displayList(of: list.items.first))
+        guard case let .stroke(stroke) = unit.items.last?.content else {
+            Issue.record("a box is a stroke")
+            return
+        }
+        #expect(isClose(stroke.rectangle, area))
+        #expect(stroke.width == 4)
+        #expect(stroke.radius == 2)
+    }
+
+    @Test(
+        "a parented title keeps its size under a zoom, its anchor point staying on its place in the picture",
+        arguments: [(0.0, Point(x: 50, y: 27.5)), (2.0, Point(x: 30, y: 15))]
+    )
+    func keepsParentedTitleSize(
+        time: Double,
+        position: Point
+    ) throws {
+        // Given
+        // The anchor point is (160, 75) in the picture: (80, 37.5) in the unit at half size, (60, 25) at full size.
+        let text = text(Size(width: 60, height: 20))
+        let box = ResolvedBox(
+            size: Size(width: 60, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            anchor: Point(x: 30, y: 10)
+        )
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4, crop: zoom)],
+            clips: [clip(.title(text), parent: 0, box: box)]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: time)
+
+        // Then
+        let unit = try #require(displayList(of: list.items.first))
+        let item = try #require(unit.items.last)
+        let transform = item.transform
+        #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
+        #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
+        #expect(item.content == .glyphs(GlyphsItem(text: text)))
+    }
+
+    @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")
+    func carriesTrackedArea() throws {
+        // Given
+        // The page scrolls up 40 a second. The second keyframe is 40 right of the first where it is at 2, so at the
+        // instant it lies 40 right of the first and halfway is (120, 100), scrolled up 40 at 1.
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: false, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 100, y: 60, width: 40, height: 20)),
+            TrackedFrame(time: 2, rectangle: Rectangle(x: 100, y: 20, width: 40, height: 20))
+        ])
+        let area = [
+            Keyframe(at: 0, value: target),
+            Keyframe(at: 2, value: Rectangle(x: 140, y: 20, width: 40, height: 20))
+        ]
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4)],
+            clips: [clip(.shape(.fill(color: red)), parent: 0, area: area, track: track)]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        let unit = try #require(displayList(of: list.items.first))
+        #expect(unit.items.last == fillItem(Rectangle(x: 60, y: 30, width: 20, height: 10)))
+    }
+
+    @Test("a tracked band keeps the full width of its picture and takes the vertical move and scale of its height")
+    func carriesTrackedBandArea() throws {
+        // Given
+        // The target's centre moves from (120, 110) to (120, 55) and it grows 1.5 times.
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 90, y: 40, width: 60, height: 30))
+        ])
+        let band = Rectangle(x: 0, y: 100, width: 400, height: 20)
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4)],
+            clips: [clip(.shape(.fill(color: red)), parent: 0, area: [Keyframe(at: 0, value: band)], track: track)]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        // The band is (0, 40, 400, 30) in the picture, half that in the unit.
+        let unit = try #require(displayList(of: list.items.first))
+        #expect(unit.items.last == fillItem(Rectangle(x: 0, y: 20, width: 200, height: 15)))
+    }
+
+    @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")
+    func playsNarrowedMediaFromOrigin() throws {
+        // Given
+        let media = mediaClip(timing: ResolvedMediaTiming(in: 0, origin: 1, out: 4, speed: 1, loop: false), start: 1.5)
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let early = sut.displayList(of: .sequence(sequence), at: 1.25)
+        let late = sut.displayList(of: .sequence(sequence), at: 2)
+
+        // Then
+        // At 2 the clip is one second past its origin, on the second media's frame at 1.
+        #expect(early.items.count == 2)
+        #expect(clipPicture(of: late)?.source == .media(MediaFrame(media: second, index: 4)))
+    }
+
+    @Test(
+        "past `out` a looping media clip repeats from `in`, and any other holds its last frame",
+        arguments: [(true, 2), (false, 5)]
+    )
+    func loopsMediaClip(
+        loop: Bool,
+        frame: Int
+    ) {
+        // Given
+        // At 1 the clip at speed 2 reaches media time 2.5, a second past `out` 1.5, and one loop of 1 brings it back
+        // to `in` 0.5.
+        let media = mediaClip(timing: ResolvedMediaTiming(in: 0.5, origin: 0, out: 1.5, speed: 2, loop: loop))
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        #expect(clipPicture(of: list)?.source == .media(MediaFrame(media: second, index: frame)))
+    }
+
+    @Test("a media clip draws its conformed crop into its box, with its filter, radius, border, shadow and blend")
+    func drawsMediaClip() {
+        // Given
+        let border = MediaBorder(width: 2, color: white)
+        let shadow = MediaShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
+        let media = mediaClip(
+            timing: nil,
+            filter: [.blur(radius: 2)],
+            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: border, shadow: shadow),
+            blend: "screen"
+        )
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        // A still shows its frame 0, and its box's top left goes to the position.
+        #expect(list.items.last == DisplayItem(
+            transform: AffineTransform(translation: Point(x: 10, y: 20)),
+            blend: "screen",
+            content: .picture(PictureItem(
+                source: .media(MediaFrame(media: second, index: 0)),
+                rectangle: Rectangle(x: 0, y: 0, width: 400, height: 200),
+                destination: Rectangle(x: 0, y: 0, width: 80, height: 40),
+                filter: [.blur(radius: 2)],
+                radius: 6,
+                border: border,
+                shadow: shadow
+            ))
+        ))
+    }
+
+    @Test("a parented adjustment is drawn inside its unit over its mapped area, so it reaches only that unit")
+    func keepsParentedAdjustmentInUnit() throws {
+        // Given
+        let adjustment = clip(
+            .adjustment([.blur(radius: 3)]),
+            parent: 0,
+            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 200, height: 100))],
+            opacity: 0.5
+        )
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        let adjust = DisplayItem(
+            opacity: 0.5,
+            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)]))
+        )
+        #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10), outsideItem()])
+    }
+
+    @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the content rect")
+    func agreesWithResolvedLabelSide() throws {
+        // Given
+        // The crop zooms in two times over the clip, so at the label's instant the box is shown through a crop
+        // between the two.
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
+                "keyframes": [ { "at": 1, "crop": [0, 0, 1206, 2622] }, { "at": 3, "crop": [301.5, 655.5, 603, 1311] } ],
+                "connected": [ { "shape": "box", "area": [700, 1250, 300, 40], "at": [2, 3], "label": "Total",
+                    "animation": "none", "labelAnimation": "none" } ] } ] }
+            """#
+        let resolved = try ResolvedDocument(
+            plan: Fixture.documentPlanner.plan(Fixture.json(document)),
+            hashes: FileHashTable()
+        )
+        guard case let .sequence(sequence) = resolved else {
+            Issue.record("a sequence resolves to a sequence")
+            return
+        }
+        let clip = try #require(sequence.clips.first)
+        let label = try #require(clip.label)
+        let content = sequence.format.content
+
+        // When
+        let list = sut.displayList(of: resolved, at: label.at)
+
+        // Then
+        let unit = try #require(displayList(of: list.items.first))
+        let shape = try #require(unit.items.dropLast().last)
+        let labelItem = try #require(unit.items.last)
+        guard case let .stroke(stroke) = shape.content else {
+            Issue.record("a box is a stroke")
+            return
+        }
+        let size = label.text.size
+        let corners = labelItem.transform.apply(toCornersOf: Rectangle(x: 0, y: 0, width: size.width, height: size.height))
+        let drawn = Rectangle(
+            x: corners[0].x + content.x,
+            y: corners[0].y + content.y,
+            width: corners[2].x - corners[0].x,
+            height: corners[2].y - corners[0].y
+        )
+        let box = Rectangle(
+            x: stroke.rectangle.x + content.x,
+            y: stroke.rectangle.y + content.y,
+            width: stroke.rectangle.width,
+            height: stroke.rectangle.height
+        )
+        #expect(isClose(drawn, LabelSideFinder().rectangle(of: size, beside: box, on: label.side)))
+        #expect(content.contains(drawn))
+    }
+
     // MARK: - Private
     private func storylineClip(
         _ media: ResolvedMediaContent?,
@@ -608,6 +947,7 @@ struct EvaluatorTests {
 
     private func sequence(
         _ storyline: [ResolvedStorylineClip],
+        clips: [ResolvedClip] = [],
         content: Rectangle? = nil,
         fps: Double = 10
     ) -> ResolvedSequence {
@@ -621,9 +961,88 @@ struct EvaluatorTests {
                 conform: .fit
             ),
             storyline: storyline,
-            clips: [],
+            clips: clips,
             audio: []
         )
+    }
+
+    // A fill drawn on an area, its place a sequence clip's.
+    private func fillClip(
+        _ area: Rectangle,
+        lane: Int,
+        parent: Int? = nil,
+        start: Double = 0
+    ) -> ResolvedClip {
+        clip(.shape(.fill(color: red)), start: start, lane: lane, parent: parent, area: [Keyframe(at: 0, value: area)])
+    }
+
+    private func clip(
+        _ content: ResolvedClipContent,
+        start: Double = 0,
+        end: Double = 4,
+        lane: Int = 1,
+        parent: Int? = nil,
+        area: [Keyframe<Rectangle>]? = nil,
+        box: ResolvedBox? = nil,
+        crop: [Keyframe<Crop>]? = nil,
+        track: ResolvedTrack? = nil,
+        opacity: Double = 1,
+        blend: String = "normal"
+    ) -> ResolvedClip {
+        let isAdjustment = if case .adjustment = content { true } else { false }
+
+        return ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: content,
+            start: start,
+            end: end,
+            lane: lane,
+            parent: parent,
+            area: area,
+            box: box,
+            crop: crop,
+            track: track,
+            label: nil,
+            opacity: [Keyframe(at: 0, value: opacity)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
+            rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
+            blend: isAdjustment ? nil : blend,
+            animation: .none
+        )
+    }
+
+    // A media clip of the second media, its 80 x 40 box at (10, 20) showing the whole of its 400 x 200 picture.
+    private func mediaClip(
+        timing: ResolvedMediaTiming?,
+        start: Double = 0,
+        filter: [ResolvedFilterOperation] = [],
+        appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
+        blend: String = "normal"
+    ) -> ResolvedClip {
+        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: filter, appearance: appearance)
+        let box = ResolvedBox(
+            size: Size(width: 80, height: 40),
+            position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+            anchor: Point(x: 40, y: 20)
+        )
+
+        return clip(.media(media), start: start, box: box, crop: [Keyframe(at: 0, value: Crop(whole))], blend: blend)
+    }
+
+    private func fillItem(_ rectangle: Rectangle) -> DisplayItem {
+        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)))
+    }
+
+    private func text(_ size: Size) -> ResolvedText {
+        ResolvedText(size: size, lineCount: 1, background: nil, stroke: nil, runs: [run()])
+    }
+
+    // The picture of the list's topmost item.
+    private func clipPicture(of list: DisplayList) -> PictureItem? {
+        guard case let .picture(picture) = list.items.last?.content else { return nil }
+
+        return picture
     }
 
     // The first clip plays from 1 over 0 to 2, and the second, from 1 over 2 to 4, is brought in by the transition.
