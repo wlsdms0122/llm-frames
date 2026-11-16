@@ -32,9 +32,16 @@ enum Fixture {
         "pack/card": .image
     ])
 
+    // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent.
     static let mediaFacts = MediaFactTable(
         files: [
-            "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920)),
+            "/abs/run.mp4": ProbedMedia(
+                kind: .video,
+                duration: 30,
+                fps: 29.97,
+                size: Size(width: 1080, height: 1920),
+                hasSound: true
+            ),
             "/abs/short.mp4": ProbedMedia(
                 kind: .video,
                 duration: 4,
@@ -46,8 +53,8 @@ enum Fixture {
             "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5, size: Size(width: 1079, height: 1919)),
             "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
             "/abs/log.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
-            "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20),
-            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5),
+            "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20, hasSound: true),
+            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5, hasSound: true),
             "/abs/screen.mp4": ProbedMedia(
                 kind: .video,
                 duration: 4,

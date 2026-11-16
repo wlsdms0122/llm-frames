@@ -7,7 +7,7 @@
 
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, its titles set, and the side of every label.
+// tracking leaves, its titles set, the side of every label, and its sound.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -15,6 +15,7 @@ struct SequencePlanner: Sendable {
     private let text: ThemeTypesetter
     private let placer = LabelPlacer()
     private let pictures: PicturePlanner
+    private let sound = SoundPlanner()
 
     // MARK: - Initializer
     init(
@@ -84,7 +85,14 @@ struct SequencePlanner: Sendable {
             )
         }
 
-        return SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips)
+        let sound = self.sound.sound(
+            of: tracked.time,
+            written: written,
+            storylineNested: storylineNested,
+            clipNested: clipNested
+        )
+
+        return SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
     }
 
     // MARK: - Private

@@ -58,7 +58,8 @@ struct MediaResolver: Sendable {
                 fps: probed.fps,
                 frames: frames(of: probed),
                 size: probed.size,
-                frameTimes: probed.frames
+                frameTimes: probed.frames,
+                hasSound: probed.hasSound
             )
 
         case let .imageSequence(reference, fps):
@@ -221,18 +222,22 @@ struct MediaResolver: Sendable {
         MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
-    // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration).
+    // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration). It plays sound when any of
+    // its clips does.
     private func nested(
         _ plan: TimePlan,
         reference: String?
     ) -> ResolvedMedia {
-        ResolvedMedia(
+        let media = plan.storyline.map(\.source.media) + plan.clips.map(\.media)
+
+        return ResolvedMedia(
             kind: .sequence,
             reference: reference,
             file: nil,
             duration: plan.duration,
             frames: 0...plan.duration.nextDown,
-            nested: plan
+            nested: plan,
+            hasSound: media.contains { $0?.hasSound ?? false }
         )
     }
 
