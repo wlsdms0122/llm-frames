@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 import FramesAVFoundation
 import FramesCoreText
@@ -25,7 +24,7 @@ struct ResolveEndToEndTests {
     // may lie from where the drawn line moved it, in media pixels.
     private let ocrTolerance = 8.0
     private let trackTolerance = 1.5
-    private let times = (0..<30).map { Double($0) / 30 }
+    private let times = ScreenRecording.frameTimes
 
     // MARK: - Initializer
     // MARK: - Test
@@ -90,29 +89,11 @@ struct ResolveEndToEndTests {
     }
 
     // MARK: - Private
-    // A portrait screen recording, stored turned, with a line that scrolls up 4 pixels a frame, a box tracking it and
-    // a title over it. The drawn boxes of the scrolling line come back in frame order.
+    // The screen recording with a box tracking its scrolling line and a title over it. The drawn boxes of the
+    // scrolling line come back in frame order.
     private func screenDocument(in directory: TemporaryDirectory) async throws -> (JSONValue, [Rectangle]) {
         let file = directory.file("screen.mov")
-        let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 720, ty: 0)
-        let writer = VideoWriter(
-            size: Size(width: 1280, height: 720),
-            frameTimes: times,
-            end: 1,
-            transform: quarterTurn
-        )
-        var drawn: [Rectangle] = []
-        try await writer.write(to: file) { canvas, index in
-            canvas.fill(red: 255, green: 255, blue: 255)
-            canvas.draw("Send message", font: "Helvetica", size: 48, x: 60, y: 200)
-            drawn.append(canvas.draw(
-                "Total 12,000원",
-                font: "AppleSDGothicNeo-Bold",
-                size: 48,
-                x: 100,
-                y: 700 - 4 * Double(index)
-            ))
-        }
+        let drawn = try await ScreenRecording().write(to: file)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
