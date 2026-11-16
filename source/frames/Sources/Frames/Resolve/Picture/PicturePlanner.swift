@@ -81,7 +81,7 @@ struct PicturePlanner: Sendable {
 
             let picture = Picture(name: name, source: .mediaFile(file.path), size: size)
 
-            return (.media(media, time: media.clamped(time)), picture)
+            return (.media(file, name: name, time: media.clamped(time)), picture)
 
         case let .sequence(nested):
             let plan = try sequences(nested)

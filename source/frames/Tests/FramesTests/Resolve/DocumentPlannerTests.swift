@@ -240,11 +240,11 @@ struct DocumentPlannerTests {
             return
         }
         #expect(picture.size == Size(width: 1040, height: 840))
-        guard case let .picture(.media(media, _), _, frame) = picture.steps.first?.content else {
+        guard case let .picture(.media(_, name, _), _, frame) = picture.steps.first?.content else {
             Issue.record("the image is not drawn first")
             return
         }
-        #expect(media.reference == "/abs/page.png")
+        #expect(name == "/abs/page.png")
         #expect(frame == Rectangle(x: 20, y: 20, width: 1000, height: 800))
     }
 

@@ -36,7 +36,7 @@ struct PicturePlannerTests {
         #expect(plan.size == Size(width: 840, height: 440))
         #expect(plan.steps.first == DrawingStep(
             content: .picture(
-                .media(try media("/abs/page.png"), time: 0),
+                .media(try mediaFile("/abs/page.png"), name: "/abs/page.png", time: 0),
                 crop: Rectangle(x: 100, y: 100, width: 400, height: 200),
                 frame: frame
             ),
@@ -166,7 +166,7 @@ struct PicturePlannerTests {
         // Then
         let padding = 14 * (1080 / baseWidth)
         #expect(plan.steps[0].content == .picture(
-            .media(try media("/abs/short.mp4"), time: 1),
+            .media(try mediaFile("/abs/short.mp4"), name: "/abs/short.mp4", time: 1),
             crop: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
             frame: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         ))
@@ -386,8 +386,14 @@ struct PicturePlannerTests {
         return plan
     }
 
-    private func media(_ file: String) throws -> ResolvedMedia {
-        try MediaResolver(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: Fixture.library)
+    private func mediaFile(_ file: String) throws -> MediaFile {
+        let media = try MediaResolver(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: Fixture.library)
             .media(of: .file(file), place: .root, kind: .image, theme: .base)
+        guard case let .file(mediaFile) = media.source else {
+            Issue.record("the media is not a file")
+            return MediaFile(path: file)
+        }
+
+        return mediaFile
     }
 }
