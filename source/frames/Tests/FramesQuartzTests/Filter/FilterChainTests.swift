@@ -54,7 +54,7 @@ struct FilterChainTests {
     func computesColorOperation(operation: ResolvedFilterOperation) throws {
         // Given
         let grid = PixelGrid(width: colors.count, height: 1, pixels: Array(colors.map(premultiplied).joined()))
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([operation], to: grid.image, seed: 0))
@@ -75,7 +75,7 @@ struct FilterChainTests {
         // Given
         let grid = PixelGrid(width: 1, height: 1, color: [0.9, 0.05, 0.5, 1])
         let operations = [ResolvedFilterOperation.contrast(amount: 3), .contrast(amount: 0.5)]
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply(operations, to: grid.image, seed: 0))
@@ -98,7 +98,7 @@ struct FilterChainTests {
         let grid = PixelGrid(width: 1, height: 1, color: color)
         let contrast = ResolvedFilterOperation.contrast(amount: 2)
         let saturation = ResolvedFilterOperation.saturation(amount: 0.5)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let first = PixelGrid(rendering: try sut.apply([contrast, saturation], to: grid.image, seed: 0))
@@ -137,7 +137,7 @@ struct FilterChainTests {
         let extent = CGRect(x: 10, y: 20, width: 13, height: 9)
         let image = PixelGrid(width: 13, height: 9, color: [0.6, 0.4, 0.8, 1]).image
             .transformed(by: CGAffineTransform(translationX: 10, y: 20))
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = try sut.apply([operation], to: image, seed: 3)
@@ -158,7 +158,7 @@ struct FilterChainTests {
         // Given
         let color: [Float] = [0.3, 0.6, 0.9, 1]
         let grid = PixelGrid(width: 16, height: 12, color: color)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([operation], to: grid.image, seed: 0))
@@ -181,7 +181,7 @@ struct FilterChainTests {
     func blursByStandardDeviation(radius: Double) throws {
         // Given
         let grid = stepEdge(width: 64)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([.blur(radius: radius)], to: grid.image, seed: 0))
@@ -203,7 +203,7 @@ struct FilterChainTests {
     ) throws {
         // Given
         let grid = stepEdge(width: 64)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let operation = ResolvedFilterOperation.sharpen(amount: amount, radius: radius)
@@ -236,7 +236,7 @@ struct FilterChainTests {
     ) throws {
         // Given
         let grid = PixelGrid(width: 12, height: 12, color: color + [1])
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let operation = ResolvedFilterOperation.bloom(amount: amount, radius: 3, color: tint)
@@ -262,7 +262,7 @@ struct FilterChainTests {
             }
         }
         let grid = PixelGrid(width: 9, height: 9, pixels: pixels)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([.bloom(amount: 1, radius: 1.5, color: nil)], to: grid.image, seed: 0))
@@ -283,7 +283,7 @@ struct FilterChainTests {
         // Given
         let color: [Float] = [0.8, 0.6, 0.4, 0.5]
         let grid = PixelGrid(width: 8, height: 6, color: color)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let operation = ResolvedFilterOperation.vignette(amount: amount, radius: radius)
@@ -318,7 +318,7 @@ struct FilterChainTests {
         let grid = PixelGrid(width: width, height: height, pixels: (0..<width * height).flatMap { index in
             [Float(index % 7) / 7, Float(index % 5) / 5, Float((index * 13) % 11) / 11, 1]
         })
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([.pixelate(size: size)], to: grid.image, seed: 0))
@@ -348,7 +348,7 @@ struct FilterChainTests {
         // Given
         let amount: Float = 0.1
         let grid = PixelGrid(width: 256, height: 256, color: [0.5, 0.5, 0.5, 1])
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let operation = ResolvedFilterOperation.grain(amount: Double(amount), size: 1)
@@ -370,7 +370,7 @@ struct FilterChainTests {
         // Given
         let grid = PixelGrid(width: 32, height: 32, color: [0.4, 0.5, 0.6, 1])
         let operation = ResolvedFilterOperation.grain(amount: 0.3, size: 1.5)
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let first = PixelGrid(rendering: try sut.apply([operation], to: grid.image, seed: 12))
@@ -386,7 +386,7 @@ struct FilterChainTests {
     func drawsGrainsOfSize() throws {
         // Given
         let grid = PixelGrid(width: 12, height: 8, color: [0.5, 0.5, 0.5, 1])
-        let sut = FilterChain()
+        let sut = FilterChain(tables: LookUpTableCache())
 
         // When
         let result = PixelGrid(rendering: try sut.apply([.grain(amount: 0.2, size: 4)], to: grid.image, seed: 1))

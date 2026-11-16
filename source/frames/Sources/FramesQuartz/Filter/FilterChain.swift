@@ -18,7 +18,7 @@ struct FilterChain: Sendable {
     private let tables: LookUpTableCache
 
     // MARK: - Initializer
-    init(tables: LookUpTableCache = .shared) {
+    init(tables: LookUpTableCache) {
         self.tables = tables
     }
 

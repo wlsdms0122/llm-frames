@@ -17,6 +17,7 @@ import Frames
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
+    private let tables: LookUpTableCache
     private let glyphDrawer: GlyphDrawer
 
     private var nested: [(list: DisplayList, image: CGImage)] = []
@@ -24,9 +25,11 @@ final class FrameDrawer {
     // MARK: - Initializer
     init(
         pictures: MediaPictureCache,
+        tables: LookUpTableCache,
         fonts: FontLibrary
     ) {
         self.pictures = pictures
+        self.tables = tables
         self.glyphDrawer = GlyphDrawer(fonts: fonts)
     }
 
@@ -90,8 +93,8 @@ final class FrameDrawer {
         case let .picture(picture):
             let source = try image(of: picture.source)
             let matte = try picture.matte.map { try pictures.image(of: $0.frame) }
-            return { context in
-                try PictureDrawer().draw(picture, source: source, matte: matte, seed: seed, in: context)
+            return { [tables] context in
+                try PictureDrawer(tables: tables).draw(picture, source: source, matte: matte, seed: seed, in: context)
             }
 
         case let .fill(fill):
@@ -149,7 +152,8 @@ final class FrameDrawer {
             height: bounds.height
         )
         let backdrop = try frame.ciImage().cropped(to: extent)
-        let filtered = try FilterChain().apply(adjust.filter, to: backdrop, seed: seed).cropped(to: extent)
+        let chain = FilterChain(tables: tables)
+        let filtered = try chain.apply(adjust.filter, to: backdrop, seed: seed).cropped(to: extent)
         let image = try FrameContext.cgImage(of: filtered, in: extent)
 
         return { context in

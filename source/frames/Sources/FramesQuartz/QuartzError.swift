@@ -5,9 +5,12 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Frames
+
 package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownKernel(name: String)
     case unsupportedBlend(name: String, place: String)
+    case unreadableTable(place: String, error: FilterError)
     case kernelFailed(name: String)
     case faceNotInFile(file: String, face: String)
     case unmadeBitmap(width: Int, height: Int)
@@ -21,6 +24,9 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unsupportedBlend(name, place):
             "the quartz renderer has no blend mode \(name) at \(place)"
+
+        case let .unreadableTable(place, error):
+            "the quartz renderer cannot read the LUT at \(place): \(error)"
 
         case let .kernelFailed(name):
             "the quartz kernel \(name) gave no image"

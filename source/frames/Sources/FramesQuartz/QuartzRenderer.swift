@@ -12,6 +12,7 @@ import Frames
 package final class QuartzRenderer: Sendable {
     // MARK: - Property
     private let pictures: MediaPictureCache
+    private let tables = LookUpTableCache()
     private let fonts = FontLibrary()
 
     // MARK: - Initializer
@@ -26,10 +27,10 @@ package final class QuartzRenderer: Sendable {
 extension QuartzRenderer: Renderer {
     // MARK: - Lifecycle
     package func check(_ list: DisplayList) throws {
-        try DisplayListChecker().check(list)
+        try DisplayListChecker(tables: tables).check(list)
     }
 
     package func frame(of list: DisplayList) throws -> Bitmap {
-        try FrameDrawer(pictures: pictures, fonts: fonts).draw(list).bitmap()
+        try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap()
     }
 }

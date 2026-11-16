@@ -5,10 +5,12 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import CryptoKit
 import Foundation
 import Frames
 import FramesAVFoundation
 @testable import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @Suite("QuartzRenderer Tests")
@@ -262,12 +264,83 @@ struct QuartzRendererTests {
         }
     }
 
+    // Each cube is pinned by its own SHA-256, so only its contents are wrong. `line` is where the reader stops.
+    @Test(
+        "check refuses a pinned cube that does not read as a 3D LUT, naming its place and the cube's error",
+        arguments: [
+            ("LUT_1D_SIZE 2\n0 0 0\n1 1 1", 1),
+            ("LUT_3D_SIZE 2\n0 0 0\n1 1 1", 3),
+            ("LUT_3D_SIZE 2\nLUT_3D_GAMMA 1\n0 0 0", 2),
+            ("LUT_3D_SIZE 2\nDOMAIN_MIN 1 1 1\nDOMAIN_MAX 0 0 0\n" + String(repeating: "0 0 0\n", count: 8), 3)
+        ]
+    )
+    func refusesMalformedCube(
+        contents: String,
+        line: Int
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("broken.cube")
+        try contents.write(toFile: path, atomically: true, encoding: .utf8)
+        let file = PinnedFile(path: path, sha256: sha256(of: contents))
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let adjust = AdjustItem(rectangle: nil, filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
+        let nested = list(size: 1, items: [DisplayItem(content: .adjust(adjust))])
+        let picture = PictureItem(
+            source: .displayList(nested),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1, height: 1)
+        )
+
+        // When
+        let error = #expect(throws: QuartzError.self) {
+            try sut.check(list(size: 1, items: [DisplayItem(content: .picture(picture))]))
+        }
+
+        // Then
+        guard case let .unreadableTable(place, .malformedCube(errorFile, errorLine, _)) = error else {
+            Issue.record("expected a malformed cube, got \(String(describing: error))")
+            return
+        }
+        #expect(place == "items[0].source.items[0].filter[1]")
+        #expect(errorFile == path && errorLine == line)
+    }
+
+    @Test("a LUT read by check is drawn from the renderer's cache without reading its cube again")
+    func drawsCheckedTable() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("invert.cube")
+        // The corners of a 2 x 2 x 2 cube, red varying fastest, each mapped to its complement.
+        let entries = (0..<8).map { index in
+            (0..<3).map { axis in index >> axis & 1 == 1 ? "0" : "1" }.joined(separator: " ")
+        }
+        let contents = "LUT_3D_SIZE 2\n" + entries.joined(separator: "\n")
+        try contents.write(toFile: path, atomically: true, encoding: .utf8)
+        let file = PinnedFile(path: path, sha256: sha256(of: contents))
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let adjust = AdjustItem(rectangle: nil, filter: [.lut(file: file, amount: 1)])
+        let list = list(size: 4, items: [DisplayItem(content: .adjust(adjust))])
+        try sut.check(list)
+        try FileManager.default.removeItem(atPath: path)
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        expect(bitmap.pixel(x: 2, y: 2), equals: [0, 0, 0, 1])
+    }
+
     // MARK: - Private
     private func list(
         size: Double,
         items: [DisplayItem]
     ) -> DisplayList {
         DisplayList(size: Size(width: size, height: size), background: Color(written: "#FFFFFF"), seed: 0, items: items)
+    }
+
+    private func sha256(of contents: String) -> String {
+        SHA256.hash(data: Data(contents.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func expect(

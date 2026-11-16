@@ -8,11 +8,10 @@
 import os
 import Frames
 
-// The LUTs read so far, by pinned file, so a sequence reads each `.cube` once and not on every frame.
+// The LUTs read so far, by pinned file, kept for the renderer's lifetime, so a sequence reads each `.cube` once: when
+// its display lists are checked, and not again on every frame.
 final class LookUpTableCache: Sendable {
     // MARK: - Property
-    static let shared = LookUpTableCache()
-
     private let tables = OSAllocatedUnfairLock<[String: LookUpTable]>(initialState: [:])
 
     // MARK: - Initializer

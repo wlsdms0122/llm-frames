@@ -15,7 +15,13 @@ import Frames
 // on its way to the output.
 struct PictureDrawer {
     // MARK: - Property
+    private let tables: LookUpTableCache
+
     // MARK: - Initializer
+    init(tables: LookUpTableCache) {
+        self.tables = tables
+    }
+
     // MARK: - Public
     func draw(
         _ item: PictureItem,
@@ -53,7 +59,7 @@ struct PictureDrawer {
 
         var picture = try scaled.ciImage()
         let extent = picture.extent
-        picture = try FilterChain().apply(item.filter, to: picture, seed: seed).cropped(to: extent)
+        picture = try FilterChain(tables: tables).apply(item.filter, to: picture, seed: seed).cropped(to: extent)
         if let pictureMatte = item.matte, let matte {
             picture = try MatteApplier().apply(pictureMatte, frame: matte, to: picture, size: size)
         }
