@@ -72,7 +72,11 @@ struct SequencePlanner: Sendable {
                 track: tracked.storyline[index],
                 nested: storylineNested[index],
                 filter: try filter(
-                    time.sequence.storyline[index].filter,
+                    time.sequence.storyline[index].filter ?? defaultFilter(
+                        of: time.storyline[index].source.kind,
+                        media: time.sequence.storyline[index].media,
+                        theme: time.theme
+                    ),
                     scale: lengthScale,
                     place: time.storyline[index].place.appending(key: "filter"),
                     kind: time.storyline[index].source.kind
@@ -449,12 +453,44 @@ struct SequencePlanner: Sendable {
             blend: written.blend ?? "normal",
             color: color,
             filter: try filter(
-                written.filter,
+                written.filter ?? defaultFilter(of: plan.kind, media: media(of: written), theme: theme),
                 scale: scale,
                 place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter"),
                 kind: plan.kind
             )
         )
+    }
+
+    // Media takes the theme's filter when it writes none, except a compound clip or a template instance, whose clips
+    // already took theirs. Nothing else takes a filter it does not write.
+    private func defaultFilter(
+        of kind: ClipKind,
+        media: ClipMedia?,
+        theme: MergedTheme
+    ) -> JSONValue? {
+        guard case .media = kind, kind != .media(.sequence), let media else { return nil }
+        guard !isTemplate(media.source) else { return nil }
+
+        return theme.defaultFilter
+    }
+
+    private func isTemplate(_ source: MediaSource) -> Bool {
+        switch source {
+        case .template:
+            true
+
+        case let .argument(source, _):
+            isTemplate(source)
+
+        case .file, .imageSequence, .compound, .picture:
+            false
+        }
+    }
+
+    private func media(of clip: Clip) -> ClipMedia? {
+        guard case let .media(media) = clip.content else { return nil }
+
+        return media
     }
 
     // A clip with no filter choice applies none. `place` is where the choice is written.

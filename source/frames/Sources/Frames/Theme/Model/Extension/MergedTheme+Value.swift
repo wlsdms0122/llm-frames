@@ -74,6 +74,11 @@ extension MergedTheme {
     // MARK: - Initializer
     // MARK: - Public
     // The length scale of a place `width` wide: theme lengths are points at `baseWidth`.
+    // The filter choice a clip that writes none takes.
+    var defaultFilter: JSONValue {
+        value(at: ["defaults", "filter"]) ?? .string("none")
+    }
+
     func lengthScale(at width: Double) -> Double {
         width / baseWidth
     }
