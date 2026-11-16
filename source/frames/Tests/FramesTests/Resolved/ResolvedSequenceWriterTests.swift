@@ -1,5 +1,5 @@
 //
-//  SequenceWriterTests.swift
+//  ResolvedSequenceWriterTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/16/26.
@@ -9,10 +9,11 @@ import Testing
 
 @testable import Frames
 
-@Suite("SequenceWriter Tests")
-struct SequenceWriterTests {
+@Suite("ResolvedSequenceWriter Tests")
+struct ResolvedSequenceWriterTests {
     // MARK: - Property
-    private let sut = ResolvedDocumentWriter(hashes: FileHashTable(["/abs/run.mp4": "9f2c41d07b3e"]))
+    private let sut = ResolvedDocumentWriter()
+    private let hashes = FileHashTable(["/abs/run.mp4": "9f2c41d07b3e"])
 
     // A transition with spans, a cover and a matte, and a filter with a LUT, so every file a preset opens is pinned.
     private let presets = PresetTable(
@@ -219,7 +220,7 @@ struct SequenceWriterTests {
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 
-    @Test("a transition carries its spans inline and its cover and matte files pinned, and a LUT is pinned")
+    @Test("a transition carries its spans inline and its cover and matte media pinned with their frames and length, and a LUT is pinned")
     func writesTransitionAndLUT() throws {
         // Given
         let document = #"""
@@ -238,9 +239,73 @@ struct SequenceWriterTests {
         #expect(transition["end"] == .number(3.5))
         #expect(incoming["ease"] == .string("ease-out"))
         #expect(incoming["keys"]?.arrayValue?.first?.objectValue?.keys == ["t", "opacity", "scale"])
+        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "duration", "ease", "revealFrom", "keys"])
         #expect(transition["cover"]?.objectValue?["sha256"] == .string("sha256-of-/abs/leak.mov"))
-        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "softness", "invert", "ease"])
+        #expect(transition["cover"]?.objectValue?["frames"] == .array([0, 0.5, 1, 1.5].map(JSONValue.number)))
+        #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
+        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
+        #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
+    }
+
+    @Test("a shape's label carries its side, the time its side was chosen at, its shaped text and its own animation")
+    func writesLabel() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "fade" } ] }
+            """#
+
+        // When
+        let label = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue?["label"]?.objectValue)
+
+        // Then
+        let animation = try #require(label["animation"]?.objectValue)
+        #expect(label.keys == ["side", "at", "text", "animation"])
+        #expect(label["at"] == .number(1))
+        #expect(label["text"]?.objectValue?.keys == ["size", "lines", "background", "stroke", "runs"])
+        #expect(animation["entrance"]?.objectValue?["seconds"] == .number(0.25))
+        #expect(animation["loop"] == .null)
+        #expect(animation["exit"]?.objectValue?["seconds"] == .number(0.25))
+    }
+
+    @Test("a clip whose tracked area is a band writes band true, and one tracking any other area false")
+    func writesBand() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
+                { "shape": "box", "area": "Total", "track": "Total" },
+                { "shape": "fill", "area": { "band": "Total" }, "track": true } ] } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "band", "frames"])
+        #expect(clips[0]["track"]?.objectValue?["band"] == .bool(false))
+        #expect(clips[1]["track"]?.objectValue?["band"] == .bool(true))
+    }
+
+    @Test("a media clip plays in at its window's start, written as origin, even where tracking narrowed its start")
+    func writesOriginOfNarrowedClip() throws {
+        // Given
+        // The second clip is drawn from 1.75 by its transition, but "Total" is followed only from media second 1,
+        // which it shows at its edit point 2.
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
+              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "transition": "flash", "connected": [
+                { "media": "/abs/short.mp4", "parent": true, "position": [0, 0], "track": "Total" } ] } ] }
+            """#
+        let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1...4])
+
+        // When
+        let clip = try #require(try write(document, tracker: tracker)["clips"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(clip["start"] == .number(2))
+        #expect(clip["in"] == .number(0))
+        #expect(clip["origin"] == .number(1.75))
     }
 
     @Test("a compound clip carries its nested resolved sequence in place of a file")
@@ -316,17 +381,18 @@ struct SequenceWriterTests {
     // MARK: - Private
     private func write(
         _ document: String,
-        presets: PresetTable = Fixture.presets
+        presets: PresetTable = Fixture.presets,
+        tracker: TrackerTable = Fixture.tracker
     ) throws -> JSONObject {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
             ocr: Fixture.ocr,
-            tracker: Fixture.tracker,
+            tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )
-        let text = try sut.write(planner.plan(Fixture.json(document)))
+        let text = sut.write(try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
     }

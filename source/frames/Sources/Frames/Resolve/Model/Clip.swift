@@ -7,10 +7,10 @@
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
 // and `crop` are as written, their keyframes on the clip's clock. `placement` and `anchor` are the names written.
-// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
-// colour written, `border` for `true`) and `shadow` are a media clip's. `opacity`,
-// `scale` and `rotation` are as written, their keyframes on the clip's clock, `color` is a shape's as written, and
-// `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
+// `labelAnimation` is a shape's label's animation choice as written. `width` is a title's wrapping width, and with
+// `height` and `conform` a media clip's box. `radius`, `border` (the colour written, `border` for `true`) and `shadow`
+// are a media clip's. `opacity`, `scale` and `rotation` are as written, their keyframes on the clip's clock, `color`
+// is a shape's as written, and `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -31,6 +31,7 @@ struct Clip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
     let label: String?
+    let labelAnimation: AnimationChoice?
     let width: Double?
     let height: Double?
     let conform: Conform?
@@ -64,6 +65,7 @@ struct Clip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
         label: String? = nil,
+        labelAnimation: AnimationChoice? = nil,
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,
@@ -95,6 +97,7 @@ struct Clip: Equatable, Sendable {
         self.crop = crop
         self.track = track
         self.label = label
+        self.labelAnimation = labelAnimation
         self.width = width
         self.height = height
         self.conform = conform

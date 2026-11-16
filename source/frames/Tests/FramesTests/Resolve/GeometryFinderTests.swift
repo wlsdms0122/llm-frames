@@ -70,6 +70,31 @@ struct GeometryFinderTests {
         #expect(keyframes.map(\.ease) == [.easeInOut, .linear])
     }
 
+    @Test("a found area's media time is its storyline clip's media time at the keyframe's sequence time, or at the instant")
+    func findsAtStorylineMediaTime() throws {
+        // Given
+        let keyframed = try plan(#"""
+            { "shape": "box", "at": [1.5, 3], "keyframes": [ { "at": 1.5, "area": "Total" }, { "at": 3, "area": "Total" } ] }
+            """#, storylineKeys: #""speed": 2,"#)
+        let still = try plan(#"{ "shape": "box", "at": [2, 3], "area": "Total" }"#, storylineKeys: #""speed": 2,"#)
+        let storyline = keyframed.storyline[0]
+
+        // When
+        let keyframes = try find(keyframed.sequence.storyline[0].connected[0].area, plan: keyframed, instant: keyframed.clips[0].instant)
+        let value = try find(still.sequence.storyline[0].connected[0].area, plan: still, instant: still.clips[0].instant)
+
+        // Then
+        guard case let .keyframes(keyframes) = keyframes, case let .value(value) = value else {
+            Issue.record("the areas were not found as written")
+            return
+        }
+        #expect(keyframes.map(\.at) == [0.25, 1])
+        #expect(keyframes.map(\.value.mediaTime) == [1.5, 3])
+        #expect(keyframes.map(\.value.mediaTime) == keyframes.map { storyline.mediaTime(atSequenceTime: $0.at) })
+        #expect(value.mediaTime == 2)
+        #expect(value.mediaTime == still.storyline[0].mediaTime(atSequenceTime: still.clips[0].instant))
+    }
+
     @Test("a keyframe's area that stops names the keyframe")
     func namesKeyframeInStop() throws {
         // Given

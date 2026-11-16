@@ -13,12 +13,13 @@ import Testing
 @Suite("ResolvedDocumentWriter Tests")
 struct ResolvedDocumentWriterTests {
     // MARK: - Property
-    private let sut = ResolvedDocumentWriter(hashes: FileHashTable([
+    private let sut = ResolvedDocumentWriter()
+    private let hashes = FileHashTable([
         "/abs/run.mp4": "9f2c41d07b3e",
         "/abs/bgm.m4a": "c07d9a1e44f2",
         "/abs/page.png": "5d17e0a9b2c4",
         "/System/Apple SD Gothic Neo.ttc": "41aa0c9e5d17"
-    ]))
+    ])
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
     // title that pops in, a picture with a border in the centre, and looping music that fades out.
@@ -241,6 +242,7 @@ struct ResolvedDocumentWriterTests {
               },
               "nested": [],
               "in": 2,
+              "origin": 0,
               "out": 8,
               "speed": 2,
               "loop": false,
@@ -267,6 +269,7 @@ struct ResolvedDocumentWriterTests {
               },
               "nested": [],
               "in": 0,
+              "origin": 0,
               "out": 20,
               "speed": 1,
               "loop": true,
@@ -337,7 +340,7 @@ struct ResolvedDocumentWriterTests {
         let plan = try Fixture.documentPlanner.plan(Fixture.json(sequence))
 
         // When
-        let text = try sut.write(plan)
+        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
 
         // Then
         #expect(text == resolvedSequence)
@@ -349,7 +352,7 @@ struct ResolvedDocumentWriterTests {
         let plan = try Fixture.documentPlanner.plan(Fixture.json(image))
 
         // When
-        let text = try sut.write(plan)
+        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
 
         // Then
         #expect(text == resolvedImage)
@@ -359,11 +362,9 @@ struct ResolvedDocumentWriterTests {
     func resolvesDeterministically(index: Int) throws {
         // Given
         let document = try Fixture.json([sequence, image][index])
-        let writer = ResolvedDocumentWriter(hashes: FileHashTable())
-
         // When
-        let first = try writer.write(Fixture.documentPlanner.plan(document))
-        let second = try ResolvedDocumentWriter(hashes: FileHashTable()).write(planner().plan(document))
+        let first = sut.write(try ResolvedDocument(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable()))
+        let second = ResolvedDocumentWriter().write(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         #expect(Data(first.utf8) == Data(second.utf8))
@@ -372,7 +373,7 @@ struct ResolvedDocumentWriterTests {
     @Test("a resolved document reads back to the value it was written from")
     func readsBack() throws {
         // Given
-        let value = try sut.document(Fixture.documentPlanner.plan(Fixture.json(sequence)))
+        let value = sut.document(try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(sequence)), hashes: hashes))
 
         // When
         let read = try JSONReader().read(JSONWriter().write(value))

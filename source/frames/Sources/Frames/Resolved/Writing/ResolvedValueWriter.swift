@@ -5,39 +5,32 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import Foundation
-
 // Writes the values a resolved sequence and a resolved picture share: geometry, colours, eases, keyframe lists, filter
-// operations, shaped text, and files pinned by their absolute path and SHA-256.
+// operations, spans, animations, shaped text, and files pinned by their absolute path and SHA-256.
 struct ResolvedValueWriter: Sendable {
     // MARK: - Property
-    private let hashes: any FileHashProvider
-
     // MARK: - Initializer
-    init(hashes: any FileHashProvider) {
-        self.hashes = hashes
-    }
+    init() { }
 
     // MARK: - Public
-    // Resolve found every file by its absolute path, and one spelling is kept for each.
-    func pinned(_ path: String) throws -> [JSONMember] {
-        let absolute = URL(fileURLWithPath: path).standardizedFileURL.path
-
-        return [
-            JSONMember(key: "file", value: .string(absolute)),
-            JSONMember(key: "sha256", value: .string(try hashes.sha256(ofFile: absolute)))
+    func pinned(_ file: PinnedFile) -> [JSONMember] {
+        [
+            JSONMember(key: "file", value: .string(file.path)),
+            JSONMember(key: "sha256", value: .string(file.sha256))
         ]
     }
 
-    // A video or image file with its frame times, nil for a still or sound. An image sequence is its frame files in
-    // order, each pinned, so a frame added, removed or changed is refused.
-    func media(_ file: MediaFile) throws -> [JSONMember] {
-        let pinned = file.frameFiles.isEmpty
-            ? try self.pinned(file.path)
-            : [JSONMember(key: "imageSequence", value: .array(try file.frameFiles.map { frame in
-                .object(JSONObject(members: try self.pinned(frame)))
-            }))]
-        let frames = file.frameTimes.isEmpty ? [] : [JSONMember(key: "frames", value: numbers(file.frameTimes))]
+    // A video or image file with its frame times, none for a still or sound. An image sequence is its frame files in
+    // order, each pinned.
+    func media(_ media: PinnedMedia) -> [JSONMember] {
+        let pinned = switch media.source {
+        case let .file(file):
+            self.pinned(file)
+
+        case let .imageSequence(files):
+            [JSONMember(key: "imageSequence", value: .array(files.map { .object(JSONObject(members: self.pinned($0))) }))]
+        }
+        let frames = media.frameTimes.isEmpty ? [] : [JSONMember(key: "frames", value: numbers(media.frameTimes))]
 
         return pinned + frames
     }
@@ -94,60 +87,78 @@ struct ResolvedValueWriter: Sendable {
         }
     }
 
-    // A keyframable property as a list of keyframes in sequence time, in time order, each with the ease of the span
-    // that starts at it. A static value is one keyframe at `instant`, which holds at every time.
+    // A keyframable property as a list of keyframes in sequence time, each with the ease of the span that starts at it.
     func keyframes<Value>(
-        _ property: PropertyValue<Value>,
-        instant: Double,
-        value: (Value) throws -> JSONValue
-    ) rethrows -> JSONValue {
-        let keyframes = switch property {
-        case let .value(written):
-            [TimedValue(index: 0, at: instant, value: written, ease: .linear)]
-
-        case let .keyframes(keyframes):
-            keyframes.enumerated()
-                .sorted { left, right in
-                    left.element.at == right.element.at ? left.offset < right.offset : left.element.at < right.element.at
-                }
-                .map(\.element)
-        }
-
-        return .array(try keyframes.map { keyframe in
+        _ keyframes: [Keyframe<Value>],
+        value: (Value) -> JSONValue
+    ) -> JSONValue {
+        .array(keyframes.map { keyframe in
             .object(JSONObject(members: [
                 JSONMember(key: "at", value: .number(keyframe.at)),
-                JSONMember(key: "value", value: try value(keyframe.value)),
+                JSONMember(key: "value", value: value(keyframe.value)),
                 JSONMember(key: "ease", value: ease(keyframe.ease))
             ]))
         })
     }
 
+    func numbers(_ keyframes: [Keyframe<Double>]) -> JSONValue {
+        self.keyframes(keyframes) { .number($0) }
+    }
+
     // Each operation is `op` followed by its values, and a LUT's file is pinned.
-    func filter(_ operations: [FilterOperation]) throws -> JSONValue {
-        .array(try operations.map { operation in
-            .object(JSONObject(members: try members(of: operation)))
+    func filter(_ operations: [ResolvedFilterOperation]) -> JSONValue {
+        .array(operations.map { operation in
+            .object(JSONObject(members: members(of: operation)))
         })
+    }
+
+    // A key's values follow `t` in the order the motion properties are listed, so the same span is written the same way.
+    func span(_ span: Span) -> [JSONMember] {
+        [
+            JSONMember(key: "ease", value: ease(span.ease)),
+            JSONMember(key: "revealFrom", value: .string(span.revealFrom.rawValue)),
+            JSONMember(key: "keys", value: .array(span.keys.map { key in
+                .object(JSONObject(members: [JSONMember(key: "t", value: .number(key.t))] + MotionProperty.allCases.compactMap { property in
+                    key.values[property].map { JSONMember(key: property.rawValue, value: .number($0)) }
+                }))
+            }))
+        ]
+    }
+
+    // An entrance and an exit by their `seconds`, a loop by its `period`.
+    func animation(_ animation: ResolvedAnimation) -> JSONValue {
+        let span = { (span: AnimationSpan?, length: String) -> JSONValue in
+            span.map { span in
+                .object(JSONObject(members: [JSONMember(key: length, value: .number(span.length))] + self.span(span.span)))
+            } ?? .null
+        }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "entrance", value: span(animation.entrance, "seconds")),
+            JSONMember(key: "loop", value: span(animation.loop, "period")),
+            JSONMember(key: "exit", value: span(animation.exit, "seconds"))
+        ]))
     }
 
     // Glyph runs carry their font file pinned, the face in it, size and colour, and each glyph as `[id, x, y]`, its
     // baseline origin in the text's box.
-    func text(_ layout: TextLayout) throws -> JSONValue {
-        let background = layout.background.map { background in
+    func text(_ text: ResolvedText) -> JSONValue {
+        let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "color", value: color(background.color)),
                 JSONMember(key: "padding", value: size(background.padding)),
                 JSONMember(key: "radius", value: .number(background.radius))
             ]))
         }
-        let stroke = layout.stroke.map { stroke in
+        let stroke = text.stroke.map { stroke in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "width", value: .number(stroke.width)),
                 JSONMember(key: "color", value: color(stroke.color))
             ]))
         }
-        let runs = try layout.runs.map { run in
-            JSONValue.object(JSONObject(members: try pinned(run.face.file) + [
-                JSONMember(key: "face", value: .string(run.face.name)),
+        let runs = text.runs.map { run in
+            JSONValue.object(JSONObject(members: pinned(run.font) + [
+                JSONMember(key: "face", value: .string(run.face)),
                 JSONMember(key: "size", value: .number(run.size)),
                 JSONMember(key: "color", value: color(run.color)),
                 JSONMember(key: "glyphs", value: .array(run.glyphs.map { numbers([Double($0.id), $0.x, $0.y]) }))
@@ -155,8 +166,8 @@ struct ResolvedValueWriter: Sendable {
         }
 
         return .object(JSONObject(members: [
-            JSONMember(key: "size", value: size(layout.size)),
-            JSONMember(key: "lines", value: .number(Double(layout.lineCount))),
+            JSONMember(key: "size", value: size(text.size)),
+            JSONMember(key: "lines", value: .number(Double(text.lineCount))),
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "stroke", value: stroke ?? .null),
             JSONMember(key: "runs", value: .array(runs))
@@ -164,7 +175,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // MARK: - Private
-    private func members(of operation: FilterOperation) throws -> [JSONMember] {
+    private func members(of operation: ResolvedFilterOperation) -> [JSONMember] {
         let kind = { (name: String) in JSONMember(key: "op", value: .string(name)) }
         let value = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
 
@@ -195,7 +206,7 @@ struct ResolvedValueWriter: Sendable {
             ]
 
         case let .lut(file, amount):
-            return [kind("lut")] + (try pinned(file)) + [value("amount", amount)]
+            return [kind("lut")] + pinned(file) + [value("amount", amount)]
 
         case let .blur(radius):
             return [kind("blur"), value("radius", radius)]
@@ -208,7 +219,7 @@ struct ResolvedValueWriter: Sendable {
                 kind("bloom"),
                 value("amount", amount),
                 value("radius", radius),
-                JSONMember(key: "color", value: color.map(JSONValue.string) ?? .null)
+                JSONMember(key: "color", value: color.map(self.color) ?? .null)
             ]
 
         case let .vignette(amount, radius):

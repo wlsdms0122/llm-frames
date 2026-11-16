@@ -1,33 +1,31 @@
 //
-//  PictureWriter.swift
+//  ResolvedPictureWriter.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
 //
 
-// Writes what resolve decided for an image or layout document as the members of its resolved document after `kind`:
-// its final size and its drawing steps in operation order, in output pixels, each with what it draws under `draw` and
-// the canvas it is clipped to under `clip`.
-struct PictureWriter: Sendable {
+// Writes a resolved image or layout document as the members of its resolved document after `kind`: its final size and
+// its drawing steps in operation order, in output pixels, each with what it draws under `draw` and the canvas it is
+// clipped to under `clip`.
+struct ResolvedPictureWriter: Sendable {
     // MARK: - Property
-    private let values: ResolvedValueWriter
+    private let values = ResolvedValueWriter()
 
     // MARK: - Initializer
-    init(values: ResolvedValueWriter) {
-        self.values = values
-    }
+    init() { }
 
     // MARK: - Public
     // `sequences` writes a compound clip's sequence a step draws, which the sequence writer owns.
     func members(
-        of plan: PicturePlan,
-        sequences: (SequencePlan) throws -> [JSONMember]
-    ) throws -> [JSONMember] {
+        of picture: ResolvedPicture,
+        sequences: (ResolvedSequence) -> [JSONMember]
+    ) -> [JSONMember] {
         [
-            JSONMember(key: "size", value: values.size(plan.size)),
-            JSONMember(key: "steps", value: .array(try plan.steps.map { step in
+            JSONMember(key: "size", value: values.size(picture.size)),
+            JSONMember(key: "steps", value: .array(picture.steps.map { step in
                 .object(JSONObject(
-                    members: try members(of: step.content, sequences: sequences)
+                    members: members(of: step.content, sequences: sequences)
                         + [JSONMember(key: "clip", value: values.rectangle(step.clip))]
                 ))
             }))
@@ -36,9 +34,9 @@ struct PictureWriter: Sendable {
 
     // MARK: - Private
     private func members(
-        of content: DrawingContent,
-        sequences: (SequencePlan) throws -> [JSONMember]
-    ) throws -> [JSONMember] {
+        of content: ResolvedDrawingContent,
+        sequences: (ResolvedSequence) -> [JSONMember]
+    ) -> [JSONMember] {
         let draw = { (name: String) in JSONMember(key: "draw", value: .string(name)) }
         let area = { (rectangle: Rectangle) in JSONMember(key: "area", value: self.values.rectangle(rectangle)) }
         let color = { (color: Color) in JSONMember(key: "color", value: self.values.color(color)) }
@@ -48,7 +46,7 @@ struct PictureWriter: Sendable {
         case let .picture(picture, crop, frame):
             return [
                 draw("picture"),
-                JSONMember(key: "picture", value: try self.picture(picture, sequences: sequences)),
+                JSONMember(key: "picture", value: self.picture(picture, sequences: sequences)),
                 JSONMember(key: "crop", value: values.rectangle(crop)),
                 JSONMember(key: "frame", value: values.rectangle(frame))
             ]
@@ -73,12 +71,12 @@ struct PictureWriter: Sendable {
             ]
 
         case let .adjustment(operations, rectangle):
-            return [draw("adjust"), area(rectangle), JSONMember(key: "filter", value: try values.filter(operations))]
+            return [draw("adjust"), area(rectangle), JSONMember(key: "filter", value: values.filter(operations))]
 
-        case let .text(layout, frame):
+        case let .text(text, frame):
             return [
                 draw("text"),
-                JSONMember(key: "text", value: try values.text(layout)),
+                JSONMember(key: "text", value: values.text(text)),
                 JSONMember(key: "frame", value: values.rectangle(frame))
             ]
 
@@ -87,24 +85,24 @@ struct PictureWriter: Sendable {
         }
     }
 
-    // A media file is pinned and shown at its media second. A nested document is written in place, a compound clip's
-    // sequence with the time of its own it is shown at.
+    // Pinned media is shown at its media second. A nested document is written in place, a compound clip's sequence
+    // with the time of its own it is shown at.
     private func picture(
-        _ picture: DrawnPicture,
-        sequences: (SequencePlan) throws -> [JSONMember]
-    ) throws -> JSONValue {
+        _ picture: ResolvedDrawnPicture,
+        sequences: (ResolvedSequence) -> [JSONMember]
+    ) -> JSONValue {
         switch picture {
-        case let .media(file, _, time):
-            return .object(JSONObject(members: try values.media(file) + [JSONMember(key: "time", value: .number(time))]))
+        case let .media(media, time):
+            return .object(JSONObject(members: values.media(media) + [JSONMember(key: "time", value: .number(time))]))
 
-        case let .picture(plan):
+        case let .picture(picture):
             return .object(JSONObject(
-                members: [JSONMember(key: "kind", value: .string(plan.kind))] + (try members(of: plan, sequences: sequences))
+                members: [JSONMember(key: "kind", value: .string(picture.kind))] + members(of: picture, sequences: sequences)
             ))
 
-        case let .sequence(plan, time):
+        case let .sequence(sequence, time):
             return .object(JSONObject(
-                members: [JSONMember(key: "kind", value: .string("sequence"))] + (try sequences(plan))
+                members: [JSONMember(key: "kind", value: .string("sequence"))] + sequences(sequence)
                     + [JSONMember(key: "time", value: .number(time))]
             ))
         }
