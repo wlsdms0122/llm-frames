@@ -94,8 +94,11 @@ struct SoundReader: Sendable {
             guard frames > 0, let block = CMSampleBufferGetDataBuffer(buffer) else { continue }
             let offset = Int((CMSampleBufferGetPresentationTimeStamp(buffer).seconds * sampleRate).rounded()) - first
             guard offset < count else { break }
-            let kept = max(-offset, 0)..<min(frames, count - offset)
-            guard !kept.isEmpty else { continue }
+            // A buffer wholly before `first` keeps nothing, and its bounds form no range.
+            let keptStart = max(-offset, 0)
+            let keptEnd = min(frames, count - offset)
+            guard keptStart < keptEnd else { continue }
+            let kept = keptStart..<keptEnd
 
             var decoded = [Float](repeating: 0, count: frames * channels)
             let status = decoded.withUnsafeMutableBytes { bytes in
