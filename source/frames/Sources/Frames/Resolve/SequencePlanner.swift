@@ -17,6 +17,7 @@ struct SequencePlanner: Sendable {
     private let pictures: PicturePlanner
     private let sound = SoundPlanner()
     private let filters: FilterResolver
+    private let conformer = CropConformer()
 
     // MARK: - Initializer
     init(
@@ -80,24 +81,26 @@ struct SequencePlanner: Sendable {
                     scale: lengthScale,
                     place: time.storyline[index].place.appending(key: "filter"),
                     kind: time.storyline[index].source.kind
-                )
+                ),
+                color: time.sequence.storyline[index].solid.map(time.theme.color)
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
             let title = try title(of: written[index], format: format, theme: time.theme)
+            let box = try box(
+                of: tracked.time.clips[index],
+                written: written[index],
+                position: found[index].position,
+                crop: found[index].crop,
+                title: title,
+                nested: clipNested[index],
+                format: format,
+                theme: time.theme
+            )
             return ClipGeometry(
                 area: found[index].area,
                 position: found[index].position,
-                box: try box(
-                    of: tracked.time.clips[index],
-                    written: written[index],
-                    position: found[index].position,
-                    crop: found[index].crop,
-                    title: title,
-                    nested: clipNested[index],
-                    format: format,
-                    theme: time.theme
-                ),
+                box: box,
                 crop: found[index].crop,
                 track: tracked.clips[index],
                 title: title,
@@ -114,6 +117,15 @@ struct SequencePlanner: Sendable {
                 appearance: try appearance(
                     of: tracked.time.clips[index],
                     written: written[index],
+                    media: try mediaAppearance(
+                        of: tracked.time.clips[index],
+                        written: written[index],
+                        box: box,
+                        crop: found[index].crop,
+                        nested: clipNested[index],
+                        scale: lengthScale,
+                        theme: time.theme
+                    ),
                     scale: lengthScale,
                     theme: time.theme
                 )
@@ -485,8 +497,9 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The top left of a box placed by name: the output frame is inset by the placement padding on every side, or on
-    // the top or bottom edge by a style's `offset`, and the box's named point goes to the inset frame's.
+    // The top left of a box placed by name inside the output frame, inset by the placement padding on the edges the
+    // name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is centred on
+    // the whole frame, which the even insets leave the same.
     private func placed(
         _ box: Rectangle,
         at name: String,
@@ -496,18 +509,16 @@ struct SequencePlanner: Sendable {
     ) -> Point {
         let scale = theme.lengthScale(at: format.size.width)
         let padding = theme.placementPadding * scale
-        let top = name.hasPrefix("top") ? offset.map { $0 * scale } ?? padding : padding
-        let bottom = name.hasPrefix("bottom") ? offset.map { $0 * scale } ?? padding : padding
-        let frame = Rectangle(
-            x: padding,
-            y: top,
-            width: format.size.width - padding * 2,
-            height: format.size.height - top - bottom
-        )
-        let framePoint = frame.point(named: name)
-        let boxPoint = box.point(named: name)
+        let edge = offset.map { $0 * scale } ?? padding
+        let size = format.size
+        let x = name.hasSuffix("left")
+            ? padding
+            : name.hasSuffix("right") ? size.width - padding - box.width : (size.width - box.width) / 2
+        let y = name.hasPrefix("top")
+            ? edge
+            : name.hasPrefix("bottom") ? size.height - edge - box.height : (size.height - box.height) / 2
 
-        return Point(x: framePoint.x - boxPoint.x, y: framePoint.y - boxPoint.y)
+        return Point(x: x, y: y)
     }
 
     // A label is set on one line in the `label` style. A parented shape is measured through its storyline clip's
@@ -561,6 +572,7 @@ struct SequencePlanner: Sendable {
     private func appearance(
         of plan: ClipPlan,
         written: Clip,
+        media mediaAppearance: MediaAppearance?,
         scale: Double,
         theme: MergedTheme
     ) throws -> ClipAppearance {
@@ -602,7 +614,64 @@ struct SequencePlanner: Sendable {
                 scale: scale,
                 place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter"),
                 kind: plan.kind
+            ),
+            media: mediaAppearance
+        )
+    }
+
+    // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
+    // picture does, so the box holds still while the crop moves. A border takes the theme's width, and a shadow is the
+    // theme's, their lengths scaled.
+    private func mediaAppearance(
+        of plan: ClipPlan,
+        written: Clip,
+        box: ClipBox?,
+        crop: PropertyValue<FoundArea>?,
+        nested: DocumentPlan?,
+        scale: Double,
+        theme: MergedTheme
+    ) throws -> MediaAppearance? {
+        guard let box, case .media = written.content, let media = plan.media else { return nil }
+
+        let conform = written.conform ?? .fit
+        let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+        let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
+        let crops: PropertyValue<Rectangle>
+        switch crop {
+        case let .value(area):
+            crops = .value(conformed(area.rectangle))
+
+        case let .keyframes(keyframes):
+            crops = .keyframes(keyframes.map { keyframe in
+                TimedValue(
+                    index: keyframe.index,
+                    at: keyframe.at,
+                    value: conformed(keyframe.value.rectangle),
+                    ease: keyframe.ease
+                )
+            })
+
+        case .none:
+            let picture = try self.picture(
+                of: media,
+                kind: plan.kind,
+                nested: nested,
+                place: written.place.appending(key: "media")
             )
+            crops = .value(conformed(picture.bounds))
+        }
+        let shadow = MediaShadow(
+            radius: theme.shadowRadius * scale,
+            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
+            color: theme.shadowColor
+        )
+
+        return MediaAppearance(
+            conform: conform,
+            crop: crops,
+            radius: written.radius ?? 0,
+            border: written.border.map { MediaBorder(width: theme.borderWidth * scale, color: theme.color($0)) },
+            shadow: written.shadow ? shadow : nil
         )
     }
 

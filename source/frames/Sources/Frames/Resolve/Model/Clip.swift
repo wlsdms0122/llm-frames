@@ -7,7 +7,8 @@
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
 // and `crop` are as written, their keyframes on the clip's clock. `placement` and `anchor` are the names written.
-// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `opacity`,
+// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
+// colour written, `border` for `true`) and `shadow` are a media clip's. `opacity`,
 // `scale` and `rotation` are as written, their keyframes on the clip's clock, `color` is a shape's as written, and
 // `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
@@ -33,6 +34,9 @@ struct Clip: Equatable, Sendable {
     let width: Double?
     let height: Double?
     let conform: Conform?
+    let radius: Double?
+    let border: String?
+    let shadow: Bool
     let opacity: PropertyValue<Double>?
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
@@ -63,6 +67,9 @@ struct Clip: Equatable, Sendable {
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,
+        radius: Double? = nil,
+        border: String? = nil,
+        shadow: Bool = false,
         opacity: PropertyValue<Double>? = nil,
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
@@ -91,6 +98,9 @@ struct Clip: Equatable, Sendable {
         self.width = width
         self.height = height
         self.conform = conform
+        self.radius = radius
+        self.border = border
+        self.shadow = shadow
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A storyline clip as written. `media` is nil for a solid. Whether media is timed or still is known once it is probed.
+// A storyline clip as written. `media` is nil for a solid, and `solid` its colour as written. Whether media is timed or still is known once it is probed.
 // `crop` and `track` are as written, and a crop's keyframes are on the clip's own clock. `filter` is the filter
 // choice as written.
 struct StorylineClip: Equatable, Sendable {
@@ -13,6 +13,7 @@ struct StorylineClip: Equatable, Sendable {
     let place: Place
     let id: String?
     let media: ClipMedia?
+    let solid: String?
     let duration: Double?
     let transition: TransitionChoice?
     let keyframes: [KeyframeInstant]
@@ -26,6 +27,7 @@ struct StorylineClip: Equatable, Sendable {
         place: Place,
         id: String?,
         media: ClipMedia?,
+        solid: String? = nil,
         duration: Double?,
         transition: TransitionChoice?,
         keyframes: [KeyframeInstant],
@@ -37,6 +39,7 @@ struct StorylineClip: Equatable, Sendable {
         self.place = place
         self.id = id
         self.media = media
+        self.solid = solid
         self.duration = duration
         self.transition = transition
         self.keyframes = keyframes

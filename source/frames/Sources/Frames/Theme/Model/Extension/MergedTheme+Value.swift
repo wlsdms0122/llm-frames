@@ -50,6 +50,20 @@ extension MergedTheme {
         number(at: ["shapes", "border", "width"])
     }
 
+    var shadowRadius: Double {
+        number(at: ["shapes", "shadow", "radius"])
+    }
+
+    var shadowOffset: Point {
+        let offset = value(at: ["shapes", "shadow", "offset"])?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
+
+        return Point(x: offset[0], y: offset[1])
+    }
+
+    var shadowColor: Color {
+        color(value(at: ["shapes", "shadow", "color"])?.stringValue ?? "shadow")
+    }
+
     var bannerPadding: Double {
         number(at: ["image", "bannerPadding"])
     }

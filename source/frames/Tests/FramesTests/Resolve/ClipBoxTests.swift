@@ -159,6 +159,34 @@ struct ClipBoxTests {
         #expect(box?.size == size)
     }
 
+    @Test(
+        "every crop of a media clip conforms to its box by its conform, so the box holds still while the crop moves",
+        arguments: [
+            (Conform.fit, Rectangle(x: -100, y: 0, width: 400, height: 200)),
+            (Conform.fill, Rectangle(x: 0, y: 50, width: 200, height: 100))
+        ]
+    )
+    func conformsCropsToBox(
+        conform: Conform,
+        second: Rectangle
+    ) throws {
+        // Given
+        let clip = #"""
+            { "media": "/abs/card.png", "at": [0, 3], "width": 300, "conform": "\#(conform.rawValue)",
+              "keyframes": [ { "at": 0, "crop": [0, 0, 400, 200] }, { "at": 1, "crop": [0, 0, 200, 200] } ] }
+            """#
+
+        // When
+        let media = try geometry(of: clip).appearance.media
+
+        // Then
+        #expect(media?.conform == conform)
+        #expect(media?.crop == .keyframes([
+            TimedValue(index: 0, at: 0, value: Rectangle(x: 0, y: 0, width: 400, height: 200), ease: .linear),
+            TimedValue(index: 1, at: 1, value: second, ease: .linear)
+        ]))
+    }
+
     @Test("a shape is placed by its area and has no box of its own")
     func leavesShapeWithoutBox() throws {
         // When

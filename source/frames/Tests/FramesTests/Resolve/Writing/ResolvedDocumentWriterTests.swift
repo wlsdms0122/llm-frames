@@ -55,6 +55,7 @@ struct ResolvedDocumentWriterTests {
                 "file": "/abs/run.mp4",
                 "sha256": "9f2c41d07b3e"
               },
+              "solid": null,
               "in": 2,
               "out": 8,
               "speed": 2,

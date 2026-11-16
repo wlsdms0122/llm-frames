@@ -169,6 +169,56 @@ struct SequenceWriterTests {
         #expect(clip["blend"] == .string("normal"))
     }
 
+    @Test("a media clip carries its box, its crop conformed to it, its corners, border and shadow, with theme lengths scaled")
+    func writesMediaAppearance() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "conform": "fill", "position": [540, 960],
+                           "radius": 12, "border": true, "shadow": true } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        let clip = try #require(clips.first?.objectValue)
+        #expect(clip["size"] == .array([.number(300), .number(300)]))
+        #expect(clip["position"] == .array([.object(JSONObject(members: [
+            JSONMember(key: "at", value: .number(0)),
+            JSONMember(key: "value", value: .array([.number(390), .number(810)])),
+            JSONMember(key: "ease", value: .string("linear"))
+        ]))]))
+        #expect(clip["anchor"] == .array([.number(150), .number(150)]))
+        #expect(clip["crop"] == keyframes(at: 0, Rectangle(x: 0, y: 135, width: 1080, height: 1080)))
+        #expect(clip["conform"] == .string("fill"))
+        #expect(clip["radius"] == .number(12))
+        #expect(clip["border"] == .object(JSONObject(members: [
+            JSONMember(key: "width", value: .number(2.6865671641791047)),
+            JSONMember(key: "color", value: .string("#D9D9D9FF"))
+        ])))
+        #expect(clip["shadow"] == .object(JSONObject(members: [
+            JSONMember(key: "radius", value: .number(21.492537313432837)),
+            JSONMember(key: "offset", value: .array([.number(0), .number(7.164179104477612)])),
+            JSONMember(key: "color", value: .string("#00000059"))
+        ])))
+    }
+
+    @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")
+    func writesSolidColor() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "accent", "duration": 1 } ] }
+            """#
+
+        // When
+        let storyline = try #require(try write(document)["storyline"]?.arrayValue)
+
+        // Then
+        #expect(storyline.first?.objectValue?["solid"] == .string("#ED2929FF"))
+        #expect(storyline.first?.objectValue?["media"] == .null)
+    }
+
     @Test("a transition carries its spans inline and its cover and matte files pinned, and a LUT is pinned")
     func writesTransitionAndLUT() throws {
         // Given

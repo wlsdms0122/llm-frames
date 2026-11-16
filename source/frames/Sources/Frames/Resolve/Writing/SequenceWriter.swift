@@ -85,6 +85,7 @@ struct SequenceWriter: Sendable {
             JSONMember(key: "place", value: .string(entry.place.description)),
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "media", value: try media(entry.source.media, nested: geometry.nested)),
+            JSONMember(key: "solid", value: geometry.color.map(values.color) ?? .null),
             JSONMember(key: "in", value: .number(entry.source.clipRange.start)),
             JSONMember(key: "out", value: .number(entry.source.clipRange.end)),
             JSONMember(key: "speed", value: .number(entry.source.speed)),
@@ -135,6 +136,7 @@ struct SequenceWriter: Sendable {
                 ]
             }
             content.append(JSONMember(key: "filter", value: try values.filter(appearance.filter)))
+            content += self.media(appearance.media)
         }
 
         let isTransformed = entry.kind == .title || entry.media != nil
@@ -157,7 +159,7 @@ struct SequenceWriter: Sendable {
             JSONMember(key: "size", value: geometry.box.map { values.size($0.size) } ?? .null),
             JSONMember(key: "position", value: geometry.box.map { values.keyframes($0.position, instant: instant, value: values.point) } ?? .null),
             JSONMember(key: "anchor", value: geometry.box.map { values.point($0.anchor) } ?? .null),
-            JSONMember(key: "crop", value: geometry.crop.map { values.keyframes($0, instant: instant) { values.rectangle($0.rectangle) } } ?? .null),
+            JSONMember(key: "crop", value: appearance.media.map { values.keyframes($0.crop, instant: instant, value: values.rectangle) } ?? .null),
             JSONMember(key: "track", value: track(geometry.track)),
             JSONMember(key: "label", value: label ?? .null)
         ]
@@ -211,6 +213,32 @@ struct SequenceWriter: Sendable {
         guard let file = file(of: media) else { return .null }
 
         return .object(JSONObject(members: try values.media(file)))
+    }
+
+    // How a media clip's picture fills its box, its crop aside, which is written with the geometry.
+    private func media(_ appearance: MediaAppearance?) -> [JSONMember] {
+        guard let appearance else { return [] }
+
+        let border = appearance.border.map { border in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(border.width)),
+                JSONMember(key: "color", value: values.color(border.color))
+            ]))
+        }
+        let shadow = appearance.shadow.map { shadow in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "radius", value: .number(shadow.radius)),
+                JSONMember(key: "offset", value: values.point(shadow.offset)),
+                JSONMember(key: "color", value: values.color(shadow.color))
+            ]))
+        }
+
+        return [
+            JSONMember(key: "conform", value: .string(appearance.conform.rawValue)),
+            JSONMember(key: "radius", value: .number(appearance.radius)),
+            JSONMember(key: "border", value: border ?? .null),
+            JSONMember(key: "shadow", value: shadow ?? .null)
+        ]
     }
 
     private func file(of media: ResolvedMedia?) -> MediaFile? {
