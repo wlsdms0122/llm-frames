@@ -6,44 +6,35 @@
 //
 
 // Plans an image or layout document: what it takes first, as the pictures they draw (an image document's source, a
-// layout's items), then the document over them.
+// layout's items), then the document over them. A nested sequence is planned by the caller, which owns the recursion.
 struct PicturePlanner: Sendable {
     // MARK: - Property
     private let image: ImagePlanner
     private let layout: LayoutPlanner
-    private let ocr: any OCRProvider
-    private let tracker: any TrackerProvider
-    private let shaper: any ShapingProvider
-    private let presets: any PresetProvider
-    private let library: ReferenceLibrary
 
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
-        tracker: any TrackerProvider,
-        shaper: any ShapingProvider,
         presets: any PresetProvider,
-        library: ReferenceLibrary
+        text: ThemeTypesetter
     ) {
-        let text = ThemeTypesetter(shaper: shaper, library: library)
         self.image = ImagePlanner(ocr: ocr, presets: presets, text: text)
         self.layout = LayoutPlanner(text: text)
-        self.ocr = ocr
-        self.tracker = tracker
-        self.shaper = shaper
-        self.presets = presets
-        self.library = library
     }
 
     // MARK: - Public
-    func plan(_ picture: NestedPicture) throws -> PicturePlan {
+    func plan(
+        _ picture: NestedPicture,
+        sequences: (TimePlan) throws -> SequencePlan
+    ) throws -> PicturePlan {
         switch picture.document {
         case let .image(document):
             let source = try drawn(
                 picture.media[0],
                 time: document.time,
                 place: document.place.appending(key: "source"),
-                kind: .image
+                kind: .image,
+                sequences: sequences
             )
 
             return try image.plan(
@@ -60,7 +51,8 @@ struct PicturePlanner: Sendable {
                     picture.media[index],
                     time: 0,
                     place: document.items[index].place.appending(key: "image"),
-                    kind: .layoutItem
+                    kind: .layoutItem,
+                    sequences: sequences
                 )
 
                 return (picture: item.drawn, size: item.picture.size)
@@ -77,23 +69,17 @@ struct PicturePlanner: Sendable {
         _ media: ResolvedMedia,
         time: Double,
         place: Place,
-        kind: PlaceKind
+        kind: PlaceKind,
+        sequences: (TimePlan) throws -> SequencePlan
     ) throws -> (drawn: DrawnPicture, picture: Picture) {
         let name = media.reference ?? media.file ?? place.description
         if let nested = media.picture {
-            let plan = try plan(nested)
+            let plan = try plan(nested, sequences: sequences)
 
             return (.picture(plan), Picture(name: name, source: .document, size: plan.size))
         }
         if let nested = media.nested {
-            // A sequence planner holds a picture planner, so the one for a compound clip is made when it is needed.
-            let plan = try SequencePlanner(
-                ocr: ocr,
-                tracker: tracker,
-                shaper: shaper,
-                presets: presets,
-                library: library
-            ).plan(nested)
+            let plan = try sequences(nested)
             let picture = Picture(name: name, source: .document, size: plan.format.size)
 
             return (.sequence(plan, time: media.clamped(time)), picture)

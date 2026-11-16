@@ -39,7 +39,11 @@ struct DocumentPlanner: Sendable {
             library: library
         )
         self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
-        self.pictures = PicturePlanner(ocr: ocr, tracker: tracker, shaper: shaper, presets: presets, library: library)
+        self.pictures = PicturePlanner(
+            ocr: ocr,
+            presets: presets,
+            text: ThemeTypesetter(shaper: shaper, library: library)
+        )
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
@@ -102,7 +106,7 @@ struct DocumentPlanner: Sendable {
         _ document: PictureDocument,
         theme: MergedTheme
     ) throws -> DocumentPlan {
-        .picture(try pictures.plan(try resolver.picture(of: document, theme: theme)))
+        .picture(try pictures.plan(try resolver.picture(of: document, theme: theme), sequences: sequencePlanner.plan))
     }
 
     private func theme(named name: String?) throws -> MergedTheme {

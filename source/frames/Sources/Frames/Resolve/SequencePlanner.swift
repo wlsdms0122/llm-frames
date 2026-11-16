@@ -27,8 +27,9 @@ struct SequencePlanner: Sendable {
     ) {
         self.finder = GeometryFinder(ocr: ocr)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
-        self.text = ThemeTypesetter(shaper: shaper, library: library)
-        self.pictures = PicturePlanner(ocr: ocr, tracker: tracker, shaper: shaper, presets: presets, library: library)
+        let text = ThemeTypesetter(shaper: shaper, library: library)
+        self.text = text
+        self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text)
     }
 
     // MARK: - Public
@@ -101,7 +102,7 @@ struct SequencePlanner: Sendable {
             return .sequence(try plan(nested))
         }
 
-        return try media.picture.map { .picture(try pictures.plan($0)) }
+        return try media.picture.map { .picture(try pictures.plan($0, sequences: plan)) }
     }
 
     // The content rect lies inside the output frame by the inset, and an inset that leaves none stops. The background is
