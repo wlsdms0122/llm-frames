@@ -11,8 +11,8 @@ import Foundation
 import Frames
 
 // A video file's first picture track, loaded once. `frames` are its presented frames in the order they are presented,
-// and frame i is `frames[i]`. `frameTimes` and `duration` are in media time: the presentation timeline moved so its 0
-// is the first presented frame.
+// and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every track of
+// the file shares.
 struct VideoReader: Sendable {
     // MARK: - Property
     let frames: [FrameTime]
@@ -23,9 +23,7 @@ struct VideoReader: Sendable {
     let depth: BitDepth
 
     var frameTimes: [Double] {
-        guard let first = frames.first else { return [] }
-
-        return frames.map { CMTimeGetSeconds(CMTimeSubtract($0.presented, first.presented)) }
+        frames.map { CMTimeGetSeconds($0.presented) }
     }
 
     private let asset: AVURLAsset
@@ -54,9 +52,8 @@ struct VideoReader: Sendable {
         self.fps = Double(loaded.nominalFrameRate)
         self.hasSound = loaded.hasSound
         self.depth = BitDepth(holding: loaded.bitsPerComponent)
-        let frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
-        self.frames = frames
-        self.duration = CMTimeGetSeconds(CMTimeSubtract(loaded.duration, frames.first?.presented ?? .zero))
+        self.frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
+        self.duration = CMTimeGetSeconds(loaded.duration)
     }
 
     // MARK: - Public

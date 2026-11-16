@@ -23,7 +23,7 @@ struct AVFoundationDecoderTests {
     private static let editedVideos: [(String, [Double], Double, Double, Double, Int, [Double], Double)] = [
         ("cut.mov", thirtieths(30), 0.5, 1, 0, 15, thirtieths(15), 0.5),
         ("reordered.mp4", thirtieths(30), 0, 1, 0, 0, thirtieths(30), 1),
-        ("delayed.mov", thirtieths(15), 0, 0.5, 0.5, 0, thirtieths(15), 0.5)
+        ("delayed.mov", thirtieths(15), 0, 0.5, 0.5, 0, (15..<30).map { Double($0) / 30 }, 1)
     ]
 
     private let size = Size(width: 320, height: 240)
@@ -101,7 +101,7 @@ struct AVFoundationDecoderTests {
     }
 
     @Test(
-        "through a moving edit list, media time starts at the first presented frame and frame i is its i-th",
+        "through a moving edit list, frames keep the times they are presented at and frame i is the i-th presented",
         arguments: editedVideos
     )
     func readsThroughEditList(

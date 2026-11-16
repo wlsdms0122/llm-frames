@@ -6,8 +6,9 @@
 //
 
 // The probed facts of one media file that resolve reads. `frames` holds a video's frame timestamps and `duration` its
-// length, both in media time, whose 0 is a video's first presented frame. `size` is the picture's, nil for sound, and
-// `hasSound` says whether the file holds a sound track.
+// length, both in media time: the file's presentation timeline, which its picture and its sound share. A time before
+// the first frame shows the first frame. `size` is the picture's, nil for sound, and `hasSound` says whether the file
+// holds a sound track.
 package struct ProbedMedia: Equatable, Sendable {
     // MARK: - Property
     package let kind: MediaKind
