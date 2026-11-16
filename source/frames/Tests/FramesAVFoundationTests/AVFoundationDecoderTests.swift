@@ -36,7 +36,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
         }
@@ -61,7 +61,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
             canvas.draw("\(index)", font: "Helvetica-Bold", size: 96, x: 120, y: 80)
@@ -83,7 +83,7 @@ struct AVFoundationDecoderTests {
         let times = [0, 0.05, 0.1, 0.3, 0.35, 0.6, 0.65, 1.2]
         let directory = try TemporaryDirectory()
         let file = directory.file("variable.mov")
-        try await VideoWriter(size: size, frameTimes: times, end: 1.5).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: times, end: 1.5).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
         }
@@ -117,7 +117,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file(name)
-        let writer = VideoWriter(size: size, frameTimes: written, start: start, end: end, delay: delay)
+        let writer = MovieWriter(size: size, frameTimes: written, start: start, end: end, delay: delay)
         try await writer.write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index < firstPresented ? 63 : index - firstPresented)
@@ -142,7 +142,7 @@ struct AVFoundationDecoderTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("portrait.mov")
         let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 240, ty: 0)
-        let writer = VideoWriter(size: size, frameTimes: [0, 0.5], end: 1, transform: quarterTurn)
+        let writer = MovieWriter(size: size, frameTimes: [0, 0.5], end: 1, transform: quarterTurn)
         try await writer.write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index + 5)
@@ -167,7 +167,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("sound.mov")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1, sound: sound).write(to: file) { canvas, _ in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1, sound: sound).write(to: file) { canvas, _ in
             canvas.fill(red: 128, green: 128, blue: 128)
         }
         let sut = AVFoundationDecoder()
@@ -237,7 +237,7 @@ struct AVFoundationDecoderTests {
         let video = directory.file("patch.mov")
         let still = directory.file("patch.png")
         let deep = directory.file("deep.png")
-        try await VideoWriter(size: size, frameTimes: [0], end: 1).write(to: video) { canvas, _ in
+        try await MovieWriter(size: size, frameTimes: [0], end: 1).write(to: video) { canvas, _ in
             canvas.fill(red: 200, green: 120, blue: 40)
         }
         try ImageWriter(size: size).write(to: still) { canvas in
@@ -346,7 +346,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
         let sut = AVFoundationDecoder()
 
         // When
@@ -365,7 +365,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
         let sut = AVFoundationDecoder()
 
         // When
@@ -476,7 +476,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("delayed.mov")
-        let writer = VideoWriter(size: size, frameTimes: Self.thirtieths(15), end: 0.5, sound: true, delay: 0.5)
+        let writer = MovieWriter(size: size, frameTimes: Self.thirtieths(15), end: 0.5, sound: true, delay: 0.5)
         try await writer.write(to: file) { canvas, _ in
             canvas.fill(red: 128, green: 128, blue: 128)
         }
@@ -496,7 +496,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("silent.mov")
-        try await VideoWriter(size: size, frameTimes: [0], end: 1).write(to: file) { _, _ in }
+        try await MovieWriter(size: size, frameTimes: [0], end: 1).write(to: file) { _, _ in }
         let sut = AVFoundationDecoder()
 
         // When
@@ -512,7 +512,7 @@ struct AVFoundationDecoderTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("long.mp4")
         let times = (0..<90).map { Double($0) / 30 }
-        let writer = VideoWriter(size: size, frameTimes: times, end: 3, keyFrameInterval: 10)
+        let writer = MovieWriter(size: size, frameTimes: times, end: 3, keyFrameInterval: 10)
         try await writer.write(to: file) { canvas, index in
             canvas.fill(red: Double(40 + index), green: 128, blue: Double(200 - index))
             canvas.drawCode(index % 64)

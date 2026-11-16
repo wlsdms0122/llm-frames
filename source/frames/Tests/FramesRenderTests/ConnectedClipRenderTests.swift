@@ -54,7 +54,7 @@ struct ConnectedClipRenderTests {
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [0, 255, 0])
         let code = directory.file("code.mov")
         let codeTimes = (0..<6).map { Double($0) / 5 }
-        let writer = VideoWriter(size: Size(width: 128, height: 32), frameTimes: codeTimes, end: 1.2)
+        let writer = MovieWriter(size: Size(width: 128, height: 32), frameTimes: codeTimes, end: 1.2)
         try await writer.write(to: code) { canvas, index in
             canvas.drawCode(index, bits: 4, side: 32)
         }

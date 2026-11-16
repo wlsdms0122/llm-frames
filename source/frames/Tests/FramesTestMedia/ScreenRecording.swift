@@ -30,7 +30,7 @@ package struct ScreenRecording {
     // Writes the recording and gives the drawn line box of the scrolling line on each frame, in display pixels.
     package func write(to path: String) async throws -> [Rectangle] {
         let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: size.width, ty: 0)
-        let writer = VideoWriter(
+        let writer = MovieWriter(
             size: Size(width: size.height, height: size.width),
             frameTimes: Self.frameTimes,
             end: 1,

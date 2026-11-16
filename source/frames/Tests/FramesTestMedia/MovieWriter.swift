@@ -1,5 +1,5 @@
 //
-//  VideoWriter.swift
+//  MovieWriter.swift
 //  FramesTestMedia
 //
 //  Created by JSilver on 11/16/26.
@@ -17,7 +17,7 @@ import Frames
 // The writer's session runs from `start` to `end`, so frames written before `start` are held but never presented.
 // `reordersFrames` lets the encoder write B-frames. A `delay` above 0 gives a movie whose edit list shows nothing for
 // that long before the video, its samples in a file beside it. `keyFrameInterval` caps the frames between sync samples.
-package struct VideoWriter {
+package struct MovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
 

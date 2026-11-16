@@ -10,7 +10,7 @@ import Foundation
 
 // Writes a file that holds only sound: a tone of `frequency` from 0 to `end` seconds at `sampleRate`, each channel at
 // its own level of `levels` (full scale 1), in the layout of that many channels (mono, stereo, 3.0, 4.0, 5.0, 5.1, 6.1
-// or 7.1 in SMPTE order). A `.wav` file holds 16 bit linear PCM and any other AAC. A video writer takes its tone from
+// or 7.1 in SMPTE order). A `.wav` file holds 16 bit linear PCM and any other AAC. A movie writer takes its tone from
 // here too, a 440 Hz mono one at 48 kHz.
 package struct SoundWriter {
     // MARK: - Property

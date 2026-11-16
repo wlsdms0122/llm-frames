@@ -62,7 +62,7 @@ struct VisionOCRTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("portrait.mov")
         let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 720, ty: 0)
-        let writer = VideoWriter(size: Size(width: 1280, height: 720), frameTimes: [0], end: 1, transform: quarterTurn)
+        let writer = MovieWriter(size: Size(width: 1280, height: 720), frameTimes: [0], end: 1, transform: quarterTurn)
         var drawn = Rectangle(x: 0, y: 0, width: 0, height: 0)
         try await writer.write(to: file) { canvas, _ in
             canvas.fill(red: 255, green: 255, blue: 255)
@@ -87,7 +87,7 @@ struct VisionOCRTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("two.mov")
         let words = ["First", "Second"]
-        try await VideoWriter(size: Size(width: 640, height: 360), frameTimes: [0, 0.5], end: 1).write(to: file) {
+        try await MovieWriter(size: Size(width: 640, height: 360), frameTimes: [0, 0.5], end: 1).write(to: file) {
             canvas, index in
             canvas.fill(red: 255, green: 255, blue: 255)
             canvas.draw(words[index], font: "Helvetica", size: 64, x: 100, y: 140)

@@ -248,7 +248,7 @@ struct AVFoundationMixerTests {
         let sound = directory.file("mono.wav")
         let video = directory.file("silent.mov")
         try await SoundWriter(end: 1).write(to: sound)
-        try await FramesTestMedia.VideoWriter(size: Size(width: 64, height: 64), frameTimes: [0], end: 1)
+        try await MovieWriter(size: Size(width: 64, height: 64), frameTimes: [0], end: 1)
             .write(to: video) { _, _ in }
         let plan = MixPlan(segments: [segment(of: sound, from: 0, to: 1), segment(of: video, from: 0, to: 1)])
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())

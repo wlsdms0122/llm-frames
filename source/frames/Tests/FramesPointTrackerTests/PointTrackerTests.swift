@@ -83,7 +83,7 @@ struct PointTrackerTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("line.mov")
         var lines: [Rectangle] = []
-        try await VideoWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
+        try await MovieWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
             canvas.fill(red: 255, green: 255, blue: 255)
             let line = canvas.draw("Send message to Jineun", font: "Helvetica", size: 40, x: 120, y: 900 - 7 * Double(index))
             if lines.count == index { lines.append(line) }
@@ -107,7 +107,7 @@ struct PointTrackerTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("speeding.mov")
         var lines: [Rectangle] = []
-        try await VideoWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
+        try await MovieWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
             canvas.fill(red: 255, green: 255, blue: 255)
             let y = 1100 - 2 * Double(index * index)
             let line = canvas.draw("Send message to Jineun", font: "Helvetica", size: 40, x: 120, y: y)
@@ -134,7 +134,7 @@ struct PointTrackerTests {
         let texts = ["Account 3333-01-2345678", "Send message to Jineun", "Balance 1,234,567 KRW"]
         let focal = (x: 300.0, y: 600.0)
         var lines: [Rectangle] = []
-        try await VideoWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
+        try await MovieWriter(size: Size(width: 720, height: 1280), frameTimes: times, end: end).write(to: file) { canvas, index in
             canvas.fill(red: 255, green: 255, blue: 255)
             let scale = 1 + 0.01 * Double(index)
             for (row, text) in texts.enumerated() {
@@ -174,7 +174,7 @@ struct PointTrackerTests {
     ) async throws -> MediaFile {
         let file = directory.file("moving.mov")
         let size = Size(width: 640, height: 360)
-        try await VideoWriter(size: size, frameTimes: times, end: end).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: times, end: end).write(to: file) { canvas, index in
             canvas.fill(red: 90, green: 110, blue: 130)
             for column in 0..<8 {
                 let x = Double(column) * 80 + 20
