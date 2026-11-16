@@ -13,7 +13,7 @@
 struct ImagePlanner: Sendable {
     // MARK: - Property
     private let finder: AreaFinder
-    private let presets: any PresetProvider
+    private let filters: FilterResolver
     private let text: ThemeTypesetter
     private let banners: BannerSetter
     private let sideFinder = LabelSideFinder()
@@ -25,7 +25,7 @@ struct ImagePlanner: Sendable {
         text: ThemeTypesetter
     ) {
         self.finder = AreaFinder(ocr: ocr)
-        self.presets = presets
+        self.filters = FilterResolver(presets: presets)
         self.text = text
         self.banners = BannerSetter(text: text)
     }
@@ -45,7 +45,7 @@ struct ImagePlanner: Sendable {
             try run(operation, on: &canvas, time: time, picture: picture, theme: theme)
         }
 
-        return PicturePlan(size: canvas.size, steps: canvas.steps)
+        return PicturePlan(kind: "image", size: canvas.size, steps: canvas.steps)
     }
 
     // MARK: - Private
@@ -129,7 +129,7 @@ struct ImagePlanner: Sendable {
         case let .adjust(choice, form):
             let kind = PlaceKind.operation(.adjust)
             let area = try form.map { try find($0, "area", kind, theme.areaPadding) } ?? canvas.bounds
-            let operations = try filter(choice, place: place.appending(key: "adjust"), kind: kind)
+            let operations = try filters.operations(of: choice, place: place.appending(key: "adjust"), kind: kind)
             canvas.draw(.adjustment(operations.map { $0.scaled(by: scale) }, area: area))
 
         case let .title(title, position, anchor, style, width):
@@ -302,26 +302,5 @@ struct ImagePlanner: Sendable {
         }
 
         canvas.draw(.text(layout, frame: sideFinder.rectangle(of: layout.size, beside: box, on: side)))
-    }
-
-    // A filter choice is a preset name, a list of them, or `none`.
-    private func filter(
-        _ choice: JSONValue,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> [FilterOperation] {
-        if let names = choice.arrayValue {
-            return try names.enumerated().flatMap { index, name in
-                try filter(name, place: place.appending(index: index), kind: kind)
-            }
-        }
-
-        let name = choice.stringValue ?? "none"
-        guard name != "none" else { return [] }
-        guard let preset = try presets.filter(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: kind, presetKind: "filter", name: name)
-        }
-
-        return preset.operations
     }
 }

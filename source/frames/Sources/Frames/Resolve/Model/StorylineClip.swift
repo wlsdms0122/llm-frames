@@ -6,7 +6,8 @@
 //
 
 // A storyline clip as written. `media` is nil for a solid. Whether media is timed or still is known once it is probed.
-// `crop` and `track` are as written, and a crop's keyframes are on the clip's own clock.
+// `crop` and `track` are as written, and a crop's keyframes are on the clip's own clock. `filter` is the filter
+// choice as written.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -17,6 +18,7 @@ struct StorylineClip: Equatable, Sendable {
     let keyframes: [KeyframeInstant]
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
+    let filter: JSONValue?
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -29,6 +31,7 @@ struct StorylineClip: Equatable, Sendable {
         keyframes: [KeyframeInstant],
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
+        filter: JSONValue? = nil,
         connected: [Clip]
     ) {
         self.place = place
@@ -39,6 +42,7 @@ struct StorylineClip: Equatable, Sendable {
         self.keyframes = keyframes
         self.crop = crop
         self.track = track
+        self.filter = filter
         self.connected = connected
     }
 

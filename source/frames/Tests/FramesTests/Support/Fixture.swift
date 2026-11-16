@@ -89,7 +89,8 @@ enum Fixture {
             "pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
         ],
         filters: [
-            "warm": FilterPreset(description: "", operations: [])
+            "warm": FilterPreset(description: "", operations: []),
+            "grade": FilterPreset(description: "", operations: [.saturation(amount: 1.25), .blur(radius: 4)])
         ]
     )
 

@@ -7,7 +7,7 @@
 
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, its titles set, the side of every label, and its sound.
+// tracking leaves, its titles set, the side of every label, how each clip is drawn, and its sound.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -16,6 +16,7 @@ struct SequencePlanner: Sendable {
     private let placer = LabelPlacer()
     private let pictures: PicturePlanner
     private let sound = SoundPlanner()
+    private let filters: FilterResolver
 
     // MARK: - Initializer
     init(
@@ -30,6 +31,7 @@ struct SequencePlanner: Sendable {
         let text = ThemeTypesetter(shaper: shaper, library: library)
         self.text = text
         self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text)
+        self.filters = FilterResolver(presets: presets)
     }
 
     // MARK: - Public
@@ -63,8 +65,19 @@ struct SequencePlanner: Sendable {
         let tracked = try tracker.plan(time, crops: crops, areas: found.map(\.area))
         try checkKeyframes(of: tracked.time)
 
-        let storyline = time.storyline.indices.map { index in
-            StorylineGeometry(crop: crops[index], track: tracked.storyline[index], nested: storylineNested[index])
+        let lengthScale = time.theme.lengthScale(at: format.size.width)
+        let storyline = try time.storyline.indices.map { index in
+            StorylineGeometry(
+                crop: crops[index],
+                track: tracked.storyline[index],
+                nested: storylineNested[index],
+                filter: try filter(
+                    time.sequence.storyline[index].filter,
+                    scale: lengthScale,
+                    place: time.storyline[index].place.appending(key: "filter"),
+                    kind: time.storyline[index].source.kind
+                )
+            )
         }
         let clips = try tracked.time.clips.indices.map { index in
             ClipGeometry(
@@ -82,7 +95,13 @@ struct SequencePlanner: Sendable {
                     storyline: storyline,
                     format: format
                 ),
-                nested: clipNested[index]
+                nested: clipNested[index],
+                appearance: try appearance(
+                    of: tracked.time.clips[index],
+                    written: written[index],
+                    scale: lengthScale,
+                    theme: time.theme
+                )
             )
         }
 
@@ -386,6 +405,69 @@ struct SequencePlanner: Sendable {
             format: format,
             theme: time.theme
         )
+    }
+
+    // A property not written takes its plain value, and keyframes move to sequence time on the clip's clock. A shape
+    // takes the theme's colour for it unless it gives one.
+    private func appearance(
+        of plan: ClipPlan,
+        written: Clip,
+        scale: Double,
+        theme: MergedTheme
+    ) throws -> ClipAppearance {
+        let property = { (value: PropertyValue<Double>?, plain: Double) -> PropertyValue<Double> in
+            switch value {
+            case .none:
+                .value(plain)
+
+            case let .value(value):
+                .value(value)
+
+            case let .keyframes(keyframes):
+                .keyframes(keyframes.map { keyframe in
+                    TimedValue(
+                        index: keyframe.index,
+                        at: plan.clock.sequenceTime(ofClipTime: keyframe.at),
+                        value: keyframe.value,
+                        ease: keyframe.ease
+                    )
+                })
+            }
+        }
+        let color: Color? = switch written.content {
+        case let .shape(shape):
+            written.color.map(theme.color) ?? theme.shapeColor(of: shape)
+
+        case .media, .title, .adjust:
+            nil
+        }
+
+        return ClipAppearance(
+            opacity: property(written.opacity, 1),
+            scale: property(written.scale, 1),
+            rotation: property(written.rotation, 0),
+            blend: written.blend ?? "normal",
+            color: color,
+            filter: try filter(
+                written.filter,
+                scale: scale,
+                place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter"),
+                kind: plan.kind
+            )
+        )
+    }
+
+    // A clip with no filter choice applies none. `place` is where the choice is written.
+    private func filter(
+        _ choice: JSONValue?,
+        scale: Double,
+        place: Place,
+        kind: ClipKind
+    ) throws -> [FilterOperation] {
+        guard let choice else { return [] }
+
+        return try filters.operations(of: choice, place: place, kind: .clip(kind))
+            .map { $0.scaled(by: scale) }
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one

@@ -118,6 +118,7 @@ struct LayoutPlanner: Sendable {
         }
 
         return PicturePlan(
+            kind: "layout",
             size: Size(width: bounds.width, height: bounds.height),
             steps: contents.map { DrawingStep(content: $0, clip: bounds) }
         )

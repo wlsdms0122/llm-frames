@@ -6,17 +6,20 @@
 //
 
 // What resolve decided for an image or layout document: its final size and its drawing steps in operation order, in
-// output pixels. Evaluating it at any time gives the same display list.
+// output pixels. Evaluating it at any time gives the same display list. `kind` is the document's, `image` or `layout`.
 struct PicturePlan: Equatable, Sendable {
     // MARK: - Property
+    let kind: String
     let size: Size
     let steps: [DrawingStep]
 
     // MARK: - Initializer
     init(
+        kind: String,
         size: Size,
         steps: [DrawingStep]
     ) {
+        self.kind = kind
         self.size = size
         self.steps = steps
     }

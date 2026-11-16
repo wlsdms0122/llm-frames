@@ -76,6 +76,7 @@ struct SequenceReader: Sendable {
             keyframes: keyframes(object["keyframes"]),
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
+            filter: object["filter"],
             connected: connected
         )
     }
@@ -106,7 +107,13 @@ struct SequenceReader: Sendable {
             track: object["track"].flatMap(TrackTarget.init(value:)),
             label: object["label"]?.stringValue,
             side: object["side"]?.stringValue.flatMap(Side.init),
-            width: object["width"]?.numberValue
+            width: object["width"]?.numberValue,
+            opacity: property("opacity", of: object, read: \.numberValue),
+            scale: property("scale", of: object, read: \.numberValue),
+            rotation: property("rotation", of: object, read: \.numberValue),
+            blend: object["blend"]?.stringValue,
+            color: object["color"]?.stringValue,
+            filter: object["filter"] ?? object["adjust"]
         )
     }
 

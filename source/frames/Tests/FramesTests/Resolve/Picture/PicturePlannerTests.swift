@@ -380,7 +380,7 @@ struct PicturePlannerTests {
     private func picture(_ document: String) throws -> PicturePlan {
         guard case let .picture(plan) = try sut.plan(Fixture.json(document)) else {
             Issue.record("the document does not plan as a picture")
-            return PicturePlan(size: Size(width: 0, height: 0), steps: [])
+            return PicturePlan(kind: "image", size: Size(width: 0, height: 0), steps: [])
         }
 
         return plan

@@ -6,7 +6,9 @@
 //
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
-// and `crop` are as written, their keyframes on the clip's clock. `width` is a title's wrapping width.
+// and `crop` are as written, their keyframes on the clip's clock. `width` is a title's wrapping width. `opacity`,
+// `scale` and `rotation` are as written, their keyframes on the clip's clock, `color` is a shape's as written, and
+// `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -27,6 +29,12 @@ struct Clip: Equatable, Sendable {
     let label: String?
     let side: Side?
     let width: Double?
+    let opacity: PropertyValue<Double>?
+    let scale: PropertyValue<Double>?
+    let rotation: PropertyValue<Double>?
+    let blend: String?
+    let color: String?
+    let filter: JSONValue?
 
     // MARK: - Initializer
     init(
@@ -47,7 +55,13 @@ struct Clip: Equatable, Sendable {
         track: TrackTarget? = nil,
         label: String? = nil,
         side: Side? = nil,
-        width: Double? = nil
+        width: Double? = nil,
+        opacity: PropertyValue<Double>? = nil,
+        scale: PropertyValue<Double>? = nil,
+        rotation: PropertyValue<Double>? = nil,
+        blend: String? = nil,
+        color: String? = nil,
+        filter: JSONValue? = nil
     ) {
         self.place = place
         self.id = id
@@ -67,6 +81,12 @@ struct Clip: Equatable, Sendable {
         self.label = label
         self.side = side
         self.width = width
+        self.opacity = opacity
+        self.scale = scale
+        self.rotation = rotation
+        self.blend = blend
+        self.color = color
+        self.filter = filter
     }
 
     // MARK: - Public
