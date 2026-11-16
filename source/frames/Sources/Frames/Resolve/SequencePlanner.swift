@@ -144,7 +144,7 @@ struct SequencePlanner: Sendable {
     }
 
     // MARK: - Private
-    private func nested(_ media: ResolvedMedia) throws -> DocumentPlan? {
+    private func nested(_ media: MediaPlan) throws -> DocumentPlan? {
         switch media.source {
         case .file:
             nil
@@ -231,7 +231,7 @@ struct SequencePlanner: Sendable {
     // A media file's picture is its probed size. A compound clip's or an image or layout document's is the output of
     // its nested document, which is drawn, not read.
     private func picture(
-        of media: ResolvedMedia,
+        of media: MediaPlan,
         kind: ClipKind,
         nested: DocumentPlan?,
         place: Place

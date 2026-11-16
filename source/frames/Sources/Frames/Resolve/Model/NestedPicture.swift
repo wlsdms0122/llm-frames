@@ -11,13 +11,13 @@ struct NestedPicture: Equatable, Sendable {
     // MARK: - Property
     let document: PictureDocument
     let theme: MergedTheme
-    let media: [ResolvedMedia]
+    let media: [MediaPlan]
 
     // MARK: - Initializer
     init(
         document: PictureDocument,
         theme: MergedTheme,
-        media: [ResolvedMedia]
+        media: [MediaPlan]
     ) {
         self.document = document
         self.theme = theme

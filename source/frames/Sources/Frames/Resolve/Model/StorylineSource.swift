@@ -10,7 +10,7 @@
 struct StorylineSource: Equatable, Sendable {
     // MARK: - Property
     let kind: ClipKind
-    let media: ResolvedMedia?
+    let media: MediaPlan?
     let clipRange: TimeRange
     let speed: Double
 
@@ -21,7 +21,7 @@ struct StorylineSource: Equatable, Sendable {
     // MARK: - Initializer
     init(
         kind: ClipKind,
-        media: ResolvedMedia?,
+        media: MediaPlan?,
         clipRange: TimeRange,
         speed: Double
     ) {

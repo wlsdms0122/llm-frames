@@ -37,7 +37,7 @@ struct MediaResolver: Sendable {
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
-    ) throws -> ResolvedMedia {
+    ) throws -> MediaPlan {
         switch source {
         case let .file(reference) where library.isDocument(reference):
             return try document(named: reference, place: place, kind: kind, theme: theme)
@@ -52,7 +52,7 @@ struct MediaResolver: Sendable {
                 throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
 
-            return ResolvedMedia(
+            return MediaPlan(
                 kind: probed.kind,
                 reference: reference,
                 source: .file(MediaFile(path: file, fps: probed.fps, size: probed.size, frameTimes: probed.frames)),
@@ -80,7 +80,7 @@ struct MediaResolver: Sendable {
                 frameTimes: probed.files.indices.map { Double($0) / fps },
                 frameFiles: probed.files
             )
-            return ResolvedMedia(
+            return MediaPlan(
                 kind: .video,
                 reference: reference,
                 source: .file(file),
@@ -161,7 +161,7 @@ struct MediaResolver: Sendable {
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
-    ) throws -> ResolvedMedia {
+    ) throws -> MediaPlan {
         guard let document = try library.document(named: reference) else {
             throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
         }
@@ -187,7 +187,7 @@ struct MediaResolver: Sendable {
         place: Place,
         kind: PlaceKind,
         theme: MergedTheme
-    ) throws -> ResolvedMedia {
+    ) throws -> MediaPlan {
         guard let template = try library.template(named: name) else {
             throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind.label, name: name)
         }
@@ -218,8 +218,8 @@ struct MediaResolver: Sendable {
         _ document: PictureDocument,
         reference: String?,
         theme: MergedTheme
-    ) throws -> ResolvedMedia {
-        ResolvedMedia(
+    ) throws -> MediaPlan {
+        MediaPlan(
             kind: .image,
             reference: reference,
             source: .picture(try picture(of: document, theme: theme)),
@@ -233,7 +233,7 @@ struct MediaResolver: Sendable {
         place: Place,
         kind: PlaceKind,
         over theme: MergedTheme,
-        media: (MergedTheme) throws -> [ResolvedMedia]
+        media: (MergedTheme) throws -> [MediaPlan]
     ) throws -> NestedPicture {
         let merged = try themes.theme(reference, of: place, kind: kind, over: theme)
 
@@ -250,10 +250,10 @@ struct MediaResolver: Sendable {
     private func nested(
         _ plan: TimePlan,
         reference: String?
-    ) -> ResolvedMedia {
+    ) -> MediaPlan {
         let media = plan.storyline.map(\.source.media) + plan.clips.map(\.media)
 
-        return ResolvedMedia(
+        return MediaPlan(
             kind: .sequence,
             reference: reference,
             source: .sequence(plan),
