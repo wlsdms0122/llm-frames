@@ -13,6 +13,7 @@ indirect enum ValueType: Sendable {
     case number
     case positiveNumber
     case integer
+    case pixels
     case text
     case name
     case color
@@ -27,6 +28,7 @@ indirect enum ValueType: Sendable {
     case oneOf([ValueType])
     case area
     case crop
+    case inset
     case media
     case document
     case clips(ClipPlace)

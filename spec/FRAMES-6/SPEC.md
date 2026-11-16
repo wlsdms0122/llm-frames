@@ -55,7 +55,7 @@ An image document edits one picture with an ordered list of operations.
 | --- | --- | --- |
 | `crop` | area | Keeps the area, clipped to the picture |
 | `resize` | `{scale}`, `{width}` or `{height}`, above 0 | Resizes and keeps the aspect ratio |
-| `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, in pixels of the canvas at that operation, `color` optional | Adds a margin. The default colour is the theme `background` |
+| `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, in whole pixels of the canvas at that operation, 0 or more, `color` optional | Adds a margin. The default colour is the theme `background` |
 | `shape` | `box`, `fill`, `dim` or `arrow`, with `area`, `side` for an arrow, and `id`, `label`, `color` optional | Draws a shape ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |
 | `title` | text, `position` (media `[x, y]` or a point of an area) and `style`, with `anchor` and `width` optional | Places a title ([FRAMES-11](../FRAMES-11/SPEC.md)), its anchor point at `position` as on a sequence ([FRAMES-1](../FRAMES-1/SPEC.md)). `width` is in media pixels of `source`, and defaults to the width of the canvas at that operation minus twice the placement padding |

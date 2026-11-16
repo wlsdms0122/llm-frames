@@ -38,7 +38,7 @@ enum ImageKeyTable {
             return ObjectTable(
                 kind: operation,
                 rules: common + [
-                    KeyRule("pad", .oneOf([.number, .numbers(2), .numbers(4)])),
+                    KeyRule("pad", .inset),
                     KeyRule("color", .color)
                 ]
             )

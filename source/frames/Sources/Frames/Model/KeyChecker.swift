@@ -126,6 +126,12 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .pixels:
+            // A canvas is whole pixels.
+            guard let number = value.numberValue, number >= 0, Int(exactly: number) != nil else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .color, .hexColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
@@ -178,6 +184,9 @@ struct KeyChecker: Sendable {
             } else {
                 try checkArea(value, place: place, kind: kind, scope: &scope)
             }
+
+        case .inset:
+            try checkInset(value, place: place, kind: kind, scope: &scope)
 
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
@@ -359,6 +368,27 @@ struct KeyChecker: Sendable {
 
         default:
             throw wrongType(value, .area, place, kind)
+        }
+    }
+
+    // An inset is one length for every side, `[vertical, horizontal]` or `[top, right, bottom, left]`.
+    private func checkInset(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        switch value {
+        case .number:
+            try check(value, as: .pixels, place: place, kind: kind, scope: &scope)
+
+        case let .array(elements) where elements.count == 2 || elements.count == 4:
+            for (index, element) in elements.enumerated() {
+                try check(element, as: .pixels, place: place.appending(index: index), kind: kind, scope: &scope)
+            }
+
+        default:
+            throw wrongType(value, .inset, place, kind)
         }
     }
 
@@ -840,7 +870,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .integer:
+        case .number, .positiveNumber, .integer, .pixels, .inset:
             parameterType == "number"
 
         default:
@@ -880,7 +910,7 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.integer, .number):
+        case (.number, .number), (.positiveNumber, .number), (.integer, .number), (.pixels, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -895,6 +925,9 @@ struct KeyChecker: Sendable {
             true
 
         case (.area, .array), (.area, .string), (.area, .object), (.crop, .array), (.crop, .string), (.crop, .object):
+            true
+
+        case (.inset, .number), (.inset, .array):
             true
 
         case (.media, .string), (.media, .object):
@@ -940,6 +973,9 @@ struct KeyChecker: Sendable {
         case .integer:
             "a whole number"
 
+        case .pixels:
+            "whole pixels, 0 or more"
+
         case .text, .name, .identifier:
             "a string"
 
@@ -966,6 +1002,9 @@ struct KeyChecker: Sendable {
 
         case .crop:
             "an area or {scale}"
+
+        case .inset:
+            "whole pixels, 0 or more, as n, [vertical, horizontal] or [top, right, bottom, left]"
 
         case .media:
             "a media reference"
