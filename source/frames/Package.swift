@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Frames",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14)
     ],
     targets: [
         .target(name: "Frames"),
@@ -24,6 +24,10 @@ let package = Package(
         ),
         .target(
             name: "FramesPointTracker",
+            dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesQuartz",
             dependencies: ["Frames"]
         ),
         .target(
@@ -57,6 +61,10 @@ let package = Package(
         .testTarget(
             name: "FramesPointTrackerTests",
             dependencies: ["FramesPointTracker", "FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesQuartzTests",
+            dependencies: ["FramesQuartz", "FramesAVFoundation", "FramesTestMedia"]
         )
     ]
 )
