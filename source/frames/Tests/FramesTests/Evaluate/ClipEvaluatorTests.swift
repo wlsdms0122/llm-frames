@@ -88,7 +88,8 @@ struct ClipEvaluatorTests {
             start: 0,
             end: 4,
             lane: 1,
-            parent: nil,
+            storyline: nil,
+            isParented: false,
             area: nil,
             box: ResolvedBox(
                 size: text.size,

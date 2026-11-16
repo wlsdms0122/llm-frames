@@ -35,7 +35,8 @@ extension ResolvedClip {
             start: plan.visible.start,
             end: plan.visible.end,
             lane: plan.lane,
-            parent: plan.isParented ? plan.storyline : nil,
+            storyline: plan.storyline,
+            isParented: plan.isParented,
             area: geometry.area?.keyframes(at: instant) { $0.rectangle },
             box: geometry.box.map { box in
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)

@@ -132,7 +132,7 @@ struct ResolvedSequenceWriterTests {
         #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 3 } == true)
     }
 
-    @Test("a clip keeps its place, id, visible window, lane and parent, and its properties in sequence time")
+    @Test("a clip keeps its place, id, visible window, lane, storyline and parenting, and its properties in sequence time")
     func writesClip() throws {
         // Given
         let document = #"""
@@ -152,7 +152,8 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["start"] == .number(1))
         #expect(clip["end"] == .number(3))
         #expect(clip["lane"] == .number(-1))
-        #expect(clip["parent"] == .number(0))
+        #expect(clip["storyline"] == .number(0))
+        #expect(clip["parented"] == .bool(true))
         #expect(clip["area"] == keyframes(at: 1, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clip["opacity"] == .array([
             .object(JSONObject(members: [

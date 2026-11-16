@@ -6,8 +6,9 @@
 //
 
 // A clips entry: a title, shape, adjustment or media clip. `start` and `end` are its visible window, already narrowed.
-// `parent` is the index of the storyline entry a parented clip is composited with. `area` and `box` place it, each nil
-// where the other does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
+// `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and
+// `isParented` whether it is composited with that entry's picture. `area` and `box` place it, each nil where the other
+// does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
 // `scale` and `rotation` belong to a title or media clip and `blend` to anything but an adjustment, and each is nil
 // where its entry has no such key.
 struct ResolvedClip: Equatable, Sendable {
@@ -18,7 +19,8 @@ struct ResolvedClip: Equatable, Sendable {
     let start: Double
     let end: Double
     let lane: Int?
-    let parent: Int?
+    let storyline: Int?
+    let isParented: Bool
     let area: [Keyframe<Rectangle>]?
     let box: ResolvedBox?
     let crop: [Keyframe<Crop>]?
@@ -38,7 +40,8 @@ struct ResolvedClip: Equatable, Sendable {
         start: Double,
         end: Double,
         lane: Int?,
-        parent: Int?,
+        storyline: Int?,
+        isParented: Bool,
         area: [Keyframe<Rectangle>]?,
         box: ResolvedBox?,
         crop: [Keyframe<Crop>]?,
@@ -56,7 +59,8 @@ struct ResolvedClip: Equatable, Sendable {
         self.start = start
         self.end = end
         self.lane = lane
-        self.parent = parent
+        self.storyline = storyline
+        self.isParented = isParented
         self.area = area
         self.box = box
         self.crop = crop

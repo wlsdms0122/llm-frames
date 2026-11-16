@@ -93,7 +93,8 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "start", value: .number(clip.start)),
             JSONMember(key: "end", value: .number(clip.end)),
             JSONMember(key: "lane", value: clip.lane.map { .number(Double($0)) } ?? .null),
-            JSONMember(key: "parent", value: clip.parent.map { .number(Double($0)) } ?? .null)
+            JSONMember(key: "storyline", value: clip.storyline.map { .number(Double($0)) } ?? .null),
+            JSONMember(key: "parented", value: .bool(clip.isParented))
         ] + geometry + [
             JSONMember(key: "opacity", value: number(clip.opacity))
         ] + transform + [
