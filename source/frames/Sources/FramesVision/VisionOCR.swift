@@ -32,7 +32,7 @@ package struct VisionOCR: Sendable {
     ) -> RecognisedLine? {
         guard let text = observation.topCandidates(1).first?.string else { return nil }
 
-        return RecognisedLine(text: text, rectangle: Rectangle(visionBox: observation.boundingBox, in: size))
+        return RecognisedLine(text: text, rectangle: Rectangle(normalizedRect: observation.boundingBox, in: size))
     }
 }
 
