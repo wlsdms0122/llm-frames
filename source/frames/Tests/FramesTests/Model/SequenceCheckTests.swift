@@ -454,6 +454,18 @@ struct SequenceCheckTests {
         #expect(error?.description == message)
     }
 
+    @Test("a title's wrapping width is above 0")
+    func refusesEmptyTitleWidth() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "title": "Hi", "style": "label", "at": [0, 1], "position": [0, 0], "width": 0 } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == "clips[0].width (title): expected a number above 0, found 0")
+    }
+
     @Test("a media clip's radius of 0 leaves square corners")
     func admitsZeroRadius() throws {
         // Given

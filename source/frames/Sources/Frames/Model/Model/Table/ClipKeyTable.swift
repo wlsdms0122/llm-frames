@@ -199,8 +199,8 @@ enum ClipKeyTable {
         case "side":
             .literal(VocabularyTable.sides)
 
-        // A media box is drawn, so it has some size, and a corner cannot curve inwards.
-        case "width", "height" where kind != .title:
+        // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
+        case "width", "height":
             .positiveNumber
 
         case "radius":
