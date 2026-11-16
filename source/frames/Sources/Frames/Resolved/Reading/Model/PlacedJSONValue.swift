@@ -50,7 +50,9 @@ struct PlacedJSONValue: Sendable {
     }
 
     func integer() throws -> Int {
-        guard let number = value.numberValue, let integer = Int(exactly: number) else { throw wrongType("a whole number") }
+        guard let number = value.numberValue, let integer = Int(exactly: number) else {
+            throw wrongType("a whole number")
+        }
 
         return integer
     }

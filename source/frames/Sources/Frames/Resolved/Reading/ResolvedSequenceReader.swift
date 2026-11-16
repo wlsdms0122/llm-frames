@@ -20,8 +20,8 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
-        "title", "shape", "width", "radius", "color", "side", "length", "head", "adjust", "media", "in", "origin", "out",
-        "speed", "loop", "filter", "conform", "border", "shadow"
+        "title", "shape", "width", "radius", "color", "side", "length", "head", "adjust", "media", "in", "origin",
+        "out", "speed", "loop", "filter", "conform", "border", "shadow"
     ]
 
     private static let shapeNames = ["box", "fill", "dim", "arrow"]
@@ -59,7 +59,10 @@ struct ResolvedSequenceReader: Sendable {
 
     // MARK: - Private
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
-        let format = try value.object(kind: "format", keys: ["size", "fps", "duration", "background", "content", "conform"])
+        let format = try value.object(
+            kind: "format",
+            keys: ["size", "fps", "duration", "background", "content", "conform"]
+        )
 
         return ResolvedFormat(
             size: try values.size(format.member("size")),
@@ -73,7 +76,8 @@ struct ResolvedSequenceReader: Sendable {
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
-            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "crop", "track", "filter", "transition"
+            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "crop", "track", "filter",
+            "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -204,7 +208,10 @@ struct ResolvedSequenceReader: Sendable {
                 border: try clip.member("border").optional { value in
                     let border = try value.object(keys: ["width", "color"])
 
-                    return MediaBorder(width: try border.member("width").number(), color: try values.color(border.member("color")))
+                    return MediaBorder(
+                        width: try border.member("width").number(),
+                        color: try values.color(border.member("color"))
+                    )
                 },
                 shadow: try clip.member("shadow").optional { value in
                     let shadow = try value.object(keys: ["radius", "offset", "color"])
@@ -299,7 +306,10 @@ struct ResolvedSequenceReader: Sendable {
             frames: try track.member("frames").elements().map { element in
                 let frame = try element.object(keys: ["time", "value"])
 
-                return TrackedFrame(time: try frame.member("time").number(), rectangle: try values.rectangle(frame.member("value")))
+                return TrackedFrame(
+                    time: try frame.member("time").number(),
+                    rectangle: try values.rectangle(frame.member("value"))
+                )
             }
         )
     }

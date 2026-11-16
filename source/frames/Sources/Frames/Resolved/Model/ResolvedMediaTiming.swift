@@ -6,8 +6,8 @@
 //
 
 // How a timed media clip plays: from `in` at sequence time `origin` at `speed`, up to `out`, in media time, and whether
-// it repeats from `in` past `out`. `origin` is the start of the clip's window before tracking narrowed it, so it can lie
-// before the clip's `start`.
+// it repeats from `in` past `out`. `origin` is the start of the clip's window before tracking narrowed it, so it can
+// lie before the clip's `start`.
 struct ResolvedMediaTiming: Equatable, Sendable {
     // MARK: - Property
     let `in`: Double

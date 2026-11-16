@@ -116,7 +116,8 @@ struct MediaResolver: Sendable {
         place: Place,
         kind: PlaceKind
     ) throws -> TransitionMedia {
-        guard let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
+        guard
+            let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
         else {
             throw ResolveError.unprobedMedia(place: place, kind: kind, reference: path)
         }

@@ -575,7 +575,12 @@ struct TimePlanner: Sendable {
         isParented: Bool,
         defaults: ThemeDefaults
     ) throws -> AnimationPlan {
-        guard clip.label != nil, let choice = clip.labelAnimation ?? defaults.titleAnimations["label"] else { return .none }
+        guard
+            clip.label != nil,
+            let choice = clip.labelAnimation ?? defaults.titleAnimations["label"]
+        else {
+            return .none
+        }
 
         let plan = try animationPlan(choice, place: clip.place, kind: kind)
         guard isParented, clip.at == nil else { return plan }

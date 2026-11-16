@@ -28,7 +28,8 @@ struct ResolvedDocumentReader: Sendable {
         let root = PlacedJSONValue(value, place: .root, kind: "resolved document")
         guard let object = value.objectValue else { throw root.wrongType("an object") }
         guard try checker.version(of: value, theme: nil, arguments: nil) != nil else {
-            throw ModelError.missingKey(place: .root, kind: object["kind"]?.stringValue ?? root.kind, keys: ["resolved"])
+            let kind = object["kind"]?.stringValue ?? root.kind
+            throw ModelError.missingKey(place: .root, kind: kind, keys: ["resolved"])
         }
 
         return try sequences.document(root, extraKeys: ["resolved"])
