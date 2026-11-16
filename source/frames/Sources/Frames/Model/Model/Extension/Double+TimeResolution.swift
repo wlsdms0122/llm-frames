@@ -13,7 +13,7 @@ extension Double {
 
     // The time rounded to the nearest microsecond.
     var roundedTime: Double {
-        (self * 1_000_000).rounded() / 1_000_000
+        Double(timeTicks: timeTicks)
     }
 
     // The time in whole microseconds, rounded to the nearest one.
