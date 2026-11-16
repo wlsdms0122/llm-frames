@@ -9,12 +9,17 @@ import AVFoundation
 import CoreImage
 import Foundation
 import Frames
+import os
 
 // A video file's first picture track, loaded once. `frames` holds the time each presented frame is presented at, in
-// order, and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every track of
-// the file shares.
-struct VideoReader: Sendable {
+// order, and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every
+// track of the file shares. One reader stays open after the last frame read, so frames in order decode forward from it
+// instead of from the previous sync sample each time.
+final class VideoReader: Sendable {
     // MARK: - Property
+    // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
+    private static let forwardReach: Double = 1
+
     let frames: [CMTime]
     let displaySize: Size
     let fps: Double
@@ -31,6 +36,7 @@ struct VideoReader: Sendable {
     nonisolated(unsafe) private let track: AVAssetTrack
     private let storedSize: CGSize
     private let transform: CGAffineTransform
+    private let open = OSAllocatedUnfairLock<FrameReader?>(uncheckedState: nil)
 
     // MARK: - Initializer
     // Nil for a file without a picture track.
@@ -58,28 +64,28 @@ struct VideoReader: Sendable {
 
     // MARK: - Public
     // The picture of frame `index` as it is displayed, tagged with the colour space the file gives: the last decoded
-    // frame presented at or before its presented time.
+    // frame presented at or before its presented time. Asking for the frame read last decodes nothing.
     func image(
         atFrame index: Int,
         path: String
     ) throws -> CIImage {
         let time = frames[index]
-        let reader = try AVAssetReader(asset: asset)
-        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
-            kCVPixelBufferPixelFormatTypeKey as String: depth == .sixteen
-                ? kCVPixelFormatType_64RGBAHalf
-                : kCVPixelFormatType_32BGRA
-        ])
-        output.alwaysCopiesSampleData = false
-        reader.add(output)
-        reader.timeRange = CMTimeRange(start: time, duration: .positiveInfinity)
-        guard reader.startReading() else { throw DecoderError.unreadable(file: path) }
-        defer { reader.cancelReading() }
+        let shown = try open.withLockUnchecked { open -> CVImageBuffer? in
+            if let reader = open, reader.index == index { return reader.picture }
+            if let reader = open, reader.index < index, (time - reader.time).seconds <= Self.forwardReach {
+                return try reader.read(frame: index, at: time, path: path)
+            }
 
-        var shown: CVImageBuffer?
-        while let sample = output.copyNextSampleBuffer() {
-            guard CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(sample), time) <= 0 else { break }
-            shown = CMSampleBufferGetImageBuffer(sample) ?? shown
+            let reader = try FrameReader(
+                asset: asset,
+                track: track,
+                pixelFormat: depth == .sixteen ? kCVPixelFormatType_64RGBAHalf : kCVPixelFormatType_32BGRA,
+                start: time,
+                path: path
+            )
+            open = reader
+
+            return try reader.read(frame: index, at: time, path: path)
         }
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 

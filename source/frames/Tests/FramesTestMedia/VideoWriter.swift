@@ -16,7 +16,7 @@ import Frames
 // `transform` turns for display. With `sound` it also holds an AAC track of a 440 Hz tone over the whole video.
 // The writer's session runs from `start` to `end`, so frames written before `start` are held but never presented.
 // `reordersFrames` lets the encoder write B-frames. A `delay` above 0 gives a movie whose edit list shows nothing for
-// that long before the video, its samples in a file beside it.
+// that long before the video, its samples in a file beside it. `keyFrameInterval` caps the frames between sync samples.
 package struct VideoWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
@@ -29,11 +29,21 @@ package struct VideoWriter {
     private let sound: Bool
     private let reordersFrames: Bool
     private let delay: Double
+    private let keyFrameInterval: Int?
 
     package var displaySize: Size {
         let turned = CGRect(x: 0, y: 0, width: size.width, height: size.height).applying(transform)
 
         return Size(width: turned.width, height: turned.height)
+    }
+
+    private var compressionProperties: [String: Any] {
+        var properties: [String: Any] = [AVVideoAllowFrameReorderingKey: reordersFrames]
+        if let keyFrameInterval {
+            properties[AVVideoMaxKeyFrameIntervalKey] = keyFrameInterval
+        }
+
+        return properties
     }
 
     // MARK: - Initializer
@@ -45,7 +55,8 @@ package struct VideoWriter {
         transform: CGAffineTransform = .identity,
         sound: Bool = false,
         reordersFrames: Bool = true,
-        delay: Double = 0
+        delay: Double = 0,
+        keyFrameInterval: Int? = nil
     ) {
         self.size = size
         self.frameTimes = frameTimes
@@ -55,6 +66,7 @@ package struct VideoWriter {
         self.sound = sound
         self.reordersFrames = reordersFrames
         self.delay = delay
+        self.keyFrameInterval = keyFrameInterval
     }
 
     // MARK: - Public
@@ -74,9 +86,7 @@ package struct VideoWriter {
                 AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
                 AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2
             ],
-            AVVideoCompressionPropertiesKey: [
-                AVVideoAllowFrameReorderingKey: reordersFrames
-            ]
+            AVVideoCompressionPropertiesKey: compressionProperties
         ])
         video.transform = transform
         video.mediaTimeScale = Self.timescale
