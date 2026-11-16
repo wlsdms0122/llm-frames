@@ -1,5 +1,5 @@
 //
-//  Rectangle+VisionBox.swift
+//  Rectangle+NormalizedRect.swift
 //  FramesVision
 //
 //  Created by JSilver on 11/16/26.
@@ -8,25 +8,25 @@
 import CoreGraphics
 import Frames
 
-// Vision's boxes are fractions of the picture from its bottom left, and rectangles are in media pixels from its top
-// left.
+// Vision's normalized rects are fractions of the picture from its bottom left, and rectangles are in media pixels
+// from its top left.
 extension Rectangle {
     // MARK: - Property
     // MARK: - Initializer
     init(
-        visionBox box: CGRect,
+        normalizedRect rect: CGRect,
         in size: Size
     ) {
         self.init(
-            x: box.minX * size.width,
-            y: (1 - box.maxY) * size.height,
-            width: box.width * size.width,
-            height: box.height * size.height
+            x: rect.minX * size.width,
+            y: (1 - rect.maxY) * size.height,
+            width: rect.width * size.width,
+            height: rect.height * size.height
         )
     }
 
     // MARK: - Public
-    func visionBox(in size: Size) -> CGRect {
+    func normalizedRect(in size: Size) -> CGRect {
         CGRect(
             x: x / size.width,
             y: 1 - (y + height) / size.height,

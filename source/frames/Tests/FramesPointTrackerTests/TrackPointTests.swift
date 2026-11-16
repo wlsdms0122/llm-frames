@@ -1,16 +1,15 @@
 //
 //  TrackPointTests.swift
-//  FramesVisionTests
+//  FramesPointTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 import Frames
 import FramesAVFoundation
 import FramesTestMedia
-@testable import FramesVision
+@testable import FramesPointTracker
 import Testing
 
 // Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
@@ -19,7 +18,6 @@ import Testing
 struct TrackPointTests {
     // MARK: - Property
     private let decoder = AVFoundationDecoder()
-    private let converter = ImageConverter()
 
     // MARK: - Initializer
     // MARK: - Test
@@ -35,9 +33,7 @@ struct TrackPointTests {
             }
         let probed = try #require(try decoder.probedMedia(of: file))
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let images = try (0..<2).map { index in
-            try converter.image(of: try decoder.picture(of: media, atFrame: index), file: file, index: index)
-        }
+        let images = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index)) }
         let ends = [CGPoint(x: 180, y: 850), CGPoint(x: 500, y: 850)]
         let points = try ends.map { end in
             try #require(TrackPoint(

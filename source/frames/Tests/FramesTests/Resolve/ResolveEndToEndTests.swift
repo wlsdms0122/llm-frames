@@ -9,6 +9,7 @@ import CoreGraphics
 import Foundation
 import FramesAVFoundation
 import FramesCoreText
+import FramesPointTracker
 import FramesTestMedia
 import FramesVision
 import Testing
@@ -21,11 +22,9 @@ import Testing
 struct ResolveEndToEndTests {
     // MARK: - Property
     // How far the found area's edges may lie from the drawn line box, and how far each followed rectangle's centre
-    // may lie from where the drawn line moved it, in media pixels. Vision's tracker holds a line of text well across
-    // the line and loosely along it.
+    // may lie from where the drawn line moved it, in media pixels.
     private let ocrTolerance = 8.0
-    private let acrossTolerance = 4.0
-    private let alongTolerance = 16.0
+    private let trackTolerance = 1.5
     private let times = (0..<30).map { Double($0) / 30 }
 
     // MARK: - Initializer
@@ -64,7 +63,7 @@ struct ResolveEndToEndTests {
             mediaFacts: decoder,
             presets: Fixture.presets,
             ocr: VisionOCR(decoder: decoder),
-            tracker: VisionTracker(decoder: decoder),
+            tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),
             library: library
         )
@@ -91,8 +90,8 @@ struct ResolveEndToEndTests {
             let moved = frame.rectangle.center.y - track.target.center.y
             let drift = drawn[index].center.y - drawn[0].center.y
             let along = frame.rectangle.center.x - track.target.center.x
-            #expect(abs(moved - drift) <= acrossTolerance, "frame \(index) moved \(moved), drawn \(drift)")
-            #expect(abs(along) <= alongTolerance, "frame \(index) moved \(along) along the line")
+            #expect(abs(moved - drift) <= trackTolerance, "frame \(index) moved \(moved), drawn \(drift)")
+            #expect(abs(along) <= trackTolerance, "frame \(index) moved \(along) along the line")
         }
 
         let title = try #require(plan.clips[1].title)

@@ -1,19 +1,18 @@
 //
-//  VisionTracker.swift
-//  FramesVision
+//  PointTracker.swift
+//  FramesPointTracker
 //
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 import Frames
 
-// The `vision` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
+// The `point` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
 // again, backwards over the frames the decoder reads by index. A track point sits near each end of the target's long
 // side, and the two points found on a frame give the target's move and scale there. The target is lost on the first
 // frame where either point's correlation with its feature falls below `lostCorrelation`, which ends that direction.
-package struct VisionTracker: Sendable {
+package struct PointTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
 
@@ -22,7 +21,6 @@ package struct VisionTracker: Sendable {
     private static let featureMargin = 0.6
 
     private let decoder: any MediaDecoder
-    private let converter = ImageConverter()
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
@@ -80,7 +78,7 @@ package struct VisionTracker: Sendable {
 
     // The track points on `image` from `guess`, each pass reading the features at the scale the one before found.
     private func estimate(
-        on image: CGImage,
+        on image: GreyImage,
         of points: [TrackPoint],
         from guess: [CGPoint],
         scale: Double,
@@ -107,7 +105,7 @@ package struct VisionTracker: Sendable {
     // long target and their distance measures its scale.
     private func trackPoints(
         of target: Rectangle,
-        on image: CGImage
+        on image: GreyImage
     ) -> [TrackPoint]? {
         let isWide = target.width >= target.height
         let long = max(target.width, target.height)
@@ -144,12 +142,12 @@ package struct VisionTracker: Sendable {
     private func image(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> CGImage {
-        try converter.image(of: try decoder.picture(of: file, atFrame: index), file: file.path, index: index)
+    ) throws -> GreyImage {
+        GreyImage(picture: try decoder.picture(of: file, atFrame: index))
     }
 }
 
-extension VisionTracker: TrackerProvider {
+extension PointTracker: TrackerProvider {
     // MARK: - Lifecycle
     package func track(
         _ target: Rectangle,

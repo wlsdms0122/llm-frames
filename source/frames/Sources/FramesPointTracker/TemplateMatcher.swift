@@ -1,11 +1,11 @@
 //
 //  TemplateMatcher.swift
-//  FramesVision
+//  FramesPointTracker
 //
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
+import Foundation
 
 // Finds where a template best matches a window around it by zero-mean normalised cross-correlation, the standard
 // template match that a change of brightness or contrast does not move. The window is the template's size plus

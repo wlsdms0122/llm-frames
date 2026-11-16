@@ -23,13 +23,24 @@ let package = Package(
             dependencies: ["Frames"]
         ),
         .target(
+            name: "FramesPointTracker",
+            dependencies: ["Frames"]
+        ),
+        .target(
             name: "FramesTestMedia",
             dependencies: ["Frames"],
             path: "Tests/FramesTestMedia"
         ),
         .testTarget(
             name: "FramesTests",
-            dependencies: ["Frames", "FramesAVFoundation", "FramesVision", "FramesCoreText", "FramesTestMedia"]
+            dependencies: [
+                "Frames",
+                "FramesAVFoundation",
+                "FramesVision",
+                "FramesCoreText",
+                "FramesPointTracker",
+                "FramesTestMedia"
+            ]
         ),
         .testTarget(
             name: "FramesAVFoundationTests",
@@ -42,6 +53,10 @@ let package = Package(
         .testTarget(
             name: "FramesCoreTextTests",
             dependencies: ["FramesCoreText"]
+        ),
+        .testTarget(
+            name: "FramesPointTrackerTests",
+            dependencies: ["FramesPointTracker", "FramesAVFoundation", "FramesTestMedia"]
         )
     ]
 )
