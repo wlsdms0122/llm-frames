@@ -15,4 +15,14 @@ extension Double {
     var roundedTime: Double {
         (self * 1_000_000).rounded() / 1_000_000
     }
+
+    // The time in whole microseconds, rounded to the nearest one.
+    var timeTicks: Int {
+        Int((self * 1_000_000).rounded())
+    }
+
+    // MARK: - Initializer
+    init(timeTicks: Int) {
+        self = Double(timeTicks) / 1_000_000
+    }
 }

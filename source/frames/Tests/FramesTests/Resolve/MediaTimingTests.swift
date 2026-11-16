@@ -68,6 +68,30 @@ struct MediaTimingTests {
         #expect(times == [0.75, 0.75, 1.25])
     }
 
+    @Test("at a seam reached through noisy sums a looping video repeats from in, and a sound past out is silent")
+    func loopsAtNoisySeam() {
+        // Given
+        // 0.7 + 0.5 lands a hair past 1.2, a clip time a hair under `out` 0.3.
+        let file = MediaFile(path: "/abs/ten.mp4", frameTimes: (0..<10).map { Double($0) / 10 })
+        let tenFrames = MediaPlan(
+            kind: .video,
+            reference: "/abs/ten.mp4",
+            source: .file(file),
+            duration: 1,
+            frames: 0...0.9
+        )
+        let looping = MediaTiming(media: tenFrames, map: TimeMap(origin: 1, in: 0.1, speed: 1), out: 0.3, loop: true)
+        let silent = MediaTiming(media: sound, map: TimeMap(origin: 1, in: 0.1, speed: 1), out: 0.3, loop: false)
+
+        // When
+        let repeated = looping.mediaTime(atSequenceTime: 0.7 + 0.5)
+        let gone = silent.mediaTime(atSequenceTime: 0.7 + 0.5)
+
+        // Then
+        #expect(repeated.map(file.frameIndex(at:)) == 1)
+        #expect(gone == nil)
+    }
+
     @Test("a looping sound on the sequence repeats through the window the plan gives it")
     func loopsSequenceSound() throws {
         // Given

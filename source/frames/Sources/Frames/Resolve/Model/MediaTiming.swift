@@ -32,16 +32,11 @@ struct MediaTiming: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // Past `out`, a looping clip repeats from `in`, a picture holds its last frame, and sound is silent (nil).
+    // The media time by the clip's time map, within the media's frames. A sound that has ended is silent (nil).
     func mediaTime(atSequenceTime time: Double) -> Double? {
-        let clipTime = map.clipTime(atSequenceTime: time)
-        guard clipTime.roundedTime >= out.roundedTime else { return media.clamped(clipTime) }
-        guard !loop else {
-            return media.clamped(map.in + (clipTime - map.in).truncatingRemainder(dividingBy: out - map.in))
-        }
-        guard media.kind != .audio else { return nil }
+        guard media.kind != .audio || !map.hasEnded(atSequenceTime: time, out: out, loop: loop) else { return nil }
 
-        return media.clamped(out - .timeResolution)
+        return media.clamped(map.clipTime(atSequenceTime: time, out: out, loop: loop))
     }
 
     // MARK: - Private
