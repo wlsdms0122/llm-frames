@@ -30,13 +30,13 @@ struct TrackerTable: TrackerProvider {
     // MARK: - Public
     func track(
         _ target: Rectangle,
-        in file: String,
+        in file: MediaFile,
         atMediaTime time: Double,
         over range: ClosedRange<Double>
     ) throws -> [TrackedFrame] {
-        let times = frameTimes[file] ?? []
+        let times = frameTimes[file.path] ?? []
         let shown = times.last { $0 <= time } ?? times.first ?? time
-        let followed = followed[file] ?? -Double.infinity...Double.infinity
+        let followed = followed[file.path] ?? -Double.infinity...Double.infinity
         guard followed.contains(shown) else { return [] }
 
         // From the frame shown at `time`, out to the first frame lost in each direction.

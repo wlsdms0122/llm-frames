@@ -6,7 +6,7 @@
 //
 
 // The media types of template parameters: a video or image sequence, a compound clip, a picture, a sound.
-enum MediaKind: String, CaseIterable, Sendable {
+package enum MediaKind: String, CaseIterable, Sendable {
     case video
     case sequence
     case image

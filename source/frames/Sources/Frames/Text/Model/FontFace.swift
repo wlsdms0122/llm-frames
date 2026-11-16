@@ -7,15 +7,15 @@
 
 // A face in a font file, as the shaping provider found it. `name` is the face within the file, and `ascent` and
 // `descent` are its extent above and below the baseline at a size of 1.
-struct FontFace: Equatable, Sendable {
+package struct FontFace: Equatable, Sendable {
     // MARK: - Property
-    let file: String
-    let name: String
-    let ascent: Double
-    let descent: Double
+    package let file: String
+    package let name: String
+    package let ascent: Double
+    package let descent: Double
 
     // MARK: - Initializer
-    init(
+    package init(
         file: String,
         name: String,
         ascent: Double,

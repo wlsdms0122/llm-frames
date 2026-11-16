@@ -25,10 +25,10 @@ struct OCRTable: OCRProvider {
 
     // MARK: - Public
     func lines(
-        in file: String,
+        in file: MediaFile,
         atMediaTime time: Double
     ) throws -> [RecognisedLine] {
-        (files[file] ?? []).last { $0.from <= time }?.lines ?? []
+        (files[file.path] ?? []).last { $0.from <= time }?.lines ?? []
     }
 
     // MARK: - Private

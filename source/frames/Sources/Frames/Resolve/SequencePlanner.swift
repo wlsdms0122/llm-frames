@@ -198,7 +198,7 @@ struct SequencePlanner: Sendable {
             throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: reference)
         }
 
-        return Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size)
+        return Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size)
     }
 
     // What a sequence clip's area and an unparented clip's position are in.

@@ -6,13 +6,13 @@
 //
 
 // Glyphs set in one face: the face asked for, or the one the provider fell back to for characters it lacks.
-struct ShapedRun: Equatable, Sendable {
+package struct ShapedRun: Equatable, Sendable {
     // MARK: - Property
-    let face: FontFace
-    let glyphs: [ShapedGlyph]
+    package let face: FontFace
+    package let glyphs: [ShapedGlyph]
 
     // MARK: - Initializer
-    init(
+    package init(
         face: FontFace,
         glyphs: [ShapedGlyph]
     ) {

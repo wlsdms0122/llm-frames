@@ -79,7 +79,7 @@ struct PicturePlanner: Sendable {
                 throw ResolveError.soundAsPicture(place: place, kind: kind, reference: name)
             }
 
-            let picture = Picture(name: name, source: .mediaFile(file.path), size: size)
+            let picture = Picture(name: name, source: .mediaFile(file), size: size)
 
             return (.media(media, time: media.clamped(time)), picture)
 

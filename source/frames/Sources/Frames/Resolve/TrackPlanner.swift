@@ -158,7 +158,7 @@ struct TrackPlanner: Sendable {
         let lastNeeded = max(drawnEnd, target.mediaTime)
         let frames = try tracker.track(
             target.target,
-            in: file.path,
+            in: file,
             atMediaTime: target.mediaTime,
             over: firstNeeded...lastNeeded
         )
@@ -188,7 +188,7 @@ struct TrackPlanner: Sendable {
             return nil
         }
 
-        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size), file)
+        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file)
     }
 
     // The value `true` follows: the first keyframe's when the property is keyframed, else the static one.

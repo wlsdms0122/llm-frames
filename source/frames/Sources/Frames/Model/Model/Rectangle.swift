@@ -5,19 +5,19 @@
 //  Created by JSilver on 11/15/26.
 //
 
-struct Rectangle: Interpolable {
+package struct Rectangle: Interpolable {
     // MARK: - Property
-    let x: Double
-    let y: Double
-    let width: Double
-    let height: Double
+    package let x: Double
+    package let y: Double
+    package let width: Double
+    package let height: Double
 
     var center: Point {
         Point(x: x + width / 2, y: y + height / 2)
     }
 
     // MARK: - Initializer
-    init(
+    package init(
         x: Double,
         y: Double,
         width: Double,

@@ -7,13 +7,13 @@
 
 // The probed facts of an image sequence directory: the absolute path of each of its frames, every PNG in the directory
 // in natural order, and the size of their picture.
-struct ProbedImageSequence: Equatable, Sendable {
+package struct ProbedImageSequence: Equatable, Sendable {
     // MARK: - Property
-    let files: [String]
-    let size: Size
+    package let files: [String]
+    package let size: Size
 
     // MARK: - Initializer
-    init(
+    package init(
         files: [String],
         size: Size
     ) {
