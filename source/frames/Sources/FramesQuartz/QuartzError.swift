@@ -6,18 +6,33 @@
 //
 
 package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
-    // Placeholder until the renderer draws.
-    case notImplemented
     case unknownKernel(name: String)
+    case unsupportedBlend(name: String, place: String)
+    case kernelFailed(name: String)
+    case faceNotInFile(file: String, face: String)
+    case unmadeBitmap(width: Int, height: Int)
+    case unrenderedImage
 
     // MARK: - Property
     package var description: String {
         switch self {
-        case .notImplemented:
-            "the quartz renderer does not draw yet"
-
         case let .unknownKernel(name):
             "the quartz kernel library has no colour kernel \(name)"
+
+        case let .unsupportedBlend(name, place):
+            "the quartz renderer has no blend mode \(name) at \(place)"
+
+        case let .kernelFailed(name):
+            "the quartz colour kernel \(name) gave no image"
+
+        case let .faceNotInFile(file, face):
+            "the quartz renderer found no face \(face) in the font file \(file)"
+
+        case let .unmadeBitmap(width, height):
+            "the quartz renderer could not make a \(width) x \(height) bitmap"
+
+        case .unrenderedImage:
+            "the quartz renderer could not render a Core Image image to a bitmap"
         }
     }
 
