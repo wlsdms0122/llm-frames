@@ -25,6 +25,7 @@ extension ResolvedSound {
             media: media,
             nested: try plan.nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
             in: plan.in,
+            origin: plan.map.origin,
             out: plan.out,
             speed: plan.speed,
             loop: plan.loop,

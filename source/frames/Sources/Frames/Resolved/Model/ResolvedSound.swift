@@ -6,15 +6,17 @@
 //
 
 // A source of sound: its pinned media, or nil for a nested sequence whose sounds are `nested`, on their own clock. It
-// plays from `in` at `speed` up to `out` in media time, over `start` to `end` in sequence time, and is heard only over
-// `audible`. `volume` is in sequence time, `fadeIn` and `fadeOut` are the ranges it ramps from and to 0 over, and
-// `incoming` and `outgoing` the transitions it crossfades over.
+// plays from `in` at sequence time `origin` at `speed` up to `out` in media time, over `start` to `end` in sequence
+// time, and is heard only over `audible`. `origin` need not be `start`, as when tracking narrowed its clip's window.
+// `volume` is in sequence time, `fadeIn` and `fadeOut` are the ranges it ramps from and to 0 over, and `incoming` and
+// `outgoing` the transitions it crossfades over.
 struct ResolvedSound: Equatable, Sendable {
     // MARK: - Property
     let place: String
     let media: PinnedMedia?
     let nested: [ResolvedSound]
     let `in`: Double
+    let origin: Double
     let out: Double
     let speed: Double
     let loop: Bool
@@ -33,6 +35,7 @@ struct ResolvedSound: Equatable, Sendable {
         media: PinnedMedia?,
         nested: [ResolvedSound],
         in: Double,
+        origin: Double,
         out: Double,
         speed: Double,
         loop: Bool,
@@ -49,6 +52,7 @@ struct ResolvedSound: Equatable, Sendable {
         self.media = media
         self.nested = nested
         self.in = `in`
+        self.origin = origin
         self.out = out
         self.speed = speed
         self.loop = loop

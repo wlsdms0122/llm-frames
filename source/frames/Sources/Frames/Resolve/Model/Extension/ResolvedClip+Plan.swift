@@ -76,7 +76,13 @@ extension ResolvedClip {
             return .media(ResolvedMediaClip(
                 media: media,
                 timing: plan.timing.map { timing in
-                    ResolvedMediaTiming(in: timing.map.in, out: timing.out, speed: timing.map.speed, loop: timing.loop)
+                    ResolvedMediaTiming(
+                        in: timing.map.in,
+                        origin: timing.map.origin,
+                        out: timing.out,
+                        speed: timing.map.speed,
+                        loop: timing.loop
+                    )
                 },
                 filter: filter,
                 appearance: ResolvedMediaAppearance(

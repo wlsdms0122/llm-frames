@@ -116,6 +116,7 @@ struct ResolvedSequenceWriter: Sendable {
             let timing = clip.timing.map { timing in
                 [
                     JSONMember(key: "in", value: .number(timing.in)),
+                    JSONMember(key: "origin", value: .number(timing.origin)),
                     JSONMember(key: "out", value: .number(timing.out)),
                     JSONMember(key: "speed", value: .number(timing.speed)),
                     JSONMember(key: "loop", value: .bool(timing.loop))
@@ -195,6 +196,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "media", value: sound.media.map { .object(JSONObject(members: values.media($0))) } ?? .null),
             JSONMember(key: "nested", value: .array(sound.nested.map(self.sound))),
             JSONMember(key: "in", value: .number(sound.in)),
+            JSONMember(key: "origin", value: .number(sound.origin)),
             JSONMember(key: "out", value: .number(sound.out)),
             JSONMember(key: "speed", value: .number(sound.speed)),
             JSONMember(key: "loop", value: .bool(sound.loop)),
