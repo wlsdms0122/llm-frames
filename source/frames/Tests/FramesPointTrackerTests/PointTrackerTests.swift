@@ -1,6 +1,6 @@
 //
-//  VisionTrackerTests.swift
-//  FramesVisionTests
+//  PointTrackerTests.swift
+//  FramesPointTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
@@ -9,16 +9,16 @@ import Foundation
 import Frames
 import FramesAVFoundation
 import FramesTestMedia
-import FramesVision
+import FramesPointTracker
 import Testing
 
 // Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
 // all hold.
-@Suite("VisionTracker Tests", .serialized)
-struct VisionTrackerTests {
+@Suite("PointTracker Tests", .serialized)
+struct PointTrackerTests {
     // MARK: - Property
     // How far a followed rectangle's centre may lie from the drawn box's, in media pixels, and how far its width and
-    // height may be from the drawn ones, as a fraction. Registration finds whole pixels of the region it reads.
+    // height may be from the drawn ones, as a fraction.
     private let centreTolerance = 1.5
     private let sizeTolerance = 0.01
     private let decoder = AVFoundationDecoder()
@@ -32,7 +32,7 @@ struct VisionTrackerTests {
         // Given
         let directory = try TemporaryDirectory()
         let media = try await video(in: directory) { index in box(at: index) }
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(box(at: 10), in: media, atMediaTime: times[10], over: 0...end)
@@ -49,7 +49,7 @@ struct VisionTrackerTests {
         // Given
         let directory = try TemporaryDirectory()
         let media = try await video(in: directory) { index in (5..<13).contains(index) ? box(at: index) : nil }
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(box(at: 10), in: media, atMediaTime: times[10], over: 0...end)
@@ -63,7 +63,7 @@ struct VisionTrackerTests {
         // Given
         let directory = try TemporaryDirectory()
         let media = try await video(in: directory) { index in box(at: index) }
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(
@@ -89,7 +89,7 @@ struct VisionTrackerTests {
             if lines.count == index { lines.append(line) }
         }
         let media = try mediaFile(file)
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)
@@ -114,7 +114,7 @@ struct VisionTrackerTests {
             if lines.count == index { lines.append(line) }
         }
         let media = try mediaFile(file)
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)
@@ -149,7 +149,7 @@ struct VisionTrackerTests {
             }
         }
         let media = try mediaFile(file)
-        let sut = VisionTracker(decoder: decoder)
+        let sut = PointTracker(decoder: decoder)
 
         // When
         let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)

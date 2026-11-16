@@ -42,7 +42,7 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 | tracker | pictures from the decoder around one frame, and a rectangle on that frame | a rectangle in media pixels on each frame before and after it, out to where it reports the target lost in each direction |
 
 - What makes one line is the OCR provider's. A document can resolve on one provider and stop on another, where a line is split or joined differently, and the resolved document keeps what was found. The same holds for what a tracker followed.
-- `--ocr`, `--shaper` and `--tracker` pick each provider by the name of its implementation. OCR and the tracker default to `vision`, and shaping to `coretext`.
+- `--ocr`, `--shaper` and `--tracker` pick each provider by the name of its implementation. OCR defaults to `vision`, shaping to `coretext` and the tracker to `point`.
 
 ## Interactions
 

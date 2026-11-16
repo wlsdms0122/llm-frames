@@ -1,13 +1,13 @@
 //
 //  GreyImageTests.swift
-//  FramesVisionTests
+//  FramesPointTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
 
 import Foundation
 import Frames
-@testable import FramesVision
+@testable import FramesPointTracker
 import Testing
 
 @Suite("GreyImage Tests")

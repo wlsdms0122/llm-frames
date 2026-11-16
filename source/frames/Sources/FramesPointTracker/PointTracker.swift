@@ -1,6 +1,6 @@
 //
-//  VisionTracker.swift
-//  FramesVision
+//  PointTracker.swift
+//  FramesPointTracker
 //
 //  Created by JSilver on 11/16/26.
 //
@@ -8,11 +8,11 @@
 import Foundation
 import Frames
 
-// The `vision` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
+// The `point` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
 // again, backwards over the frames the decoder reads by index. A track point sits near each end of the target's long
 // side, and the two points found on a frame give the target's move and scale there. The target is lost on the first
 // frame where either point's correlation with its feature falls below `lostCorrelation`, which ends that direction.
-package struct VisionTracker: Sendable {
+package struct PointTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
 
@@ -147,7 +147,7 @@ package struct VisionTracker: Sendable {
     }
 }
 
-extension VisionTracker: TrackerProvider {
+extension PointTracker: TrackerProvider {
     // MARK: - Lifecycle
     package func track(
         _ target: Rectangle,

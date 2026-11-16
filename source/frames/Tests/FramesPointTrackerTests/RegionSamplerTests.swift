@@ -1,12 +1,12 @@
 //
 //  RegionSamplerTests.swift
-//  FramesVisionTests
+//  FramesPointTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
 
 import Foundation
-@testable import FramesVision
+@testable import FramesPointTracker
 import Testing
 
 @Suite("RegionSampler Tests")
