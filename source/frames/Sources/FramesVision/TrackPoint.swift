@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 
 // A point of the target on its own frame and its feature, the region around it there. On another frame the point is
@@ -26,9 +25,9 @@ struct TrackPoint {
     init?(
         at point: CGPoint,
         size: CGSize,
-        in image: CGImage
+        in frame: GreyImage
     ) {
-        guard let feature = RegionSampler().sample(image, centre: point, size: size, scale: 1) else { return nil }
+        let feature = RegionSampler().sample(frame, centre: point, size: size, scale: 1)
         let values = feature.values.filter { !$0.isNaN }
         guard let first = values.first, values.contains(where: { $0 != first }) else { return nil }
 
@@ -37,10 +36,10 @@ struct TrackPoint {
     }
 
     // MARK: - Public
-    // The point on `image`, from the window around `expected` with the feature read at `scale` times its size on the
+    // The point on `frame`, from the window around `expected` with the feature read at `scale` times its size on the
     // target's frame.
     func find(
-        in image: CGImage,
+        in frame: GreyImage,
         near expected: CGPoint,
         scale: Double
     ) -> TrackPointMatch? {
@@ -48,12 +47,8 @@ struct TrackPoint {
             width: Double(feature.width) + 2 * Self.reach,
             height: Double(feature.height) + 2 * Self.reach
         )
-        guard
-            let window = sampler.sample(image, centre: expected, size: size, scale: scale),
-            let match = Self.matcher.match(feature, in: window)
-        else {
-            return nil
-        }
+        let window = sampler.sample(frame, centre: expected, size: size, scale: scale)
+        guard let match = Self.matcher.match(feature, in: window) else { return nil }
 
         return TrackPointMatch(
             point: CGPoint(x: expected.x + match.offset.x * scale, y: expected.y + match.offset.y * scale),

@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 import Frames
 
@@ -22,7 +21,6 @@ package struct VisionTracker: Sendable {
     private static let featureMargin = 0.6
 
     private let decoder: any MediaDecoder
-    private let converter = ImageConverter()
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
@@ -40,14 +38,14 @@ package struct VisionTracker: Sendable {
         from start: Int,
         over indices: [Int]
     ) throws -> [TrackedFrame] {
-        guard let points = trackPoints(of: target, on: try image(of: file, atFrame: start)) else { return [] }
+        guard let points = trackPoints(of: target, on: try frame(of: file, atFrame: start)) else { return [] }
         let span = distance(points[0].point, points[1].point)
 
         var last = TrackEstimate(points: points.map(\.point), scale: 1, correlation: 1)
         var beforeLast: TrackEstimate?
         var frames: [TrackedFrame] = []
         for index in indices {
-            let image = try image(of: file, atFrame: index)
+            let frame = try frame(of: file, atFrame: index)
             let moved = beforeLast.map { before in
                 zip(last.points, before.points).map { point, earlier in
                     CGPoint(x: 2 * point.x - earlier.x, y: 2 * point.y - earlier.y)
@@ -56,7 +54,7 @@ package struct VisionTracker: Sendable {
 
             var found: TrackEstimate?
             for guess in [moved, last.points].compactMap({ $0 }) {
-                guard let estimate = estimate(on: image, of: points, from: guess, scale: last.scale, span: span)
+                guard let estimate = estimate(on: frame, of: points, from: guess, scale: last.scale, span: span)
                 else {
                     continue
                 }
@@ -78,9 +76,9 @@ package struct VisionTracker: Sendable {
         return frames
     }
 
-    // The track points on `image` from `guess`, each pass reading the features at the scale the one before found.
+    // The track points on `frame` from `guess`, each pass reading the features at the scale the one before found.
     private func estimate(
-        on image: CGImage,
+        on frame: GreyImage,
         of points: [TrackPoint],
         from guess: [CGPoint],
         scale: Double,
@@ -91,7 +89,7 @@ package struct VisionTracker: Sendable {
         var matches: [TrackPointMatch] = []
         for _ in 0..<Self.passes {
             matches = zip(points, located).compactMap { point, expected in
-                point.find(in: image, near: expected, scale: scale)
+                point.find(in: frame, near: expected, scale: scale)
             }
             guard matches.count == points.count else { return nil }
 
@@ -107,7 +105,7 @@ package struct VisionTracker: Sendable {
     // long target and their distance measures its scale.
     private func trackPoints(
         of target: Rectangle,
-        on image: CGImage
+        on frame: GreyImage
     ) -> [TrackPoint]? {
         let isWide = target.width >= target.height
         let long = max(target.width, target.height)
@@ -122,7 +120,7 @@ package struct VisionTracker: Sendable {
         let ends = [-offset, offset].map { offset in
             isWide ? CGPoint(x: centre.x + offset, y: centre.y) : CGPoint(x: centre.x, y: centre.y + offset)
         }
-        let points = ends.compactMap { TrackPoint(at: $0, size: size, in: image) }
+        let points = ends.compactMap { TrackPoint(at: $0, size: size, in: frame) }
 
         return points.count == ends.count ? points : nil
     }
@@ -141,11 +139,11 @@ package struct VisionTracker: Sendable {
         CGPoint(x: (point.x + other.x) / 2, y: (point.y + other.y) / 2)
     }
 
-    private func image(
+    private func frame(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> CGImage {
-        try converter.image(of: try decoder.picture(of: file, atFrame: index), file: file.path, index: index)
+    ) throws -> GreyImage {
+        GreyImage(picture: try decoder.picture(of: file, atFrame: index))
     }
 }
 

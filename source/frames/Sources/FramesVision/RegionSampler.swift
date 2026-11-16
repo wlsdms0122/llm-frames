@@ -5,76 +5,66 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 
-// Reads a region of a picture into a grey image of a fixed size.
+// Reads a region of an image into a grey image of a fixed size, by bilinear interpolation.
 struct RegionSampler: Sendable {
     // MARK: - Property
-    private static let space = CGColorSpaceCreateDeviceGray()
-
     // MARK: - Initializer
     // MARK: - Public
-    // The region of `size` times `scale` media pixels centred on `centre`, drawn at `size`. Its pixels outside the
-    // picture are NaN.
+    // The region of `size` times `scale` pixels of `image` centred on `centre`, read at `size`. A pixel whose area
+    // does not lie wholly in the image is NaN. Where a pixel spans two or more of the image's, the region is read
+    // from the image halved, so that interpolation does not skip the pixels between.
     func sample(
-        _ image: CGImage,
+        _ image: GreyImage,
         centre: CGPoint,
         size: CGSize,
         scale: Double
-    ) -> GreyImage? {
+    ) -> GreyImage {
+        guard scale < 2 else {
+            let centre = CGPoint(x: centre.x / 2, y: centre.y / 2)
+            return sample(image.halved(), centre: centre, size: size, scale: scale / 2)
+        }
+
         let width = Int(size.width)
         let height = Int(size.height)
-        var pixels = [UInt8](repeating: 0, count: width * height)
         let left = centre.x - size.width * scale / 2
         let top = centre.y - size.height * scale / 2
-        let pictureHeight = Double(image.height)
-        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
-            guard
-                let context = CGContext(
-                    data: buffer.baseAddress,
-                    width: width,
-                    height: height,
-                    bitsPerComponent: 8,
-                    bytesPerRow: width,
-                    space: Self.space,
-                    bitmapInfo: CGImageAlphaInfo.none.rawValue
-                )
-            else {
-                return false
+        var values = [Float](repeating: .nan, count: width * height)
+        image.values.withUnsafeBufferPointer { source in
+            values.withUnsafeMutableBufferPointer { values in
+                for row in 0..<height {
+                    let rowTop = top + Double(row) * scale
+                    guard rowTop >= 0, rowTop + scale <= Double(image.height) else { continue }
+                    let (above, below, down) = neighbours(rowTop + scale / 2, count: image.height)
+                    for column in 0..<width {
+                        let columnLeft = left + Double(column) * scale
+                        guard columnLeft >= 0, columnLeft + scale <= Double(image.width) else { continue }
+                        let (before, after, across) = neighbours(columnLeft + scale / 2, count: image.width)
+                        let upper = source[above * image.width + before] * (1 - across)
+                            + source[above * image.width + after] * across
+                        let lower = source[below * image.width + before] * (1 - across)
+                            + source[below * image.width + after] * across
+                        values[row * width + column] = upper * (1 - down) + lower * down
+                    }
+                }
             }
-            context.interpolationQuality = .high
-            // The picture is drawn so that the region's top left, in media pixels from the picture's top left, lands
-            // on the context's top left, which CoreGraphics counts from the bottom.
-            context.draw(
-                image,
-                in: CGRect(
-                    x: -left / scale,
-                    y: size.height - (pictureHeight - top) / scale,
-                    width: Double(image.width) / scale,
-                    height: pictureHeight / scale
-                )
-            )
-
-            return true
-        }
-        guard drawn else { return nil }
-
-        // The region's whole pixels whose area lies in the picture.
-        let minX = max(0, Int((-left / scale).rounded(.up)))
-        let minY = max(0, Int((-top / scale).rounded(.up)))
-        let maxX = min(width, Int(((Double(image.width) - left) / scale).rounded(.down)))
-        let maxY = min(height, Int(((pictureHeight - top) / scale).rounded(.down)))
-        let values = pixels.indices.map { index -> Float in
-            let x = index % width
-            let y = index / width
-            guard (minX..<max(minX, maxX)).contains(x), (minY..<max(minY, maxY)).contains(y) else { return .nan }
-
-            return Float(pixels[index]) / 255
         }
 
         return GreyImage(width: width, height: height, values: values)
     }
 
     // MARK: - Private
+    // The two pixels along one axis whose centres lie either side of `position`, and how far it lies from the first
+    // towards the second. Past the outer pixels' centres both are the outer pixel.
+    private func neighbours(
+        _ position: Double,
+        count: Int
+    ) -> (Int, Int, Float) {
+        let offset = position - 0.5
+        let first = offset.rounded(.down)
+        let index = Int(first)
+
+        return (min(max(index, 0), count - 1), min(max(index + 1, 0), count - 1), Float(offset - first))
+    }
 }

@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
 import Foundation
 import Frames
 import FramesAVFoundation
@@ -19,7 +18,6 @@ import Testing
 struct TrackPointTests {
     // MARK: - Property
     private let decoder = AVFoundationDecoder()
-    private let converter = ImageConverter()
 
     // MARK: - Initializer
     // MARK: - Test
@@ -35,15 +33,13 @@ struct TrackPointTests {
             }
         let probed = try #require(try decoder.probedMedia(of: file))
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let images = try (0..<2).map { index in
-            try converter.image(of: try decoder.picture(of: media, atFrame: index), file: file, index: index)
-        }
+        let frames = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index)) }
         let ends = [CGPoint(x: 180, y: 850), CGPoint(x: 500, y: 850)]
         let points = try ends.map { end in
             try #require(TrackPoint(
                 at: end,
                 size: CGSize(width: 168, height: 88),
-                in: images[0]
+                in: frames[0]
             ))
         }
         let offsets = [-40.0, -30, -20, -15, -10, -7, -5, -3, 0, 3, 5, 7, 10, 15, 20, 30, 40]
@@ -53,7 +49,7 @@ struct TrackPointTests {
         let found = points.map { point in
             guesses.map { guess in
                 point.find(
-                    in: images[1],
+                    in: frames[1],
                     near: CGPoint(x: point.point.x + guess.x, y: point.point.y + 70 + guess.y),
                     scale: 1
                 )

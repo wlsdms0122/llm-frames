@@ -5,6 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import Frames
+
 // Grey values from 0 to 1, row by row from the top left. A pixel outside the picture it was read from is NaN and
 // takes no part in a comparison.
 struct GreyImage: Sendable {
@@ -22,6 +24,29 @@ struct GreyImage: Sendable {
         self.width = width
         self.height = height
         self.values = values
+    }
+
+    // The luma of `picture`, its sRGB encoded components weighted as Rec. 709 weights them. Its colour is taken
+    // premultiplied, as over black.
+    init(picture: DecodedPicture) {
+        let componentBytes = picture.depth.bitsPerComponent / 8
+        let maximum = Float((1 << picture.depth.bitsPerComponent) - 1)
+        var values = [Float](repeating: 0, count: picture.width * picture.height)
+        picture.pixels.withUnsafeBytes { pixels in
+            values.withUnsafeMutableBufferPointer { values in
+                for y in 0..<picture.height {
+                    for x in 0..<picture.width {
+                        let offset = y * picture.bytesPerRow + x * 4 * componentBytes
+                        let red = Self.component(of: pixels, at: offset, depth: picture.depth)
+                        let green = Self.component(of: pixels, at: offset + componentBytes, depth: picture.depth)
+                        let blue = Self.component(of: pixels, at: offset + 2 * componentBytes, depth: picture.depth)
+                        values[y * picture.width + x] = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / maximum
+                    }
+                }
+            }
+        }
+
+        self.init(width: picture.width, height: picture.height, values: values)
     }
 
     // MARK: - Public
@@ -59,4 +84,17 @@ struct GreyImage: Sendable {
     }
 
     // MARK: - Private
+    private static func component(
+        of pixels: UnsafeRawBufferPointer,
+        at offset: Int,
+        depth: BitDepth
+    ) -> Float {
+        switch depth {
+        case .eight:
+            Float(pixels[offset])
+
+        case .sixteen:
+            Float(pixels.loadUnaligned(fromByteOffset: offset, as: UInt16.self))
+        }
+    }
 }

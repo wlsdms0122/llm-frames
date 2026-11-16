@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import CoreGraphics
+import Foundation
 
 // Where the track points lie on a frame, the target's scale there against its own frame, and the lower of the points'
 // correlations.
