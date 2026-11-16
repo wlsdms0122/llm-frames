@@ -65,6 +65,18 @@ let package = Package(
         .testTarget(
             name: "FramesQuartzTests",
             dependencies: ["FramesQuartz", "FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesRenderTests",
+            dependencies: [
+                "Frames",
+                "FramesAVFoundation",
+                "FramesQuartz",
+                "FramesVision",
+                "FramesCoreText",
+                "FramesPointTracker",
+                "FramesTestMedia"
+            ]
         )
     ]
 )
