@@ -506,6 +506,30 @@ struct AVFoundationDecoderTests {
         #expect(error?.description == "media \(file) has no sound track")
     }
 
+    @Test("frames read in order, again, and after jumps back and far ahead are the pixels of fresh reads")
+    func readsForward() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("long.mp4")
+        let times = (0..<90).map { Double($0) / 30 }
+        let writer = VideoWriter(size: size, frameTimes: times, end: 3, keyFrameInterval: 10)
+        try await writer.write(to: file) { canvas, index in
+            canvas.fill(red: Double(40 + index), green: 128, blue: Double(200 - index))
+            canvas.drawCode(index % 64)
+        }
+        let media = MediaFile(path: file, frameTimes: times)
+        let order = Array(0..<45) + [44, 44, 12, 13, 14, 80, 81, 3]
+        let sut = AVFoundationDecoder()
+
+        // When
+        let pictures = try order.map { try sut.picture(of: media, atFrame: $0) }
+
+        // Then
+        let fresh = try order.map { try AVFoundationDecoder().picture(of: media, atFrame: $0) }
+        #expect(pictures == fresh)
+        #expect(pictures.map(code) == order.map { $0 % 64 })
+    }
+
     // MARK: - Private
     private static func thirtieths(_ count: Int) -> [Double] {
         (0..<count).map { Double($0) / 30 }
