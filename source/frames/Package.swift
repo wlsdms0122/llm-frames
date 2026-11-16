@@ -15,6 +15,10 @@ let package = Package(
             dependencies: ["Frames"]
         ),
         .target(
+            name: "FramesVision",
+            dependencies: ["Frames"]
+        ),
+        .target(
             name: "FramesTestMedia",
             dependencies: ["Frames"],
             path: "Tests/FramesTestMedia"
@@ -26,6 +30,10 @@ let package = Package(
         .testTarget(
             name: "FramesAVFoundationTests",
             dependencies: ["FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesVisionTests",
+            dependencies: ["FramesVision", "FramesAVFoundation", "FramesTestMedia"]
         )
     ]
 )
