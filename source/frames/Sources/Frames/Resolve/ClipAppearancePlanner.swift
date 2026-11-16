@@ -59,8 +59,14 @@ struct ClipAppearancePlanner: Sendable {
             throw ResolveError.parentWithoutPosition(place: written.place, kind: .clip(plan.kind))
         }
 
+        // A title takes its style's placement by default, so a style that gives none leaves it no place.
+        let named = written.placement ?? style.flatMap(theme.placement(ofStyle:))
+        guard style == nil || named != nil || position != nil else {
+            throw ResolveError.titleWithoutPlacement(place: written.place, kind: .clip(plan.kind), style: style ?? "")
+        }
+
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
-        let placement = written.placement ?? style.flatMap(theme.placement(ofStyle:)) ?? "center"
+        let placement = named ?? "center"
         let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
         let topLeft = { (point: Point) in Point(x: point.x - anchor.x, y: point.y - anchor.y) }
         let placed: PropertyValue<Point> = switch position {

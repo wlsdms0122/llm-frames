@@ -116,7 +116,7 @@ struct SequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "Hi", "style": "label", "at": [0, 1] } ] }
+              "clips": [ { "title": "Hi", "style": "label", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When

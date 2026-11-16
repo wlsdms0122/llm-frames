@@ -28,6 +28,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case parentWithPlacement(place: Place, kind: PlaceKind)
     case placementWithPosition(place: Place, kind: PlaceKind)
     case parentWithoutPosition(place: Place, kind: PlaceKind)
+    case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
     case parentOnSequenceClip(place: Place, kind: PlaceKind)
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
@@ -122,6 +123,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .parentWithoutPosition(place, kind):
             "\(place) (\(kind.label)): \"parent\": true needs \"position\", since a parented clip has no default place"
+
+        case let .titleWithoutPlacement(place, kind, style):
+            "\(place) (\(kind.label)): style \(quoted(style)) gives no placement, so the title needs \"placement\" or "
+                + "\"position\""
 
         case let .parentOnSequenceClip(place, kind):
             "\(place) (\(kind.label)): a sequence clip has no parent, so it cannot take \"parent\": true"

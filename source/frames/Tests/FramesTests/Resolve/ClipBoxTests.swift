@@ -233,6 +233,31 @@ struct ClipBoxTests {
         ))
     }
 
+    @Test("a title whose style gives no placement stops without a placement or a position, since it has no default place")
+    func refusesTitleWithoutPlacement() throws {
+        // When, Then
+        let error = #expect(throws: ResolveError.self) {
+            try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3] }"#)
+        }
+        #expect(error == .titleWithoutPlacement(
+            place: Place.root.appending(key: "clips").appending(index: 0),
+            kind: .clip(.title),
+            style: "label"
+        ))
+        #expect(error?.description == #"clips[0] (title): style "label" gives no placement, so the title needs "placement" or "position""#)
+    }
+
+    @Test("a title in a style without a placement is placed by its own placement or position")
+    func placesUnstyledTitle() throws {
+        // When
+        let placed = try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "placement": "top-left" }"#)
+        let positioned = try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
+
+        // Then
+        #expect(placed?.position == .value(Point(x: 40, y: 40)))
+        #expect(positioned != nil)
+    }
+
     // MARK: - Private
     private func box(of clip: String) throws -> ClipBox? {
         try geometry(of: clip).box

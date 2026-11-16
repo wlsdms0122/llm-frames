@@ -276,7 +276,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "\#(word) \#(word)", "style": "banner", "at": [0, 1]\#(width) } ] }
+              "clips": [ { "title": "\#(word) \#(word)", "style": "banner", "placement": "top", "at": [0, 1]\#(width) } ] }
             """#)
 
         // Then
@@ -288,7 +288,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [2412, 5244] }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "a", "style": "banner", "at": [0, 1] } ] }
+              "clips": [ { "title": "a", "style": "banner", "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -352,7 +352,7 @@ struct SequencePlannerTests {
         let document = #"""
             { "kind": "sequence", "format": { "size": [2160, 3840] },
               "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "grade", "connected": [
-                { "title": "a", "style": "label", "at": [3, 5], "blend": "screen", "scale": 2,
+                { "title": "a", "style": "label", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1] },
