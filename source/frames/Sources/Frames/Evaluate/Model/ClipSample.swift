@@ -23,8 +23,7 @@ struct ClipSample: Equatable, Sendable {
 
         self.window = window
         self.animation = AnimationSampler().sample(of: clip.animation, in: window, at: time)
-        // A clip holds at least one opacity keyframe, so the keyframes always give one.
-        self.opacity = KeyframeTrack(keyframes: clip.opacity).value(at: time) ?? clip.opacity[0].value
+        self.opacity = clip.opacity.value(at: time)
         self.blend = clip.blend ?? "normal"
     }
 

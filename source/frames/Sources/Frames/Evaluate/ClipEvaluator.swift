@@ -41,9 +41,7 @@ struct ClipEvaluator: Sendable {
 
             let item = PictureItem(
                 source: picture,
-                rectangle: clip.crop.map { crop in
-                    (KeyframeTrack(keyframes: crop).value(at: time) ?? crop[0].value).rectangle
-                },
+                rectangle: clip.crop.map { $0.value(at: time).rectangle },
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: media.filter,
                 radius: media.appearance.radius,
@@ -72,8 +70,8 @@ struct ClipEvaluator: Sendable {
     ) -> DisplayItem {
         let values = KeyframedValues(
             position: space.position(of: box, track: clip.track, at: time),
-            scale: clip.scale.map { value(of: $0, at: time) } ?? 1,
-            rotation: clip.rotation.map { value(of: $0, at: time) } ?? 0,
+            scale: clip.scale.map { $0.value(at: time) } ?? 1,
+            rotation: clip.rotation.map { $0.value(at: time) } ?? 0,
             opacity: sample.opacity
         )
         let presentation = ItemPresentation(
@@ -112,13 +110,5 @@ struct ClipEvaluator: Sendable {
             reveal: sample.animation.reveal.rectangle(wiping: covered, from: sample.animation.revealFrom),
             content: .adjust(AdjustItem(rectangle: area, filter: filter))
         )
-    }
-
-    private func value(
-        of keyframes: [Keyframe<Double>],
-        at time: Double
-    ) -> Double {
-        // A property holds at least one keyframe, so the keyframes always give one.
-        KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
     }
 }

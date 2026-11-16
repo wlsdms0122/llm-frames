@@ -14,7 +14,7 @@ extension ResolvedStorylineClip {
     // MARK: - Initializer
     // MARK: - Public
     func crop(at time: Double) -> Rectangle {
-        guard let track else { return value(of: crop, at: time) }
+        guard let track else { return crop.value(at: time).rectangle }
 
         let keyframes = crop.map { keyframe in
             Keyframe(
@@ -24,15 +24,8 @@ extension ResolvedStorylineClip {
             )
         }
 
-        return track.carry(crop: value(of: keyframes, at: time), toMediaTime: mediaTime(at: time))
+        return track.carry(crop: keyframes.value(at: time).rectangle, toMediaTime: mediaTime(at: time))
     }
 
     // MARK: - Private
-    private func value(
-        of keyframes: [Keyframe<Crop>],
-        at time: Double
-    ) -> Rectangle {
-        // An entry has at least one crop, the whole picture when none was written, so the keyframes always give one.
-        (KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value).rectangle
-    }
 }

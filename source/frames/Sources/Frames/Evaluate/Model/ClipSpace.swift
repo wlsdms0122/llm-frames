@@ -57,10 +57,10 @@ enum ClipSpace: Sendable {
     ) -> Rectangle {
         switch self {
         case .output:
-            return value(of: keyframes, at: time)
+            return keyframes.value(at: time)
 
         case let .parented(entry, crop, unit):
-            let area = track?.area(of: keyframes, on: entry, at: time) ?? value(of: keyframes, at: time)
+            let area = track?.area(of: keyframes, on: entry, at: time) ?? keyframes.value(at: time)
             return CropConformer().output(of: area, crop: crop, content: unit)
         }
     }
@@ -75,7 +75,7 @@ enum ClipSpace: Sendable {
     ) -> Point {
         switch self {
         case .output:
-            return value(of: box.position, at: time)
+            return box.position.value(at: time)
 
         case let .parented(entry, crop, unit):
             let anchors = box.position.map { keyframe in
@@ -85,7 +85,7 @@ enum ClipSpace: Sendable {
                     ease: keyframe.ease
                 )
             }
-            let anchor = track?.point(of: anchors, on: entry, at: time) ?? value(of: anchors, at: time)
+            let anchor = track?.point(of: anchors, on: entry, at: time) ?? anchors.value(at: time)
             let scale = unit.width / crop.width
 
             return Point(
@@ -96,11 +96,4 @@ enum ClipSpace: Sendable {
     }
 
     // MARK: - Private
-    private func value<Value: Interpolable>(
-        of keyframes: [Keyframe<Value>],
-        at time: Double
-    ) -> Value {
-        // A property holds at least one keyframe, so the keyframes always give one.
-        KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
-    }
 }
