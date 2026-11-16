@@ -13,5 +13,5 @@ package protocol MediaDecoder: Sendable {
     func picture(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> DecodedPicture
+    ) throws -> Bitmap
 }

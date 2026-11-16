@@ -6,14 +6,14 @@
 //
 
 // A glyph placed in its text's box: its id and the origin of its baseline.
-struct PositionedGlyph: Equatable, Sendable {
+package struct PositionedGlyph: Equatable, Sendable {
     // MARK: - Property
-    let id: Int
-    let x: Double
-    let y: Double
+    package let id: Int
+    package let x: Double
+    package let y: Double
 
     // MARK: - Initializer
-    init(
+    package init(
         id: Int,
         x: Double,
         y: Double

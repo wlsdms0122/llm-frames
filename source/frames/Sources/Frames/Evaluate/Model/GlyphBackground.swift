@@ -6,14 +6,14 @@
 //
 
 // The box drawn behind a glyphs item, in the text's own box, with corners of `radius`.
-struct GlyphBackground: Equatable, Sendable {
+package struct GlyphBackground: Equatable, Sendable {
     // MARK: - Property
-    let rectangle: Rectangle
-    let radius: Double
-    let color: Color
+    package let rectangle: Rectangle
+    package let radius: Double
+    package let color: Color
 
     // MARK: - Initializer
-    init(
+    package init(
         rectangle: Rectangle,
         radius: Double,
         color: Color

@@ -7,13 +7,13 @@
 
 // Media as the resolved document pins it: its files, and the media time of each frame of a video or image sequence in
 // frame order, empty for a still and for sound.
-struct PinnedMedia: Equatable, Sendable {
+package struct PinnedMedia: Equatable, Sendable {
     // MARK: - Property
-    let source: PinnedSource
-    let frameTimes: [Double]
+    package let source: PinnedSource
+    package let frameTimes: [Double]
 
     // MARK: - Initializer
-    init(
+    package init(
         source: PinnedSource,
         frameTimes: [Double] = []
     ) {

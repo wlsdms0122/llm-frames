@@ -7,13 +7,13 @@
 
 // A colour as a value, `#RRGGBBAA` in upper case, so a colour written `#rrggbb` and one written with full alpha are
 // the same value.
-struct Color: Equatable, Sendable {
+package struct Color: Equatable, Sendable {
     // MARK: - Property
-    let hex: String
+    package let hex: String
 
     // MARK: - Initializer
     // `written` is `#RRGGBB` or `#RRGGBBAA`, as the key tables let it through.
-    init(written: String) {
+    package init(written: String) {
         let digits = written.dropFirst().uppercased()
         self.hex = "#" + (digits.count == 6 ? digits + "FF" : digits)
     }

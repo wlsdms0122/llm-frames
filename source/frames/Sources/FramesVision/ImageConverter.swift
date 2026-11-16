@@ -17,7 +17,7 @@ struct ImageConverter: Sendable {
     // MARK: - Initializer
     // MARK: - Public
     func image(
-        of picture: DecodedPicture,
+        of picture: Bitmap,
         file: String,
         index: Int
     ) throws -> CGImage {

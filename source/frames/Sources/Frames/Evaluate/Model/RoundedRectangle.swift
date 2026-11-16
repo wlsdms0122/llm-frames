@@ -6,13 +6,13 @@
 //
 
 // A rectangle whose corners are circular arcs of `radius`.
-struct RoundedRectangle: Equatable, Sendable {
+package struct RoundedRectangle: Equatable, Sendable {
     // MARK: - Property
-    let rectangle: Rectangle
-    let radius: Double
+    package let rectangle: Rectangle
+    package let radius: Double
 
     // MARK: - Initializer
-    init(
+    package init(
         rectangle: Rectangle,
         radius: Double
     ) {

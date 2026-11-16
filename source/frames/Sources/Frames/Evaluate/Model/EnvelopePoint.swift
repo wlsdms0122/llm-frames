@@ -6,13 +6,13 @@
 //
 
 // A point of a gain envelope: the gain at a sequence time.
-struct EnvelopePoint: Equatable, Sendable {
+package struct EnvelopePoint: Equatable, Sendable {
     // MARK: - Property
-    let time: Double
-    let gain: Double
+    package let time: Double
+    package let gain: Double
 
     // MARK: - Initializer
-    init(
+    package init(
         time: Double,
         gain: Double
     ) {

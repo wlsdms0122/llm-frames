@@ -7,15 +7,15 @@
 
 // A luma matte stretched over a picture's destination: the picture shows where the luminance of `frame` is below
 // `progress`, with an edge `softness` wide (0 to 1 of the luminance range), dark and light swapped when `isInverted`.
-struct PictureMatte: Equatable, Sendable {
+package struct PictureMatte: Equatable, Sendable {
     // MARK: - Property
-    let frame: MediaFrame
-    let progress: Double
-    let softness: Double
-    let isInverted: Bool
+    package let frame: MediaFrame
+    package let progress: Double
+    package let softness: Double
+    package let isInverted: Bool
 
     // MARK: - Initializer
-    init(
+    package init(
         frame: MediaFrame,
         progress: Double,
         softness: Double,

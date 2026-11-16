@@ -7,7 +7,7 @@
 
 // A filter operation as resolved: its lengths scaled into the pixels it is drawn in, a LUT's file pinned, and a
 // bloom's colour as a value.
-enum ResolvedFilterOperation: Equatable, Sendable {
+package enum ResolvedFilterOperation: Equatable, Sendable {
     case exposure(ev: Double)
     case contrast(amount: Double)
     case saturation(amount: Double)
