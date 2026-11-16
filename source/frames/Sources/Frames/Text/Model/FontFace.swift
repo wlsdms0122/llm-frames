@@ -1,0 +1,32 @@
+//
+//  FontFace.swift
+//  Frames
+//
+//  Created by JSilver on 11/16/26.
+//
+
+// A face in a font file, as the shaping provider found it. `name` is the face within the file, and `ascent` and
+// `descent` are its extent above and below the baseline at a size of 1.
+struct FontFace: Equatable, Sendable {
+    // MARK: - Property
+    let file: String
+    let name: String
+    let ascent: Double
+    let descent: Double
+
+    // MARK: - Initializer
+    init(
+        file: String,
+        name: String,
+        ascent: Double,
+        descent: Double
+    ) {
+        self.file = file
+        self.name = name
+        self.ascent = ascent
+        self.descent = descent
+    }
+
+    // MARK: - Public
+    // MARK: - Private
+}

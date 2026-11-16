@@ -20,12 +20,20 @@ What resolve has already done:
 - **No text areas.** Every area is `[x, y, w, h]`. A storyline crop and a parented area or position stay in the media pixels of their picture. Every other area on a sequence is in output pixels.
 - **Files are pinned.** Every file a role opens (media, mattes, LUTs, fonts) is written as its absolute path and its SHA-256. An image sequence is pinned as its ordered list of files, each with its SHA-256, so a frame added, removed or changed is refused. `render` checks every hash before any role starts and refuses a file whose hash differs.
 - **Decisions are written down.** Label sides, conformed crops and tracks (the target's rectangle on each frame followed) are values, not rules to apply again.
-- **Anchor points are applied.** A `position` is written as the top left of the clip's box, and the anchor point that scale and rotation act around as `anchor`, a point in the box's own pixels.
+- **Anchor points are applied.** A `position` is written as the top left of the clip's box, and the anchor point that scale and rotation act around as `anchor`, a point in the box's own pixels. A title or media clip carries its box's `size` in output pixels, and a clip placed by `placement` is written with the `position` its placement gives. A parented clip's `position` stays in the media pixels of its picture as its anchor point less `anchor`, so its anchor point there is `position + anchor`, and its box keeps its size in output pixels around that point. A shape or adjustment is placed by its area and has no box of its own, so its `size`, `position` and `anchor` are `null`.
 - **Clips are named.** Every clip keeps its place in the document and its `id`, so `evaluate` and `locate` can name what made each thing drawn.
-- **No names.** Theme colours, styles, presets and template arguments are written out as values. Theme lengths are already multiplied by their length scale. Colours are `#RRGGBBAA`.
+- **No names.** Theme colours, styles, presets and template arguments are written out as values, and so are the theme colours a preset names (a cover or a bloom `color`) in the theme where the preset is chosen. Theme lengths are already multiplied by their length scale. Colours are `#RRGGBBAA`.
 - **Text is shaped.** Every title and label carries its glyph runs (font file, face, hash, size, colour, glyph ids and positions in its own box), its box size, stroke and background.
 - **One clock.** Every instant on a sequence is sequence time, and keyframes keep their eases. Media keeps `in`, `out` and `speed` in media time.
 - **Lanes kept.** Clips keep document order and carry their signed `lane`, so evaluation stacks them by [FRAMES-9](../FRAMES-9/SPEC.md). The order of units during a transition (`over`) is applied at each time.
+
+How it is written, so the same plan gives the same bytes:
+
+- **One layout.** It is UTF-8 JSON indented by two spaces, one member or element to a line, except that a list of numbers, strings, booleans or `null` stays on one line, and it ends with a line break. Keys come in one fixed order for each kind of object, `kind` and `"resolved"` first, never sorted.
+- **One number form.** A number is the shortest decimal that reads back to the same 64-bit floating point value, with no exponent, no fraction when it is whole (`1080`, not `1080.0`), and `0` for negative zero. A string escapes `"`, `\` and control characters only, and writes every other character as itself.
+- **Hashes.** A SHA-256 is 64 lower case hexadecimal digits under `sha256`, next to the absolute `file` it pins. An image sequence is `imageSequence`, its frame files in order, each `{file, sha256}`.
+- **Keyframe lists.** A keyframable property is a list of `{at, value, ease}` in time order, where `ease` shapes the span that starts at its keyframe. A property written without keyframes is one keyframe at the instant its areas take effect, and one not written is its plain value there.
+- **Every key written.** An entry carries every key of its kind, `null` where it has none. Only the outermost document carries `"resolved"`, and a nested one is the same shape without it. Track frames are frames of media, so they keep media time, as `frames` does. An audio clip is drawn by nothing, so it is an audio entry only.
 
 ### Resolved sequence
 
@@ -36,7 +44,7 @@ What resolve has already done:
               "content": [40, 420, 1000, 1380], "conform": "fit" },
   "storyline": [
     { "media": { "file": "/abs/run.mp4", "sha256": "9f2c41d07b3e", "frames": [0, 0.0333, 0.0667] }, "in": 2, "out": 8, "speed": 2, "start": 0, "end": 3,
-      "crop": [ { "at": 0, "value": [0, 0, 1206, 2622] }, { "at": 3, "value": [45, 97, 1116, 2428], "ease": "linear" } ],
+      "crop": [ { "at": 0, "value": [0, 0, 1206, 2622], "ease": "linear" }, { "at": 3, "value": [45, 97, 1116, 2428], "ease": "linear" } ],
       "filter": [ { "op": "saturation", "amount": 1.25 } ],
       "transition": null }
   ],
@@ -60,9 +68,11 @@ What resolve has already done:
 
 - `format.content` is the content rect. `format.duration` is the sequence end.
 - A storyline entry has `start`, `end`, its keyframable properties as sequence-time keyframe lists, its filter as an op list, and `transition` as `null` or `{start, end, over, incoming, outgoing, cover, matte}` with spans and files inline.
-- Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
+- The example is laid out to be read and keeps only the keys it explains. Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
 - A video or image sequence keeps its frame timestamps in `frames` (cut short in the example).
-- A clips entry is a title, a shape, an adjustment or a media clip with its visible window `start` and `end` already narrowed by [FRAMES-8](../FRAMES-8/SPEC.md), its properties as keyframe lists in sequence time, its animation spans inline, its `blend`, its `lane`, and `parent` (the index of the storyline entry it is composited with, or `null`).
+- A clips entry is a title, a shape, an adjustment or a media clip with its visible window `start` and `end` already narrowed by [FRAMES-8](../FRAMES-8/SPEC.md), its properties as keyframe lists in sequence time, its animation spans inline, its `blend`, its `lane`, and `parent` (the index of the storyline entry it is composited with, or `null`). A media clip also carries `conform`, `radius`, `border` (`{width, color}` or `null`) and `shadow` (`{radius, offset, color}` or `null`), and its `crop` as every crop conformed to its box by `conform`, the whole picture when none is written.
+- A shape entry carries `shape` and how it is drawn on its `area`, its theme lengths scaled into output pixels, which stay so under a zoom: a box its stroke `width`, corner `radius` and `color`, a fill or a dim its `color`, and an arrow its `side`, `length`, line `width`, `head` and `color`. An arrow's tip is the middle of that side of its area at each time, and its tail lies `length` beyond it, so the arrow follows the area's keyframes and track as the area does.
+- A solid storyline entry carries its colour as `solid`, and `media` is `null`.
 - An audio entry is a source of sound, storyline clips included, with its volume keyframes in sequence time, its fades and its transitions. Evaluation multiplies them into the mix plan.
 - A compound clip or a sequence template instance carries its nested resolved sequence in place of a media file.
 

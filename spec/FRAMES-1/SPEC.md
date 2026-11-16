@@ -19,7 +19,7 @@ A value means one thing only when its unit and origin are fixed. An agent writes
 | Time | seconds, as a number. Which clock a time is on is [FRAMES-8](../FRAMES-8/SPEC.md) |
 | Area in media | media pixels: pixels of the media picture as it is displayed, origin at the top left, rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
-| Theme lengths (text size, stroke, the theme's paddings, line width, filter radius) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture ([FRAMES-2](../FRAMES-2/SPEC.md)) |
+| Theme lengths (text size, stroke, the theme's paddings, line width, and a filter's `blur`, `sharpen` and `bloom` `radius` and `pixelate` and `grain` `size`, but not a `vignette` radius, which is a fraction) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture ([FRAMES-2](../FRAMES-2/SPEC.md)) |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size, its box before any scale (a label's own box for a label animation). In a transition, multiples of the content rect |
 
 | Angles | degrees, clockwise positive |
@@ -39,7 +39,7 @@ A clip on a sequence that is not placed by an area is placed by `placement` or b
 - `position` is `[x, y]`, where the clip's anchor point goes, in output pixels, or in the media pixels of its picture for a parented clip ([FRAMES-10](../FRAMES-10/SPEC.md)). On a parented clip it may also be `{area, point}`: the point (a placement name) of an area found as [FRAMES-2](../FRAMES-2/SPEC.md) says, padding included, so a title sits beside a button by its text: `{"area": "Send", "point": "left"}` with `anchor: "right"`. It is keyframable.
 - `anchor` names the clip's anchor point, as in an NLE: one of the placement names, a point of the clip's box (`top-left` is its top left corner). The default is `center`, or the point the placement names for a clip placed by `placement` (a `bottom` subtitle grows from its bottom edge). Keyframed and animated scale and rotation both act around it, as in an NLE. Under a parent's zoom or a track's scale the anchor point stays on its place in the picture and the clip keeps its size, so a clip next to something stays on it when it is anchored on the side that faces it: a title left of a button is anchored `right`.
 
-Placement is measured on the output frame, not the content rect, so a title can sit in the band an inset leaves. The default is the text style's placement for titles and `center` for media. A parented title or media clip has no default and needs `position`.
+Placement is measured on the output frame, not the content rect, so a title can sit in the band an inset leaves. The default is the text style's placement for titles and `center` for media. A parented title or media clip has no default and needs `position`. A title whose style gives no placement has no default either, so without `placement` or `position` it stops.
 
 ## Interactions
 

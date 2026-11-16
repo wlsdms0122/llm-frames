@@ -1,0 +1,96 @@
+//
+//  TimelineReporter.swift
+//  Frames
+//
+//  Created by JSilver on 11/15/26.
+//
+
+// Plans a sequence without rendering and reports its time as `timeline` prints it, with every window as tracking
+// leaves it. It stops wherever the plan does.
+struct TimelineReporter: Sendable {
+    // MARK: - Property
+    private let planner: DocumentPlanner
+
+    // MARK: - Initializer
+    init(planner: DocumentPlanner) {
+        self.planner = planner
+    }
+
+    // MARK: - Public
+    func report(
+        of document: JSONValue,
+        theme: String? = nil,
+        arguments: ArgumentFile? = nil
+    ) throws -> TimelineReport {
+        switch try planner.plan(document, theme: theme, arguments: arguments) {
+        case let .sequence(plan):
+            return report(of: plan)
+
+        // An image or layout document has no time, so its report holds nothing once it resolves.
+        case .picture:
+            return TimelineReport(duration: 0, storyline: [], clips: [])
+        }
+    }
+
+    func report(of plan: SequencePlan) -> TimelineReport {
+        let time = plan.time
+
+        return TimelineReport(
+            duration: time.duration,
+            storyline: time.storyline.indices.map { index in
+                entry(of: time.storyline[index], geometry: plan.storyline[index])
+            },
+            clips: time.clips.indices.map { index in
+                entry(of: time.clips[index], geometry: plan.clips[index], storyline: time.storyline)
+            }
+        )
+    }
+
+    // MARK: - Private
+    private func entry(
+        of clip: StorylinePlan,
+        geometry: StorylineGeometry
+    ) -> TimelineStorylineEntry {
+        TimelineStorylineEntry(
+            place: clip.place,
+            id: clip.id,
+            media: clip.source.media?.reference,
+            edit: clip.edit,
+            drawn: clip.drawn,
+            clip: clip.source.clipRange,
+            speed: clip.source.speed,
+            transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
+            nested: geometry.nested?.sequence.map { report(of: $0) }
+        )
+    }
+
+    private func entry(
+        of clip: ClipPlan,
+        geometry: ClipGeometry,
+        storyline: [StorylinePlan]
+    ) -> TimelineClipEntry {
+        let animation = clip.animation
+        let parent = clip.isParented ? clip.storyline.map { storyline[$0].place } : nil
+
+        return TimelineClipEntry(
+            place: clip.place,
+            id: clip.id,
+            kind: clip.kind.label,
+            visible: clip.visible,
+            lane: clip.lane,
+            parent: parent,
+            animation: animation.isEmpty
+                ? nil
+                : TimelineAnimation(
+                    entrance: animation.entrance.map(span),
+                    loop: animation.loop.map(span),
+                    exit: animation.exit.map(span)
+                ),
+            nested: geometry.nested?.sequence.map { report(of: $0) }
+        )
+    }
+
+    private func span(_ span: PresetSpan) -> TimelineSpan {
+        TimelineSpan(preset: span.preset, length: span.span.length)
+    }
+}

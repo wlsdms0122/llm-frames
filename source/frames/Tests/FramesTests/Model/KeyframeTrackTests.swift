@@ -1,0 +1,115 @@
+//
+//  KeyframeTrackTests.swift
+//  FramesTests
+//
+//  Created by JSilver on 11/15/26.
+//
+
+import Testing
+
+@testable import Frames
+
+@Suite("KeyframeTrack Tests")
+struct KeyframeTrackTests {
+    // MARK: - Property
+    // MARK: - Initializer
+    // MARK: - Test
+    @Test("before its first keyframe a property holds the first value, and after its last the last")
+    func holdsEnds() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [Keyframe(at: 2, value: 10.0), Keyframe(at: 4, value: 20.0)])
+
+        // When
+        let before = sut.value(at: 0)
+        let after = sut.value(at: 9)
+
+        // Then
+        #expect(before == 10)
+        #expect(after == 20)
+    }
+
+    @Test("a keyframe's ease shapes the span leaving it")
+    func easesLeavingSpan() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: 0.0, ease: .easeIn),
+            Keyframe(at: 1, value: 8.0),
+            Keyframe(at: 2, value: 16.0)
+        ])
+
+        // When
+        let eased = sut.value(at: 0.5)
+        let linear = sut.value(at: 1.5)
+
+        // Then
+        #expect(eased == 1)
+        #expect(linear == 12)
+    }
+
+    @Test("keyframes are taken in time order whatever order they are written in")
+    func sortsByTime() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [Keyframe(at: 4, value: 20.0), Keyframe(at: 2, value: 10.0)])
+
+        // When
+        let value = sut.value(at: 3)
+
+        // Then
+        #expect(value == 15)
+    }
+
+    @Test("points and areas interpolate per component")
+    func interpolatesPerComponent() {
+        // Given
+        let points = KeyframeTrack(keyframes: [Keyframe(at: 3, value: Point(x: 600, y: 500)), Keyframe(at: 4, value: Point(x: 330, y: 900))])
+        let areas = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 100, height: 40)),
+            Keyframe(at: 1, value: Rectangle(x: 100, y: 200, width: 300, height: 20))
+        ])
+
+        // When
+        let point = points.value(at: 3.5)
+        let area = areas.value(at: 0.5)
+
+        // Then
+        #expect(point == Point(x: 465, y: 700))
+        #expect(area == Rectangle(x: 50, y: 100, width: 200, height: 30))
+    }
+
+    @Test("a crop moves its centre in a straight line and changes its size geometrically")
+    func interpolatesCropGeometrically() throws {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 400, height: 200))),
+            Keyframe(at: 1, value: Crop(Rectangle(x: 300, y: 150, width: 100, height: 50)))
+        ])
+
+        // When
+        let crop = try #require(sut.value(at: 0.5)).rectangle
+
+        // Then
+        #expect(abs(crop.width - 200) < 1e-9)
+        #expect(abs(crop.height - 100) < 1e-9)
+        #expect(abs(crop.center.x - 275) < 1e-9)
+        #expect(abs(crop.center.y - 137.5) < 1e-9)
+    }
+
+    @Test("two keyframes at one instant cut to the later one")
+    func cutsAtSharedInstant() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: 0.0),
+            Keyframe(at: 1, value: 0.0),
+            Keyframe(at: 1, value: 1.0),
+            Keyframe(at: 2, value: 1.0)
+        ])
+
+        // When
+        let before = sut.value(at: 0.99)
+        let at = sut.value(at: 1)
+
+        // Then
+        #expect(before == 0)
+        #expect(at == 1)
+    }
+}

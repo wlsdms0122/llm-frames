@@ -18,7 +18,7 @@ A parented clip is one compositing unit with its picture ([FRAMES-9](../FRAMES-9
 
 Parenting maps positions and areas. The lengths a clip draws with (stroke widths, text and label sizes, filter lengths) stay in output pixels and do not grow with a zoom.
 
-A sequence clip has no parent, and its `area` takes only `[x, y, w, h]` in output pixels.
+A sequence clip has no parent, so `parent: true` on one stops, and its `area` takes only `[x, y, w, h]` in output pixels.
 
 ## Interactions
 

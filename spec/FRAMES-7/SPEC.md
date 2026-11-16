@@ -90,7 +90,7 @@ Keyframable properties:
 | shape clip | `area, opacity` |
 | adjustment clip | `area, opacity` |
 
-Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place. A property written both as a static value and in a keyframe stops, since the static value would never show.
+Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A property written both as a static value and in a keyframe stops, since the static value would never show.
 
 ## Interactions
 

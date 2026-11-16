@@ -15,7 +15,8 @@ Vertical shorts and evidence shots need a content rect smaller than the frame, a
 ### Format
 
 - `size` defaults to the size of the first video clip on the storyline, or the first storyline clip when there is no video. Width and height round to even numbers.
-- `fps` defaults to the nominal frame rate of the first video clip on the storyline, rounded to the nearest of 24, 25, 30, 50 and 60. It is 30 when that clip has no nominal rate (some variable-rate recordings) or there is no video.
+- When there is no video and the first storyline clip is a solid, which has no size of its own, `size` must be written, and a format without it stops.
+- `fps` defaults to the nominal frame rate of the first video clip on the storyline, rounded to the nearest of 24, 25, 30, 50 and 60. A rate exactly halfway between two of them rounds to the lower one. It is 30 when that clip has no nominal rate (some variable-rate recordings) or there is no video. A written `fps` is above 0, and 0 or less stops.
 - `background` defaults to the theme `background`. Transparent parts of storyline pictures show it.
 - `inset` is `[top, right, bottom, left]` and shrinks the content rect, where storyline clips are drawn. An inset that leaves no content rect stops.
 - `conform` is `fit` (show the whole crop, fill the rest with the background) or `fill` (fill the content rect and cut what overflows), as an NLE's spatial conform. The default is `fit`.
@@ -23,10 +24,10 @@ Vertical shorts and evidence shots need a content rect smaller than the frame, a
 
 ### Storyline clips
 
-- `in` defaults to 0 and `out` to the end of the media, here and on media clips. A video, image sequence or compound clip needs `in < out` and `speed > 0`. An `out` past the end of the media is trimmed to the end.
+- `in` defaults to 0 and `out` to the end of the media, here and on media clips. A video, image sequence or compound clip needs `in < out` and `speed > 0`. An `out` past the end of the media is trimmed to the end, and an `in` before 0 is moved to 0. These defaults, and the need for `in < out` and `speed > 0`, hold on every timed media clip, connected and sequence clips and sounds included.
 - A still or solid clip needs `duration > 0`. `solid` is a colour, and fills the content rect.
 - An empty storyline stops, and so does a storyline clip whose media holds only sound.
-- `crop` is the region of the media shown in the content rect. It is an area, or `{scale: s}` for a centred region `1/s` the size of the picture (`s = 1` is the whole picture). It is keyframable, which gives a pan and zoom (Ken Burns).
+- `crop` is the region of the media shown in the content rect. It is an area, or `{scale: s}` for a centred region `1/s` the size of the picture (`s = 1` is the whole picture, and `s` is above 0). It is keyframable, which gives a pan and zoom (Ken Burns).
 - Resolve conforms every crop to the aspect ratio of the content rect around its centre. `fit` grows it until the written region fits inside, and what lies beyond the picture is transparent: lower lanes and the background show there, and during a transition the other unit does. `fill` shrinks it until it lies inside the written region. The conformed crop is exactly what fills the content rect, and keyframes between conformed crops keep their ratio.
 - Each frame of a storyline clip is made in this order: take the conformed crop, scale it to the content rect, apply the filter at that size in output pixels, then apply the transition motion.
 - `filter` and `transition` take preset choices. `"none"` turns off a default filter for one clip, and `"cut"` turns off a default transition.

@@ -12,7 +12,7 @@ Look must change without touching documents. Sizes, colours, styles and default 
 
 ## Rules
 
-`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
+`theme` prints the base theme, and that output is also the list of every key a theme can hold. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles` and `defaults.animation.title` (keyed by style name) are open maps: any name may be added. A name that is referred to must exist: a style, a colour, or a `title` key that names no style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
 Merging goes key by key through the theme's own structure: the top-level groups, each colour, each style and its properties, each shape and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a transition choice like `{preset, seconds}`, a list.
 
@@ -74,15 +74,17 @@ A style is a named set of text properties. Any name is allowed, and frames reads
 
 | Property | Meaning |
 | --- | --- |
-| `size` | font size |
-| `weight` | `regular` or `bold` |
-| `color`, `emphasis` | text colour, and the colour of `**text**` |
+| `size` | font size. Every style has one |
+| `weight` | `regular` or `bold`. The default is `regular` |
+| `color`, `emphasis` | text colour, and the colour of `**text**`. The defaults are the `text` and `emphasis` colours |
 | `lineHeight` | distance between baselines. The default is 1.25 × size |
-| `stroke` | `{width, color}`: an outline with round joins, where strokes never show overlapping. Absent means none |
-| `background` | `{color, padding, radius}`: a box behind the text, or `false` |
+| `stroke` | `{width, color}`: an outline with round joins, where strokes never show overlapping. `width` is required, since a stroke is written to be seen. Without `color` it takes the `text` colour. Absent means none |
+| `background` | `{color, padding, radius}`: a box behind the text, or `false`. `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `placement`, `offset` | default placement ([FRAMES-1](../FRAMES-1/SPEC.md)) |
-| `align` | `left`, `center` or `right` |
-| `lines` | `1` keeps the text on one line |
+| `align` | `left`, `center` or `right`. The default is `left` |
+| `lines` | `1` keeps the text on one line. Absent means no limit |
+
+A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it.
 
 ### Defaults
 

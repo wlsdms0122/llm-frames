@@ -1,0 +1,44 @@
+//
+//  ClipMedia.swift
+//  Frames
+//
+//  Created by JSilver on 11/15/26.
+//
+
+// The media of a clip, its edit points as written, in media time, and how its sound plays. Each is nil when left to its
+// default. `volume` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
+struct ClipMedia: Equatable, Sendable {
+    // MARK: - Property
+    let source: MediaSource
+    let `in`: Double?
+    let out: Double?
+    let speed: Double?
+    let loop: Bool
+    let volume: PropertyValue<Double>?
+    let fadeIn: Double?
+    let fadeOut: Double?
+
+    // MARK: - Initializer
+    init(
+        source: MediaSource,
+        in: Double? = nil,
+        out: Double? = nil,
+        speed: Double? = nil,
+        loop: Bool = false,
+        volume: PropertyValue<Double>? = nil,
+        fadeIn: Double? = nil,
+        fadeOut: Double? = nil
+    ) {
+        self.source = source
+        self.in = `in`
+        self.out = out
+        self.speed = speed
+        self.loop = loop
+        self.volume = volume
+        self.fadeIn = fadeIn
+        self.fadeOut = fadeOut
+    }
+
+    // MARK: - Public
+    // MARK: - Private
+}

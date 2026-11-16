@@ -51,7 +51,8 @@ The map is the same line outside the clip, so a keyframe before `in` keeps its t
 - A parented connected clip ([FRAMES-10](../FRAMES-10/SPEC.md)) is visible where its window meets its storyline clip's drawn range. It is composited with its picture, so a transition covers, wipes or moves it exactly as it does its picture.
 - A connected clip with a picture whose window does not meet the range it is visible in stops ("never visible").
 - A connected audio clip is only anchored by its start. It plays its window, or its natural length, across transitions. One whose start lies outside its storyline clip's drawn range stops.
-- Sequence clips are cut at the end of the sequence. One that starts at or after the end stops.
+- Sequence clips are cut at the end of the sequence. One that starts at or after the end stops, and so does one whose window ends at or before 0, since it never shows or plays.
+- A window `[start, end]` needs its start before its end. One that does not stops.
 
 ## Interactions
 

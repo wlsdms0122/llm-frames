@@ -45,7 +45,7 @@ A span is:
 - `t` is progress through the span, from 0 to 1.
 - Each property joins only the keys that name it, in straight lines. Opacity can finish at 30% while scale runs to the end.
 - A property the span does not name takes its default.
-- `ease` bends the progress first, and the bent value drives every property.
+- `ease` bends the progress first, and the bent value drives every property. Where an ease leaves 0 to 1 (`back-out`), a property whose keys reach that end goes on along its last line, so it overshoots. One whose keys stop short of it holds.
 - `revealFrom` is `left`, `right`, `top` or `bottom`. The default is `left`.
 
 ### animation
@@ -65,7 +65,7 @@ A span is:
 
 - Every span is optional. Without one the clip simply shows.
 - On a short clip the entrance runs first and the exit takes what time is left.
-- `{entrance, exit}` as a choice takes the entrance from one preset and the exit from another.
+- `{entrance, exit}` as a choice takes the entrance from one preset and the exit from another. Both are written, and a side without one is `none`.
 - An animation is applied over the clip's keyframes, about the same point: its scale and opacity multiply, and its x, y and rotation add. A preset's look is the same for every anchor point, made about that point.
 
 ### transition
@@ -80,15 +80,16 @@ A span is:
 
 | Key | Meaning |
 | --- | --- |
-| `seconds` | default length. `{preset, seconds}` in a document overrides it |
+| `seconds` | default length, required. `{preset, seconds}` in a document overrides it, and writes both |
 | `ease` | default curve of incoming, outgoing, cover and matte |
 | `over` | which unit is on top during the transition: `incoming` (default) or `outgoing` |
 | `incoming` | motion of the incoming clip |
 | `outgoing` | motion of the outgoing clip |
-| `cover` | `{color, keys}` or `{media, keys}`: a colour (a dip to colour) or an image or video with alpha (a stinger) over both units, stretched over the content rect. Only opacity is read from its keys |
+| `cover` | `{color, keys}` or `{media, keys}`: a colour (a dip to colour) or an image or video with alpha (a stinger) over both units, stretched over the content rect. Its keys take `t` and `opacity` only |
 | `matte` | `{media, softness, invert}`: a luma wipe (below) |
 
 - A storyline picture reads opacity, scale, x, y, rotation and reveal. Scale, x, y and rotation act around the centre of the content rect, and reveal shows the content rect from the `revealFrom` side.
+- `seconds` in a `{preset, seconds}` choice is above 0, as a preset's own is, and 0 or less stops.
 - `seconds` or `period` inside a span stops. A transition's time is its length.
 - To change scenes while the cover hides them, cut the incoming opacity from 0 to 1 at that point.
 - `matte.media` is a greyscale image or video, stretched over the content rect. The incoming unit shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a track-matte wipe that shows the incoming unit where it is black. Either gives any wipe shape without code. A matte reveals the incoming unit, so a transition with both `matte` and `"over": "outgoing"` stops.

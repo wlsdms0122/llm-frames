@@ -29,13 +29,13 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | `levels` | `input: [black, white]`, `output: [black, white]` (0 to 1) | maps input levels to output levels |
 | `lut` | `file` (a `.cube` 3D LUT), `amount` (0 to 1) | maps colours through the LUT, applied to sRGB-encoded values with trilinear interpolation, and blends the result by `amount` |
 | `blur` | `radius` (theme length) | Gaussian blur whose standard deviation is `radius` |
-| `sharpen` | `amount`, `radius` | unsharp mask: v + amount × (v - the blur of v at `radius`) |
-| `bloom` | `amount`, `radius`, `color` optional | adds amount × the blur at `radius` of the bright parts (each pixel times smoothstep(0.5, 1, L)), times `color` when one is given (halation) |
+| `sharpen` | `amount`, `radius` (theme length) | unsharp mask: v + amount × (v - the blur of v at `radius`) |
+| `bloom` | `amount`, `radius` (theme length), `color` optional | adds amount × the blur at `radius` of the bright parts (each pixel times smoothstep(0.5, 1, L)), times `color` when one is given (halation) |
 | `vignette` | `amount`, `radius` (fraction of half the diagonal) | multiplies by 1 - amount × smoothstep(radius, 1, d), where d is the distance from the centre over half the diagonal |
 | `pixelate` | `size` (theme length) | square blocks, each filled with the mean colour of the pixels it covers |
 | `grain` | `amount` (0 to 1), `size` (theme length) | adds amount × 4L(1 - L) × n to each channel, where n is monochrome noise with standard deviation 1 and grains `size` across. Evaluation writes its `seed` ([FRAMES-20](../FRAMES-20/SPEC.md)), so a render made again has the same grain |
 
-- An unknown op stops when the preset is read.
+- An unknown op stops when the preset is read, and so does a parameter outside its range: the ranges in the table, `levels` with black at or above white, a length or size (`radius`, `size`) at or below 0, and a `vignette` radius outside 0 to 1.
 - Parameters are numbers, lists of numbers, colours, or for `lut` a file: `<pack>/<name>` for `luts/<name>.cube` in a pack, or an absolute path.
 - v is a channel of a pixel's colour with alpha unpremultiplied, and L is its luminance ([FRAMES-21](../FRAMES-21/SPEC.md)). Colour operations leave alpha as it is, and every operation's result is clamped to 0 to 1. smoothstep is as in GLSL.
 - The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) read the edge pixels extended outward, and are cropped back to the original size.

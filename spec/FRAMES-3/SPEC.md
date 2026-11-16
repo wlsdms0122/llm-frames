@@ -22,6 +22,8 @@ Every role and provider must read the same frame for the same time, or the text 
 | `{"template": "<pack>/<name>", "args": {...}}` | a template instance ([FRAMES-17](../FRAMES-17/SPEC.md)). The template is `<pack>/<name>` or an absolute path |
 
 - A document with `params` is a template and is used only as a template instance. Anywhere else it stops.
+- A document or template that holds itself, directly or through the documents and templates it names, stops, since it would never end.
+- An image sequence's `fps` is above 0, and 0 or less stops.
 - Paths are absolute. Inside a pack, its own files are named by `<pack>/<name>` like any other pack's ([FRAMES-17](../FRAMES-17/SPEC.md)).
 - A compound clip is evaluated at the media times the outer frames ask for, not at its own frame rate. Its `size`, `background`, `inset` and `conform` apply. Its `fps` applies only when it is rendered alone. It is part of the document that wrote it, so its theme is merged over the one in effect there. A template instance is not ([FRAMES-17](../FRAMES-17/SPEC.md)).
 - Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha) and compound clips. This is how graphics made elsewhere come in.
