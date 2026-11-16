@@ -6,9 +6,9 @@
 //
 
 // Finds an area in a video at media time `--at` and follows it with the tracker provider, as `track` on a clip does,
-// and reports it as `track` prints it. The area is written in one of the forms of FRAMES-2 as JSON text, and is found
-// before padding: a text form with OCR, a rectangle as written, and a band by the area inside it, which is what a
-// tracker follows. It is followed over the whole video, or over the frames shown from `--at` to `--to`, either way.
+// and reports it as `track` prints it. The area is JSON text in one of a document's area forms, and is found before
+// padding: a text form with OCR, a rectangle as written, and a band by the area inside it, which is what a tracker
+// follows. It is followed over the whole video, or over the frames shown from `--at` to `--to`, either way.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
