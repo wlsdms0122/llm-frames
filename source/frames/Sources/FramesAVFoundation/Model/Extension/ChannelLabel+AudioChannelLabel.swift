@@ -9,7 +9,7 @@ import CoreAudioTypes
 import Frames
 
 // The speaker a Core Audio channel label names. Core Audio's direct surrounds are the side ones, and its rear
-// surrounds are the ones behind them in 7.1.
+// surrounds are the ones behind them in 7.1. A matrix-encoded pair (Lt/Rt) and a headphone pair play as left and right.
 extension ChannelLabel {
     // MARK: - Property
     // MARK: - Initializer
@@ -18,10 +18,10 @@ extension ChannelLabel {
         case kAudioChannelLabel_Mono:
             .mono
 
-        case kAudioChannelLabel_Left:
+        case kAudioChannelLabel_Left, kAudioChannelLabel_LeftTotal, kAudioChannelLabel_HeadphonesLeft:
             .left
 
-        case kAudioChannelLabel_Right:
+        case kAudioChannelLabel_Right, kAudioChannelLabel_RightTotal, kAudioChannelLabel_HeadphonesRight:
             .right
 
         case kAudioChannelLabel_Center:
