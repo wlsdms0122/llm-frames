@@ -31,7 +31,7 @@ package struct StrokeItem: Equatable, Sendable {
     }
 
     // A border: a square-cornered stroke that lies inside its rectangle, its edge `width / 2` in from the rectangle's.
-    init(
+    package init(
         border rectangle: Rectangle,
         width: Double,
         color: Color

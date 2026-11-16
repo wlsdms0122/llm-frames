@@ -8,14 +8,15 @@
 import Frames
 
 // The `quartz` renderer: draws display lists with Core Graphics and Core Image in the sRGB working space, reading
-// media pictures through the decoder.
+// media pictures through the decoder. A frame is a sixteen bit premultiplied RGBA bitmap of the list's size.
 package final class QuartzRenderer: Sendable {
     // MARK: - Property
-    private let decoder: any MediaDecoder
+    private let pictures: MediaPictureCache
+    private let fonts = FontLibrary()
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
-        self.decoder = decoder
+        self.pictures = MediaPictureCache(decoder: decoder)
     }
 
     // MARK: - Public
@@ -25,10 +26,10 @@ package final class QuartzRenderer: Sendable {
 extension QuartzRenderer: Renderer {
     // MARK: - Lifecycle
     package func check(_ list: DisplayList) throws {
-        throw QuartzError.notImplemented
+        try DisplayListChecker().check(list)
     }
 
     package func frame(of list: DisplayList) throws -> Bitmap {
-        throw QuartzError.notImplemented
+        try FrameDrawer(pictures: pictures, fonts: fonts).draw(list).bitmap()
     }
 }
