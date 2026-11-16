@@ -28,7 +28,10 @@ struct PresetValueResolver: Sendable {
     ) throws -> FilterOperation {
         switch operation {
         case let .lut(file, amount):
-            .lut(file: try self.file(file, found: library.lutFile(named: file), place: place, kind: kind), amount: amount)
+            .lut(
+                file: try self.file(file, found: library.lutFile(named: file), place: place, kind: kind),
+                amount: amount
+            )
 
         case let .bloom(amount, radius, color):
             .bloom(

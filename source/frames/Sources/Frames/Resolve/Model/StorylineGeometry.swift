@@ -6,8 +6,8 @@
 //
 
 // What resolve found for a storyline clip's picture: its crop as written, found in its media with keyframes in
-// sequence time (nil for the whole picture), what its track followed, the plan of a nested document it shows, the filter
-// operations it applies, their lengths already scaled, and a solid's colour.
+// sequence time (nil for the whole picture), what its track followed, the plan of a nested document it shows, the
+// filter operations it applies, their lengths already scaled, and a solid's colour.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?

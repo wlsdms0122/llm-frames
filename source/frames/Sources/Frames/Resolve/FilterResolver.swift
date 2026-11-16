@@ -40,7 +40,9 @@ struct FilterResolver: Sendable {
             throw ResolveError.unknownPreset(place: place, kind: kind, presetKind: "filter", name: name)
         }
 
-        return try preset.operations.map { operation in try values.operation(operation, theme: theme, place: place, kind: kind) }
+        return try preset.operations.map { operation in
+            try values.operation(operation, theme: theme, place: place, kind: kind)
+        }
     }
 
     // MARK: - Private
