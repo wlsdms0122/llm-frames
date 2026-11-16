@@ -209,7 +209,7 @@ struct StorylineTimeTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        let nested = try #require(plan.storyline[0].source.media?.nested)
+        let nested = try #require(plan.storyline[0].source.media?.sequence)
         #expect(plan.storyline[0].source.kind == .media(.sequence))
         #expect(plan.storyline[0].source.clipRange == TimeRange(start: 1, end: 6))
         #expect(nested.storyline[1].place.description == "storyline[0].media.storyline[1]")

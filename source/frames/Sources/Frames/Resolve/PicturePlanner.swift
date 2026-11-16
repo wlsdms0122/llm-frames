@@ -72,22 +72,29 @@ struct PicturePlanner: Sendable {
         kind: PlaceKind,
         sequences: (TimePlan) throws -> SequencePlan
     ) throws -> (drawn: DrawnPicture, picture: Picture) {
-        let name = media.reference ?? media.file ?? place.description
-        if let nested = media.picture {
-            let plan = try plan(nested, sequences: sequences)
+        switch media.source {
+        case let .file(file):
+            let name = media.reference ?? file.path
+            guard let size = file.size else {
+                throw ResolveError.soundAsPicture(place: place, kind: kind, reference: name)
+            }
 
-            return (.picture(plan), Picture(name: name, source: .document, size: plan.size))
-        }
-        if let nested = media.nested {
+            let picture = Picture(name: name, source: .mediaFile(file.path), size: size)
+
+            return (.media(media, time: media.clamped(time)), picture)
+
+        case let .sequence(nested):
             let plan = try sequences(nested)
+            let name = media.reference ?? place.description
             let picture = Picture(name: name, source: .document, size: plan.format.size)
 
             return (.sequence(plan, time: media.clamped(time)), picture)
-        }
-        guard let file = media.file, let size = media.size else {
-            throw ResolveError.soundAsPicture(place: place, kind: kind, reference: name)
-        }
 
-        return (.media(media, time: media.clamped(time)), Picture(name: name, source: .mediaFile(file), size: size))
+        case let .picture(nested):
+            let plan = try plan(nested, sequences: sequences)
+            let picture = Picture(name: media.reference ?? place.description, source: .document, size: plan.size)
+
+            return (.picture(plan), picture)
+        }
     }
 }

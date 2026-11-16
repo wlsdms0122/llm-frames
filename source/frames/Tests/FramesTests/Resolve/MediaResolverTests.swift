@@ -23,8 +23,9 @@ struct MediaResolverTests {
         let media = try sut.media(of: .file("/abs/screen.mp4"), place: .root, kind: .sequence, theme: .base)
 
         // Then
-        #expect(media.frameTimes == Fixture.screenFrameTimes)
-        #expect(media.frameFiles.isEmpty)
+        let file = try #require(media.file)
+        #expect(file.frameTimes == Fixture.screenFrameTimes)
+        #expect(file.frameFiles.isEmpty)
     }
 
     @Test("an image sequence keeps its frame files in order, frame i at media second i / fps")
@@ -38,9 +39,11 @@ struct MediaResolverTests {
         )
 
         // Then
-        #expect(media.frameFiles == Fixture.imageSequenceFiles)
-        #expect(media.frameFiles[9] == "/abs/frames/frame-10.png")
-        #expect(media.frameTimes == (0..<12).map { Double($0) / 30 })
+        let file = try #require(media.file)
+        #expect(file.path == "/abs/frames")
+        #expect(file.frameFiles == Fixture.imageSequenceFiles)
+        #expect(file.frameFiles[9] == "/abs/frames/frame-10.png")
+        #expect(file.frameTimes == (0..<12).map { Double($0) / 30 })
         #expect(media.duration == 12 / 30.0)
     }
 

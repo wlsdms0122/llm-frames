@@ -12,8 +12,19 @@ import Testing
 @Suite("MediaTiming Tests")
 struct MediaTimingTests {
     // MARK: - Property
-    private let video = ResolvedMedia(kind: .video, reference: "/abs/short.mp4", file: "/abs/short.mp4", duration: 4, fps: 1, frames: 0...3)
-    private let sound = ResolvedMedia(kind: .audio, reference: "/abs/ding.wav", file: "/abs/ding.wav", duration: 1.5)
+    private let video = ResolvedMedia(
+        kind: .video,
+        reference: "/abs/short.mp4",
+        source: .file(MediaFile(path: "/abs/short.mp4", fps: 1)),
+        duration: 4,
+        frames: 0...3
+    )
+    private let sound = ResolvedMedia(
+        kind: .audio,
+        reference: "/abs/ding.wav",
+        source: .file(MediaFile(path: "/abs/ding.wav")),
+        duration: 1.5
+    )
 
     // MARK: - Initializer
     // MARK: - Test
@@ -89,6 +100,6 @@ struct MediaTimingTests {
         // Then
         #expect(plan.clips[0].kind == .media(.sequence))
         #expect(plan.clips[0].window == TimeRange(start: 1, end: 4))
-        #expect(plan.clips[0].media?.nested?.storyline[0].place.description == "storyline[0].connected[0].media.storyline[0]")
+        #expect(plan.clips[0].media?.sequence?.storyline[0].place.description == "storyline[0].connected[0].media.storyline[0]")
     }
 }

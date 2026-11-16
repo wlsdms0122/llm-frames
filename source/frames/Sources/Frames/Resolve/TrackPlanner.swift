@@ -66,7 +66,7 @@ struct TrackPlanner: Sendable {
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: plan, media: picture.media, file: picture.file)
+        let followed = try follow(start, on: plan, file: picture.file)
         let isEditFollowed = followed.range.start <= plan.edit.start + Self.tolerance
             && followed.range.end >= plan.edit.end - Self.tolerance
         guard isEditFollowed else {
@@ -116,7 +116,7 @@ struct TrackPlanner: Sendable {
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: owner, media: picture.media, file: picture.file)
+        let followed = try follow(start, on: owner, file: picture.file)
         guard let visible = plan.visible.intersection(followed.range) else {
             throw ResolveError.neverFollowed(place: written.place, kind: kind, visible: plan.visible)
         }
@@ -150,16 +150,15 @@ struct TrackPlanner: Sendable {
     private func follow(
         _ target: FoundArea,
         on plan: StorylinePlan,
-        media: ResolvedMedia,
-        file: String
+        file: MediaFile
     ) throws -> (track: Track, range: TimeRange) {
         let drawnStart = plan.mediaTime(atSequenceTime: plan.drawn.start)
         let drawnEnd = plan.mediaTime(atSequenceTime: plan.drawn.end)
-        let firstNeeded = media.frameTime(at: min(drawnStart, target.mediaTime)) ?? drawnStart
+        let firstNeeded = file.frameTime(at: min(drawnStart, target.mediaTime)) ?? drawnStart
         let lastNeeded = max(drawnEnd, target.mediaTime)
         let frames = try tracker.track(
             target.target,
-            in: file,
+            in: file.path,
             atMediaTime: target.mediaTime,
             over: firstNeeded...lastNeeded
         )
@@ -169,7 +168,7 @@ struct TrackPlanner: Sendable {
             return (track, TimeRange(start: instant, end: instant))
         }
 
-        let next = media.frameTime(after: last.time)
+        let next = file.frameTime(after: last.time)
         let start = first.time <= firstNeeded ? -Double.infinity : plan.map.sequenceTime(ofClipTime: first.time)
         let end = next.map { $0 > lastNeeded ? Double.infinity : plan.map.sequenceTime(ofClipTime: $0) }
             ?? .infinity
@@ -179,17 +178,17 @@ struct TrackPlanner: Sendable {
 
     // The video or image sequence a storyline clip plays, which a tracker can follow, and nil for a still, a solid or
     // a compound clip.
-    private func picture(of plan: StorylinePlan) -> (picture: Picture, media: ResolvedMedia, file: String)? {
+    private func picture(of plan: StorylinePlan) -> (picture: Picture, file: MediaFile)? {
         guard
             plan.source.kind == .media(.video),
             let media = plan.source.media,
-            let file = media.file,
-            let size = media.size
+            case let .file(file) = media.source,
+            let size = file.size
         else {
             return nil
         }
 
-        return (Picture(name: media.reference ?? file, source: .mediaFile(file), size: size), media, file)
+        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size), file)
     }
 
     // The value `true` follows: the first keyframe's when the property is keyframed, else the static one.

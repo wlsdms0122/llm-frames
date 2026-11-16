@@ -41,7 +41,13 @@ struct SequenceFormat: Equatable, Sendable {
     // MARK: - Private
     // The nominal rate of the first video on the storyline, to the nearest common rate.
     private func defaultFrameRate(of storyline: [ResolvedMedia]) -> Double {
-        guard let rate = storyline.first(where: { $0.kind == .video })?.fps else { return Self.defaultFrameRate }
+        guard
+            let video = storyline.first(where: { $0.kind == .video }),
+            case let .file(file) = video.source,
+            let rate = file.fps
+        else {
+            return Self.defaultFrameRate
+        }
 
         // The rates ascend and only a nearer one replaces the nearest so far, so a tie keeps the lower.
         return Self.frameRates.reduce(Self.frameRates[0]) { nearest, candidate in

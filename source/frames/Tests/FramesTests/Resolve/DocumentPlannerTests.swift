@@ -69,14 +69,14 @@ struct DocumentPlannerTests {
         let plan = try #require(try sut.plan(document).sequence)
 
         // Then
-        let nested = try #require(plan.time.storyline[0].source.media?.nested)
+        let nested = try #require(plan.time.storyline[0].source.media?.sequence)
         #expect(plan.time.storyline[0].source.media?.reference == nil)
         #expect(plan.time.duration == 4)
         #expect(nested.storyline.map(\.place.description) == ["storyline[0].media.storyline[0]", "storyline[0].media.storyline[1]"])
         #expect(nested.storyline[0].source.media?.reference == "shorts/leak.mov")
-        #expect(nested.storyline[0].source.media?.file == directory.installed.appendingPathComponent("shorts/media/leak.mov").path)
+        #expect(nested.storyline[0].source.media?.file?.path == directory.installed.appendingPathComponent("shorts/media/leak.mov").path)
         #expect(nested.storyline[1].source.media?.reference == "shorts/intro.json")
-        #expect(nested.storyline[1].source.media?.nested?.storyline[1].place.description == "storyline[0].media.storyline[1].media.storyline[1]")
+        #expect(nested.storyline[1].source.media?.sequence?.storyline[1].place.description == "storyline[0].media.storyline[1].media.storyline[1]")
     }
 
     @Test("a template resolves on the base theme, and a document given to it as an argument starts from the caller's theme")
@@ -91,8 +91,8 @@ struct DocumentPlannerTests {
         let plan = try #require(try sut.plan(document).sequence)
 
         // Then
-        let template = try #require(plan.time.storyline[0].source.media?.nested)
-        let argument = try #require(template.storyline[1].source.media?.nested)
+        let template = try #require(plan.time.storyline[0].source.media?.sequence)
+        let argument = try #require(template.storyline[1].source.media?.sequence)
         #expect(template.storyline[1].transition == nil)
         #expect(argument.storyline[1].transition?.preset == "flash")
     }
@@ -109,7 +109,7 @@ struct DocumentPlannerTests {
         let plan = try #require(try sut.plan(document).sequence)
 
         // Then
-        let intro = try #require(plan.time.storyline[0].source.media?.nested?.storyline[1].source.media?.nested)
+        let intro = try #require(plan.time.storyline[0].source.media?.sequence?.storyline[1].source.media?.sequence)
         #expect(intro.storyline[1].transition == nil)
     }
 
@@ -124,7 +124,7 @@ struct DocumentPlannerTests {
         let plan = try #require(try sut.plan(document).sequence)
 
         // Then
-        let nested = try #require(plan.time.storyline[0].source.media?.nested)
+        let nested = try #require(plan.time.storyline[0].source.media?.sequence)
         #expect(plan.time.storyline[0].source.media?.reference == "shorts/intro.json")
         #expect(nested.storyline[1].place.description == "storyline[0].media.storyline[1]")
         #expect(nested.storyline[1].transition?.preset == "flash")

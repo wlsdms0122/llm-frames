@@ -98,11 +98,16 @@ struct SequencePlanner: Sendable {
 
     // MARK: - Private
     private func nested(_ media: ResolvedMedia) throws -> DocumentPlan? {
-        if let nested = media.nested {
-            return .sequence(try plan(nested))
-        }
+        switch media.source {
+        case .file:
+            nil
 
-        return try media.picture.map { .picture(try pictures.plan($0, sequences: plan)) }
+        case let .sequence(nested):
+            .sequence(try plan(nested))
+
+        case let .picture(nested):
+            .picture(try pictures.plan(nested, sequences: plan))
+        }
     }
 
     // The content rect lies inside the output frame by the inset, and an inset that leaves none stops. The background is
@@ -187,13 +192,13 @@ struct SequencePlanner: Sendable {
         if let nested {
             return Picture(name: media.reference ?? place.description, source: .document, size: nested.size)
         }
-        // Only a document has no file, and it has a nested plan.
-        let file = media.file ?? ""
-        guard let size = media.size else {
-            throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: media.reference ?? file)
+        // Media without a nested plan is a file.
+        guard case let .file(file) = media.source, let size = file.size else {
+            let reference = media.reference ?? place.description
+            throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: reference)
         }
 
-        return Picture(name: media.reference ?? file, source: .mediaFile(file), size: size)
+        return Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size)
     }
 
     // What a sequence clip's area and an unparented clip's position are in.

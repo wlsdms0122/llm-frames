@@ -53,12 +53,9 @@ struct MediaResolver: Sendable {
             return ResolvedMedia(
                 kind: probed.kind,
                 reference: reference,
-                file: file,
+                source: .file(MediaFile(path: file, fps: probed.fps, size: probed.size, frameTimes: probed.frames)),
                 duration: probed.duration,
-                fps: probed.fps,
                 frames: frames(of: probed),
-                size: probed.size,
-                frameTimes: probed.frames,
                 hasSound: probed.hasSound
             )
 
@@ -72,16 +69,19 @@ struct MediaResolver: Sendable {
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
             let duration = Double(probed.files.count) / fps
-            return ResolvedMedia(
-                kind: .video,
-                reference: reference,
-                file: directory,
-                duration: duration,
+            let file = MediaFile(
+                path: directory,
                 fps: fps,
-                frames: 0...max(duration - 1 / fps, 0),
                 size: probed.size,
                 frameTimes: probed.files.indices.map { Double($0) / fps },
                 frameFiles: probed.files
+            )
+            return ResolvedMedia(
+                kind: .video,
+                reference: reference,
+                source: .file(file),
+                duration: duration,
+                frames: 0...max(duration - 1 / fps, 0)
             )
 
         case let .compound(document):
@@ -199,9 +199,8 @@ struct MediaResolver: Sendable {
         ResolvedMedia(
             kind: .image,
             reference: reference,
-            file: nil,
-            duration: 0,
-            picture: try picture(of: document, theme: theme)
+            source: .picture(try picture(of: document, theme: theme)),
+            duration: 0
         )
     }
 
@@ -234,10 +233,9 @@ struct MediaResolver: Sendable {
         return ResolvedMedia(
             kind: .sequence,
             reference: reference,
-            file: nil,
+            source: .sequence(plan),
             duration: plan.duration,
             frames: 0...plan.duration.nextDown,
-            nested: plan,
             hasSound: media.contains { $0?.hasSound ?? false }
         )
     }
