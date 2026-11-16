@@ -45,7 +45,9 @@ final class FrameContext {
 
         context.translateBy(x: 0, y: CGFloat(height))
         context.scaleBy(x: 1, y: -1)
-        context.interpolationQuality = .high
+        // `.high` maps the first and last pixel centres onto each other, which stretches a scaled picture by up to half
+        // a pixel at its edges. `.medium` filters a reduction as smoothly and keeps pixel centres where they belong.
+        context.interpolationQuality = .medium
         context.textMatrix = .identity
         context.setAllowsFontSmoothing(false)
         context.setAllowsFontSubpixelQuantization(false)
