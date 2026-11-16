@@ -22,10 +22,11 @@ struct ImagePlanner: Sendable {
     init(
         ocr: any OCRProvider,
         presets: any PresetProvider,
-        text: ThemeTypesetter
+        text: ThemeTypesetter,
+        library: ReferenceLibrary
     ) {
         self.finder = AreaFinder(ocr: ocr)
-        self.filters = FilterResolver(presets: presets)
+        self.filters = FilterResolver(presets: presets, library: library)
         self.text = text
         self.banners = BannerSetter(text: text)
     }

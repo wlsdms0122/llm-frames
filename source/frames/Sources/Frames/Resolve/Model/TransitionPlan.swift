@@ -6,7 +6,8 @@
 //
 
 // A transition centred on the edit point of the clip it brings in. `seconds` is its length after it is cut to what
-// fits, `min(transition seconds, previous duration, next duration)`.
+// fits, `min(transition seconds, previous duration, next duration)`. Its definition names its cover and matte files by
+// their absolute paths.
 struct TransitionPlan: Equatable, Sendable {
     // MARK: - Property
     let preset: String

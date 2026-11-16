@@ -17,6 +17,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveSpeed(place: Place, kind: PlaceKind, speed: Double)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
     case unknownPreset(place: Place, kind: PlaceKind, presetKind: String, name: String)
+    case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
     case emptyWindow(place: Place, kind: PlaceKind, start: Double, end: Double)
     case neverVisible(place: Place, kind: PlaceKind, window: TimeRange, range: TimeRange)
     case neverPlays(place: Place, kind: PlaceKind, window: TimeRange)
@@ -80,6 +81,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPreset(place, kind, presetKind, name):
             "\(place) (\(kind.label)): unknown \(presetKind) preset \(quoted(name))"
+
+        case let .unknownPresetFile(place, kind, name):
+            "\(place) (\(kind.label)): the preset names the file \(quoted(name)), which names nothing. "
+                + "A preset names a file by <pack>/<name> or by an absolute path"
 
         case let .emptyWindow(place, kind, start, end):
             "\(place) (\(kind.label)): the window [\(number(start)), \(number(end))] ends before it starts"

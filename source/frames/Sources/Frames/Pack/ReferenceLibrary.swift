@@ -93,6 +93,14 @@ struct ReferenceLibrary: MediaKindProvider {
         return try packs.file(of: reference, in: "media", pathExtension: nil)?.path
     }
 
+    // The `.cube` file a LUT reference names: a path as it is, and `<pack>/<name>` for `luts/<name>.cube` in the pack.
+    // There is no built in LUT.
+    func lutFile(named reference: String) throws -> String? {
+        guard let reference = PackReference(reference) else { return nil }
+
+        return try packs.file(of: reference, in: "luts", pathExtension: "cube")?.path
+    }
+
     // The library to read what a file names with, once the file is being read.
     func reading(
         file: String,

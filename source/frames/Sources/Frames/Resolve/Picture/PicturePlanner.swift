@@ -16,9 +16,10 @@ struct PicturePlanner: Sendable {
     init(
         ocr: any OCRProvider,
         presets: any PresetProvider,
-        text: ThemeTypesetter
+        text: ThemeTypesetter,
+        library: ReferenceLibrary
     ) {
-        self.image = ImagePlanner(ocr: ocr, presets: presets, text: text)
+        self.image = ImagePlanner(ocr: ocr, presets: presets, text: text, library: library)
         self.layout = LayoutPlanner(text: text)
     }
 

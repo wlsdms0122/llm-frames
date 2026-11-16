@@ -30,8 +30,8 @@ struct SequencePlanner: Sendable {
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
         let text = ThemeTypesetter(shaper: shaper, library: library)
         self.text = text
-        self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text)
-        self.filters = FilterResolver(presets: presets)
+        self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text, library: library)
+        self.filters = FilterResolver(presets: presets, library: library)
     }
 
     // MARK: - Public

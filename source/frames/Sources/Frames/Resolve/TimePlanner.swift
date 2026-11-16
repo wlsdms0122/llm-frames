@@ -14,6 +14,7 @@ struct TimePlanner: Sendable {
     private let reader = SequenceReader()
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
+    private let values: PresetValueResolver
 
     // MARK: - Initializer
     init(
@@ -24,6 +25,7 @@ struct TimePlanner: Sendable {
         self.presets = presets
         self.themes = DocumentThemeResolver(library: library)
         self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
+        self.values = PresetValueResolver(library: library)
     }
 
     // MARK: - Public
@@ -292,7 +294,7 @@ struct TimePlanner: Sendable {
             throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: name)
         }
 
-        return preset
+        return try values.transition(preset, place: place, kind: .clip(kind))
     }
 
     private func plan(

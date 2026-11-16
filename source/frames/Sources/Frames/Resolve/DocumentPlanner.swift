@@ -42,7 +42,8 @@ struct DocumentPlanner: Sendable {
         self.pictures = PicturePlanner(
             ocr: ocr,
             presets: presets,
-            text: ThemeTypesetter(shaper: shaper, library: library)
+            text: ThemeTypesetter(shaper: shaper, library: library),
+            library: library
         )
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)

@@ -19,7 +19,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // MARK: - Public
-    // A path is made absolute against the working directory, the one a relative path was found in.
+    // Resolve found every file by its absolute path, and one spelling is kept for each.
     func pinned(_ path: String) throws -> [JSONMember] {
         let absolute = URL(fileURLWithPath: path).standardizedFileURL.path
 
