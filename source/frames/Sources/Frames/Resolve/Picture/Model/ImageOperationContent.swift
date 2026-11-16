@@ -11,7 +11,7 @@ enum ImageOperationContent: Equatable, Sendable {
     case crop(AreaForm)
     case resize(ResizeForm)
     case pad(Inset, color: String?)
-    case shape(ShapeKind, area: AreaForm, label: String?, side: Side?, color: String?)
+    case shape(ShapeForm, area: AreaForm, label: String?, color: String?)
     case adjust(JSONValue, area: AreaForm?)
     case title(String, position: PositionForm, anchor: String, style: String, width: Double?)
     case banner([BannerLine], edge: Side)

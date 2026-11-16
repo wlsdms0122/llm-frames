@@ -81,12 +81,11 @@ struct PictureReader: Sendable {
         if let pad = operation["pad"] {
             return .pad(inset(of: pad), color: color)
         }
-        if let shape = operation["shape"]?.stringValue.flatMap(ShapeKind.init) {
+        if let shape = ShapeForm(object: operation) {
             return .shape(
                 shape,
                 area: area(of: operation["area"] ?? .null),
                 label: operation["label"]?.stringValue,
-                side: operation["side"]?.stringValue.flatMap(Side.init),
                 color: color
             )
         }

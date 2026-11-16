@@ -105,7 +105,6 @@ struct SequenceReader: Sendable {
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
             label: object["label"]?.stringValue,
-            side: object["side"]?.stringValue.flatMap(Side.init),
             width: object["width"]?.numberValue
         )
     }
@@ -117,7 +116,7 @@ struct SequenceReader: Sendable {
         if let media = object["media"] {
             return .media(self.media(media, of: object, place: place.appending(key: "media")))
         }
-        if let shape = object["shape"]?.stringValue.flatMap(ShapeKind.init) {
+        if let shape = ShapeForm(object: object) {
             return .shape(shape)
         }
         if let title = object["title"]?.stringValue {

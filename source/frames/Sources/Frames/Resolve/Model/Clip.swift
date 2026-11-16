@@ -25,7 +25,6 @@ struct Clip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
     let label: String?
-    let side: Side?
     let width: Double?
 
     // MARK: - Initializer
@@ -46,7 +45,6 @@ struct Clip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
         label: String? = nil,
-        side: Side? = nil,
         width: Double? = nil
     ) {
         self.place = place
@@ -65,7 +63,6 @@ struct Clip: Equatable, Sendable {
         self.crop = crop
         self.track = track
         self.label = label
-        self.side = side
         self.width = width
     }
 

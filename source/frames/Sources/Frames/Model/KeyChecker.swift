@@ -587,23 +587,26 @@ struct KeyChecker: Sendable {
             throw ModelError.unknownKey(place: place, kind: generic, key: present[0], allowed: allowed)
         }
 
-        let clipKind = try clipKind(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
-        let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
-        try checkObject(object, as: table, place: place, skipping: ["media"], scope: &scope)
-        try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
+        let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
+        try checkEach(clipKinds, scope: &scope) { clipKind, scope in
+            let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
+            try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
+            try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
+        }
 
         if let keyframes = object["keyframes"] {
             try keyframeReader.checkEases(in: keyframes, place: place.appending(key: "keyframes"))
         }
     }
 
-    private func clipKind(
+    // A clip is of one kind, or of one for each option of a choice its shape takes.
+    private func clipKinds(
         of object: JSONObject,
         by key: String,
         place: Place,
         in clipPlace: ClipPlace,
         scope: inout DocumentScope
-    ) throws -> ClipKind {
+    ) throws -> [ClipKind] {
         let generic = clipPlace.label
 
         switch key {
@@ -622,27 +625,19 @@ struct KeyChecker: Sendable {
                 )
             }
 
-            return .media(mediaKind)
+            return [.media(mediaKind)]
 
         case "shape":
-            let shape = object["shape"] ?? .null
-            try check(
-                shape,
-                as: .literal(VocabularyTable.shapes),
-                place: place.appending(key: "shape"),
-                kind: "shape",
-                scope: &scope
-            )
-            return .shape(shape.stringValue ?? "")
+            return try shapes(of: object, place: place, scope: &scope).map { .shape($0.rawValue) }
 
         case "title":
-            return .title
+            return [.title]
 
         case "adjust":
-            return .adjust
+            return [.adjust]
 
         default:
-            return .solid
+            return [.solid]
         }
     }
 
@@ -679,20 +674,55 @@ struct KeyChecker: Sendable {
             throw ModelError.conflictingKeys(place: place, kind: "operation", keys: present.map(\.rawValue))
         }
 
-        var shape: ShapeKind?
-        if present[0] == .shape {
-            let value = object["shape"] ?? .null
-            try check(
-                value,
-                as: .literal(VocabularyTable.shapes),
-                place: place.appending(key: "shape"),
-                kind: "shape",
-                scope: &scope
-            )
-            shape = value.stringValue.flatMap(ShapeKind.init(rawValue:))
+        guard present[0] == .shape else {
+            try checkObject(object, as: ImageKeyTable.table(for: present[0], shape: nil), place: place, scope: &scope)
+            return
         }
 
-        try checkObject(object, as: ImageKeyTable.table(for: present[0], shape: shape), place: place, scope: &scope)
+        let shapes = try shapes(of: object, place: place, scope: &scope)
+        try checkEach(shapes, scope: &scope) { shape, scope in
+            let table = ImageKeyTable.table(for: .shape, shape: shape)
+            try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
+        }
+    }
+
+    // A shape picks the keys its object takes, so a choice there stands for each of its options.
+    private func shapes(
+        of object: JSONObject,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws -> [ShapeKind] {
+        let value = object["shape"] ?? .null
+        try check(
+            value,
+            as: .literal(VocabularyTable.shapes),
+            place: place.appending(key: "shape"),
+            kind: "shape",
+            scope: &scope
+        )
+
+        // A reference passes the check only as a choice, whose options are the shapes it stands for.
+        let name = value.objectValue?["param"]?.stringValue
+        let written = name.map { scope.parameters[$0]?["options"]?.arrayValue ?? [] } ?? [value]
+
+        return written.compactMap { $0.stringValue.flatMap(ShapeKind.init(rawValue:)) }
+    }
+
+    // Checks the same object once for each kind it can be, as if written with that kind, and takes the references
+    // and ids it holds once.
+    private func checkEach<Kind>(
+        _ kinds: [Kind],
+        scope: inout DocumentScope,
+        checking check: (Kind, inout DocumentScope) throws -> Void
+    ) throws {
+        let written = scope
+        for (index, kind) in kinds.enumerated() {
+            var trial = written
+            try check(kind, &trial)
+            guard index == 0 else { continue }
+
+            scope = trial
+        }
     }
 
     private func checkParameter(
