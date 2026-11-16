@@ -56,4 +56,18 @@ struct TrackMotionTests {
         #expect(carried == Rectangle(x: 0, y: 130, width: 1206, height: 40))
         #expect(sut.bringBackBand(carried) == band)
     }
+
+    @Test("a band crop takes only the vertical move of the target's centre, so it keeps its size and ratio")
+    func carriesBandCrop() {
+        // Given
+        let crop = Rectangle(x: 0, y: 20, width: 1206, height: 603)
+
+        // When
+        let carried = sut.carryBandCrop(crop)
+
+        // Then
+        // The target's centre moves down from 25 to 150.
+        #expect(carried == Rectangle(x: 0, y: 145, width: 1206, height: 603))
+        #expect(sut.bringBackBandCrop(carried) == crop)
+    }
 }

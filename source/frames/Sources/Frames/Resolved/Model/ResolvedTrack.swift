@@ -54,5 +54,27 @@ struct ResolvedTrack: Equatable, Sendable {
         return isBand ? motion.carryBand(rectangle) : motion.carry(rectangle)
     }
 
+    // A storyline crop brought back as `bringBack` does, except that a band crop takes only the vertical move of the
+    // motion, so it keeps its ratio.
+    func bringBack(
+        crop: Rectangle,
+        fromMediaTime time: Double
+    ) -> Rectangle {
+        let motion = track.motion(atMediaTime: time)
+
+        return isBand ? motion.bringBackBandCrop(crop) : motion.bringBack(crop)
+    }
+
+    // A storyline crop carried as `carry` does, except that a band crop takes only the vertical move of the motion, so
+    // it keeps its ratio.
+    func carry(
+        crop: Rectangle,
+        toMediaTime time: Double
+    ) -> Rectangle {
+        let motion = track.motion(atMediaTime: time)
+
+        return isBand ? motion.carryBandCrop(crop) : motion.carry(crop)
+    }
+
     // MARK: - Private
 }

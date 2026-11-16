@@ -327,6 +327,33 @@ struct EvaluatorTests {
         #expect(rectangle == Rectangle(x: 0, y: 20, width: 200, height: 100))
     }
 
+    @Test("a tracked band crop takes the vertical move of a zooming target but not its scale, so it keeps its ratio")
+    func keepsBandCropRatio() throws {
+        // Given
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 20, width: 20, height: 20))
+        ])
+        let sequence = sequence([
+            storylineClip(
+                .pinned(first),
+                start: 0,
+                end: 4,
+                crop: Rectangle(x: 0, y: 0, width: 200, height: 100),
+                track: track
+            )
+        ])
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        // The target's centre moves down from 5 to 30 and it doubles, but the crop only moves.
+        let rectangle = try #require(mediaPicture(of: list)?.rectangle)
+        #expect(rectangle == Rectangle(x: 0, y: 25, width: 200, height: 100))
+    }
+
     @Test("a `fit` crop beyond the picture is drawn as conformed, leaving what lies outside the picture transparent")
     func drawsCropBeyondPicture() throws {
         // Given
