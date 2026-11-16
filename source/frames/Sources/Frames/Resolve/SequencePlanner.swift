@@ -43,6 +43,13 @@ struct SequencePlanner: Sendable {
         let clipNested = try time.clips.map { plan in try plan.media.flatMap(nested) }
         let format = try self.format(of: time, nested: storylineNested)
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
+        let clipPictures = try time.clips.indices.map { index in
+            try picture(
+                of: time.clips[index],
+                nested: clipNested[index],
+                place: written[index].place.appending(key: "media")
+            )
+        }
 
         let crops = try time.storyline.indices.map { index in
             try crop(
@@ -57,7 +64,7 @@ struct SequencePlanner: Sendable {
             try geometry(
                 of: time.clips[index],
                 written: written[index],
-                nested: clipNested[index],
+                picture: clipPictures[index],
                 time: time,
                 storylineNested: storylineNested,
                 format: format
@@ -93,7 +100,7 @@ struct SequencePlanner: Sendable {
                 position: found[index].position,
                 crop: found[index].crop,
                 title: title,
-                nested: clipNested[index],
+                picture: clipPictures[index],
                 format: format,
                 theme: time.theme
             )
@@ -122,7 +129,7 @@ struct SequencePlanner: Sendable {
                         written: written[index],
                         box: box,
                         crop: found[index].crop,
-                        nested: clipNested[index],
+                        picture: clipPictures[index],
                         scale: lengthScale,
                         theme: time.theme
                     ),
@@ -248,6 +255,18 @@ struct SequencePlanner: Sendable {
         return Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size)
     }
 
+    // A drawn media clip's picture, which its crop, its box and how it fills it are all found in. Audio is drawn by
+    // nothing, so it has none.
+    private func picture(
+        of plan: ClipPlan,
+        nested: DocumentPlan?,
+        place: Place
+    ) throws -> Picture? {
+        guard plan.kind != .media(.audio), let media = plan.media else { return nil }
+
+        return try picture(of: media, kind: plan.kind, nested: nested, place: place)
+    }
+
     // What a sequence clip's area and an unparented clip's position are in.
     private func output(of format: FormatPlan) -> Picture {
         Picture(name: "output", source: .document, size: format.size)
@@ -276,11 +295,11 @@ struct SequencePlanner: Sendable {
     }
 
     // A parented clip's area and position are in its storyline clip's picture, and a sequence clip's area and an
-    // unparented position in output pixels. A media clip's crop is in its own media.
+    // unparented position in output pixels. A media clip's crop is in its own picture.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
-        nested: DocumentPlan?,
+        picture: Picture?,
         time: TimePlan,
         storylineNested: [DocumentPlan?],
         format: FormatPlan
@@ -326,14 +345,8 @@ struct SequencePlanner: Sendable {
             )
         }
         let crop = try written.crop.flatMap { crop in
-            try plan.media.map { media in
-                let picture = try self.picture(
-                    of: media,
-                    kind: plan.kind,
-                    nested: nested,
-                    place: written.place.appending(key: "media")
-                )
-                return try finder.crops(
+            try picture.map { picture in
+                try finder.crops(
                     crop,
                     in: picture,
                     pictureClock: plan.timing.map { .media($0) } ?? .still,
@@ -398,7 +411,7 @@ struct SequencePlanner: Sendable {
         position: PropertyValue<Point>?,
         crop: PropertyValue<FoundArea>?,
         title: TextLayout?,
-        nested: DocumentPlan?,
+        picture: Picture?,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> ClipBox? {
@@ -410,14 +423,8 @@ struct SequencePlanner: Sendable {
             style = name
 
         case .media:
-            guard plan.kind != .media(.audio), let media = plan.media else { return nil }
+            guard let picture else { return nil }
 
-            let picture = try self.picture(
-                of: media,
-                kind: plan.kind,
-                nested: nested,
-                place: written.place.appending(key: "media")
-            )
             size = mediaSize(width: written.width, height: written.height, crop: crop, picture: picture.size)
             style = nil
 
@@ -638,11 +645,11 @@ struct SequencePlanner: Sendable {
         written: Clip,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
-        nested: DocumentPlan?,
+        picture: Picture?,
         scale: Double,
         theme: MergedTheme
     ) throws -> MediaAppearance? {
-        guard let box, case .media = written.content, let media = plan.media else { return nil }
+        guard let box, case .media = written.content, let picture else { return nil }
 
         let conform = written.conform ?? .fit
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
@@ -663,12 +670,6 @@ struct SequencePlanner: Sendable {
             })
 
         case .none:
-            let picture = try self.picture(
-                of: media,
-                kind: plan.kind,
-                nested: nested,
-                place: written.place.appending(key: "media")
-            )
             crops = .value(conformed(picture.bounds))
         }
         let shadow = MediaShadow(
