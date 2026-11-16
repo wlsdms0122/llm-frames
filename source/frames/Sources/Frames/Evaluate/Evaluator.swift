@@ -227,7 +227,7 @@ package struct Evaluator: Sendable {
     ) -> DisplayList {
         switch document {
         case let .sequence(sequence):
-            displayList(of: sequence, at: min(max(time, 0), sequence.format.duration.nextDown), seed: seed)
+            displayList(of: sequence, at: min(max(time, 0), sequence.format.duration - .timeResolution), seed: seed)
 
         case let .picture(picture):
             displayList(of: picture, seed: seed)

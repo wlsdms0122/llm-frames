@@ -84,12 +84,8 @@ struct ConnectedClipRenderTests {
             }
 
             // Media second (t - 0.5) at 5 frames a second. At frame 7 that is 0.7 - 0.5, which comes out a hair
-            // under 0.2, and frame picking takes it for the frame before.
-            withKnownIssue("frame picking takes floating point noise in a media time for the frame before") {
-                #expect(self.code(in: frame, box: box) == (index - 5) / 2, "frame \(index)")
-            } when: {
-                index == 7
-            }
+            // under 0.2 and still picks the frame at 0.2.
+            #expect(self.code(in: frame, box: box) == (index - 5) / 2, "frame \(index)")
         }
     }
 

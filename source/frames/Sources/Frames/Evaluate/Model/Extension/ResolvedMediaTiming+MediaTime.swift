@@ -13,9 +13,9 @@ extension ResolvedMediaTiming {
     // MARK: - Public
     func mediaTime(at time: Double) -> Double {
         let mediaTime = TimeMap(origin: origin, in: `in`, speed: speed).clipTime(atSequenceTime: time)
-        guard mediaTime >= out else { return mediaTime }
+        guard mediaTime.roundedTime >= out.roundedTime else { return mediaTime }
 
-        return loop ? `in` + (mediaTime - `in`).truncatingRemainder(dividingBy: out - `in`) : out.nextDown
+        return loop ? `in` + (mediaTime - `in`).truncatingRemainder(dividingBy: out - `in`) : out - .timeResolution
     }
 
     // MARK: - Private

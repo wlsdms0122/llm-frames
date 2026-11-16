@@ -5,23 +5,15 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The output frames of a sequence: frame k is drawn at k / fps for every k whose time lies more than a microsecond
-// before `duration`, and frame 0 always, so the output lasts `duration` to within one frame, its last frame is inside
-// the sequence, and floating point noise in `duration` adds no frame.
+// The output frames of a sequence: frame k is drawn at k / fps for every k whose time, measured to the microsecond, is
+// before `duration`, and frame 0 always, so the output lasts `duration` to within one frame and its last frame is
+// inside the sequence.
 extension ResolvedFormat {
     // MARK: - Property
-    private static let noise = 1e-6
-
     var frameCount: Int {
-        let end = duration - Self.noise
-        var count = max(Int((end * fps).rounded(.up)), 1)
-
-        // `end * fps` is rounded, so the count is moved to where frame times, measured as evaluation measures them,
-        // cross the end.
-        while count > 1 && frameTime(count - 1) >= end {
-            count -= 1
-        }
-        while frameTime(count) < end {
+        let end = duration.roundedTime
+        var count = 1
+        while frameTime(count).roundedTime < end {
             count += 1
         }
 

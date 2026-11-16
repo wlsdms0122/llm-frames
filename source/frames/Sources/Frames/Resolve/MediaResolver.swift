@@ -258,7 +258,7 @@ struct MediaResolver: Sendable {
             reference: reference,
             source: .sequence(plan),
             duration: plan.duration,
-            frames: 0...plan.duration.nextDown,
+            frames: 0...(plan.duration - .timeResolution),
             hasSound: media.contains { $0?.hasSound ?? false }
         )
     }
