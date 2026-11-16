@@ -33,45 +33,9 @@ struct ResolveEndToEndTests {
     func resolvesOnRealProviders() async throws {
         // Given
         let directory = try TemporaryDirectory()
-        let file = directory.file("screen.mov")
-        let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 720, ty: 0)
-        let writer = VideoWriter(
-            size: Size(width: 1280, height: 720),
-            frameTimes: times,
-            end: 1,
-            transform: quarterTurn
-        )
-        var drawn: [Rectangle] = []
-        try await writer.write(to: file) { canvas, index in
-            canvas.fill(red: 255, green: 255, blue: 255)
-            canvas.draw("Send message", font: "Helvetica", size: 48, x: 60, y: 200)
-            drawn.append(canvas.draw(
-                "Total 12,000원",
-                font: "AppleSDGothicNeo-Bold",
-                size: 48,
-                x: 100,
-                y: 700 - 4 * Double(index)
-            ))
-        }
-        let decoder = AVFoundationDecoder()
         let packs = try TemporaryDirectory()
-        let library = ReferenceLibrary(
-            packs: PackLibrary(installed: URL(fileURLWithPath: packs.path), shipped: URL(fileURLWithPath: packs.path)),
-            mediaFacts: decoder
-        )
-        let sut = DocumentPlanner(
-            mediaFacts: decoder,
-            presets: Fixture.presets,
-            ocr: VisionOCR(decoder: decoder),
-            tracker: PointTracker(decoder: decoder),
-            shaper: CoreTextShaper(),
-            library: library
-        )
-        let document = try Fixture.json(#"""
-            { "kind": "sequence",
-              "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
-              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "headline" } ] }
-            """#)
+        let (document, drawn) = try await screenDocument(in: directory)
+        let sut = planner(packs: packs)
 
         // When
         let plan = try #require(try sut.plan(document).sequence)
@@ -100,7 +64,97 @@ struct ResolveEndToEndTests {
         #expect(title.runs.flatMap(\.glyphs).count == "결제 완료".unicodeScalars.count)
     }
 
+    @Test("a resolved sequence reads back as it was written, and its tracked box follows the line on every frame")
+    func evaluatesWhatItReadsBack() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let packs = try TemporaryDirectory()
+        let (document, drawn) = try await screenDocument(in: directory)
+        let resolved = try ResolvedDocument(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
+        let sut = Evaluator()
+
+        // When
+        let text = ResolvedDocumentWriter().write(resolved)
+        let read = try ResolvedDocumentReader().read(text)
+        let boxes = try times.map { time in try box(in: sut.displayList(of: read, at: time)) }
+
+        // Then
+        #expect(read == resolved)
+        #expect(ResolvedDocumentWriter().write(read) == text)
+        for (index, box) in boxes.enumerated() {
+            let moved = box.center.y - boxes[0].center.y
+            let drift = drawn[index].center.y - drawn[0].center.y
+            #expect(abs(moved - drift) <= trackTolerance, "frame \(index) box moved \(moved), drawn \(drift)")
+            #expect(abs(box.center.x - boxes[0].center.x) <= trackTolerance, "frame \(index) box moved along the line")
+        }
+    }
+
     // MARK: - Private
+    // A portrait screen recording, stored turned, with a line that scrolls up 4 pixels a frame, a box tracking it and
+    // a title over it. The drawn boxes of the scrolling line come back in frame order.
+    private func screenDocument(in directory: TemporaryDirectory) async throws -> (JSONValue, [Rectangle]) {
+        let file = directory.file("screen.mov")
+        let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 720, ty: 0)
+        let writer = VideoWriter(
+            size: Size(width: 1280, height: 720),
+            frameTimes: times,
+            end: 1,
+            transform: quarterTurn
+        )
+        var drawn: [Rectangle] = []
+        try await writer.write(to: file) { canvas, index in
+            canvas.fill(red: 255, green: 255, blue: 255)
+            canvas.draw("Send message", font: "Helvetica", size: 48, x: 60, y: 200)
+            drawn.append(canvas.draw(
+                "Total 12,000원",
+                font: "AppleSDGothicNeo-Bold",
+                size: 48,
+                x: 100,
+                y: 700 - 4 * Double(index)
+            ))
+        }
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
+              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "headline" } ] }
+            """#)
+
+        return (document, drawn)
+    }
+
+    private func planner(packs: TemporaryDirectory) -> DocumentPlanner {
+        let decoder = AVFoundationDecoder()
+        let library = ReferenceLibrary(
+            packs: PackLibrary(installed: URL(fileURLWithPath: packs.path), shipped: URL(fileURLWithPath: packs.path)),
+            mediaFacts: decoder
+        )
+
+        return DocumentPlanner(
+            mediaFacts: decoder,
+            presets: Fixture.presets,
+            ocr: VisionOCR(decoder: decoder),
+            tracker: PointTracker(decoder: decoder),
+            shaper: CoreTextShaper(),
+            library: library
+        )
+    }
+
+    // The box's stroke inside the storyline unit, whose content rect is the whole output frame here.
+    private func box(in list: DisplayList) throws -> Rectangle {
+        let units = list.items.compactMap { item -> DisplayList? in
+            guard case let .picture(picture) = item.content, case let .displayList(unit) = picture.source else { return nil }
+
+            return unit
+        }
+        let strokes = units.flatMap(\.items).compactMap { item -> Rectangle? in
+            guard case let .stroke(stroke) = item.content else { return nil }
+
+            return stroke.rectangle
+        }
+
+        return try #require(strokes.first)
+    }
+
     private func isNear(
         _ found: Rectangle,
         _ drawn: Rectangle
