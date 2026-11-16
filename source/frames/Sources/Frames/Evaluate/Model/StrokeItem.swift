@@ -30,6 +30,25 @@ struct StrokeItem: Equatable, Sendable {
         self.trim = trim
     }
 
+    // A border: a square-cornered stroke that lies inside its rectangle, its edge `width / 2` in from the rectangle's.
+    init(
+        border rectangle: Rectangle,
+        width: Double,
+        color: Color
+    ) {
+        self.init(
+            rectangle: Rectangle(
+                x: rectangle.x + width / 2,
+                y: rectangle.y + width / 2,
+                width: rectangle.width - width,
+                height: rectangle.height - width
+            ),
+            radius: 0,
+            width: width,
+            color: color
+        )
+    }
+
     // MARK: - Public
     // MARK: - Private
 }

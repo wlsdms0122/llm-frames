@@ -39,6 +39,15 @@ struct MediaFrame: Equatable, Sendable {
         self.init(media: media, index: media.frameIndex(at: mediaTime))
     }
 
+    // The frame a transition's cover or matte shows at a progress through it: media time progress x its duration, so
+    // a still shows its one frame.
+    init(
+        media: ResolvedTransitionMedia,
+        progress: Double
+    ) {
+        self.init(media: media.media, mediaTime: progress * media.duration)
+    }
+
     // MARK: - Public
     // MARK: - Private
 }

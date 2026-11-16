@@ -23,6 +23,21 @@ struct GlyphsItem: Equatable, Sendable {
         self.background = background
     }
 
+    // Shaped text in its own box. Its background fills the whole box, which holds the background's padding.
+    init(text: ResolvedText) {
+        self.init(
+            runs: text.runs,
+            stroke: text.stroke,
+            background: text.background.map { background in
+                GlyphBackground(
+                    rectangle: Rectangle(x: 0, y: 0, width: text.size.width, height: text.size.height),
+                    radius: background.radius,
+                    color: background.color
+                )
+            }
+        )
+    }
+
     // MARK: - Public
     // MARK: - Private
 }
