@@ -10,9 +10,22 @@ let package = Package(
     ],
     targets: [
         .target(name: "Frames"),
+        .target(
+            name: "FramesAVFoundation",
+            dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesTestMedia",
+            dependencies: ["Frames"],
+            path: "Tests/FramesTestMedia"
+        ),
         .testTarget(
             name: "FramesTests",
             dependencies: ["Frames"]
+        ),
+        .testTarget(
+            name: "FramesAVFoundationTests",
+            dependencies: ["FramesAVFoundation", "FramesTestMedia"]
         )
     ]
 )
