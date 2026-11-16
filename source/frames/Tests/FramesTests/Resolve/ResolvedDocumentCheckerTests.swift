@@ -1,5 +1,5 @@
 //
-//  ResolvedVersionCheckerTests.swift
+//  ResolvedDocumentCheckerTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/16/26.
@@ -9,10 +9,10 @@ import Testing
 
 @testable import Frames
 
-@Suite("ResolvedVersionChecker Tests")
-struct ResolvedVersionCheckerTests {
+@Suite("ResolvedDocumentChecker Tests")
+struct ResolvedDocumentCheckerTests {
     // MARK: - Property
-    private let sut = ResolvedVersionChecker(current: "1.2.3")
+    private let sut = ResolvedDocumentChecker(current: "1.2.3")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -54,7 +54,7 @@ struct ResolvedVersionCheckerTests {
         let error = #expect(throws: ResolveError.self) { try sut.version(of: document, theme: nil, arguments: nil) }
         #expect(error == .unreadableResolvedVersion(
             place: Place.root.appending(key: "resolved"),
-            kind: .image,
+            kind: "image",
             written: version,
             current: "1.2.3"
         ))
@@ -81,11 +81,30 @@ struct ResolvedVersionCheckerTests {
         let arguments = ArgumentFile(name: "args.json", value: try Fixture.json("{}"))
 
         // When, Then
-        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: .layout, option: "--theme")) {
+        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "layout", option: "--theme")) {
             try sut.version(of: document, theme: "shorts", arguments: nil)
         }
-        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: .layout, option: "--args")) {
+        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "layout", option: "--args")) {
             try sut.version(of: document, theme: nil, arguments: arguments)
         }
+    }
+
+    @Test(
+        "a stop names the kind as written, since nothing checks a resolved document's keys before it",
+        arguments: [
+            (#"{ "kind": "sequnce", "resolved": "1.2.3" }"#, "sequnce"),
+            (#"{ "resolved": "1.2.3" }"#, "document")
+        ]
+    )
+    func namesWrittenKind(
+        body: String,
+        kind: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(body)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.version(of: document, theme: "shorts", arguments: nil) }
+        #expect(error == .optionOnResolved(place: .root, kind: kind, option: "--theme"))
     }
 }

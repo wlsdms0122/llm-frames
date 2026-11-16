@@ -1,14 +1,15 @@
 //
-//  ResolvedVersionChecker.swift
+//  ResolvedDocumentChecker.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
 //
 
-// Checks a resolved document before anything reads the rest of it: a frames reads one written by a frames of its own
-// major version at its minor version or an earlier one, and refuses any other, naming both versions. Its theme and
-// arguments are already written in, so `--theme` or `--args` with it stops.
-struct ResolvedVersionChecker: Sendable {
+// Decides whether a resolved document can be read, before anything reads the rest of it: a frames reads one written by
+// a frames of its own major version at its minor version or an earlier one, and refuses any other, naming both
+// versions. Its theme and arguments are already written in, so `--theme` or `--args` with it stops. Nothing checks a
+// resolved document's keys, so its stops name its `kind` as written.
+struct ResolvedDocumentChecker: Sendable {
     // MARK: - Property
     private let current: String
 
@@ -28,7 +29,7 @@ struct ResolvedVersionChecker: Sendable {
         let object = document.objectValue ?? JSONObject()
         guard let resolved = object["resolved"] else { return nil }
 
-        let kind = self.kind(of: object["kind"]?.stringValue)
+        let kind = object["kind"]?.stringValue ?? "document"
         guard theme == nil else { throw ResolveError.optionOnResolved(place: .root, kind: kind, option: "--theme") }
         guard arguments == nil else { throw ResolveError.optionOnResolved(place: .root, kind: kind, option: "--args") }
 
@@ -60,18 +61,5 @@ struct ResolvedVersionChecker: Sendable {
         guard parts.count == 3, numbers.count == 3 else { return nil }
 
         return numbers
-    }
-
-    private func kind(of kind: String?) -> PlaceKind {
-        switch kind {
-        case "image":
-            .image
-
-        case "layout":
-            .layout
-
-        default:
-            .sequence
-        }
     }
 }
