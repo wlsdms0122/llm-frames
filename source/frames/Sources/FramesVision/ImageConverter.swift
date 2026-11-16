@@ -21,17 +21,17 @@ struct ImageConverter: Sendable {
         file: String,
         index: Int
     ) throws -> CGImage {
-        let byteOrder = picture.bitsPerComponent == 16 ? CGBitmapInfo.byteOrder16Little : []
+        let byteOrder: CGImageByteOrderInfo = picture.depth == .sixteen ? .order16Host : .orderDefault
         guard
             let provider = CGDataProvider(data: picture.pixels as CFData),
             let image = CGImage(
                 width: picture.width,
                 height: picture.height,
-                bitsPerComponent: picture.bitsPerComponent,
-                bitsPerPixel: picture.bitsPerComponent * 4,
+                bitsPerComponent: picture.depth.bitsPerComponent,
+                bitsPerPixel: picture.depth.bitsPerComponent * 4,
                 bytesPerRow: picture.bytesPerRow,
                 space: Self.workingSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue).union(byteOrder),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue | byteOrder.rawValue),
                 provider: provider,
                 decode: nil,
                 shouldInterpolate: false,

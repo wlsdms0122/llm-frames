@@ -25,13 +25,12 @@ struct PictureConverter: Sendable {
     // MARK: - Public
     func picture(
         from image: CIImage,
-        bitsPerComponent: Int
+        depth: BitDepth
     ) -> DecodedPicture {
         let placed = image.transformed(by: CGAffineTransform(translationX: -image.extent.minX, y: -image.extent.minY))
         let width = Int(placed.extent.width.rounded())
         let height = Int(placed.extent.height.rounded())
-        let isDeep = bitsPerComponent > 8
-        let bytesPerRow = width * (isDeep ? 8 : 4)
+        let bytesPerRow = width * 4 * depth.bitsPerComponent / 8
         var pixels = Data(count: bytesPerRow * height)
         pixels.withUnsafeMutableBytes { buffer in
             context.render(
@@ -39,7 +38,7 @@ struct PictureConverter: Sendable {
                 toBitmap: buffer.baseAddress!,
                 rowBytes: bytesPerRow,
                 bounds: CGRect(x: 0, y: 0, width: width, height: height),
-                format: isDeep ? .RGBA16 : .RGBA8,
+                format: depth == .sixteen ? .RGBA16 : .RGBA8,
                 colorSpace: Self.workingSpace
             )
         }
@@ -47,7 +46,7 @@ struct PictureConverter: Sendable {
         return DecodedPicture(
             width: width,
             height: height,
-            bitsPerComponent: isDeep ? 16 : 8,
+            depth: depth,
             bytesPerRow: bytesPerRow,
             pixels: pixels
         )

@@ -16,7 +16,7 @@ import UniformTypeIdentifiers
 struct StillReader {
     // MARK: - Property
     let displaySize: Size
-    let bitsPerComponent: Int
+    let depth: BitDepth
 
     private let source: CGImageSource
     private let orientation: CGImagePropertyOrientation
@@ -47,7 +47,7 @@ struct StillReader {
         self.displaySize = orientation.rawValue >= 5
             ? Size(width: height, height: width)
             : Size(width: width, height: height)
-        self.bitsPerComponent = properties[kCGImagePropertyDepth] as? Int ?? 8
+        self.depth = BitDepth(holding: properties[kCGImagePropertyDepth] as? Int ?? 8)
     }
 
     // MARK: - Public

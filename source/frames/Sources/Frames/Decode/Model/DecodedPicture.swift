@@ -8,13 +8,13 @@
 import Foundation
 
 // A picture in the working space, as the media is displayed: `width` by `height` pixels of RGBA with premultiplied
-// alpha, sRGB encoded, rows top first and `bytesPerRow` apart in `pixels`. Each component is `bitsPerComponent` 8 or
-// 16 bits, at the media's bit depth or more, 16 bit ones in the machine's byte order.
+// alpha, sRGB encoded, rows top first and `bytesPerRow` apart in `pixels`. Each component has `depth`'s bits, at the
+// media's bit depth or more, and sixteen bit ones are in the machine's byte order.
 package struct DecodedPicture: Equatable, Sendable {
     // MARK: - Property
     package let width: Int
     package let height: Int
-    package let bitsPerComponent: Int
+    package let depth: BitDepth
     package let bytesPerRow: Int
     package let pixels: Data
 
@@ -22,13 +22,13 @@ package struct DecodedPicture: Equatable, Sendable {
     package init(
         width: Int,
         height: Int,
-        bitsPerComponent: Int,
+        depth: BitDepth,
         bytesPerRow: Int,
         pixels: Data
     ) {
         self.width = width
         self.height = height
-        self.bitsPerComponent = bitsPerComponent
+        self.depth = depth
         self.bytesPerRow = bytesPerRow
         self.pixels = pixels
     }

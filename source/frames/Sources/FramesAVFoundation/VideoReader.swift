@@ -20,7 +20,7 @@ struct VideoReader: Sendable {
     let fps: Double
     let duration: Double
     let hasSound: Bool
-    let bitsPerComponent: Int
+    let depth: BitDepth
 
     var frameTimes: [Double] {
         guard let first = frames.first else { return [] }
@@ -53,7 +53,7 @@ struct VideoReader: Sendable {
         self.displaySize = Size(width: turned.width.rounded(), height: turned.height.rounded())
         self.fps = Double(loaded.nominalFrameRate)
         self.hasSound = loaded.hasSound
-        self.bitsPerComponent = loaded.bitsPerComponent
+        self.depth = BitDepth(holding: loaded.bitsPerComponent)
         let frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
         self.frames = frames
         self.duration = CMTimeGetSeconds(CMTimeSubtract(loaded.duration, frames.first?.presented ?? .zero))
@@ -69,7 +69,7 @@ struct VideoReader: Sendable {
         let time = frames[index].presented
         let reader = try AVAssetReader(asset: asset)
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
-            kCVPixelBufferPixelFormatTypeKey as String: bitsPerComponent > 8
+            kCVPixelBufferPixelFormatTypeKey as String: depth == .sixteen
                 ? kCVPixelFormatType_64RGBAHalf
                 : kCVPixelFormatType_32BGRA
         ])

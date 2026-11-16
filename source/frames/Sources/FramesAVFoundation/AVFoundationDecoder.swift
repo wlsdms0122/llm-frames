@@ -33,7 +33,7 @@ package final class AVFoundationDecoder: Sendable {
     }
 
     private func picture(of still: StillReader, path: String) throws -> DecodedPicture {
-        converter.picture(from: try still.image(path: path), bitsPerComponent: still.bitsPerComponent)
+        converter.picture(from: try still.image(path: path), depth: still.depth)
     }
 
     // The PNG files in a directory in natural order, so `frame2` comes before `frame10`.
@@ -128,7 +128,7 @@ extension AVFoundationDecoder: MediaDecoder {
 
         return converter.picture(
             from: try video.image(atFrame: index, path: file.path),
-            bitsPerComponent: video.bitsPerComponent
+            depth: video.depth
         )
     }
 }

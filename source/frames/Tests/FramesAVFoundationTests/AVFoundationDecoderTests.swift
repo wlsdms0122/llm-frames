@@ -74,7 +74,7 @@ struct AVFoundationDecoderTests {
 
         // Then
         #expect(pictures.map(code) == Array(evenTimes.indices))
-        #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.bitsPerComponent == 8 })
+        #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .eight })
     }
 
     @Test("a video written at uneven times keeps its real timestamps, and its frames are read by them")
@@ -259,7 +259,7 @@ struct AVFoundationDecoderTests {
         #expect(zip(videoPixel, [200, 120, 40, 255]).allSatisfy { abs($0 - $1) <= 3 }, "\(videoPixel)")
         #expect(pixel(in: stillPicture, x: 160, y: 120) == [200, 120, 40, 255])
         #expect(pixel(in: stillPicture, x: 5, y: 235) == [0, 0, 0, 0])
-        #expect(deepPicture.bitsPerComponent == 16)
+        #expect(deepPicture.depth == .sixteen)
         #expect(deepPicture.bytesPerRow == 320 * 8)
     }
 
