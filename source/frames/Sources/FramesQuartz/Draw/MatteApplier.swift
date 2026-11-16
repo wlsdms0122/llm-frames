@@ -23,7 +23,7 @@ struct MatteApplier {
         to picture: CIImage,
         size: Size
     ) throws -> CIImage {
-        let kernel = try KernelLibrary.shared.get().colorKernel(named: Self.kernelName)
+        let kernel = try KernelLibrary.shared.colorKernel(named: Self.kernelName)
         let stretch = CGAffineTransform(
             a: size.width / CGFloat(frame.width),
             b: 0,

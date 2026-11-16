@@ -29,7 +29,7 @@ struct FilterChain: Sendable {
         to image: CIImage,
         seed: Int
     ) throws -> CIImage {
-        let library = try KernelLibrary.shared.get()
+        let library = KernelLibrary.shared
         var result = image
         for operation in operations {
             result = try apply(operation, to: result, seed: seed, library: library).cropped(to: image.extent)
@@ -115,7 +115,7 @@ struct FilterChain: Sendable {
     ) throws -> CIImage {
         let kernel = try library.colorKernel(named: name)
         guard let result = kernel.apply(extent: image.extent, arguments: [image] + arguments) else {
-            throw QuartzError.unappliedKernel(name: name)
+            throw QuartzError.kernelFailed(name: name)
         }
 
         return result
@@ -145,7 +145,7 @@ struct FilterChain: Sendable {
             arguments: arguments
         )
         else {
-            throw QuartzError.unappliedKernel(name: name)
+            throw QuartzError.kernelFailed(name: name)
         }
 
         return result
@@ -184,7 +184,7 @@ struct FilterChain: Sendable {
             arguments: [image, size, bounds]
         )
         else {
-            throw QuartzError.unappliedKernel(name: meanName)
+            throw QuartzError.kernelFailed(name: meanName)
         }
         guard let result = fill.apply(
             extent: extent,
@@ -192,7 +192,7 @@ struct FilterChain: Sendable {
             arguments: [blocks, size, bounds]
         )
         else {
-            throw QuartzError.unappliedKernel(name: fillName)
+            throw QuartzError.kernelFailed(name: fillName)
         }
 
         return result

@@ -17,7 +17,7 @@ struct Blender {
         over backdrop: CIImage,
         mode: BlendMode
     ) throws -> CIImage {
-        let kernel = try KernelLibrary.shared.get().colorKernel(named: mode.kernelName)
+        let kernel = try KernelLibrary.shared.colorKernel(named: mode.kernelName)
         guard let image = kernel.apply(extent: backdrop.extent, arguments: [layer, backdrop]) else {
             throw QuartzError.kernelFailed(name: mode.kernelName)
         }

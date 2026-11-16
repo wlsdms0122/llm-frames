@@ -14,7 +14,7 @@ import Foundation
 // asked for, in about half a second, and kept for the process.
 final class KernelLibrary: @unchecked Sendable {
     // MARK: - Property
-    static let shared = Result<KernelLibrary, any Error>.success(KernelLibrary())
+    static let shared = KernelLibrary()
 
     private static let header = """
         #include <CoreImage/CoreImage.h>

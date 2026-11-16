@@ -7,7 +7,6 @@
 
 package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownKernel(name: String)
-    case unappliedKernel(name: String)
     case unsupportedBlend(name: String, place: String)
     case kernelFailed(name: String)
     case faceNotInFile(file: String, face: String)
@@ -20,14 +19,11 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownKernel(name):
             "the quartz kernel library has no kernel \(name)"
 
-        case let .unappliedKernel(name):
-            "the quartz kernel \(name) does not take the arguments it was given"
-
         case let .unsupportedBlend(name, place):
             "the quartz renderer has no blend mode \(name) at \(place)"
 
         case let .kernelFailed(name):
-            "the quartz colour kernel \(name) gave no image"
+            "the quartz kernel \(name) gave no image"
 
         case let .faceNotInFile(file, face):
             "the quartz renderer found no face \(face) in the font file \(file)"
