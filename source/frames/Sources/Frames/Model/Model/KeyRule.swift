@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-struct KeyRule: Sendable {
+struct KeyRule: Equatable, Sendable {
     // MARK: - Property
     let name: String
     let type: ValueType

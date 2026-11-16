@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-indirect enum ValueType: Sendable {
+indirect enum ValueType: Equatable, Sendable {
     case anyValue
     case anyObject
     case exactly(JSONValue)

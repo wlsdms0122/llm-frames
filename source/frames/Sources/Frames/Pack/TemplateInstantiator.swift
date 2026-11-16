@@ -7,7 +7,7 @@
 
 // Instantiates a template: every reference to a parameter takes its argument or its default, and the template's
 // `params` go, so the instance is a document of plain values. The template passed its checks against its parameter
-// types, so an argument of the right type keeps its keys and types right, and only the arguments are checked here.
+// types, so only the values are checked here: each against its parameter's type, and against every place it fills.
 struct TemplateInstantiator: Sendable {
     // MARK: - Property
     private let checker: KeyChecker
@@ -44,13 +44,21 @@ struct TemplateInstantiator: Sendable {
         return TemplateInstance(
             document: removingParameters(from: document),
             kind: template.kind,
-            arguments: given.map { ParameterReference(place: Place(components: $0.place.components), name: $0.name) },
+            arguments: given.map { reference in
+                ParameterReference(
+                    place: Place(components: reference.place.components),
+                    name: reference.name,
+                    type: reference.type,
+                    kind: reference.kind
+                )
+            },
             values: values
         )
     }
 
     // MARK: - Private
-    // A default was checked against its type with the template, but its media kind is known only once it is probed.
+    // A default was checked against its type with the template, but its media kind is known only once it is probed,
+    // and like an argument it meets the places it fills only when it is taken.
     private func value(
         of parameter: TemplateParameter,
         in arguments: JSONObject,
@@ -66,6 +74,7 @@ struct TemplateInstantiator: Sendable {
                 place: argumentPlace,
                 kind: TemplateKeyTable.argumentsKind
             )
+            try checkPlaces(of: argument, parameter: parameter, template: template)
 
             return argument
         }
@@ -79,7 +88,28 @@ struct TemplateInstantiator: Sendable {
             place: template.place.appending(key: "params").appending(key: parameter.name).appending(key: "default"),
             kind: TemplateKeyTable.parameter.kind
         )
+        try checkPlaces(of: defaultValue, parameter: parameter, template: template)
+
         return defaultValue
+    }
+
+    // A place can take less than its parameter's type, such as whole pixels for a number, so the value is checked
+    // as if written at every place its parameter fills. A choice's options and media were checked there with the
+    // template.
+    private func checkPlaces(
+        of value: JSONValue,
+        parameter: TemplateParameter,
+        template: Template
+    ) throws {
+        switch parameter.type {
+        case .text, .color, .number:
+            for reference in template.references where reference.name == parameter.name {
+                try checker.check(value, as: reference.type, place: reference.place, kind: reference.kind)
+            }
+
+        case .choice, .video, .sequence, .image, .audio:
+            return
+        }
     }
 
     // An argument that is an object was checked as media where it is written, so only its type is left.

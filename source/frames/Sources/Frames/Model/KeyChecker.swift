@@ -782,7 +782,7 @@ struct KeyChecker: Sendable {
         }
 
         scope.usedParameters.insert(name)
-        scope.references.append(ParameterReference(place: place, name: name))
+        scope.references.append(ParameterReference(place: place, name: name, type: type, kind: kind))
 
         let parameterType = parameter["type"]?.stringValue ?? ""
         guard parameterType != "choice" else {

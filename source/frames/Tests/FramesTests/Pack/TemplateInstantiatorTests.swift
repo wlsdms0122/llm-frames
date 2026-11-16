@@ -48,7 +48,8 @@ struct TemplateInstantiatorTests {
             """##)
         #expect(instance.document == expected)
         #expect(instance.kind == .sequence)
-        #expect(instance.arguments == [ParameterReference(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), name: "clip")])
+        #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
+        #expect(instance.arguments.map(\.name) == ["clip"])
     }
 
     @Test("an argument the template does not declare stops")
@@ -120,6 +121,77 @@ struct TemplateInstantiatorTests {
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
         #expect(error?.description == #"shorts/leak: params.clip.default (parameter): parameter "clip" takes video media, found image"#)
+    }
+
+    @Test(
+        "a value its place cannot take stops at that place in the template, as the same value written there would",
+        arguments: [
+            (
+                #"{ "p": { "type": "number" } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                #"{ "p": -5 }"#,
+                "ops[0].pad (pad): expected whole pixels, 0 or more, found -5"
+            ),
+            (
+                #"{ "p": { "type": "number" } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                #"{ "p": 0.5 }"#,
+                "ops[0].pad (pad): expected whole pixels, 0 or more, found 0.5"
+            ),
+            (
+                #"{ "p": { "type": "number", "default": -1 } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                "{}",
+                "ops[0].pad (pad): expected whole pixels, 0 or more, found -1"
+            ),
+            (
+                #"{ "p": { "type": "number" } }, "ops": [ { "resize": { "scale": { "param": "p" } } }, { "pad": { "param": "p" } } ]"#,
+                #"{ "p": 0.5 }"#,
+                "ops[1].pad (pad): expected whole pixels, 0 or more, found 0.5"
+            ),
+            (
+                #"{ "a": { "type": "number" } }, "ops": [ { "pad": [ { "param": "a" }, 2 ] } ]"#,
+                #"{ "a": -5 }"#,
+                "ops[0].pad[0] (pad): expected whole pixels, 0 or more, found -5"
+            )
+        ]
+    )
+    func refusesValueItsPlaceCannotTake(parameters: String, text: String, message: String) throws {
+        // Given
+        let template = try template(#"{ "kind": "image", "source": "/abs/page.png", "params": \#(parameters) }"#)
+        let arguments = try Fixture.object(text)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description == "shorts/leak: \(message)")
+    }
+
+    @Test("a crop scale given as a parameter stops at 0, as a written one does")
+    func refusesCropScaleOfZero() throws {
+        // Given
+        let template = try template(#"""
+            { "kind": "sequence", "params": { "s": { "type": "number" } },
+              "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "s" } } } ] }
+            """#)
+        let arguments = try Fixture.object(#"{ "s": 0 }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description == "shorts/leak: storyline[0].crop.scale (crop): expected a number above 0, found 0")
+    }
+
+    @Test("a value that every place of its parameter takes fills them all")
+    func fillsPlacesOfDifferentTypes() throws {
+        // Given
+        let template = try template(#"""
+            { "kind": "image", "source": "/abs/page.png", "params": { "p": { "type": "number" } },
+              "ops": [ { "resize": { "scale": { "param": "p" } } }, { "pad": { "param": "p" } } ] }
+            """#)
+        let arguments = try Fixture.object(#"{ "p": 2 }"#)
+
+        // When
+        let instance = try sut.instance(of: template, arguments: arguments, place: place)
+
+        // Then
+        let expected = try Fixture.json(#"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "resize": { "scale": 2 } }, { "pad": 2 } ] }"#)
+        #expect(instance.document == expected)
     }
 
     @Test("media given as an argument is recorded where it stands, and a default is not")
