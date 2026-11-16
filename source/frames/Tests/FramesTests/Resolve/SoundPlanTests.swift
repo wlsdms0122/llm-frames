@@ -109,7 +109,7 @@ struct SoundPlanTests {
         #expect(plan.sound[0].volume == .value(0.4))
     }
 
-    @Test("fades lie at the ends of a storyline clip's drawn range and of a clip's window, which the sequence end cuts")
+    @Test("fades lie at the ends of a storyline clip's drawn range and of a clip's visible window, so the sequence end moves a fade out")
     func placesFades() throws {
         // When
         let plan = try plan(#"""
@@ -132,7 +132,7 @@ struct SoundPlanTests {
             nil,
             TimeRange(start: 7, end: 8),
             TimeRange(start: 6, end: 6.5),
-            TimeRange(start: 24, end: 26)
+            TimeRange(start: 6, end: 8)
         ])
         #expect(plan.sound[3].range == TimeRange(start: 6, end: 8))
     }

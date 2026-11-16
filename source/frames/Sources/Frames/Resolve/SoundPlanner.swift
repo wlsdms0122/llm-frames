@@ -99,8 +99,8 @@ struct SoundPlanner: Sendable {
             range: plan.visible,
             audible: audible,
             volume: volume(clipMedia.volume, clock: plan.clock),
-            fadeIn: fadeIn(clipMedia.fadeIn, over: plan.window),
-            fadeOut: fadeOut(clipMedia.fadeOut, over: plan.window),
+            fadeIn: fadeIn(clipMedia.fadeIn, over: plan.visible),
+            fadeOut: fadeOut(clipMedia.fadeOut, over: plan.visible),
             incoming: nil,
             outgoing: nil,
             nested: nested?.sequence?.sound ?? []
