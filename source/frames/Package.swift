@@ -29,7 +29,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FramesTests",
-            dependencies: ["Frames"]
+            dependencies: ["Frames", "FramesAVFoundation", "FramesVision", "FramesCoreText", "FramesTestMedia"]
         ),
         .testTarget(
             name: "FramesAVFoundationTests",

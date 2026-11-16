@@ -159,7 +159,11 @@ extension CoreTextShaper: ShapingProvider {
 
             let runFace = try self.face(of: run, asked: face)
             let shaped = (0..<count).map { index in
-                ShapedGlyph(id: Int(glyphs[index]), advance: Double(advances[index].width), offset: scalars[offsets[index]])
+                ShapedGlyph(
+                    id: Int(glyphs[index]),
+                    advance: Double(advances[index].width),
+                    offset: scalars[offsets[index]]
+                )
             }
 
             if let last = runs.last, last.face == runFace {
