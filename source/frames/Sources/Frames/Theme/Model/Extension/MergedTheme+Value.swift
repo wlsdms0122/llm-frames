@@ -104,6 +104,11 @@ extension MergedTheme {
         return Color(written: value(at: ["colors", written])?.stringValue ?? "#000000")
     }
 
+    // Whether a colour written outside the theme, as in a preset, is a value or names a colour the theme holds.
+    func isColor(_ written: String) -> Bool {
+        written.hasPrefix("#") || value(at: ["colors", written]) != nil
+    }
+
     // A shape's theme colour, which a document's `color` replaces.
     func shapeColor(of shape: ShapeKind) -> Color {
         color(value(at: ["shapes", shape.rawValue, "color"])?.stringValue ?? "accent")

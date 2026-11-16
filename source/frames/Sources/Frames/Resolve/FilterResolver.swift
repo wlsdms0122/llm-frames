@@ -6,7 +6,7 @@
 //
 
 // Resolves a filter choice to the operations it applies, in order: a preset name, a list of them, or `none`. The
-// names its operations hold are resolved to values.
+// names its operations hold are resolved to values in `theme`.
 struct FilterResolver: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
@@ -24,12 +24,13 @@ struct FilterResolver: Sendable {
     // MARK: - Public
     func operations(
         of choice: JSONValue,
+        theme: MergedTheme,
         place: Place,
         kind: PlaceKind
     ) throws -> [FilterOperation] {
         if let names = choice.arrayValue {
             return try names.enumerated().flatMap { index, name in
-                try operations(of: name, place: place.appending(index: index), kind: kind)
+                try operations(of: name, theme: theme, place: place.appending(index: index), kind: kind)
             }
         }
 
@@ -39,7 +40,7 @@ struct FilterResolver: Sendable {
             throw ResolveError.unknownPreset(place: place, kind: kind, presetKind: "filter", name: name)
         }
 
-        return try preset.operations.map { operation in try values.operation(operation, place: place, kind: kind) }
+        return try preset.operations.map { operation in try values.operation(operation, theme: theme, place: place, kind: kind) }
     }
 
     // MARK: - Private

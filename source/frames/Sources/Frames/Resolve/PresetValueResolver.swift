@@ -6,8 +6,9 @@
 //
 
 // Resolves the names a preset holds to the values a resolved document carries: a LUT, matte or cover file to its
-// absolute path. A preset names files as anything outside it does, so a pack's preset finds its pack's files by
-// `<pack>/<name>` wherever the pack is installed, and an absolute path stays as it is.
+// absolute path, and a theme colour to `#RRGGBBAA` in the theme where the preset is chosen. A preset names files as
+// anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
+// installed, and an absolute path stays as it is.
 struct PresetValueResolver: Sendable {
     // MARK: - Property
     private let library: ReferenceLibrary
@@ -21,6 +22,7 @@ struct PresetValueResolver: Sendable {
     // `place` is where the preset is chosen.
     func operation(
         _ operation: FilterOperation,
+        theme: MergedTheme,
         place: Place,
         kind: PlaceKind
     ) throws -> FilterOperation {
@@ -28,21 +30,29 @@ struct PresetValueResolver: Sendable {
         case let .lut(file, amount):
             .lut(file: try self.file(file, found: library.lutFile(named: file), place: place, kind: kind), amount: amount)
 
-        case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .bloom,
-            .vignette, .pixelate, .grain:
+        case let .bloom(amount, radius, color):
+            .bloom(
+                amount: amount,
+                radius: radius,
+                color: try color.map { try self.color($0, theme: theme, place: place, kind: kind) }
+            )
+
+        case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .vignette,
+            .pixelate, .grain:
             operation
         }
     }
 
     func transition(
         _ preset: TransitionPreset,
+        theme: MergedTheme,
         place: Place,
         kind: PlaceKind
     ) throws -> TransitionPreset {
         let cover = try preset.cover.map { cover in
             switch cover.source {
-            case .color:
-                cover
+            case let .color(color):
+                Cover(source: .color(try self.color(color, theme: theme, place: place, kind: kind)), span: cover.span)
 
             case let .media(media):
                 Cover(source: .media(try mediaFile(media, place: place, kind: kind)), span: cover.span)
@@ -69,6 +79,20 @@ struct PresetValueResolver: Sendable {
     }
 
     // MARK: - Private
+    // A colour is a value or the name of a theme colour, and a name the theme does not hold stops.
+    private func color(
+        _ written: String,
+        theme: MergedTheme,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> String {
+        guard theme.isColor(written) else {
+            throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written)
+        }
+
+        return theme.color(written).hex
+    }
+
     private func mediaFile(
         _ name: String,
         place: Place,

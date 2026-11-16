@@ -79,6 +79,7 @@ struct SequencePlanner: Sendable {
                         theme: time.theme
                     ),
                     scale: lengthScale,
+                    theme: time.theme,
                     place: time.storyline[index].place.appending(key: "filter"),
                     kind: time.storyline[index].source.kind
                 ),
@@ -612,6 +613,7 @@ struct SequencePlanner: Sendable {
             filter: try filter(
                 written.filter ?? defaultFilter(of: plan.kind, media: media(of: written), theme: theme),
                 scale: scale,
+                theme: theme,
                 place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter"),
                 kind: plan.kind
             ),
@@ -711,12 +713,13 @@ struct SequencePlanner: Sendable {
     private func filter(
         _ choice: JSONValue?,
         scale: Double,
+        theme: MergedTheme,
         place: Place,
         kind: ClipKind
     ) throws -> [FilterOperation] {
         guard let choice else { return [] }
 
-        return try filters.operations(of: choice, place: place, kind: .clip(kind))
+        return try filters.operations(of: choice, theme: theme, place: place, kind: .clip(kind))
             .map { $0.scaled(by: scale) }
     }
 

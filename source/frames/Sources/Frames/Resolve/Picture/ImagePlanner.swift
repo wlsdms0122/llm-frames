@@ -129,7 +129,12 @@ struct ImagePlanner: Sendable {
         case let .adjust(choice, form):
             let kind = PlaceKind.operation(.adjust)
             let area = try form.map { try find($0, "area", kind, theme.areaPadding) } ?? canvas.bounds
-            let operations = try filters.operations(of: choice, place: place.appending(key: "adjust"), kind: kind)
+            let operations = try filters.operations(
+                of: choice,
+                theme: theme,
+                place: place.appending(key: "adjust"),
+                kind: kind
+            )
             canvas.draw(.adjustment(operations.map { $0.scaled(by: scale) }, area: area))
 
         case let .title(title, position, anchor, style, width):

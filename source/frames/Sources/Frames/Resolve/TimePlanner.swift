@@ -48,7 +48,7 @@ struct TimePlanner: Sendable {
         let merged = try themes.theme(sequence.theme, of: sequence.place, kind: .sequence, over: theme)
         let defaults = try validator.defaults(in: merged, presets: presets)
         let sources = try sequence.storyline.map { clip in try source(of: clip, theme: merged) }
-        let storyline = try layOut(sequence.storyline, sources: sources, defaults: defaults)
+        let storyline = try layOut(sequence.storyline, sources: sources, defaults: defaults, theme: merged)
         let duration = storyline[storyline.count - 1].edit.end
 
         let connected = try sequence.storyline.enumerated().flatMap { index, clip in
@@ -164,7 +164,8 @@ struct TimePlanner: Sendable {
     private func layOut(
         _ clips: [StorylineClip],
         sources: [StorylineSource],
-        defaults: ThemeDefaults
+        defaults: ThemeDefaults,
+        theme: MergedTheme
     ) throws -> [StorylinePlan] {
         // Each clip starts where the previous one ends, so the last entry is where the sequence ends.
         let editPoints = sources.reduce(into: [0.0]) { points, source in
@@ -176,7 +177,8 @@ struct TimePlanner: Sendable {
                 index: index,
                 sources: sources,
                 editPoint: editPoints[index],
-                defaults: defaults
+                defaults: defaults,
+                theme: theme
             )
         }
 
@@ -209,7 +211,8 @@ struct TimePlanner: Sendable {
         index: Int,
         sources: [StorylineSource],
         editPoint: Double,
-        defaults: ThemeDefaults
+        defaults: ThemeDefaults,
+        theme: MergedTheme
     ) throws -> TransitionPlan? {
         let kind = sources[index].kind
         guard index > 0 else {
@@ -228,7 +231,8 @@ struct TimePlanner: Sendable {
             editPoint: editPoint,
             lengths: [sources[index - 1].duration, sources[index].duration],
             place: clip.place,
-            kind: kind
+            kind: kind,
+            theme: theme
         )
     }
 
@@ -238,14 +242,15 @@ struct TimePlanner: Sendable {
         editPoint: Double,
         lengths: [Double],
         place: Place,
-        kind: ClipKind
+        kind: ClipKind,
+        theme: MergedTheme
     ) throws -> TransitionPlan? {
         switch choice {
         case .cut:
             return nil
 
         case let .preset(name):
-            let definition = try transitionPreset(named: name, place: place, kind: kind)
+            let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
             return transitionPlan(
                 name,
                 seconds: definition.seconds,
@@ -255,7 +260,7 @@ struct TimePlanner: Sendable {
             )
 
         case let .timed(name, seconds):
-            let definition = try transitionPreset(named: name, place: place, kind: kind)
+            let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
             return transitionPlan(
                 name,
                 seconds: seconds,
@@ -288,13 +293,14 @@ struct TimePlanner: Sendable {
     private func transitionPreset(
         named name: String,
         place: Place,
-        kind: ClipKind
+        kind: ClipKind,
+        theme: MergedTheme
     ) throws -> TransitionPreset {
         guard let preset = try presets.transition(named: name) else {
             throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: name)
         }
 
-        return try values.transition(preset, place: place, kind: .clip(kind))
+        return try values.transition(preset, theme: theme, place: place, kind: .clip(kind))
     }
 
     private func plan(

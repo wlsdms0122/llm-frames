@@ -75,7 +75,7 @@ struct PresetValueResolverTests {
         let preset = try #require(try presets().transition(named: "shorts/stinger"))
 
         // When
-        let resolved = try sut.transition(preset, place: .root, kind: .clip(.media(.video)))
+        let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
 
         // Then
         #expect(resolved.cover?.source == .media("/abs/stinger.mov"))
@@ -89,11 +89,69 @@ struct PresetValueResolverTests {
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.transition(preset, place: .root, kind: .clip(.media(.video)))
+            try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
         }
 
         // Then
         #expect(error == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "wipe.png"))
+    }
+
+    @Test("a cover colour named in a preset is written as the theme's value, #RRGGBBAA")
+    func resolvesCoverColor() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+        let preset = TransitionPreset(
+            description: "",
+            seconds: 1,
+            over: .incoming,
+            incoming: nil,
+            outgoing: nil,
+            cover: Cover(source: .color("accent"), span: Span(ease: .linear, keys: [])),
+            matte: nil
+        )
+
+        // When
+        let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
+
+        // Then
+        #expect(resolved.cover?.source == .color("#ED2929FF"))
+    }
+
+    @Test(
+        "a bloom colour is written as #RRGGBBAA, a theme colour by its value",
+        arguments: [("emphasis", "#FFD43BFF"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
+    )
+    func resolvesBloomColor(
+        written: String,
+        resolved: String
+    ) throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+
+        // When
+        let operation = try sut.operation(
+            .bloom(amount: 0.5, radius: 4, color: written),
+            theme: .base,
+            place: .root,
+            kind: .clip(.media(.video))
+        )
+
+        // Then
+        #expect(operation == .bloom(amount: 0.5, radius: 4, color: resolved))
+    }
+
+    @Test("a colour a preset names that the theme does not hold stops")
+    func stopsOnUnknownColor() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.operation(.bloom(amount: 0.5, radius: 4, color: "glow"), theme: .base, place: .root, kind: .clip(.media(.video)))
+        }
+
+        // Then
+        #expect(error == .unknownPresetColor(place: .root, kind: .clip(.media(.video)), name: "glow"))
     }
 
     // MARK: - Private
