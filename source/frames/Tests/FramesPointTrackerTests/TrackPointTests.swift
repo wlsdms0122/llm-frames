@@ -33,13 +33,13 @@ struct TrackPointTests {
             }
         let probed = try #require(try decoder.probedMedia(of: file))
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let frames = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index)) }
+        let images = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index)) }
         let ends = [CGPoint(x: 180, y: 850), CGPoint(x: 500, y: 850)]
         let points = try ends.map { end in
             try #require(TrackPoint(
                 at: end,
                 size: CGSize(width: 168, height: 88),
-                in: frames[0]
+                in: images[0]
             ))
         }
         let offsets = [-40.0, -30, -20, -15, -10, -7, -5, -3, 0, 3, 5, 7, 10, 15, 20, 30, 40]
@@ -49,7 +49,7 @@ struct TrackPointTests {
         let found = points.map { point in
             guesses.map { guess in
                 point.find(
-                    in: frames[1],
+                    in: images[1],
                     near: CGPoint(x: point.point.x + guess.x, y: point.point.y + 70 + guess.y),
                     scale: 1
                 )

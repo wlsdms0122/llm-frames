@@ -57,6 +57,23 @@ struct GreyImage: Sendable {
         values[y * width + x]
     }
 
+    // The `width` by `height` pixels from `column` and `row`, which lie in the image.
+    func cropped(
+        column: Int,
+        row: Int,
+        width: Int,
+        height: Int
+    ) -> GreyImage {
+        var cropped: [Float] = []
+        cropped.reserveCapacity(width * height)
+        for y in row..<(row + height) {
+            let start = y * self.width + column
+            cropped.append(contentsOf: values[start..<(start + width)])
+        }
+
+        return GreyImage(width: width, height: height, values: cropped)
+    }
+
     // Half the size, each pixel the mean of the two by two it covers that lie inside the picture.
     func halved() -> GreyImage {
         let halfWidth = max(1, width / 2)

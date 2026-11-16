@@ -21,16 +21,27 @@ struct RegionSampler: Sendable {
         size: CGSize,
         scale: Double
     ) -> GreyImage {
-        guard scale < 2 else {
-            let centre = CGPoint(x: centre.x / 2, y: centre.y / 2)
-            return sample(image.halved(), centre: centre, size: size, scale: scale / 2)
-        }
-
         let width = Int(size.width)
         let height = Int(size.height)
         let left = centre.x - size.width * scale / 2
         let top = centre.y - size.height * scale / 2
         var values = [Float](repeating: .nan, count: width * height)
+        guard scale < 2 else {
+            // Only the part of the image the region covers is halved, cut on even pixels so that it halves as the
+            // whole image would.
+            let column = max(0, 2 * Int((left / 2).rounded(.down)))
+            let row = max(0, 2 * Int((top / 2).rounded(.down)))
+            let right = min(image.width, 2 * Int(((left + size.width * scale) / 2).rounded(.up)))
+            let bottom = min(image.height, 2 * Int(((top + size.height * scale) / 2).rounded(.up)))
+            guard right - column >= 2, bottom - row >= 2 else {
+                return GreyImage(width: width, height: height, values: values)
+            }
+            let part = image.cropped(column: column, row: row, width: right - column, height: bottom - row)
+            let centre = CGPoint(x: (centre.x - Double(column)) / 2, y: (centre.y - Double(row)) / 2)
+
+            return sample(part.halved(), centre: centre, size: size, scale: scale / 2)
+        }
+
         image.values.withUnsafeBufferPointer { source in
             values.withUnsafeMutableBufferPointer { values in
                 for row in 0..<height {

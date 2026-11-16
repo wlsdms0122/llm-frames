@@ -72,5 +72,17 @@ struct RegionSamplerTests {
         #expect(region.values == [5.5, 7.5, 25.5, 27.5])
     }
 
+    @Test("a region at scale 2 away from the image's corner reads the pixels the whole image halved has there")
+    func readsHalvedPartAtScaleTwo() {
+        // Given
+        let sut = RegionSampler()
+
+        // When
+        let region = sut.sample(image, centre: CGPoint(x: 3, y: 2), size: CGSize(width: 1, height: 2), scale: 2)
+
+        // Then
+        #expect(region.values == [7.5, 27.5])
+    }
+
     // MARK: - Private
 }
