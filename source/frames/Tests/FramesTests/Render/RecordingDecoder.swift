@@ -34,6 +34,14 @@ struct RecordingDecoder: MediaDecoder {
         guard !refuses else { throw RoleRefusal.decoder }
     }
 
+    func sound(
+        of file: String,
+        from start: Double,
+        to end: Double
+    ) throws -> SoundBuffer {
+        SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
+    }
+
     // MARK: - Public
     // MARK: - Private
 }
