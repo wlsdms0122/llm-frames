@@ -10,13 +10,13 @@
 struct ClipSource: Equatable, Sendable {
     // MARK: - Property
     let kind: ClipKind
-    let media: ResolvedMedia?
+    let media: MediaPlan?
     let timing: MediaTiming?
 
     // MARK: - Initializer
     init(
         kind: ClipKind,
-        media: ResolvedMedia? = nil,
+        media: MediaPlan? = nil,
         timing: MediaTiming? = nil
     ) {
         self.kind = kind

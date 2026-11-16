@@ -56,7 +56,7 @@ struct LabelPlacer: Sendable {
             )
         }
 
-        return LabelPlan(side: side, instant: instant, text: text)
+        return LabelPlan(side: side, instant: instant, text: text, animation: clip.labelAnimation)
     }
 
     // MARK: - Private
@@ -113,6 +113,23 @@ struct LabelPlacer: Sendable {
         guard let parent else { return value(of: area, at: instant, mediaTime: instant, track: nil) }
 
         let mediaTime = parent.plan.mediaTime(atSequenceTime: instant)
+
+        return conformer.output(
+            of: value(of: area, at: instant, mediaTime: mediaTime, track: track),
+            crop: crop(of: parent, at: instant, mediaTime: mediaTime, format: format),
+            content: format.content
+        )
+    }
+
+    // The parent picture's crop at the instant as evaluation draws it: each crop conformed, brought back through its
+    // track at its own time, interpolated as a `Crop`, and carried by the motion at the instant. A band crop takes only
+    // the vertical move of the motion, so it keeps its ratio.
+    private func crop(
+        of parent: ParentPicture,
+        at instant: Double,
+        mediaTime: Double,
+        format: FormatPlan
+    ) -> Rectangle {
         let whole = FoundArea(
             rectangle: parent.picture.bounds,
             target: parent.picture.bounds,
@@ -120,18 +137,30 @@ struct LabelPlacer: Sendable {
             mediaTime: parent.plan.mediaTime(atSequenceTime: parent.plan.instant),
             lines: []
         )
-        let crop = value(
-            of: parent.geometry.crop ?? .value(whole),
-            at: instant,
-            mediaTime: mediaTime,
-            track: parent.geometry.track
-        ) { conformer.conformed($0, to: format.content, by: format.conform) }
+        let values = switch parent.geometry.crop ?? .value(whole) {
+        case let .value(found):
+            [TimedValue(index: 0, at: instant, value: found, ease: .linear)]
 
-        return conformer.output(
-            of: value(of: area, at: instant, mediaTime: mediaTime, track: track),
-            crop: crop,
-            content: format.content
-        )
+        case let .keyframes(keyframes):
+            keyframes
+        }
+        let isBand = values.allSatisfy(\.value.isBand)
+        let track = parent.geometry.track
+        let keyframes = values.map { timed in
+            let motion = track?.motion(atMediaTime: timed.value.mediaTime) ?? .identity
+            let crop = conformer.conformed(timed.value.rectangle, to: format.content, by: format.conform)
+
+            return Keyframe(
+                at: timed.at,
+                value: Crop(isBand ? motion.bringBackBandCrop(crop) : motion.bringBack(crop)),
+                ease: timed.ease
+            )
+        }
+
+        let interpolated = keyframes.value(at: instant).rectangle
+        let motion = track?.motion(atMediaTime: mediaTime) ?? .identity
+
+        return isBand ? motion.carryBandCrop(interpolated) : motion.carry(interpolated)
     }
 
     // A property at the instant, `mediaTime` in its picture: each value, `shaped` as found, brought back through the
@@ -141,8 +170,7 @@ struct LabelPlacer: Sendable {
         of property: PropertyValue<FoundArea>,
         at instant: Double,
         mediaTime: Double,
-        track: Track?,
-        shaped: (Rectangle) -> Rectangle = { $0 }
+        track: Track?
     ) -> Rectangle {
         let values = switch property {
         case let .value(found):
@@ -154,7 +182,7 @@ struct LabelPlacer: Sendable {
         let isBand = values.allSatisfy(\.value.isBand)
         let keyframes = values.map { timed in
             let motion = track?.motion(atMediaTime: timed.value.mediaTime) ?? .identity
-            let rectangle = shaped(timed.value.rectangle)
+            let rectangle = timed.value.rectangle
 
             return Keyframe(
                 at: timed.at,
@@ -163,8 +191,7 @@ struct LabelPlacer: Sendable {
             )
         }
 
-        // A property holds a value or at least one keyframe, so the keyframes always give one.
-        let interpolated = KeyframeTrack(keyframes: keyframes).value(at: instant) ?? keyframes[0].value
+        let interpolated = keyframes.value(at: instant)
         let motion = track?.motion(atMediaTime: mediaTime) ?? .identity
 
         return isBand ? motion.carryBand(interpolated) : motion.carry(interpolated)

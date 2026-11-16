@@ -12,14 +12,14 @@ import Testing
 @Suite("MediaTiming Tests")
 struct MediaTimingTests {
     // MARK: - Property
-    private let video = ResolvedMedia(
+    private let video = MediaPlan(
         kind: .video,
         reference: "/abs/short.mp4",
         source: .file(MediaFile(path: "/abs/short.mp4", fps: 1)),
         duration: 4,
         frames: 0...3
     )
-    private let sound = ResolvedMedia(
+    private let sound = MediaPlan(
         kind: .audio,
         reference: "/abs/ding.wav",
         source: .file(MediaFile(path: "/abs/ding.wav")),

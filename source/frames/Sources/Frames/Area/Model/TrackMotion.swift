@@ -59,5 +59,25 @@ struct TrackMotion: Equatable, Sendable {
         return Rectangle(x: rectangle.x, y: centerY - height / 2, width: rectangle.width, height: height)
     }
 
+    // A band crop takes only the vertical move of the motion, the move of the target's centre, and no scale, so it keeps
+    // its size and its aspect ratio.
+    func carryBandCrop(_ rectangle: Rectangle) -> Rectangle {
+        Rectangle(
+            x: rectangle.x,
+            y: rectangle.y + center.y - origin.y,
+            width: rectangle.width,
+            height: rectangle.height
+        )
+    }
+
+    func bringBackBandCrop(_ rectangle: Rectangle) -> Rectangle {
+        Rectangle(
+            x: rectangle.x,
+            y: rectangle.y - center.y + origin.y,
+            width: rectangle.width,
+            height: rectangle.height
+        )
+    }
+
     // MARK: - Private
 }

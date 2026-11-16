@@ -253,6 +253,33 @@ struct LabelPlacerTests {
         #expect(label.side == side)
     }
 
+    @Test("a tracked band crop of the parent takes only the vertical move of the motion, so it keeps its ratio")
+    func carriesBandCropWithoutScale() throws {
+        // Given
+        let document = connected(#"{ "shape": "box", "area": [0, 0, 1, 1], "at": [1.5, 3], "label": "a" }"#)
+        let whole = Rectangle(x: 0, y: 0, width: 1206, height: 2622)
+        let band = FoundArea(rectangle: whole, target: whole, isBand: true, mediaTime: 1, lines: [])
+        let target = Rectangle(x: 553, y: 1261, width: 100, height: 100)
+        let track = Track(target: target, mediaTime: 1, frames: [
+            TrackedFrame(time: 1, rectangle: target),
+            TrackedFrame(time: 1.5, rectangle: Rectangle(x: 503, y: 1311, width: 200, height: 200))
+        ])
+
+        // When
+        let label = try place(
+            .value(found(Rectangle(x: 1000, y: 1400, width: 200, height: 20), at: 1.5)),
+            document: document,
+            crop: .value(band),
+            cropTrack: track
+        )
+
+        // Then
+        // The target's centre moves down 100 and doubles, so the crop is the whole picture 100 lower and the area
+        // lands at y 1300, with room below it. Scaled with the target, the crop would put it at 2611, with room only
+        // above.
+        #expect(label.side == .bottom)
+    }
+
     // MARK: - Private
     private func connected(
         _ clip: String,
@@ -272,6 +299,7 @@ struct LabelPlacerTests {
         index: Int = 0,
         track: Track? = nil,
         crop: PropertyValue<FoundArea>? = nil,
+        cropTrack: Track? = nil,
         format: FormatPlan? = nil
     ) throws -> LabelPlan {
         let time = try Fixture.planner.plan(document: Fixture.json(document))
@@ -281,7 +309,7 @@ struct LabelPlacerTests {
             clip.isParented
                 ? ParentPicture(
                     plan: time.storyline[owner],
-                    geometry: StorylineGeometry(crop: crop, track: nil, nested: nil),
+                    geometry: StorylineGeometry(crop: crop, track: cropTrack, nested: nil),
                     picture: screen
                 )
                 : nil

@@ -130,7 +130,7 @@ struct TimePlanner: Sendable {
     // A stop names the values as written and the bound they miss.
     private func clipRange(
         of clipMedia: ClipMedia,
-        media: ResolvedMedia,
+        media: MediaPlan,
         place: Place,
         kind: ClipKind
     ) throws -> TimeRange {
@@ -252,40 +252,58 @@ struct TimePlanner: Sendable {
 
         case let .preset(name):
             let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
-            return transitionPlan(
+            return try transitionPlan(
                 name,
                 seconds: definition.seconds,
                 definition: definition,
                 editPoint: editPoint,
-                lengths: lengths
+                lengths: lengths,
+                place: place,
+                kind: kind
             )
 
         case let .timed(name, seconds):
             let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
-            return transitionPlan(
+            return try transitionPlan(
                 name,
                 seconds: seconds,
                 definition: definition,
                 editPoint: editPoint,
-                lengths: lengths
+                lengths: lengths,
+                place: place,
+                kind: kind
             )
         }
     }
 
-    // A transition is cut to the shorter of the two clips it joins, and is centred on their edit point.
+    // A transition is cut to the shorter of the two clips it joins, and is centred on their edit point. Its cover and
+    // matte media are probed, so evaluation knows their frames and length without opening them.
     private func transitionPlan(
         _ name: String,
         seconds: Double,
         definition: TransitionPreset,
         editPoint: Double,
-        lengths: [Double]
-    ) -> TransitionPlan {
+        lengths: [Double],
+        place: Place,
+        kind: ClipKind
+    ) throws -> TransitionPlan {
         let length = lengths.reduce(seconds, min)
+        let media = { (path: String) in
+            try resolver.transitionMedia(at: path, place: place.appending(key: "transition"), kind: .clip(kind))
+        }
+        let cover: TransitionMedia? = if case let .media(path) = definition.cover?.source {
+            try media(path)
+        } else {
+            nil
+        }
+
         return TransitionPlan(
             preset: name,
             seconds: length,
             range: TimeRange(start: editPoint - length / 2, end: editPoint + length / 2),
-            definition: definition
+            definition: definition,
+            coverMedia: cover,
+            matteMedia: try definition.matte.map { try media($0.media) }
         )
     }
 
@@ -351,6 +369,7 @@ struct TimePlanner: Sendable {
             visible: visible,
             instant: clip.at == nil ? ownerPlan?.edit.start ?? window.start : window.start,
             animation: try animation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
+            labelAnimation: try labelAnimation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
             media: source.media,
             timing: source.timing.map { timing in
                 MediaTiming(
@@ -397,7 +416,7 @@ struct TimePlanner: Sendable {
     // A timed media clip's edit points, with its window's start left at 0 until the window is known. A still has none.
     private func timing(
         of clipMedia: ClipMedia,
-        media: ResolvedMedia,
+        media: MediaPlan,
         place: Place,
         kind: ClipKind
     ) throws -> MediaTiming? {
@@ -543,6 +562,27 @@ struct TimePlanner: Sendable {
         guard kind != .media(.audio) else { return .none }
 
         let plan = try animationPlan(of: clip, kind: kind, defaults: defaults)
+        guard isParented, clip.at == nil else { return plan }
+
+        return plan.withoutEntranceAndExit()
+    }
+
+    // A shape's label takes `labelAnimation`, else the `label` entry of the title defaults, over the shape's window, so
+    // it starts and ends as the shape's own does.
+    private func labelAnimation(
+        of clip: Clip,
+        kind: ClipKind,
+        isParented: Bool,
+        defaults: ThemeDefaults
+    ) throws -> AnimationPlan {
+        guard
+            clip.label != nil,
+            let choice = clip.labelAnimation ?? defaults.titleAnimations["label"]
+        else {
+            return .none
+        }
+
+        let plan = try animationPlan(choice, place: clip.place, kind: kind)
         guard isParented, clip.at == nil else { return plan }
 
         return plan.withoutEntranceAndExit()

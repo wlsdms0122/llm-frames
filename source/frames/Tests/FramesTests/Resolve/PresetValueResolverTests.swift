@@ -58,7 +58,7 @@ struct PresetValueResolverTests {
         let pack = directory.installed.appendingPathComponent("shorts", isDirectory: true)
 
         // When
-        let resolved = try ResolvedDocumentWriter(hashes: FileHashTable()).document(planner().plan(document))
+        let resolved = ResolvedDocumentWriter().document(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         let storyline = resolved.objectValue?["storyline"]?.arrayValue ?? []
@@ -159,11 +159,17 @@ struct PresetValueResolverTests {
         PresetLibrary(builtIn: directory.builtIn, packs: directory.packs)
     }
 
+    // The pack's matte is probed as any other media.
     private func planner() -> DocumentPlanner {
-        let library = directory.library()
+        let wipe = directory.installed.appendingPathComponent("shorts/media/wipe.png").standardizedFileURL.path
+        let mediaFacts = MediaFactTable(
+            files: Fixture.mediaFacts.files.merging([wipe: ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))]) { $1 },
+            imageSequences: Fixture.mediaFacts.imageSequences
+        )
+        let library = directory.library(mediaFacts: mediaFacts)
 
         return DocumentPlanner(
-            mediaFacts: Fixture.mediaFacts,
+            mediaFacts: mediaFacts,
             presets: presets(),
             ocr: Fixture.ocr,
             tracker: Fixture.tracker,

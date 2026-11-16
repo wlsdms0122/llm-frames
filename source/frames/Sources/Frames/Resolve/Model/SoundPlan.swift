@@ -15,7 +15,7 @@
 struct SoundPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
-    let media: ResolvedMedia
+    let media: MediaPlan
     let map: TimeMap
     let out: Double
     let loop: Bool
@@ -39,7 +39,7 @@ struct SoundPlan: Equatable, Sendable {
     // MARK: - Initializer
     init(
         place: Place,
-        media: ResolvedMedia,
+        media: MediaPlan,
         map: TimeMap,
         out: Double,
         loop: Bool,

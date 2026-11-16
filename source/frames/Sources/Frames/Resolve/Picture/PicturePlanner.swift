@@ -67,7 +67,7 @@ struct PicturePlanner: Sendable {
     // What media draws at the media second, clamped into the media, and the picture its text is found in. A document
     // is drawn, not read, so no text is found in it.
     private func drawn(
-        _ media: ResolvedMedia,
+        _ media: MediaPlan,
         time: Double,
         place: Place,
         kind: PlaceKind,

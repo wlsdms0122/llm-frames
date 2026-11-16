@@ -63,6 +63,51 @@ struct ClipAnimationTests {
         #expect(plan.clips[5].animation == .none)
     }
 
+    @Test("a shape's label takes its labelAnimation, else the label entry of the title defaults, and none takes none")
+    func choosesLabelAnimation() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "fade" },
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a" },
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "none" },
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "animation": "draw" }
+            ] }
+            """#)
+        let themed = try Fixture.json(#"""
+            { "kind": "sequence", "theme": { "defaults": { "animation": { "title": { "label": "stamp" } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a" } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+        let themedPlan = try sut.plan(document: themed)
+
+        // Then
+        #expect(plan.clips.map { $0.labelAnimation.entrance?.preset } == ["fade", "pop", nil, "pop"])
+        #expect(plan.clips[0].labelAnimation.exit?.preset == "fade")
+        #expect(plan.clips[2].labelAnimation == .none)
+        #expect(plan.clips[3].animation.entrance?.preset == "draw")
+        #expect(themedPlan.clips[0].labelAnimation.entrance?.preset == "stamp")
+    }
+
+    @Test("a shape without a label takes no label animation")
+    func takesNoLabelAnimationWithoutLabel() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10] }
+            ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips[0].labelAnimation == .none)
+    }
+
     @Test("{entrance, exit} takes the entrance from one preset and the exit from another, and none on a side leaves it out")
     func splitsAnimationChoice() throws {
         // Given

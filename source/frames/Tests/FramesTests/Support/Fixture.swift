@@ -63,7 +63,15 @@ enum Fixture {
                 size: Size(width: 1206, height: 2622)
             ),
             "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800)),
-            "/abs/strip.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 1))
+            "/abs/strip.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 1)),
+            "/abs/leak.mov": ProbedMedia(
+                kind: .video,
+                duration: 2,
+                fps: 2,
+                frames: [0, 0.5, 1, 1.5],
+                size: Size(width: 1920, height: 1080)
+            ),
+            "/abs/matte.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))
         ],
         imageSequences: ["/abs/frames": imageSequenceFiles]
     )
