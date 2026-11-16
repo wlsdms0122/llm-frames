@@ -73,7 +73,8 @@ struct TimePlanner: Sendable {
             storyline: storyline,
             clips: connected + clips,
             sequence: sequence,
-            theme: merged
+            theme: merged,
+            defaults: defaults
         )
     }
 

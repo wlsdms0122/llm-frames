@@ -45,5 +45,18 @@ struct FilterResolver: Sendable {
         }
     }
 
+    // The theme found the presets of its default filter, so only their values are left, each named where the theme
+    // names its preset.
+    func operations(
+        of presets: [ThemeFilterPreset],
+        theme: MergedTheme
+    ) throws -> [FilterOperation] {
+        try presets.flatMap { filter in
+            try filter.preset.operations.map { operation in
+                try values.operation(operation, theme: theme, place: filter.place, kind: .themeDefaults)
+            }
+        }
+    }
+
     // MARK: - Private
 }

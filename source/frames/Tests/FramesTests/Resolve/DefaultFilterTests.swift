@@ -10,11 +10,16 @@ import Testing
 @testable import Frames
 
 // The document's theme names `grade` as the default filter. The output is 1080 wide, so the blur's theme length is
-// scaled by 1080 / 1206.
+// scaled by 1080 / 1206. `film` is a preset whose LUT names no file.
 @Suite("DefaultFilter Tests")
 struct DefaultFilterTests {
     // MARK: - Property
     private let grade: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * (1080.0 / 1206))]
+    private let presets = PresetTable(
+        transitions: Fixture.presets.transitions,
+        animations: Fixture.presets.animations,
+        filters: ["film": FilterPreset(description: "", operations: [.lut(file: "film.cube", amount: 1)])]
+    )
 
     // MARK: - Initializer
     // MARK: - Test
@@ -88,6 +93,32 @@ struct DefaultFilterTests {
         #expect(plan.storyline[0].filter == [])
     }
 
+    @Test("an audio clip takes no default filter, since nothing draws it, so a default it could not use does not stop")
+    func leavesAudioUnfiltered() throws {
+        // When
+        let plan = try filmPlan(#"""
+            { "kind": "sequence", "theme": { "defaults": { "filter": "film" } }, "format": { "size": [1080, 1920] },
+              "storyline": [ { "solid": "#000000", "duration": 3 } ], "clips": [ { "media": "/abs/bgm.m4a", "at": 0 } ] }
+            """#)
+
+        // Then
+        #expect(plan.clips[0].appearance.filter == [])
+    }
+
+    @Test("a default filter whose values do not resolve stops where the theme names it")
+    func refusesDefaultAtThemePlace() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "theme": { "defaults": { "filter": ["none", "film"] } },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+            """#
+        let place = Place.root.appending(key: "theme").appending(key: "defaults").appending(key: "filter").appending(index: 1)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try filmPlan(document) }
+        #expect(error == .unknownPresetFile(place: place, kind: .themeDefaults, name: "film.cube"))
+    }
+
     // MARK: - Private
     private func plan(_ storylineClip: String) throws -> SequencePlan {
         try Fixture.sequencePlanner.plan(Fixture.planner.plan(document: document(storylineClip)))
@@ -97,5 +128,18 @@ struct DefaultFilterTests {
         try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "grade" } }, "storyline": [ \#(storylineClip) ] }
             """#)
+    }
+
+    private func filmPlan(_ document: String) throws -> SequencePlan {
+        let planner = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: presets, library: Fixture.library)
+        let sut = SequencePlanner(
+            ocr: Fixture.ocr,
+            tracker: Fixture.tracker,
+            shaper: Fixture.shaper,
+            presets: presets,
+            library: Fixture.library
+        )
+
+        return try sut.plan(planner.plan(document: Fixture.json(document)))
     }
 }

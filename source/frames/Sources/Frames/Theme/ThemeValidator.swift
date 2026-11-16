@@ -66,10 +66,15 @@ struct ThemeValidator: Sendable {
         let animation = defaults["animation"]?.objectValue ?? JSONObject()
         let titlePlace = animationPlace.appending(key: "title")
         let titles = animation["title"]?.objectValue ?? JSONObject()
-        try checkFilter(defaults["filter"], place: place.appending(key: "filter"), theme: theme, presets: presets)
 
         return ThemeDefaults(
             transition: try transitionChoice(in: defaults, place: place, theme: theme, presets: presets),
+            filter: try filterPresets(
+                defaults["filter"],
+                place: place.appending(key: "filter"),
+                theme: theme,
+                presets: presets
+            ),
             titleAnimations: Dictionary(
                 try titles.members.map { member in
                     let choice = try animationChoice(
@@ -147,12 +152,12 @@ struct ThemeValidator: Sendable {
     }
 
     // A filter default is one name or a list of them, and `none` names no preset.
-    private func checkFilter(
+    private func filterPresets(
         _ value: JSONValue?,
         place: Place,
         theme: MergedTheme,
         presets: any PresetProvider
-    ) throws {
+    ) throws -> [ThemeFilterPreset] {
         let names: [(name: String, place: Place)] = switch value {
         case let .string(name):
             [(name, place)]
@@ -166,15 +171,18 @@ struct ThemeValidator: Sendable {
             []
         }
 
-        for (name, place) in names where name != "none" {
-            guard try presets.filter(named: name) != nil else {
+        return try names.filter { $0.name != "none" }.map { name, place in
+            let place = theme.place(of: place)
+            guard let preset = try presets.filter(named: name) else {
                 throw ThemeError.unknownPreset(
-                    place: theme.place(of: place),
+                    place: place,
                     kind: ThemeKeyTable.defaults.kind,
                     presetKind: "filter",
                     name: name
                 )
             }
+
+            return ThemeFilterPreset(preset: preset, place: place)
         }
     }
 

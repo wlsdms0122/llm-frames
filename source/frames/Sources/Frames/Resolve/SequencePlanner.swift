@@ -73,15 +73,13 @@ struct SequencePlanner: Sendable {
                 track: tracked.storyline[index],
                 nested: storylineNested[index],
                 filter: try filter(
-                    time.sequence.storyline[index].filter ?? defaultFilter(
-                        of: time.storyline[index].source.kind,
-                        media: time.sequence.storyline[index].media,
-                        theme: time.theme
-                    ),
+                    time.sequence.storyline[index].filter,
+                    kind: time.storyline[index].source.kind,
+                    media: time.sequence.storyline[index].media,
                     scale: lengthScale,
                     theme: time.theme,
-                    place: time.storyline[index].place.appending(key: "filter"),
-                    kind: time.storyline[index].source.kind
+                    defaults: time.defaults,
+                    place: time.storyline[index].place.appending(key: "filter")
                 ),
                 color: time.sequence.storyline[index].solid.map(time.theme.color)
             )
@@ -128,7 +126,8 @@ struct SequencePlanner: Sendable {
                         theme: time.theme
                     ),
                     scale: lengthScale,
-                    theme: time.theme
+                    theme: time.theme,
+                    defaults: time.defaults
                 )
             )
         }
@@ -575,7 +574,8 @@ struct SequencePlanner: Sendable {
         written: Clip,
         media mediaAppearance: MediaAppearance?,
         scale: Double,
-        theme: MergedTheme
+        theme: MergedTheme,
+        defaults: ThemeDefaults
     ) throws -> ClipAppearance {
         let property = { (value: PropertyValue<Double>?, plain: Double) -> PropertyValue<Double> in
             switch value {
@@ -611,11 +611,13 @@ struct SequencePlanner: Sendable {
             blend: written.blend ?? "normal",
             color: color,
             filter: try filter(
-                written.filter ?? defaultFilter(of: plan.kind, media: media(of: written), theme: theme),
+                written.filter,
+                kind: plan.kind,
+                media: media(of: written),
                 scale: scale,
                 theme: theme,
-                place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter"),
-                kind: plan.kind
+                defaults: defaults,
+                place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter")
             ),
             media: mediaAppearance
         )
@@ -677,17 +679,15 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // Media takes the theme's filter when it writes none, except a compound clip or a template instance, whose clips
-    // already took theirs. Nothing else takes a filter it does not write.
-    private func defaultFilter(
-        of kind: ClipKind,
-        media: ClipMedia?,
-        theme: MergedTheme
-    ) -> JSONValue? {
-        guard case .media = kind, kind != .media(.sequence), let media else { return nil }
-        guard !isTemplate(media.source) else { return nil }
+    // Drawn media takes the theme's filter when it writes none, except a compound clip or a template instance, whose
+    // clips already took theirs. Nothing else takes a filter it does not write, and audio is drawn by nothing.
+    private func takesDefaultFilter(
+        _ kind: ClipKind,
+        media: ClipMedia?
+    ) -> Bool {
+        guard case .media = kind, kind != .media(.sequence), kind != .media(.audio), let media else { return false }
 
-        return theme.defaultFilter
+        return !isTemplate(media.source)
     }
 
     private func isTemplate(_ source: MediaSource) -> Bool {
@@ -709,18 +709,27 @@ struct SequencePlanner: Sendable {
         return media
     }
 
-    // A clip with no filter choice applies none. `place` is where the choice is written.
+    // A clip applies the filter it writes, or the theme's default when it takes one, and otherwise none. `place` is
+    // where the clip's choice is written, and the default's stops name the theme.
     private func filter(
-        _ choice: JSONValue?,
+        _ written: JSONValue?,
+        kind: ClipKind,
+        media: ClipMedia?,
         scale: Double,
         theme: MergedTheme,
-        place: Place,
-        kind: ClipKind
+        defaults: ThemeDefaults,
+        place: Place
     ) throws -> [FilterOperation] {
-        guard let choice else { return [] }
+        let operations: [FilterOperation]
+        if let written {
+            operations = try filters.operations(of: written, theme: theme, place: place, kind: .clip(kind))
+        } else if takesDefaultFilter(kind, media: media) {
+            operations = try filters.operations(of: defaults.filter, theme: theme)
+        } else {
+            operations = []
+        }
 
-        return try filters.operations(of: choice, theme: theme, place: place, kind: .clip(kind))
-            .map { $0.scaled(by: scale) }
+        return operations.map { $0.scaled(by: scale) }
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one

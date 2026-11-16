@@ -76,6 +76,12 @@ struct ThemeValidatorTests {
 
         // Then
         #expect(defaults.transition == .timed(preset: "flash", seconds: 1))
+        #expect(defaults.filter == [
+            ThemeFilterPreset(
+                preset: FilterPreset(description: "", operations: []),
+                place: Place.root.appending(key: "defaults").appending(key: "filter").appending(index: 0)
+            )
+        ])
         #expect(defaults.titleAnimations == ["label": .preset("pop"), "headline": .preset("fade")])
         #expect(defaults.shapeAnimation == .split(entrance: "draw", exit: "none"))
         #expect(defaults.mediaAnimation == AnimationChoice.none)

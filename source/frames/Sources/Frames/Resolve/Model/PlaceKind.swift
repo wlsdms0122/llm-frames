@@ -7,7 +7,7 @@
 
 // What a message names in parentheses after its place, in the words of the key tables: a clip's kind once its media
 // is known, the clip of its place before that, the sequence, an image or layout document, a layout item, an image
-// operation by its kind, or a shape operation by its shape.
+// operation by its kind, a shape operation by its shape, or the theme's defaults.
 enum PlaceKind: Equatable, Sendable {
     case clip(ClipKind)
     case genericClip(ClipPlace)
@@ -17,6 +17,7 @@ enum PlaceKind: Equatable, Sendable {
     case layoutItem
     case operation(ImageOperationKind)
     case shape(ShapeKind)
+    case themeDefaults
 
     // MARK: - Property
     var label: String {
@@ -44,6 +45,9 @@ enum PlaceKind: Equatable, Sendable {
 
         case let .shape(shape):
             shape.rawValue
+
+        case .themeDefaults:
+            ThemeKeyTable.defaults.kind
         }
     }
 
