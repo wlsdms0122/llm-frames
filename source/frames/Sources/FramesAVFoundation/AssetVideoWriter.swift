@@ -11,8 +11,9 @@ import Frames
 
 // Writes one video file with AVAssetWriter, straight to its path. Frame k is presented at k / fps. The sound, given
 // whole, goes in after each frame up to that frame's end, so neither input waits on the other, and the rest at the
-// end. A wait on the writer longer than `deadline` seconds cancels it. A writer that fails, or is let go before it
-// finishes, cancels and removes its file.
+// end. Frames come at `size`, and the file's picture is the format's size when it has one, each frame scaled to it. A
+// wait on the writer longer than `deadline` seconds cancels it. A writer that fails, or is let go before it finishes,
+// cancels and removes its file.
 final class AssetVideoWriter {
     // MARK: - Property
     private static let soundChunk = 48_000
@@ -60,8 +61,9 @@ final class AssetVideoWriter {
         }
         writer.movieTimeScale = timing.timescale
 
-        let width = Int(size.width)
-        let height = Int(size.height)
+        let picture = format.size ?? size
+        let width = Int(picture.width)
+        let height = Int(picture.height)
         let video = AVAssetWriterInput(
             mediaType: .video,
             outputSettings: format.videoSettings(width: width, height: height)
@@ -78,7 +80,11 @@ final class AssetVideoWriter {
         )
         writer.add(video)
 
-        let audio = sound.map { _ in AVAssetWriterInput(mediaType: .audio, outputSettings: format.audioSettings) }
+        let audioSettings = sound.map(format.audioSettings(for:))
+        if let audioSettings, !writer.canApply(outputSettings: audioSettings, forMediaType: .audio) {
+            throw EncoderError.unwritable(file: format.path, reason: "its sound format is not written")
+        }
+        let audio = audioSettings.map { AVAssetWriterInput(mediaType: .audio, outputSettings: $0) }
         if let audio {
             audio.expectsMediaDataInRealTime = false
             writer.add(audio)
@@ -127,7 +133,7 @@ final class AssetVideoWriter {
         else {
             throw failure("no pixel buffer for frame \(frameCount)")
         }
-        frameConverter.copy(frame, into: buffer)
+        guard frameConverter.copy(frame, into: buffer) else { throw failure("frame \(frameCount) cannot be scaled") }
 
         try waitUntilReady(video, for: "frame \(frameCount)")
         guard adaptor.append(buffer, withPresentationTime: timing.time(ofFrame: frameCount)) else {

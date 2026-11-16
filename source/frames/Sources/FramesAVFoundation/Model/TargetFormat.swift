@@ -11,16 +11,19 @@ import VideoToolbox
 import Frames
 
 // How AVFoundation writes an encode target. A master is a QuickTime movie of ProRes 4444 with premultiplied alpha, or
-// ProRes 422 HQ, and 24-bit integer linear PCM. A delivery is an MPEG-4 file of H.264 at quality 1.0, which the H.264
-// encoder honours, and AAC at a constant 256 kbps. Every video is tagged BT.709 primaries, the sRGB transfer and the
-// BT.709 matrix. Sound is 48 kHz stereo. ProRes takes 16-bit RGBA frames. H.264 takes 8-bit BGRA, which its hardware
-// encoder reads natively, since 16-bit RGBA handed to it can fault the hardware encoder.
+// ProRes 422 HQ, and 24-bit integer linear PCM at 48 kHz in stereo. A delivery is an MPEG-4 file of H.264 at quality
+// 1.0, which the H.264 encoder honours, and AAC at a constant 256 kbps at 48 kHz in stereo. A compressed video is the
+// file type its extension names, of H.264 or HEVC at the `AVVideoQualityKey` of its level, and AAC as `AACSettings`
+// writes it. Every video is tagged BT.709 primaries, the sRGB transfer and the BT.709 matrix. ProRes takes 16-bit RGBA
+// frames. H.264 and HEVC take 8-bit BGRA, which their hardware encoders read natively, since 16-bit RGBA handed to
+// them can fault the hardware encoder.
 struct TargetFormat: Equatable, Sendable {
     // MARK: - Property
     private static let sampleRate = 48_000
     private static let channels = 2
-    private static let aacBitRate = 256_000
+    private static let deliveryBitRate = 256_000
 
+    let target: EncodeTarget
     let path: String
     let fileType: AVFileType
     let codec: AVVideoCodecType
@@ -28,6 +31,8 @@ struct TargetFormat: Equatable, Sendable {
     let codecName: String
     let keepsAlpha: Bool
     let pixelFormat: OSType
+    // The file's picture, when it is not the frames' own.
+    let size: Size?
 
     var colorProperties: [String: String] {
         [
@@ -37,33 +42,10 @@ struct TargetFormat: Equatable, Sendable {
         ]
     }
 
-    var audioSettings: [String: Any] {
-        var channelLayout = AudioChannelLayout()
-        channelLayout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
-        let common: [String: Any] = [
-            AVSampleRateKey: Self.sampleRate,
-            AVNumberOfChannelsKey: Self.channels,
-            AVChannelLayoutKey: Data(bytes: &channelLayout, count: MemoryLayout<AudioChannelLayout>.size)
-        ]
-        let specific: [String: Any] = fileType == .mov
-            ? [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVLinearPCMBitDepthKey: 24,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsBigEndianKey: false,
-                AVLinearPCMIsNonInterleaved: false
-            ]
-            : [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVEncoderBitRateKey: Self.aacBitRate,
-                AVEncoderBitRateStrategyKey: AVAudioBitRateStrategy_Constant
-            ]
-
-        return common.merging(specific) { first, _ in first }
-    }
-
     // MARK: - Initializer
     init(target: EncodeTarget) {
+        self.target = target
+
         switch target {
         case let .master(path, alpha):
             self.path = path
@@ -73,6 +55,7 @@ struct TargetFormat: Equatable, Sendable {
             codecName = alpha ? "ProRes 4444" : "ProRes 422 HQ"
             keepsAlpha = alpha
             pixelFormat = kCVPixelFormatType_64RGBALE
+            size = nil
 
         case let .delivery(path):
             self.path = path
@@ -82,6 +65,17 @@ struct TargetFormat: Equatable, Sendable {
             codecName = "H.264"
             keepsAlpha = false
             pixelFormat = kCVPixelFormatType_32BGRA
+            size = nil
+
+        case let .compressed(path, videoCodec, _, size):
+            self.path = path
+            fileType = Self.fileType(of: path)
+            codec = videoCodec == .hevc ? .hevc : .h264
+            codecType = videoCodec == .hevc ? kCMVideoCodecType_HEVC : kCMVideoCodecType_H264
+            codecName = videoCodec.name
+            keepsAlpha = false
+            pixelFormat = kCVPixelFormatType_32BGRA
+            self.size = size
         }
     }
 
@@ -90,15 +84,18 @@ struct TargetFormat: Equatable, Sendable {
         width: Int,
         height: Int
     ) -> [String: Any] {
-        let compression: [String: Any] = switch codec {
-        case .proRes4444:
+        let compression: [String: Any] = switch target {
+        case .master(_, alpha: true):
             [kVTCompressionPropertyKey_AlphaChannelMode as String: kVTAlphaChannelMode_PremultipliedAlpha as String]
 
-        case .h264:
+        case .master:
+            [:]
+
+        case .delivery:
             [AVVideoQualityKey: 1.0]
 
-        default:
-            [:]
+        case let .compressed(_, _, quality, _):
+            [AVVideoQualityKey: videoQuality(of: quality)]
         }
 
         return [
@@ -110,5 +107,67 @@ struct TargetFormat: Equatable, Sendable {
         ]
     }
 
+    // The settings for `sound`, which a compressed target has fitted to AAC already.
+    func audioSettings(for sound: SoundBuffer) -> [String: Any] {
+        switch target {
+        case .master:
+            var channelLayout = AudioChannelLayout()
+            channelLayout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
+
+            return [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: Self.sampleRate,
+                AVNumberOfChannelsKey: Self.channels,
+                AVChannelLayoutKey: Data(bytes: &channelLayout, count: MemoryLayout<AudioChannelLayout>.size),
+                AVLinearPCMBitDepthKey: 24,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsNonInterleaved: false
+            ]
+
+        case .delivery:
+            return AACSettings(
+                sampleRate: Double(Self.sampleRate),
+                channels: Self.channels,
+                bitRate: Self.deliveryBitRate
+            ).outputSettings
+
+        case let .compressed(_, _, quality, _):
+            return AACSettings(
+                sampleRate: sound.sampleRate,
+                channels: sound.channels,
+                bitRate: quality.soundBitRate * sound.channels
+            ).outputSettings
+        }
+    }
+
     // MARK: - Private
+    private static func fileType(of path: String) -> AVFileType {
+        switch URL(fileURLWithPath: path).pathExtension.lowercased() {
+        case "mov":
+            .mov
+
+        case "m4v":
+            .m4v
+
+        default:
+            .mp4
+        }
+    }
+
+    // Measured on screen recordings and camera like clips: at 0.7, 0.5 and 0.3 H.264 and HEVC give about 90, 60 and 45
+    // percent of a screen recording written at AVFoundation's default quality, and the size grows steeply above 0.7
+    // while it hardly shrinks below 0.3.
+    private func videoQuality(of quality: EncodeQuality) -> Double {
+        switch quality {
+        case .high:
+            0.7
+
+        case .medium:
+            0.5
+
+        case .low:
+            0.3
+        }
+    }
 }
