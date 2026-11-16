@@ -6,7 +6,7 @@
 //
 
 // The spellings a name takes: an absolute path, `<pack>/<name>`, or a bare name, which is built in.
-enum PackReference: Equatable, Sendable {
+package enum PackReference: Equatable, Sendable {
     case path(String)
     case pack(pack: String, name: String)
     case builtIn(String)
@@ -14,7 +14,7 @@ enum PackReference: Equatable, Sendable {
     // MARK: - Property
     // MARK: - Initializer
     // Any other spelling names nothing: more than one slash, or an empty, `.` or `..` part, which would leave the pack.
-    init?(_ reference: String) {
+    package init?(_ reference: String) {
         guard !reference.hasPrefix("/") else {
             self = .path(reference)
             return

@@ -7,17 +7,17 @@
 
 // Writes a resolved document as JSON of the same kind as its document, `kind` first and `"resolved"` second, set to
 // the version of this frames. The same document gives the same bytes.
-struct ResolvedDocumentWriter: Sendable {
+package struct ResolvedDocumentWriter: Sendable {
     // MARK: - Property
     private let sequences = ResolvedSequenceWriter()
     private let pictures = ResolvedPictureWriter()
     private let writer = JSONWriter()
 
     // MARK: - Initializer
-    init() { }
+    package init() { }
 
     // MARK: - Public
-    func write(_ document: ResolvedDocument) -> String {
+    package func write(_ document: ResolvedDocument) -> String {
         writer.write(self.document(document))
     }
 

@@ -7,18 +7,18 @@
 
 import Foundation
 
-struct JSONReader: Sendable {
+package struct JSONReader: Sendable {
     // MARK: - Property
     // The file other than the document that is read, as it was referred to, so its errors name it.
     private let file: String?
 
     // MARK: - Initializer
-    init(file: String? = nil) {
+    package init(file: String? = nil) {
         self.file = file
     }
 
     // MARK: - Public
-    func read(_ data: Data) throws -> JSONValue {
+    package func read(_ data: Data) throws -> JSONValue {
         var cursor = JSONCursor(bytes: Array(data), file: file)
         cursor.skipWhitespace()
         let value = try readValue(&cursor)

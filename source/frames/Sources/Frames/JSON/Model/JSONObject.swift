@@ -6,7 +6,7 @@
 //
 
 // Members keep the order they were written in, so the first unknown key is the first one in the file.
-struct JSONObject: Equatable, Sendable {
+package struct JSONObject: Equatable, Sendable {
     // MARK: - Property
     let members: [JSONMember]
 

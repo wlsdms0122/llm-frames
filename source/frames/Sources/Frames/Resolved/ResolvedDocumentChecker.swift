@@ -9,19 +9,19 @@
 // a frames of its own major version at its minor version or an earlier one, and refuses any other, naming both
 // versions. Its theme and arguments are already written in, so `--theme` or `--args` with it stops. Nothing checks a
 // resolved document's keys, so its stops name its `kind` as written.
-struct ResolvedDocumentChecker: Sendable {
+package struct ResolvedDocumentChecker: Sendable {
     // MARK: - Property
     private let current: String
 
     // MARK: - Initializer
-    init(current: String = FramesVersion.current) {
+    package init(current: String = FramesVersion.current) {
         self.current = current
     }
 
     // MARK: - Public
     // The version the document was written by, or nil when it is a document, not a resolved one. `theme` is the
     // `--theme` name and `arguments` the `--args` file, as given.
-    func version(
+    package func version(
         of document: JSONValue,
         theme: String?,
         arguments: ArgumentFile?
