@@ -34,7 +34,7 @@ Titles and shapes are the basics of any NLE and the core of evidence shots. Thei
 
 ### Media clips
 
-- `width` and `height` size the clip's box in output pixels. Given one, the other follows the aspect ratio of the clip's first crop, or of the media when there is no crop, and every crop conforms to that box, so the box holds still while the crop moves. Given both, the crop conforms to the box by the clip's `conform` (default `fit`).
+- `width` and `height` size the clip's box in output pixels. Given one, the other follows the aspect ratio of the clip's first crop, or of the media when there is no crop, and every crop conforms to that box, so the box holds still while the crop moves. Given both, the crop conforms to the box by the clip's `conform` (default `fit`). Given neither, the box is the first crop, or the media, fitted to the output frame, as an NLE conforms a picture to its sequence.
 - `radius` rounds the corners, `border` (`true` for the `border` colour, or a colour) draws a border with `shapes.border.width`, and `shadow: true` draws the theme shadow.
 - `crop` and `filter` work as on a storyline clip, with the clip's own box in place of the content rect.
 - `blend` sets the clip's blend mode ([Blend modes](#blend-modes)).
