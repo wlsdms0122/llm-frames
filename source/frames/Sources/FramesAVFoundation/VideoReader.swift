@@ -10,12 +10,12 @@ import CoreImage
 import Foundation
 import Frames
 
-// A video file's first picture track, loaded once. `frames` are its presented frames in the order they are presented,
-// and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every track of
+// A video file's first picture track, loaded once. `frames` holds the time each presented frame is presented at, in
+// order, and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every track of
 // the file shares.
 struct VideoReader: Sendable {
     // MARK: - Property
-    let frames: [FrameTime]
+    let frames: [CMTime]
     let displaySize: Size
     let fps: Double
     let duration: Double
@@ -23,7 +23,7 @@ struct VideoReader: Sendable {
     let depth: BitDepth
 
     var frameTimes: [Double] {
-        frames.map { CMTimeGetSeconds($0.presented) }
+        frames.map(CMTimeGetSeconds)
     }
 
     private let asset: AVURLAsset
@@ -63,7 +63,7 @@ struct VideoReader: Sendable {
         atFrame index: Int,
         path: String
     ) throws -> CIImage {
-        let time = frames[index].presented
+        let time = frames[index]
         let reader = try AVAssetReader(asset: asset)
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: depth == .sixteen
@@ -109,32 +109,31 @@ struct VideoReader: Sendable {
         )
     }
 
-    // Every sample's times, read without decoding: its sample time is mapped through the edit that holds it, and one
-    // no edit holds is never presented.
+    // The time each sample is presented at, read without decoding. An undecoded sample carries its time before the edit
+    // list, so it is mapped through the edit that holds it, and one no edit holds is never presented.
     private static func frames(
         of track: AVAssetTrack,
         in asset: AVAsset,
         edits: [CMTimeMapping],
         path: String
-    ) throws -> [FrameTime] {
+    ) throws -> [CMTime] {
         let reader = try AVAssetReader(asset: asset)
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
         output.alwaysCopiesSampleData = false
         reader.add(output)
         guard reader.startReading() else { throw DecoderError.unreadable(file: path) }
 
-        var frames: [FrameTime] = []
+        var frames: [CMTime] = []
         while let sample = output.copyNextSampleBuffer() {
             guard CMSampleBufferGetNumSamples(sample) > 0 else { continue }
             let time = CMSampleBufferGetPresentationTimeStamp(sample)
             if let edit = edits.first(where: { CMTimeRangeContainsTime($0.source, time: time) }) {
-                let presented = CMTimeMapTimeFromRangeToRange(time, fromRange: edit.source, toRange: edit.target)
-                frames.append(FrameTime(sample: time, presented: presented))
+                frames.append(CMTimeMapTimeFromRangeToRange(time, fromRange: edit.source, toRange: edit.target))
             }
         }
         guard reader.status == .completed else { throw DecoderError.unreadable(file: path) }
 
-        return frames.sorted { CMTimeCompare($0.presented, $1.presented) < 0 }
+        return frames.sorted { CMTimeCompare($0, $1) < 0 }
     }
 
     // The transform is written for a top left origin, and Core Image's is at the bottom left, so it is applied between

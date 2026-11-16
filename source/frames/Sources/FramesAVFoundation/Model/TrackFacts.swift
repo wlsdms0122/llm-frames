@@ -8,8 +8,8 @@
 import CoreMedia
 import Foundation
 
-// What AVFoundation loads of a video's picture track and its file. `edits` map the track's media timeline onto the
-// file's presentation timeline, without the empty edits, and `duration` is the file's on its presentation timeline.
+// What AVFoundation loads of a video's picture track and its file. `edits` map the times the track's samples carry
+// onto the file's presentation timeline, without the empty edits, and `duration` is the file's on that timeline.
 struct TrackFacts: Sendable {
     // MARK: - Property
     let storedSize: CGSize
