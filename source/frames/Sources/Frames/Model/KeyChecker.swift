@@ -487,11 +487,13 @@ struct KeyChecker: Sendable {
         place: Place,
         kind: String
     ) throws -> MediaKind {
-        guard let mediaKind = try mediaKinds.mediaKind(of: reference) else {
+        guard let probed = try mediaKinds.mediaKind(of: reference) else {
             throw ModelError.unprobedMedia(place: place, kind: kind, reference: reference)
         }
 
-        return mediaKind
+        return try probed
+            .mapError { ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\($0)") }
+            .get()
     }
 
     private func probedKind(

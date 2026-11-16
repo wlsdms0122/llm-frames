@@ -11,7 +11,6 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case unsupportedEngine(place: Place, pack: String, engine: String, version: String)
     case duplicatePack(place: Place, name: String, shipped: String)
     case unreadableFile(file: String)
-    case unreadableMedia(reference: String, reason: String)
     case circularReference(place: Place, files: [String])
     case unknownThemeOption(name: String)
     case themeOnTemplate(place: Place, kind: String)
@@ -40,9 +39,6 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableFile(file):
             "\(file): the file is there but cannot be read"
-
-        case let .unreadableMedia(reference, reason):
-            "media \(quoted(reference)) cannot be probed: \(reason)"
 
         case let .circularReference(place, files):
             "\(place) (document): "

@@ -84,18 +84,36 @@ struct ReferenceLibraryTests {
         #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
-    @Test("media the probe cannot read stops, named as it was referred to, with the probe's reason")
-    func refusesUnreadableMedia() throws {
+    @Test("media the probe cannot read gives the probe's failure as it is, for the place that names it to stop at")
+    func givesProbeFailure() throws {
         // Given
         let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
         let sut = directory.library(
             mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
         )
 
-        // When, Then
-        #expect(throws: PackError.unreadableMedia(reference: "shorts/leak.mov", reason: "media \(leak) cannot be read")) {
-            try sut.mediaKind(of: "shorts/leak.mov")
-        }
+        // When
+        let probed = try #require(try sut.mediaKind(of: "shorts/leak.mov"))
+
+        // Then
+        let error = #expect(throws: ProbeFailure.self) { try probed.get() }
+        #expect(error?.description == "media \(leak) cannot be read")
+    }
+
+    @Test("a document naming media the probe cannot read stops once, at the place it names it, with the probe's reason")
+    func refusesUnreadableMedia() throws {
+        // Given
+        let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
+        let sut = directory.library(
+            mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
+        )
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.mediaKind(of: "shorts/intro.json") }
+
+        // Then
+        #expect(error?.description == #"shorts/intro.json: storyline[0].media (storyline clip): media "shorts/leak.mov" cannot be probed: media \#(leak) cannot be read"#)
     }
 
     @Test("media named <pack>/<file> is the file in the pack's media, and its kind is the one its probe finds")
@@ -105,7 +123,7 @@ struct ReferenceLibraryTests {
 
         // When
         let file = try sut.mediaFile(named: "shorts/leak.mov")
-        let kind = try sut.mediaKind(of: "shorts/leak.mov")
+        let kind = try sut.mediaKind(of: "shorts/leak.mov")?.get()
 
         // Then
         #expect(file == leak)
@@ -120,7 +138,7 @@ struct ReferenceLibraryTests {
         try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
 
         // When
-        let kind = try sut.mediaKind(of: "shorts/intro.json")
+        let kind = try sut.mediaKind(of: "shorts/intro.json")?.get()
 
         // Then
         #expect(kind == .sequence)
