@@ -9,12 +9,12 @@
 struct AdjustItem: Equatable, Sendable {
     // MARK: - Property
     let rectangle: Rectangle?
-    let filter: [FilterOperation]
+    let filter: [ResolvedFilterOperation]
 
     // MARK: - Initializer
     init(
         rectangle: Rectangle?,
-        filter: [FilterOperation]
+        filter: [ResolvedFilterOperation]
     ) {
         self.rectangle = rectangle
         self.filter = filter
