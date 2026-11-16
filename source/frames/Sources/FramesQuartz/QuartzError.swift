@@ -17,13 +17,13 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     package var description: String {
         switch self {
         case let .unknownKernel(name):
-            "the quartz kernel library has no colour kernel \(name)"
+            "the quartz kernel library has no kernel \(name)"
 
         case let .unsupportedBlend(name, place):
             "the quartz renderer has no blend mode \(name) at \(place)"
 
         case let .kernelFailed(name):
-            "the quartz colour kernel \(name) gave no image"
+            "the quartz kernel \(name) gave no image"
 
         case let .faceNotInFile(file, face):
             "the quartz renderer found no face \(face) in the font file \(file)"

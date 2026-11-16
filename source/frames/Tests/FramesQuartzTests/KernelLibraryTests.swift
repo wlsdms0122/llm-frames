@@ -18,12 +18,12 @@ struct KernelLibraryTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "the blend and filter sources compile into one library that hands out their kernels by name",
-        arguments: ["blendNormal", "filterIdentityPlaceholder"]
+        "the library hands out the kernels of the blend and filter sources by name",
+        arguments: ["blendNormal", "filterClamp"]
     )
     func handsOutKernel(name: String) throws {
         // Given
-        let sut = try KernelLibrary.shared.get()
+        let sut = KernelLibrary.shared
 
         // When
         let kernel = try sut.colorKernel(named: name)
@@ -32,10 +32,43 @@ struct KernelLibraryTests {
         #expect(kernel.name == name)
     }
 
+    @Test(
+        "a kernel that samples its images anywhere is handed out as a general kernel, not a colour kernel",
+        arguments: ["filterLookUp", "filterBlockMean", "filterBlockFill"]
+    )
+    func handsOutGeneralKernel(name: String) throws {
+        // Given
+        let sut = KernelLibrary.shared
+
+        // When
+        let kernel = try sut.kernel(named: name)
+
+        // Then
+        #expect(kernel.name == name)
+        #expect(!(kernel is CIColorKernel))
+        #expect(throws: QuartzError.unknownKernel(name: name)) {
+            try sut.colorKernel(named: name)
+        }
+    }
+
+    @Test("a name no source declares as a kernel is refused")
+    func refusesUnknownKernel() throws {
+        // Given
+        let sut = KernelLibrary.shared
+
+        // When
+        let error = #expect(throws: QuartzError.self) {
+            try sut.kernel(named: "filterLuma")
+        }
+
+        // Then
+        #expect(error == .unknownKernel(name: "filterLuma"))
+    }
+
     @Test("the normal kernel composites premultiplied source-over on sRGB-encoded values")
     func compositesOnEncodedValues() throws {
         // Given
-        let sut = try KernelLibrary.shared.get()
+        let sut = KernelLibrary.shared
         let extent = CGRect(x: 0, y: 0, width: 2, height: 2)
         let source = CIImage(color: CIColor(red: 0.5, green: 0, blue: 0, alpha: 0.5, colorSpace: colorSpace)!)
         let backdrop = CIImage(color: CIColor(red: 0, green: 0.5, blue: 1, alpha: 1, colorSpace: colorSpace)!)
@@ -66,7 +99,7 @@ struct KernelLibraryTests {
     @Test("kernels taking as many images, applied one after another in one process, each give their own result")
     func keepsKernelsApart() throws {
         // Given
-        let sut = try KernelLibrary.shared.get()
+        let sut = KernelLibrary.shared
         let extent = CGRect(x: 0, y: 0, width: 2, height: 2)
         let source = CIImage(color: CIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1, colorSpace: colorSpace)!)
         let backdrop = CIImage(color: CIColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1, colorSpace: colorSpace)!)
