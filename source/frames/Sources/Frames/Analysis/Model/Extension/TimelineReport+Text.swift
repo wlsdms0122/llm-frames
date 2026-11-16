@@ -9,7 +9,7 @@
 // It is not part of the contract.
 extension TimelineReport {
     // MARK: - Property
-    var text: String {
+    package var text: String {
         (["duration \(number(duration))"] + lines(indent: "")).joined(separator: "\n")
     }
 
@@ -18,7 +18,9 @@ extension TimelineReport {
     // MARK: - Private
     private func lines(indent: String) -> [String] {
         let storylineLines = storyline.flatMap { entry in
-            let transition = entry.transition.map { "\($0.preset) \(number($0.seconds))" } ?? "none"
+            let transition = entry.transition.map { transition in
+                [transition.preset, number(transition.seconds)].compactMap(\.self).joined(separator: " ")
+            } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",
                 entry.media ?? "-",
@@ -33,7 +35,7 @@ extension TimelineReport {
         }
         let clipLines = clips.flatMap { entry in
             let animation = entry.animation.map { animation in
-                [animation.entrance, animation.loop, animation.exit].map { $0?.preset ?? "-" }.joined(separator: " / ")
+                [animation.entrance, animation.loop, animation.exit].map(name(of:)).joined(separator: " / ")
             } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",
@@ -46,6 +48,13 @@ extension TimelineReport {
         }
 
         return storylineLines + clipLines
+    }
+
+    // A span a resolved document keeps without its preset's name is shown by its length.
+    private func name(of span: TimelineSpan?) -> String {
+        guard let span else { return "-" }
+
+        return span.preset ?? "\(number(span.length))s"
     }
 
     private func written(_ range: TimeRange) -> String {
