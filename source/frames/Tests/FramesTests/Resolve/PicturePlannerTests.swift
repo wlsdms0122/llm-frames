@@ -80,6 +80,31 @@ struct PicturePlannerTests {
         #expect(box.clip == Rectangle(x: 0, y: 0, width: 800, height: 400))
     }
 
+    @Test(
+        "a resize makes the canvas its whole-pixel target size, and the picture fills it exactly",
+        arguments: [
+            (#"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "resize": { "width": 333 } } ] }"#, Size(width: 333, height: 266)),
+            (#"{ "kind": "image", "source": "/abs/strip.png", "ops": [ { "resize": { "scale": 0.2 } } ] }"#, Size(width: 200, height: 1))
+        ]
+    )
+    func resizesToTargetSize(
+        document: String,
+        size: Size
+    ) throws {
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        #expect(plan.size == size)
+        guard case let .picture(_, _, frame) = plan.steps[0].content else {
+            Issue.record("the picture is not drawn first")
+            return
+        }
+        #expect(isClose(frame, bounds))
+        #expect(isClose(plan.steps[0].clip, bounds))
+    }
+
     @Test("a later crop clips what was drawn, and a later pad never reveals it")
     func clipsEarlierDrawings() throws {
         // Given

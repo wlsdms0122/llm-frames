@@ -90,23 +90,22 @@ struct ImagePlanner: Sendable {
             ))
 
         case let .resize(form):
-            let factor = switch form {
+            let size = canvas.size
+            let target = switch form {
             case let .scale(scale):
-                scale
+                Size(width: size.width * scale, height: size.height * scale)
 
             case let .width(width):
-                width / canvas.size.width
+                Size(width: width, height: size.height * width / size.width)
 
             case let .height(height):
-                height / canvas.size.height
+                Size(width: size.width * height / size.height, height: height)
             }
-            canvas.resize(
-                by: factor,
-                to: Size(
-                    width: max((canvas.size.width * factor).rounded(), 1),
-                    height: max((canvas.size.height * factor).rounded(), 1)
-                )
-            )
+            // A canvas is whole pixels, so the target size is found first and the canvas maps onto it.
+            canvas.resize(to: Size(
+                width: max(target.width.rounded(), 1),
+                height: max(target.height.rounded(), 1)
+            ))
 
         case let .pad(inset, color):
             canvas.extend(by: inset, color: theme.color(color ?? "background"))

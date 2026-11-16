@@ -62,7 +62,8 @@ enum Fixture {
                 frames: screenFrameTimes,
                 size: Size(width: 1206, height: 2622)
             ),
-            "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800))
+            "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800)),
+            "/abs/strip.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 1))
         ],
         imageSequences: ["/abs/frames": imageSequenceFiles]
     )

@@ -42,7 +42,7 @@ An image document edits one picture with an ordered list of operations.
 - **Every area and point is written in the media coordinates of `source`.** frames maps them through the canvas operations before them.
 - Text areas are found in the source picture and grow by their padding in the source's pixels. A band spans the width of the canvas at its operation.
 - `crop`, `resize`, `pad` and `banner` change the canvas. `shape`, `adjust`, `title` and `border` draw on it. Operations run in order, as layers.
-- A canvas is whole pixels. A crop keeps every pixel its area touches, a resize rounds both sides to the nearest pixel and never below 1, and a banner band's height is rounded up.
+- A canvas is whole pixels. A crop keeps every pixel its area touches, a resize rounds both sides of its target size to the nearest pixel and never below 1, and a banner band's height is rounded up.
 - A banner band is filled with the theme `background`. `image.bannerPadding` is the room around the banner text on every side, and each line is placed by its style's alignment.
 - A drawing is made on the canvas as it is at its operation, with theme lengths scaled by the canvas width at that point, and is clipped to that canvas. Later canvas operations move and scale it with the picture. Later pads and banners add room around it but never reveal what was clipped.
 - A drawing wholly outside the canvas at its operation stops. A label's room is measured on the canvas at its shape's operation.
@@ -54,7 +54,7 @@ An image document edits one picture with an ordered list of operations.
 | op | Keys | What it does |
 | --- | --- | --- |
 | `crop` | area | Keeps the area, clipped to the picture |
-| `resize` | `{scale}`, `{width}` or `{height}`, above 0 | Resizes and keeps the aspect ratio |
+| `resize` | `{scale}`, `{width}` or `{height}`, above 0 | Resizes to a target size that keeps the aspect ratio, each side rounded to the nearest pixel and never below 1. The canvas and everything on it map onto that size, one factor per axis, and a length already drawn scales by the horizontal one |
 | `pad` | `n`, `[vertical, horizontal]` or `[top, right, bottom, left]`, in whole pixels of the canvas at that operation, 0 or more, `color` optional | Adds a margin. The default colour is the theme `background` |
 | `shape` | `box`, `fill`, `dim` or `arrow`, with `area`, `side` for an arrow, and `id`, `label`, `color` optional | Draws a shape ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | `adjust` | filter preset, `area` optional | Applies a filter preset to everything drawn before it, inside the area when one is given |

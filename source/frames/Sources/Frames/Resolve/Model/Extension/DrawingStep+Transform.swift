@@ -45,7 +45,7 @@ extension DrawingStep {
             )
 
         case let .adjustment(operations, area):
-            .adjustment(operations.map { $0.scaled(by: transform.scale) }, area: transform.rectangle(area))
+            .adjustment(operations.map { $0.scaled(by: transform.horizontalScale) }, area: transform.rectangle(area))
 
         case let .text(layout, frame):
             .text(layout, frame: transform.rectangle(frame))

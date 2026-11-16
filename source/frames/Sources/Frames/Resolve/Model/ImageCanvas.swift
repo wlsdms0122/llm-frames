@@ -37,7 +37,11 @@ struct ImageCanvas: Equatable, Sendable {
 
     // `rectangle` lies inside the canvas, and becomes it.
     mutating func crop(to rectangle: Rectangle) {
-        let move = CanvasTransform(scale: 1, offset: Point(x: -rectangle.x, y: -rectangle.y))
+        let move = CanvasTransform(
+            horizontalScale: 1,
+            verticalScale: 1,
+            offset: Point(x: -rectangle.x, y: -rectangle.y)
+        )
         steps = steps.compactMap { step in
             guard let clip = step.clip.intersection(rectangle) else { return nil }
 
@@ -47,11 +51,13 @@ struct ImageCanvas: Equatable, Sendable {
         transform = transform.followed(by: move)
     }
 
-    mutating func resize(
-        by scale: Double,
-        to size: Size
-    ) {
-        let resize = CanvasTransform(scale: scale, offset: Point(x: 0, y: 0))
+    // The canvas becomes `size`, and everything on it maps onto it from the old canvas, one factor per axis.
+    mutating func resize(to size: Size) {
+        let resize = CanvasTransform(
+            horizontalScale: size.width / self.size.width,
+            verticalScale: size.height / self.size.height,
+            offset: Point(x: 0, y: 0)
+        )
         steps = steps.map { $0.transformed(by: resize) }
         self.size = size
         transform = transform.followed(by: resize)
@@ -62,7 +68,11 @@ struct ImageCanvas: Equatable, Sendable {
         by inset: Inset,
         color: Color
     ) {
-        let move = CanvasTransform(scale: 1, offset: Point(x: inset.left, y: inset.top))
+        let move = CanvasTransform(
+            horizontalScale: 1,
+            verticalScale: 1,
+            offset: Point(x: inset.left, y: inset.top)
+        )
         let old = move.rectangle(bounds)
         steps = steps.map { $0.transformed(by: move) }
         size = Size(width: size.width + inset.left + inset.right, height: size.height + inset.top + inset.bottom)
@@ -82,15 +92,16 @@ struct ImageCanvas: Equatable, Sendable {
             return content
         }
 
-        let scale = crop.width / frame.width
+        let horizontalScale = crop.width / frame.width
+        let verticalScale = crop.height / frame.height
 
         return .picture(
             picture,
             crop: Rectangle(
-                x: crop.x + (visible.x - frame.x) * scale,
-                y: crop.y + (visible.y - frame.y) * scale,
-                width: visible.width * scale,
-                height: visible.height * scale
+                x: crop.x + (visible.x - frame.x) * horizontalScale,
+                y: crop.y + (visible.y - frame.y) * verticalScale,
+                width: visible.width * horizontalScale,
+                height: visible.height * verticalScale
             ),
             frame: visible
         )
