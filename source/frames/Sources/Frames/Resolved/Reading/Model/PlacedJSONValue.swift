@@ -17,6 +17,20 @@ struct PlacedJSONValue: Sendable {
         value == .null
     }
 
+    // What the value is, as an error names what was found.
+    var finding: String {
+        switch value {
+        case let .array(elements):
+            "a list of \(elements.count)"
+
+        case .object:
+            "an object"
+
+        default:
+            value.written
+        }
+    }
+
     // MARK: - Initializer
     init(
         _ value: JSONValue,
@@ -127,16 +141,4 @@ struct PlacedJSONValue: Sendable {
     }
 
     // MARK: - Private
-    private var finding: String {
-        switch value {
-        case let .array(elements):
-            "a list of \(elements.count)"
-
-        case .object:
-            "an object"
-
-        default:
-            value.written
-        }
-    }
 }

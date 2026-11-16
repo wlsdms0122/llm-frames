@@ -17,6 +17,26 @@ struct ResolvedValueReader: Sendable {
     init() { }
 
     // MARK: - Public
+    // A member of an object read before its keys are checked, since the member decides which keys it holds.
+    func member(
+        _ key: String,
+        of value: PlacedJSONValue,
+        kind: String
+    ) throws -> PlacedJSONValue {
+        guard let object = value.value.objectValue else {
+            throw ModelError.wrongType(place: value.place, kind: kind, expected: "an object", found: value.finding)
+        }
+
+        return try PlacedJSONObject(object, place: value.place, kind: kind).member(key)
+    }
+
+    // The kind a resolved document or a document nested in one names.
+    func documentKind(_ value: PlacedJSONValue) throws -> String {
+        let kinds = ["sequence", "image", "layout"]
+
+        return try member("kind", of: value, kind: value.kind).name(among: kinds) { kinds.contains($0) ? $0 : nil }
+    }
+
     func pinned(_ object: PlacedJSONObject) throws -> PinnedFile {
         PinnedFile(path: try object.member("file").string(), sha256: try object.member("sha256").string())
     }
