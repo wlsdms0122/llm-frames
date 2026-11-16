@@ -88,6 +88,23 @@ struct CoreTextShaperTests {
         #expect(face == nil)
     }
 
+    @Test("a family whose weights lie in separate files gives the face of the weight asked for, whatever the file order")
+    func choosesAmongFiles() throws {
+        // Given
+        let regular = "/System/Library/Fonts/Supplemental/Arial.ttf"
+        let bold = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+
+        // When
+        let boldFace = sut.face(family: "Arial", weight: .bold, in: [regular, bold])
+        let regularFace = sut.face(family: "Arial", weight: .regular, in: [bold, regular])
+
+        // Then
+        #expect(boldFace?.name == "Arial-BoldMT")
+        #expect(boldFace?.file == bold)
+        #expect(regularFace?.name == "ArialMT")
+        #expect(regularFace?.file == regular)
+    }
+
     @Test("a face of a family is found in the font files given, and a family they do not hold is not")
     func findsFaceInFiles() throws {
         // Given

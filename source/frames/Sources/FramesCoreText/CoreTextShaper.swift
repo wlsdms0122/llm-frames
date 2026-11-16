@@ -120,13 +120,16 @@ extension CoreTextShaper: ShapingProvider {
         weight: FontWeight,
         in files: [String]
     ) -> FontFace? {
-        for file in files {
-            if let descriptor = closest(among: descriptors(in: file), family: family, weight: weight) {
-                return face(of: CTFontCreateWithFontDescriptor(descriptor, 1, nil), file: file)
-            }
+        // The family's faces may lie in several files, one weight each, so the face is chosen among all of them.
+        let found = files.flatMap { file in descriptors(in: file).map { (file: file, descriptor: $0) } }
+        guard
+            let descriptor = closest(among: found.map(\.descriptor), family: family, weight: weight),
+            let file = found.first(where: { $0.descriptor === descriptor })?.file
+        else {
+            return nil
         }
 
-        return nil
+        return face(of: CTFontCreateWithFontDescriptor(descriptor, 1, nil), file: file)
     }
 
     package func installedFace(
