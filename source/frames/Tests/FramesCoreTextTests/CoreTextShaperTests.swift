@@ -41,6 +41,25 @@ struct CoreTextShaperTests {
         #expect(face.descent > 0 && face.descent < 1)
     }
 
+    @Test(
+        "a family with condensed faces gives its normal width face, from the machine and from its file",
+        arguments: [(FontWeight.regular, "HelveticaNeue"), (.bold, "HelveticaNeue-Bold")]
+    )
+    func prefersNormalWidth(weight: FontWeight, name: String) throws {
+        // Given
+        let family = "Helvetica Neue"
+        let file = "/System/Library/Fonts/HelveticaNeue.ttc"
+
+        // When
+        let installed = try #require(sut.installedFace(family: family, weight: weight))
+        let inFile = try #require(sut.face(family: family, weight: weight, in: [file]))
+
+        // Then
+        #expect(installed.name == name)
+        #expect(inFile.name == name)
+        #expect(inFile.file == file)
+    }
+
     @Test("a family the machine does not have has no face")
     func findsNoMissingFamily() {
         // Given

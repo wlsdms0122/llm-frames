@@ -18,21 +18,27 @@ package struct CoreTextShaper: Sendable {
     private static let regularWeight = 0.0
     private static let boldWeight = 0.4
 
+    // A face's distance from the weight asked for, its distance from normal width, and its PostScript name.
+    private typealias Rank = (weight: Double, width: Double, name: String)
+
     // MARK: - Initializer
     package init() {}
 
     // MARK: - Public
     // MARK: - Private
     // The upright face of the family closest to the weight, among its bold faces for bold and the others for regular.
+    // Ties go to the width closest to normal and then to the PostScript name, so the same family always gives the
+    // same face whatever order CoreText lists them in.
     private func closest(
         among descriptors: [CTFontDescriptor],
         family: String,
         weight: FontWeight
     ) -> CTFontDescriptor? {
         let target = weight == .bold ? Self.boldWeight : Self.regularWeight
-        let candidates = descriptors.compactMap { descriptor -> (descriptor: CTFontDescriptor, weight: Double)? in
+        let candidates = descriptors.compactMap { descriptor -> (descriptor: CTFontDescriptor, rank: Rank)? in
             guard
                 CTFontDescriptorCopyAttribute(descriptor, kCTFontFamilyNameAttribute) as? String == family,
+                let name = CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String,
                 let traits = CTFontDescriptorCopyAttribute(descriptor, kCTFontTraitsAttribute) as? [CFString: Any]
             else {
                 return nil
@@ -41,11 +47,13 @@ package struct CoreTextShaper: Sendable {
             guard !symbolic.contains(.traitItalic), symbolic.contains(.traitBold) == (weight == .bold) else {
                 return nil
             }
+            let faceWeight = traits[kCTFontWeightTrait] as? Double ?? 0
+            let width = traits[kCTFontWidthTrait] as? Double ?? 0
 
-            return (descriptor, traits[kCTFontWeightTrait] as? Double ?? 0)
+            return (descriptor, (abs(faceWeight - target), abs(width), name))
         }
 
-        return candidates.min { abs($0.weight - target) < abs($1.weight - target) }?.descriptor
+        return candidates.min { $0.rank < $1.rank }?.descriptor
     }
 
     private func face(
