@@ -70,13 +70,16 @@ frames/
     PRESET.md              how to write a preset
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
-  presets/                 built in, laid out as in a pack
-    transition/*.json
-    animation/*.json
-    filter/*.json
-  packs/                   the forms that ship with frames
-    pr-evidence/  shorts/  demo/
-  source/                  the sources and the built tool
+  source/frames/           the Swift package and the built tool
+    Sources/FramesCommand/ the commands, their arguments and the role table
+      Resources/
+        presets/           built in, laid out as in a pack
+          transition/*.json
+          animation/*.json
+          filter/*.json
+        packs/             the forms that ship with frames
+          pr-evidence/  shorts/  demo/
+    Sources/FramesTool/    the `frames` executable
 ```
 
 ## Order of work
