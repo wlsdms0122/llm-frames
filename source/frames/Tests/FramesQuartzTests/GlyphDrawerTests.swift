@@ -29,7 +29,12 @@ struct GlyphDrawerTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let (glyph, bounds) = try letterI()
-        let glyphs = GlyphsItem(runs: [run(glyph: glyph)], stroke: nil, background: nil)
+        let glyphs = GlyphsItem(
+            size: Size(width: 100, height: 100),
+            runs: [run(glyph: glyph)],
+            stroke: nil,
+            background: nil
+        )
 
         // When
         let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
@@ -52,6 +57,7 @@ struct GlyphDrawerTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let (glyph, bounds) = try letterI()
         let glyphs = GlyphsItem(
+            size: Size(width: 100, height: 100),
             runs: [run(glyph: glyph)],
             stroke: TextStroke(width: 6, color: Color(written: "#0000FF")),
             background: GlyphBackground(
@@ -84,7 +90,7 @@ struct GlyphDrawerTests {
             color: Color(written: "#FF0000"),
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 0)]
         )
-        let glyphs = GlyphsItem(runs: [run], stroke: nil, background: nil)
+        let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], stroke: nil, background: nil)
 
         // When
         let drawing = { try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))])) }

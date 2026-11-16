@@ -69,6 +69,7 @@ struct ClipEvaluatorTests {
         #expect(items.count == 1)
         #expect(isClose(item.transform, expected))
         #expect(item.content == .glyphs(GlyphsItem(
+            size: Size(width: 100, height: 40),
             runs: [],
             stroke: nil,
             background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 6, color: white)

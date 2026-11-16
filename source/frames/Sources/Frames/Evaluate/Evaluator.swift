@@ -82,7 +82,8 @@ package struct Evaluator: Sendable {
             .flatMap { _, clip in
                 let space = parentSpace ?? .output(room: clip.storyline == nil ? frame : content, frame: frame)
                 let picture = picture(of: clip, at: time, seed: seed)
-                return clipEvaluator.items(of: clip, in: space, picture: picture, at: time)
+                let origin = ItemOrigin(clip: clip)
+                return clipEvaluator.items(of: clip, in: space, picture: picture, at: time).map { $0.drawn(by: origin) }
             }
     }
 
@@ -179,7 +180,8 @@ package struct Evaluator: Sendable {
             opacity: presentation.opacity,
             mask: content,
             reveal: presentation.reveal,
-            content: .picture(picture)
+            content: .picture(picture),
+            origin: ItemOrigin(entry: sequence.storyline[index])
         )
     }
 
@@ -191,8 +193,10 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
+        let origin = ItemOrigin(entry: entry)
         guard let media = entry.media else {
-            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: unit, color: $0)))] } ?? []
+            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: unit, color: $0)), origin: origin)] }
+                ?? []
         }
 
         let picture = PictureItem(
@@ -201,7 +205,7 @@ package struct Evaluator: Sendable {
             destination: unit,
             filter: entry.filter
         )
-        return [DisplayItem(content: .picture(picture))]
+        return [DisplayItem(content: .picture(picture), origin: origin)]
     }
 
     private func source(
