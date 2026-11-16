@@ -12,7 +12,8 @@ import FramesTestMedia
 import FramesVision
 import Testing
 
-// Serialized, since the decoder blocks a thread of the shared pool while AVFoundation loads.
+// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
+// all hold.
 @Suite("VisionTracker Tests", .serialized)
 struct VisionTrackerTests {
     // MARK: - Property

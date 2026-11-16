@@ -110,11 +110,11 @@ extension AVFoundationDecoder: MediaFactProvider {
         }
 
         let asset = AVURLAsset(url: URL(fileURLWithPath: file))
+        let waiter = LoadWaiter(file: file)
         guard
-            let (hasSound, duration) = try? LoadWaiter().value(of: {
-                (!(try await asset.loadTracks(withMediaType: .audio)).isEmpty, try await asset.load(.duration))
-            }),
-            hasSound
+            let sound = try? waiter.tracks(of: asset, type: .audio),
+            !sound.isEmpty,
+            let duration = try? waiter.value(of: .duration, key: "duration", in: asset)
         else {
             return nil
         }

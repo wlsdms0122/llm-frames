@@ -20,7 +20,6 @@ import Frames
 package struct VideoWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
-    private static let sampleRate = 48_000
 
     private let size: Size
     private let frameTimes: [Double]
@@ -88,12 +87,7 @@ package struct VideoWriter {
             kCVPixelBufferHeightKey as String: Int(size.height)
         ])
         writer.add(video)
-        let audio = sound ? AVAssetWriterInput(mediaType: .audio, outputSettings: [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: Self.sampleRate,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 128_000
-        ]) : nil
+        let audio = sound ? AVAssetWriterInput(mediaType: .audio, outputSettings: SoundWriter.outputSettings) : nil
         if let audio {
             audio.expectsMediaDataInRealTime = false
             writer.add(audio)
@@ -116,7 +110,7 @@ package struct VideoWriter {
                 while !audio.isReadyForMoreMediaData {
                     try await Task.sleep(nanoseconds: 1_000_000)
                 }
-                guard audio.append(try tone(from: time, to: next, path: path)) else {
+                guard audio.append(try SoundWriter(end: end).tone(from: time, to: next, path: path)) else {
                     throw writer.error ?? TestMediaError.unwritable(path)
                 }
             }
@@ -191,78 +185,5 @@ package struct VideoWriter {
         let turned = CGRect(x: 0, y: 0, width: size.width, height: size.height).applying(transform)
 
         return transform.concatenating(CGAffineTransform(translationX: -turned.minX, y: -turned.minY))
-    }
-
-    // 16 bit mono samples of the tone from `start` to `end` media seconds.
-    private func tone(
-        from start: Double,
-        to end: Double,
-        path: String
-    ) throws -> CMSampleBuffer {
-        let first = Int((start * Double(Self.sampleRate)).rounded())
-        let count = max(Int((end * Double(Self.sampleRate)).rounded()) - first, 1)
-        var samples = (0..<count).map { offset in
-            Int16(sin(2 * Double.pi * 440 * Double(first + offset) / Double(Self.sampleRate)) * 8_000)
-        }
-        var description = AudioStreamBasicDescription(
-            mSampleRate: Double(Self.sampleRate),
-            mFormatID: kAudioFormatLinearPCM,
-            mFormatFlags: kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked,
-            mBytesPerPacket: 2,
-            mFramesPerPacket: 1,
-            mBytesPerFrame: 2,
-            mChannelsPerFrame: 1,
-            mBitsPerChannel: 16,
-            mReserved: 0
-        )
-        var format: CMAudioFormatDescription?
-        var block: CMBlockBuffer?
-        var sample: CMSampleBuffer?
-        let length = count * 2
-        guard
-            CMAudioFormatDescriptionCreate(
-                allocator: nil,
-                asbd: &description,
-                layoutSize: 0,
-                layout: nil,
-                magicCookieSize: 0,
-                magicCookie: nil,
-                extensions: nil,
-                formatDescriptionOut: &format
-            ) == noErr,
-            CMBlockBufferCreateWithMemoryBlock(
-                allocator: nil,
-                memoryBlock: nil,
-                blockLength: length,
-                blockAllocator: nil,
-                customBlockSource: nil,
-                offsetToData: 0,
-                dataLength: length,
-                flags: 0,
-                blockBufferOut: &block
-            ) == noErr,
-            let format,
-            let block,
-            CMBlockBufferReplaceDataBytes(
-                with: &samples,
-                blockBuffer: block,
-                offsetIntoDestination: 0,
-                dataLength: length
-            ) == noErr,
-            CMAudioSampleBufferCreateReadyWithPacketDescriptions(
-                allocator: nil,
-                dataBuffer: block,
-                formatDescription: format,
-                sampleCount: count,
-                presentationTimeStamp: CMTime(value: CMTimeValue(first), timescale: CMTimeScale(Self.sampleRate)),
-                packetDescriptions: nil,
-                sampleBufferOut: &sample
-            ) == noErr,
-            let sample
-        else {
-            throw TestMediaError.unwritable(path)
-        }
-
-        return sample
     }
 }

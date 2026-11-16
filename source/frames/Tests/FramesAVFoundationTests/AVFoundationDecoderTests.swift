@@ -13,7 +13,8 @@ import FramesAVFoundation
 import FramesTestMedia
 import Testing
 
-// Serialized, since the decoder blocks a thread of the shared pool while AVFoundation loads.
+// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
+// all hold.
 @Suite("AVFoundationDecoder Tests", .serialized)
 struct AVFoundationDecoderTests {
     // MARK: - Property
@@ -177,6 +178,33 @@ struct AVFoundationDecoderTests {
         // Then
         #expect(probed.hasSound == sound)
         #expect(probed.frames == evenTimes)
+    }
+
+    // A sound file is probed by loads alone, where a video's probe also reads its samples with AVAssetReader, which
+    // needs a free thread of the pool.
+    @Test(
+        "probes of a sound file from more tasks at once than the shared pool has threads all finish",
+        .timeLimit(.minutes(1))
+    )
+    func probesConcurrently() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tone.m4a")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = (0..<ProcessInfo.processInfo.activeProcessorCount * 4).map { _ in AVFoundationDecoder() }
+
+        // When
+        let probed = await withTaskGroup(of: ProbedMedia?.self) { group in
+            for decoder in sut {
+                group.addTask { decoder.probedMedia(of: file) }
+            }
+
+            return await group.reduce(into: []) { $0.append($1) }
+        }
+
+        // Then
+        #expect(probed.count == sut.count)
+        #expect(probed.allSatisfy { $0?.kind == .audio && $0?.hasSound == true })
     }
 
     @Test("a still has one frame at its size")

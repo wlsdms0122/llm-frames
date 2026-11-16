@@ -15,7 +15,8 @@ import Testing
 
 @testable import Frames
 
-// Serialized, since the decoder blocks a thread of the shared pool while AVFoundation loads.
+// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
+// all hold.
 @Suite("Resolve End To End Tests", .serialized)
 struct ResolveEndToEndTests {
     // MARK: - Property

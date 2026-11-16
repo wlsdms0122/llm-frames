@@ -38,32 +38,9 @@ struct VideoReader: Sendable {
     // Nil for a file without a picture track.
     init?(path: String) throws {
         let asset = AVURLAsset(url: URL(fileURLWithPath: path))
-        nonisolated(unsafe) var pictureTrack: AVAssetTrack?
-        let loaded = try LoadWaiter().value { () async throws -> TrackFacts? in
-            guard let track = try await asset.loadTracks(withMediaType: .video).first else { return nil }
-            let (naturalSize, preferredTransform, nominalFrameRate, formats, segments) = try await track.load(
-                .naturalSize,
-                .preferredTransform,
-                .nominalFrameRate,
-                .formatDescriptions,
-                .segments
-            )
-            let depth = formats.first.flatMap {
-                CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent)
-            }
-            pictureTrack = track
-
-            return TrackFacts(
-                storedSize: naturalSize,
-                preferredTransform: preferredTransform,
-                nominalFrameRate: nominalFrameRate,
-                bitsPerComponent: depth as? Int ?? 8,
-                edits: segments.filter { !$0.isEmpty }.map(\.timeMapping),
-                duration: try await asset.load(.duration),
-                hasSound: !(try await asset.loadTracks(withMediaType: .audio)).isEmpty
-            )
-        }
-        guard let loaded, let track = pictureTrack else { return nil }
+        let waiter = LoadWaiter(file: path)
+        guard let track = try waiter.tracks(of: asset, type: .video).first else { return nil }
+        let loaded = try Self.facts(of: track, in: asset, waiter: waiter)
 
         // The preferred transform is moved so the turned picture starts at the origin, as a player shows it.
         let turned = CGRect(origin: .zero, size: loaded.storedSize).applying(loaded.preferredTransform)
@@ -113,6 +90,28 @@ struct VideoReader: Sendable {
     }
 
     // MARK: - Private
+    private static func facts(
+        of track: AVAssetTrack,
+        in asset: AVAsset,
+        waiter: LoadWaiter
+    ) throws -> TrackFacts {
+        let formats = try waiter.value(of: .formatDescriptions, key: "formatDescriptions", in: track)
+        let depth = formats.first.flatMap {
+            CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent)
+        }
+        let segments = try waiter.value(of: .segments, key: "segments", in: track)
+
+        return TrackFacts(
+            storedSize: try waiter.value(of: .naturalSize, key: "naturalSize", in: track),
+            preferredTransform: try waiter.value(of: .preferredTransform, key: "preferredTransform", in: track),
+            nominalFrameRate: try waiter.value(of: .nominalFrameRate, key: "nominalFrameRate", in: track),
+            bitsPerComponent: depth as? Int ?? 8,
+            edits: segments.filter { !$0.isEmpty }.map(\.timeMapping),
+            duration: try waiter.value(of: .duration, key: "duration", in: asset),
+            hasSound: !(try waiter.tracks(of: asset, type: .audio)).isEmpty
+        )
+    }
+
     // Every sample's times, read without decoding: its sample time is mapped through the edit that holds it, and one
     // no edit holds is never presented.
     private static func frames(
