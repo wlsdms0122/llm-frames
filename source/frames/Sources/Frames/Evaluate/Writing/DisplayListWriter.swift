@@ -1,0 +1,219 @@
+//
+//  DisplayListWriter.swift
+//  Frames
+//
+//  Created by JSilver on 11/17/26.
+//
+
+// Writes a display list as JSON, `"displayList"` first, set to the version of this frames, then its frame size, its
+// background and its items bottom first, in the layout and number form of a resolved document, so the same list gives
+// the same bytes. A nested list is the same shape without the version. Every `grain` carries the list's seed, the
+// number of the output frame it is drawn in.
+package struct DisplayListWriter: Sendable {
+    // MARK: - Property
+    private let values = ResolvedValueWriter()
+    private let writer = JSONWriter()
+
+    // MARK: - Initializer
+    package init() { }
+
+    // MARK: - Public
+    package func write(_ list: DisplayList) -> String {
+        writer.write(document(list))
+    }
+
+    func document(_ list: DisplayList) -> JSONValue {
+        .object(JSONObject(
+            members: [JSONMember(key: "displayList", value: .string(FramesVersion.current))] + members(of: list)
+        ))
+    }
+
+    // MARK: - Private
+    private func members(of list: DisplayList) -> [JSONMember] {
+        [
+            JSONMember(key: "size", value: values.size(list.size)),
+            JSONMember(key: "background", value: values.color(list.background)),
+            JSONMember(key: "items", value: .array(list.items.map { item(of: $0, seed: list.seed) }))
+        ]
+    }
+
+    // `item` names what it draws, and the members every item has come before that item's own.
+    private func item(
+        of item: DisplayItem,
+        seed: Int
+    ) -> JSONValue {
+        let origin = item.origin.map { origin in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "place", value: .string(origin.place)),
+                JSONMember(key: "id", value: origin.id.map(JSONValue.string) ?? .null),
+                JSONMember(key: "kind", value: .string(origin.kind))
+            ]))
+        }
+        let members = [
+            JSONMember(key: "item", value: .string(name(of: item.content))),
+            JSONMember(key: "origin", value: origin ?? .null),
+            JSONMember(key: "transform", value: values.numbers(transform(item.transform))),
+            JSONMember(key: "opacity", value: .number(item.opacity)),
+            JSONMember(key: "blend", value: .string(item.blend)),
+            JSONMember(key: "mask", value: rectangle(item.mask)),
+            JSONMember(key: "reveal", value: rectangle(item.reveal))
+        ]
+
+        return .object(JSONObject(members: members + self.members(of: item.content, seed: seed)))
+    }
+
+    private func name(of content: DisplayContent) -> String {
+        switch content {
+        case .picture:
+            "picture"
+
+        case .fill:
+            "fill"
+
+        case .stroke:
+            "stroke"
+
+        case .arrow:
+            "arrow"
+
+        case .glyphs:
+            "glyphs"
+
+        case .adjust:
+            "adjust"
+        }
+    }
+
+    private func members(
+        of content: DisplayContent,
+        seed: Int
+    ) -> [JSONMember] {
+        let number = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
+        let color = { (color: Color) in JSONMember(key: "color", value: self.values.color(color)) }
+
+        switch content {
+        case let .picture(picture):
+            return members(of: picture, seed: seed)
+
+        case let .fill(fill):
+            let hole = fill.hole.map { hole in
+                JSONValue.object(JSONObject(members: [
+                    JSONMember(key: "rect", value: values.rectangle(hole.rectangle)),
+                    number("radius", hole.radius)
+                ]))
+            }
+            return [
+                JSONMember(key: "rect", value: values.rectangle(fill.rectangle)),
+                number("radius", fill.radius),
+                color(fill.color),
+                JSONMember(key: "hole", value: hole ?? .null)
+            ]
+
+        case let .stroke(stroke):
+            return [
+                JSONMember(key: "rect", value: values.rectangle(stroke.rectangle)),
+                number("radius", stroke.radius),
+                number("width", stroke.width),
+                color(stroke.color),
+                number("trim", stroke.trim)
+            ]
+
+        case let .arrow(arrow):
+            return [
+                JSONMember(key: "tail", value: values.point(arrow.tail)),
+                JSONMember(key: "head", value: values.point(arrow.head)),
+                number("width", arrow.width),
+                number("headSize", arrow.headSize),
+                color(arrow.color)
+            ]
+
+        case let .glyphs(glyphs):
+            let stroke = glyphs.stroke.map { stroke in
+                JSONValue.object(JSONObject(members: [number("width", stroke.width), color(stroke.color)]))
+            }
+            let background = glyphs.background.map { background in
+                JSONValue.object(JSONObject(members: [
+                    JSONMember(key: "rect", value: values.rectangle(background.rectangle)),
+                    number("radius", background.radius),
+                    color(background.color)
+                ]))
+            }
+            return [
+                JSONMember(key: "size", value: values.size(glyphs.size)),
+                JSONMember(key: "runs", value: values.runs(glyphs.runs)),
+                JSONMember(key: "stroke", value: stroke ?? .null),
+                JSONMember(key: "background", value: background ?? .null)
+            ]
+
+        case let .adjust(adjust):
+            return [
+                JSONMember(key: "rect", value: rectangle(adjust.rectangle)),
+                JSONMember(key: "filter", value: values.filter(adjust.filter, seed: seed))
+            ]
+        }
+    }
+
+    // `rect` is `null` where the picture shows its whole source.
+    private func members(
+        of picture: PictureItem,
+        seed: Int
+    ) -> [JSONMember] {
+        let border = picture.border.map { border in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(border.width)),
+                JSONMember(key: "color", value: values.color(border.color))
+            ]))
+        }
+        let shadow = picture.shadow.map { shadow in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "radius", value: .number(shadow.radius)),
+                JSONMember(key: "offset", value: values.point(shadow.offset)),
+                JSONMember(key: "color", value: values.color(shadow.color))
+            ]))
+        }
+        let matte = picture.matte.map { matte in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
+                JSONMember(key: "frame", value: .number(Double(matte.frame.index))),
+                JSONMember(key: "progress", value: .number(matte.progress)),
+                JSONMember(key: "softness", value: .number(matte.softness)),
+                JSONMember(key: "invert", value: .bool(matte.isInverted))
+            ]))
+        }
+
+        return [
+            JSONMember(key: "source", value: source(of: picture.source)),
+            JSONMember(key: "rect", value: rectangle(picture.rectangle)),
+            JSONMember(key: "dest", value: values.rectangle(picture.destination)),
+            JSONMember(key: "filter", value: values.filter(picture.filter, seed: seed)),
+            JSONMember(key: "matte", value: matte ?? .null),
+            JSONMember(key: "radius", value: .number(picture.radius)),
+            JSONMember(key: "border", value: border ?? .null),
+            JSONMember(key: "shadow", value: shadow ?? .null)
+        ]
+    }
+
+    // A frame of media is `{media, frame}`, its pinned media and the frame's index, and a nested list `{list}`.
+    private func source(of source: PictureItemSource) -> JSONValue {
+        switch source {
+        case let .media(frame):
+            .object(JSONObject(members: [
+                JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
+                JSONMember(key: "frame", value: .number(Double(frame.index)))
+            ]))
+
+        case let .displayList(list):
+            .object(JSONObject(members: [
+                JSONMember(key: "list", value: .object(JSONObject(members: members(of: list))))
+            ]))
+        }
+    }
+
+    private func transform(_ transform: AffineTransform) -> [Double] {
+        [transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty]
+    }
+
+    private func rectangle(_ rectangle: Rectangle?) -> JSONValue {
+        rectangle.map(values.rectangle) ?? .null
+    }
+}
