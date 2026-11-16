@@ -408,7 +408,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: file, from: 0.25, to: 0.75)
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.75)
 
         // Then
         #expect(sound.sampleRate == 44_100 && sound.channels == 2 && sound.layout.labels == [.left, .right])
@@ -430,7 +430,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: file, from: 0.25, to: 0.5)
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.5)
 
         // Then
         #expect(sound.sampleRate == 48_000 && sound.channels == 1 && sound.layout.labels == [.mono])
@@ -447,8 +447,8 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let past = try sut.sound(of: file, from: 0.5, to: 2)
-        let empty = try sut.sound(of: file, from: 0.5, to: 0.5)
+        let past = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 2)
+        let empty = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 0.5)
 
         // Then
         #expect(past.frameCount == 24_000)
@@ -464,7 +464,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: file, from: 0, to: 0.1)
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.1)
 
         // Then
         #expect(sound.channels == 6)
@@ -483,7 +483,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: file, from: 0, to: 1)
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 1)
 
         // Then
         #expect(sound.frameCount > 47_000)
@@ -500,7 +500,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let error = #expect(throws: DecoderError.self) { try sut.sound(of: file, from: 0, to: 1) }
+        let error = #expect(throws: DecoderError.self) { try sut.sound(of: MediaFile(path: file), from: 0, to: 1) }
 
         // Then
         #expect(error?.description == "media \(file) has no sound track")

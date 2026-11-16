@@ -163,10 +163,10 @@ extension AVFoundationDecoder: MediaDecoder {
     }
 
     package func sound(
-        of file: String,
+        of file: MediaFile,
         from start: Double,
         to end: Double
     ) throws -> SoundBuffer {
-        try soundTrack(at: file).sound(from: start, to: end, path: file)
+        try soundTrack(at: file.path).sound(from: start, to: end, path: file.path)
     }
 }

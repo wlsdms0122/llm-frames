@@ -35,7 +35,7 @@ struct RecordingDecoder: MediaDecoder {
     }
 
     func sound(
-        of file: String,
+        of file: MediaFile,
         from start: Double,
         to end: Double
     ) throws -> SoundBuffer {

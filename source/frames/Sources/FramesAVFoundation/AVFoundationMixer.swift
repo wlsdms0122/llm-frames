@@ -31,12 +31,11 @@ package final class AVFoundationMixer: Sendable {
         from start: Double,
         to end: Double
     ) throws -> (path: String, sound: SoundBuffer) {
-        guard case let .file(file) = segment.media.source else {
-            throw MixerError.noSound(segment: index, file: MediaFile(media: segment.media).path)
-        }
+        let file = MediaFile(media: segment.media)
+        guard case .file = segment.media.source else { throw MixerError.noSound(segment: index, file: file.path) }
 
         do {
-            return (file.path, try decoder.sound(of: file.path, from: start, to: end))
+            return (file.path, try decoder.sound(of: file, from: start, to: end))
         } catch DecoderError.noSound {
             throw MixerError.noSound(segment: index, file: file.path)
         } catch {

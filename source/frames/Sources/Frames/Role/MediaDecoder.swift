@@ -23,7 +23,7 @@ package protocol MediaDecoder: Sendable {
     // sample rate and channels. A range running past the end of the sound gives the frames there are, and an empty one
     // gives none, with the rate and channels.
     func sound(
-        of file: String,
+        of file: MediaFile,
         from start: Double,
         to end: Double
     ) throws -> SoundBuffer
