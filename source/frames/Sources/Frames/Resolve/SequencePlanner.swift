@@ -84,12 +84,23 @@ struct SequencePlanner: Sendable {
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
-            ClipGeometry(
+            let title = try title(of: written[index], format: format, theme: time.theme)
+            return ClipGeometry(
                 area: found[index].area,
                 position: found[index].position,
+                box: try box(
+                    of: tracked.time.clips[index],
+                    written: written[index],
+                    position: found[index].position,
+                    crop: found[index].crop,
+                    title: title,
+                    nested: clipNested[index],
+                    format: format,
+                    theme: time.theme
+                ),
                 crop: found[index].crop,
                 track: tracked.clips[index],
-                title: try title(of: written[index], format: format, theme: time.theme),
+                title: title,
                 label: try label(
                     of: tracked.time.clips[index],
                     written: written[index],
@@ -363,6 +374,140 @@ struct SequencePlanner: Sendable {
             place: written.place.appending(key: "title"),
             kind: ClipKind.title.label
         )
+    }
+
+    // A title's box is its text box, and a media clip's is set by `width` and `height`. The box goes where its position
+    // puts its anchor point, or where its placement sets it: a title by default where its style places it, and media
+    // in the centre. A shape or an adjustment is placed by its area, and an audio clip is not drawn, so they have none.
+    private func box(
+        of plan: ClipPlan,
+        written: Clip,
+        position: PropertyValue<Point>?,
+        crop: PropertyValue<FoundArea>?,
+        title: TextLayout?,
+        nested: DocumentPlan?,
+        format: FormatPlan,
+        theme: MergedTheme
+    ) throws -> ClipBox? {
+        let size: Size
+        let style: String?
+        switch written.content {
+        case let .title(_, name):
+            size = title?.size ?? Size(width: 0, height: 0)
+            style = name
+
+        case .media:
+            guard plan.kind != .media(.audio), let media = plan.media else { return nil }
+
+            let picture = try self.picture(
+                of: media,
+                kind: plan.kind,
+                nested: nested,
+                place: written.place.appending(key: "media")
+            )
+            size = mediaSize(width: written.width, height: written.height, crop: crop, picture: picture.size)
+            style = nil
+
+        case .shape, .adjust:
+            return nil
+        }
+        guard written.placement == nil || written.position == nil else {
+            throw ResolveError.placementWithPosition(place: written.place, kind: .clip(plan.kind))
+        }
+        guard !plan.isParented || position != nil else {
+            throw ResolveError.parentWithoutPosition(place: written.place, kind: .clip(plan.kind))
+        }
+
+        let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let placement = written.placement ?? style.flatMap(theme.placement(ofStyle:)) ?? "center"
+        let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
+        let topLeft = { (point: Point) in Point(x: point.x - anchor.x, y: point.y - anchor.y) }
+        let placed: PropertyValue<Point> = switch position {
+        case let .value(point):
+            .value(topLeft(point))
+
+        case let .keyframes(keyframes):
+            .keyframes(keyframes.map { keyframe in
+                TimedValue(index: keyframe.index, at: keyframe.at, value: topLeft(keyframe.value), ease: keyframe.ease)
+            })
+
+        case .none:
+            .value(self.placed(
+                bounds,
+                at: placement,
+                offset: style.flatMap(theme.offset(ofStyle:)),
+                format: format,
+                theme: theme
+            ))
+        }
+
+        return ClipBox(size: size, position: placed, anchor: anchor)
+    }
+
+    // Given one of `width` and `height`, the other follows the aspect ratio of the first crop, or of the picture when
+    // there is no crop. Given neither, the box is that crop or picture at one media pixel to an output pixel.
+    private func mediaSize(
+        width: Double?,
+        height: Double?,
+        crop: PropertyValue<FoundArea>?,
+        picture: Size
+    ) -> Size {
+        let first = crop.map { crop in
+            let rectangle = self.first(of: crop).rectangle
+            return Size(width: rectangle.width, height: rectangle.height)
+        } ?? picture
+
+        switch (width, height) {
+        case let (.some(width), .some(height)):
+            return Size(width: width, height: height)
+
+        case let (.some(width), .none):
+            return Size(width: width, height: width * first.height / first.width)
+
+        case let (.none, .some(height)):
+            return Size(width: height * first.width / first.height, height: height)
+
+        case (.none, .none):
+            return first
+        }
+    }
+
+    // The value a property takes first: its static value, or its earliest keyframe, the first written of those at one
+    // instant. A property read with keyframes has at least one.
+    private func first<Value>(of property: PropertyValue<Value>) -> Value {
+        switch property {
+        case let .value(value):
+            value
+
+        case let .keyframes(keyframes):
+            keyframes.dropFirst().reduce(keyframes[0]) { first, keyframe in keyframe.at < first.at ? keyframe : first }
+                .value
+        }
+    }
+
+    // The top left of a box placed by name: the output frame is inset by the placement padding on every side, or on
+    // the top or bottom edge by a style's `offset`, and the box's named point goes to the inset frame's.
+    private func placed(
+        _ box: Rectangle,
+        at name: String,
+        offset: Double?,
+        format: FormatPlan,
+        theme: MergedTheme
+    ) -> Point {
+        let scale = theme.lengthScale(at: format.size.width)
+        let padding = theme.placementPadding * scale
+        let top = name.hasPrefix("top") ? offset.map { $0 * scale } ?? padding : padding
+        let bottom = name.hasPrefix("bottom") ? offset.map { $0 * scale } ?? padding : padding
+        let frame = Rectangle(
+            x: padding,
+            y: top,
+            width: format.size.width - padding * 2,
+            height: format.size.height - top - bottom
+        )
+        let framePoint = frame.point(named: name)
+        let boxPoint = box.point(named: name)
+
+        return Point(x: framePoint.x - boxPoint.x, y: framePoint.y - boxPoint.y)
     }
 
     // A label is set on one line in the `label` style. A parented shape is measured through its storyline clip's

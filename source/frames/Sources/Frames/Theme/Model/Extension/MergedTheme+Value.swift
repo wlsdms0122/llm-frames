@@ -95,6 +95,15 @@ extension MergedTheme {
         color(value(at: ["shapes", shape.rawValue, "color"])?.stringValue ?? "accent")
     }
 
+    // Where a style places a title that gives no position, and how far it sits from the top or bottom edge, in points.
+    func placement(ofStyle name: String) -> String? {
+        value(at: ["styles", name, "placement"])?.stringValue
+    }
+
+    func offset(ofStyle name: String) -> Double? {
+        value(at: ["styles", name, "offset"])?.numberValue
+    }
+
     // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the
     // `text` and `emphasis` colours, a line height of 1.25 times its size, left, no stroke, no background and no limit
     // on lines. A background leaves out the `background` colour, no padding and no radius, and a stroke the `text`

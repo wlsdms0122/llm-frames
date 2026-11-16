@@ -118,13 +118,15 @@ struct ResolvedDocumentWriterTests {
               "lane": 1,
               "parent": null,
               "area": null,
+              "size": [60.8955223880597, 54.62686567164179],
               "position": [
                 {
                   "at": 0,
-                  "value": [75.4, 1709.8],
+                  "value": [44.952238805970154, 1682.486567164179],
                   "ease": "linear"
                 }
               ],
+              "anchor": [30.44776119402985, 27.313432835820894],
               "crop": null,
               "track": null,
               "label": null,

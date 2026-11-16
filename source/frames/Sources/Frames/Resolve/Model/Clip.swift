@@ -6,7 +6,8 @@
 //
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
-// and `crop` are as written, their keyframes on the clip's clock. `width` is a title's wrapping width. `opacity`,
+// and `crop` are as written, their keyframes on the clip's clock. `placement` and `anchor` are the names written.
+// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `opacity`,
 // `scale` and `rotation` are as written, their keyframes on the clip's clock, `color` is a shape's as written, and
 // `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
@@ -20,6 +21,8 @@ struct Clip: Equatable, Sendable {
     let hasParent: Bool
     let hasPlacement: Bool
     let hasArea: Bool
+    let placement: String?
+    let anchor: String?
     let animation: AnimationChoice?
     let keyframes: [KeyframeInstant]
     let area: PropertyValue<AreaForm>?
@@ -28,6 +31,8 @@ struct Clip: Equatable, Sendable {
     let track: TrackTarget?
     let label: String?
     let width: Double?
+    let height: Double?
+    let conform: Conform?
     let opacity: PropertyValue<Double>?
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
@@ -46,6 +51,8 @@ struct Clip: Equatable, Sendable {
         hasParent: Bool,
         hasPlacement: Bool,
         hasArea: Bool,
+        placement: String? = nil,
+        anchor: String? = nil,
         animation: AnimationChoice?,
         keyframes: [KeyframeInstant],
         area: PropertyValue<AreaForm>? = nil,
@@ -54,6 +61,8 @@ struct Clip: Equatable, Sendable {
         track: TrackTarget? = nil,
         label: String? = nil,
         width: Double? = nil,
+        height: Double? = nil,
+        conform: Conform? = nil,
         opacity: PropertyValue<Double>? = nil,
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
@@ -70,6 +79,8 @@ struct Clip: Equatable, Sendable {
         self.hasParent = hasParent
         self.hasPlacement = hasPlacement
         self.hasArea = hasArea
+        self.placement = placement
+        self.anchor = anchor
         self.animation = animation
         self.keyframes = keyframes
         self.area = area
@@ -78,6 +89,8 @@ struct Clip: Equatable, Sendable {
         self.track = track
         self.label = label
         self.width = width
+        self.height = height
+        self.conform = conform
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

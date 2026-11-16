@@ -97,8 +97,9 @@ struct SequenceWriter: Sendable {
         ]))
     }
 
-    // `parent` is the index of the storyline clip a parented clip is composited with. Scale and rotation belong to a
-    // title or a media clip, and a blend mode to anything drawn but an adjustment.
+    // `parent` is the index of the storyline clip a parented clip is composited with. A title or a media clip carries
+    // its box: `size`, `position` as its top left and `anchor` in its own pixels, `null` for a clip placed by an area.
+    // Scale and rotation belong to a title or a media clip, and a blend mode to anything drawn but an adjustment.
     private func clip(
         at index: Int,
         of plan: SequencePlan
@@ -153,7 +154,9 @@ struct SequenceWriter: Sendable {
         }
         let geometryMembers = [
             JSONMember(key: "area", value: geometry.area.map { values.keyframes($0, instant: instant) { values.rectangle($0.rectangle) } } ?? .null),
-            JSONMember(key: "position", value: geometry.position.map { values.keyframes($0, instant: instant, value: values.point) } ?? .null),
+            JSONMember(key: "size", value: geometry.box.map { values.size($0.size) } ?? .null),
+            JSONMember(key: "position", value: geometry.box.map { values.keyframes($0.position, instant: instant, value: values.point) } ?? .null),
+            JSONMember(key: "anchor", value: geometry.box.map { values.point($0.anchor) } ?? .null),
             JSONMember(key: "crop", value: geometry.crop.map { values.keyframes($0, instant: instant) { values.rectangle($0.rectangle) } } ?? .null),
             JSONMember(key: "track", value: track(geometry.track)),
             JSONMember(key: "label", value: label ?? .null)
