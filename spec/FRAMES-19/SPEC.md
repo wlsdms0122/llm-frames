@@ -27,6 +27,14 @@ What resolve has already done:
 - **One clock.** Every instant on a sequence is sequence time, and keyframes keep their eases. Media keeps `in`, `out` and `speed` in media time.
 - **Lanes kept.** Clips keep document order and carry their signed `lane`, so evaluation stacks them by [FRAMES-9](../FRAMES-9/SPEC.md). The order of units during a transition (`over`) is applied at each time.
 
+How it is written, so the same plan gives the same bytes:
+
+- **One layout.** It is UTF-8 JSON indented by two spaces, one member or element to a line, except that a list of numbers, strings, booleans or `null` stays on one line, and it ends with a line break. Keys come in one fixed order for each kind of object, `kind` and `"resolved"` first, never sorted.
+- **One number form.** A number is the shortest decimal that reads back to the same 64-bit floating point value, with no exponent, no fraction when it is whole (`1080`, not `1080.0`), and `0` for negative zero. A string escapes `"`, `\` and control characters only, and writes every other character as itself.
+- **Hashes.** A SHA-256 is 64 lower case hexadecimal digits under `sha256`, next to the absolute `file` it pins. An image sequence is `imageSequence`, its frame files in order, each `{file, sha256}`.
+- **Keyframe lists.** A keyframable property is a list of `{at, value, ease}` in time order, where `ease` shapes the span that starts at its keyframe. A property written without keyframes is one keyframe at the instant its areas take effect, and one not written is its plain value there.
+- **Every key written.** An entry carries every key of its kind, `null` where it has none. Only the outermost document carries `"resolved"`, and a nested one is the same shape without it. Track frames are frames of media, so they keep media time, as `frames` does. An audio clip is drawn by nothing, so it is an audio entry only.
+
 ### Resolved sequence
 
 ```json
@@ -36,7 +44,7 @@ What resolve has already done:
               "content": [40, 420, 1000, 1380], "conform": "fit" },
   "storyline": [
     { "media": { "file": "/abs/run.mp4", "sha256": "9f2c41d07b3e", "frames": [0, 0.0333, 0.0667] }, "in": 2, "out": 8, "speed": 2, "start": 0, "end": 3,
-      "crop": [ { "at": 0, "value": [0, 0, 1206, 2622] }, { "at": 3, "value": [45, 97, 1116, 2428], "ease": "linear" } ],
+      "crop": [ { "at": 0, "value": [0, 0, 1206, 2622], "ease": "linear" }, { "at": 3, "value": [45, 97, 1116, 2428], "ease": "linear" } ],
       "filter": [ { "op": "saturation", "amount": 1.25 } ],
       "transition": null }
   ],
@@ -60,7 +68,7 @@ What resolve has already done:
 
 - `format.content` is the content rect. `format.duration` is the sequence end.
 - A storyline entry has `start`, `end`, its keyframable properties as sequence-time keyframe lists, its filter as an op list, and `transition` as `null` or `{start, end, over, incoming, outgoing, cover, matte}` with spans and files inline.
-- Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
+- The example is laid out to be read and keeps only the keys it explains. Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
 - A video or image sequence keeps its frame timestamps in `frames` (cut short in the example).
 - A clips entry is a title, a shape, an adjustment or a media clip with its visible window `start` and `end` already narrowed by [FRAMES-8](../FRAMES-8/SPEC.md), its properties as keyframe lists in sequence time, its animation spans inline, its `blend`, its `lane`, and `parent` (the index of the storyline entry it is composited with, or `null`).
 - An audio entry is a source of sound, storyline clips included, with its volume keyframes in sequence time, its fades and its transitions. Evaluation multiplies them into the mix plan.
