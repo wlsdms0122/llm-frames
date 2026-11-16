@@ -32,7 +32,7 @@ package final class AVFoundationDecoder: Sendable {
         return video
     }
 
-    private func picture(of still: StillReader, path: String) throws -> DecodedPicture {
+    private func picture(of still: StillReader, path: String) throws -> Bitmap {
         converter.picture(from: try still.image(path: path), depth: still.depth)
     }
 
@@ -100,7 +100,7 @@ extension AVFoundationDecoder: MediaDecoder {
     package func picture(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> DecodedPicture {
+    ) throws -> Bitmap {
         if !file.frameFiles.isEmpty {
             guard file.frameFiles.indices.contains(index) else {
                 throw DecoderError.noFrame(file: file.path, index: index, count: file.frameFiles.count)

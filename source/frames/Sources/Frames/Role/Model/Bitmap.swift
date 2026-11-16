@@ -1,5 +1,5 @@
 //
-//  DecodedPicture.swift
+//  Bitmap.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
@@ -7,10 +7,11 @@
 
 import Foundation
 
-// A picture in the working space, as the media is displayed: `width` by `height` pixels of RGBA with premultiplied
-// alpha, sRGB encoded, rows top first and `bytesPerRow` apart in `pixels`. Each component has `depth`'s bits, at the
-// media's bit depth or more, and sixteen bit ones are in the machine's byte order.
-package struct DecodedPicture: Equatable, Sendable {
+// A picture in the working space, as a decoder reads it, a renderer draws it and an encoder writes it: `width` by
+// `height` pixels of RGBA with premultiplied alpha, sRGB encoded, rows top first and `bytesPerRow` apart in `pixels`.
+// Each component has `depth`'s bits, at the media's bit depth or more, and sixteen bit ones are in the machine's byte
+// order.
+package struct Bitmap: Equatable, Sendable {
     // MARK: - Property
     package let width: Int
     package let height: Int

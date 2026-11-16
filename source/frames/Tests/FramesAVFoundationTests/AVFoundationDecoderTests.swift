@@ -374,7 +374,7 @@ struct AVFoundationDecoderTests {
     }
 
     // The number `Canvas.drawCode` drew at the top left.
-    private func code(in picture: DecodedPicture) -> Int {
+    private func code(in picture: Bitmap) -> Int {
         (0..<6).reduce(0) { value, bit in
             pixel(in: picture, x: bit * 16 + 8, y: 8)[0] > 128 ? value | 1 << bit : value
         }
@@ -382,7 +382,7 @@ struct AVFoundationDecoderTests {
 
     // The 8 bit RGBA components at a pixel.
     private func pixel(
-        in picture: DecodedPicture,
+        in picture: Bitmap,
         x: Int,
         y: Int
     ) -> [Int] {
