@@ -29,8 +29,9 @@ struct SpanEvaluator: Sendable {
         in span: Span,
         atBent bent: Double
     ) -> Double {
-        let points = span.keys.enumerated()
+        let keyed: [(index: Int, t: Double, value: Double)] = span.keys.enumerated()
             .compactMap { index, key in key.values[property].map { (index: index, t: key.t, value: $0) } }
+        let points = keyed
             .sorted { $0.t == $1.t ? $0.index < $1.index : $0.t < $1.t }
             .map { (t: $0.t, value: $0.value) }
         guard let first = points.first, let last = points.last else { return property.defaultValue }
