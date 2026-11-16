@@ -21,14 +21,6 @@ extension PinnedMedia {
         self.init(source: source, frameTimes: file.frameTimes)
     }
 
-    // A file named where nothing probes it, such as a transition's cover or matte, is pinned as the one file it names.
-    init(
-        path: String,
-        hashes: any FileHashProvider
-    ) throws {
-        self.init(source: .file(try PinnedFile(path: path, hashes: hashes)))
-    }
-
     // MARK: - Public
     // MARK: - Private
 }

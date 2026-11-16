@@ -5,17 +5,17 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A transition's luma matte: its pinned media, the width of its edge, whether dark and light are swapped, and its ease.
+// A transition's luma matte: its media, the width of its edge, whether dark and light are swapped, and its ease.
 struct ResolvedMatte: Equatable, Sendable {
     // MARK: - Property
-    let media: PinnedMedia
+    let media: ResolvedTransitionMedia
     let softness: Double
     let isInverted: Bool
     let ease: Ease
 
     // MARK: - Initializer
     init(
-        media: PinnedMedia,
+        media: ResolvedTransitionMedia,
         softness: Double,
         isInverted: Bool,
         ease: Ease

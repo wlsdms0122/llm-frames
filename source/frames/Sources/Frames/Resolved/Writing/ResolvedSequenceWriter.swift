@@ -240,6 +240,11 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
+    // A cover's or matte's media keys, then its length in media seconds.
+    private func transitionMedia(_ media: ResolvedTransitionMedia) -> [JSONMember] {
+        values.media(media.media) + [JSONMember(key: "duration", value: .number(media.duration))]
+    }
+
     private func transition(_ transition: ResolvedTransition) -> JSONValue {
         let span = { (span: Span) in JSONValue.object(JSONObject(members: values.span(span))) }
         let cover = transition.cover.map { cover in
@@ -248,13 +253,13 @@ struct ResolvedSequenceWriter: Sendable {
                 [JSONMember(key: "color", value: values.color(color))]
 
             case let .media(media):
-                values.media(media)
+                transitionMedia(media)
             }
 
             return JSONValue.object(JSONObject(members: source + values.span(cover.span)))
         }
         let matte = transition.matte.map { matte in
-            JSONValue.object(JSONObject(members: values.media(matte.media) + [
+            JSONValue.object(JSONObject(members: transitionMedia(matte.media) + [
                 JSONMember(key: "softness", value: .number(matte.softness)),
                 JSONMember(key: "invert", value: .bool(matte.isInverted)),
                 JSONMember(key: "ease", value: values.ease(matte.ease))

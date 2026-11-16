@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A transition plan by its range, with its cover's colour as a value and its cover and matte files pinned.
+// A transition plan by its range, with its cover's colour as a value and its cover and matte media pinned with their
+// frame times and length.
 extension ResolvedTransition {
     // MARK: - Property
     // MARK: - Initializer
@@ -14,24 +15,31 @@ extension ResolvedTransition {
         hashes: any FileHashProvider
     ) throws {
         let definition = plan.definition
-        let cover = try definition.cover.map { cover in
-            let source: ResolvedCoverSource = switch cover.source {
-            case let .color(color):
-                .color(Color(written: color))
+        // A cover or matte that shows media has it probed in the plan.
+        let cover = try definition.cover.flatMap { cover -> ResolvedCover? in
+            switch (cover.source, plan.coverMedia) {
+            case let (.color(color), _):
+                return ResolvedCover(source: .color(Color(written: color)), span: cover.span)
 
-            case let .media(media):
-                .media(try PinnedMedia(path: media, hashes: hashes))
+            case let (.media, .some(media)):
+                return ResolvedCover(
+                    source: .media(try ResolvedTransitionMedia(plan: media, hashes: hashes)),
+                    span: cover.span
+                )
+
+            case (.media, .none):
+                return nil
             }
-
-            return ResolvedCover(source: source, span: cover.span)
         }
-        let matte = try definition.matte.map { matte in
-            ResolvedMatte(
-                media: try PinnedMedia(path: matte.media, hashes: hashes),
-                softness: matte.softness,
-                isInverted: matte.isInverted,
-                ease: matte.ease
-            )
+        let matte = try definition.matte.flatMap { matte in
+            try plan.matteMedia.map { media in
+                ResolvedMatte(
+                    media: try ResolvedTransitionMedia(plan: media, hashes: hashes),
+                    softness: matte.softness,
+                    isInverted: matte.isInverted,
+                    ease: matte.ease
+                )
+            }
         }
 
         self.init(

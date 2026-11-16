@@ -109,6 +109,24 @@ struct MediaResolver: Sendable {
         }
     }
 
+    // A transition's cover or matte file, by the absolute path its preset was resolved to. A preset names a file, so
+    // it is never an image sequence or a document.
+    func transitionMedia(
+        at path: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> TransitionMedia {
+        guard let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
+        else {
+            throw ResolveError.unprobedMedia(place: place, kind: kind, reference: path)
+        }
+
+        return TransitionMedia(
+            file: MediaFile(path: path, fps: probed.fps, size: probed.size, frameTimes: probed.frames),
+            duration: probed.duration
+        )
+    }
+
     // An image or layout document merges its own theme over the one in effect, which the media it takes starts from.
     func picture(
         of document: PictureDocument,

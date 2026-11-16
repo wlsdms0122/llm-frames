@@ -7,25 +7,31 @@
 
 // A transition centred on the edit point of the clip it brings in. `seconds` is its length after it is cut to what
 // fits, `min(transition seconds, previous duration, next duration)`. Its definition names its cover and matte files by
-// their absolute paths.
+// their absolute paths, and `coverMedia` and `matteMedia` are those files as probed, nil where it shows none.
 struct TransitionPlan: Equatable, Sendable {
     // MARK: - Property
     let preset: String
     let seconds: Double
     let range: TimeRange
     let definition: TransitionPreset
+    let coverMedia: TransitionMedia?
+    let matteMedia: TransitionMedia?
 
     // MARK: - Initializer
     init(
         preset: String,
         seconds: Double,
         range: TimeRange,
-        definition: TransitionPreset
+        definition: TransitionPreset,
+        coverMedia: TransitionMedia?,
+        matteMedia: TransitionMedia?
     ) {
         self.preset = preset
         self.seconds = seconds
         self.range = range
         self.definition = definition
+        self.coverMedia = coverMedia
+        self.matteMedia = matteMedia
     }
 
     // MARK: - Public
