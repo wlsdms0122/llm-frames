@@ -19,7 +19,7 @@ struct KernelLibraryTests {
     // MARK: - Test
     @Test(
         "the blend and filter sources compile into one library that hands out their kernels by name",
-        arguments: ["blendNormalPlaceholder", "filterIdentityPlaceholder"]
+        arguments: ["blendNormalPlaceholder", "filterClamp"]
     )
     func handsOutKernel(name: String) throws {
         // Given

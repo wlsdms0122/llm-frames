@@ -20,6 +20,8 @@ final class KernelLibrary: Sendable {
         """
 
     private let kernels: [String: CIColorKernel]
+    // The kernels that sample their images anywhere, not only at the pixel they write.
+    private let generalKernels: [String: CIKernel]
 
     // MARK: - Initializer
     init() throws {
@@ -33,11 +35,23 @@ final class KernelLibrary: Sendable {
         let compiled = try CIKernel.kernels(withMetalString: source).compactMap { $0 as? CIColorKernel }
 
         self.kernels = Dictionary(uniqueKeysWithValues: compiled.map { ($0.name, $0) })
+        // Core Image keeps the compiled source, so asking for its kernels again does not compile it again.
+        self.generalKernels = Dictionary(
+            uniqueKeysWithValues: try CIKernel.kernels(withMetalString: source)
+                .filter { !($0 is CIColorKernel) }
+                .map { ($0.name, $0) }
+        )
     }
 
     // MARK: - Public
     func colorKernel(named name: String) throws -> CIColorKernel {
         guard let kernel = kernels[name] else { throw QuartzError.unknownKernel(name: name) }
+
+        return kernel
+    }
+
+    func generalKernel(named name: String) throws -> CIKernel {
+        guard let kernel = generalKernels[name] else { throw QuartzError.unknownKernel(name: name) }
 
         return kernel
     }

@@ -9,6 +9,7 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     // Placeholder until the renderer draws.
     case notImplemented
     case unknownKernel(name: String)
+    case unappliedKernel(name: String)
 
     // MARK: - Property
     package var description: String {
@@ -18,6 +19,9 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownKernel(name):
             "the quartz kernel library has no colour kernel \(name)"
+
+        case let .unappliedKernel(name):
+            "the quartz kernel \(name) does not take the arguments it was given"
         }
     }
 
