@@ -28,7 +28,7 @@ struct GreyImage: Sendable {
 
     // The luma of `picture`, its sRGB encoded components weighted as Rec. 709 weights them. Its colour is taken
     // premultiplied, as over black.
-    init(picture: DecodedPicture) {
+    init(picture: Bitmap) {
         let componentBytes = picture.depth.bitsPerComponent / 8
         let maximum = Float((1 << picture.depth.bitsPerComponent) - 1)
         var values = [Float](repeating: 0, count: picture.width * picture.height)

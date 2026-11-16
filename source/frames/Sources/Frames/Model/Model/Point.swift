@@ -5,13 +5,13 @@
 //  Created by JSilver on 11/15/26.
 //
 
-struct Point: Interpolable {
+package struct Point: Interpolable {
     // MARK: - Property
-    let x: Double
-    let y: Double
+    package let x: Double
+    package let y: Double
 
     // MARK: - Initializer
-    init(x: Double, y: Double) {
+    package init(x: Double, y: Double) {
         self.x = x
         self.y = y
     }

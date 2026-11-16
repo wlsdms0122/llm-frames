@@ -7,14 +7,14 @@
 
 // The theme shadow under a media clip's box: the standard deviation of its blur and its offset, both scaled, and its
 // colour.
-struct MediaShadow: Equatable, Sendable {
+package struct MediaShadow: Equatable, Sendable {
     // MARK: - Property
-    let radius: Double
-    let offset: Point
-    let color: Color
+    package let radius: Double
+    package let offset: Point
+    package let color: Color
 
     // MARK: - Initializer
-    init(
+    package init(
         radius: Double,
         offset: Point,
         color: Color

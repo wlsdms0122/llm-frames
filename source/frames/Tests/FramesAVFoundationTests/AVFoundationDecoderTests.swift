@@ -36,7 +36,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
         }
@@ -61,7 +61,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
             canvas.draw("\(index)", font: "Helvetica-Bold", size: 96, x: 120, y: 80)
@@ -83,7 +83,7 @@ struct AVFoundationDecoderTests {
         let times = [0, 0.05, 0.1, 0.3, 0.35, 0.6, 0.65, 1.2]
         let directory = try TemporaryDirectory()
         let file = directory.file("variable.mov")
-        try await VideoWriter(size: size, frameTimes: times, end: 1.5).write(to: file) { canvas, index in
+        try await MovieWriter(size: size, frameTimes: times, end: 1.5).write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index)
         }
@@ -117,7 +117,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file(name)
-        let writer = VideoWriter(size: size, frameTimes: written, start: start, end: end, delay: delay)
+        let writer = MovieWriter(size: size, frameTimes: written, start: start, end: end, delay: delay)
         try await writer.write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index < firstPresented ? 63 : index - firstPresented)
@@ -142,7 +142,7 @@ struct AVFoundationDecoderTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("portrait.mov")
         let quarterTurn = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 240, ty: 0)
-        let writer = VideoWriter(size: size, frameTimes: [0, 0.5], end: 1, transform: quarterTurn)
+        let writer = MovieWriter(size: size, frameTimes: [0, 0.5], end: 1, transform: quarterTurn)
         try await writer.write(to: file) { canvas, index in
             canvas.fill(red: 128, green: 128, blue: 128)
             canvas.drawCode(index + 5)
@@ -167,7 +167,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("sound.mov")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1, sound: sound).write(to: file) { canvas, _ in
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1, sound: sound).write(to: file) { canvas, _ in
             canvas.fill(red: 128, green: 128, blue: 128)
         }
         let sut = AVFoundationDecoder()
@@ -237,7 +237,7 @@ struct AVFoundationDecoderTests {
         let video = directory.file("patch.mov")
         let still = directory.file("patch.png")
         let deep = directory.file("deep.png")
-        try await VideoWriter(size: size, frameTimes: [0], end: 1).write(to: video) { canvas, _ in
+        try await MovieWriter(size: size, frameTimes: [0], end: 1).write(to: video) { canvas, _ in
             canvas.fill(red: 200, green: 120, blue: 40)
         }
         try ImageWriter(size: size).write(to: still) { canvas in
@@ -346,7 +346,7 @@ struct AVFoundationDecoderTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("even.mp4")
-        try await VideoWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
         let sut = AVFoundationDecoder()
 
         // When
@@ -358,6 +358,176 @@ struct AVFoundationDecoderTests {
         #expect(
             error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
         )
+    }
+
+    @Test("checking a file before rendering refuses a miscounted video and passes one counted as pinned")
+    func checksPinnedCount() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("even.mp4")
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { _, _ in }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) {
+            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]))
+        }
+
+        // Then
+        #expect(
+            error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
+        )
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes)) }
+    }
+
+    @Test("checking a file passes one with only sound, and still refuses one that is no media")
+    func checksSoundFile() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sound = directory.file("tone.m4a")
+        let broken = directory.file("broken.mp4")
+        try await SoundWriter(end: 1).write(to: sound)
+        try Data("not a video".utf8).write(to: URL(fileURLWithPath: broken))
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken)) }
+
+        // Then
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound)) }
+        #expect(error?.description.hasPrefix("media \(broken) cannot be read") == true, "\(String(describing: error))")
+    }
+
+    @Test("sound over a sub-range has the file's rate and channels, its frame count, and the tone's samples at their time")
+    func readsSoundRange() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        let writer = SoundWriter(end: 1, sampleRate: 44_100, levels: [0.25, 0.1])
+        try await writer.write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.75)
+
+        // Then
+        #expect(sound.sampleRate == 44_100 && sound.channels == 2 && sound.layout.labels == [.left, .right])
+        #expect(sound.frameCount == 22_050)
+        let deviation = (0..<sound.frameCount).flatMap { frame in
+            (0..<2).map { channel in
+                abs(Double(sound.samples[frame * 2 + channel]) - writer.sample(channel: channel, at: 11_025 + frame))
+            }
+        }.max()!
+        #expect(deviation < 1.0 / 32_768, "\(deviation)")
+    }
+
+    @Test("an AAC file's sound has its rate, channel count and frames over a sub-range, the tone at its level")
+    func readsAACSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tone.m4a")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.5)
+
+        // Then
+        #expect(sound.sampleRate == 48_000 && sound.channels == 1 && sound.layout.labels == [.mono])
+        #expect(sound.frameCount == 12_000)
+        #expect(abs(Double(sound.samples.map(abs).max()!) - 8_000.0 / 32_768) < 0.01)
+    }
+
+    @Test("a range past the end of the sound gives the frames there are, and an empty range none")
+    func readsPastEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let past = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 2)
+        let empty = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 0.5)
+
+        // Then
+        #expect(past.frameCount == 24_000)
+        #expect(empty.frameCount == 0 && empty.sampleRate == 48_000 && empty.channels == 1)
+    }
+
+    @Test("a 5.1 file's channels are named in its layout's order")
+    func readsSurroundLayout() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("surround.wav")
+        try await SoundWriter(end: 0.1, levels: Array(repeating: 0.1, count: 6)).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.1)
+
+        // Then
+        #expect(sound.channels == 6)
+        #expect(sound.layout.labels == [.left, .right, .center, .lowFrequencyEffects, .leftSurround, .rightSurround])
+    }
+
+    @Test("sound is read on the presentation timeline, so a video delayed by its edit list has silence first")
+    func readsSoundThroughEditList() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("delayed.mov")
+        let writer = MovieWriter(size: size, frameTimes: Self.thirtieths(15), end: 0.5, sound: true, delay: 0.5)
+        try await writer.write(to: file) { canvas, _ in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 1)
+
+        // Then
+        #expect(sound.frameCount > 47_000)
+        #expect(sound.samples[0..<21_600].map(abs).max()! < 0.01)
+        #expect(sound.samples[26_400..<45_600].map(abs).max()! > 0.2)
+    }
+
+    @Test("a file without a sound track has no sound, naming the file")
+    func refusesSilentSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("silent.mov")
+        try await MovieWriter(size: size, frameTimes: [0], end: 1).write(to: file) { _, _ in }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.sound(of: MediaFile(path: file), from: 0, to: 1) }
+
+        // Then
+        #expect(error?.description == "media \(file) has no sound track")
+    }
+
+    @Test("frames read in order, again, and after jumps back and far ahead are the pixels of fresh reads")
+    func readsForward() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("long.mp4")
+        let times = (0..<90).map { Double($0) / 30 }
+        let writer = MovieWriter(size: size, frameTimes: times, end: 3, keyFrameInterval: 10)
+        try await writer.write(to: file) { canvas, index in
+            canvas.fill(red: Double(40 + index), green: 128, blue: Double(200 - index))
+            canvas.drawCode(index % 64)
+        }
+        let media = MediaFile(path: file, frameTimes: times)
+        let order = Array(0..<45) + [44, 44, 12, 13, 14, 80, 81, 3]
+        let sut = AVFoundationDecoder()
+
+        // When
+        let pictures = try order.map { try sut.picture(of: media, atFrame: $0) }
+
+        // Then
+        let fresh = try order.map { try AVFoundationDecoder().picture(of: media, atFrame: $0) }
+        #expect(pictures == fresh)
+        #expect(pictures.map(code) == order.map { $0 % 64 })
     }
 
     // MARK: - Private
@@ -374,7 +544,7 @@ struct AVFoundationDecoderTests {
     }
 
     // The number `Canvas.drawCode` drew at the top left.
-    private func code(in picture: DecodedPicture) -> Int {
+    private func code(in picture: Bitmap) -> Int {
         (0..<6).reduce(0) { value, bit in
             pixel(in: picture, x: bit * 16 + 8, y: 8)[0] > 128 ? value | 1 << bit : value
         }
@@ -382,7 +552,7 @@ struct AVFoundationDecoderTests {
 
     // The 8 bit RGBA components at a pixel.
     private func pixel(
-        in picture: DecodedPicture,
+        in picture: Bitmap,
         x: Int,
         y: Int
     ) -> [Int] {

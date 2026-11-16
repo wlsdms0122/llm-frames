@@ -7,12 +7,12 @@
 
 // The sound of a whole sequence: its segments in audio entry order, the repeats of a loop in time order. Segments that
 // overlap are mixed.
-struct MixPlan: Equatable, Sendable {
+package struct MixPlan: Equatable, Sendable {
     // MARK: - Property
-    let segments: [MixSegment]
+    package let segments: [MixSegment]
 
     // MARK: - Initializer
-    init(segments: [MixSegment]) {
+    package init(segments: [MixSegment]) {
         self.segments = segments
     }
 

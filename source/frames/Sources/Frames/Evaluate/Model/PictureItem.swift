@@ -9,19 +9,19 @@
 // source, in its media pixels or in a nested list's output pixels, or nil for the whole source, `destination` the
 // rectangle it fills, and `filter` is applied at the destination's size. `radius` rounds the destination's corners,
 // and `border` and `shadow` are drawn when the picture has them.
-struct PictureItem: Equatable, Sendable {
+package struct PictureItem: Equatable, Sendable {
     // MARK: - Property
-    let source: PictureItemSource
-    let rectangle: Rectangle?
-    let destination: Rectangle
-    let filter: [ResolvedFilterOperation]
-    let matte: PictureMatte?
-    let radius: Double
-    let border: MediaBorder?
-    let shadow: MediaShadow?
+    package let source: PictureItemSource
+    package let rectangle: Rectangle?
+    package let destination: Rectangle
+    package let filter: [ResolvedFilterOperation]
+    package let matte: PictureMatte?
+    package let radius: Double
+    package let border: MediaBorder?
+    package let shadow: MediaShadow?
 
     // MARK: - Initializer
-    init(
+    package init(
         source: PictureItemSource,
         rectangle: Rectangle?,
         destination: Rectangle,

@@ -6,13 +6,13 @@
 //
 
 // A file a role opens, by its absolute path and the SHA-256 of its bytes as 64 lower case hexadecimal digits.
-struct PinnedFile: Equatable, Sendable {
+package struct PinnedFile: Equatable, Sendable {
     // MARK: - Property
-    let path: String
-    let sha256: String
+    package let path: String
+    package let sha256: String
 
     // MARK: - Initializer
-    init(
+    package init(
         path: String,
         sha256: String
     ) {

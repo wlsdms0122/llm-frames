@@ -9,16 +9,16 @@ import Foundation
 
 // The affine matrix `[a, b, c, d, tx, ty]`: a point (x, y) goes to (a x + c y + tx, b x + d y + ty). The y axis points
 // down, so a positive angle turns clockwise.
-struct AffineTransform: Equatable, Sendable {
+package struct AffineTransform: Equatable, Sendable {
     // MARK: - Property
-    static let identity = AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0)
+    package static let identity = AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0)
 
-    let a: Double
-    let b: Double
-    let c: Double
-    let d: Double
-    let tx: Double
-    let ty: Double
+    package let a: Double
+    package let b: Double
+    package let c: Double
+    package let d: Double
+    package let tx: Double
+    package let ty: Double
 
     // Nil when the matrix flattens the plane, as a scale of 0 does.
     var inverse: AffineTransform? {
@@ -36,7 +36,7 @@ struct AffineTransform: Equatable, Sendable {
     }
 
     // MARK: - Initializer
-    init(
+    package init(
         a: Double,
         b: Double,
         c: Double,

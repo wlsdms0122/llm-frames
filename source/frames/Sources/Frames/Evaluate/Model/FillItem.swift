@@ -6,15 +6,15 @@
 //
 
 // A filled rectangle with corners of `radius`, and an optional rounded hole left unfilled.
-struct FillItem: Equatable, Sendable {
+package struct FillItem: Equatable, Sendable {
     // MARK: - Property
-    let rectangle: Rectangle
-    let radius: Double
-    let color: Color
-    let hole: RoundedRectangle?
+    package let rectangle: Rectangle
+    package let radius: Double
+    package let color: Color
+    package let hole: RoundedRectangle?
 
     // MARK: - Initializer
-    init(
+    package init(
         rectangle: Rectangle,
         radius: Double = 0,
         color: Color,

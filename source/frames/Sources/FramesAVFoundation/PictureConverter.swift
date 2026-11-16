@@ -26,7 +26,7 @@ struct PictureConverter: Sendable {
     func picture(
         from image: CIImage,
         depth: BitDepth
-    ) -> DecodedPicture {
+    ) -> Bitmap {
         let placed = image.transformed(by: CGAffineTransform(translationX: -image.extent.minX, y: -image.extent.minY))
         let width = Int(placed.extent.width.rounded())
         let height = Int(placed.extent.height.rounded())
@@ -43,7 +43,7 @@ struct PictureConverter: Sendable {
             )
         }
 
-        return DecodedPicture(
+        return Bitmap(
             width: width,
             height: height,
             depth: depth,

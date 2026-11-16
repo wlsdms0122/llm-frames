@@ -1,0 +1,30 @@
+//
+//  MediaFile+PinnedMedia.swift
+//  Frames
+//
+//  Created by JSilver on 11/17/26.
+//
+
+import Foundation
+
+// The file a decoder reads for pinned media. An image sequence is found at the directory of its frame files. The
+// frame rate and size are not pinned, so a decoder reads them from the file.
+extension MediaFile {
+    // MARK: - Property
+    // MARK: - Initializer
+    package init(media: PinnedMedia) {
+        switch media.source {
+        case let .file(file):
+            self.init(path: file.path, frameTimes: media.frameTimes)
+
+        case let .imageSequence(files):
+            let paths = files.map(\.path)
+            let directory = paths.first.map { URL(fileURLWithPath: $0).deletingLastPathComponent().path } ?? ""
+
+            self.init(path: directory, frameTimes: media.frameTimes, frameFiles: paths)
+        }
+    }
+
+    // MARK: - Public
+    // MARK: - Private
+}

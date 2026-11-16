@@ -7,7 +7,7 @@
 
 // A resolved image or layout document: its kind (`image` or `layout`), its final size, and its drawing steps in
 // operation order, in output pixels.
-struct ResolvedPicture: Equatable, Sendable {
+package struct ResolvedPicture: Equatable, Sendable {
     // MARK: - Property
     let kind: String
     let size: Size

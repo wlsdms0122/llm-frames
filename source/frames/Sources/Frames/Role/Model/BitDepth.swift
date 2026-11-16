@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The bits of each component of a decoded picture.
+// The bits of each component of a bitmap.
 package enum BitDepth: Equatable, Sendable {
     case eight
     case sixteen

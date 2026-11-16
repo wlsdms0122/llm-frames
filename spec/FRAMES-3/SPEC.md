@@ -27,7 +27,7 @@ Every role and provider must read the same frame for the same time, or the text 
 - Paths are absolute. Inside a pack, its own files are named by `<pack>/<name>` like any other pack's ([FRAMES-17](../FRAMES-17/SPEC.md)).
 - A compound clip is evaluated at the media times the outer frames ask for, not at its own frame rate. Its `size`, `background`, `inset` and `conform` apply. Its `fps` applies only when it is rendered alone. It is part of the document that wrote it, so its theme is merged over the one in effect there. A template instance is not ([FRAMES-17](../FRAMES-17/SPEC.md)).
 - Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha) and compound clips. This is how graphics made elsewhere come in.
-- At media time s, a video or an image sequence shows the frame whose presentation interval holds s: its timestamp is at or before s, and the next one is after s. OCR, extraction and drawing all pick frames by this rule, and the resolved document pins each such file's frame timestamps, so evaluation picks the frame once and names it by index.
+- At media time s, a video or an image sequence shows the frame whose presentation interval holds s: its timestamp is at or before s, and the next one is after s. OCR, extraction and drawing all pick frames by this rule, and the resolved document pins each such file's frame timestamps, so evaluation picks the frame once and names it by index. Times are measured to the microsecond: a media time and a timestamp are compared rounded to the nearest microsecond, so floating point noise in a computed media time picks no earlier frame.
 - A compound clip has no frames of its own. It is evaluated at whatever time is asked, clamped into `[0, duration)`.
 
 ## Interactions

@@ -6,13 +6,13 @@
 //
 
 // A filter applied to everything drawn below it, inside `rectangle`, or over the whole frame when it is nil.
-struct AdjustItem: Equatable, Sendable {
+package struct AdjustItem: Equatable, Sendable {
     // MARK: - Property
-    let rectangle: Rectangle?
-    let filter: [ResolvedFilterOperation]
+    package let rectangle: Rectangle?
+    package let filter: [ResolvedFilterOperation]
 
     // MARK: - Initializer
-    init(
+    package init(
         rectangle: Rectangle?,
         filter: [ResolvedFilterOperation]
     ) {

@@ -26,7 +26,7 @@ struct TrackPointTests {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("line.mov")
-        try await VideoWriter(size: Size(width: 720, height: 1280), frameTimes: [0, 1.0 / 30], end: 2.0 / 30)
+        try await MovieWriter(size: Size(width: 720, height: 1280), frameTimes: [0, 1.0 / 30], end: 2.0 / 30)
             .write(to: file) { canvas, index in
                 canvas.fill(red: 255, green: 255, blue: 255)
                 canvas.draw("Send message to Jineun", font: "Helvetica", size: 40, x: 120, y: 830 + 70 * Double(index))

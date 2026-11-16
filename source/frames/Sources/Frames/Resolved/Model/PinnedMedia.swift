@@ -7,13 +7,13 @@
 
 // Media as the resolved document pins it: its files, and the media time of each frame of a video or image sequence in
 // frame order, empty for a still and for sound.
-struct PinnedMedia: Equatable, Sendable {
+package struct PinnedMedia: Equatable, Sendable {
     // MARK: - Property
-    let source: PinnedSource
-    let frameTimes: [Double]
+    package let source: PinnedSource
+    package let frameTimes: [Double]
 
     // MARK: - Initializer
-    init(
+    package init(
         source: PinnedSource,
         frameTimes: [Double] = []
     ) {
@@ -25,7 +25,7 @@ struct PinnedMedia: Equatable, Sendable {
     // The index of the frame shown at the media time: the last that starts at or before it, or the first before the
     // media starts. A still has the one frame 0.
     func frameIndex(at time: Double) -> Int {
-        frameTimes.lastIndex { $0 <= time } ?? 0
+        frameTimes.lastIndex { $0.roundedTime <= time.roundedTime } ?? 0
     }
 
     // MARK: - Private

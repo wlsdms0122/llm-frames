@@ -38,7 +38,7 @@ struct GreyImageTests {
     private func picture(
         of colours: [[Double]],
         depth: BitDepth
-    ) -> DecodedPicture {
+    ) -> Bitmap {
         let maximum = Double((1 << depth.bitsPerComponent) - 1)
         var pixels = Data()
         for component in colours.flatMap({ $0 }) {
@@ -52,7 +52,7 @@ struct GreyImageTests {
             }
         }
 
-        return DecodedPicture(
+        return Bitmap(
             width: colours.count,
             height: 1,
             depth: depth,

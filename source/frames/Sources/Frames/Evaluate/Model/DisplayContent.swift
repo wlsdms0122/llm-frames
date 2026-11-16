@@ -6,7 +6,7 @@
 //
 
 // What a display item draws.
-enum DisplayContent: Equatable, Sendable {
+package enum DisplayContent: Equatable, Sendable {
     case picture(PictureItem)
     case fill(FillItem)
     case stroke(StrokeItem)

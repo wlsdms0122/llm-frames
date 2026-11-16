@@ -12,12 +12,13 @@ import Frames
 import os
 
 // The `avfoundation` decoder: probes media files and image sequence directories, and reads their frames by index as
-// pictures in the working space. A still is read with ImageIO, its orientation applied, and a video with AVFoundation,
-// its preferred transform applied. A video is loaded once and kept.
+// pictures in the working space, and their sound. A still is read with ImageIO, its orientation applied, and a video
+// with AVFoundation, its preferred transform applied. A video and a sound track are loaded once and kept.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     private let converter = PictureConverter()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
+    private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
 
     // MARK: - Initializer
     package init() {}
@@ -32,7 +33,15 @@ package final class AVFoundationDecoder: Sendable {
         return video
     }
 
-    private func picture(of still: StillReader, path: String) throws -> DecodedPicture {
+    private func soundTrack(at path: String) throws -> SoundReader {
+        if let sound = sounds.withLock({ $0[path] }) { return sound }
+        guard let sound = try SoundReader(path: path) else { throw DecoderError.noSound(file: path) }
+        sounds.withLock { $0[path] = sound }
+
+        return sound
+    }
+
+    private func picture(of still: StillReader, path: String) throws -> Bitmap {
         converter.picture(from: try still.image(path: path), depth: still.depth)
     }
 
@@ -100,7 +109,7 @@ extension AVFoundationDecoder: MediaDecoder {
     package func picture(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> DecodedPicture {
+    ) throws -> Bitmap {
         if !file.frameFiles.isEmpty {
             guard file.frameFiles.indices.contains(index) else {
                 throw DecoderError.noFrame(file: file.path, index: index, count: file.frameFiles.count)
@@ -130,5 +139,34 @@ extension AVFoundationDecoder: MediaDecoder {
             from: try video.image(atFrame: index, path: file.path),
             depth: video.depth
         )
+    }
+
+    package func check(_ file: MediaFile) throws {
+        if !file.frameFiles.isEmpty {
+            for path in file.frameFiles {
+                guard try StillReader(path: path) != nil else { throw DecoderError.unreadable(file: path) }
+            }
+
+            return
+        }
+        if try StillReader(path: file.path) != nil { return }
+
+        // A file without a picture track is sound, or no media at all.
+        guard let video = try video(at: file.path) else {
+            guard (try? soundTrack(at: file.path)) != nil else { throw DecoderError.unreadable(file: file.path) }
+
+            return
+        }
+        guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
+            throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
+        }
+    }
+
+    package func sound(
+        of file: MediaFile,
+        from start: Double,
+        to end: Double
+    ) throws -> SoundBuffer {
+        try soundTrack(at: file.path).sound(from: start, to: end, path: file.path)
     }
 }

@@ -1,0 +1,137 @@
+//
+//  KernelLibraryTests.swift
+//  FramesQuartzTests
+//
+//  Created by JSilver on 11/17/26.
+//
+
+import CoreGraphics
+import CoreImage
+@testable import FramesQuartz
+import Testing
+
+@Suite("KernelLibrary Tests")
+struct KernelLibraryTests {
+    // MARK: - Property
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+
+    // MARK: - Initializer
+    // MARK: - Test
+    @Test(
+        "the library hands out the kernels of the blend and filter sources by name",
+        arguments: ["blendNormal", "filterClamp"]
+    )
+    func handsOutKernel(name: String) throws {
+        // Given
+        let sut = KernelLibrary.shared
+
+        // When
+        let kernel = try sut.colorKernel(named: name)
+
+        // Then
+        #expect(kernel.name == name)
+    }
+
+    @Test(
+        "a kernel that samples its images anywhere is handed out as a general kernel, not a colour kernel",
+        arguments: ["filterLookUp", "filterBlockMean", "filterBlockFill"]
+    )
+    func handsOutGeneralKernel(name: String) throws {
+        // Given
+        let sut = KernelLibrary.shared
+
+        // When
+        let kernel = try sut.kernel(named: name)
+
+        // Then
+        #expect(kernel.name == name)
+        #expect(!(kernel is CIColorKernel))
+        #expect(throws: QuartzError.unknownKernel(name: name)) {
+            try sut.colorKernel(named: name)
+        }
+    }
+
+    @Test("a name no source declares as a kernel is refused")
+    func refusesUnknownKernel() throws {
+        // Given
+        let sut = KernelLibrary.shared
+
+        // When
+        let error = #expect(throws: QuartzError.self) {
+            try sut.kernel(named: "filterLuma")
+        }
+
+        // Then
+        #expect(error == .unknownKernel(name: "filterLuma"))
+    }
+
+    @Test("the normal kernel composites premultiplied source-over on sRGB-encoded values")
+    func compositesOnEncodedValues() throws {
+        // Given
+        let sut = KernelLibrary.shared
+        let extent = CGRect(x: 0, y: 0, width: 2, height: 2)
+        let source = CIImage(color: CIColor(red: 0.5, green: 0, blue: 0, alpha: 0.5, colorSpace: colorSpace)!)
+        let backdrop = CIImage(color: CIColor(red: 0, green: 0.5, blue: 1, alpha: 1, colorSpace: colorSpace)!)
+        let context = CIContext(options: [.workingColorSpace: colorSpace, .workingFormat: CIFormat.RGBAf])
+
+        // When
+        let kernel = try sut.colorKernel(named: "blendNormal")
+        let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop]))
+        var pixel = [Float](repeating: 0, count: 4)
+        context.render(
+            image,
+            toBitmap: &pixel,
+            rowBytes: 16,
+            bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+            format: .RGBAf,
+            colorSpace: colorSpace
+        )
+
+        // Then
+        // Core Image premultiplies the half transparent red to (0.25, 0, 0, 0.5), and source-over adds the backdrop
+        // times one minus its alpha, with no conversion from the sRGB-encoded values.
+        let expected: [Float] = [0.25, 0.25, 0.5, 1]
+        for (value, want) in zip(pixel, expected) {
+            #expect(abs(value - want) < 1e-5)
+        }
+    }
+
+    @Test("kernels taking as many images, applied one after another in one process, each give their own result")
+    func keepsKernelsApart() throws {
+        // Given
+        let sut = KernelLibrary.shared
+        let extent = CGRect(x: 0, y: 0, width: 2, height: 2)
+        let source = CIImage(color: CIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1, colorSpace: colorSpace)!)
+        let backdrop = CIImage(color: CIColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1, colorSpace: colorSpace)!)
+        let context = CIContext(options: [.workingColorSpace: colorSpace, .workingFormat: CIFormat.RGBAf])
+
+        // When
+        let pixels = try ["blendMultiply", "blendScreen", "blendDarken", "blendMultiply"].map { name in
+            let kernel = try sut.colorKernel(named: name)
+            let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop]))
+            var pixel = [Float](repeating: 0, count: 4)
+            context.render(
+                image,
+                toBitmap: &pixel,
+                rowBytes: 16,
+                bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                format: .RGBAf,
+                colorSpace: colorSpace
+            )
+
+            return pixel
+        }
+
+        // Then
+        // Opaque, so each is its mode's B(Cb, Cs): Cb Cs, Cb + Cs - Cb Cs and min(Cb, Cs).
+        let expected: [[Float]] = [
+            [0.16, 0.24, 0.16, 1],
+            [0.84, 0.76, 0.84, 1],
+            [0.2, 0.4, 0.2, 1],
+            [0.16, 0.24, 0.16, 1]
+        ]
+        for (pixel, want) in zip(pixels, expected) {
+            #expect(zip(pixel, want).allSatisfy { abs($0 - $1) < 1e-5 }, "\(pixel) is not \(want)")
+        }
+    }
+}
