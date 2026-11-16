@@ -18,17 +18,18 @@ package struct CoreTextShaper: Sendable {
     private static let regularWeight = 0.0
     private static let boldWeight = 0.4
 
-    // A face's distance from the weight asked for, its distance from normal width, and its PostScript name.
-    private typealias Rank = (weight: Double, width: Double, name: String)
+    // A face's distance from normal width, 1 when it is italic, since upright is asked for, its distance from the
+    // weight asked for, and its PostScript name.
+    private typealias Rank = (width: Double, style: Int, weight: Double, name: String)
 
     // MARK: - Initializer
     package init() {}
 
     // MARK: - Public
     // MARK: - Private
-    // The upright face of the family closest to the weight, among its bold faces for bold and the others for regular.
-    // Ties go to the width closest to normal and then to the PostScript name, so the same family always gives the
-    // same face whatever order CoreText lists them in.
+    // The face of the family as CSS font matching narrows it: the width closest to normal, then upright, then the
+    // weight closest to the one asked for. Ties go to the PostScript name, so the same family always gives the same
+    // face whatever order CoreText lists them in.
     private func closest(
         among descriptors: [CTFontDescriptor],
         family: String,
@@ -44,13 +45,10 @@ package struct CoreTextShaper: Sendable {
                 return nil
             }
             let symbolic = CTFontSymbolicTraits(rawValue: traits[kCTFontSymbolicTrait] as? UInt32 ?? 0)
-            guard !symbolic.contains(.traitItalic), symbolic.contains(.traitBold) == (weight == .bold) else {
-                return nil
-            }
-            let faceWeight = traits[kCTFontWeightTrait] as? Double ?? 0
             let width = traits[kCTFontWidthTrait] as? Double ?? 0
+            let faceWeight = traits[kCTFontWeightTrait] as? Double ?? 0
 
-            return (descriptor, (abs(faceWeight - target), abs(width), name))
+            return (descriptor, (abs(width), symbolic.contains(.traitItalic) ? 1 : 0, abs(faceWeight - target), name))
         }
 
         return candidates.min { $0.rank < $1.rank }?.descriptor

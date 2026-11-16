@@ -60,6 +60,22 @@ struct CoreTextShaperTests {
         #expect(inFile.file == file)
     }
 
+    // Skia's one normal width face weighs 0.2, and condensed faces of it weigh 0 and 0.35.
+    @Test(
+        "where only condensed faces have the weight asked for, the normal width face of the nearest weight wins",
+        arguments: [FontWeight.regular, .bold]
+    )
+    func narrowsByWidthFirst(weight: FontWeight) throws {
+        // Given
+        let family = "Skia"
+
+        // When
+        let face = try #require(sut.installedFace(family: family, weight: weight))
+
+        // Then
+        #expect(face.name == "Skia-Regular")
+    }
+
     @Test("a family the machine does not have has no face")
     func findsNoMissingFamily() {
         // Given
