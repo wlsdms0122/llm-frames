@@ -68,9 +68,9 @@ struct MixPlanner: Sendable {
     }
 
     // The clock from the time a sound's instants are on to the media or nested sequence time it plays: `in` plays at
-    // `start`, at `speed`.
+    // `origin`, at `speed`.
     private func clock(of sound: ResolvedSound) -> TimeMap {
-        TimeMap(origin: sound.start, in: sound.in, speed: sound.speed)
+        TimeMap(origin: sound.origin, in: sound.in, speed: sound.speed)
     }
 
     // A range on the time a path plays, in outermost sequence time.

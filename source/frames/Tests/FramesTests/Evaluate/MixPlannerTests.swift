@@ -39,6 +39,27 @@ struct MixPlannerTests {
         ])
     }
 
+    @Test("a sound whose `in` plays before it is heard starts at the media time its clock gives at its start")
+    func startsOnItsClock() {
+        // Given
+        let audio = [sound(music, in: 2, origin: 0.5, speed: 2, start: 1, end: 1.5, volume: [Keyframe(at: 1, value: 1)])]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 2, duration: 2))
+
+        // Then
+        #expect(plan.segments == [
+            MixSegment(
+                media: music,
+                mediaStart: 3,
+                speed: 2,
+                start: 1,
+                end: 1.5,
+                envelope: envelope([[1, 1], [1.5, 1]])
+            )
+        ])
+    }
+
     @Test("keyframed volume is sampled with its ease at every frame time and at every keyframe")
     func samplesEasedVolume() throws {
         // Given
@@ -251,6 +272,7 @@ struct MixPlannerTests {
         _ media: PinnedMedia?,
         nested: [ResolvedSound] = [],
         in: Double = 0,
+        origin: Double? = nil,
         out: Double = 100,
         speed: Double = 1,
         loop: Bool = false,
@@ -268,6 +290,7 @@ struct MixPlannerTests {
             media: media,
             nested: nested,
             in: `in`,
+            origin: origin ?? start,
             out: out,
             speed: speed,
             loop: loop,
