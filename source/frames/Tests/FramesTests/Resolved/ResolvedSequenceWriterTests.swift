@@ -248,6 +248,66 @@ struct ResolvedSequenceWriterTests {
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
+    @Test("a shape's label carries its side, the time its side was chosen at, its shaped text and its own animation")
+    func writesLabel() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "fade" } ] }
+            """#
+
+        // When
+        let label = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue?["label"]?.objectValue)
+
+        // Then
+        let animation = try #require(label["animation"]?.objectValue)
+        #expect(label.keys == ["side", "at", "text", "animation"])
+        #expect(label["at"] == .number(1))
+        #expect(label["text"]?.objectValue?.keys == ["size", "lines", "background", "stroke", "runs"])
+        #expect(animation["entrance"]?.objectValue?["seconds"] == .number(0.25))
+        #expect(animation["loop"] == .null)
+        #expect(animation["exit"]?.objectValue?["seconds"] == .number(0.25))
+    }
+
+    @Test("a clip whose tracked area is a band writes band true, and one tracking any other area false")
+    func writesBand() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
+                { "shape": "box", "area": "Total", "track": "Total" },
+                { "shape": "fill", "area": { "band": "Total" }, "track": true } ] } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "band", "frames"])
+        #expect(clips[0]["track"]?.objectValue?["band"] == .bool(false))
+        #expect(clips[1]["track"]?.objectValue?["band"] == .bool(true))
+    }
+
+    @Test("a media clip plays in at its window's start, written as origin, even where tracking narrowed its start")
+    func writesOriginOfNarrowedClip() throws {
+        // Given
+        // The second clip is drawn from 1.75 by its transition, but "Total" is followed only from media second 1,
+        // which it shows at its edit point 2.
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
+              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "transition": "flash", "connected": [
+                { "media": "/abs/short.mp4", "parent": true, "position": [0, 0], "track": "Total" } ] } ] }
+            """#
+        let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1...4])
+
+        // When
+        let clip = try #require(try write(document, tracker: tracker)["clips"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(clip["start"] == .number(2))
+        #expect(clip["in"] == .number(0))
+        #expect(clip["origin"] == .number(1.75))
+    }
+
     @Test("a compound clip carries its nested resolved sequence in place of a file")
     func writesCompoundClip() throws {
         // Given
@@ -321,13 +381,14 @@ struct ResolvedSequenceWriterTests {
     // MARK: - Private
     private func write(
         _ document: String,
-        presets: PresetTable = Fixture.presets
+        presets: PresetTable = Fixture.presets,
+        tracker: TrackerTable = Fixture.tracker
     ) throws -> JSONObject {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
             ocr: Fixture.ocr,
-            tracker: Fixture.tracker,
+            tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

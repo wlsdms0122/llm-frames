@@ -110,6 +110,55 @@ struct TransitionTimeTests {
         #expect(solid == -0.5)
     }
 
+    @Test("a transition's cover and matte media are probed for their frames and length, and one not probed stops")
+    func probesCoverAndMatte() throws {
+        // Given
+        let span = Span(ease: .linear, keys: [])
+        let presets = PresetTable(
+            transitions: [
+                "stinger": TransitionPreset(
+                    description: "",
+                    seconds: 1,
+                    over: .incoming,
+                    incoming: nil,
+                    outgoing: nil,
+                    cover: Cover(source: .media("/abs/leak.mov"), span: span),
+                    matte: Matte(media: "/abs/matte.png", softness: 0, isInverted: false, ease: .linear)
+                ),
+                "lost": TransitionPreset(
+                    description: "",
+                    seconds: 1,
+                    over: .incoming,
+                    incoming: nil,
+                    outgoing: nil,
+                    cover: nil,
+                    matte: Matte(media: "/abs/lost.png", softness: 0, isInverted: false, ease: .linear)
+                )
+            ],
+            animations: Fixture.presets.animations,
+            filters: Fixture.presets.filters
+        )
+        let sut = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: presets, library: Fixture.library)
+        let document = { (transition: String) in
+            try Fixture.json(#"""
+                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
+                                                     { "solid": "#FFFFFF", "duration": 2, "transition": "\#(transition)" } ] }
+                """#)
+        }
+
+        // When
+        let plan = try sut.plan(document: document("stinger"))
+        let error = #expect(throws: ResolveError.self) { try sut.plan(document: document("lost")) }
+
+        // Then
+        let transition = try #require(plan.storyline[1].transition)
+        #expect(transition.coverMedia?.file.frameTimes == [0, 0.5, 1, 1.5])
+        #expect(transition.coverMedia?.duration == 2)
+        #expect(transition.matteMedia?.file.path == "/abs/matte.png")
+        #expect(transition.matteMedia?.file.frameTimes == [])
+        #expect(error?.description == #"storyline[1].transition (solid): media "/abs/lost.png" has no probed facts"#)
+    }
+
     @Test("a transition written on the first storyline clip stops, even a cut")
     func refusesTransitionOnFirstClip() throws {
         // Given
