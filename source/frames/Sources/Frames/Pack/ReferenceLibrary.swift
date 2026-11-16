@@ -12,7 +12,7 @@ import Foundation
 // `reading` holds the files and template instances being read on the way here, so a document or an instance that
 // holds itself stops instead of never ending. `pack` is the pack of the last of them, when it is named in one, which
 // a theme written in it belongs to.
-struct ReferenceLibrary: MediaKindProvider {
+package struct ReferenceLibrary: MediaKindProvider {
     // MARK: - Property
     private let packs: PackLibrary
     private let mediaFacts: any MediaFactProvider
