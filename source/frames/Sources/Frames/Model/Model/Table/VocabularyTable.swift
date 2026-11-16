@@ -12,7 +12,7 @@ enum VocabularyTable {
         "bottom-left", "bottom", "bottom-right"
     ]
     static let sides = ["left", "right", "top", "bottom"]
-    static let shapes = ["box", "fill", "dim", "arrow"]
+    static let shapes = ShapeKind.allCases.map(\.rawValue)
     static let blendModes = [
         "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge",
         "color-burn", "hard-light", "soft-light", "difference", "exclusion", "plus-lighter"

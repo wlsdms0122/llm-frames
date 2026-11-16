@@ -6,7 +6,7 @@
 //
 
 // What a shape draws on its area: a box around it, a fill over it, a dim over it, or an arrow pointing at it.
-enum ShapeKind: String, Equatable, Sendable {
+enum ShapeKind: String, CaseIterable, Equatable, Sendable {
     case box
     case fill
     case dim

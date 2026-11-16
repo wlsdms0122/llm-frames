@@ -6,8 +6,8 @@
 //
 
 // What a message names in parentheses after its place, in the words of the key tables: a clip's kind once its media
-// is known, the clip of its place before that, the sequence, an image or layout document, a layout item, or an image
-// operation by its kind, a shape's being its shape.
+// is known, the clip of its place before that, the sequence, an image or layout document, a layout item, an image
+// operation by its kind, or a shape operation by its shape.
 enum PlaceKind: Equatable, Sendable {
     case clip(ClipKind)
     case genericClip(ClipPlace)
@@ -15,7 +15,8 @@ enum PlaceKind: Equatable, Sendable {
     case image
     case layout
     case layoutItem
-    case operation(String)
+    case operation(ImageOperationKind)
+    case shape(ShapeKind)
 
     // MARK: - Property
     var label: String {
@@ -39,7 +40,10 @@ enum PlaceKind: Equatable, Sendable {
             DocumentKeyTable.layoutItem.kind
 
         case let .operation(kind):
-            kind
+            kind.rawValue
+
+        case let .shape(shape):
+            shape.rawValue
         }
     }
 

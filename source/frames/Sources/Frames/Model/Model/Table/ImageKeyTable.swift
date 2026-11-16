@@ -6,7 +6,7 @@
 //
 
 enum ImageKeyTable {
-    static let operationKeys = ["crop", "resize", "pad", "shape", "adjust", "title", "banner", "border"]
+    static let operationKeys = ImageOperationKind.allCases.map(\.rawValue)
     static let bannerLine = ValueType.oneOf([
         .text,
         .object(ObjectTable(
@@ -19,8 +19,8 @@ enum ImageKeyTable {
     ])
 
     static func table(
-        for operation: String,
-        shape: String?
+        for operation: ImageOperationKind,
+        shape: ShapeKind?
     ) -> ObjectTable {
         let common = [
             KeyRule("id", .identifier),
@@ -28,25 +28,25 @@ enum ImageKeyTable {
         ]
 
         switch operation {
-        case "crop":
-            return ObjectTable(kind: operation, rules: common + [KeyRule("crop", .area)])
+        case .crop:
+            return ObjectTable(kind: operation.rawValue, rules: common + [KeyRule("crop", .area)])
 
-        case "resize":
-            return ObjectTable(kind: operation, rules: common + [KeyRule("resize", .object(resize))])
+        case .resize:
+            return ObjectTable(kind: operation.rawValue, rules: common + [KeyRule("resize", .object(resize))])
 
-        case "pad":
+        case .pad:
             return ObjectTable(
-                kind: operation,
+                kind: operation.rawValue,
                 rules: common + [
                     KeyRule("pad", .inset),
                     KeyRule("color", .color)
                 ]
             )
 
-        case "shape":
-            let side = shape == "arrow" ? [KeyRule("side", .literal(VocabularyTable.sides), isRequired: true)] : []
+        case .shape:
+            let side = shape == .arrow ? [KeyRule("side", .literal(VocabularyTable.sides), isRequired: true)] : []
             return ObjectTable(
-                kind: shape ?? operation,
+                kind: shape?.rawValue ?? operation.rawValue,
                 rules: common + [
                     KeyRule("shape", .literal(VocabularyTable.shapes)),
                     KeyRule("area", .area, isRequired: true),
@@ -55,18 +55,18 @@ enum ImageKeyTable {
                 ] + side
             )
 
-        case "adjust":
+        case .adjust:
             return ObjectTable(
-                kind: operation,
+                kind: operation.rawValue,
                 rules: common + [
                     KeyRule("adjust", ChoiceKeyTable.filter),
                     KeyRule("area", .area)
                 ]
             )
 
-        case "title":
+        case .title:
             return ObjectTable(
-                kind: operation,
+                kind: operation.rawValue,
                 rules: common + [
                     KeyRule("title", .text),
                     KeyRule("position", .oneOf([.numbers(2), .object(AreaKeyTable.point)]), isRequired: true),
@@ -76,18 +76,18 @@ enum ImageKeyTable {
                 ]
             )
 
-        case "banner":
+        case .banner:
             return ObjectTable(
-                kind: operation,
+                kind: operation.rawValue,
                 rules: common + [
                     KeyRule("banner", .list(bannerLine)),
                     KeyRule("edge", .literal(["top", "bottom"]), isRequired: true)
                 ]
             )
 
-        default:
+        case .border:
             return ObjectTable(
-                kind: operation,
+                kind: operation.rawValue,
                 rules: common + [KeyRule("border", .oneOf([.exactly(.bool(true)), .color]))]
             )
         }

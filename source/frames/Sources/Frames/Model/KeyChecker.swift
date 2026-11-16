@@ -671,17 +671,16 @@ struct KeyChecker: Sendable {
             throw wrongType(value, .object(ObjectTable(kind: "operation", rules: [])), place, "operation")
         }
 
-        let keys = ImageKeyTable.operationKeys
-        let present = keys.filter(object.contains)
+        let present = ImageOperationKind.allCases.filter { object.contains($0.rawValue) }
         guard !present.isEmpty else {
-            throw ModelError.missingKey(place: place, kind: "operation", keys: keys)
+            throw ModelError.missingKey(place: place, kind: "operation", keys: ImageKeyTable.operationKeys)
         }
         guard present.count == 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: "operation", keys: present)
+            throw ModelError.conflictingKeys(place: place, kind: "operation", keys: present.map(\.rawValue))
         }
 
-        var shape: String?
-        if present[0] == "shape" {
+        var shape: ShapeKind?
+        if present[0] == .shape {
             let value = object["shape"] ?? .null
             try check(
                 value,
@@ -690,7 +689,7 @@ struct KeyChecker: Sendable {
                 kind: "shape",
                 scope: &scope
             )
-            shape = value.stringValue
+            shape = value.stringValue.flatMap(ShapeKind.init(rawValue:))
         }
 
         try checkObject(object, as: ImageKeyTable.table(for: present[0], shape: shape), place: place, scope: &scope)

@@ -78,7 +78,7 @@ struct ImagePlanner: Sendable {
 
         switch operation.content {
         case let .crop(form):
-            let area = try find(form, "crop", .operation("crop"), theme.cropPadding)
+            let area = try find(form, "crop", .operation(.crop), theme.cropPadding)
             // A canvas is whole pixels, so a crop keeps every pixel its area touches.
             let left = area.x.rounded(.down)
             let top = area.y.rounded(.down)
@@ -111,7 +111,7 @@ struct ImagePlanner: Sendable {
             canvas.extend(by: inset, color: theme.color(color ?? "background"))
 
         case let .shape(shape, form, label, side, color):
-            let kind = PlaceKind.operation(shape.rawValue)
+            let kind = PlaceKind.shape(shape)
             let area = try find(form, "area", kind, theme.areaPadding)
             let box = draw(
                 shape,
@@ -127,13 +127,13 @@ struct ImagePlanner: Sendable {
             }
 
         case let .adjust(choice, form):
-            let kind = PlaceKind.operation("adjust")
+            let kind = PlaceKind.operation(.adjust)
             let area = try form.map { try find($0, "area", kind, theme.areaPadding) } ?? canvas.bounds
             let operations = try filter(choice, place: place.appending(key: "adjust"), kind: kind)
             canvas.draw(.adjustment(operations.map { $0.scaled(by: scale) }, area: area))
 
         case let .title(title, position, anchor, style, width):
-            let kind = PlaceKind.operation("title")
+            let kind = PlaceKind.operation(.title)
             let point = switch position {
             case let .point(point):
                 canvas.transform.point(point)
@@ -171,7 +171,7 @@ struct ImagePlanner: Sendable {
                 theme: theme,
                 scale: scale,
                 place: place.appending(key: "banner"),
-                kind: "banner"
+                kind: PlaceKind.operation(.banner).label
             )
             canvas.extend(
                 by: Inset(
