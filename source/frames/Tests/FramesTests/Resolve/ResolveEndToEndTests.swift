@@ -93,7 +93,7 @@ struct ResolveEndToEndTests {
     // scrolling line come back in frame order.
     private func screenDocument(in directory: TemporaryDirectory) async throws -> (JSONValue, [Rectangle]) {
         let file = directory.file("screen.mov")
-        let drawn = try await ScreenRecording().write(to: file)
+        let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
