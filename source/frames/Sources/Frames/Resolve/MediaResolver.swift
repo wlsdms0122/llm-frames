@@ -55,7 +55,7 @@ struct MediaResolver: Sendable {
             return MediaPlan(
                 kind: probed.kind,
                 reference: reference,
-                source: .file(MediaFile(path: file, fps: probed.fps, size: probed.size, frameTimes: probed.frames)),
+                source: .file(MediaFile(path: file, probed: probed)),
                 duration: probed.duration,
                 frames: frames(of: probed),
                 hasSound: probed.hasSound
@@ -123,7 +123,7 @@ struct MediaResolver: Sendable {
         }
 
         return TransitionMedia(
-            file: MediaFile(path: path, fps: probed.fps, size: probed.size, frameTimes: probed.frames),
+            file: MediaFile(path: path, probed: probed),
             duration: probed.duration
         )
     }
