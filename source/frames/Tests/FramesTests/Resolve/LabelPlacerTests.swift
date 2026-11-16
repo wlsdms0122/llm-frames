@@ -27,7 +27,7 @@ struct LabelPlacerTests {
     private let text = TextLayout(size: Size(width: 200, height: 60), lineCount: 1, runs: [], stroke: nil, background: nil)
     private let screen = Picture(
         name: "/abs/screen.mp4",
-        source: .mediaFile("/abs/screen.mp4"),
+        source: .mediaFile(MediaFile(path: "/abs/screen.mp4")),
         size: Size(width: 1206, height: 2622)
     )
     private let format = FormatPlan(

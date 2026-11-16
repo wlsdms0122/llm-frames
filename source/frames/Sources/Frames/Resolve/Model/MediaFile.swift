@@ -9,16 +9,16 @@
 // opens. `fps` is the nominal frame rate, when the media has one, and `size` is the picture's, nil for sound.
 // `frameTimes` holds the media time of each frame of a video or image sequence, which the resolved document pins, and
 // `frameFiles` the file of each frame of an image sequence, in frame order.
-struct MediaFile: Equatable, Sendable {
+package struct MediaFile: Equatable, Sendable {
     // MARK: - Property
-    let path: String
-    let fps: Double?
-    let size: Size?
-    let frameTimes: [Double]
-    let frameFiles: [String]
+    package let path: String
+    package let fps: Double?
+    package let size: Size?
+    package let frameTimes: [Double]
+    package let frameFiles: [String]
 
     // MARK: - Initializer
-    init(
+    package init(
         path: String,
         fps: Double? = nil,
         size: Size? = nil,
@@ -41,6 +41,11 @@ struct MediaFile: Equatable, Sendable {
     // The frame shown at the media time: the last that starts at or before it, or the first before the media starts.
     func frameTime(at time: Double) -> Double? {
         frameTimes.last { $0 <= time } ?? frameTimes.first
+    }
+
+    // The index of that frame, which a decoder reads. A still has the one frame 0.
+    package func frameIndex(at time: Double) -> Int {
+        frameTimes.lastIndex { $0 <= time } ?? 0
     }
 
     // MARK: - Private

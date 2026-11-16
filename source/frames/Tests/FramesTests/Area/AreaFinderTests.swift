@@ -14,7 +14,7 @@ struct AreaFinderTests {
     // MARK: - Property
     private let screen = Picture(
         name: "/abs/screen.mp4",
-        source: .mediaFile("/abs/screen.mp4"),
+        source: .mediaFile(MediaFile(path: "/abs/screen.mp4")),
         size: Size(width: 1206, height: 2622)
     )
     private let place = Place.root.appending(key: "area")

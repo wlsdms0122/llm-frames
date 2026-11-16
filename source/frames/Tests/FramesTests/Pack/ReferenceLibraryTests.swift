@@ -84,6 +84,37 @@ struct ReferenceLibraryTests {
         #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
+    @Test("media the probe cannot read throws the probe's failure without a place, for the place that names it to stop at")
+    func givesProbeFailure() throws {
+        // Given
+        let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
+        let sut = directory.library(
+            mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
+        )
+
+        // When
+        let error = #expect(throws: UnreadableMediaError.self) { try sut.mediaKind(of: "shorts/leak.mov") }
+
+        // Then
+        #expect((error?.reason as? ProbeFailure)?.description == "media \(leak) cannot be read")
+    }
+
+    @Test("a document naming media the probe cannot read stops once, at the place it names it, with the probe's reason")
+    func refusesUnreadableMedia() throws {
+        // Given
+        let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
+        let sut = directory.library(
+            mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
+        )
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.mediaKind(of: "shorts/intro.json") }
+
+        // Then
+        #expect(error?.description == #"shorts/intro.json: storyline[0].media (storyline clip): media "shorts/leak.mov" cannot be probed: media \#(leak) cannot be read"#)
+    }
+
     @Test("media named <pack>/<file> is the file in the pack's media, and its kind is the one its probe finds")
     func findsPackMedia() throws {
         // Given

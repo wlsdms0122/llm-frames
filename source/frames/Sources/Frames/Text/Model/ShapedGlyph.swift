@@ -7,14 +7,14 @@
 
 // A glyph the shaping provider gave: its id in its face, its advance, and `offset`, the index of the first Unicode
 // scalar of the text it was shaped from.
-struct ShapedGlyph: Equatable, Sendable {
+package struct ShapedGlyph: Equatable, Sendable {
     // MARK: - Property
-    let id: Int
-    let advance: Double
-    let offset: Int
+    package let id: Int
+    package let advance: Double
+    package let offset: Int
 
     // MARK: - Initializer
-    init(
+    package init(
         id: Int,
         advance: Double,
         offset: Int

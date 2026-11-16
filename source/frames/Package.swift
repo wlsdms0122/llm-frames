@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -10,9 +10,38 @@ let package = Package(
     ],
     targets: [
         .target(name: "Frames"),
+        .target(
+            name: "FramesAVFoundation",
+            dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesVision",
+            dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesCoreText",
+            dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesTestMedia",
+            dependencies: ["Frames"],
+            path: "Tests/FramesTestMedia"
+        ),
         .testTarget(
             name: "FramesTests",
-            dependencies: ["Frames"]
+            dependencies: ["Frames", "FramesAVFoundation", "FramesVision", "FramesCoreText", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesAVFoundationTests",
+            dependencies: ["FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesVisionTests",
+            dependencies: ["FramesVision", "FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesCoreTextTests",
+            dependencies: ["FramesCoreText"]
         )
     ]
 )

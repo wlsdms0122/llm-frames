@@ -6,13 +6,13 @@
 //
 
 // A line the OCR provider recognised: its text and its rectangle in media pixels.
-struct RecognisedLine: Equatable, Sendable {
+package struct RecognisedLine: Equatable, Sendable {
     // MARK: - Property
-    let text: String
-    let rectangle: Rectangle
+    package let text: String
+    package let rectangle: Rectangle
 
     // MARK: - Initializer
-    init(
+    package init(
         text: String,
         rectangle: Rectangle
     ) {

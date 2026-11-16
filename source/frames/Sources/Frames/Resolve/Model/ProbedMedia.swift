@@ -5,19 +5,21 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The probed facts of one media file that resolve reads. `frames` holds a video's frame timestamps in media time,
-// `size` is the picture's, nil for sound, and `hasSound` says whether the file holds a sound track.
-struct ProbedMedia: Equatable, Sendable {
+// The probed facts of one media file that resolve reads. `frames` holds a video's frame timestamps and `duration` its
+// length, both in media time: the file's presentation timeline, which its picture and its sound share. A time before
+// the first frame shows the first frame. `size` is the picture's, nil for sound, and `hasSound` says whether the file
+// holds a sound track.
+package struct ProbedMedia: Equatable, Sendable {
     // MARK: - Property
-    let kind: MediaKind
-    let duration: Double
-    let fps: Double?
-    let frames: [Double]
-    let size: Size?
-    let hasSound: Bool
+    package let kind: MediaKind
+    package let duration: Double
+    package let fps: Double?
+    package let frames: [Double]
+    package let size: Size?
+    package let hasSound: Bool
 
     // MARK: - Initializer
-    init(
+    package init(
         kind: MediaKind,
         duration: Double = 0,
         fps: Double? = nil,

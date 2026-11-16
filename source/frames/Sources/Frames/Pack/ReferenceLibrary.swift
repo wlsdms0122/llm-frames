@@ -41,12 +41,16 @@ struct ReferenceLibrary: MediaKindProvider {
     }
 
     // MARK: - Lifecycle
-    // A document's kind is the kind of document it is, and a media file's is the one its probe finds.
+    // A document's kind is the kind of document it is, and a media file's is the one its probe finds, or its failure.
     func mediaKind(of reference: String) throws -> MediaKind? {
         guard !isDocument(reference) else { return try document(named: reference)?.kind }
         guard let file = try mediaFile(named: reference) else { return nil }
 
-        return mediaFacts.probedMedia(of: file)?.kind
+        do {
+            return try mediaFacts.probedMedia(of: file)?.kind
+        } catch {
+            throw UnreadableMediaError(reason: error)
+        }
     }
 
     func templateKind(of name: String) throws -> MediaKind? {

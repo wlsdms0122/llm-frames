@@ -21,7 +21,7 @@ struct GeometryFinderTests {
     ]))
     private let screen = Picture(
         name: "/abs/screen.mp4",
-        source: .mediaFile("/abs/screen.mp4"),
+        source: .mediaFile(MediaFile(path: "/abs/screen.mp4")),
         size: Size(width: 1206, height: 2622)
     )
 

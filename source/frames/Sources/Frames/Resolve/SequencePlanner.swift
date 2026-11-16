@@ -245,7 +245,7 @@ struct SequencePlanner: Sendable {
             throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: reference)
         }
 
-        return Picture(name: media.reference ?? file.path, source: .mediaFile(file.path), size: size)
+        return Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size)
     }
 
     // A drawn media clip's picture, which its crop, its box and how it fills it are all found in. Audio is drawn by

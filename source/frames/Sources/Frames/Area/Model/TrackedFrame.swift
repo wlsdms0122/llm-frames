@@ -6,13 +6,13 @@
 //
 
 // The target's rectangle in media pixels on the frame at `time`, in media seconds.
-struct TrackedFrame: Equatable, Sendable {
+package struct TrackedFrame: Equatable, Sendable {
     // MARK: - Property
-    let time: Double
-    let rectangle: Rectangle
+    package let time: Double
+    package let rectangle: Rectangle
 
     // MARK: - Initializer
-    init(
+    package init(
         time: Double,
         rectangle: Rectangle
     ) {

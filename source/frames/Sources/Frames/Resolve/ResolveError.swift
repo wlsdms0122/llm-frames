@@ -8,6 +8,7 @@
 enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
     case unprobedMedia(place: Place, kind: PlaceKind, reference: String)
+    case unreadableMedia(place: Place, kind: PlaceKind, reference: String, reason: String)
     case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
     case nonPositiveDuration(place: Place, kind: PlaceKind, duration: Double)
@@ -56,6 +57,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unprobedMedia(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) has no probed facts"
+
+        case let .unreadableMedia(place, kind, reference, reason):
+            "\(place) (\(kind.label)): media \(quoted(reference)) cannot be probed: \(reason)"
 
         case let .unknownTheme(place, kind, name):
             "\(place) (\(kind.label)): unknown theme \(quoted(name)). "

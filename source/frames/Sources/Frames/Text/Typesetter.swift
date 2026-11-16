@@ -30,8 +30,8 @@ struct Typesetter: Sendable {
         kind: String
     ) throws -> TextLayout {
         let isOneLine = style.isOneLine || width == nil
-        let lines = paragraphs(of: spans(of: text, style: style)).flatMap { paragraph in
-            self.lines(of: paragraph, face: face, size: style.size, width: isOneLine ? nil : width)
+        let lines = try paragraphs(of: spans(of: text, style: style)).flatMap { paragraph in
+            try self.lines(of: paragraph, face: face, size: style.size, width: isOneLine ? nil : width)
         }
         guard !isOneLine || lines.count == 1 else { throw TextError.lineBreakOnOneLine(place: place, kind: kind) }
 
@@ -103,9 +103,9 @@ struct Typesetter: Sendable {
         face: FontFace,
         size: Double,
         width: Double?
-    ) -> [TextLine] {
+    ) throws -> [TextLine] {
         let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
-        let glyphs = shaped(paragraph, face: face, size: size)
+        let glyphs = try shaped(paragraph, face: face, size: size)
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
 
@@ -161,11 +161,11 @@ struct Typesetter: Sendable {
         _ paragraph: [TextSpan],
         face: FontFace,
         size: Double
-    ) -> [ColoredGlyph] {
+    ) throws -> [ColoredGlyph] {
         var start = 0
         var glyphs: [ColoredGlyph] = []
         for span in paragraph {
-            for run in shaper.shape(span.text, face: face, size: size) {
+            for run in try shaper.shape(span.text, face: face, size: size) {
                 glyphs += run.glyphs.map { glyph in
                     ColoredGlyph(
                         glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
