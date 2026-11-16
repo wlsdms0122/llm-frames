@@ -5,27 +5,25 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// How much of a receiver of `reveal` shows, from 0 (nothing) to 1 (everything), and the side a wipe starts from. An
-// eased value past either end is held at it, since nothing shows less than nothing or more than everything.
+// How much of a receiver of `reveal` shows, from 0 (nothing) to 1 (everything). An eased value past either end is held
+// at it, since nothing shows less than nothing or more than everything.
 struct Reveal: Equatable, Sendable {
     // MARK: - Property
-    static let full = Reveal(amount: 1, edge: .left)
+    static let full = Reveal(amount: 1)
 
     let amount: Double
-    let edge: RevealEdge
 
     // MARK: - Initializer
-    init(
-        amount: Double,
-        edge: RevealEdge
-    ) {
+    init(amount: Double) {
         self.amount = min(max(amount, 0), 1)
-        self.edge = edge
     }
 
     // MARK: - Public
     // The part of the rectangle a wipe from the edge has shown, nil when it shows all of it.
-    func rectangle(wiping rectangle: Rectangle) -> Rectangle? {
+    func rectangle(
+        wiping rectangle: Rectangle,
+        from edge: RevealEdge
+    ) -> Rectangle? {
         guard amount < 1 else { return nil }
 
         let width = rectangle.width * amount

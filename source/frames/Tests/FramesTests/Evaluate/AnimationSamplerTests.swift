@@ -40,7 +40,8 @@ struct AnimationSamplerTests {
         // Then
         #expect(sample.motion.value(of: .opacity) == 0.5)
         #expect(sample.motion.value(of: .scale) == 1)
-        #expect(sample.reveal == Reveal(amount: 0.5, edge: .top))
+        #expect(sample.reveal == Reveal(amount: 0.5))
+        #expect(sample.revealFrom == .top)
     }
 
     @Test(

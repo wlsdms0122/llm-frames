@@ -19,7 +19,7 @@ struct RevealTests {
     @Test("an amount past either end is held at it", arguments: [(1.2, 1.0), (-0.1, 0.0), (0.3, 0.3)])
     func holdsAmount(written: Double, amount: Double) {
         // Given, When
-        let sut = Reveal(amount: written, edge: .left)
+        let sut = Reveal(amount: written)
 
         // Then
         #expect(sut.amount == amount)
@@ -33,10 +33,10 @@ struct RevealTests {
     ])
     func wipesFromSide(edge: RevealEdge, shown: Rectangle) {
         // Given
-        let sut = Reveal(amount: 0.4, edge: edge)
+        let sut = Reveal(amount: 0.4)
 
         // When
-        let wiped = sut.rectangle(wiping: rectangle)
+        let wiped = sut.rectangle(wiping: rectangle, from: edge)
 
         // Then
         #expect(wiped == shown)
@@ -46,11 +46,11 @@ struct RevealTests {
     func wipesEnds() {
         // Given
         let whole = Reveal.full
-        let none = Reveal(amount: 0, edge: .left)
+        let none = Reveal(amount: 0)
 
         // When
-        let wholeWiped = whole.rectangle(wiping: rectangle)
-        let noneWiped = none.rectangle(wiping: rectangle)
+        let wholeWiped = whole.rectangle(wiping: rectangle, from: .left)
+        let noneWiped = none.rectangle(wiping: rectangle, from: .left)
 
         // Then
         #expect(wholeWiped == nil)
@@ -64,7 +64,7 @@ struct RevealTests {
     ])
     func closesHole(amount: Double, hole: Rectangle) {
         // Given
-        let sut = Reveal(amount: amount, edge: .left)
+        let sut = Reveal(amount: amount)
 
         // When
         let closing = sut.hole(
