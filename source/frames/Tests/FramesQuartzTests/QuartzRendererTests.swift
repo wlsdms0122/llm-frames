@@ -206,23 +206,25 @@ struct QuartzRendererTests {
         expect(bitmap.pixel(x: 45, y: 30), equals: [1, 1, 1, 1])
     }
 
-    @Test("an adjustment through the placeholder filter chain leaves the backdrop as it was")
+    @Test("an adjustment draws the backdrop under its rectangle through its filter, at its opacity")
     func adjustsBackdrop() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 3, y: 3, width: 9, height: 7), color: Color(written: "#3399CC"))
-        let below = [DisplayItem(content: .fill(fill))]
+        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 16, height: 16), color: Color(written: "#3399CC"))
         let adjust = DisplayItem(
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 2, y: 2, width: 10, height: 10), filter: [.blur(radius: 2)]))
+            content: .adjust(AdjustItem(rectangle: Rectangle(x: 2, y: 2, width: 8, height: 8), filter: [.saturation(amount: 0)]))
         )
 
         // When
-        let plain = try sut.frame(of: list(size: 16, items: below))
-        let adjusted = try sut.frame(of: list(size: 16, items: below + [adjust]))
+        let bitmap = try sut.frame(of: list(size: 16, items: [DisplayItem(content: .fill(fill)), adjust]))
 
         // Then
-        #expect(adjusted == plain)
+        // Saturation 0 turns the backdrop into its Rec. 709 luma, composited over it at half opacity.
+        let color = [0.2, 0.6, 0.8]
+        let luma = 0.2126 * color[0] + 0.7152 * color[1] + 0.0722 * color[2]
+        expect(bitmap.pixel(x: 5, y: 5), equals: color.map { 0.5 * luma + 0.5 * $0 } + [1])
+        expect(bitmap.pixel(x: 12, y: 12), equals: color + [1])
     }
 
     @Test("check accepts every blend mode of FRAMES-11")
