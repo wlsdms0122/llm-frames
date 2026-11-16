@@ -42,14 +42,14 @@ struct ReferenceLibrary: MediaKindProvider {
 
     // MARK: - Lifecycle
     // A document's kind is the kind of document it is, and a media file's is the one its probe finds, or its failure.
-    func mediaKind(of reference: String) throws -> Result<MediaKind, any Error>? {
-        guard !isDocument(reference) else { return try document(named: reference).map { .success($0.kind) } }
+    func mediaKind(of reference: String) throws -> MediaKind? {
+        guard !isDocument(reference) else { return try document(named: reference)?.kind }
         guard let file = try mediaFile(named: reference) else { return nil }
 
         do {
-            return try mediaFacts.probedMedia(of: file).map { .success($0.kind) }
+            return try mediaFacts.probedMedia(of: file)?.kind
         } catch {
-            return .failure(error)
+            throw UnreadableMediaError(reason: error)
         }
     }
 

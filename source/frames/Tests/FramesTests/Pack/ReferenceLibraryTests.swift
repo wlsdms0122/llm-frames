@@ -84,7 +84,7 @@ struct ReferenceLibraryTests {
         #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
-    @Test("media the probe cannot read gives the probe's failure as it is, for the place that names it to stop at")
+    @Test("media the probe cannot read throws the probe's failure without a place, for the place that names it to stop at")
     func givesProbeFailure() throws {
         // Given
         let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
@@ -93,11 +93,10 @@ struct ReferenceLibraryTests {
         )
 
         // When
-        let probed = try #require(try sut.mediaKind(of: "shorts/leak.mov"))
+        let error = #expect(throws: UnreadableMediaError.self) { try sut.mediaKind(of: "shorts/leak.mov") }
 
         // Then
-        let error = #expect(throws: ProbeFailure.self) { try probed.get() }
-        #expect(error?.description == "media \(leak) cannot be read")
+        #expect((error?.reason as? ProbeFailure)?.description == "media \(leak) cannot be read")
     }
 
     @Test("a document naming media the probe cannot read stops once, at the place it names it, with the probe's reason")
@@ -123,7 +122,7 @@ struct ReferenceLibraryTests {
 
         // When
         let file = try sut.mediaFile(named: "shorts/leak.mov")
-        let kind = try sut.mediaKind(of: "shorts/leak.mov")?.get()
+        let kind = try sut.mediaKind(of: "shorts/leak.mov")
 
         // Then
         #expect(file == leak)
@@ -138,7 +137,7 @@ struct ReferenceLibraryTests {
         try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
 
         // When
-        let kind = try sut.mediaKind(of: "shorts/intro.json")?.get()
+        let kind = try sut.mediaKind(of: "shorts/intro.json")
 
         // Then
         #expect(kind == .sequence)

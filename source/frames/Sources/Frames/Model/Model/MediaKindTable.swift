@@ -16,8 +16,8 @@ struct MediaKindTable: MediaKindProvider {
     }
 
     // MARK: - Public
-    func mediaKind(of reference: String) -> Result<MediaKind, any Error>? {
-        kinds[reference].map { .success($0) }
+    func mediaKind(of reference: String) -> MediaKind? {
+        kinds[reference]
     }
 
     func templateKind(of name: String) -> MediaKind? {
