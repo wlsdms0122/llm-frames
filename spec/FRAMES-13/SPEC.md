@@ -13,6 +13,7 @@ Sound is media that frames places and does not make, so its rules are only how l
 ## Rules
 
 - A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept.
+- A storyline clip's sound plays over its drawn range, its handles included, and another clip's over its visible window ([FRAMES-8](../FRAMES-8/SPEC.md)). A video without a sound track, a still, an image or layout document, and a compound clip none of whose clips has sound play no sound.
 - `fadeIn` and `fadeOut` are seconds, and ramp the volume from and to 0 at the ends of the clip's window, or of a storyline clip's drawn range.
 - `volume` is keyframable, for ducking and longer fades.
 - During a storyline transition the outgoing clip's sound fades out and the incoming clip's sound fades in, linearly over the transition, from their handles. Where a handle runs out of media, that sound is silent.

@@ -19,7 +19,7 @@ A value means one thing only when its unit and origin are fixed. An agent writes
 | Time | seconds, as a number. Which clock a time is on is [FRAMES-8](../FRAMES-8/SPEC.md) |
 | Area in media | media pixels: pixels of the media picture as it is displayed, origin at the top left, rotation metadata applied, pixels made square |
 | Position and size on a sequence | pixels of the output, origin at the top left |
-| Theme lengths (text size, stroke, the theme's paddings, line width, filter radius) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture ([FRAMES-2](../FRAMES-2/SPEC.md)) |
+| Theme lengths (text size, stroke, the theme's paddings, line width, and a filter's `blur`, `sharpen` and `bloom` `radius` and `pixelate` and `grain` `size`, but not a `vignette` radius, which is a fraction) | points at the theme `baseWidth`, multiplied by the length scale of the place they are drawn (below). Area padding is the exception and is measured in its picture ([FRAMES-2](../FRAMES-2/SPEC.md)) |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size, its box before any scale (a label's own box for a label animation). In a transition, multiples of the content rect |
 
 | Angles | degrees, clockwise positive |

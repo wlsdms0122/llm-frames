@@ -29,8 +29,8 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | `levels` | `input: [black, white]`, `output: [black, white]` (0 to 1) | maps input levels to output levels |
 | `lut` | `file` (a `.cube` 3D LUT), `amount` (0 to 1) | maps colours through the LUT, applied to sRGB-encoded values with trilinear interpolation, and blends the result by `amount` |
 | `blur` | `radius` (theme length) | Gaussian blur whose standard deviation is `radius` |
-| `sharpen` | `amount`, `radius` | unsharp mask: v + amount × (v - the blur of v at `radius`) |
-| `bloom` | `amount`, `radius`, `color` optional | adds amount × the blur at `radius` of the bright parts (each pixel times smoothstep(0.5, 1, L)), times `color` when one is given (halation) |
+| `sharpen` | `amount`, `radius` (theme length) | unsharp mask: v + amount × (v - the blur of v at `radius`) |
+| `bloom` | `amount`, `radius` (theme length), `color` optional | adds amount × the blur at `radius` of the bright parts (each pixel times smoothstep(0.5, 1, L)), times `color` when one is given (halation) |
 | `vignette` | `amount`, `radius` (fraction of half the diagonal) | multiplies by 1 - amount × smoothstep(radius, 1, d), where d is the distance from the centre over half the diagonal |
 | `pixelate` | `size` (theme length) | square blocks, each filled with the mean colour of the pixels it covers |
 | `grain` | `amount` (0 to 1), `size` (theme length) | adds amount × 4L(1 - L) × n to each channel, where n is monochrome noise with standard deviation 1 and grains `size` across. Evaluation writes its `seed` ([FRAMES-20](../FRAMES-20/SPEC.md)), so a render made again has the same grain |
