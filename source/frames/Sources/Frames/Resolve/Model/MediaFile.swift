@@ -35,17 +35,17 @@ package struct MediaFile: Equatable, Sendable {
     // MARK: - Public
     // The frame after the one shown at the media time, nil when that one is the last.
     func frameTime(after time: Double) -> Double? {
-        frameTimes.first { $0 > time }
+        frameTimes.first { $0.roundedTime > time.roundedTime }
     }
 
     // The frame shown at the media time: the last that starts at or before it, or the first before the media starts.
     func frameTime(at time: Double) -> Double? {
-        frameTimes.last { $0 <= time } ?? frameTimes.first
+        frameTimes.last { $0.roundedTime <= time.roundedTime } ?? frameTimes.first
     }
 
     // The index of that frame, which a decoder reads. A still has the one frame 0.
     package func frameIndex(at time: Double) -> Int {
-        frameTimes.lastIndex { $0 <= time } ?? 0
+        frameTimes.lastIndex { $0.roundedTime <= time.roundedTime } ?? 0
     }
 
     // MARK: - Private

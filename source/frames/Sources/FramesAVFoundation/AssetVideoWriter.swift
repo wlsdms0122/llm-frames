@@ -154,23 +154,40 @@ final class AssetVideoWriter {
         guard writer.status == .completed else { throw failure("it cannot be finished") }
     }
 
-    // The sound up to `time`, in chunks of at most a second. The audio input is finished with the sound's last frame.
+    // The sound up to `time`, in chunks of at most a second.
     private func appendSound(upTo time: CMTime) throws {
-        guard let sound, let audio, let soundConverter, soundPosition < sound.frameCount else { return }
+        guard let sound, let audio, soundPosition < sound.frameCount else { return }
         let end = min(Int((CMTimeGetSeconds(time) * sound.sampleRate).rounded()), sound.frameCount)
 
         while soundPosition < end {
-            let chunkEnd = min(soundPosition + Self.soundChunk, end)
-            let buffer = try soundConverter.sampleBuffer(from: soundPosition, to: chunkEnd)
             try waitUntilReady(audio, for: "sound from frame \(soundPosition)")
-            guard audio.append(buffer) else { throw failure("sound from frame \(soundPosition) cannot be appended") }
-            soundPosition = chunkEnd
+            try appendSoundChunk(to: min(soundPosition + Self.soundChunk, end))
         }
+    }
+
+    // The next second of sound, when the audio input takes it now. Gives whether it went in.
+    private func appendSoundAhead() throws -> Bool {
+        guard let sound, let audio, soundPosition < sound.frameCount, audio.isReadyForMoreMediaData else { return false }
+
+        try appendSoundChunk(to: min(soundPosition + Self.soundChunk, sound.frameCount))
+
+        return true
+    }
+
+    // The sound from the current position to `end`. The audio input is finished with the sound's last frame.
+    private func appendSoundChunk(to end: Int) throws {
+        guard let sound, let audio, let soundConverter else { return }
+
+        let buffer = try soundConverter.sampleBuffer(from: soundPosition, to: end)
+        guard audio.append(buffer) else { throw failure("sound from frame \(soundPosition) cannot be appended") }
+        soundPosition = end
         if soundPosition == sound.frameCount {
             audio.markAsFinished()
         }
     }
 
+    // The writer interleaves its tracks, and holds the video back until it has sound some way past the frames, so a
+    // waiting video input takes the sound ahead of them.
     private func waitUntilReady(
         _ input: AVAssetWriterInput,
         for what: String
@@ -182,6 +199,8 @@ final class AssetVideoWriter {
             guard Date().timeIntervalSince(start) < deadline else {
                 throw failure("the writer did not take \(what) within \(deadline) seconds")
             }
+            if input === video, try appendSoundAhead() { continue }
+
             Thread.sleep(forTimeInterval: 0.001)
         }
     }

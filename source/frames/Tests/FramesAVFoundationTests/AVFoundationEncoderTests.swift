@@ -123,6 +123,28 @@ struct AVFoundationEncoderTests {
         #expect(zip(pixel(of: picture, x: 40, y: 24), [0, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
     }
 
+    @Test(
+        "sound and frames longer than the writer interleaves at once all go in, in a master and in a delivery",
+        arguments: ["master.mov", "delivery.mp4"]
+    )
+    func writesLongSound(name: String) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file(name)
+        let target = name.hasSuffix(".mov") ? EncodeTarget.master(path: path, alpha: false) : .delivery(path: path)
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+
+        // When
+        try write(target, fps: 10, sound: tone(seconds: 3), frameCount: 30, with: sut)
+
+        // Then
+        let asset = AVURLAsset(url: URL(fileURLWithPath: path))
+        try await expectDuration(of: asset, seconds: 3, fps: 10)
+        let audio = try #require(try await asset.loadTracks(withMediaType: .audio).first)
+        let soundLength = CMTimeGetSeconds(try await audio.load(.timeRange).duration)
+        #expect(abs(soundLength - 3) < 0.1)
+    }
+
     @Test("frame k of a video at an NTSC rate is presented at exactly k × 1001 / 30000", arguments: [
         29.97,
         30_000.0 / 1001
@@ -292,10 +314,11 @@ struct AVFoundationEncoderTests {
         _ target: EncodeTarget,
         fps: Double,
         sound: SoundBuffer?,
+        frameCount: Int? = nil,
         with encoder: AVFoundationEncoder
     ) throws {
         let writer = try encoder.videoWriter(for: target, size: size, fps: fps, sound: sound)
-        for _ in 0..<frameCount {
+        for _ in 0..<(frameCount ?? self.frameCount) {
             try writer.append(frame())
         }
         try writer.finish()

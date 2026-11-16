@@ -25,7 +25,7 @@ package struct PinnedMedia: Equatable, Sendable {
     // The index of the frame shown at the media time: the last that starts at or before it, or the first before the
     // media starts. A still has the one frame 0.
     func frameIndex(at time: Double) -> Int {
-        frameTimes.lastIndex { $0 <= time } ?? 0
+        frameTimes.lastIndex { $0.roundedTime <= time.roundedTime } ?? 0
     }
 
     // MARK: - Private
