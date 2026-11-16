@@ -21,8 +21,20 @@ struct Arrow: Equatable, Sendable {
         theme: MergedTheme,
         scale: Double
     ) {
-        let length = theme.arrowLength * scale
-        let breadth = max(theme.arrowHead, theme.arrowWidth) * scale
+        self.init(
+            pointingAt: area,
+            from: side,
+            length: theme.arrowLength * scale,
+            breadth: max(theme.arrowHead, theme.arrowWidth) * scale
+        )
+    }
+
+    init(
+        pointingAt area: Rectangle,
+        from side: Side,
+        length: Double,
+        breadth: Double
+    ) {
         let tip = area.point(named: side.rawValue)
         self.tip = tip
         switch side {

@@ -373,9 +373,13 @@ struct SequencePlannerTests {
         #expect(title.scale == .value(2))
         #expect(title.rotation == .value(0))
         #expect(title.blend == "screen")
-        #expect(title.color == nil)
+        #expect(title.shape == nil)
         #expect(plan.clips[1].appearance.blend == "normal")
-        #expect(plan.clips[1].appearance.color == MergedTheme.base.shapeColor(of: .box))
+        #expect(plan.clips[1].appearance.shape == .box(
+            width: MergedTheme.base.boxWidth * MergedTheme.base.lengthScale(at: 2160),
+            radius: MergedTheme.base.boxRadius * MergedTheme.base.lengthScale(at: 2160),
+            color: MergedTheme.base.shapeColor(of: .box)
+        ))
         #expect(plan.clips[2].appearance.filter == graded)
     }
 

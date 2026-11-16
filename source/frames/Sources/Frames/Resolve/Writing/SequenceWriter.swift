@@ -117,10 +117,7 @@ struct SequenceWriter: Sendable {
             content = [JSONMember(key: "title", value: try geometry.title.map(values.text) ?? .null)]
 
         case let .shape(shape):
-            content = [
-                JSONMember(key: "shape", value: .string(shape)),
-                JSONMember(key: "color", value: appearance.color.map(values.color) ?? .null)
-            ]
+            content = [JSONMember(key: "shape", value: .string(shape))] + (appearance.shape.map(drawing) ?? [])
 
         case .adjust, .solid:
             content = [JSONMember(key: "adjust", value: try values.filter(appearance.filter))]
@@ -213,6 +210,30 @@ struct SequenceWriter: Sendable {
         guard let file = file(of: media) else { return .null }
 
         return .object(JSONObject(members: try values.media(file)))
+    }
+
+    // How a shape is drawn on its area, as an image's drawing step writes it, the area aside, which is written with the
+    // geometry.
+    private func drawing(_ drawing: ShapeDrawing) -> [JSONMember] {
+        let number = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
+        let color = { (color: Color) in JSONMember(key: "color", value: self.values.color(color)) }
+
+        switch drawing {
+        case let .box(width, radius, stroke):
+            return [number("width", width), number("radius", radius), color(stroke)]
+
+        case let .fill(fill), let .dim(fill):
+            return [color(fill)]
+
+        case let .arrow(side, length, width, head, stroke):
+            return [
+                JSONMember(key: "side", value: .string(side.rawValue)),
+                number("length", length),
+                number("width", width),
+                number("head", head),
+                color(stroke)
+            ]
+        }
     }
 
     // How a media clip's picture fills its box, its crop aside, which is written with the geometry.

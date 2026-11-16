@@ -18,6 +18,7 @@ struct SequencePlanner: Sendable {
     private let sound = SoundPlanner()
     private let filters: FilterResolver
     private let conformer = CropConformer()
+    private let drawer = ShapeDrawer()
 
     // MARK: - Initializer
     init(
@@ -568,7 +569,8 @@ struct SequencePlanner: Sendable {
     }
 
     // A property not written takes its plain value, and keyframes move to sequence time on the clip's clock. A shape
-    // takes the theme's colour for it unless it gives one.
+    // takes the theme's colour for it unless it gives one, and its theme lengths in output pixels, which stay so under a
+    // zoom.
     private func appearance(
         of plan: ClipPlan,
         written: Clip,
@@ -596,9 +598,14 @@ struct SequencePlanner: Sendable {
                 })
             }
         }
-        let color: Color? = switch written.content {
+        let shape: ShapeDrawing? = switch written.content {
         case let .shape(shape):
-            written.color.map(theme.color) ?? theme.shapeColor(of: shape.kind)
+            drawer.drawing(
+                of: shape,
+                color: written.color.map(theme.color) ?? theme.shapeColor(of: shape.kind),
+                scale: scale,
+                theme: theme
+            )
 
         case .media, .title, .adjust:
             nil
@@ -609,7 +616,7 @@ struct SequencePlanner: Sendable {
             scale: property(written.scale, 1),
             rotation: property(written.rotation, 0),
             blend: written.blend ?? "normal",
-            color: color,
+            shape: shape,
             filter: try filter(
                 written.filter,
                 kind: plan.kind,

@@ -17,6 +17,7 @@ struct ImagePlanner: Sendable {
     private let text: ThemeTypesetter
     private let banners: BannerSetter
     private let sideFinder = LabelSideFinder()
+    private let drawer = ShapeDrawer()
 
     // MARK: - Initializer
     init(
@@ -253,31 +254,11 @@ struct ImagePlanner: Sendable {
         scale: Double,
         theme: MergedTheme
     ) -> Rectangle {
-        switch shape {
-        case .box:
-            canvas.draw(.box(area, width: theme.boxWidth * scale, radius: theme.boxRadius * scale, color: color))
-            return area
+        let drawing = drawer.drawing(of: shape, color: color, scale: scale, theme: theme)
+        let laid = drawer.content(of: drawing, on: area)
+        canvas.draw(laid.content)
 
-        case .fill:
-            canvas.draw(.fill(area, color: color))
-            return area
-
-        case .dim:
-            canvas.draw(.dim(area, color: color))
-            return area
-
-        case let .arrow(side):
-            let arrow = Arrow(pointingAt: area, from: side, theme: theme, scale: scale)
-            canvas.draw(.arrow(
-                tail: arrow.tail,
-                tip: arrow.tip,
-                width: theme.arrowWidth * scale,
-                head: theme.arrowHead * scale,
-                color: color
-            ))
-
-            return arrow.box
-        }
+        return laid.box
     }
 
     // A label is set on one line in the `label` style, and its room is the canvas at its shape's operation.

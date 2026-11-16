@@ -6,7 +6,7 @@
 //
 
 // How a connected or sequence clip is drawn, with every value resolve leaves for evaluation: `opacity`, `scale` and
-// `rotation` with keyframes in sequence time, 1, 1 and 0 when not written, its blend mode, a shape's colour, and the
+// `rotation` with keyframes in sequence time, 1, 1 and 0 when not written, its blend mode, how a shape is drawn, and the
 // filter operations it applies, its lengths already scaled, and how a media clip's picture fills its box.
 struct ClipAppearance: Equatable, Sendable {
     // MARK: - Property
@@ -14,7 +14,7 @@ struct ClipAppearance: Equatable, Sendable {
     let scale: PropertyValue<Double>
     let rotation: PropertyValue<Double>
     let blend: String
-    let color: Color?
+    let shape: ShapeDrawing?
     let filter: [FilterOperation]
     let media: MediaAppearance?
 
@@ -24,7 +24,7 @@ struct ClipAppearance: Equatable, Sendable {
         scale: PropertyValue<Double>,
         rotation: PropertyValue<Double>,
         blend: String,
-        color: Color?,
+        shape: ShapeDrawing?,
         filter: [FilterOperation],
         media: MediaAppearance?
     ) {
@@ -32,7 +32,7 @@ struct ClipAppearance: Equatable, Sendable {
         self.scale = scale
         self.rotation = rotation
         self.blend = blend
-        self.color = color
+        self.shape = shape
         self.filter = filter
         self.media = media
     }

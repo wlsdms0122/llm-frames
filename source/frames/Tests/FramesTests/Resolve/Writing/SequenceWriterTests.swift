@@ -285,6 +285,34 @@ struct SequenceWriterTests {
         #expect(music["volume"]?.arrayValue?.compactMap { $0.objectValue?["at"] } == [.number(0), .number(1)])
     }
 
+    @Test("a shape carries how it is drawn, with theme lengths scaled: a box its stroke and corners, an arrow its side and lengths")
+    func writesShapeDrawing() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [2412, 5244] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "shape": "box", "area": [0, 0, 100, 100], "at": [0, 1] },
+                { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [0, 1], "color": "#FF0000" },
+                { "shape": "dim", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
+            """#
+        let theme = MergedTheme.base
+        let scale = theme.lengthScale(at: 2412)
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        #expect(clips[0]["width"] == .number(theme.boxWidth * scale))
+        #expect(clips[0]["radius"] == .number(theme.boxRadius * scale))
+        #expect(clips[0]["color"] == .string(theme.shapeColor(of: .box).hex))
+        #expect(clips[1]["side"] == .string("left"))
+        #expect(clips[1]["length"] == .number(theme.arrowLength * scale))
+        #expect(clips[1]["width"] == .number(theme.arrowWidth * scale))
+        #expect(clips[1]["head"] == .number(theme.arrowHead * scale))
+        #expect(clips[1]["color"] == .string("#FF0000FF"))
+        #expect(clips[2]["color"] == .string(theme.shapeColor(of: .dim).hex))
+        #expect(clips[2]["width"] == nil)
+    }
+
     // MARK: - Private
     private func write(
         _ document: String,
