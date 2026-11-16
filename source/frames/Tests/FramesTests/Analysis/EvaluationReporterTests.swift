@@ -1,0 +1,287 @@
+//
+//  EvaluationReporterTests.swift
+//  FramesTests
+//
+//  Created by JSilver on 11/17/26.
+//
+
+import Testing
+
+@testable import Frames
+
+@Suite("EvaluationReporter Tests")
+struct EvaluationReporterTests {
+    // MARK: - Property
+    private let sut = EvaluationReporter()
+
+    private let size = Size(width: 200, height: 100)
+    private let black = Color(written: "#000000")
+    private let transparent = Color(written: "#00000000")
+    private let red = Color(written: "#FF0000")
+    private let title = ItemOrigin(place: "clips[0]#title", id: "title", kind: "title")
+    private let entry = ItemOrigin(place: "storyline[0]", id: nil, kind: "compound")
+    private let nested = ItemOrigin(place: "storyline[0].media.storyline[2]", id: nil, kind: "video")
+
+    // MARK: - Initializer
+    // MARK: - Test
+    @Test("a turned item's bounds are the box of its turned corners, and a scaled one's its scaled rectangle")
+    func boundsTransformedItems() throws {
+        // Given
+        let turned = DisplayItem(
+            transform: AffineTransform(rotation: 90, about: Point(x: 100, y: 50)),
+            content: .fill(FillItem(rectangle: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
+            origin: title
+        )
+        let scaled = DisplayItem(
+            transform: AffineTransform(scale: 2, about: Point(x: 0, y: 0)),
+            content: .fill(FillItem(rectangle: Rectangle(x: 10, y: 10, width: 20, height: 5), color: red))
+        )
+
+        // When
+        let report = sut.report(of: list([turned, scaled]), at: 0)
+
+        // Then
+        let bounds = report.items.map(\.bounds)
+        #expect(isClose(try #require(bounds[0]), Rectangle(x: 90, y: 30, width: 20, height: 40)))
+        #expect(bounds[1] == Rectangle(x: 20, y: 20, width: 40, height: 10))
+    }
+
+    @Test("bounds are cut by the mask, the reveal and the output frame, and an item they leave nothing of has none")
+    func cutsBoundsByMasks() {
+        // Given
+        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100), color: red)
+        let masked = DisplayItem(mask: Rectangle(x: 50, y: 20, width: 100, height: 100), content: .fill(fill))
+        let revealed = DisplayItem(
+            transform: AffineTransform(translation: Point(x: 150, y: 0)),
+            reveal: Rectangle(x: 0, y: 0, width: 25, height: 100),
+            content: .fill(fill)
+        )
+        let hidden = DisplayItem(mask: Rectangle(x: 300, y: 0, width: 10, height: 10), content: .fill(fill))
+
+        // When
+        let report = sut.report(of: list([masked, revealed, hidden]), at: 0)
+
+        // Then
+        #expect(report.items.map(\.bounds) == [
+            Rectangle(x: 50, y: 20, width: 50, height: 80),
+            Rectangle(x: 150, y: 0, width: 25, height: 100),
+            nil
+        ])
+    }
+
+    @Test("a turned item under a mask is bounded by what the mask leaves of its turned shape, not of its box")
+    func cutsTurnedShapeByMask() throws {
+        // Given
+        // A 20 x 20 square turned 45 degrees about its centre (50, 50) is a diamond reaching 50 ± 14.14 on each axis.
+        let diamond = DisplayItem(
+            transform: AffineTransform(rotation: 45, about: Point(x: 50, y: 50)),
+            mask: Rectangle(x: 0, y: 0, width: 50, height: 50),
+            content: .fill(FillItem(rectangle: Rectangle(x: 40, y: 40, width: 20, height: 20), color: red))
+        )
+
+        // When
+        let report = sut.report(of: list([diamond]), at: 0)
+
+        // Then
+        let reach = 10 * 2.0.squareRoot()
+        let bounds = try #require(report.items.first?.bounds)
+        #expect(isClose(bounds, Rectangle(x: 50 - reach, y: 50 - reach, width: reach, height: reach)))
+    }
+
+    @Test("a nested list's items are reported in its place, carried by its picture and named by their own clips")
+    func flattensNestedList() throws {
+        // Given
+        let inner = DisplayList(size: Size(width: 100, height: 50), background: red, seed: 0, items: [
+            DisplayItem(
+                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 50, height: 25), color: black)),
+                origin: nested
+            ),
+            DisplayItem(
+                content: .fill(FillItem(rectangle: Rectangle(x: 50, y: 25, width: 50, height: 25), color: black))
+            )
+        ])
+        let picture = PictureItem(
+            source: .displayList(inner),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 50)
+        )
+        let item = DisplayItem(
+            transform: AffineTransform(scale: 2, about: Point(x: 0, y: 0)),
+            opacity: 0.5,
+            content: .picture(picture),
+            origin: entry
+        )
+
+        // When
+        let report = sut.report(of: list([item], background: black), at: 0)
+
+        // Then
+        // The nested background and the fill without a clip of its own are the compound clip's picture.
+        #expect(report.items == [
+            EvaluationItem(origin: nil, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1),
+            EvaluationItem(origin: entry, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 0.5),
+            EvaluationItem(origin: nested, bounds: Rectangle(x: 0, y: 0, width: 100, height: 50), opacity: 0.5),
+            EvaluationItem(origin: entry, bounds: Rectangle(x: 100, y: 50, width: 100, height: 50), opacity: 0.5)
+        ])
+    }
+
+    @Test("a nested list shows only the source rect its picture draws, scaled into the picture's destination")
+    func cutsNestedListBySourceRect() {
+        // Given
+        let inner = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [
+            DisplayItem(
+                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100), color: black)),
+                origin: nested
+            )
+        ])
+        let picture = PictureItem(
+            source: .displayList(inner),
+            rectangle: Rectangle(x: 50, y: 50, width: 50, height: 25),
+            destination: Rectangle(x: 0, y: 0, width: 200, height: 100)
+        )
+
+        // When
+        let report = sut.report(of: list([DisplayItem(content: .picture(picture), origin: entry)]), at: 0)
+
+        // Then
+        #expect(report.items == [
+            EvaluationItem(origin: nested, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1)
+        ])
+    }
+
+    @Test("a fill its hole takes all of covers nothing, and a stroke covers half its width to each side of its edge")
+    func boundsHolesAndStrokes() {
+        // Given
+        let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
+        let outside = DisplayItem(content: .fill(FillItem(
+            rectangle: frame,
+            color: black,
+            hole: RoundedRectangle(rectangle: frame, radius: 0)
+        )))
+        let stroke = DisplayItem(content: .stroke(StrokeItem(
+            rectangle: Rectangle(x: 20, y: 20, width: 40, height: 30),
+            radius: 4,
+            width: 4,
+            color: red
+        )))
+
+        // When
+        let report = sut.report(of: list([outside, stroke]), at: 0)
+
+        // Then
+        #expect(report.items.map(\.bounds) == [nil, Rectangle(x: 18, y: 18, width: 44, height: 34)])
+    }
+
+    @Test("a resolved document is evaluated at the time, and its clips report their places, ids, kinds and bounds")
+    func reportsResolvedDocument() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "id": "intro", "media": "/abs/short.mp4", "in": 0, "out": 4,
+                               "connected": [ { "shape": "fill", "area": [100, 200, 300, 400] } ] } ] }
+            """#)
+
+        // When
+        let report = sut.report(of: document, at: 1.5)
+
+        // Then
+        // The connected fill is parented, so it is drawn inside its unit, below the background outside the content
+        // rect, which is the whole frame and so leaves nothing.
+        let frame = Rectangle(x: 0, y: 0, width: 1080, height: 1920)
+        #expect(report.time == 1.5)
+        #expect(report.size == Size(width: 1080, height: 1920))
+        #expect(report.items == [
+            EvaluationItem(origin: nil, bounds: frame, opacity: 1),
+            EvaluationItem(
+                origin: ItemOrigin(place: "storyline[0]#intro", id: "intro", kind: "video"),
+                bounds: frame,
+                opacity: 1
+            ),
+            EvaluationItem(
+                origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "fill"),
+                bounds: Rectangle(x: 100, y: 200, width: 300, height: 400),
+                opacity: 1
+            ),
+            EvaluationItem(origin: nil, bounds: nil, opacity: 1)
+        ])
+    }
+
+    @Test("an image document takes any time and reports its one list, its steps named by no clip")
+    func reportsPictureAtAnyTime() throws {
+        // Given
+        let document = try resolved(#"{ "kind": "image", "source": "/abs/page.png", "ops": [] }"#)
+
+        // When
+        let early = sut.report(of: document, at: 0)
+        let late = sut.report(of: document, at: 7.5)
+
+        // Then
+        #expect(late.time == 7.5)
+        #expect(early.items == late.items)
+        #expect(late.size == Size(width: 1000, height: 800))
+        #expect(late.items == [
+            EvaluationItem(origin: nil, bounds: Rectangle(x: 0, y: 0, width: 1000, height: 800), opacity: 1)
+        ])
+    }
+
+    @Test("the machine output is the evaluate object FRAMES-23 gives, bounds and opacity rounded to a millionth")
+    func writesMachineOutput() throws {
+        // Given
+        let turned = DisplayItem(
+            transform: AffineTransform(rotation: 90, about: Point(x: 100, y: 50)),
+            opacity: 0.1 + 0.2,
+            content: .fill(FillItem(rectangle: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
+            origin: title
+        )
+        let report = sut.report(of: list([turned], background: black), at: 1.0000004)
+
+        // When
+        let text = JSONWriter().write(report.machineOutput)
+
+        // Then
+        #expect(text == #"""
+            {
+              "evaluate": "1.0.0",
+              "time": 1,
+              "size": [200, 100],
+              "items": [
+                {
+                  "place": null,
+                  "id": null,
+                  "kind": null,
+                  "bounds": [0, 0, 200, 100],
+                  "opacity": 1
+                },
+                {
+                  "place": "clips[0]#title",
+                  "id": "title",
+                  "kind": "title",
+                  "bounds": [90, 30, 20, 40],
+                  "opacity": 0.3
+                }
+              ]
+            }
+
+            """#)
+    }
+
+    // MARK: - Private
+    private func list(
+        _ items: [DisplayItem],
+        background: Color? = nil
+    ) -> DisplayList {
+        DisplayList(size: size, background: background ?? transparent, seed: 0, items: items)
+    }
+
+    private func resolved(_ document: String) throws -> ResolvedDocument {
+        try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    private func isClose(
+        _ rectangle: Rectangle,
+        _ other: Rectangle
+    ) -> Bool {
+        [rectangle.x - other.x, rectangle.y - other.y, rectangle.width - other.width, rectangle.height - other.height]
+            .allSatisfy { abs($0) < 1e-9 }
+    }
+}
