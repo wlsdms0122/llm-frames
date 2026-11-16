@@ -51,8 +51,7 @@ struct AVFoundationDecoderTests {
             duration: 1,
             fps: 30,
             frames: evenTimes,
-            size: size,
-            hasSound: false
+            size: size
         ))
     }
 
@@ -176,8 +175,58 @@ struct AVFoundationDecoderTests {
         let probed = try #require(try sut.probedMedia(of: file))
 
         // Then
-        #expect(probed.hasSound == sound)
+        #expect(probed.sound == (sound ? ProbedSound(channels: 1, sampleRate: 48_000) : nil))
         #expect(probed.frames == evenTimes)
+    }
+
+    @Test(
+        "a sound file's probe gives its first sound track's channel count and sample rate",
+        arguments: [(1, 48_000), (2, 44_100), (6, 48_000)]
+    )
+    func probesSoundFormat(channels: Int, sampleRate: Int) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tone.m4a")
+        let levels = Array(repeating: 0.25, count: channels)
+        try await SoundWriter(end: 0.5, sampleRate: sampleRate, levels: levels).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let probed = try #require(try sut.probedMedia(of: file))
+
+        // Then
+        #expect(probed.sound == ProbedSound(channels: channels, sampleRate: Double(sampleRate)))
+        #expect(probed.hasAlpha == false)
+    }
+
+    @Test("a still and an image sequence carry alpha as their PNGs do, and an H.264 video carries none")
+    func tellsAlpha() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let clear = directory.file("clear.png")
+        let opaque = directory.file("opaque.png")
+        let sequence = directory.file("sequence")
+        let frame = (sequence as NSString).appendingPathComponent("1.png")
+        let video = directory.file("video.mov")
+        try ImageWriter(size: size).write(to: clear) { _ in }
+        try ImageWriter(size: size, opaque: true).write(to: opaque) { canvas in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        try FileManager.default.createDirectory(atPath: sequence, withIntermediateDirectories: false)
+        try ImageWriter(size: size, opaque: true).write(to: frame) { _ in }
+        try await MovieWriter(size: size, frameTimes: [0], end: 0.1).write(to: video) { canvas, _ in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        let sut = AVFoundationDecoder()
+
+        // When
+        let clearAlpha = try #require(try sut.probedMedia(of: clear)).hasAlpha
+        let opaqueAlpha = try #require(try sut.probedMedia(of: opaque)).hasAlpha
+        let sequenceAlpha = try #require(try sut.probedImageSequence(at: sequence)).hasAlpha
+        let videoAlpha = try #require(try sut.probedMedia(of: video)).hasAlpha
+
+        // Then
+        #expect(clearAlpha && !opaqueAlpha && !sequenceAlpha && !videoAlpha)
     }
 
     // A sound file is probed by loads alone, where a video's probe also reads its samples with AVAssetReader, which
@@ -223,7 +272,7 @@ struct AVFoundationDecoderTests {
         let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0)
 
         // Then
-        #expect(probed == ProbedMedia(kind: .image, size: Size(width: 200, height: 100)))
+        #expect(probed == ProbedMedia(kind: .image, size: Size(width: 200, height: 100), hasAlpha: true))
         #expect(picture.width == 200 && picture.height == 100)
         #expect(code(in: picture) == 37)
         let error = #expect(throws: DecoderError.self) { try sut.picture(of: MediaFile(path: file), atFrame: 1) }

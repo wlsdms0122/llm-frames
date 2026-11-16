@@ -40,7 +40,7 @@ enum Fixture {
                 duration: 30,
                 fps: 29.97,
                 size: Size(width: 1080, height: 1920),
-                hasSound: true
+                sound: ProbedSound(channels: 2, sampleRate: 48000)
             ),
             "/abs/short.mp4": ProbedMedia(
                 kind: .video,
@@ -53,8 +53,16 @@ enum Fixture {
             "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5, size: Size(width: 1079, height: 1919)),
             "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
             "/abs/log.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
-            "/abs/bgm.m4a": ProbedMedia(kind: .audio, duration: 20, hasSound: true),
-            "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1.5, hasSound: true),
+            "/abs/bgm.m4a": ProbedMedia(
+                kind: .audio,
+                duration: 20,
+                sound: ProbedSound(channels: 2, sampleRate: 48000)
+            ),
+            "/abs/ding.wav": ProbedMedia(
+                kind: .audio,
+                duration: 1.5,
+                sound: ProbedSound(channels: 1, sampleRate: 44100)
+            ),
             "/abs/screen.mp4": ProbedMedia(
                 kind: .video,
                 duration: 4,
