@@ -42,7 +42,6 @@ package struct VisionTracker: Sendable {
     ) throws -> [TrackedFrame] {
         guard let points = trackPoints(of: target, on: try image(of: file, atFrame: start)) else { return [] }
         let span = distance(points[0].point, points[1].point)
-        let middle = midpoint(points[0].point, points[1].point)
 
         var last = TrackEstimate(points: points.map(\.point), scale: 1, correlation: 1)
         var beforeLast: TrackEstimate?
@@ -66,15 +65,11 @@ package struct VisionTracker: Sendable {
             }
             guard let found, found.correlation >= Self.lostCorrelation, found.scale > 0 else { break }
 
+            // The points sit either side of the target's centre, so it lies midway between them.
             let centre = midpoint(found.points[0], found.points[1])
             let width = target.width * found.scale
             let height = target.height * found.scale
-            let rectangle = Rectangle(
-                x: centre.x + (target.x + target.width / 2 - middle.x) * found.scale - width / 2,
-                y: centre.y + (target.y + target.height / 2 - middle.y) * found.scale - height / 2,
-                width: width,
-                height: height
-            )
+            let rectangle = Rectangle(x: centre.x - width / 2, y: centre.y - height / 2, width: width, height: height)
             frames.append(TrackedFrame(time: file.frameTimes[index], rectangle: rectangle))
             beforeLast = last
             last = found
