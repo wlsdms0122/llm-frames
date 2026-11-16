@@ -6,13 +6,13 @@
 //
 
 // A region of a picture scaled into a rectangle, filtered, then masked by its matte. `rectangle` is the region of the
-// source, in its media pixels or in a nested list's output pixels, `destination` the rectangle it fills, and `filter`
-// is applied at the destination's size. `radius` rounds the destination's corners, and `border` and `shadow` are drawn
-// when the picture has them.
+// source, in its media pixels or in a nested list's output pixels, or nil for the whole source, `destination` the
+// rectangle it fills, and `filter` is applied at the destination's size. `radius` rounds the destination's corners,
+// and `border` and `shadow` are drawn when the picture has them.
 struct PictureItem: Equatable, Sendable {
     // MARK: - Property
     let source: PictureItemSource
-    let rectangle: Rectangle
+    let rectangle: Rectangle?
     let destination: Rectangle
     let filter: [ResolvedFilterOperation]
     let matte: PictureMatte?
@@ -23,7 +23,7 @@ struct PictureItem: Equatable, Sendable {
     // MARK: - Initializer
     init(
         source: PictureItemSource,
-        rectangle: Rectangle,
+        rectangle: Rectangle?,
         destination: Rectangle,
         filter: [ResolvedFilterOperation] = [],
         matte: PictureMatte? = nil,
