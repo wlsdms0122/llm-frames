@@ -43,7 +43,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
 
         // Then
         #expect(probed == ProbedMedia(
@@ -90,7 +90,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
         let media = MediaFile(path: file, size: size, frameTimes: probed.frames)
         let pictures = try times.indices.map { try sut.picture(of: media, atFrame: $0) }
 
@@ -125,7 +125,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
         let media = MediaFile(path: file, size: size, frameTimes: probed.frames)
         let pictures = try probed.frames.indices.map { try sut.picture(of: media, atFrame: $0) }
 
@@ -151,7 +151,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
         let picture = try sut.picture(of: MediaFile(path: file, frameTimes: probed.frames), atFrame: 1)
 
         // Then
@@ -173,7 +173,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
 
         // Then
         #expect(probed.hasSound == sound)
@@ -194,12 +194,12 @@ struct AVFoundationDecoderTests {
         let sut = (0..<ProcessInfo.processInfo.activeProcessorCount * 4).map { _ in AVFoundationDecoder() }
 
         // When
-        let probed = await withTaskGroup(of: ProbedMedia?.self) { group in
+        let probed = try await withThrowingTaskGroup(of: ProbedMedia?.self) { group in
             for decoder in sut {
-                group.addTask { decoder.probedMedia(of: file) }
+                group.addTask { try decoder.probedMedia(of: file) }
             }
 
-            return await group.reduce(into: []) { $0.append($1) }
+            return try await group.reduce(into: []) { $0.append($1) }
         }
 
         // Then
@@ -219,7 +219,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedMedia(of: file))
+        let probed = try #require(try sut.probedMedia(of: file))
         let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0)
 
         // Then
@@ -277,7 +277,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = try #require(sut.probedImageSequence(at: directory.path))
+        let probed = try #require(try sut.probedImageSequence(at: directory.path))
         let media = MediaFile(path: directory.path, size: probed.size, frameFiles: probed.files)
         let pictures = try probed.files.indices.map { try sut.picture(of: media, atFrame: $0) }
 
@@ -287,19 +287,58 @@ struct AVFoundationDecoderTests {
         #expect(pictures.map(code) == [1, 2, 9, 10])
     }
 
-    @Test("an image sequence whose frames differ in size is not probed")
+    @Test("an image sequence whose frames differ in size stops, naming the first frame that differs and both sizes")
     func refusesUnequalImageSequence() throws {
         // Given
         let directory = try TemporaryDirectory()
         try ImageWriter(size: size).write(to: directory.file("frame1.png")) { _ in }
-        try ImageWriter(size: Size(width: 321, height: 240)).write(to: directory.file("frame2.png")) { _ in }
+        try ImageWriter(size: size).write(to: directory.file("frame2.png")) { _ in }
+        try ImageWriter(size: Size(width: 321, height: 240)).write(to: directory.file("frame3.png")) { _ in }
+        try ImageWriter(size: Size(width: 322, height: 240)).write(to: directory.file("frame4.png")) { _ in }
         let sut = AVFoundationDecoder()
 
         // When
-        let probed = sut.probedImageSequence(at: directory.path)
+        let error = #expect(throws: DecoderError.self) { try sut.probedImageSequence(at: directory.path) }
 
         // Then
-        #expect(probed == nil)
+        #expect(
+            error?.description
+                == "image sequence frame \(directory.file("frame3.png")) is 321x240, where the first frame is 320x240"
+        )
+    }
+
+    @Test("a file with only sound is probed as sound, past the check for a picture track")
+    func probesSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tone.m4a")
+        try await SoundWriter(end: 1).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let probed = try #require(try sut.probedMedia(of: file))
+
+        // Then
+        #expect(probed.kind == .audio && probed.hasSound && probed.frames.isEmpty && probed.size == nil)
+        #expect(abs(probed.duration - 1) < 0.05, "\(probed.duration)")
+    }
+
+    @Test("media that is not there has no facts, and a file that is there but is no media stops, saying why")
+    func refusesUnreadableMedia() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("broken.mp4")
+        try Data("not a video".utf8).write(to: URL(fileURLWithPath: file))
+        let sut = AVFoundationDecoder()
+
+        // When
+        let absent = try sut.probedMedia(of: directory.file("absent.mp4"))
+        let absentSequence = try sut.probedImageSequence(at: directory.file("absent"))
+        let error = #expect(throws: DecoderError.self) { try sut.probedMedia(of: file) }
+
+        // Then
+        #expect(absent == nil && absentSequence == nil)
+        #expect(error?.description.hasPrefix("media \(file) cannot be read") == true, "\(String(describing: error))")
     }
 
     @Test("a video whose frames count differently from the pinned timestamps stops")

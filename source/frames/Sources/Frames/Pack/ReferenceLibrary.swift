@@ -46,7 +46,10 @@ struct ReferenceLibrary: MediaKindProvider {
         guard !isDocument(reference) else { return try document(named: reference)?.kind }
         guard let file = try mediaFile(named: reference) else { return nil }
 
-        return mediaFacts.probedMedia(of: file)?.kind
+        return try Result { try mediaFacts.probedMedia(of: file) }
+            .mapError { PackError.unreadableMedia(reference: reference, reason: "\($0)") }
+            .get()?
+            .kind
     }
 
     func templateKind(of name: String) throws -> MediaKind? {

@@ -30,7 +30,7 @@ struct LoadWaiter: Sendable {
         let result = OSAllocatedUnfairLock<Result<[AVAssetTrack], any Error>?>(uncheckedState: nil)
         asset.loadTracks(withMediaType: type) { [file] tracks, error in
             let outcome: Result<[AVAssetTrack], any Error> = tracks.map { .success($0) }
-                ?? .failure(error ?? DecoderError.unreadable(file: file))
+                ?? .failure(DecoderError.unloadable(file: file, reason: error?.localizedDescription ?? "no tracks"))
             result.withLockUnchecked { $0 = outcome }
             semaphore.signal()
         }
@@ -56,7 +56,7 @@ struct LoadWaiter: Sendable {
             return value
 
         case let .failed(error):
-            throw error
+            throw DecoderError.unloadable(file: file, reason: error.localizedDescription)
 
         default:
             throw DecoderError.unreadable(file: file)

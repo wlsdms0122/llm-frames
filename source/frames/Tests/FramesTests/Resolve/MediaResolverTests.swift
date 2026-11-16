@@ -47,5 +47,38 @@ struct MediaResolverTests {
         #expect(media.duration == 12 / 30.0)
     }
 
+    @Test(
+        "media the probe cannot read stops at the place it is named, with the probe's reason",
+        arguments: [
+            (MediaSource.file("/abs/broken.mp4"), "/abs/broken.mp4"),
+            (MediaSource.imageSequence(directory: "/abs/torn", fps: 30), "/abs/torn")
+        ]
+    )
+    func refusesUnreadableMedia(
+        source: MediaSource,
+        reference: String
+    ) throws {
+        // Given
+        let mediaFacts = MediaFactTable(
+            files: [:],
+            failures: [reference: ProbeFailure("media \(reference) cannot be read")]
+        )
+        let sut = MediaResolver(mediaFacts: mediaFacts, presets: Fixture.presets, library: Fixture.library)
+        let place = Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.media(of: source, place: place, kind: .genericClip(.storyline), theme: .base)
+        }
+
+        // Then
+        #expect(error == .unreadableMedia(
+            place: place,
+            kind: .genericClip(.storyline),
+            reference: reference,
+            reason: "media \(reference) cannot be read"
+        ))
+    }
+
     // MARK: - Private
 }

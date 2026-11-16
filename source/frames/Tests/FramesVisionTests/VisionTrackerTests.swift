@@ -105,7 +105,7 @@ struct VisionTrackerTests {
                 }
             }
         }
-        let probed = try #require(decoder.probedMedia(of: file))
+        let probed = try #require(try decoder.probedMedia(of: file))
 
         return MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
     }

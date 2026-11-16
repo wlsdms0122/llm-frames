@@ -82,8 +82,10 @@ package final class AVFoundationDecoder: Sendable {
     }
 
     // The PNG files in a directory in natural order, so `frame2` comes before `frame10`.
-    private func frameFiles(in directory: String) -> [String]? {
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else { return nil }
+    private func frameFiles(in directory: String) throws -> [String] {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else {
+            throw DecoderError.unreadable(file: directory)
+        }
 
         return names
             .filter { ($0 as NSString).pathExtension.lowercased() == "png" }
@@ -94,11 +96,14 @@ package final class AVFoundationDecoder: Sendable {
 
 extension AVFoundationDecoder: MediaFactProvider {
     // MARK: - Lifecycle
-    package func probedMedia(of file: String) -> ProbedMedia? {
+    package func probedMedia(of file: String) throws -> ProbedMedia? {
+        guard FileManager.default.fileExists(atPath: file) else { return nil }
         if isStill(file) {
-            return stillSize(of: file).map { ProbedMedia(kind: .image, size: $0) }
+            guard let size = stillSize(of: file) else { throw DecoderError.unreadable(file: file) }
+
+            return ProbedMedia(kind: .image, size: size)
         }
-        if let video = try? video(at: file) {
+        if let video = try video(at: file) {
             return ProbedMedia(
                 kind: .video,
                 duration: video.duration,
@@ -109,27 +114,26 @@ extension AVFoundationDecoder: MediaFactProvider {
             )
         }
 
+        // A file without a picture track is sound, or no media at all.
         let asset = AVURLAsset(url: URL(fileURLWithPath: file))
         let waiter = LoadWaiter(file: file)
-        guard
-            let sound = try? waiter.tracks(of: asset, type: .audio),
-            !sound.isEmpty,
-            let duration = try? waiter.value(of: .duration, key: "duration", in: asset)
-        else {
-            return nil
-        }
+        let sound = try waiter.tracks(of: asset, type: .audio)
+        guard !sound.isEmpty else { throw DecoderError.unreadable(file: file) }
+        let duration = try waiter.value(of: .duration, key: "duration", in: asset)
 
         return ProbedMedia(kind: .audio, duration: CMTimeGetSeconds(duration), hasSound: true)
     }
 
     // Every frame is the same size, or the directory is not a sequence.
-    package func probedImageSequence(at directory: String) -> ProbedImageSequence? {
-        guard
-            let files = frameFiles(in: directory),
-            let size = files.first.flatMap(stillSize(of:)),
-            files.allSatisfy({ stillSize(of: $0) == size })
-        else {
-            return nil
+    package func probedImageSequence(at directory: String) throws -> ProbedImageSequence? {
+        guard FileManager.default.fileExists(atPath: directory) else { return nil }
+        let files = try frameFiles(in: directory)
+        guard let first = files.first else { throw DecoderError.emptySequence(directory: directory) }
+        guard let size = stillSize(of: first) else { throw DecoderError.unreadable(file: first) }
+
+        for file in files.dropFirst() {
+            guard let frameSize = stillSize(of: file) else { throw DecoderError.unreadable(file: file) }
+            guard frameSize == size else { throw DecoderError.unequalFrame(file: file, size: frameSize, first: size) }
         }
 
         return ProbedImageSequence(files: files, size: size)

@@ -84,6 +84,20 @@ struct ReferenceLibraryTests {
         #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
+    @Test("media the probe cannot read stops, named as it was referred to, with the probe's reason")
+    func refusesUnreadableMedia() throws {
+        // Given
+        let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
+        let sut = directory.library(
+            mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
+        )
+
+        // When, Then
+        #expect(throws: PackError.unreadableMedia(reference: "shorts/leak.mov", reason: "media \(leak) cannot be read")) {
+            try sut.mediaKind(of: "shorts/leak.mov")
+        }
+    }
+
     @Test("media named <pack>/<file> is the file in the pack's media, and its kind is the one its probe finds")
     func findsPackMedia() throws {
         // Given

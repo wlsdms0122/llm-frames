@@ -45,7 +45,9 @@ struct MediaResolver: Sendable {
         case let .file(reference):
             guard
                 let file = try library.mediaFile(named: reference),
-                let probed = mediaFacts.probedMedia(of: file)
+                let probed = try probed(place: place, kind: kind, reference: reference, {
+                    try mediaFacts.probedMedia(of: file)
+                })
             else {
                 throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
@@ -62,7 +64,9 @@ struct MediaResolver: Sendable {
         case let .imageSequence(reference, fps):
             guard
                 let directory = try library.mediaFile(named: reference),
-                let probed = mediaFacts.probedImageSequence(at: directory)
+                let probed = try probed(place: place, kind: kind, reference: reference, {
+                    try mediaFacts.probedImageSequence(at: directory)
+                })
             else {
                 throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
             }
@@ -243,6 +247,18 @@ struct MediaResolver: Sendable {
     // A planner holds a resolver, so the one for nested documents is made when it is needed.
     private func planner(library: ReferenceLibrary) -> TimePlanner {
         TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+    }
+
+    // What the probe gives, a failure of it stopping at the place the media is named.
+    private func probed<Facts>(
+        place: Place,
+        kind: PlaceKind,
+        reference: String,
+        _ probe: () throws -> Facts?
+    ) throws -> Facts? {
+        try Result(catching: probe)
+            .mapError { ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\($0)") }
+            .get()
     }
 
     private func frames(of probed: ProbedMedia) -> ClosedRange<Double>? {

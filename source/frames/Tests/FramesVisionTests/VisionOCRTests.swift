@@ -68,7 +68,7 @@ struct VisionOCRTests {
             canvas.fill(red: 255, green: 255, blue: 255)
             drawn = canvas.draw("Send message", font: "Helvetica", size: 48, x: 120, y: 900)
         }
-        let probed = try #require(decoder.probedMedia(of: file))
+        let probed = try #require(try decoder.probedMedia(of: file))
         let sut = VisionOCR(decoder: decoder)
 
         // When
@@ -92,7 +92,7 @@ struct VisionOCRTests {
             canvas.fill(red: 255, green: 255, blue: 255)
             canvas.draw(words[index], font: "Helvetica", size: 64, x: 100, y: 140)
         }
-        let probed = try #require(decoder.probedMedia(of: file))
+        let probed = try #require(try decoder.probedMedia(of: file))
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
         let sut = VisionOCR(decoder: decoder)
 
