@@ -12,7 +12,8 @@ import Testing
 @Suite("ResolvedPictureWriter Tests")
 struct ResolvedPictureWriterTests {
     // MARK: - Property
-    private let sut = ResolvedDocumentWriter(hashes: FileHashTable(["/abs/page.png": "c07d9a1e44f2"]))
+    private let sut = ResolvedDocumentWriter()
+    private let hashes = FileHashTable(["/abs/page.png": "c07d9a1e44f2"])
 
     // MARK: - Initializer
     // MARK: - Test
@@ -78,7 +79,7 @@ struct ResolvedPictureWriterTests {
 
     // MARK: - Private
     private func write(_ document: String) throws -> JSONObject {
-        let text = try sut.write(Fixture.documentPlanner.plan(Fixture.json(document)))
+        let text = sut.write(try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
     }

@@ -58,7 +58,7 @@ struct PresetValueResolverTests {
         let pack = directory.installed.appendingPathComponent("shorts", isDirectory: true)
 
         // When
-        let resolved = try ResolvedDocumentWriter(hashes: FileHashTable()).document(planner().plan(document))
+        let resolved = ResolvedDocumentWriter().document(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         let storyline = resolved.objectValue?["storyline"]?.arrayValue ?? []

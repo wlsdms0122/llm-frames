@@ -12,7 +12,8 @@ import Testing
 @Suite("ResolvedSequenceWriter Tests")
 struct ResolvedSequenceWriterTests {
     // MARK: - Property
-    private let sut = ResolvedDocumentWriter(hashes: FileHashTable(["/abs/run.mp4": "9f2c41d07b3e"]))
+    private let sut = ResolvedDocumentWriter()
+    private let hashes = FileHashTable(["/abs/run.mp4": "9f2c41d07b3e"])
 
     // A transition with spans, a cover and a matte, and a filter with a LUT, so every file a preset opens is pinned.
     private let presets = PresetTable(
@@ -326,7 +327,7 @@ struct ResolvedSequenceWriterTests {
             shaper: Fixture.shaper,
             library: Fixture.library
         )
-        let text = try sut.write(planner.plan(Fixture.json(document)))
+        let text = sut.write(try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
     }

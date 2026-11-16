@@ -5,37 +5,33 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Writes what resolve decided as the resolved document: JSON of the same kind as its document, `kind` first and
-// `"resolved"` second, set to the version of this frames. The same plan and the same files give the same bytes.
+// Writes a resolved document as JSON of the same kind as its document, `kind` first and `"resolved"` second, set to
+// the version of this frames. The same document gives the same bytes.
 struct ResolvedDocumentWriter: Sendable {
     // MARK: - Property
-    private let sequences: ResolvedSequenceWriter
-    private let pictures: ResolvedPictureWriter
+    private let sequences = ResolvedSequenceWriter()
+    private let pictures = ResolvedPictureWriter()
     private let writer = JSONWriter()
 
     // MARK: - Initializer
-    init(hashes: any FileHashProvider) {
-        let values = ResolvedValueWriter(hashes: hashes)
-        self.sequences = ResolvedSequenceWriter(values: values)
-        self.pictures = ResolvedPictureWriter(values: values)
-    }
+    init() { }
 
     // MARK: - Public
-    func write(_ plan: DocumentPlan) throws -> String {
-        writer.write(try document(plan))
+    func write(_ document: ResolvedDocument) -> String {
+        writer.write(self.document(document))
     }
 
-    func document(_ plan: DocumentPlan) throws -> JSONValue {
+    func document(_ document: ResolvedDocument) -> JSONValue {
         let kind: String
         let members: [JSONMember]
-        switch plan {
+        switch document {
         case let .sequence(sequence):
             kind = "sequence"
-            members = try sequences.members(of: sequence)
+            members = sequences.members(of: sequence)
 
         case let .picture(picture):
             kind = picture.kind
-            members = try pictures.members(of: picture, sequences: sequences.members)
+            members = pictures.members(of: picture, sequences: sequences.members)
         }
 
         return .object(JSONObject(members: [
