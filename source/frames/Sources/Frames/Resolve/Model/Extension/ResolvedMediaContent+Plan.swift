@@ -11,7 +11,7 @@ extension ResolvedMediaContent {
     // MARK: - Property
     // MARK: - Initializer
     init?(
-        media: ResolvedMedia?,
+        media: MediaPlan?,
         nested: DocumentPlan?,
         hashes: any FileHashProvider
     ) throws {

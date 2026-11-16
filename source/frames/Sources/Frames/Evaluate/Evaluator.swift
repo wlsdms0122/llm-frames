@@ -72,7 +72,7 @@ struct Evaluator: Sendable {
             .filter { _, clip in
                 // Every clip drawn has a lane.
                 let lane = clip.lane ?? 1
-                return clip.parent == parent
+                return (clip.isParented ? clip.storyline : nil) == parent
                     && (side == .below ? lane < 0 : lane > 0)
                     && TimeRange(start: clip.start, end: clip.end).contains(time)
             }
@@ -80,7 +80,7 @@ struct Evaluator: Sendable {
                 (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
             }
             .flatMap { _, clip in
-                let space = parentSpace ?? ClipSpace(room: clip.isConnected ? content : frame)
+                let space = parentSpace ?? ClipSpace(room: clip.storyline == nil ? frame : content)
                 let picture = picture(of: clip, at: time, seed: seed)
                 return clipEvaluator.items(of: clip, in: space, picture: picture, at: time)
             }

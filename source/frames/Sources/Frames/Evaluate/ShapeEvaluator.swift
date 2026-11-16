@@ -69,7 +69,7 @@ struct ShapeEvaluator: Sendable {
                 transform: presentation.transform,
                 opacity: presentation.opacity,
                 blend: sample.blend,
-                reveal: reveal.rectangle(wiping: shapeArea),
+                reveal: reveal.rectangle(wiping: shapeArea, from: sample.animation.revealFrom),
                 content: .fill(FillItem(rectangle: shapeArea, color: color))
             )
 
@@ -120,7 +120,10 @@ struct ShapeEvaluator: Sendable {
                 .concatenating(presentation.transform),
             opacity: presentation.opacity * ownPresentation.opacity,
             blend: sample.blend,
-            reveal: own.reveal.rectangle(wiping: Rectangle(x: 0, y: 0, width: size.width, height: size.height)),
+            reveal: own.reveal.rectangle(
+                wiping: Rectangle(x: 0, y: 0, width: size.width, height: size.height),
+                from: own.revealFrom
+            ),
             content: .glyphs(GlyphsItem(text: label.text))
         )
     }

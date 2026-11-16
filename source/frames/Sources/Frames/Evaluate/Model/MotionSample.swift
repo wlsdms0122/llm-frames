@@ -15,7 +15,7 @@ struct MotionSample: Equatable, Sendable {
     let revealFrom: RevealEdge
 
     var reveal: Reveal {
-        Reveal(amount: motion.value(of: .reveal), edge: revealFrom)
+        Reveal(amount: motion.value(of: .reveal))
     }
 
     // MARK: - Initializer

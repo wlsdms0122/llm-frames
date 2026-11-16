@@ -8,7 +8,7 @@
 // How a timed media clip that is not on the storyline plays: from `in` at the start of its window, at its own speed.
 struct MediaTiming: Equatable, Sendable {
     // MARK: - Property
-    let media: ResolvedMedia
+    let media: MediaPlan
     let map: TimeMap
     let out: Double
     let loop: Bool
@@ -20,7 +20,7 @@ struct MediaTiming: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
-        media: ResolvedMedia,
+        media: MediaPlan,
         map: TimeMap,
         out: Double,
         loop: Bool

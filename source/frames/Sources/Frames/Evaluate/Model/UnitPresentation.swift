@@ -24,7 +24,7 @@ struct UnitPresentation: Equatable, Sendable {
 
         self.transform = presentation.transform
         self.opacity = presentation.opacity
-        self.reveal = sample.reveal.rectangle(wiping: content)
+        self.reveal = sample.reveal.rectangle(wiping: content, from: sample.revealFrom)
     }
 
     // MARK: - Public

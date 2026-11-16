@@ -130,7 +130,7 @@ struct TimePlanner: Sendable {
     // A stop names the values as written and the bound they miss.
     private func clipRange(
         of clipMedia: ClipMedia,
-        media: ResolvedMedia,
+        media: MediaPlan,
         place: Place,
         kind: ClipKind
     ) throws -> TimeRange {
@@ -416,7 +416,7 @@ struct TimePlanner: Sendable {
     // A timed media clip's edit points, with its window's start left at 0 until the window is known. A still has none.
     private func timing(
         of clipMedia: ClipMedia,
-        media: ResolvedMedia,
+        media: MediaPlan,
         place: Place,
         kind: ClipKind
     ) throws -> MediaTiming? {

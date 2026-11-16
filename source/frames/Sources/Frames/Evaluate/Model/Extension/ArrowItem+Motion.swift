@@ -16,7 +16,7 @@ extension ArrowItem {
         let offset = Point(x: (head.x - tail.x) * nudge, y: (head.y - tail.y) * nudge)
         let tail = Point(x: tail.x + offset.x, y: tail.y + offset.y)
         let head = Point(x: head.x + offset.x, y: head.y + offset.y)
-        let reveal = Reveal(amount: motion.value(of: .reveal), edge: .left)
+        let reveal = Reveal(amount: motion.value(of: .reveal))
 
         return ArrowItem(
             tail: tail,

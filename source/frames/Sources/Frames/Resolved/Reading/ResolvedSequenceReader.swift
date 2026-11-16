@@ -14,8 +14,8 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "parent", "area", "size", "position", "anchor", "crop", "track", "label",
-        "opacity", "scale", "rotation", "blend", "animation"
+        "place", "id", "start", "end", "lane", "storyline", "parented", "area", "size", "position", "anchor", "crop",
+        "track", "label", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
@@ -130,7 +130,8 @@ struct ResolvedSequenceReader: Sendable {
             start: try clip.member("start").number(),
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
-            parent: try clip.member("parent").optional { try $0.integer() },
+            storyline: try clip.member("storyline").optional { try $0.integer() },
+            isParented: try clip.member("parented").bool(),
             area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
             box: box,
             crop: try clip.member("crop").optional(values.crops),

@@ -592,9 +592,9 @@ struct EvaluatorTests {
                 fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 2),
                 fillClip(Rectangle(x: 10, y: 0, width: 10, height: 10), lane: -1),
                 fillClip(Rectangle(x: 20, y: 0, width: 10, height: 10), lane: 1),
-                fillClip(Rectangle(x: 0, y: 0, width: 20, height: 20), lane: 1, parent: 0),
-                fillClip(Rectangle(x: 20, y: 0, width: 20, height: 20), lane: -1, parent: 0),
-                fillClip(Rectangle(x: 40, y: 0, width: 20, height: 20), lane: -2, parent: 0),
+                fillClip(Rectangle(x: 0, y: 0, width: 20, height: 20), lane: 1, storyline: 0, isParented: true),
+                fillClip(Rectangle(x: 20, y: 0, width: 20, height: 20), lane: -1, storyline: 0, isParented: true),
+                fillClip(Rectangle(x: 40, y: 0, width: 20, height: 20), lane: -2, storyline: 0, isParented: true),
                 fillClip(Rectangle(x: 30, y: 0, width: 10, height: 10), lane: 1, start: 3),
                 fillClip(Rectangle(x: 40, y: 0, width: 10, height: 10), lane: 2)
             ]
@@ -639,7 +639,8 @@ struct EvaluatorTests {
             clips: [
                 clip(
                     .shape(.box(width: 4, radius: 2, color: red)),
-                    parent: 0,
+                    storyline: 0,
+                    isParented: true,
                     area: [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))]
                 )
             ]
@@ -678,7 +679,7 @@ struct EvaluatorTests {
         )
         let sequence = sequence(
             [storylineClip(.pinned(first), start: 0, end: 4, crop: zoom)],
-            clips: [clip(.title(text), parent: 0, box: box)]
+            clips: [clip(.title(text), storyline: 0, isParented: true, box: box)]
         )
 
         // When
@@ -710,7 +711,7 @@ struct EvaluatorTests {
         ]
         let sequence = sequence(
             [storylineClip(.pinned(first), start: 0, end: 4)],
-            clips: [clip(.shape(.fill(color: red)), parent: 0, area: area, track: track)]
+            clips: [clip(.shape(.fill(color: red)), storyline: 0, isParented: true, area: area, track: track)]
         )
 
         // When
@@ -733,7 +734,15 @@ struct EvaluatorTests {
         let band = Rectangle(x: 0, y: 100, width: 400, height: 20)
         let sequence = sequence(
             [storylineClip(.pinned(first), start: 0, end: 4)],
-            clips: [clip(.shape(.fill(color: red)), parent: 0, area: [Keyframe(at: 0, value: band)], track: track)]
+            clips: [
+                clip(
+                    .shape(.fill(color: red)),
+                    storyline: 0,
+                    isParented: true,
+                    area: [Keyframe(at: 0, value: band)],
+                    track: track
+                )
+            ]
         )
 
         // When
@@ -820,7 +829,8 @@ struct EvaluatorTests {
         // Given
         let adjustment = clip(
             .adjustment([.blur(radius: 3)]),
-            parent: 0,
+            storyline: 0,
+            isParented: true,
             area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 200, height: 100))],
             opacity: 0.5
         )
@@ -835,6 +845,30 @@ struct EvaluatorTests {
             content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)]))
         )
         #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10), outsideItem()])
+    }
+
+    @Test("a dim without an area darkens the content rect for a connected clip and the output frame for a sequence clip")
+    func dimsRoomOfClip() {
+        // Given
+        let inset = Rectangle(x: 20, y: 10, width: 160, height: 80)
+        let sequence = sequence(
+            [storylineClip(.pinned(first), start: 0, end: 4)],
+            clips: [
+                clip(.shape(.dim(color: background)), storyline: 0),
+                clip(.shape(.dim(color: background)))
+            ],
+            content: inset
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1)
+
+        // Then
+        let rooms = list.items.suffix(2).map { item -> Rectangle? in
+            guard case let .fill(fill) = item.content else { return nil }
+            return fill.rectangle
+        }
+        #expect(rooms == [inset, Rectangle(x: 0, y: 0, width: 200, height: 100)])
     }
 
     @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the content rect")
@@ -970,10 +1004,18 @@ struct EvaluatorTests {
     private func fillClip(
         _ area: Rectangle,
         lane: Int,
-        parent: Int? = nil,
+        storyline: Int? = nil,
+        isParented: Bool = false,
         start: Double = 0
     ) -> ResolvedClip {
-        clip(.shape(.fill(color: red)), start: start, lane: lane, parent: parent, area: [Keyframe(at: 0, value: area)])
+        clip(
+            .shape(.fill(color: red)),
+            start: start,
+            lane: lane,
+            storyline: storyline,
+            isParented: isParented,
+            area: [Keyframe(at: 0, value: area)]
+        )
     }
 
     private func clip(
@@ -981,7 +1023,8 @@ struct EvaluatorTests {
         start: Double = 0,
         end: Double = 4,
         lane: Int = 1,
-        parent: Int? = nil,
+        storyline: Int? = nil,
+        isParented: Bool = false,
         area: [Keyframe<Rectangle>]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
@@ -998,7 +1041,8 @@ struct EvaluatorTests {
             start: start,
             end: end,
             lane: lane,
-            parent: parent,
+            storyline: storyline,
+            isParented: isParented,
             area: area,
             box: box,
             crop: crop,

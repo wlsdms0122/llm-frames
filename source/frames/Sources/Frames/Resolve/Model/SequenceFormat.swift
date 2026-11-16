@@ -34,13 +34,13 @@ struct SequenceFormat: Equatable, Sendable {
 
     // MARK: - Public
     // `storyline` is the media of the storyline clips, in order.
-    func frameRate(of storyline: [ResolvedMedia]) -> Double {
+    func frameRate(of storyline: [MediaPlan]) -> Double {
         fps ?? defaultFrameRate(of: storyline)
     }
 
     // MARK: - Private
     // The nominal rate of the first video on the storyline, to the nearest common rate.
-    private func defaultFrameRate(of storyline: [ResolvedMedia]) -> Double {
+    private func defaultFrameRate(of storyline: [MediaPlan]) -> Double {
         guard
             let video = storyline.first(where: { $0.kind == .video }),
             case let .file(file) = video.source,

@@ -87,7 +87,7 @@ struct ClipEvaluator: Sendable {
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: ownBox),
+            reveal: sample.animation.reveal.rectangle(wiping: ownBox, from: sample.animation.revealFrom),
             content: content
         )
     }
@@ -108,7 +108,7 @@ struct ClipEvaluator: Sendable {
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
-            reveal: sample.animation.reveal.rectangle(wiping: covered),
+            reveal: sample.animation.reveal.rectangle(wiping: covered, from: sample.animation.revealFrom),
             content: .adjust(AdjustItem(rectangle: area, filter: filter))
         )
     }

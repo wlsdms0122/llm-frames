@@ -24,7 +24,7 @@ struct ClipPlan: Equatable, Sendable {
     let instant: Double
     let animation: AnimationPlan
     let labelAnimation: AnimationPlan
-    let media: ResolvedMedia?
+    let media: MediaPlan?
     let timing: MediaTiming?
     let keyframes: [KeyframeInstant]
 
@@ -42,7 +42,7 @@ struct ClipPlan: Equatable, Sendable {
         instant: Double,
         animation: AnimationPlan,
         labelAnimation: AnimationPlan = .none,
-        media: ResolvedMedia?,
+        media: MediaPlan?,
         timing: MediaTiming?,
         keyframes: [KeyframeInstant]
     ) {
