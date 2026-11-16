@@ -13,6 +13,7 @@ struct Evaluator: Sendable {
     // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
     private static let transparent = Color(written: "#00000000")
 
+    private let clipEvaluator = ClipEvaluator()
     private let seeder = GrainSeeder()
     private let transitionSampler = TransitionSampler()
 
@@ -62,7 +63,38 @@ struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        []
+        let content = sequence.format.content
+        let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
+        let frame = Rectangle(x: 0, y: 0, width: sequence.format.size.width, height: sequence.format.size.height)
+        let parentSpace = parent.map { ClipSpace(parent: sequence.storyline[$0], unit: unit, at: time) }
+
+        return sequence.clips.enumerated()
+            .filter { _, clip in
+                // Every clip drawn has a lane.
+                let lane = clip.lane ?? 1
+                return clip.parent == parent
+                    && (side == .below ? lane < 0 : lane > 0)
+                    && TimeRange(start: clip.start, end: clip.end).contains(time)
+            }
+            .sorted { left, right in
+                (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
+            }
+            .flatMap { _, clip in
+                let space = parentSpace ?? ClipSpace(room: clip.isConnected ? content : frame)
+                let picture = picture(of: clip, at: time, seed: seed)
+                return clipEvaluator.items(of: clip, in: space, picture: picture, at: time)
+            }
+    }
+
+    // A media clip's picture at the time: a still's one frame, or the frame or nested list at its media time.
+    private func picture(
+        of clip: ResolvedClip,
+        at time: Double,
+        seed: Int
+    ) -> PictureItemSource? {
+        guard case let .media(media) = clip.content else { return nil }
+
+        return source(of: media.media, at: media.timing?.mediaTime(at: time) ?? 0, seed: seed)
     }
 
     // The units visible at the time, bottom first. During a transition the two it joins are visible, stacked as its
