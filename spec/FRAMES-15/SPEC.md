@@ -38,6 +38,10 @@ A filter preset is a chain of operations from this table, applied in order. The 
 - An unknown op stops when the preset is read, and so does a parameter outside its range: the ranges in the table, `levels` with black at or above white, a length or size (`radius`, `size`) at or below 0, and a `vignette` radius outside 0 to 1.
 - Parameters are numbers, lists of numbers, colours, or for `lut` a file: `<pack>/<name>` for `luts/<name>.cube` in a pack, or an absolute path.
 - v is a channel of a pixel's colour with alpha unpremultiplied, and L is its luminance ([FRAMES-21](../FRAMES-21/SPEC.md)). Colour operations leave alpha as it is, and every operation's result is clamped to 0 to 1. smoothstep is as in GLSL.
+- Blur, sharpen, bloom and pixelate work on colour premultiplied by alpha, so a transparent pixel adds nothing to its neighbours, and their result is clamped so that alpha and the unpremultiplied colour lie in 0 to 1. A bloom colour's alpha scales the bloom.
+- `pixelate` blocks lie on a grid from the picture's top left corner, and a block holds the pixels whose centres lie in it, so a block at the right or bottom edge averages fewer pixels.
+- A `vignette` radius of 1 leaves every pixel nearer the centre than half the diagonal as it is.
+- A grain is a square `size` pixels across on a grid from the picture's top left corner, and n is one value for the whole grain, drawn from the seed and the grain's place on the grid.
 - The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) read the edge pixels extended outward, and are cropped back to the original size.
 - Every renderer computes these formulas in the working space ([FRAMES-21](../FRAMES-21/SPEC.md)). Pixels differ between renderers only by rounding, and grain by its noise generator, which is the renderer's.
 
