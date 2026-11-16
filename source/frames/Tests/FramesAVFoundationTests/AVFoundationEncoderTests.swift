@@ -215,11 +215,22 @@ struct AVFoundationEncoderTests {
         let targets: [EncodeTarget] = [
             .master(path: "a.mov", alpha: false),
             .master(path: "b.mov", alpha: true),
-            .delivery(path: "c.mp4")
+            .delivery(path: "c.mp4"),
+            .compressed(path: "d.mp4", codec: .h264, quality: .medium, size: size),
+            .compressed(path: "e.mp4", codec: .hevc, quality: .medium, size: size)
+        ]
+        let images: [ImageTarget] = [
+            .png(path: "f.png", size: size),
+            .jpeg(path: "g.jpg", size: size, quality: .medium),
+            .heic(path: "h.heic", size: size, quality: .medium)
         ]
 
         // When
-        let checked = Result { try targets.forEach(sut.check) }
+        let checked = Result {
+            try targets.forEach(sut.check)
+            try images.forEach(sut.check)
+            try sut.check(SoundTarget(path: "i.m4a", quality: .medium))
+        }
 
         // Then
         #expect(throws: Never.self) { try checked.get() }
@@ -272,6 +283,216 @@ struct AVFoundationEncoderTests {
         #expect(!FileManager.default.fileExists(atPath: path))
     }
 
+    @Test("a JPEG or HEIC at low quality is smaller than at high quality", arguments: ["jpg", "heic"])
+    func ordersImageQuality(outputExtension: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sut = AVFoundationEncoder()
+        let bitmap = noise(width: 64, height: 48, seed: 1)
+        let size = Size(width: 64, height: 48)
+
+        // When
+        let sizes = try [EncodeQuality.low, .high].map { quality in
+            let path = directory.file("\(quality).\(outputExtension)")
+            let target: ImageTarget = outputExtension == "jpg"
+                ? .jpeg(path: path, size: size, quality: quality)
+                : .heic(path: path, size: size, quality: quality)
+            try sut.writeImage(bitmap, for: target)
+
+            return try byteCount(of: path)
+        }
+
+        // Then
+        #expect(sizes[0] < sizes[1])
+    }
+
+    @Test("a JPEG has its transparent parts on white, and a HEIC and a PNG keep them transparent", arguments: [
+        "jpg",
+        "heic",
+        "png"
+    ])
+    func writesTransparency(outputExtension: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("image.\(outputExtension)")
+        let sut = AVFoundationEncoder()
+        let target: ImageTarget = switch outputExtension {
+        case "jpg":
+            .jpeg(path: path, size: size, quality: .high)
+
+        case "heic":
+            .heic(path: path, size: size, quality: .high)
+
+        default:
+            .png(path: path, size: size)
+        }
+
+        // When
+        try sut.writeImage(frame(), for: target)
+
+        // Then
+        let picture = try AVFoundationDecoder().picture(of: MediaFile(path: path), atFrame: 0)
+        let tolerance = 8.0 / 255
+        let (halfRed, clear): ([Double], [Double]) = outputExtension == "jpg"
+            ? ([1, 0.5, 0.5, 1], [1, 1, 1, 1])
+            : ([0.5, 0, 0, 0.5], [0, 0, 0, 0])
+        #expect(zip(pixel(of: picture, x: 16, y: 24), halfRed).allSatisfy { abs($0 - $1) <= tolerance })
+        #expect(zip(pixel(of: picture, x: 40, y: 24), clear).allSatisfy { abs($0 - $1) <= tolerance })
+        #expect(zip(pixel(of: picture, x: 56, y: 24), [0.5, 0.5, 0.5, 1]).allSatisfy { abs($0 - $1) <= tolerance })
+    }
+
+    @Test("an image is scaled to its target's size and carries an sRGB profile and no other metadata", arguments: [
+        "jpg",
+        "heic",
+        "png"
+    ])
+    func scalesImage(outputExtension: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("image.\(outputExtension)")
+        let sut = AVFoundationEncoder()
+        let scaled = Size(width: 32, height: 24)
+        let target: ImageTarget = switch outputExtension {
+        case "jpg":
+            .jpeg(path: path, size: scaled, quality: .medium)
+
+        case "heic":
+            .heic(path: path, size: scaled, quality: .medium)
+
+        default:
+            .png(path: path, size: scaled)
+        }
+
+        // When
+        try sut.writeImage(frame(), for: target)
+
+        // Then
+        let source = try #require(CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil))
+        let properties = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        #expect(properties[kCGImagePropertyPixelWidth] as? Int == 32)
+        #expect(properties[kCGImagePropertyPixelHeight] as? Int == 24)
+        #expect(properties[kCGImagePropertyProfileName] as? String == "sRGB IEC61966-2.1")
+        #expect(properties[kCGImagePropertyGPSDictionary] == nil)
+        #expect((properties[kCGImagePropertyOrientation] as? Int ?? 1) == 1)
+    }
+
+    @Test(
+        "a sound file is AAC with up to 2 channels and 48 kHz at the quality's bit rate per channel",
+        arguments: [
+            (1, 48_000.0, EncodeQuality.high, 1, 48_000.0),
+            (2, 44_100.0, EncodeQuality.medium, 2, 44_100.0),
+            (6, 48_000.0, EncodeQuality.low, 2, 48_000.0),
+            (2, 96_000.0, EncodeQuality.medium, 2, 48_000.0)
+        ]
+    )
+    func writesSound(
+        channels: Int,
+        sampleRate: Double,
+        quality: EncodeQuality,
+        writtenChannels: Int,
+        writtenRate: Double
+    ) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("sound.m4a")
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+
+        // When
+        try sut.writeSound(
+            tone(seconds: 1, sampleRate: sampleRate, channels: channels),
+            for: SoundTarget(path: path, quality: quality)
+        )
+
+        // Then
+        let asset = AVURLAsset(url: URL(fileURLWithPath: path))
+        #expect(try await asset.loadTracks(withMediaType: .video).isEmpty)
+        let audio = try #require(try await asset.loadTracks(withMediaType: .audio).first)
+        let sound = try #require(try await audio.load(.formatDescriptions).first.flatMap {
+            CMAudioFormatDescriptionGetStreamBasicDescription($0)?.pointee
+        })
+        #expect(sound.mFormatID == kAudioFormatMPEG4AAC)
+        #expect(Int(sound.mChannelsPerFrame) == writtenChannels)
+        #expect(sound.mSampleRate == writtenRate)
+        let bitRate = Double(try await audio.load(.estimatedDataRate))
+        let expected = Double(quality.soundBitRate * writtenChannels)
+        #expect(abs(bitRate - expected) <= expected * 0.15)
+        let length = CMTimeGetSeconds(try await audio.load(.timeRange).duration)
+        #expect(abs(length - 1) < 0.05)
+    }
+
+    @Test(
+        "a compressed video is its codec, tagged sRGB, scaled to its size, with AAC at the quality's rate",
+        arguments: [VideoCodec.h264, VideoCodec.hevc]
+    )
+    func writesCompressedVideo(codec: VideoCodec) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("video.mov")
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+        let target = EncodeTarget.compressed(path: path, codec: codec, quality: .high, size: size)
+        let large = Size(width: 128, height: 96)
+
+        // When
+        let writer = try sut.videoWriter(for: target, size: large, fps: 30, sound: tone(seconds: 16.0 / 30))
+        for _ in 0..<frameCount {
+            try writer.append(frame(width: 128, height: 96))
+        }
+        try writer.finish()
+
+        // Then
+        let asset = AVURLAsset(url: URL(fileURLWithPath: path))
+        let video = try #require(try await asset.loadTracks(withMediaType: .video).first)
+        let format = try #require(try await video.load(.formatDescriptions).first)
+        let codecType = codec == .hevc ? kCMVideoCodecType_HEVC : kCMVideoCodecType_H264
+        #expect(CMFormatDescriptionGetMediaSubType(format) == codecType)
+        expectColourTags(of: format)
+        #expect(try await video.load(.naturalSize) == CGSize(width: width, height: height))
+        #expect(try await presentationTimes(of: video, in: asset).count == frameCount)
+        try await expectDuration(of: asset, seconds: 16.0 / 30, fps: 30)
+
+        let audio = try #require(try await asset.loadTracks(withMediaType: .audio).first)
+        let sound = try #require(try await audio.load(.formatDescriptions).first.flatMap {
+            CMAudioFormatDescriptionGetStreamBasicDescription($0)?.pointee
+        })
+        #expect(sound.mFormatID == kAudioFormatMPEG4AAC)
+        let bitRate = Double(try await audio.load(.estimatedDataRate))
+        #expect(abs(bitRate - 192_000) <= 192_000 * 0.15)
+
+        let media = MediaFile(path: path, size: size, frameTimes: thirtieths)
+        let picture = try AVFoundationDecoder().picture(of: media, atFrame: 3)
+        let tolerance = 16.0 / 255
+        #expect(zip(pixel(of: picture, x: 16, y: 24), [0.5, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
+        #expect(zip(pixel(of: picture, x: 40, y: 24), [0, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
+        #expect(zip(pixel(of: picture, x: 56, y: 24), [0.5, 0.5, 0.5, 1]).allSatisfy { abs($0 - $1) <= tolerance })
+    }
+
+    @Test("a compressed video at low quality is smaller than at high quality", arguments: [
+        VideoCodec.h264,
+        VideoCodec.hevc
+    ])
+    func ordersVideoQuality(codec: VideoCodec) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+        let noiseSize = Size(width: 128, height: 96)
+
+        // When
+        let sizes = try [EncodeQuality.low, .high].map { quality in
+            let path = directory.file("\(quality).mp4")
+            let target = EncodeTarget.compressed(path: path, codec: codec, quality: quality, size: noiseSize)
+            let writer = try sut.videoWriter(for: target, size: noiseSize, fps: 30, sound: nil)
+            for index in 0..<8 {
+                try writer.append(noise(width: 128, height: 96, seed: index))
+            }
+            try writer.finish()
+
+            return try byteCount(of: path)
+        }
+
+        // Then
+        #expect(sizes[0] < sizes[1])
+    }
+
     // MARK: - Private
     private var size: Size {
         Size(width: Double(width), height: Double(height))
@@ -281,11 +502,14 @@ struct AVFoundationEncoderTests {
         (0..<frameCount).map { Double($0) / 30 }
     }
 
-    private func frame() -> Bitmap {
+    private func frame(
+        width: Int = 64,
+        height: Int = 48
+    ) -> Bitmap {
         var components: [UInt16] = []
         for _ in 0..<height {
             for x in 0..<width {
-                components += x < 32 ? Self.halfRed : x < 48 ? Self.clear : Self.grey
+                components += x < width / 2 ? Self.halfRed : x < width * 3 / 4 ? Self.clear : Self.grey
             }
         }
 
@@ -298,16 +522,43 @@ struct AVFoundationEncoderTests {
         )
     }
 
-    // A 440 Hz tone at half scale in both channels.
-    private func tone(seconds: Double) -> SoundBuffer {
-        let count = Int(seconds * 48_000)
+    // A 440 Hz tone at half scale in every channel.
+    private func tone(
+        seconds: Double,
+        sampleRate: Double = 48_000,
+        channels: Int = 2
+    ) -> SoundBuffer {
+        let count = Int(seconds * sampleRate)
         let samples = (0..<count).flatMap { index in
-            let level = Float(sin(2 * Double.pi * 440 * Double(index) / 48_000) * 0.5)
+            let level = Float(sin(2 * Double.pi * 440 * Double(index) / sampleRate) * 0.5)
 
-            return [level, level]
+            return [Float](repeating: level, count: channels)
         }
 
-        return SoundBuffer(sampleRate: 48_000, channels: 2, samples: samples)
+        return SoundBuffer(sampleRate: sampleRate, channels: channels, samples: samples)
+    }
+
+    // An opaque 8-bit picture of pseudo random colours, the same for the same seed, which compresses poorly.
+    private func noise(
+        width: Int,
+        height: Int,
+        seed: Int
+    ) -> Bitmap {
+        var state = UInt32(truncatingIfNeeded: seed &* 2_654_435_761 &+ 1)
+        var pixels = Data(count: width * height * 4)
+        for index in 0..<width * height {
+            state = state &* 1_664_525 &+ 1_013_904_223
+            pixels[index * 4] = UInt8(truncatingIfNeeded: state >> 24)
+            pixels[index * 4 + 1] = UInt8(truncatingIfNeeded: state >> 16)
+            pixels[index * 4 + 2] = UInt8(truncatingIfNeeded: state >> 8)
+            pixels[index * 4 + 3] = 255
+        }
+
+        return Bitmap(width: width, height: height, depth: .eight, bytesPerRow: width * 4, pixels: pixels)
+    }
+
+    private func byteCount(of path: String) throws -> Int {
+        try #require(try FileManager.default.attributesOfItem(atPath: path)[.size] as? Int)
     }
 
     private func write(
