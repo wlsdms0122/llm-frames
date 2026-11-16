@@ -28,7 +28,7 @@ extension FilterOperation {
         case let .grain(amount, size):
             .grain(amount: amount, size: size * scale)
 
-        default:
+        case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .lut, .vignette:
             self
         }
     }
