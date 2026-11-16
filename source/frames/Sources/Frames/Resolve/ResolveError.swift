@@ -40,6 +40,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
     case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side], room: String)
     case unreadableFile(path: String)
+    case unreadableResolvedVersion(place: Place, kind: PlaceKind, written: String, current: String)
+    case optionOnResolved(place: Place, kind: PlaceKind, option: String)
 
     // MARK: - Property
     var description: String {
@@ -162,6 +164,14 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"
+
+        case let .unreadableResolvedVersion(place, kind, written, current):
+            "\(place) (\(kind.label)): the resolved document was written by frames \(quoted(written)), and frames "
+                + "\(current) reads only one written by frames \(current.split(separator: ".").prefix(1).joined()).0 "
+                + "up to \(current.split(separator: ".").prefix(2).joined(separator: "."))"
+
+        case let .optionOnResolved(place, kind, option):
+            "\(place) (\(kind.label)): a resolved document has its theme and arguments written in, so it takes no \(option)"
         }
     }
 
