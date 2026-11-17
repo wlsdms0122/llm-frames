@@ -44,6 +44,7 @@ A span is:
 
 - `t` is progress through the span, from 0 to 1.
 - Each property joins only the keys that name it, in straight lines. Opacity can finish at 30% while scale runs to the end.
+- Two keys that name a property at the same `t` make it jump there: it takes the first key's value up to that point and the second's from it.
 - A property the span does not name takes its default.
 - `ease` bends the progress first, and the bent value drives every property. Where an ease leaves 0 to 1 (`back-out`), a property whose keys reach that end goes on along its last line, so it overshoots. One whose keys stop short of it holds.
 - `revealFrom` is `left`, `right`, `top` or `bottom`. The default is `left`.
