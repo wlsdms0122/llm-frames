@@ -101,6 +101,21 @@ struct MergedThemeValueTests {
         #expect(style.lineHeight == 145)
     }
 
+    @Test("a stroke of false in a stronger theme removes the stroke a weaker one gives")
+    func readsNoStroke() throws {
+        // Given
+        let sut = try ThemeMerger().merge([
+            ThemeLayer(value: Fixture.json(#"{ "styles": { "subtitle": { "stroke": { "width": 7 } } } }"#), place: .root),
+            ThemeLayer(value: Fixture.json(#"{ "styles": { "subtitle": { "stroke": false } } }"#), place: .root)
+        ])
+
+        // When
+        let style = sut.style(named: "subtitle", scale: 1)
+
+        // Then
+        #expect(style.stroke == nil)
+    }
+
     @Test("a style's fonts are looked for in the pack of the theme that wrote the font list")
     func readsFontPack() throws {
         // Given
