@@ -33,7 +33,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
-    case textAreaWithoutParent(place: Place, kind: PlaceKind)
+    case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
@@ -142,7 +142,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
 
-        case let .textAreaWithoutParent(place, kind):
+        case let .textAreaInOutputPixels(place, kind):
             "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
                 + "and this clip's coordinates are output pixels"
 

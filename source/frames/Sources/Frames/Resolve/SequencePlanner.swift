@@ -282,7 +282,7 @@ struct SequencePlanner: Sendable {
         guard let position = written.position else { return nil }
 
         if let text = byText(position, place: written.place) {
-            throw ResolveError.textAreaWithoutParent(place: text, kind: .clip(plan.source.kind))
+            throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.source.kind))
         }
         let space = output(of: format)
         return try finder.positions(
@@ -319,7 +319,7 @@ struct SequencePlanner: Sendable {
 
         let area = try written.area.map { area in
             if parent == nil, let text = byText(area, place: written.place) {
-                throw ResolveError.textAreaWithoutParent(place: text, kind: .clip(plan.kind))
+                throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.areas(
@@ -336,7 +336,7 @@ struct SequencePlanner: Sendable {
         }
         let position = try written.position.map { position in
             if parent == nil, let text = byText(position, place: written.place) {
-                throw ResolveError.textAreaWithoutParent(place: text, kind: .clip(plan.kind))
+                throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.positions(

@@ -259,7 +259,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error == .textAreaWithoutParent(
+        #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "clips").appending(index: 1).appending(key: "area"),
             kind: .clip(.shape("box"))
         ))
@@ -593,7 +593,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error == .textAreaWithoutParent(
+        #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "position"),
             kind: .clip(.media(.video))
         ))
