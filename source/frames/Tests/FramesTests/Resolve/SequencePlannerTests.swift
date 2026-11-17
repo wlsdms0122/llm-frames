@@ -180,7 +180,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description == #"\#(place) (\#(kind)): a text area is searched in the picture of the clip's parent, and an unparented clip's coordinates are output pixels"#)
+        #expect(error?.description == #"\#(place) (\#(kind)): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"#)
     }
 
     @Test("a sequence clip without a parent takes a position given by the point of a numeric area, in output pixels")
@@ -229,15 +229,28 @@ struct SequencePlannerTests {
         #expect(area.mediaTime == 1.5)
     }
 
+    @Test("a text area under a title parent stops, since its text box has no picture to read")
+    func refusesTextAreaInSpace() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
+                { "id": "parent", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
+                { "shape": "box", "at": [0, 1], "parent": "parent", "area": "Total" } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: AreaError.self) { try plan(document) }
+        #expect(error?.description == #"clips[1].area (box): the parent "parent" is a title, whose text box has no picture to read, so it takes no text area"#)
+    }
+
     @Test(
-        "a text area under a title, shape or adjustment parent stops, since its space has no picture to read",
+        "a text area under a shape or adjustment without a parent stops, since their coordinates are output pixels",
         arguments: [
-            #"{ "id": "parent", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] }"#,
             #"{ "id": "parent", "shape": "box", "at": [0, 1], "area": [0, 0, 100, 100] }"#,
             #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 100, 100] }"#
         ]
     )
-    func refusesTextAreaInSpace(parent: String) throws {
+    func refusesTextAreaInOutput(parent: String) throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
@@ -245,8 +258,47 @@ struct SequencePlannerTests {
             """#
 
         // When, Then
-        let error = #expect(throws: AreaError.self) { try plan(document) }
-        #expect(error?.description == #"clips[1].area (box): the parent "parent" is a title, shape or adjustment, whose space has no picture to read, so it takes no text area"#)
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error == .textAreaWithoutParent(
+            place: Place.root.appending(key: "clips").appending(index: 1).appending(key: "area"),
+            kind: .clip(.shape("box"))
+        ))
+    }
+
+    @Test("a title parented to a box placed by a text area takes a position at a point of that text in the box's parent")
+    func findsPositionUnderShape() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "box", "shape": "box", "parent": "screen", "area": "Total" },
+                { "title": "a", "style": "title", "parent": "box", "anchor": "left", "position": { "area": "Total", "point": "right" } } ] } ] }
+            """#)
+
+        // Then
+        let padding = 14 * (1206 / 1920.0)
+        #expect(plan.clips[1].position == .value(Point(x: 300 + padding, y: 100 - padding + (40 + padding * 2) / 2)))
+    }
+
+    @Test(
+        "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
+        arguments: [
+            #"{ "id": "parent", "shape": "box", "parent": "screen", "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "area": [0, 0, 100, 100] }"#
+        ]
+    )
+    func cutsAreaUnderShape(parent: String) throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                \#(parent), { "shape": "box", "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
+            """#)
+
+        // Then
+        guard case let .value(area) = plan.clips[1].area else {
+            Issue.record("the area was not found")
+            return
+        }
+        #expect(area.rectangle == Rectangle(x: 0, y: 0, width: 1206, height: 2622))
     }
 
     @Test("a numeric area under a title parent is kept whole, since a space has no edges to cut it at")

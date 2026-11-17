@@ -51,8 +51,8 @@ enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "takes no text area"
 
         case let .textInSpace(place, kind, parent):
-            "\(place) (\(kind)): the parent \(quoted(parent)) is a title, shape or adjustment, whose space has no "
-                + "picture to read, so it takes no text area"
+            "\(place) (\(kind)): the parent \(quoted(parent)) is a title, whose text box has no picture to read, so "
+                + "it takes no text area"
         }
     }
 

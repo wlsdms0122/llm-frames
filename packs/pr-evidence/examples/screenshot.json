@@ -8,8 +8,8 @@
         { "shape": "fill", "id": "address", "parent": "checkout", "area": "Ship to", "color": "#000000" },
         { "shape": "box", "parent": "checkout", "area": "Item total" },
         { "shape": "box", "parent": "checkout", "area": "Shipping" },
-        { "shape": "box", "parent": "checkout", "area": "Total" },
-        { "title": "38,000 + 4,000", "style": "label", "parent": "checkout",
+        { "shape": "box", "id": "total", "parent": "checkout", "area": "Total" },
+        { "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": "Total", "point": "right" }, "anchor": "left" }
       ] }
   ],

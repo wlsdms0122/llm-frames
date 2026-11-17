@@ -297,9 +297,10 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels. A text
-    // form is searched in the parent's picture, the media of a storyline or media clip, at the media time the parent's
-    // clock gives. A media clip's crop is in its own picture.
+    // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels, as are
+    // those of a clip under a chain of shapes and adjustments that reaches no other parent. A text form is searched in
+    // the parent's picture, the media of a storyline or media clip, at the media time the parent's clock gives. A media
+    // clip's crop is in its own picture.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
@@ -310,7 +311,7 @@ struct SequencePlanner: Sendable {
         format: FormatPlan
     ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
         let theme = time.theme
-        let parent = try plan.parent.map { parent in
+        let parent = try plan.parent.flatMap { parent in
             try space(of: parent, time: time, storylineNested: storylineNested, clipPictures: clipPictures, format: format)
         }
         let space = parent?.picture ?? output(of: format)
@@ -368,14 +369,16 @@ struct SequencePlanner: Sendable {
     }
 
     // The picture a parent's space is searched in, and how sequence time becomes its media time: a storyline clip's
-    // media or a solid's frame, a media clip's media, or for a title, shape or adjustment a space with no picture.
+    // media or a solid's frame, a media clip's media, a title's text box as a space with no picture, and for a shape
+    // or adjustment the space its geometry is written in, its own parent's. Nil is output pixels, the space of a shape
+    // or adjustment without a parent.
     private func space(
         of parent: ClipParent,
         time: TimePlan,
         storylineNested: [SequencePlan?],
         clipPictures: [Picture?],
         format: FormatPlan
-    ) throws -> (picture: Picture, clock: PictureClock) {
+    ) throws -> (picture: Picture, clock: PictureClock)? {
         switch parent {
         case let .storyline(index, _):
             let plan = time.storyline[index]
@@ -383,11 +386,26 @@ struct SequencePlanner: Sendable {
 
         case let .clip(index, id):
             let plan = time.clips[index]
-            guard let picture = clipPictures[index] else {
-                return (Picture(name: id, source: .space, size: format.size), .still)
+            if let picture = clipPictures[index] {
+                return (picture, plan.timing.map { .media($0) } ?? .still)
             }
 
-            return (picture, plan.timing.map { .media($0) } ?? .still)
+            switch plan.kind {
+            case .shape, .adjust:
+                // ParentFinder has ruled out a cycle, so the chain ends.
+                return try plan.parent.flatMap { parent in
+                    try space(
+                        of: parent,
+                        time: time,
+                        storylineNested: storylineNested,
+                        clipPictures: clipPictures,
+                        format: format
+                    )
+                }
+
+            default:
+                return (Picture(name: id, source: .space, size: format.size), .still)
+            }
         }
     }
 

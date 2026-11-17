@@ -143,8 +143,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
 
         case let .textAreaWithoutParent(place, kind):
-            "\(place) (\(kind.label)): a text area is searched in the picture of the clip's parent, "
-                + "and an unparented clip's coordinates are output pixels"
+            "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
+                + "and this clip's coordinates are output pixels"
 
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"
