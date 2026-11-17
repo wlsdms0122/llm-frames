@@ -57,6 +57,26 @@ struct OCRReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
+    @Test("the machine output writes a line's rectangle to the nearest millionth, without Vision's noise")
+    func roundsRectangles() throws {
+        // Given
+        let noisy = RecognisedLine(
+            text: "Send",
+            rectangle: Rectangle(x: 93.99999999268294, y: 187.99999997439016, width: 128, height: 42.000000000000014)
+        )
+        let sut = OCRReporter(mediaFacts: facts, ocr: OCRTable(file: "/abs/card.png", lines: [noisy]))
+
+        // When
+        let report = try sut.report(of: "/abs/card.png")
+
+        // Then
+        let expected = #"""
+            {"ocr": "1.0.0", "size": [400, 300], "frames": [{"time": 0, "lines": [\#
+            {"text": "Send", "rect": [94, 188, 128, 42]}]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
     @Test("lines come in reading order, top to bottom by row and left to right within a row")
     func ordersLines() throws {
         // Given

@@ -26,7 +26,7 @@ extension TrackReport {
             JSONMember(key: "time", value: .time(frame.time)),
             JSONMember(
                 key: "rect",
-                value: .array([rectangle.x, rectangle.y, rectangle.width, rectangle.height].map(JSONValue.number))
+                value: .array([rectangle.x, rectangle.y, rectangle.width, rectangle.height].map(JSONValue.measure))
             )
         ]))
     }
