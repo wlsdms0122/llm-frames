@@ -36,7 +36,10 @@ struct ResolvedPictureWriterTests {
         #expect(resolved["resolved"] == .string(FramesVersion.current))
         #expect(resolved["size"] == .array([.number(840), .number(440)]))
         #expect(steps.map { $0["draw"] } == ["picture", "fill", "fill", "fill", "fill", "box", "border"].map(JSONValue.string))
-        #expect(steps.allSatisfy { $0.keys.first == "draw" && $0.keys.last == "clip" })
+        #expect(steps.allSatisfy { Array($0.keys.prefix(4)) == ["place", "id", "kind", "draw"] && $0.keys.last == "clip" })
+        #expect(steps.map { $0["place"] } == ["source", "ops[2]", "ops[2]", "ops[2]", "ops[2]", "ops[3]", "ops[4]"].map(JSONValue.string))
+        #expect(steps.map { $0["kind"] } == ["image", "pad", "pad", "pad", "pad", "box", "border"].map(JSONValue.string))
+        #expect(steps.allSatisfy { $0["id"] == .null })
         #expect(steps[0]["crop"] == .array([.number(100), .number(100), .number(400), .number(200)]))
         #expect(steps[0]["frame"] == .array([.number(20), .number(20), .number(800), .number(400)]))
         #expect(steps[6]["clip"] == .array([.number(0), .number(0), .number(840), .number(440)]))
@@ -58,7 +61,7 @@ struct ResolvedPictureWriterTests {
         #expect(picture["time"] == .number(0))
     }
 
-    @Test("a layout keeps its kind, and a document it holds is written in place")
+    @Test("a layout keeps its kind, and a document it holds is written in place, its places continued from its item")
     func writesLayout() throws {
         // Given
         let document = #"""
@@ -75,6 +78,9 @@ struct ResolvedPictureWriterTests {
         #expect(pictures.first?["file"] == .string("/abs/card.png"))
         #expect(pictures.last?["kind"] == .string("image"))
         #expect(pictures.last?.keys == ["kind", "size", "steps"])
+        let nested = pictures.last?["steps"]?.arrayValue?.first?.objectValue
+        #expect(nested?["place"] == .string("items[1].image.source"))
+        #expect(nested?["kind"] == .string("image"))
     }
 
     // MARK: - Private

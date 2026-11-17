@@ -34,7 +34,7 @@ struct ResolvedDocumentWriterTests {
         """#
     private let image = #"""
         { "kind": "image", "source": "/abs/page.png",
-          "ops": [ { "crop": [100, 100, 400, 200] }, { "shape": "box", "area": [150, 150, 100, 50] } ] }
+          "ops": [ { "crop": [100, 100, 400, 200] }, { "shape": "box", "area": [150, 150, 100, 50], "id": "serial" } ] }
         """#
 
     private let resolvedSequence = #"""
@@ -311,6 +311,9 @@ struct ResolvedDocumentWriterTests {
           "size": [400, 200],
           "steps": [
             {
+              "place": "source",
+              "id": null,
+              "kind": "image",
               "draw": "picture",
               "picture": {
                 "file": "/abs/page.png",
@@ -322,6 +325,9 @@ struct ResolvedDocumentWriterTests {
               "clip": [0, 0, 400, 200]
             },
             {
+              "place": "ops[1]#serial",
+              "id": "serial",
+              "kind": "box",
               "draw": "box",
               "area": [50, 50, 100, 50],
               "width": 2.6533996683250414,
