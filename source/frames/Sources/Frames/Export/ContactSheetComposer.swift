@@ -92,7 +92,7 @@ struct ContactSheetComposer: Sendable {
                 radius: size * 0.3
             ),
             align: .left,
-            isOneLine: true
+            lines: 1
         )
     }
 

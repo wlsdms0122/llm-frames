@@ -34,7 +34,7 @@ struct MergedThemeValueTests {
             stroke: nil,
             background: nil,
             align: .left,
-            isOneLine: false
+            lines: nil
         ))
     }
 
@@ -83,7 +83,7 @@ struct MergedThemeValueTests {
             stroke: TextStroke(width: 2, color: Color(written: "#00000080")),
             background: TextBackground(color: Color(written: "#000000"), padding: Size(width: 10, height: 5), radius: 4),
             align: .right,
-            isOneLine: true
+            lines: 1
         ))
     }
 
@@ -99,6 +99,20 @@ struct MergedThemeValueTests {
         #expect(style.background == nil)
         #expect(style.size == 96)
         #expect(style.lineHeight == 120)
+    }
+
+    @Test("a style's lines is the most lines its text may take, two for the base subtitle")
+    func readsLines() throws {
+        // Given
+        let sut = try theme(#"{ "styles": { "caption": { "size": 40, "lines": 3 } } }"#)
+
+        // When
+        let caption = sut.style(named: "caption", scale: 1)
+        let subtitle = sut.style(named: "subtitle", scale: 1)
+
+        // Then
+        #expect(caption.lines == 3)
+        #expect(subtitle.lines == 2)
     }
 
     @Test("a stroke of false in a stronger theme removes the stroke a weaker one gives")

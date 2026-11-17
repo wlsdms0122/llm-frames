@@ -173,7 +173,7 @@ struct TypesetterTests {
     @Test("a one-line style never wraps, and has no width when none is given")
     func keepsOneLine() throws {
         // Given
-        let style = style(isOneLine: true)
+        let style = style(lines: 1)
 
         // When
         let fits = try sut.layout("aa bb cc", style: style, face: face, width: 150, place: place, kind: "label")
@@ -193,7 +193,7 @@ struct TypesetterTests {
                 "title (label): the text is 140 wide on one line, wider than its room of 100, and a cut line would "
                     + "say something else"
             ),
-            ("a\nb", "title (label): the text has a line break, and its style keeps it on one line"),
+            ("a\nb", "title (label): the text takes 2 lines, and its style allows at most 1"),
             (
                 "결제하기버튼",
                 "title (label): the text is 120 wide on one line, wider than its room of 100, and a cut line would "
@@ -206,7 +206,7 @@ struct TypesetterTests {
         message: String
     ) throws {
         // Given
-        let style = style(isOneLine: true)
+        let style = style(lines: 1)
 
         // When, Then
         let error = #expect(throws: TextError.self) {
@@ -215,12 +215,48 @@ struct TypesetterTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a style of two lines takes text that wraps or breaks to two lines",
+        arguments: [("aa bb cc", 100.0), ("aa\nbb", 500.0)]
+    )
+    func keepsLineLimit(
+        text: String,
+        width: Double
+    ) throws {
+        // Given
+        let style = style(lines: 2)
+
+        // When
+        let layout = try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+
+        // Then
+        #expect(layout.lineCount == 2)
+    }
+
+    @Test(
+        "a style of two lines stops on text that needs a third line, by wrapping or at a line break",
+        arguments: [("aa bb cc", 50.0), ("aa bb cc\ndd", 100.0), ("a\nb\nc", 500.0)]
+    )
+    func refusesLinesPastLimit(
+        text: String,
+        width: Double
+    ) throws {
+        // Given
+        let style = style(lines: 2)
+
+        // When, Then
+        let error = #expect(throws: TextError.self) {
+            try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+        }
+        #expect(error?.description == "title (title): the text takes 3 lines, and its style allows at most 2")
+    }
+
     // MARK: - Private
     private func style(
         lineHeight: Double = 50,
         background: TextBackground? = nil,
         align: TextAlignment = .left,
-        isOneLine: Bool = false
+        lines: Int? = nil
     ) -> TextStyle {
         TextStyle(
             families: ["Apple SD Gothic Neo"],
@@ -233,7 +269,7 @@ struct TypesetterTests {
             stroke: nil,
             background: background,
             align: align,
-            isOneLine: isOneLine
+            lines: lines
         )
     }
 

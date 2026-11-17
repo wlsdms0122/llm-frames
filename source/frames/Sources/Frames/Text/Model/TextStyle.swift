@@ -7,7 +7,8 @@
 
 // A theme style as resolve sets text in it: colours as values and lengths in output pixels, already multiplied by
 // the length scale of the place the text is drawn. `families` is the theme's font list, and `pack` the pack the theme
-// that wrote it is in, whose fonts come before the machine's.
+// that wrote it is in, whose fonts come before the machine's. `lines` is the most lines the text may take, and nil
+// is no limit.
 struct TextStyle: Equatable, Sendable {
     // MARK: - Property
     let families: [String]
@@ -20,7 +21,7 @@ struct TextStyle: Equatable, Sendable {
     let stroke: TextStroke?
     let background: TextBackground?
     let align: TextAlignment
-    let isOneLine: Bool
+    let lines: Int?
 
     // MARK: - Initializer
     init(
@@ -34,7 +35,7 @@ struct TextStyle: Equatable, Sendable {
         stroke: TextStroke?,
         background: TextBackground?,
         align: TextAlignment,
-        isOneLine: Bool
+        lines: Int?
     ) {
         self.families = families
         self.pack = pack
@@ -46,7 +47,7 @@ struct TextStyle: Equatable, Sendable {
         self.stroke = stroke
         self.background = background
         self.align = align
-        self.isOneLine = isOneLine
+        self.lines = lines
     }
 
     // MARK: - Public

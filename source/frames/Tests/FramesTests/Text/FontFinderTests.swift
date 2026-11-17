@@ -109,7 +109,7 @@ struct FontFinderTests {
             stroke: nil,
             background: nil,
             align: .left,
-            isOneLine: false
+            lines: nil
         )
     }
 }
