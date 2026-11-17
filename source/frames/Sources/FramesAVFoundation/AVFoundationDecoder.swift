@@ -33,12 +33,17 @@ package final class AVFoundationDecoder: Sendable {
         return video
     }
 
-    private func soundTrack(at path: String) throws -> SoundReader {
+    // Nil for a file without a sound track.
+    private func soundTrack(at path: String) throws -> SoundReader? {
         if let sound = sounds.withLock({ $0[path] }) { return sound }
-        guard let sound = try SoundReader(path: path) else { throw DecoderError.noSound(file: path) }
+        guard let sound = try SoundReader(path: path) else { return nil }
         sounds.withLock { $0[path] = sound }
 
         return sound
+    }
+
+    private func probedSound(at path: String) throws -> ProbedSound? {
+        try soundTrack(at: path).map { ProbedSound(channels: $0.layout.labels.count, sampleRate: $0.sampleRate) }
     }
 
     private func picture(of still: StillReader, path: String) throws -> Bitmap {
@@ -63,7 +68,7 @@ extension AVFoundationDecoder: MediaFactProvider {
     package func probedMedia(of file: String) throws -> ProbedMedia? {
         guard FileManager.default.fileExists(atPath: file) else { return nil }
         if let still = try StillReader(path: file) {
-            return ProbedMedia(kind: .image, size: still.displaySize)
+            return ProbedMedia(kind: .image, size: still.displaySize, hasAlpha: still.hasAlpha)
         }
         if let video = try video(at: file) {
             return ProbedMedia(
@@ -72,18 +77,17 @@ extension AVFoundationDecoder: MediaFactProvider {
                 fps: video.fps,
                 frames: video.frameTimes,
                 size: video.displaySize,
-                hasSound: video.hasSound
+                hasAlpha: video.hasAlpha,
+                sound: video.hasSound ? try probedSound(at: file) : nil
             )
         }
 
         // A file without a picture track is sound, or no media at all.
+        guard let sound = try probedSound(at: file) else { throw DecoderError.unreadable(file: file) }
         let asset = AVURLAsset(url: URL(fileURLWithPath: file))
-        let waiter = LoadWaiter(file: file)
-        let sound = try waiter.tracks(of: asset, type: .audio)
-        guard !sound.isEmpty else { throw DecoderError.unreadable(file: file) }
-        let duration = try waiter.value(of: .duration, key: "duration", in: asset)
+        let duration = try LoadWaiter(file: file).value(of: .duration, key: "duration", in: asset)
 
-        return ProbedMedia(kind: .audio, duration: CMTimeGetSeconds(duration), hasSound: true)
+        return ProbedMedia(kind: .audio, duration: CMTimeGetSeconds(duration), sound: sound)
     }
 
     // Every frame is the same size, or the directory is not a sequence.
@@ -91,7 +95,8 @@ extension AVFoundationDecoder: MediaFactProvider {
         guard FileManager.default.fileExists(atPath: directory) else { return nil }
         let files = try frameFiles(in: directory)
         guard let first = files.first else { throw DecoderError.emptySequence(directory: directory) }
-        guard let size = try StillReader(path: first)?.displaySize else { throw DecoderError.unreadable(file: first) }
+        guard let still = try StillReader(path: first) else { throw DecoderError.unreadable(file: first) }
+        let size = still.displaySize
 
         for file in files.dropFirst() {
             guard let frameSize = try StillReader(path: file)?.displaySize else {
@@ -100,7 +105,7 @@ extension AVFoundationDecoder: MediaFactProvider {
             guard frameSize == size else { throw DecoderError.unequalFrame(file: file, size: frameSize, first: size) }
         }
 
-        return ProbedImageSequence(files: files, size: size)
+        return ProbedImageSequence(files: files, size: size, hasAlpha: still.hasAlpha)
     }
 }
 
@@ -167,6 +172,8 @@ extension AVFoundationDecoder: MediaDecoder {
         from start: Double,
         to end: Double
     ) throws -> SoundBuffer {
-        try soundTrack(at: file.path).sound(from: start, to: end, path: file.path)
+        guard let sound = try soundTrack(at: file.path) else { throw DecoderError.noSound(file: file.path) }
+
+        return try sound.sound(from: start, to: end, path: file.path)
     }
 }

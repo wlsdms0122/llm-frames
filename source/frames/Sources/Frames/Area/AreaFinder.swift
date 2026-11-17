@@ -11,6 +11,7 @@
 struct AreaFinder: Sendable {
     // MARK: - Property
     private let ocr: any OCRProvider
+    private let order = ReadingOrder()
 
     // MARK: - Initializer
     init(ocr: any OCRProvider) {
@@ -83,7 +84,7 @@ struct AreaFinder: Sendable {
     ) throws -> [RecognisedLine] {
         switch picture.source {
         case let .mediaFile(file):
-            return ordered(try ocr.lines(in: file, atMediaTime: time))
+            return order.sorted(try ocr.lines(in: file, atMediaTime: time))
 
         case .document:
             throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)
@@ -145,34 +146,6 @@ struct AreaFinder: Sendable {
         guard matches.indices.contains(nth) else { throw noMatch }
 
         return matches[nth]
-    }
-
-    // Top to bottom by row and left to right within a row. Lines whose vertical centres lie within half the shorter
-    // one's height of each other are one row, so a row is every line such a chain reaches.
-    private func ordered(_ lines: [RecognisedLine]) -> [RecognisedLine] {
-        let byCenter = lines.enumerated().sorted { left, right in
-            left.element.rectangle.center.y == right.element.rectangle.center.y
-                ? left.offset < right.offset
-                : left.element.rectangle.center.y < right.element.rectangle.center.y
-        }
-        let rows = byCenter.map(\.element).reduce(into: [[RecognisedLine]]()) { rows, line in
-            guard let last = rows.last, last.contains(where: { isSameRow($0, line) }) else {
-                rows.append([line])
-                return
-            }
-
-            rows[rows.count - 1].append(line)
-        }
-
-        return rows.flatMap { row in row.sorted { $0.rectangle.x < $1.rectangle.x } }
-    }
-
-    private func isSameRow(
-        _ first: RecognisedLine,
-        _ second: RecognisedLine
-    ) -> Bool {
-        let distance = abs(first.rectangle.center.y - second.rectangle.center.y)
-        return distance <= min(first.rectangle.height, second.rectangle.height) / 2
     }
 
     private func cut(

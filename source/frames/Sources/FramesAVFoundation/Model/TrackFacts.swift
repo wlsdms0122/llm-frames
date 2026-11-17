@@ -16,6 +16,7 @@ struct TrackFacts: Sendable {
     let preferredTransform: CGAffineTransform
     let nominalFrameRate: Float
     let bitsPerComponent: Int
+    let hasAlpha: Bool
     let edits: [CMTimeMapping]
     let duration: CMTime
     let hasSound: Bool
@@ -26,6 +27,7 @@ struct TrackFacts: Sendable {
         preferredTransform: CGAffineTransform,
         nominalFrameRate: Float,
         bitsPerComponent: Int,
+        hasAlpha: Bool,
         edits: [CMTimeMapping],
         duration: CMTime,
         hasSound: Bool
@@ -34,6 +36,7 @@ struct TrackFacts: Sendable {
         self.preferredTransform = preferredTransform
         self.nominalFrameRate = nominalFrameRate
         self.bitsPerComponent = bitsPerComponent
+        self.hasAlpha = hasAlpha
         self.edits = edits
         self.duration = duration
         self.hasSound = hasSound
