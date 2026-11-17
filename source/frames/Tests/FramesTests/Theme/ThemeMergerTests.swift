@@ -121,7 +121,8 @@ struct ThemeMergerTests {
         let colourError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: colour, place: .root)]) }
         let styleError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: style, place: .root)]) }
         #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors"#)
-        #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles"#)
+        #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles, "#
+            + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
         try sut.merge([ThemeLayer(value: defined, place: .root)])
     }
 

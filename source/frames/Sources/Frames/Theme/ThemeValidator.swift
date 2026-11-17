@@ -42,14 +42,15 @@ struct ThemeValidator: Sendable {
             )
         }
 
-        let styles = Set(object["styles"]?.objectValue?.keys ?? [])
+        let styles = theme.styleNames
         let titlePlace = Place.root.appending(key: "defaults").appending(key: "animation").appending(key: "title")
         let titles = object["defaults"]?.objectValue?["animation"]?.objectValue?["title"]?.objectValue?.keys ?? []
         for name in titles where !styles.contains(name) {
             throw ThemeError.unknownStyle(
                 place: theme.place(of: titlePlace.appending(key: name)),
                 kind: ThemeKeyTable.titleAnimationKind,
-                name: name
+                name: name,
+                styles: styles
             )
         }
     }

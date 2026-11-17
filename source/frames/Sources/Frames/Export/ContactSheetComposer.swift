@@ -41,6 +41,7 @@ struct ContactSheetComposer: Sendable {
             try typesetter.layout(
                 cell.label,
                 style: "label",
+                stylePlace: .root,
                 width: nil,
                 theme: theme,
                 scale: scale,

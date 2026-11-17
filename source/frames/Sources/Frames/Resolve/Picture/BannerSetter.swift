@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Sets a banner: its lines one under another, each in its style, wrapped at the band's width less `image.bannerPadding`
-// on each side and placed by its style's alignment, in a band as tall as its text with that padding above and below.
-// A banner of no lines has no band.
+// Sets a banner: its lines one under another, each in the style it names or `banner`, wrapped at the band's width less
+// `image.bannerPadding` on each side and placed by its style's alignment, in a band as tall as its text with that
+// padding above and below. A banner of no lines has no band.
 struct BannerSetter: Sendable {
     // MARK: - Property
     private let text: ThemeTypesetter
@@ -35,18 +35,21 @@ struct BannerSetter: Sendable {
         var y = top + padding
         var contents: [DrawingContent] = []
         for (index, line) in lines.enumerated() {
+            let linePlace = place.appending(index: index)
+            let style = line.style ?? "banner"
             let layout = try text.layout(
                 line.text,
-                style: line.style,
+                style: style,
+                stylePlace: line.style == nil ? linePlace : linePlace.appending(key: "style"),
                 width: width - padding * 2,
                 theme: theme,
                 scale: scale,
-                place: place.appending(index: index),
+                place: linePlace,
                 kind: kind
             )
             let frame = text.frame(
                 of: layout,
-                style: line.style,
+                style: style,
                 theme: theme,
                 along: Rectangle(x: padding, y: y, width: width - padding * 2, height: layout.size.height)
             )

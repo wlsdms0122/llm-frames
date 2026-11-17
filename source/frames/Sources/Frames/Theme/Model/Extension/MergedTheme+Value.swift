@@ -80,6 +80,11 @@ extension MergedTheme {
         (value(at: ["shapes", "label", "sides"])?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(Side.init) }
     }
 
+    // The names of the styles the theme holds, in order, which a stop on a name it lacks lists.
+    var styleNames: [String] {
+        (value(at: ["styles"])?.objectValue?.keys ?? []).sorted()
+    }
+
     // Where the font list was written, which a stop on it names.
     var fontPlace: Place {
         place(of: Place(components: [.key("font")]))
@@ -121,7 +126,8 @@ extension MergedTheme {
     // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the
     // `text` and `emphasis` colours, a line height of 1.25 times its size, left, no stroke, no background and no limit
     // on lines. A background leaves out the `background` colour, no padding and no radius, and a stroke the `text`
-    // colour. Every style has a size, since the merged theme stopped on one without.
+    // colour. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a name
+    // the theme does not hold.
     func style(
         named name: String,
         scale: Double

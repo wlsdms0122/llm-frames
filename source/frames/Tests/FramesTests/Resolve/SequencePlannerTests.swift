@@ -296,6 +296,33 @@ struct SequencePlannerTests {
         #expect(plan.clips[0].title?.runs.first?.size == 76)
     }
 
+    @Test("a title naming a style the theme does not hold stops at its style, listing the styles the theme holds")
+    func refusesUnknownTitleStyle() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "nope", "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try plan(document) }
+        #expect(error?.description == #"clips[0].style (title): style "nope" is not in styles, "#
+            + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
+    }
+
+    @Test("a title takes a style its document's theme adds")
+    func findsDocumentThemeStyle() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "theme": { "styles": { "callout": { "size": 40 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "a", "style": "callout", "position": [400, 225], "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        #expect(plan.clips[0].title?.runs.first?.size == 40)
+    }
+
     @Test("a label is set on one line in the label style and goes on the side that fits")
     func placesLabel() throws {
         // When
