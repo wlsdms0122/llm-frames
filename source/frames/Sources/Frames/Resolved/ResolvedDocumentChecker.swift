@@ -11,7 +11,7 @@
 // resolved document's keys, so its stops name its `kind` as written.
 package struct ResolvedDocumentChecker: Sendable {
     // MARK: - Property
-    private let current: String
+    let current: String
 
     // MARK: - Initializer
     package init(current: String = FramesVersion.current) {
@@ -34,12 +34,7 @@ package struct ResolvedDocumentChecker: Sendable {
         guard arguments == nil else { throw ResolveError.optionOnResolved(place: .root, kind: kind, option: "--args") }
 
         let written = resolved.stringValue ?? resolved.written
-        guard
-            let version = numbers(of: written),
-            let frames = numbers(of: current),
-            version[0] == frames[0],
-            version[1] <= frames[1]
-        else {
+        guard isReadable(written) else {
             throw ResolveError.unreadableResolvedVersion(
                 place: Place.root.appending(key: "resolved"),
                 kind: kind,
@@ -49,6 +44,14 @@ package struct ResolvedDocumentChecker: Sendable {
         }
 
         return written
+    }
+
+    // Whether this frames reads what a frames of the version wrote: a resolved document, or a display list or mix plan,
+    // which are read by the same rule.
+    func isReadable(_ written: String) -> Bool {
+        guard let version = numbers(of: written), let frames = numbers(of: current) else { return false }
+
+        return version[0] == frames[0] && version[1] <= frames[1]
     }
 
     // MARK: - Private

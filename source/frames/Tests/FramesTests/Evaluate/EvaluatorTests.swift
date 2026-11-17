@@ -36,6 +36,9 @@ struct EvaluatorTests {
         source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64))),
         frameTimes: (0..<20).map { Double($0) / 4 }
     )
+    // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
+    private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
+    private let fillOrigin = ItemOrigin(place: "clips[0]", id: nil, kind: "fill")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -128,6 +131,36 @@ struct EvaluatorTests {
             DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: content, color: white))),
             outsideItem()
         ])
+    }
+
+    @Test("each item names the clip that drew it, and a transition cover and the background outside the content rect none")
+    func namesDrawingClips() {
+        // Given
+        let cover = ResolvedCover(source: .color(white), span: Span(ease: .linear, keys: []))
+        let transition = ResolvedTransition(
+            start: 1.5,
+            end: 2.5,
+            over: .incoming,
+            incoming: nil,
+            outgoing: nil,
+            cover: cover,
+            matte: nil
+        )
+        let sequence = sequence(
+            [
+                storylineClip(.pinned(first), in: 1, start: 0, end: 2),
+                storylineClip(nil, solid: red, start: 2, end: 4, transition: transition)
+            ],
+            clips: [fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 1)]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+
+        // Then
+        let solid = ItemOrigin(place: "storyline", id: nil, kind: "solid")
+        #expect(list.items.map(\.origin) == [videoEntry, solid, nil, nil, fillOrigin])
+        #expect(displayList(of: list.items[1])?.items.map(\.origin) == [solid])
     }
 
     @Test("a cover video and a matte show their frames at progress times their duration, the matte's progress eased")
@@ -239,7 +272,11 @@ struct EvaluatorTests {
         let list = sut.displayList(of: .sequence(sequence), at: 1.3)
 
         // Then
-        #expect(list.items == [unitItem([mediaItem(still, frame: 0)], seed: 13), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "image")
+        #expect(list.items == [
+            unitItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry),
+            outsideItem()
+        ])
     }
 
     @Test("a solid fills its whole unit with its colour")
@@ -251,8 +288,9 @@ struct EvaluatorTests {
         let list = sut.displayList(of: .sequence(sequence), at: 1)
 
         // Then
-        let fill = DisplayItem(content: .fill(FillItem(rectangle: content, color: red)))
-        #expect(list.items == [unitItem([fill], seed: 10), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
+        let fill = DisplayItem(content: .fill(FillItem(rectangle: content, color: red)), origin: entry)
+        #expect(list.items == [unitItem([fill], seed: 10, origin: entry), outsideItem()])
     }
 
     @Test("a compound clip is its nested sequence evaluated at the clip's media time, with the outer seed")
@@ -278,7 +316,11 @@ struct EvaluatorTests {
             ]
         )
         let picture = PictureItem(source: .displayList(nestedList), rectangle: crop, destination: content)
-        #expect(list.items == [unitItem([DisplayItem(content: .picture(picture))], seed: 5), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "compound")
+        #expect(list.items == [
+            unitItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry),
+            outsideItem()
+        ])
     }
 
     @Test("a tracked crop's keyframes are brought back to the instant at their own times and carried to the time shown")
@@ -533,6 +575,7 @@ struct EvaluatorTests {
                 transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 20),
                 mask: inner,
                 content: .glyphs(GlyphsItem(
+                    size: Size(width: 100, height: 40),
                     runs: [run()],
                     stroke: TextStroke(width: 2, color: background),
                     background: GlyphBackground(
@@ -820,7 +863,8 @@ struct EvaluatorTests {
                 radius: 6,
                 border: border,
                 shadow: shadow
-            ))
+            )),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "video")
         ))
     }
 
@@ -842,7 +886,8 @@ struct EvaluatorTests {
         // Then
         let adjust = DisplayItem(
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)]))
+            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)])),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
         #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10), outsideItem()])
     }
@@ -894,7 +939,8 @@ struct EvaluatorTests {
         // since the filter reaches the whole output.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
-            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)]))
+            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)])),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         ))
     }
 
@@ -1103,7 +1149,7 @@ struct EvaluatorTests {
     }
 
     private func fillItem(_ rectangle: Rectangle) -> DisplayItem {
-        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)))
+        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)), origin: fillOrigin)
     }
 
     private func text(_ size: Size) -> ResolvedText {
@@ -1148,7 +1194,8 @@ struct EvaluatorTests {
         content: Rectangle? = nil,
         transform: AffineTransform = .identity,
         opacity: Double = 1,
-        matte: PictureMatte? = nil
+        matte: PictureMatte? = nil,
+        origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let content = content ?? self.content
         let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
@@ -1161,14 +1208,21 @@ struct EvaluatorTests {
 
         let picture = PictureItem(source: .displayList(list), rectangle: unit, destination: content, matte: matte)
 
-        return DisplayItem(transform: transform, opacity: opacity, mask: content, content: .picture(picture))
+        return DisplayItem(
+            transform: transform,
+            opacity: opacity,
+            mask: content,
+            content: .picture(picture),
+            origin: origin ?? videoEntry
+        )
     }
 
     private func mediaItem(
         _ media: PinnedMedia,
         frame: Int,
         filter: [ResolvedFilterOperation] = [],
-        in content: Rectangle? = nil
+        in content: Rectangle? = nil,
+        origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let content = content ?? self.content
         let picture = PictureItem(
@@ -1178,7 +1232,7 @@ struct EvaluatorTests {
             filter: filter
         )
 
-        return DisplayItem(content: .picture(picture))
+        return DisplayItem(content: .picture(picture), origin: origin ?? videoEntry)
     }
 
     private func outsideItem(
