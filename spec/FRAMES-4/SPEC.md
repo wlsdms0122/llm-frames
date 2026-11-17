@@ -60,7 +60,7 @@ An ease is a name, a cubic Bézier, or a spring.
 | `[x1, y1, x2, y2]` | cubic Bézier from (0, 0) to (1, 1) with control points (x1, y1) and (x2, y2), as CSS `cubic-bezier()`: f(u) is the y of the curve's point whose x is u. `x1` and `x2` lie in [0, 1], and one outside stops. `y1` and `y2` may be any number |
 | `{"spring": {"bounce": b}}` | a damped spring settling from 0 to 1, below |
 
-**Spring.** `bounce` b is a number greater than -1 and less than 1. 0 settles with no overshoot, a higher bounce swings past 1 and back more before it settles, and a lower one approaches 1 more slowly with no overshoot. A bounce of -1 or less, or of 1 or more, stops, since at -1 the spring never moves and at 1 it never settles (below). From b:
+**Spring.** `bounce` b is a number greater than -1 and less than 1. 0 settles with no overshoot, a bounce above 1 − √3/2 (about 0.134) swings past 1 and back, more the higher it is, before it settles, and a lower one approaches 1 more slowly with no overshoot. A bounce of -1 or less, or of 1 or more, stops, since at -1 the spring never moves and at 1 it never settles (below). From b:
 
 ```
 damping ratio      ζ = 1 - b          when b ≥ 0

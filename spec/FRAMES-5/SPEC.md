@@ -35,7 +35,7 @@ A title's text ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs
 - Lines are `lineHeight` of the clip's style apart, baseline to baseline. The glyphs of every run on a line share its baseline. The first baseline lies the largest ascent among that line's runs below the top of the text box, and the box ends the largest descent among the last line's runs below the last baseline.
 - Each line is placed in the wrapping width by the clip style's `align`, measured on the advances of all its runs.
 - Resolve shapes each run of text with the shaping provider, which gives glyph ids and advances, and a run boundary ends a shaping run. frames breaks, wraps and places the lines. The resolved document carries glyph runs (font file, face, size, colour, stroke, glyph ids and positions) and the box they fill. A renderer draws the glyphs where they are written and shapes nothing.
-- A style's `lines` is the most lines its text may take, a whole number of 1 or more. Text that needs more lines than that, after wrapping and after every `\n`, stops, since cutting it or shrinking it to fit would show something other than what was written. A style with `lines: 1` never wraps. Without `lines` a title takes as many lines as it needs.
+- A style's `lines` is the most lines its text may take, a whole number of 1 or more. Text that needs more lines than that, after wrapping and after every `\n`, stops, since cutting it or shrinking it to fit would show something other than what was written. So a line of a `lines: 1` style that is wider than its wrapping width stops, since it would need a second line. Without `lines` a title takes as many lines as it needs.
 
 ## Interactions
 

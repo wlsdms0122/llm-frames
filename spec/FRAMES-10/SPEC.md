@@ -25,14 +25,15 @@ A parented clip's coordinates are in its parent's space: its `position`, its `ar
 
 | Parent | Its space | Mapped to the output by |
 | --- | --- | --- |
-| a storyline clip with media | media pixels of its media (a compound clip's media pixels are its own frame's output pixels) | its conformed crop scaled to the frame ([FRAMES-9](../FRAMES-9/SPEC.md)), its transform, and its transition motion |
+| a storyline clip with media | media pixels of its media (a compound clip's media pixels are its own frame's output pixels) | its conformed crop scaled to its box ([FRAMES-9](../FRAMES-9/SPEC.md)), its transform, and its transition motion |
 | a solid | output pixels of the frame | its transition motion |
 | a media clip | media pixels of its media | its crop conformed to its box ([FRAMES-11](../FRAMES-11/SPEC.md)), and its transform |
 | a title | its text box, origin at the box's top left ([FRAMES-5](../FRAMES-5/SPEC.md)) | its transform |
-| a shape | the space its own geometry is written in: its parent's space, or output pixels when it has none | its transform |
+| a rect or ellipse placed by `width` and `height` | its box, origin at the box's top left | its transform |
+| a shape placed by `area` or `points` | the space its geometry is written in: its parent's space, or output pixels when it has none | its transform |
 | an adjustment clip | the space its mask is written in: its parent's space, or output pixels when it has none | its transform |
 
-A clip's **transform** at t, here, is the map from its space to its own parent's space (or to the output when it has none) made of its keyframed `position`, `anchor`, `scale` and `rotation` ([FRAMES-1](../FRAMES-1/SPEC.md)), its tracked motion ([FRAMES-12](../FRAMES-12/SPEC.md)), the transform part of its animation (`scale`, `rotation`, `x`, `y`, [FRAMES-14](../FRAMES-14/SPEC.md)), and, for a storyline clip, the transform part of its transition motion. It does not include opacity, reveal, mask, track matte or a transition matte. An adjustment clip has no keyframed transform of its own, so its transform is its tracked motion and its animation's transform part, which act around the centre of its masks' bounding box, or of the frame when it has no mask. A chain composes: a parent's own space is carried by its parent's transform, and so on to the frame.
+A clip's **transform** at t, here, is the map from its space to its own parent's space (or to the output when it has none) made of its keyframed `position`, `anchor`, `scale` and `rotation` ([FRAMES-1](../FRAMES-1/SPEC.md)), the tracked motion of a clip that follows its parent's media ([FRAMES-12](../FRAMES-12/SPEC.md); a clip that follows its own media moves its crop and mask instead), the transform part of its animation (`scale`, `rotation`, `x`, `y`, [FRAMES-14](../FRAMES-14/SPEC.md)), and, for a storyline clip, the transform part of its transition motion. It does not include opacity, reveal, mask, track matte or a transition matte. An adjustment clip has no keyframed transform of its own, so its transform is its tracked motion and its animation's transform part, which act around the centre of its masks' bounding box, or of the frame when it has no mask. A chain composes: a parent's own space is carried by its parent's transform, and so on to the frame.
 
 Every part of that map is a move, a uniform scale or a rotation, so the parent's full map to the output, P(t), is a similarity transform: a move, one scale s and one rotation θ.
 
