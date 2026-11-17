@@ -47,11 +47,13 @@ struct TranscodeOutputTests {
 
         // When
         let result = try sut.transcode(TranscodeRequest(input: input, output: output))
+        let probed = try decoder.probedMedia(of: output)
 
         // Then
         #expect(result.format == format)
         #expect(result.byteCount == (try FileManager.default.attributesOfItem(atPath: output)[.size] as? Int))
-        #expect(try decoder.probedMedia(of: output) == ProbedMedia(kind: .image, size: size))
+        #expect(probed?.kind == .image)
+        #expect(probed?.size == size)
     }
 
     @Test("a sound transcodes to an .m4a of the same length")
