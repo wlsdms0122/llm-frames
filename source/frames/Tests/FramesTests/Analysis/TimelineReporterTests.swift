@@ -104,7 +104,7 @@ struct TimelineReporterTests {
         #expect(report == (try sut.report(of: value)))
     }
 
-    @Test("times and lengths are written to the nearest microsecond, in their shortest form")
+    @Test("times and lengths are written to the nearest microsecond, in their shortest form, in both outputs")
     func roundsTimes() throws {
         // Given
         let value = try Fixture.json(##"""
@@ -119,6 +119,8 @@ struct TimelineReporterTests {
         #expect(report.duration != 0.3)
         #expect(output?["duration"] == .number(0.3))
         #expect(output?["storyline"]?.arrayValue?[1].objectValue?["edit"] == .array([.number(0.1), .number(0.3)]))
+        #expect(report.text.hasPrefix("duration 0.3\n"))
+        #expect(report.text.contains("edit [0.1, 0.3)"))
     }
 
     @Test("an entry whose media is a compound clip has nested, the timeline object of the document inside")

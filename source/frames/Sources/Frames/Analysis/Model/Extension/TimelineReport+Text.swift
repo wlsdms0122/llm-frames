@@ -10,7 +10,7 @@
 extension TimelineReport {
     // MARK: - Property
     package var text: String {
-        (["duration \(number(duration))"] + lines(indent: "")).joined(separator: "\n")
+        (["duration \(time(duration))"] + lines(indent: "")).joined(separator: "\n")
     }
 
     // MARK: - Initializer
@@ -19,7 +19,7 @@ extension TimelineReport {
     private func lines(indent: String) -> [String] {
         let storylineLines = storyline.flatMap { entry in
             let transition = entry.transition.map { transition in
-                [transition.preset, number(transition.seconds)].compactMap(\.self).joined(separator: " ")
+                [transition.preset, time(transition.seconds)].compactMap(\.self).joined(separator: " ")
             } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",
@@ -54,11 +54,16 @@ extension TimelineReport {
     private func name(of span: TimelineSpan?) -> String {
         guard let span else { return "-" }
 
-        return span.preset ?? "\(number(span.length))s"
+        return span.preset ?? "\(time(span.length))s"
     }
 
     private func written(_ range: TimeRange) -> String {
-        "[\(number(range.start)), \(number(range.end)))"
+        "[\(time(range.start)), \(time(range.end)))"
+    }
+
+    // Times are written as the machine output writes them, to the nearest microsecond.
+    private func time(_ seconds: Double) -> String {
+        JSONValue.time(seconds).written
     }
 
     private func number(_ number: Double) -> String {
