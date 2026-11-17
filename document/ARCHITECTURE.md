@@ -53,7 +53,8 @@ evaluate(resolved, t):
 | resolve | the time plan, timeline, the resolved document |
 | evaluate | display lists at a time, the mix plan |
 | decoder, renderer, mixer, encoder | one module per backend for each role |
-| analysis | probe, ocr, track, extract, sheet, evaluate, locate, the report `timeline` prints, and the machine output |
+| analysis | probe, ocr, track, evaluate, locate, the report `timeline` prints, and the machine output |
+| export | still, sheet and extract: frames of a video or a sequence drawn to PNG files without encoding a video |
 | transcode | image, audio and video delivery files |
 | cli | commands, arguments, error output |
 
