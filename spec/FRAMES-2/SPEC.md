@@ -32,10 +32,10 @@ An area is given in one of these forms, in the coordinate space of the clip that
 
 A text form needs a picture to search. It is allowed only where its coordinate space is the media pixels of a video, an image or an image sequence:
 
-- the `area`, `points`, `position` and `mask` of a clip parented to a storyline clip or media clip whose media is one of those ([FRAMES-10](../FRAMES-10/SPEC.md)), searched in the parent's media;
+- the `area`, `points`, `position` and `mask` of a clip parented to a storyline clip or media clip whose media is one of those, searched in the parent's media, or to a shape or adjustment clip whose space is that media's pixels (its own parent is such a clip, [FRAMES-10](../FRAMES-10/SPEC.md)), searched in that media;
 - the `crop`, `mask` and `track` target of a storyline clip or media clip whose media is one of those, searched in its own media.
 
-A text form anywhere else stops: on an unparented clip, whose coordinates are output pixels; on a clip parented to a title or a shape; and on or under a compound clip or a template instance, whose picture is drawn, not read. Text inside a compound clip is named from inside its nested document. Text is recognised only in media files, through the OCR provider ([FRAMES-21](../FRAMES-21/SPEC.md)).
+A text form anywhere else stops: on an unparented clip, whose coordinates are output pixels; on a clip parented to a title, or to a shape or adjustment clip whose space is output pixels; and on or under a compound clip or a template instance, whose picture is drawn, not read. Text inside a compound clip is named from inside its nested document. Text is recognised only in media files, through the OCR provider ([FRAMES-21](../FRAMES-21/SPEC.md)).
 
 ### The search instant
 
