@@ -153,6 +153,26 @@ struct PicturePlannerTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a title or banner line naming a style the theme does not hold stops at its style, listing the theme's styles",
+        arguments: [
+            (#"{ "title": "Hi", "style": "nope", "position": [400, 225] }"#, "ops[0].style (title)"),
+            (#"{ "banner": [ "Head", { "text": "Line", "style": "nope" } ], "edge": "top" }"#, "ops[0].banner[1].style (banner)")
+        ]
+    )
+    func refusesUnknownStyle(
+        operation: String,
+        place: String
+    ) throws {
+        // Given
+        let document = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ \#(operation) ] }"#
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try picture(document) }
+        #expect(error?.description == place + #": style "nope" is not in styles, "#
+            + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
+    }
+
     @Test("a text area is found on the source picture at the document's time, grown by padding in its pixels")
     func findsTextAreas() throws {
         // Given
