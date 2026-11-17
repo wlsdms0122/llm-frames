@@ -25,15 +25,13 @@ struct CommandContext: Sendable {
         PresetLibrary(packs: packs)
     }
 
-    // Labels are set in the base theme, read through the packs.
     var exporter: FrameExporter {
         FrameExporter(
             decoder: roles.decoder,
             renderer: roles.renderer,
             encoder: roles.encoder,
             mediaFacts: roles.decoder,
-            shaper: roles.shaper,
-            library: ReferenceLibrary(packs: packs, mediaFacts: roles.decoder)
+            shaper: roles.shaper
         )
     }
 

@@ -16,6 +16,7 @@ package enum ExportError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveColumns(Int)
     case outputExtension(path: String)
     case unwritableDirectory(path: String)
+    case missingLabelFace(name: String, file: String)
 
     // MARK: - Property
     package var description: String {
@@ -49,6 +50,9 @@ package enum ExportError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unwritableDirectory(path):
             "\(quoted(path)): the directory for the frames cannot be made there"
+
+        case let .missingLabelFace(name, file):
+            "\(quoted(file)): the file has no face \(quoted(name)), which time labels are set in"
         }
     }
 

@@ -8,7 +8,7 @@
 @testable import Frames
 
 // A fake shaping provider. The machine has the `installed` families, a pack's file holds the family its name starts
-// with, and every face has an ascent of 0.8 and a descent of 0.2. Each scalar is one glyph whose id is its value and
+// with, every file holds a face of any name, and every face has an ascent of 0.8 and a descent of 0.2. Each scalar is one glyph whose id is its value and
 // whose advance is its width in `advances` times the size, 0.5 when not listed. Scalars in `missing` are set in the
 // fallback face.
 struct ShaperTable: ShapingProvider {
@@ -53,6 +53,13 @@ struct ShaperTable: ShapingProvider {
         let file = files.first { $0.split(separator: "/").last?.hasPrefix(prefix) ?? false }
 
         return file.map { Self.face(family, weight, file: $0) }
+    }
+
+    func face(
+        named name: String,
+        in file: String
+    ) -> FontFace? {
+        FontFace(file: file, name: name, ascent: 0.8, descent: 0.2)
     }
 
     func installedFace(

@@ -5,73 +5,73 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Lays cells of one size out on a grid, left to right and then top down, each picture with its label centred on a band
-// under it. The label is set in the base theme's `label` style whatever theme a document takes, so a form's theme never
-// changes how a check looks. Lengths are the base theme's at the cell's width, as a title's are at its frame's width:
-// `layout.gap` between cells, `layout.padding` around them, and the band is the label's height and one gap, all on the
-// base theme's `background` colour. Gaps, padding and the band are whole pixels, so every picture starts on a pixel
-// edge and is resampled once, from its source to its cell.
+// Lays frames of one size out on a grid, left to right and then top down, each with its time label burnt into its
+// top left corner. The label is set in one fixed tool style that no theme changes, at a size S that follows the longer
+// side of the frame as drawn. Frames lie S apart with S around them, and S is a whole number of pixels, so every frame
+// starts on a pixel edge and is resampled once, from its source to its cell.
 struct ContactSheetComposer: Sendable {
     // MARK: - Property
-    private let theme = MergedTheme.base
-    private let typesetter: ThemeTypesetter
+    private static let fontFile = "/System/Library/Fonts/HelveticaNeue.ttc"
+    private static let faceName = "HelveticaNeue-Medium"
+    private static let textColor = Color(written: "#FFFFFFFF")
+    private static let labelBackground = Color(written: "#000000B3")
+    private static let sheetBackground = Color(written: "#202020FF")
+
+    private let shaper: any ShapingProvider
+    private let typesetter: Typesetter
     private let hasher: any FileHashProvider
 
     // MARK: - Initializer
     init(
         shaper: any ShapingProvider,
-        library: ReferenceLibrary,
         hasher: any FileHashProvider
     ) {
-        self.typesetter = ThemeTypesetter(shaper: shaper, library: library)
+        self.shaper = shaper
+        self.typesetter = Typesetter(shaper: shaper)
         self.hasher = hasher
     }
 
     // MARK: - Public
-    // `size` is every cell's picture, in the sheet's pixels.
+    // `size` is every frame as drawn, in the sheet's pixels.
     func sheet(
         of cells: [ContactSheetCell],
         size: Size,
         columns: Int
     ) throws -> DisplayList {
-        let scale = theme.lengthScale(at: size.width)
-        let gap = (theme.layoutGap * scale).rounded()
-        let padding = (theme.layoutPadding * scale).rounded()
-        let labels = try cells.map { cell in
-            try typesetter.layout(
-                cell.label,
-                style: "label",
-                stylePlace: .root,
-                width: nil,
-                theme: theme,
-                scale: scale,
-                place: .root,
-                kind: "label"
-            )
+        guard let face = shaper.face(named: Self.faceName, in: Self.fontFile) else {
+            throw ExportError.missingLabelFace(name: Self.faceName, file: Self.fontFile)
         }
-        let band = ((labels.map(\.size.height).max() ?? 0) + gap).rounded(.up)
 
+        let labelSize = max(14, (max(size.width, size.height) / 40).rounded())
+        let style = style(of: face, size: labelSize)
         let columnCount = max(min(columns, cells.count), 1)
         let rowCount = (cells.count + columnCount - 1) / columnCount
         let items = try cells.indices.flatMap { index in
             let picture = Rectangle(
-                x: padding + Double(index % columnCount) * (size.width + gap),
-                y: padding + Double(index / columnCount) * (size.height + band + gap),
+                x: labelSize + Double(index % columnCount) * (size.width + labelSize),
+                y: labelSize + Double(index / columnCount) * (size.height + labelSize),
                 width: size.width,
                 height: size.height
             )
-
             let item = PictureItem(source: cells[index].picture, rectangle: nil, destination: picture)
+            let layout = try typesetter.layout(
+                cells[index].label,
+                style: style,
+                face: face,
+                width: nil,
+                place: .root,
+                kind: "time label"
+            )
 
-            return [DisplayItem(content: .picture(item)), try labelItem(labels[index], under: picture, band: band)]
+            return [DisplayItem(content: .picture(item)), try labelItem(layout, on: picture, inset: labelSize / 2)]
         }
 
         return DisplayList(
             size: Size(
-                width: padding * 2 + length(of: columnCount, size.width, gap: gap),
-                height: padding * 2 + length(of: rowCount, size.height + band, gap: gap)
+                width: labelSize * 2 + length(of: columnCount, size.width, gap: labelSize),
+                height: labelSize * 2 + length(of: rowCount, size.height, gap: labelSize)
             ),
-            background: theme.color("background"),
+            background: Self.sheetBackground,
             // The sheet draws no grain of its own.
             seed: 0,
             items: items
@@ -79,13 +79,40 @@ struct ContactSheetComposer: Sendable {
     }
 
     // MARK: - Private
+    // The line box is the face's ascent and descent at the size, and the background lies around it. The face is found
+    // by its name, so the style's families and weight are not read.
+    private func style(
+        of face: FontFace,
+        size: Double
+    ) -> TextStyle {
+        TextStyle(
+            families: [],
+            pack: nil,
+            size: size,
+            weight: .regular,
+            color: Self.textColor,
+            emphasis: Self.textColor,
+            lineHeight: (face.ascent + face.descent) * size,
+            stroke: nil,
+            background: TextBackground(
+                color: Self.labelBackground,
+                padding: Size(width: size / 2, height: size / 4),
+                radius: size * 0.3
+            ),
+            align: .left,
+            isOneLine: true
+        )
+    }
+
+    // The label's background, which fills its box, has its top left `inset` from the picture's.
     private func labelItem(
         _ layout: TextLayout,
-        under picture: Rectangle,
-        band: Double
+        on picture: Rectangle,
+        inset: Double
     ) throws -> DisplayItem {
         let frame = Rectangle(
-            center: Point(x: picture.center.x, y: picture.maxY + band / 2),
+            x: picture.x + inset,
+            y: picture.y + inset,
             width: layout.size.width,
             height: layout.size.height
         )

@@ -24,15 +24,12 @@ struct FrameExporterTests {
     private let colors: [[Double]] = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [128, 128, 128]]
     private let orange: [Double] = [255, 128, 0]
     private let blue: [Double] = [0, 0, 255]
-    private let packs: TemporaryDirectory
+    private let sheetBackground: [Double] = [32, 32, 32]
 
     // MARK: - Initializer
-    init() throws {
-        packs = try TemporaryDirectory()
-    }
 
     // MARK: - Test
-    @Test("still draws the sequence frames at full size side by side, each with its time labelled on a band under it")
+    @Test("still draws the sequence frames at full size side by side, each with its time burnt into its top left")
     func drawsStill() throws {
         // Given
         let media = try TemporaryDirectory()
@@ -44,17 +41,43 @@ struct FrameExporterTests {
         try sut.still(document, at: [0.2, 0.7], to: output.file("still.png"))
 
         // Then
-        // The base theme's gap and padding are 5 at a width of 160.
+        // The label size is 14 on a 160 wide frame, so frames lie 14 apart with 14 around them, and each label's
+        // background starts 7 into its frame.
         let still = try picture(at: output.file("still.png"))
-        let band = still.height - 5 - 90 - 5
-        #expect(still.width == 5 + 160 + 5 + 160 + 5)
-        #expect(band > 0)
-        #expect(still.isPixel(x: 85, y: 50, orange, tolerance: 1.0 / 255))
-        #expect(still.isPixel(x: 250, y: 50, blue, tolerance: 1.0 / 255))
-        #expect(labelPixels(in: still, x: 5..<165, y: 95..<(95 + band)) > 0)
-        #expect(labelPixels(in: still, x: 170..<330, y: 95..<(95 + band)) > 0)
-        #expect(still.isPixel(x: 6, y: 95 + band / 2, [255, 255, 255], tolerance: 1.0 / 255))
+        #expect(still.width == 14 + 160 + 14 + 160 + 14)
+        #expect(still.height == 14 + 90 + 14)
+        #expect(still.isPixel(x: 5, y: 5, sheetBackground, tolerance: 1.0 / 255))
+        #expect(still.isPixel(x: 94, y: 59, orange, tolerance: 1.0 / 255))
+        #expect(still.isPixel(x: 268, y: 59, blue, tolerance: 1.0 / 255))
+        #expect(still.isPixel(x: 22, y: 33, labelled(orange), tolerance: 2.0 / 255))
+        #expect(still.isPixel(x: 20, y: 33, orange, tolerance: 1.0 / 255))
+        #expect(still.isPixel(x: 30, y: 20, orange, tolerance: 1.0 / 255))
+        #expect(pixels(in: still, x: 21..<80, y: 21..<46, [255, 255, 255], tolerance: 2.0 / 255) > 0)
+        #expect(pixels(in: still, x: 195..<254, y: 21..<46, labelled(blue), tolerance: 2.0 / 255) > 0)
+        #expect(pixels(in: still, x: 195..<254, y: 21..<46, [255, 255, 255], tolerance: 2.0 / 255) > 0)
         #expect(try contents(of: output) == ["still.png"])
+    }
+
+    @Test("a document's theme does not change how still labels its frames")
+    func labelsWithoutTheme() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let plain = try sequence(in: media)
+        let themed = try sequence(
+            in: media,
+            theme: #"""
+                { "font": ["Helvetica"], "colors": { "accent": "#00FF00", "background": "#0000FF", "text": "#FF00FF" } }
+                """#
+        )
+        let sut = exporter()
+
+        // When
+        try sut.still(plain, at: [0.2], to: output.file("plain.png"))
+        try sut.still(themed, at: [0.2], to: output.file("themed.png"))
+
+        // Then
+        #expect(try picture(at: output.file("plain.png")) == picture(at: output.file("themed.png")))
     }
 
     @Test("sheet lays a video's frames out on a grid, each cell at most 480 pixels on its longer side")
@@ -69,18 +92,19 @@ struct FrameExporterTests {
         try sut.sheet(.video(path: video), range: FrameRange(), columns: 2, to: output.file("sheet.png"))
 
         // Then
-        // 640 x 360 cells shrink to 480 x 270, where the base theme's gap and padding are 16.
+        // 640 x 360 cells shrink to 480 x 270, where the label size is 14.
         let sheet = try picture(at: output.file("sheet.png"))
-        let band = (sheet.height - 16 - 270 - 16 - 270 - 16) / 2
-        let centres = [(256, 151), (752, 151), (256, 151 + 270 + band + 16), (752, 151 + 270 + band + 16)]
-        #expect(sheet.width == 16 + 480 + 16 + 480 + 16)
+        let centres = [(254, 149), (748, 149), (254, 433), (748, 433)]
+        #expect(sheet.width == 14 + 480 + 14 + 480 + 14)
+        #expect(sheet.height == 14 + 270 + 14 + 270 + 14)
         for (index, centre) in centres.enumerated() {
             #expect(
                 sheet.isPixel(x: centre.0, y: centre.1, colors[index], tolerance: tolerance),
                 "cell \(index): \(sheet.pixel(x: centre.0, y: centre.1))"
             )
         }
-        #expect(labelPixels(in: sheet, x: 16..<496, y: 286..<(286 + band)) > 0)
+        #expect(pixels(in: sheet, x: 21..<80, y: 21..<46, labelled(colors[0]), tolerance: tolerance) > 0)
+        #expect(pixels(in: sheet, x: 515..<574, y: 305..<330, labelled(colors[3]), tolerance: tolerance) > 0)
     }
 
     @Test("a sheet of a document draws its frames as still does, and never enlarges a small frame")
@@ -96,9 +120,9 @@ struct FrameExporterTests {
 
         // Then
         let sheet = try picture(at: output.file("sheet.png"))
-        #expect(sheet.width == 5 + 160 + 5 + 160 + 5)
-        #expect(sheet.isPixel(x: 85, y: 50, orange, tolerance: 1.0 / 255))
-        #expect(sheet.isPixel(x: 250, y: 50, blue, tolerance: 1.0 / 255))
+        #expect(sheet.width == 14 + 160 + 14 + 160 + 14)
+        #expect(sheet.isPixel(x: 94, y: 59, orange, tolerance: 1.0 / 255))
+        #expect(sheet.isPixel(x: 268, y: 59, blue, tolerance: 1.0 / 255))
     }
 
     @Test("extract writes a video's frames over the range at full size, named by index, into a directory it makes")
@@ -198,25 +222,26 @@ struct FrameExporterTests {
     // MARK: - Private
     private func exporter() -> FrameExporter {
         let decoder = AVFoundationDecoder()
-        let directory = URL(fileURLWithPath: packs.path, isDirectory: true)
 
         return FrameExporter(
             decoder: decoder,
             renderer: QuartzRenderer(decoder: decoder),
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
-            shaper: CoreTextShaper(),
-            library: ReferenceLibrary(packs: PackLibrary(installed: directory, shipped: directory), mediaFacts: decoder)
+            shaper: CoreTextShaper()
         )
     }
 
     // An orange image for [0, 0.5) and a blue one for [0.5, 1), at 160 x 90 and 10 frames a second.
-    private func sequence(in media: TemporaryDirectory) throws -> ResolvedSequence {
+    private func sequence(
+        in media: TemporaryDirectory,
+        theme: String = "{}"
+    ) throws -> ResolvedSequence {
         let first = try image(in: media, named: "orange.png", color: orange)
         let second = try image(in: media, named: "blue.png", color: blue)
 
         return try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 },
+            { "kind": "sequence", "format": { "fps": 10 }, "theme": \#(theme),
               "storyline": [ { "media": "\#(first)", "duration": 0.5 }, { "media": "\#(second)", "duration": 0.5 } ] }
             """#)
     }
@@ -249,14 +274,21 @@ struct FrameExporterTests {
         try AVFoundationDecoder().picture(of: MediaFile(path: path), atFrame: 0)
     }
 
-    // The pixels in the area that show the base theme's accent, the colour behind a label.
-    private func labelPixels(
+    // `color` under a label's background, black at an alpha of 0xB3.
+    private func labelled(_ color: [Double]) -> [Double] {
+        color.map { $0 * (1 - 0xB3 / 255.0) }
+    }
+
+    // The pixels in the area that show `color`.
+    private func pixels(
         in bitmap: Bitmap,
         x columns: Range<Int>,
-        y rows: Range<Int>
+        y rows: Range<Int>,
+        _ color: [Double],
+        tolerance: Double
     ) -> Int {
         rows.flatMap { row in columns.map { column in (column, row) } }
-            .filter { bitmap.isPixel(x: $0.0, y: $0.1, [237, 41, 41], tolerance: 2.0 / 255) }
+            .filter { bitmap.isPixel(x: $0.0, y: $0.1, color, tolerance: tolerance) }
             .count
     }
 

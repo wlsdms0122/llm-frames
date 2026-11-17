@@ -14,6 +14,12 @@ package protocol ShapingProvider: Sendable {
         in files: [String]
     ) -> FontFace?
 
+    // The face whose PostScript name is `name` in the font file `file`.
+    func face(
+        named name: String,
+        in file: String
+    ) -> FontFace?
+
     // The face of `family` in `weight` installed on the machine.
     func installedFace(
         family: String,

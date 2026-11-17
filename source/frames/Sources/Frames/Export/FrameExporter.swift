@@ -27,14 +27,13 @@ package struct FrameExporter: Sendable {
     private let evaluator = Evaluator()
 
     // MARK: - Initializer
-    // `shaper` and `library` set the labels.
+    // `shaper` sets the time labels.
     package init(
         decoder: any MediaDecoder,
         renderer: any Renderer,
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
-        shaper: any ShapingProvider,
-        library: ReferenceLibrary
+        shaper: any ShapingProvider
     ) {
         self.init(
             decoder: decoder,
@@ -42,7 +41,6 @@ package struct FrameExporter: Sendable {
             encoder: encoder,
             mediaFacts: mediaFacts,
             shaper: shaper,
-            library: library,
             hasher: FileHasher()
         )
     }
@@ -53,7 +51,6 @@ package struct FrameExporter: Sendable {
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
         shaper: any ShapingProvider,
-        library: ReferenceLibrary,
         hasher: any FileHashProvider
     ) {
         self.decoder = decoder
@@ -62,7 +59,7 @@ package struct FrameExporter: Sendable {
         self.mediaFacts = mediaFacts
         self.hasher = hasher
         self.pinned = PinnedReferenceChecker(decoder: decoder, hasher: hasher)
-        self.composer = ContactSheetComposer(shaper: shaper, library: library, hasher: hasher)
+        self.composer = ContactSheetComposer(shaper: shaper, hasher: hasher)
     }
 
     // MARK: - Public
