@@ -29,13 +29,16 @@ enum ThemeKeyTable {
             KeyRule("color", .color),
             KeyRule("emphasis", .color),
             KeyRule("lineHeight", .number),
-            KeyRule("stroke", .object(ObjectTable(
-                kind: "stroke",
-                rules: [
-                    KeyRule("width", .number, isRequired: true),
-                    KeyRule("color", .color)
-                ]
-            ))),
+            KeyRule("stroke", .oneOf([
+                .exactly(.bool(false)),
+                .object(ObjectTable(
+                    kind: "stroke",
+                    rules: [
+                        KeyRule("width", .number, isRequired: true),
+                        KeyRule("color", .color)
+                    ]
+                ))
+            ])),
             KeyRule("background", .oneOf([
                 .exactly(.bool(false)),
                 .object(ObjectTable(
