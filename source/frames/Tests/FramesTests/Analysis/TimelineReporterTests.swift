@@ -68,7 +68,7 @@ struct TimelineReporterTests {
     @Test("a resolved document reports the ranges it holds, with no preset names, its media pinned and no audio clips")
     func reportsResolvedDocument() throws {
         // Given
-        let resolved = try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
 
         // When
         let report = sut.report(of: resolved)
@@ -95,7 +95,7 @@ struct TimelineReporterTests {
                            "clips": [ { "title": "a", "style": "headline" } ] } }
             ] }
             """##)
-        let resolved = try ResolvedDocument(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
         // When
         let report = sut.report(of: resolved)

@@ -89,7 +89,7 @@ struct CommandShellTests {
     @Test("a resolved document has its theme and arguments written in, so --theme or --args with it stops")
     func stopsOnOptionsWithResolvedDocument() throws {
         // Given
-        let document = try sut.write(#"{ "kind": "image", "resolved": "1.0.0" }"#, named: "resolved.json")
+        let document = try sut.write(#"{ "kind": "sequence", "resolved": "1.0.0" }"#, named: "resolved.json")
         let arguments = try sut.write("{}", named: "args.json")
 
         // When
@@ -100,8 +100,8 @@ struct CommandShellTests {
         // Then
         #expect(themed == 1)
         #expect(argued == 1)
-        #expect(themedError == "frames: top level (image): a resolved document has its theme and arguments written in, so it takes no --theme\n")
-        #expect(sut.standardError == "frames: top level (image): a resolved document has its theme and arguments written in, so it takes no --args\n")
+        #expect(themedError == "frames: top level (sequence): a resolved document has its theme and arguments written in, so it takes no --theme\n")
+        #expect(sut.standardError == "frames: top level (sequence): a resolved document has its theme and arguments written in, so it takes no --args\n")
     }
 
     @Test("a document that is not a template takes no --args, and a template takes no --theme")

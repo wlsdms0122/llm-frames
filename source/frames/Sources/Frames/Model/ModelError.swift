@@ -21,7 +21,6 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingMedia(place: Place, kind: String, reference: String)
     case unreadableMedia(place: Place, kind: String, reference: String, reason: String)
     case unknownTemplate(place: Place, kind: String, name: String)
-    case ambiguousTemplateKind(place: Place, kind: String, name: String, templates: [ProbedTemplate])
     case misplacedMedia(place: Place, kind: String, reason: String)
     case easeWithoutFollowingKeyframe(place: Place, properties: [String])
 
@@ -75,10 +74,6 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownTemplate(place, kind, name):
             "\(place) (\(kind)): unknown template \"\(name)\""
-
-        case let .ambiguousTemplateKind(place, kind, name, templates):
-            "\(place) (\(kind)): parameter \"\(name)\" names templates of different kinds: "
-                + templates.map { "\"\($0.name)\" is \($0.kind.rawValue)" }.joined(separator: ", ")
 
         case let .misplacedMedia(place, kind, reason):
             "\(place) (\(kind)): \(reason)"

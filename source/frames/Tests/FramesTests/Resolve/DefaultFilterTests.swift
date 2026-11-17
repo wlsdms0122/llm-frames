@@ -57,10 +57,7 @@ struct DefaultFilterTests {
 
         // Then
         #expect(plan.storyline[0].filter == [])
-        guard case let .sequence(nested) = plan.storyline[0].nested else {
-            Issue.record("the compound clip has no nested sequence")
-            return
-        }
+        let nested = try #require(plan.storyline[0].nested)
         #expect(nested.storyline[0].filter == grade)
     }
 

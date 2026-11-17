@@ -6,7 +6,7 @@
 //
 
 // Reads a resolved sequence as `ResolvedSequenceWriter` writes it: its format, its storyline, its other clips and every
-// source of sound. A nested document in place of a file is read as a document of its own kind. Which keys an entry
+// source of sound. A nested document in place of a file is read as a sequence of its own. Which keys an entry
 // holds follows from what it is, so a key resolve writes only for another kind of entry stops by its name.
 struct ResolvedSequenceReader: Sendable {
     // MARK: - Property
@@ -27,25 +27,19 @@ struct ResolvedSequenceReader: Sendable {
     private static let shapeNames = ["box", "fill", "dim", "arrow"]
 
     private let values = ResolvedValueReader()
-    private let pictures = ResolvedPictureReader()
 
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // A document of the kind it names, with `extraKeys` beside that kind's own: `resolved` on the outermost one.
+    // A document, with `extraKeys` beside a sequence's own: `resolved` on the outermost one.
     func document(
         _ value: PlacedJSONValue,
         extraKeys: [String] = []
-    ) throws -> ResolvedDocument {
+    ) throws -> ResolvedSequence {
         let kind = try values.documentKind(value)
-        guard kind == "sequence" else {
-            let object = try value.object(kind: kind, keys: ResolvedPictureReader.keys + extraKeys)
 
-            return .picture(try pictures.picture(object, kind: kind, sequences: sequence))
-        }
-
-        return .sequence(try sequence(value.object(kind: kind, keys: Self.keys + extraKeys)))
+        return try sequence(value.object(kind: kind, keys: Self.keys + extraKeys))
     }
 
     func sequence(_ object: PlacedJSONObject) throws -> ResolvedSequence {
@@ -290,7 +284,7 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // Pinned media, or a nested document, which names its `kind`.
+    // Pinned media, or a nested sequence, which names its `kind`.
     private func media(_ value: PlacedJSONValue) throws -> ResolvedMediaContent {
         guard value.value.objectValue?.contains("kind") == true else { return .pinned(try values.media(value)) }
 

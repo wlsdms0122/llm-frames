@@ -15,7 +15,6 @@ struct SequencePlanner: Sendable {
     private let tracker: TrackPlanner
     private let text: ThemeTypesetter
     private let placer = LabelPlacer()
-    private let pictures: PicturePlanner
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
 
@@ -29,9 +28,7 @@ struct SequencePlanner: Sendable {
     ) {
         self.finder = GeometryFinder(ocr: ocr)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
-        let text = ThemeTypesetter(shaper: shaper, library: library)
-        self.text = text
-        self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text, library: library)
+        self.text = ThemeTypesetter(shaper: shaper, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
 
@@ -144,16 +141,13 @@ struct SequencePlanner: Sendable {
     }
 
     // MARK: - Private
-    private func nested(_ media: MediaPlan) throws -> DocumentPlan? {
+    private func nested(_ media: MediaPlan) throws -> SequencePlan? {
         switch media.source {
         case .file:
             nil
 
         case let .sequence(nested):
-            .sequence(try plan(nested))
-
-        case let .picture(nested):
-            .picture(try pictures.plan(nested, sequences: plan))
+            try plan(nested)
         }
     }
 
@@ -161,7 +155,7 @@ struct SequencePlanner: Sendable {
     // the theme `background` unless the format gives one.
     private func format(
         of time: TimePlan,
-        nested: [DocumentPlan?]
+        nested: [SequencePlan?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
         let size = try format.size ?? defaultSize(of: time, nested: nested)
@@ -194,7 +188,7 @@ struct SequencePlanner: Sendable {
     // even numbers. A solid has no size of its own.
     private func defaultSize(
         of time: TimePlan,
-        nested: [DocumentPlan?]
+        nested: [SequencePlan?]
     ) throws -> Size {
         let index = time.storyline.firstIndex { $0.source.kind == .media(.video) } ?? 0
         let plan = time.storyline[index]
@@ -214,7 +208,7 @@ struct SequencePlanner: Sendable {
     // A solid fills the content rect, so its picture is that rect's size.
     private func picture(
         of plan: StorylinePlan,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         format: FormatPlan
     ) throws -> Picture {
         guard let media = plan.source.media else {
@@ -228,16 +222,16 @@ struct SequencePlanner: Sendable {
         return try picture(of: media, kind: plan.source.kind, nested: nested, place: plan.place.appending(key: "media"))
     }
 
-    // A media file's picture is its probed size. A compound clip's or an image or layout document's is the output of
-    // its nested document, which is drawn, not read.
+    // A media file's picture is its probed size. A compound clip's is the output frame of its nested sequence, which is
+    // drawn, not read.
     private func picture(
         of media: MediaPlan,
         kind: ClipKind,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         place: Place
     ) throws -> Picture {
         if let nested {
-            return Picture(name: media.reference ?? place.description, source: .document, size: nested.size)
+            return Picture(name: media.reference ?? place.description, source: .document, size: nested.format.size)
         }
         // Media without a nested plan is a file.
         guard case let .file(file) = media.source, let size = file.size else {
@@ -252,7 +246,7 @@ struct SequencePlanner: Sendable {
     // nothing, so it has none.
     private func picture(
         of plan: ClipPlan,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         place: Place
     ) throws -> Picture? {
         guard plan.kind != .media(.audio), let media = plan.media else { return nil }
@@ -268,7 +262,7 @@ struct SequencePlanner: Sendable {
     private func crop(
         of plan: StorylinePlan,
         written: StorylineClip,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> PropertyValue<FoundArea>? {
@@ -294,7 +288,7 @@ struct SequencePlanner: Sendable {
         written: Clip,
         picture: Picture?,
         time: TimePlan,
-        storylineNested: [DocumentPlan?],
+        storylineNested: [SequencePlan?],
         format: FormatPlan
     ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
         let theme = time.theme

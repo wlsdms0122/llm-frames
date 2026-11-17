@@ -6,7 +6,6 @@
 //
 
 package enum ExportError: Error, Equatable, CustomStringConvertible, Sendable {
-    case timelessDocument(kind: String)
     case missingMedia(path: String)
     case notVideo(path: String, kind: MediaKind)
     case noTime
@@ -21,9 +20,6 @@ package enum ExportError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Property
     package var description: String {
         switch self {
-        case let .timelessDocument(kind):
-            "\(kind) documents have no sequence times, so they have no frames to take"
-
         case let .missingMedia(path):
             "\(quoted(path)): there is no such file"
 

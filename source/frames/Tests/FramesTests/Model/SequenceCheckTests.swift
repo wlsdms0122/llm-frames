@@ -32,7 +32,7 @@ struct SequenceCheckTests {
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
                   "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "label": "done", "animation": "frames/stamp" },
                                  { "shape": "box", "area": "Account 110-", "track": true, "label": "this account" } ] },
-                { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5,
+                { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "box",
                                    "keyframes": [ { "at": 1.2, "area": "First line" }, { "at": 1.65, "area": "Second line" } ] } ] }
@@ -365,14 +365,24 @@ struct SequenceCheckTests {
         #expect(error?.description == #"clips[0].keyframes[1] (keyframe): "ease" shapes no span, since no later keyframe names position, scale"#)
     }
 
-    @Test("an unknown document kind stops")
-    func refusesUnknownDocumentKind() throws {
+    @Test("a document whose kind is not sequence stops", arguments: ["image", "layout", "movie"])
+    func refusesKindOtherThanSequence(kind: String) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "movie" }"#)
+        let document = try Fixture.json(#"{ "kind": "\#(kind)", "storyline": [] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"kind (document): unknown value "movie". Allowed: image, layout, sequence"#)
+        #expect(error?.description == #"kind (document): unknown value "\#(kind)". Allowed: sequence"#)
+    }
+
+    @Test("a document without a kind stops")
+    func refusesMissingKind() throws {
+        // Given
+        let document = try Fixture.json(#"{ "storyline": [] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"top level (document): missing key "kind""#)
     }
 
     @Test(

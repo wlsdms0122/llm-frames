@@ -20,11 +20,11 @@ package struct ResolvedDocumentReader: Sendable {
     }
 
     // MARK: - Public
-    func read(_ text: String) throws -> ResolvedDocument {
+    func read(_ text: String) throws -> ResolvedSequence {
         try read(JSONReader().read(text))
     }
 
-    package func read(_ value: JSONValue) throws -> ResolvedDocument {
+    package func read(_ value: JSONValue) throws -> ResolvedSequence {
         let root = PlacedJSONValue(value, place: .root, kind: "resolved document")
         guard let object = value.objectValue else { throw root.wrongType("an object") }
         guard try checker.version(of: value, theme: nil, arguments: nil) != nil else {

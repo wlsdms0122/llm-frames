@@ -5,39 +5,26 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Writes a resolved document as JSON of the same kind as its document, `kind` first and `"resolved"` second, set to
-// the version of this frames. The same document gives the same bytes.
+// Writes a resolved document as JSON, `kind` first and `"resolved"` second, set to the version of this frames. The same
+// document gives the same bytes.
 package struct ResolvedDocumentWriter: Sendable {
     // MARK: - Property
     private let sequences = ResolvedSequenceWriter()
-    private let pictures = ResolvedPictureWriter()
     private let writer = JSONWriter()
 
     // MARK: - Initializer
     package init() { }
 
     // MARK: - Public
-    package func write(_ document: ResolvedDocument) -> String {
-        writer.write(self.document(document))
+    package func write(_ sequence: ResolvedSequence) -> String {
+        writer.write(document(sequence))
     }
 
-    func document(_ document: ResolvedDocument) -> JSONValue {
-        let kind: String
-        let members: [JSONMember]
-        switch document {
-        case let .sequence(sequence):
-            kind = "sequence"
-            members = sequences.members(of: sequence)
-
-        case let .picture(picture):
-            kind = picture.kind
-            members = pictures.members(of: picture, sequences: sequences.members)
-        }
-
-        return .object(JSONObject(members: [
-            JSONMember(key: "kind", value: .string(kind)),
+    func document(_ sequence: ResolvedSequence) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "kind", value: .string("sequence")),
             JSONMember(key: "resolved", value: .string(FramesVersion.current))
-        ] + members))
+        ] + sequences.members(of: sequence)))
     }
 
     // MARK: - Private

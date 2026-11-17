@@ -37,7 +37,7 @@ struct ResolveEndToEndTests {
         let sut = planner(packs: packs)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         guard case let .value(area) = plan.clips[0].area else {
@@ -69,7 +69,7 @@ struct ResolveEndToEndTests {
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let resolved = try ResolvedDocument(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
+        let resolved = try ResolvedSequence(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
         let sut = Evaluator()
 
         // When

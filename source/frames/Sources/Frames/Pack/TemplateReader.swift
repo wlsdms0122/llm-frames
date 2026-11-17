@@ -30,7 +30,6 @@ struct TemplateReader: Sendable {
         return Template(
             document: document,
             place: place,
-            kind: MediaKind(document: document),
             parameters: parameters,
             references: references
         )

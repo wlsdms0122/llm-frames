@@ -41,7 +41,7 @@ struct ReferenceLibraryTests {
         #expect(bareTheme == nil)
     }
 
-    @Test("a template is read from the pack's templates, checked, and takes the kind of document it is")
+    @Test("a template is read from the pack's templates and checked")
     func findsTemplate() throws {
         // Given
         try directory.write(
@@ -57,7 +57,6 @@ struct ReferenceLibraryTests {
         let template = try #require(try sut.template(named: "shorts/leak"))
 
         // Then
-        #expect(template.kind == .sequence)
         #expect(template.place.description == "shorts/leak: top level")
         #expect(template.parameters == [
             TemplateParameter(name: "clip", type: .video),
@@ -67,7 +66,7 @@ struct ReferenceLibraryTests {
             "shorts/leak: storyline[0].media",
             "shorts/leak: storyline[0].connected[0].title"
         ])
-        #expect(try sut.templateKind(of: "shorts/leak") == .sequence)
+        #expect(try sut.hasTemplate(named: "shorts/leak"))
     }
 
     @Test("an error in a template file names the template as it was referred to, with the place in that file")

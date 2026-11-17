@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// What `evaluate` prints: the display list at sequence time `time` (as given for an image or layout, which has one),
-// its frame size, and every item it draws with nested lists flattened, bottom first.
+// What `evaluate` prints: the display list at sequence time `time`, its frame size, and every item it draws with nested
+// lists flattened, bottom first.
 package struct EvaluationReport: Equatable, Sendable {
     // MARK: - Property
     package let time: Double

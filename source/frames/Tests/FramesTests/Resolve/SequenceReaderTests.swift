@@ -26,7 +26,7 @@ struct SequenceReaderTests {
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
                                  { "shape": "box", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
-                { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
+                { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [

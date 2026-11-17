@@ -76,7 +76,7 @@ In the examples below, `total.json` is the [first edit](#a-first-edit) above and
 
 | Command | What it does |
 | --- | --- |
-| `render <document> -o <out.mov \| out.png> [--deliver <out.mp4>] [--args <args.json>]` | Draws the result. A sequence writes a `.mov` master (ProRes and PCM at full quality), an image or layout a `.png`. `--deliver` writes an H.264 `.mp4` from the same frames |
+| `render <document> -o <out.mov \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Draws the result. A `.mov` is the master of every frame (ProRes and PCM at full quality), and a `.png` the frame at `--at` (0 when left out). `--deliver` writes an H.264 `.mp4` from the same frames as the master |
 | `still <document> --at <t>[,<t>...] -o <out.png> [--args <args.json>]` | Draws sequence frames at those times, side by side and labelled, without encoding a video. The cheap check while you write |
 | `resolve <document> -o <resolved.json> [--args <args.json>]` | Writes the resolved document: everything found, laid out and planned, with files pinned by hash |
 | `transcode <in> -o <out> [--quality high\|medium\|low] [--max <px>] [--codec h264\|hevc]` | Makes a smaller delivery file from an image, audio or video |

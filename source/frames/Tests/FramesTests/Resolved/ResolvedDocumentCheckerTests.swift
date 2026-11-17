@@ -48,13 +48,13 @@ struct ResolvedDocumentCheckerTests {
         version: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "image", "resolved": \#(written) }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "resolved": \#(written) }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.version(of: document, theme: nil, arguments: nil) }
         #expect(error == .unreadableResolvedVersion(
             place: Place.root.appending(key: "resolved"),
-            kind: "image",
+            kind: "sequence",
             written: version,
             current: "1.2.3"
         ))
@@ -77,14 +77,14 @@ struct ResolvedDocumentCheckerTests {
     @Test("a resolved document with --theme or --args stops, since both are already written in")
     func refusesOptions() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "layout", "resolved": "1.2.3" }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "resolved": "1.2.3" }"#)
         let arguments = ArgumentFile(name: "args.json", value: try Fixture.json("{}"))
 
         // When, Then
-        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "layout", option: "--theme")) {
+        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "sequence", option: "--theme")) {
             try sut.version(of: document, theme: "shorts", arguments: nil)
         }
-        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "layout", option: "--args")) {
+        #expect(throws: ResolveError.optionOnResolved(place: .root, kind: "sequence", option: "--args")) {
             try sut.version(of: document, theme: nil, arguments: arguments)
         }
     }

@@ -49,7 +49,7 @@ struct ResolvedDocumentReaderTests {
 
     // Documents that between them write every kind of resolved entry and value.
     private static let documents = [
-        // A cropped, filtered storyline clip at speed 2, a title that pops in, a picture with a border and music.
+        // A cropped, filtered storyline clip at speed 2, a title that pops in, a still with a border and music.
         #"""
         { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
@@ -77,33 +77,8 @@ struct ResolvedDocumentReaderTests {
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
-        """#,
-        // An image with a crop, a resize, a pad, every shape, a title, adjustments and a border.
-        #"""
-        { "kind": "image", "source": "/abs/page.png",
-          "ops": [ { "crop": [100, 100, 400, 200] }, { "resize": { "width": 800 } }, { "pad": 20 },
-                   { "shape": "box", "area": [150, 150, 100, 50] }, { "shape": "dim", "area": [120, 120, 50, 50] },
-                   { "shape": "arrow", "side": "left", "area": [300, 150, 50, 50] },
-                   { "title": "Hi", "style": "label", "position": [200, 150] },
-                   { "adjust": "mine/grade" }, { "adjust": "mine/grade", "area": [110, 110, 10, 10] }, { "border": true } ] }
-        """#,
-        // A layout with a heading and a nested image.
-        #"""
-        { "kind": "layout",
-          "items": [ { "heading": "Before", "image": "/abs/card.png" }, { "image": { "kind": "image", "source": "/abs/page.png" } } ] }
-        """#,
-        // An image of a video at a media second, and one of a compound clip's sequence at a time of its own.
-        #"""
-        { "kind": "layout",
-          "items": [ { "image": { "kind": "image", "source": "/abs/short.mp4", "time": 1 } },
-                     { "image": { "kind": "image", "time": 1,
-                                  "source": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] } } } ] }
         """#
     ]
-
-    private static let boxedImage = #"""
-        { "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "box", "area": [10, 10, 20, 20], "id": "serial" } ] }
-        """#
 
     // MARK: - Initializer
     // MARK: - Test
@@ -126,14 +101,14 @@ struct ResolvedDocumentReaderTests {
     )
     func refusesOtherVersion(version: String) throws {
         // Given
-        let text = try replacingFirst(#""resolved": "1.0.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[3]))
+        let text = try replacingFirst(#""resolved": "1.0.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[0]))
 
         // When
         let error = #expect(throws: ResolveError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == #"""
-            resolved (image): the resolved document was written by frames "\#(version)", and frames 1.0.0 reads only one \#
+            resolved (sequence): the resolved document was written by frames "\#(version)", and frames 1.0.0 reads only one \#
             written by frames 1.0 up to 1.0
             """#)
     }
@@ -141,13 +116,13 @@ struct ResolvedDocumentReaderTests {
     @Test("a document without resolved is not a resolved document")
     func refusesMissingVersion() throws {
         // Given
-        let text = #"{ "kind": "image", "size": [1, 1], "steps": [] }"#
+        let text = #"{ "kind": "sequence", "format": {}, "storyline": [], "clips": [], "audio": [] }"#
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
 
         // Then
-        #expect(error?.description == #"top level (image): missing key "resolved""#)
+        #expect(error?.description == #"top level (sequence): missing key "resolved""#)
     }
 
     @Test(
@@ -196,51 +171,6 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.hasPrefix(#"clips[3] (clip): unknown key "scale""#) == true)
     }
 
-    @Test("a drawing step reads back the place, id and kind of what drew it")
-    func readsStepOrigins() throws {
-        // Given
-        let text = try written(Self.boxedImage)
-
-        // When
-        let read = try sut.read(text)
-
-        // Then
-        guard case let .picture(picture) = read else {
-            Issue.record("the image is read as \(read)")
-            return
-        }
-        #expect(picture.steps.map(\.place) == ["source", "ops[0]#serial"])
-        #expect(picture.steps.map(\.id) == [nil, "serial"])
-        #expect(picture.steps.map(\.kind) == ["image", "box"])
-    }
-
-    @Test(
-        "a drawing step without what drew it, or with a key never written there, stops, naming its place",
-        arguments: [
-            (#""place": "source","#, "", #"steps[0] (drawing step): missing key "place""#),
-            (#""id": "serial","#, #""id": 7,"#, #"steps[1].id (drawing step): expected a string, found 7"#),
-            (
-                #""kind": "box","#,
-                #""kind": "box", "label": null,"#,
-                #"steps[1] (drawing step): unknown key "label". Allowed: place, id, kind, draw, area, width, radius, color, clip"#
-            )
-        ]
-    )
-    func refusesUnreadableStep(
-        written: String,
-        replacement: String,
-        message: String
-    ) throws {
-        // Given
-        let text = try replacingFirst(written, with: replacement, in: self.written(Self.boxedImage))
-
-        // When
-        let error = #expect(throws: ModelError.self) { try sut.read(text) }
-
-        // Then
-        #expect(error?.description == message)
-    }
-
     @Test("a root that is not an object stops")
     func refusesNonObjectRoot() throws {
         // Given
@@ -254,7 +184,7 @@ struct ResolvedDocumentReaderTests {
     }
 
     // MARK: - Private
-    private func resolved(_ document: String) throws -> ResolvedDocument {
+    private func resolved(_ document: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
@@ -264,7 +194,7 @@ struct ResolvedDocumentReaderTests {
             library: Fixture.library
         )
 
-        return try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     private func written(_ document: String) throws -> String {

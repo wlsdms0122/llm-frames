@@ -46,22 +46,6 @@ struct FrameCommandTests {
         #expect(try sut.standardOutput == line(of: again))
     }
 
-    @Test("still of an image document stops with the exporter's reason and writes nothing")
-    func stopsStillOfImage() throws {
-        // Given
-        let image = try picture(named: "card.png")
-        let document = try sut.write(#"{ "kind": "image", "source": "\#(image)" }"#, named: "card.json")
-        let output = sut.directory.file("still.png")
-
-        // When
-        let code = sut.run(["still", document, "--at", "0", "-o", output])
-
-        // Then
-        #expect(code == 1)
-        #expect(sut.standardError == "frames: image documents have no sequence times, so they have no frames to take\n")
-        #expect(!FileManager.default.fileExists(atPath: output))
-    }
-
     @Test("sheet lays out a video's frames or a document's on one PNG and prints its line")
     func drawsSheet() async throws {
         // Given

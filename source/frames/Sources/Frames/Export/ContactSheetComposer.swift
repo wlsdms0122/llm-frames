@@ -72,7 +72,8 @@ struct ContactSheetComposer: Sendable {
                 height: padding * 2 + length(of: rowCount, size.height + band, gap: gap)
             ),
             background: theme.color("background"),
-            seed: GrainSeeder.pictureSeed,
+            // The sheet draws no grain of its own.
+            seed: 0,
             items: items
         )
     }

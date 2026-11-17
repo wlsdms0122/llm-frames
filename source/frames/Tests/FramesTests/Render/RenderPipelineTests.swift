@@ -24,7 +24,6 @@ struct RenderPipelineTests {
         frameTimes: [0, 0.5, 1, 1.5]
     )
     private let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: "sha256-of-/abs/bgm.m4a")))
-    private let card = PinnedMedia(source: .file(PinnedFile(path: "/abs/card.png", sha256: "sha256-of-/abs/card.png")))
 
     // MARK: - Initializer
     // MARK: - Test
@@ -36,7 +35,7 @@ struct RenderPipelineTests {
         let sequence = sequence(fps: 2, duration: 1, audio: soundtrack)
 
         // When
-        try sut.render(.sequence(sequence), to: master, delivery: delivery)
+        try sut.render(sequence, to: master, at: nil, delivery: delivery)
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
@@ -72,7 +71,7 @@ struct RenderPipelineTests {
 
         // When
         #expect(throws: refusal) {
-            try sut.render(.sequence(sequence), to: master, delivery: delivery)
+            try sut.render(sequence, to: master, at: nil, delivery: delivery)
         }
 
         // Then
@@ -87,7 +86,7 @@ struct RenderPipelineTests {
 
         // When
         #expect(throws: RenderError.changedFile(path: "/abs/run.mp4", place: "storyline[0]")) {
-            try sut.render(.sequence(sequence(fps: 2, duration: 1)), to: master, delivery: nil)
+            try sut.render(sequence(fps: 2, duration: 1), to: master, at: nil, delivery: nil)
         }
 
         // Then
@@ -108,7 +107,7 @@ struct RenderPipelineTests {
 
         // When
         #expect(throws: RenderError.changedFile(path: path, place: "storyline[0]")) {
-            try sut.render(.sequence(sequence(fps: 2, duration: 1, media: pinned)), to: master, delivery: nil)
+            try sut.render(sequence(fps: 2, duration: 1, media: pinned), to: master, at: nil, delivery: nil)
         }
 
         // Then
@@ -127,7 +126,7 @@ struct RenderPipelineTests {
 
         // When
         #expect(throws: RenderError.unreadableFile(path: path, place: "storyline[0]")) {
-            try sut.render(.sequence(sequence(fps: 2, duration: 1, media: pinned)), to: master, delivery: nil)
+            try sut.render(sequence(fps: 2, duration: 1, media: pinned), to: master, at: nil, delivery: nil)
         }
 
         // Then
@@ -151,7 +150,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log)
 
         // When
-        try sut.render(.sequence(sequence(fps: fps, duration: duration)), to: master, delivery: nil)
+        try sut.render(sequence(fps: fps, duration: duration), to: master, at: nil, delivery: nil)
 
         // Then
         let drawn = log.calls.compactMap { call in
@@ -170,7 +169,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log)
 
         // When
-        try sut.render(.sequence(sequence(fps: 2, duration: 1)), to: master, delivery: nil)
+        try sut.render(sequence(fps: 2, duration: 1), to: master, at: nil, delivery: nil)
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
@@ -194,7 +193,7 @@ struct RenderPipelineTests {
         let sequence = sequence(fps: 2, duration: 1, background: Color(written: background))
 
         // When
-        try sut.render(.sequence(sequence), to: master, delivery: nil)
+        try sut.render(sequence, to: master, at: nil, delivery: nil)
 
         // Then
         #expect(log.calls.contains(.checkTarget(.master(path: master, alpha: alpha))))
@@ -207,7 +206,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log)
 
         // When
-        try sut.render(.sequence(sequence(fps: 10, duration: 0.5)), to: master, delivery: delivery)
+        try sut.render(sequence(fps: 10, duration: 0.5), to: master, at: nil, delivery: delivery)
 
         // Then
         let appended = { (path: String) in
@@ -223,64 +222,55 @@ struct RenderPipelineTests {
         #expect(drawn.count == 5)
     }
 
-    @Test("an image document is checked and written as one PNG of its one display list")
-    func rendersImageToPNG() throws {
+    @Test("a PNG is the frame at `--at`, 0 when it is left out, checked and written once", arguments: [
+        (nil as Double?, 0),
+        (1.25, 2),
+        (1.99, 3)
+    ])
+    func rendersFrameToPNG(
+        time: Double?,
+        frame: Int
+    ) throws {
         // Given
         let log = RoleCallLog()
         let sut = pipeline(log: log)
 
         // When
-        try sut.render(.picture(picture()), to: image, delivery: nil)
+        try sut.render(sequence(fps: 2, duration: 2), to: image, at: time, delivery: nil)
 
         // Then
         #expect(log.calls == [
-            .checkMedia(path: "/abs/card.png"),
-            .checkList(frame: 0),
-            .draw(frame: 0),
-            .writeImage(path: image, frame: 0)
+            .checkMedia(path: "/abs/run.mp4"),
+            .checkList(frame: frame),
+            .draw(frame: frame),
+            .writeImage(path: image, frame: frame)
         ])
     }
 
-    @Test("an image document with a delivery stops before anything is read")
-    func refusesImageDelivery() {
+    @Test("`--at` outside the sequence stops before anything is read", arguments: [-0.5, 2, 3])
+    func refusesTimeOutsideSequence(time: Double) {
         // Given
         let log = RoleCallLog()
         let sut = pipeline(log: log)
 
         // When
-        #expect(throws: RenderError.deliveryOfPicture(path: delivery, kind: "image")) {
-            try sut.render(.picture(picture()), to: image, delivery: delivery)
+        #expect(throws: ExportError.timeOutside(option: "--at", time: time, end: 2, kind: "sequence")) {
+            try sut.render(sequence(fps: 2, duration: 2), to: image, at: time, delivery: nil)
         }
 
         // Then
         #expect(log.calls.isEmpty)
     }
 
-    @Test("an image document written to a video path stops")
-    func refusesImageToVideo() {
-        // Given
-        let log = RoleCallLog()
-        let sut = pipeline(log: log)
-
-        // When
-        #expect(throws: RenderError.outputExtension(path: master, kind: "image", expected: "png")) {
-            try sut.render(.picture(picture()), to: master, delivery: nil)
-        }
-
-        // Then
-        #expect(log.calls.isEmpty)
-    }
-
-    @Test("a sequence written to a PNG, or delivered to anything but an MP4, stops", arguments: [
-        (
-            "/abs/out.png",
-            nil as String?,
-            RenderError.outputExtension(path: "/abs/out.png", kind: "sequence", expected: "mov")
-        ),
-        ("/abs/out.mov", "/abs/deliver.mov", RenderError.deliveryExtension(path: "/abs/deliver.mov"))
+    @Test("`--at` with a master, `--deliver` with a PNG, a delivery other than an MP4 and any other output stop", arguments: [
+        ("/abs/out.mov", 0.5 as Double?, nil as String?, RenderError.timeOfMaster(path: "/abs/out.mov")),
+        ("/abs/out.png", nil, "/abs/out.mp4", RenderError.deliveryOfStill(path: "/abs/out.mp4")),
+        ("/abs/out.mov", nil, "/abs/deliver.mov", RenderError.deliveryExtension(path: "/abs/deliver.mov")),
+        ("/abs/out.gif", nil, nil, RenderError.outputExtension(path: "/abs/out.gif"))
     ])
-    func refusesSequencePaths(
+    func refusesOutputs(
         output: String,
+        time: Double?,
         delivery: String?,
         error: RenderError
     ) {
@@ -290,7 +280,7 @@ struct RenderPipelineTests {
 
         // When
         #expect(throws: error) {
-            try sut.render(.sequence(sequence(fps: 2, duration: 1)), to: output, delivery: delivery)
+            try sut.render(sequence(fps: 2, duration: 1), to: output, at: time, delivery: delivery)
         }
 
         // Then
@@ -392,17 +382,5 @@ struct RenderPipelineTests {
             incoming: nil,
             outgoing: nil
         )
-    }
-
-    private func picture() -> ResolvedPicture {
-        let step = ResolvedDrawingStep(
-            place: "source",
-            id: nil,
-            kind: "image",
-            content: .picture(.media(card, time: 0), crop: whole, frame: whole),
-            clip: whole
-        )
-
-        return ResolvedPicture(kind: "image", size: size, steps: [step])
     }
 }

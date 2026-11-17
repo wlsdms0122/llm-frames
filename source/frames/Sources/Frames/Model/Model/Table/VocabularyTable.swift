@@ -18,7 +18,6 @@ enum VocabularyTable {
         "color-burn", "hard-light", "soft-light", "difference", "exclusion", "plus-lighter"
     ]
     static let conforms = ["fit", "fill"]
-    static let documentKinds = ["image", "layout", "sequence"]
     static let parameterTypes = ["video", "sequence", "image", "audio", "text", "color", "number", "choice"]
     static let easeNames = ["linear", "ease-in", "ease-out", "ease-in-out", "back-out", "bounce-out", "step"]
 }

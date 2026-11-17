@@ -1,5 +1,5 @@
 //
-//  ResolvedDocumentPinnedReferencesTests.swift
+//  ResolvedSequencePinnedReferencesTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/17/26.
@@ -9,8 +9,8 @@ import Testing
 
 @testable import Frames
 
-@Suite("ResolvedDocument PinnedReferences Tests")
-struct ResolvedDocumentPinnedReferencesTests {
+@Suite("ResolvedSequence PinnedReferences Tests")
+struct ResolvedSequencePinnedReferencesTests {
     // MARK: - Property
     private let whole = Rectangle(x: 0, y: 0, width: 40, height: 30)
     private let size = Size(width: 40, height: 30)
@@ -31,11 +31,13 @@ struct ResolvedDocumentPinnedReferencesTests {
     @Test("a sequence lists its media, LUTs, transition media, fonts and sounds, each at the entry that names it")
     func listsSequenceReferences() {
         // Given
-        let picture = ResolvedPicture(kind: "image", size: size, steps: [
-            step("clips[1].media.source", "image", .picture(.media(card, time: 0), crop: whole, frame: whole)),
-            step("clips[1].media.ops[0]", "title", .text(text(), frame: whole))
-        ])
-        let sut = ResolvedDocument.sequence(ResolvedSequence(
+        let nested = ResolvedSequence(
+            format: format(),
+            storyline: [entry("clips[1].media.storyline[0]", media: .pinned(card))],
+            clips: [clip("clips[1].media.clips[0]", content: .title(text()))],
+            audio: []
+        )
+        let sut = ResolvedSequence(
             format: format(),
             storyline: [
                 entry("storyline[0]", media: .pinned(video), filter: [.lut(file: lut, amount: 1)]),
@@ -44,14 +46,14 @@ struct ResolvedDocumentPinnedReferencesTests {
             clips: [
                 clip("clips[0]", content: .title(text())),
                 clip("clips[1]", content: .media(ResolvedMediaClip(
-                    media: .nested(.picture(picture)),
+                    media: .nested(nested),
                     timing: nil,
                     filter: [],
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
                 )))
             ],
             audio: [sound("clips[2]", media: music)]
-        ))
+        )
 
         // When
         let references = sut.pinnedReferences
@@ -64,25 +66,10 @@ struct ResolvedDocumentPinnedReferencesTests {
             .media(stinger, place: "storyline[1]"),
             .media(wipe, place: "storyline[1]"),
             .file(font, place: "clips[0]"),
-            .media(card, place: "clips[1].media.source"),
-            .file(font, place: "clips[1].media.ops[0]"),
+            .media(card, place: "clips[1].media.storyline[0]"),
+            .file(font, place: "clips[1].media.clips[0]"),
             .media(music, place: "clips[2]")
         ])
-    }
-
-    @Test("an image document's steps pin their files at the places of what drew them")
-    func listsPictureReferencesAtStepPlaces() {
-        // Given
-        let sut = ResolvedDocument.picture(ResolvedPicture(kind: "image", size: size, steps: [
-            step("source", "image", .picture(.media(card, time: 0), crop: whole, frame: whole)),
-            step("ops[0]", "adjust", .adjustment([.lut(file: lut, amount: 0.5)], area: whole))
-        ]))
-
-        // When
-        let references = sut.pinnedReferences
-
-        // Then
-        #expect(references == [.media(card, place: "source"), .file(lut, place: "ops[0]")])
     }
 
     @Test("an image sequence pins each of its frame files in frame order")
@@ -211,14 +198,6 @@ struct ResolvedDocumentPinnedReferencesTests {
             incoming: nil,
             outgoing: nil
         )
-    }
-
-    private func step(
-        _ place: String,
-        _ kind: String,
-        _ content: ResolvedDrawingContent
-    ) -> ResolvedDrawingStep {
-        ResolvedDrawingStep(place: place, id: nil, kind: kind, content: content, clip: whole)
     }
 
     private func text() -> ResolvedText {

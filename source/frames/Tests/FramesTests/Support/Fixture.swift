@@ -29,7 +29,7 @@ enum Fixture {
         "/abs/before.png": .image,
         "/abs/after.png": .image,
         "pack/intro": .sequence,
-        "pack/card": .image
+        "pack/card": .sequence
     ])
 
     // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent.

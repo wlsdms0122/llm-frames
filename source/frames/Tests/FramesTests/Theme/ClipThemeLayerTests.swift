@@ -23,8 +23,8 @@ struct ClipThemeLayerTests {
             (#"{ "adjust": "frames/vivid", "animation": "frames/fade" }"#, ClipKind.adjust, #"{ "defaults": { "animation": { "adjust": "frames/fade" } } }"#),
             (#"{ "media": "/abs/log.png", "animation": "frames/pop" }"#, ClipKind.media(.image), #"{ "defaults": { "animation": { "media": "frames/pop" } } }"#),
             (#"{ "media": { "kind": "sequence" } }"#, ClipKind.media(.sequence), #"{ "defaults": { "filter": "none" } }"#),
-            (#"{ "media": { "template": "pack/card" } }"#, ClipKind.media(.image), #"{ "defaults": { "filter": "none" } }"#),
-            (#"{ "media": { "template": "pack/card" }, "filter": "frames/vivid" }"#, ClipKind.media(.image), #"{ "defaults": { "filter": "frames/vivid" } }"#)
+            (#"{ "media": { "template": "pack/card" } }"#, ClipKind.media(.sequence), #"{ "defaults": { "filter": "none" } }"#),
+            (#"{ "media": { "template": "pack/card" }, "filter": "frames/vivid" }"#, ClipKind.media(.sequence), #"{ "defaults": { "filter": "frames/vivid" } }"#)
         ]
     )
     func layersClipKeys(

@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Evaluates a resolved document into the display list of one output frame, every value sampled. A sequence is drawn
-// at a sequence time, and an image or layout gives the same list at any time. Lists nested in it, for storyline units,
-// compound clips and pictures, carry its seed.
+// Evaluates a resolved sequence into the display list of one output frame at a sequence time, every value sampled.
+// Lists nested in it, for storyline units and compound clips, carry its seed.
 package struct Evaluator: Sendable {
     // MARK: - Property
     // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
@@ -22,16 +21,10 @@ package struct Evaluator: Sendable {
 
     // MARK: - Public
     package func displayList(
-        of document: ResolvedDocument,
+        of sequence: ResolvedSequence,
         at time: Double
     ) -> DisplayList {
-        switch document {
-        case let .sequence(sequence):
-            displayList(of: sequence, at: time, seed: seeder.seed(at: time, fps: sequence.format.fps))
-
-        case let .picture(picture):
-            displayList(of: picture, seed: GrainSeeder.pictureSeed)
-        }
+        displayList(of: sequence, at: time, seed: seeder.seed(at: time, fps: sequence.format.fps))
     }
 
     // MARK: - Private
@@ -217,25 +210,18 @@ package struct Evaluator: Sendable {
         case let .pinned(media):
             .media(MediaFrame(media: media, mediaTime: mediaTime))
 
-        case let .nested(document):
-            .displayList(nestedDisplayList(of: document, at: mediaTime, seed: seed))
+        case let .nested(sequence):
+            .displayList(nestedDisplayList(of: sequence, at: mediaTime, seed: seed))
         }
     }
 
-    // A nested document's list at a media time: a sequence is evaluated there, held inside `[0, duration)`, and a
-    // picture as it is.
+    // A nested sequence's list at a media time, held inside `[0, duration)`.
     private func nestedDisplayList(
-        of document: ResolvedDocument,
+        of sequence: ResolvedSequence,
         at time: Double,
         seed: Int
     ) -> DisplayList {
-        switch document {
-        case let .sequence(sequence):
-            displayList(of: sequence, at: min(max(time, 0), sequence.format.duration - .timeResolution), seed: seed)
-
-        case let .picture(picture):
-            displayList(of: picture, seed: seed)
-        }
+        displayList(of: sequence, at: min(max(time, 0), sequence.format.duration - .timeResolution), seed: seed)
     }
 
     // The matte's frame follows the transition's progress, and the luminance it shows below follows its own ease.
@@ -286,82 +272,5 @@ package struct Evaluator: Sendable {
         )
 
         return DisplayItem(content: .fill(fill))
-    }
-
-    // An image or layout's steps in order, each cut to its step's canvas and drawn by what drew its step.
-    private func displayList(
-        of picture: ResolvedPicture,
-        seed: Int
-    ) -> DisplayList {
-        DisplayList(
-            size: picture.size,
-            background: Self.transparent,
-            seed: seed,
-            items: picture.steps.map { item(of: $0, seed: seed) }
-        )
-    }
-
-    private func item(
-        of step: ResolvedDrawingStep,
-        seed: Int
-    ) -> DisplayItem {
-        let origin = ItemOrigin(step: step)
-        switch step.content {
-        case let .picture(picture, crop, frame):
-            let item = PictureItem(source: source(of: picture, seed: seed), rectangle: crop, destination: frame)
-            return DisplayItem(mask: step.clip, content: .picture(item), origin: origin)
-
-        case let .fill(rectangle, color):
-            let fill = FillItem(rectangle: rectangle, color: color)
-            return DisplayItem(mask: step.clip, content: .fill(fill), origin: origin)
-
-        case let .box(rectangle, width, radius, color):
-            let stroke = StrokeItem(rectangle: rectangle, radius: radius, width: width, color: color)
-            return DisplayItem(mask: step.clip, content: .stroke(stroke), origin: origin)
-
-        case let .border(rectangle, width, color):
-            let stroke = StrokeItem(border: rectangle, width: width, color: color)
-            return DisplayItem(mask: step.clip, content: .stroke(stroke), origin: origin)
-
-        case let .dim(rectangle, color):
-            let fill = FillItem(
-                rectangle: step.clip,
-                color: color,
-                hole: RoundedRectangle(rectangle: rectangle, radius: 0)
-            )
-            return DisplayItem(mask: step.clip, content: .fill(fill), origin: origin)
-
-        case let .arrow(tail, tip, width, head, color):
-            let arrow = ArrowItem(tail: tail, head: tip, width: width, headSize: head, color: color)
-            return DisplayItem(mask: step.clip, content: .arrow(arrow), origin: origin)
-
-        case let .adjustment(filter, area):
-            let adjustment = AdjustItem(rectangle: area, filter: filter)
-            return DisplayItem(mask: step.clip, content: .adjust(adjustment), origin: origin)
-
-        case let .text(text, frame):
-            return DisplayItem(
-                transform: AffineTransform(mapping: text.size, onto: frame),
-                mask: step.clip,
-                content: .glyphs(GlyphsItem(text: text)),
-                origin: origin
-            )
-        }
-    }
-
-    private func source(
-        of picture: ResolvedDrawnPicture,
-        seed: Int
-    ) -> PictureItemSource {
-        switch picture {
-        case let .media(media, time):
-            .media(MediaFrame(media: media, mediaTime: time))
-
-        case let .picture(picture):
-            .displayList(displayList(of: picture, seed: seed))
-
-        case let .sequence(sequence, time):
-            .displayList(nestedDisplayList(of: .sequence(sequence), at: time, seed: seed))
-        }
     }
 }

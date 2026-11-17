@@ -10,7 +10,7 @@ enum DocumentKeyTable {
     static let sequence = ObjectTable(
         kind: "sequence",
         rules: [
-            KeyRule("kind", .literal(VocabularyTable.documentKinds), isRequired: true),
+            KeyRule("kind", .literal(["sequence"]), isRequired: true),
             KeyRule("format", .object(format)),
             KeyRule("theme", theme),
             KeyRule("params", .parameters),
@@ -28,50 +28,4 @@ enum DocumentKeyTable {
             KeyRule("conform", .literal(VocabularyTable.conforms))
         ]
     )
-    static let image = ObjectTable(
-        kind: "image",
-        rules: [
-            KeyRule("kind", .literal(VocabularyTable.documentKinds), isRequired: true),
-            KeyRule("source", .media, isRequired: true),
-            KeyRule("time", .number),
-            KeyRule("theme", theme),
-            KeyRule("params", .parameters),
-            KeyRule("ops", .operations)
-        ]
-    )
-    static let layout = ObjectTable(
-        kind: "layout",
-        rules: [
-            KeyRule("kind", .literal(VocabularyTable.documentKinds), isRequired: true),
-            KeyRule("theme", theme),
-            KeyRule("params", .parameters),
-            KeyRule("banner", .list(ImageKeyTable.bannerLine)),
-            KeyRule("columns", .integer),
-            KeyRule("border", .oneOf([.bool, .color])),
-            KeyRule("items", .list(.object(layoutItem)))
-        ]
-    )
-    static let layoutItem = ObjectTable(
-        kind: "layout item",
-        rules: [
-            KeyRule("heading", .text),
-            KeyRule("image", .media, isRequired: true)
-        ]
-    )
-
-    static func table(for kind: String) -> ObjectTable? {
-        switch kind {
-        case "sequence":
-            sequence
-
-        case "image":
-            image
-
-        case "layout":
-            layout
-
-        default:
-            nil
-        }
-    }
 }

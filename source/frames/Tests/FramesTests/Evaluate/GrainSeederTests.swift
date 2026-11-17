@@ -45,13 +45,4 @@ struct GrainSeederTests {
         // Then
         #expect(seed == frame)
     }
-
-    @Test("an image or layout has seed 0")
-    func pictureHasSeedZero() {
-        // Given, When
-        let seed = GrainSeeder.pictureSeed
-
-        // Then
-        #expect(seed == 0)
-    }
 }

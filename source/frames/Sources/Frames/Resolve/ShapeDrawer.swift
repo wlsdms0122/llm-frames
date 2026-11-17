@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Decides how a shape is drawn from the theme, for an image operation and a sequence clip alike, and lays a drawing on
-// an area.
+// Decides how a shape clip is drawn from the theme, and lays a drawing on an area.
 struct ShapeDrawer: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -41,11 +40,11 @@ struct ShapeDrawer: Sendable {
         }
     }
 
-    // The step a drawing makes on an area, and the box its label is measured beside: the area, or the arrow's.
+    // What a drawing draws on an area, and the box its label is measured beside: the area, or the arrow's.
     func content(
         of drawing: ShapeDrawing,
         on area: Rectangle
-    ) -> (content: DrawingContent, box: Rectangle) {
+    ) -> (content: ShapeContent, box: Rectangle) {
         switch drawing {
         case let .box(width, radius, color):
             return (.box(area, width: width, radius: radius, color: color), area)

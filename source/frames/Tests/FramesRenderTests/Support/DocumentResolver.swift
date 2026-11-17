@@ -50,8 +50,8 @@ struct DocumentResolver {
     }
 
     // MARK: - Public
-    func resolve(_ text: String) throws -> ResolvedDocument {
-        try ResolvedDocument(plan: try planner().plan(try JSONReader().read(text)), hashes: FileHasher())
+    func resolve(_ text: String) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: try planner().plan(try JSONReader().read(text)), hashes: FileHasher())
     }
 
     // MARK: - Private

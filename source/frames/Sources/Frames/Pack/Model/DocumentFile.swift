@@ -12,7 +12,6 @@ struct DocumentFile: Equatable, Sendable {
     let name: String
     let file: String
     let value: JSONValue
-    let kind: MediaKind
 
     var place: Place {
         Place(file: name, components: [])
@@ -22,13 +21,11 @@ struct DocumentFile: Equatable, Sendable {
     init(
         name: String,
         file: String,
-        value: JSONValue,
-        kind: MediaKind
+        value: JSONValue
     ) {
         self.name = name
         self.file = file
         self.value = value
-        self.kind = kind
     }
 
     // MARK: - Public

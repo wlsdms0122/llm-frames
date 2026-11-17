@@ -22,7 +22,7 @@ extension ResolvedStorylineClip {
             Crop(conformer.conformed(rectangle, to: format.content, by: format.conform))
         }
         let file: MediaFile? = if case let .file(file) = plan.source.media?.source { file } else { nil }
-        let whole = geometry.nested?.size ?? file?.size ?? Size(width: format.content.width, height: format.content.height)
+        let whole = geometry.nested?.format.size ?? file?.size ?? Size(width: format.content.width, height: format.content.height)
         let crop = geometry.crop?.keyframes(at: plan.instant) { conform($0.rectangle) }
             ?? [Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))]
 

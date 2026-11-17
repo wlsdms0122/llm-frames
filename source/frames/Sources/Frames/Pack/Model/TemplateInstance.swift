@@ -11,19 +11,16 @@
 struct TemplateInstance: Equatable, Sendable {
     // MARK: - Property
     let document: JSONValue
-    let kind: MediaKind
     let arguments: [ParameterReference]
     let values: [String: JSONValue]
 
     // MARK: - Initializer
     init(
         document: JSONValue,
-        kind: MediaKind,
         arguments: [ParameterReference],
         values: [String: JSONValue]
     ) {
         self.document = document
-        self.kind = kind
         self.arguments = arguments
         self.values = values
     }

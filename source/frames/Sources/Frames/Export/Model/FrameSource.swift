@@ -9,5 +9,5 @@
 // whose frames are the ones shown at them, or a resolved document, whose times are sequence times.
 package enum FrameSource: Equatable, Sendable {
     case video(path: String)
-    case document(ResolvedDocument)
+    case document(ResolvedSequence)
 }

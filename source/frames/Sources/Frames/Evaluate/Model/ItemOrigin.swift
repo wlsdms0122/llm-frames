@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The clip or op that drew a display item: its place in the document, continued into a nested document from the clip
-// that holds it, its `id`, and its kind, a clip's as `timeline` names it and an image or layout step's as messages
-// name what drew it.
+// The clip that drew a display item: its place in the document, continued into a nested sequence from the clip that
+// holds it, its `id`, and its kind as `timeline` names it.
 package struct ItemOrigin: Equatable, Sendable {
     // MARK: - Property
     package let place: String
@@ -49,10 +48,6 @@ package struct ItemOrigin: Equatable, Sendable {
         self.init(place: entry.place, id: entry.id, kind: kind.label)
     }
 
-    init(step: ResolvedDrawingStep) {
-        self.init(place: step.place, id: step.id, kind: step.kind)
-    }
-
     // MARK: - Public
     // MARK: - Private
     private static func shape(of drawing: ShapeDrawing) -> String {
@@ -72,17 +67,14 @@ package struct ItemOrigin: Equatable, Sendable {
     }
 
     // Pinned media with frame times is a video or image sequence, and without them a still. A nested sequence is a
-    // compound clip or a template instance, and a nested image or layout a picture.
+    // compound clip or a template instance.
     private static func kind(of media: ResolvedMediaContent) -> MediaKind {
         switch media {
         case let .pinned(media):
             media.frameTimes.isEmpty ? .image : .video
 
-        case .nested(.sequence):
+        case .nested:
             .sequence
-
-        case .nested(.picture):
-            .image
         }
     }
 }

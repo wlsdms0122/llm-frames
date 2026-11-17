@@ -59,7 +59,7 @@ struct StorylineRenderTests {
                   "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": [150, 0, 50, 50] } ] },
                 { "media": "\#(wide)", "duration": 1, "transition": "mine/grow" } ] }
             """#)
-        let content = try #require(document.sequence).format.content
+        let content = document.format.content
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When

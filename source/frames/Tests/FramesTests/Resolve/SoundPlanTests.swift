@@ -49,13 +49,13 @@ struct SoundPlanTests {
         ])
     }
 
-    @Test("clips without sound are left out: silent video, a still, a picture document, a title")
+    @Test("clips without sound are left out: silent video, a still, a compound clip of a still, a title")
     func leavesOutSilentClips() throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence",
               "storyline": [ { "media": "/abs/short.mp4", "connected": [ { "media": "/abs/short.mp4", "at": 0 } ] }, { "media": "/abs/card.png", "duration": 1 } ],
-              "clips": [ { "media": { "kind": "image", "source": "/abs/card.png" }, "at": [0, 1] }, { "title": "a", "style": "subtitle", "at": [0, 1] } ] }
+              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1 } ] }, "at": [0, 1] }, { "title": "a", "style": "subtitle", "at": [0, 1] } ] }
             """#)
 
         // Then

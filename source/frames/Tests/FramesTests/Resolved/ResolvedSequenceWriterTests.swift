@@ -393,7 +393,7 @@ struct ResolvedSequenceWriterTests {
             shaper: Fixture.shaper,
             library: Fixture.library
         )
-        let text = sut.write(try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: hashes))
+        let text = sut.write(try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
     }

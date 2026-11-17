@@ -22,7 +22,7 @@ struct ResolvedDocumentWriterTests {
     ])
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
-    // title that pops in, a picture with a border in the centre, and looping music that fades out.
+    // title that pops in, a still with a border in the centre, and looping music that fades out.
     private let sequence = #"""
         { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
@@ -32,11 +32,6 @@ struct ResolvedDocumentWriterTests {
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
-    private let image = #"""
-        { "kind": "image", "source": "/abs/page.png",
-          "ops": [ { "crop": [100, 100, 400, 200] }, { "shape": "box", "area": [150, 150, 100, 50], "id": "serial" } ] }
-        """#
-
     private let resolvedSequence = #"""
         {
           "kind": "sequence",
@@ -304,41 +299,6 @@ struct ResolvedDocumentWriterTests {
         }
 
         """#
-    private let resolvedImage = #"""
-        {
-          "kind": "image",
-          "resolved": "1.0.0",
-          "size": [400, 200],
-          "steps": [
-            {
-              "place": "source",
-              "id": null,
-              "kind": "image",
-              "draw": "picture",
-              "picture": {
-                "file": "/abs/page.png",
-                "sha256": "5d17e0a9b2c4",
-                "time": 0
-              },
-              "crop": [100, 100, 400, 200],
-              "frame": [0, 0, 400, 200],
-              "clip": [0, 0, 400, 200]
-            },
-            {
-              "place": "ops[1]#serial",
-              "id": "serial",
-              "kind": "box",
-              "draw": "box",
-              "area": [50, 50, 100, 50],
-              "width": 2.6533996683250414,
-              "radius": 5.970149253731343,
-              "color": "#ED2929FF",
-              "clip": [0, 0, 400, 200]
-            }
-          ]
-        }
-
-        """#
 
     // MARK: - Initializer
     // MARK: - Test
@@ -348,31 +308,20 @@ struct ResolvedDocumentWriterTests {
         let plan = try Fixture.documentPlanner.plan(Fixture.json(sequence))
 
         // When
-        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
+        let text = sut.write(try ResolvedSequence(plan: plan, hashes: hashes))
 
         // Then
         #expect(text == resolvedSequence)
     }
 
-    @Test("an image resolves to the same text as its golden resolved document")
-    func writesGoldenImage() throws {
+    @Test("resolving the same document twice gives the same bytes")
+    func resolvesDeterministically() throws {
         // Given
-        let plan = try Fixture.documentPlanner.plan(Fixture.json(image))
+        let document = try Fixture.json(sequence)
 
         // When
-        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
-
-        // Then
-        #expect(text == resolvedImage)
-    }
-
-    @Test("resolving the same document twice gives the same bytes", arguments: [0, 1])
-    func resolvesDeterministically(index: Int) throws {
-        // Given
-        let document = try Fixture.json([sequence, image][index])
-        // When
-        let first = sut.write(try ResolvedDocument(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable()))
-        let second = ResolvedDocumentWriter().write(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
+        let first = sut.write(try ResolvedSequence(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable()))
+        let second = ResolvedDocumentWriter().write(try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         #expect(Data(first.utf8) == Data(second.utf8))
@@ -381,7 +330,7 @@ struct ResolvedDocumentWriterTests {
     @Test("a resolved document reads back to the value it was written from")
     func readsBack() throws {
         // Given
-        let value = sut.document(try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(sequence)), hashes: hashes))
+        let value = sut.document(try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(sequence)), hashes: hashes))
 
         // When
         let read = try JSONReader().read(JSONWriter().write(value))

@@ -54,7 +54,7 @@ struct EvaluatorTests {
         ])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: time)
+        let list = sut.displayList(of: sequence, at: time)
 
         // Then
         let media = [first, second][entry]
@@ -87,7 +87,7 @@ struct EvaluatorTests {
         ))
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+        let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
         // Progress 0.25: opacity 0.25 and x 0.75 of the content rect's 200 wide. The outgoing clip plays its media
@@ -122,7 +122,7 @@ struct EvaluatorTests {
         ))
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+        let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
         #expect(list.items == [
@@ -155,7 +155,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+        let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
         let solid = ItemOrigin(place: "storyline", id: nil, kind: "solid")
@@ -195,7 +195,7 @@ struct EvaluatorTests {
         ))
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+        let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
         // Progress 0.25: the stinger at 0.5 of its 2 seconds, the wipe at 0.25 of its 1, and 0.25 eased in is 0.25^3.
@@ -235,7 +235,7 @@ struct EvaluatorTests {
         ])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 2)
+        let list = sut.displayList(of: sequence, at: 2)
 
         // Then
         // The outgoing clip would show media time 5, past its last frame at 4.75.
@@ -255,7 +255,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), in: 1, speed: 2, start: 0, end: 2, filter: filter)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+        let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
         #expect(list.items == [unitItem([mediaItem(first, frame: 8, filter: filter)], seed: 5), outsideItem()])
@@ -269,7 +269,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(still), start: 0, end: 3)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1.3)
+        let list = sut.displayList(of: sequence, at: 1.3)
 
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "image")
@@ -285,7 +285,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(nil, solid: red, start: 0, end: 3)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
@@ -299,10 +299,10 @@ struct EvaluatorTests {
         let nestedContent = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let nested = nestedSequence()
         let crop = Rectangle(x: 0, y: 0, width: 100, height: 50)
-        let sequence = sequence([storylineClip(.nested(.sequence(nested)), in: 1, start: 0, end: 2, crop: crop)])
+        let sequence = sequence([storylineClip(.nested(nested), in: 1, start: 0, end: 2, crop: crop)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+        let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
         // Media time 1.5 in the nested sequence shows its clip's frame at 1.5.
@@ -339,7 +339,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4, crop: crop, track: track)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         // The second keyframe is 40 to the right of the target at 2, so 10 at the instant. Halfway is 5, carried 20
@@ -367,7 +367,7 @@ struct EvaluatorTests {
         ])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let rectangle = try #require(mediaPicture(of: list)?.rectangle)
@@ -393,7 +393,7 @@ struct EvaluatorTests {
         ])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         // The target's centre moves down from 5 to 30 and it doubles, but the crop only moves.
@@ -408,7 +408,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4, crop: crop)])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+        let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
         let picture = try #require(mediaPicture(of: list))
@@ -423,7 +423,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], content: inset)
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+        let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
         #expect(list.items == [
@@ -441,235 +441,18 @@ struct EvaluatorTests {
         // Given
         let crop = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let sequence = sequence(
-            [storylineClip(.nested(.sequence(nestedSequence())), start: 0, end: 2, crop: crop)],
+            [storylineClip(.nested(nestedSequence()), start: 0, end: 2, crop: crop)],
             fps: 25
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 7.0 / 25)
+        let list = sut.displayList(of: sequence, at: 7.0 / 25)
 
         // Then
         let unit = try #require(displayList(of: list.items.first))
         let nested = try #require(displayList(of: unit.items.first))
         let nestedUnit = try #require(displayList(of: nested.items.first))
         #expect([list.seed, unit.seed, nested.seed, nestedUnit.seed] == [7, 7, 7, 7])
-    }
-
-    @Test("an image document's steps become items in order, each cut to its step's canvas and named by what drew it")
-    func drawsImageSteps() {
-        // Given
-        let canvas = Rectangle(x: 0, y: 0, width: 300, height: 200)
-        let inner = Rectangle(x: 10, y: 10, width: 280, height: 180)
-        let badge = ResolvedPicture(kind: "image", size: Size(width: 50, height: 50), steps: [
-            step(
-                "ops[0].media.ops[0]",
-                "pad",
-                .fill(Rectangle(x: 0, y: 0, width: 50, height: 50), color: red),
-                clip: canvas
-            )
-        ])
-        let text = ResolvedText(
-            size: Size(width: 100, height: 40),
-            lineCount: 1,
-            background: TextBackground(color: red, padding: Size(width: 8, height: 4), radius: 5),
-            stroke: TextStroke(width: 2, color: background),
-            runs: [run()]
-        )
-        let picture = ResolvedPicture(kind: "image", size: Size(width: 300, height: 200), steps: [
-            step(
-                "source",
-                "image",
-                .picture(.media(first, time: 0.6), crop: whole, frame: Rectangle(x: 0, y: 0, width: 300, height: 150)),
-                clip: canvas
-            ),
-            step(
-                "ops[0]",
-                "title",
-                .picture(
-                    .picture(badge),
-                    crop: Rectangle(x: 0, y: 0, width: 50, height: 50),
-                    frame: Rectangle(x: 10, y: 10, width: 50, height: 50)
-                ),
-                clip: canvas
-            ),
-            step("ops[1]", "pad", .fill(Rectangle(x: 0, y: 150, width: 300, height: 50), color: white), clip: canvas),
-            ResolvedDrawingStep(
-                place: "ops[2]#serial",
-                id: "serial",
-                kind: "box",
-                content: .box(Rectangle(x: 20, y: 20, width: 100, height: 50), width: 4, radius: 6, color: red),
-                clip: canvas
-            ),
-            step(
-                "ops[3]",
-                "border",
-                .border(Rectangle(x: 10, y: 10, width: 100, height: 50), width: 4, color: white),
-                clip: canvas
-            ),
-            step(
-                "ops[4]",
-                "dim",
-                .dim(Rectangle(x: 50, y: 50, width: 100, height: 50), color: background),
-                clip: inner
-            ),
-            step(
-                "ops[5]",
-                "arrow",
-                .arrow(tail: Point(x: 0, y: 0), tip: Point(x: 40, y: 30), width: 3, head: 12, color: red),
-                clip: canvas
-            ),
-            step(
-                "ops[6]",
-                "adjust",
-                .adjustment([.blur(radius: 2)], area: Rectangle(x: 0, y: 0, width: 150, height: 100)),
-                clip: canvas
-            ),
-            step("ops[7]", "title", .text(text, frame: Rectangle(x: 10, y: 20, width: 200, height: 80)), clip: inner)
-        ])
-
-        // When
-        let early = sut.displayList(of: .picture(picture), at: 0)
-        let late = sut.displayList(of: .picture(picture), at: 3.7)
-
-        // Then
-        let badgeList = DisplayList(size: Size(width: 50, height: 50), background: transparent, seed: 0, items: [
-            DisplayItem(
-                mask: canvas,
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50), color: red)),
-                origin: ItemOrigin(place: "ops[0].media.ops[0]", id: nil, kind: "pad")
-            )
-        ])
-        let expected = DisplayList(size: Size(width: 300, height: 200), background: transparent, seed: 0, items: [
-            DisplayItem(
-                mask: canvas,
-                content: .picture(PictureItem(
-                    source: .media(MediaFrame(media: first, index: 2)),
-                    rectangle: whole,
-                    destination: Rectangle(x: 0, y: 0, width: 300, height: 150)
-                )),
-                origin: ItemOrigin(place: "source", id: nil, kind: "image")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .picture(PictureItem(
-                    source: .displayList(badgeList),
-                    rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50),
-                    destination: Rectangle(x: 10, y: 10, width: 50, height: 50)
-                )),
-                origin: ItemOrigin(place: "ops[0]", id: nil, kind: "title")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 150, width: 300, height: 50), color: white)),
-                origin: ItemOrigin(place: "ops[1]", id: nil, kind: "pad")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .stroke(StrokeItem(
-                    rectangle: Rectangle(x: 20, y: 20, width: 100, height: 50),
-                    radius: 6,
-                    width: 4,
-                    color: red
-                )),
-                origin: ItemOrigin(place: "ops[2]#serial", id: "serial", kind: "box")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .stroke(StrokeItem(
-                    rectangle: Rectangle(x: 12, y: 12, width: 96, height: 46),
-                    radius: 0,
-                    width: 4,
-                    color: white
-                )),
-                origin: ItemOrigin(place: "ops[3]", id: nil, kind: "border")
-            ),
-            DisplayItem(
-                mask: inner,
-                content: .fill(FillItem(
-                    rectangle: inner,
-                    color: background,
-                    hole: RoundedRectangle(rectangle: Rectangle(x: 50, y: 50, width: 100, height: 50), radius: 0)
-                )),
-                origin: ItemOrigin(place: "ops[4]", id: nil, kind: "dim")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .arrow(ArrowItem(
-                    tail: Point(x: 0, y: 0),
-                    head: Point(x: 40, y: 30),
-                    width: 3,
-                    headSize: 12,
-                    color: red
-                )),
-                origin: ItemOrigin(place: "ops[5]", id: nil, kind: "arrow")
-            ),
-            DisplayItem(
-                mask: canvas,
-                content: .adjust(AdjustItem(
-                    rectangle: Rectangle(x: 0, y: 0, width: 150, height: 100),
-                    filter: [.blur(radius: 2)]
-                )),
-                origin: ItemOrigin(place: "ops[6]", id: nil, kind: "adjust")
-            ),
-            DisplayItem(
-                transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 20),
-                mask: inner,
-                content: .glyphs(GlyphsItem(
-                    size: Size(width: 100, height: 40),
-                    runs: [run()],
-                    stroke: TextStroke(width: 2, color: background),
-                    background: GlyphBackground(
-                        rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40),
-                        radius: 5,
-                        color: red
-                    )
-                )),
-                origin: ItemOrigin(place: "ops[7]", id: nil, kind: "title")
-            )
-        ])
-        #expect(early == expected)
-        #expect(late == expected)
-    }
-
-    @Test("a compound clip drawn by a picture step is evaluated at its time held inside its duration, with seed 0")
-    func holdsCompoundStepTime() {
-        // Given
-        let nestedContent = Rectangle(x: 0, y: 0, width: 100, height: 50)
-        let canvas = Rectangle(x: 0, y: 0, width: 100, height: 50)
-        let picture = ResolvedPicture(kind: "layout", size: Size(width: 100, height: 50), steps: [
-            step(
-                "items[0]",
-                "layout item",
-                .picture(.sequence(nestedSequence(), time: 5), crop: nestedContent, frame: canvas),
-                clip: canvas
-            )
-        ])
-
-        // When
-        let list = sut.displayList(of: .picture(picture), at: 0)
-
-        // Then
-        // The nested sequence lasts 3, so time 5 is held just before 3, on its clip's frame at 2.75.
-        let nestedList = DisplayList(
-            size: Size(width: 100, height: 50),
-            background: red,
-            seed: 0,
-            items: [
-                unitItem([mediaItem(first, frame: 11, in: nestedContent)], seed: 0, content: nestedContent),
-                outsideItem(size: Size(width: 100, height: 50), content: nestedContent, color: red)
-            ]
-        )
-        #expect(list.items == [
-            DisplayItem(
-                mask: canvas,
-                content: .picture(PictureItem(
-                    source: .displayList(nestedList),
-                    rectangle: nestedContent,
-                    destination: canvas
-                )),
-                origin: ItemOrigin(place: "items[0]", id: nil, kind: "layout item")
-            )
-        ])
     }
 
     @Test("clips stack by lane and then document order: unparented below and above the units, parented inside theirs")
@@ -691,7 +474,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         #expect(list.items == [
@@ -737,7 +520,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: time)
+        let list = sut.displayList(of: sequence, at: time)
 
         // Then
         // The crop is the whole picture at 0, shown at half size, and 200 x 100 from (100, 50) at 2, at full size.
@@ -773,7 +556,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: time)
+        let list = sut.displayList(of: sequence, at: time)
 
         // Then
         let unit = try #require(displayList(of: list.items.first))
@@ -805,7 +588,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let unit = try #require(displayList(of: list.items.first))
@@ -836,7 +619,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         // The band is (0, 40, 400, 30) in the picture, half that in the unit.
@@ -851,8 +634,8 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
-        let early = sut.displayList(of: .sequence(sequence), at: 1.25)
-        let late = sut.displayList(of: .sequence(sequence), at: 2)
+        let early = sut.displayList(of: sequence, at: 1.25)
+        let late = sut.displayList(of: sequence, at: 2)
 
         // Then
         // At 2 the clip is one second past its origin, on the second media's frame at 1.
@@ -875,7 +658,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         #expect(clipPicture(of: list)?.source == .media(MediaFrame(media: second, index: frame)))
@@ -895,7 +678,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         // A still shows its frame 0, and its box's top left goes to the position.
@@ -928,7 +711,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let adjust = DisplayItem(
@@ -953,7 +736,7 @@ struct EvaluatorTests {
         )
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 1)
+        let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let rooms = list.items.suffix(2).map { item -> Rectangle? in
@@ -979,7 +762,7 @@ struct EvaluatorTests {
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment], content: inset)
 
         // When
-        let list = sut.displayList(of: .sequence(sequence), at: 0.5)
+        let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
         // Halfway through its entrance the wipe shows the left half of the 200 x 100 output frame, letterbox and all,
@@ -1002,20 +785,16 @@ struct EvaluatorTests {
                 "connected": [ { "shape": "box", "area": [700, 1250, 300, 40], "at": [2, 3], "label": "Total",
                     "animation": "none", "labelAnimation": "none" } ] } ] }
             """#
-        let resolved = try ResolvedDocument(
+        let sequence = try ResolvedSequence(
             plan: Fixture.documentPlanner.plan(Fixture.json(document)),
             hashes: FileHashTable()
         )
-        guard case let .sequence(sequence) = resolved else {
-            Issue.record("a sequence resolves to a sequence")
-            return
-        }
         let clip = try #require(sequence.clips.first)
         let label = try #require(clip.label)
         let content = sequence.format.content
 
         // When
-        let list = sut.displayList(of: resolved, at: label.at)
+        let list = sut.displayList(of: sequence, at: label.at)
 
         // Then
         let unit = try #require(displayList(of: list.items.first))
@@ -1044,15 +823,6 @@ struct EvaluatorTests {
     }
 
     // MARK: - Private
-    private func step(
-        _ place: String,
-        _ kind: String,
-        _ content: ResolvedDrawingContent,
-        clip: Rectangle
-    ) -> ResolvedDrawingStep {
-        ResolvedDrawingStep(place: place, id: nil, kind: kind, content: content, clip: clip)
-    }
-
     private func storylineClip(
         _ media: ResolvedMediaContent?,
         solid: Color? = nil,

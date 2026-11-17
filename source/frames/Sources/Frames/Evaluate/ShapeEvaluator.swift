@@ -30,26 +30,22 @@ struct ShapeEvaluator: Sendable {
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
         let drawn = drawer.content(of: drawing, on: area ?? space.room)
         let presentation = ItemPresentation(area: drawn.box, opacity: sample.opacity, motion: sample.animation.motion)
-        // A drawer lays a shape drawing only as a box, fill, dim or arrow step.
-        guard let shape = item(of: drawn.content, area: area, in: space, sample: sample, presentation: presentation)
-        else {
-            return []
-        }
+        let shape = item(of: drawn.content, area: area, in: space, sample: sample, presentation: presentation)
         guard let label = clip.label else { return [shape] }
 
         return [shape, labelItem(of: label, beside: drawn.box, sample: sample, presentation: presentation, at: time)]
     }
 
     // MARK: - Private
-    // The item of the step the drawer laid the shape as, on the shape's area or the room. `area` is the shape's own
-    // area, nil without one.
+    // The item of what the drawer laid the shape as, on the shape's area or the room. `area` is the shape's own area,
+    // nil without one.
     private func item(
-        of content: DrawingContent,
+        of content: ShapeContent,
         area: Rectangle?,
         in space: ClipSpace,
         sample: ClipSample,
         presentation: ItemPresentation
-    ) -> DisplayItem? {
+    ) -> DisplayItem {
         let reveal = sample.animation.reveal
 
         switch content {
@@ -99,9 +95,6 @@ struct ShapeEvaluator: Sendable {
                 blend: sample.blend,
                 content: .arrow(item)
             )
-
-        case .picture, .adjustment, .text, .border:
-            return nil
         }
     }
 

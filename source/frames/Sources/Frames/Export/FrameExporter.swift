@@ -68,12 +68,11 @@ package struct FrameExporter: Sendable {
     // MARK: - Public
     // The sequence frames at `times`, in the order given, on one row at the sequence's size.
     package func still(
-        _ document: ResolvedDocument,
+        _ sequence: ResolvedSequence,
         at times: [Double],
         to output: String
     ) throws {
         try checkOutput(output)
-        let sequence = try sequence(of: document)
         guard !times.isEmpty else { throw ExportError.noTime }
 
         let span = FrameSpan(end: sequence.format.duration, kind: "sequence")
@@ -81,7 +80,7 @@ package struct FrameExporter: Sendable {
             try span.check(time, option: "--at")
         }
 
-        let frames = try frames(of: document, sequence: sequence, at: times)
+        let frames = try frames(of: sequence, at: times)
         try draw(frames, size: frames.size, columns: times.count, to: output)
     }
 
@@ -154,26 +153,24 @@ package struct FrameExporter: Sendable {
         case let .video(path):
             return try frames(ofVideo: path, range: range)
 
-        case let .document(document):
-            let sequence = try sequence(of: document)
+        case let .document(sequence):
             let times = try range.times(end: sequence.format.duration, kind: "sequence")
 
-            return try frames(of: document, sequence: sequence, at: times)
+            return try frames(of: sequence, at: times)
         }
     }
 
-    // Composite frames at sequence times, as `render` draws them, once the files the document pins are checked.
+    // Composite frames at sequence times, as `render` draws them, once the files the sequence pins are checked.
     private func frames(
-        of document: ResolvedDocument,
-        sequence: ResolvedSequence,
+        of sequence: ResolvedSequence,
         at times: [Double]
     ) throws -> SampledFrames {
-        try pinned.check(document.pinnedReferences)
+        try pinned.check(sequence.pinnedReferences)
 
         return SampledFrames(
             size: sequence.format.size,
             frames: times.map { time in
-                SampledFrame(time: time, picture: .displayList(evaluator.displayList(of: document, at: time)))
+                SampledFrame(time: time, picture: .displayList(evaluator.displayList(of: sequence, at: time)))
             }
         )
     }
@@ -199,17 +196,6 @@ package struct FrameExporter: Sendable {
                 SampledFrame(time: time, picture: .media(MediaFrame(media: media, mediaTime: time)))
             }
         )
-    }
-
-    // Only a sequence has times, so an image or layout document has no frames to take.
-    private func sequence(of document: ResolvedDocument) throws -> ResolvedSequence {
-        switch document {
-        case let .sequence(sequence):
-            sequence
-
-        case let .picture(picture):
-            throw ExportError.timelessDocument(kind: picture.kind)
-        }
     }
 
     // A media frame as the decoder reads it, so it is not resampled, and a display list as the renderer draws it.

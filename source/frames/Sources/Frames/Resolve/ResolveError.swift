@@ -35,9 +35,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingFormatSize(place: Place, kind: PlaceKind)
     case noContentRect(place: Place, kind: PlaceKind, size: Size)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
-    case outsideCanvas(place: Place, kind: PlaceKind, size: Size)
-    case emptyLayout(place: Place, kind: PlaceKind)
-    case nonPositiveColumns(place: Place, kind: PlaceKind, columns: Int)
     case areaPositionWithoutParent(place: Place, kind: PlaceKind)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
@@ -150,16 +147,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
-
-        case let .outsideCanvas(place, kind, size):
-            "\(place) (\(kind.label)): lies wholly outside the canvas of "
-                + "\(number(size.width))x\(number(size.height)) at its operation"
-
-        case let .emptyLayout(place, kind):
-            "\(place) (\(kind.label)): a layout needs at least one item"
-
-        case let .nonPositiveColumns(place, kind, columns):
-            "\(place) (\(kind.label)): columns must be 1 or more, found \(columns)"
 
         case let .areaPositionWithoutParent(place, kind):
             "\(place) (\(kind.label)): a position given by an area is in the picture of a parented clip, "

@@ -47,7 +47,6 @@ struct TemplateInstantiatorTests {
                                               { "shape": "box", "area": "Send", "color": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)
-        #expect(instance.kind == .sequence)
         #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
         #expect(instance.arguments.map(\.name) == ["clip"])
     }
@@ -127,35 +126,30 @@ struct TemplateInstantiatorTests {
         "a value its place cannot take stops at that place in the template, as the same value written there would",
         arguments: [
             (
-                #"{ "p": { "type": "number" } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "width": { "param": "p" } } ]"#,
                 #"{ "p": -5 }"#,
-                "ops[0].pad (pad): expected whole pixels, 0 or more, found -5"
+                "clips[0].width (title): expected a number above 0, found -5"
             ),
             (
-                #"{ "p": { "type": "number" } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
-                "ops[0].pad (pad): expected whole pixels, 0 or more, found 0.5"
+                "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "p": { "type": "number", "default": -1 } }, "ops": [ { "pad": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "default": -1 } }, "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ]"#,
                 "{}",
-                "ops[0].pad (pad): expected whole pixels, 0 or more, found -1"
+                "clips[0].radius (image): expected a number, 0 or more, found -1"
             ),
             (
-                #"{ "p": { "type": "number" } }, "ops": [ { "resize": { "scale": { "param": "p" } } }, { "pad": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
-                "ops[1].pad (pad): expected whole pixels, 0 or more, found 0.5"
-            ),
-            (
-                #"{ "a": { "type": "number" } }, "ops": [ { "pad": [ { "param": "a" }, 2 ] } ]"#,
-                #"{ "a": -5 }"#,
-                "ops[0].pad[0] (pad): expected whole pixels, 0 or more, found -5"
+                "clips[0].lane (title): expected a whole number, found 0.5"
             )
         ]
     )
     func refusesValueItsPlaceCannotTake(parameters: String, text: String, message: String) throws {
         // Given
-        let template = try template(#"{ "kind": "image", "source": "/abs/page.png", "params": \#(parameters) }"#)
+        let template = try template(#"{ "kind": "sequence", "params": \#(parameters) }"#)
         let arguments = try Fixture.object(text)
 
         // When, Then
@@ -181,8 +175,9 @@ struct TemplateInstantiatorTests {
     func fillsPlacesOfDifferentTypes() throws {
         // Given
         let template = try template(#"""
-            { "kind": "image", "source": "/abs/page.png", "params": { "p": { "type": "number" } },
-              "ops": [ { "resize": { "scale": { "param": "p" } } }, { "pad": { "param": "p" } } ] }
+            { "kind": "sequence", "params": { "p": { "type": "number" } },
+              "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "p" } } } ],
+              "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": { "param": "p" } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "p": 2 }"#)
 
@@ -190,17 +185,16 @@ struct TemplateInstantiatorTests {
         let instance = try sut.instance(of: template, arguments: arguments, place: place)
 
         // Then
-        let expected = try Fixture.json(#"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "resize": { "scale": 2 } }, { "pad": 2 } ] }"#)
+        let expected = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": 2 } } ],
+              "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": 2 } ] }
+            """#)
         #expect(instance.document == expected)
     }
 
     @Test(
         "a shape choice of arrows that names its side fills the shape picked and keeps the side",
         arguments: [
-            (
-                #"{ "kind": "image", "source": "/abs/page.png", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "top" } ] }"#,
-                #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "top" } ] }"#
-            ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "top" } ] }"#,
                 #"{ "kind": "sequence", "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "top" } ] }"#

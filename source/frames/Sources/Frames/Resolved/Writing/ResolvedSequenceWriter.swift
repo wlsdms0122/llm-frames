@@ -10,7 +10,6 @@
 struct ResolvedSequenceWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
-    private let pictures = ResolvedPictureWriter()
 
     // MARK: - Initializer
     init() { }
@@ -25,16 +24,9 @@ struct ResolvedSequenceWriter: Sendable {
         ]
     }
 
-    // A nested document is written as a document of its own kind, without a version, which only the outermost carries.
-    func document(_ document: ResolvedDocument) -> JSONValue {
-        switch document {
-        case let .sequence(sequence):
-            .object(JSONObject(members: [JSONMember(key: "kind", value: .string("sequence"))] + members(of: sequence)))
-
-        case let .picture(picture):
-            .object(JSONObject(members: [JSONMember(key: "kind", value: .string(picture.kind))]
-                + pictures.members(of: picture, sequences: members)))
-        }
+    // A nested sequence is written as a document of its own, without a version, which only the outermost carries.
+    func document(_ sequence: ResolvedSequence) -> JSONValue {
+        .object(JSONObject(members: [JSONMember(key: "kind", value: .string("sequence"))] + members(of: sequence)))
     }
 
     // MARK: - Private

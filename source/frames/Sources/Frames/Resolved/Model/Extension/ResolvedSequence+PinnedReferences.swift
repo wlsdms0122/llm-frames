@@ -1,13 +1,13 @@
 //
-//  ResolvedDocument+PinnedReferences.swift
+//  ResolvedSequence+PinnedReferences.swift
 //  Frames
 //
 //  Created by JSilver on 11/17/26.
 //
 
-// Everything a resolved document pins, nested documents included, in document order. A file named in several places
+// Everything a resolved sequence pins, nested sequences included, in document order. A file named in several places
 // is listed at each.
-extension ResolvedDocument {
+extension ResolvedSequence {
     // MARK: - Property
     var pinnedReferences: [PinnedReference] {
         references(of: self)
@@ -16,17 +16,7 @@ extension ResolvedDocument {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
-    // A nested document's places already continue the place of the clip that holds it.
-    private func references(of document: ResolvedDocument) -> [PinnedReference] {
-        switch document {
-        case let .sequence(sequence):
-            references(of: sequence)
-
-        case let .picture(picture):
-            references(of: picture)
-        }
-    }
-
+    // A nested sequence's places already continue the place of the clip that holds it.
     private func references(of sequence: ResolvedSequence) -> [PinnedReference] {
         sequence.storyline.flatMap(references(of:))
             + sequence.clips.flatMap(references(of:))
@@ -80,30 +70,6 @@ extension ResolvedDocument {
         return media + sound.nested.flatMap(references(of:))
     }
 
-    private func references(of picture: ResolvedPicture) -> [PinnedReference] {
-        picture.steps.flatMap { step -> [PinnedReference] in
-            switch step.content {
-            case let .picture(.media(media, _), _, _):
-                [.media(media, place: step.place)]
-
-            case let .picture(.picture(picture), _, _):
-                references(of: picture)
-
-            case let .picture(.sequence(sequence, _), _, _):
-                references(of: sequence)
-
-            case let .adjustment(filter, _):
-                references(of: filter, place: step.place)
-
-            case let .text(text, _):
-                references(of: text, place: step.place)
-
-            case .fill, .box, .dim, .arrow, .border:
-                []
-            }
-        }
-    }
-
     private func references(
         of media: ResolvedMediaContent,
         place: String
@@ -112,8 +78,8 @@ extension ResolvedDocument {
         case let .pinned(media):
             [.media(media, place: place)]
 
-        case let .nested(document):
-            references(of: document)
+        case let .nested(sequence):
+            references(of: sequence)
         }
     }
 

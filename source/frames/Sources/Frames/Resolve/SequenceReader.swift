@@ -159,7 +159,6 @@ struct SequenceReader: Sendable {
         )
     }
 
-
     private func writtenSource(
         _ value: JSONValue,
         place: Place
@@ -176,10 +175,6 @@ struct SequenceReader: Sendable {
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)
         }
-        guard MediaKind(document: value) == .sequence else {
-            return .picture(PictureReader(argumentThemes: argumentThemes).picture(from: value, place: place))
-        }
-
         return .compound(sequence(from: value, place: place))
     }
 

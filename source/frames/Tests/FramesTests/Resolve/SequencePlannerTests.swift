@@ -367,8 +367,8 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.format.size == Size(width: 1080, height: 1920))
-        #expect(plan.clips[0].nested?.size == Size(width: 640, height: 480))
-        #expect(plan.storyline[1].nested?.size == Size(width: 640, height: 480))
+        #expect(plan.clips[0].nested?.format.size == Size(width: 640, height: 480))
+        #expect(plan.storyline[1].nested?.format.size == Size(width: 640, height: 480))
         #expect(plan.storyline[0].nested == nil)
     }
 

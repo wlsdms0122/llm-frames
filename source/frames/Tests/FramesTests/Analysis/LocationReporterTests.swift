@@ -41,20 +41,6 @@ struct LocationReporterTests {
         }
     }
 
-    @Test("an image document takes any time")
-    func locatesPictureAtAnyTime() throws {
-        // Given
-        let document = try resolved(#"{ "kind": "image", "source": "/abs/page.png", "ops": [] }"#)
-
-        // When
-        let early = try sut.report(of: document, at: 0, point: Point(x: 10, y: 10))
-        let late = try sut.report(of: document, at: 7.5, point: Point(x: 10, y: 10))
-
-        // Then
-        #expect(late == early)
-        #expect(late.hits.count == 1)
-    }
-
     @Test("a point on a turned, scaled picture maps back through its transform and source rect into its media's pixels")
     func mapsPointThroughTransform() throws {
         // Given
@@ -202,9 +188,9 @@ struct LocationReporterTests {
     }
 
     @Test("a resolved document is located at the time, its storyline media mapped back into the frame it draws")
-    func locatesResolvedDocument() throws {
+    func locatesResolvedSequence() throws {
         // Given
-        let document = try ResolvedDocument(
+        let document = try ResolvedSequence(
             plan: Fixture.documentPlanner.plan(Fixture.json(#"""
                 { "kind": "sequence", "format": { "size": [540, 960] },
                   "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ] }
@@ -223,33 +209,6 @@ struct LocationReporterTests {
         #expect(report.hits.map(\.origin) == [entry, nil])
         #expect(hit.media?.point == Point(x: 540, y: 960))
         #expect(hit.media?.mediaTime == 2)
-    }
-
-    @Test("a point in a layout names the ops of the image document its item holds, in the item's place, and the layout")
-    func locatesLayoutOperations() throws {
-        // Given
-        let document = try ResolvedDocument(
-            plan: Fixture.documentPlanner.plan(Fixture.json(#"""
-                { "kind": "layout", "border": false,
-                  "items": [ { "image": { "kind": "image", "source": "/abs/page.png",
-                                          "ops": [ { "shape": "box", "area": [100, 100, 200, 100], "id": "serial" } ] } } ] }
-                """#)),
-            hashes: FileHashTable()
-        )
-        // The 1000 x 800 item sits inside the layout padding, 40 at the base width of 1206.
-        let padding = 40 * 1000 / 1206.0
-
-        // When
-        let report = try sut.report(of: document, at: 0, point: Point(x: padding + 100, y: padding + 150))
-
-        // Then
-        // The point lies on the box's left edge, over the source picture and the layout's background.
-        #expect(report.hits.map(\.origin) == [
-            ItemOrigin(place: "items[0].image.ops[0]#serial", id: "serial", kind: "box"),
-            ItemOrigin(place: "items[0].image.source", id: nil, kind: "image"),
-            ItemOrigin(place: "top level", id: nil, kind: "layout")
-        ])
-        #expect(report.hits[1].media?.file == "/abs/page.png")
     }
 
     @Test("the machine output is the locate object FRAMES-23 gives, with media only on a picture of media")
@@ -297,8 +256,8 @@ struct LocationReporterTests {
     }
 
     // MARK: - Private
-    private func resolved(_ document: String) throws -> ResolvedDocument {
-        try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    private func resolved(_ document: String) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     private func list(_ items: [DisplayItem]) -> DisplayList {

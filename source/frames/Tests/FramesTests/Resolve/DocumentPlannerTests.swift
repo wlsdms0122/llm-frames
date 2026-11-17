@@ -66,7 +66,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         let nested = try #require(plan.time.storyline[0].source.media?.sequence)
@@ -88,7 +88,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         let template = try #require(plan.time.storyline[0].source.media?.sequence)
@@ -106,7 +106,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         let intro = try #require(plan.time.storyline[0].source.media?.sequence?.storyline[1].source.media?.sequence)
@@ -121,7 +121,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         let nested = try #require(plan.time.storyline[0].source.media?.sequence)
@@ -138,7 +138,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         #expect(plan.time.storyline.map(\.edit) == [TimeRange(start: 0, end: 4), TimeRange(start: 4, end: 5)])
@@ -151,7 +151,7 @@ struct DocumentPlannerTests {
         let document = try Fixture.json(intro)
 
         // When
-        let plan = try #require(try sut.plan(document, theme: "shorts/shorts").sequence)
+        let plan = try sut.plan(document, theme: "shorts/shorts")
 
         // Then
         #expect(plan.time.storyline[1].transition?.preset == "frames/flash")
@@ -212,7 +212,7 @@ struct DocumentPlannerTests {
         let list = ArgumentFile(name: "/abs/args.json", value: try Fixture.json("[1]"))
 
         // When
-        let plan = try #require(try sut.plan(document, arguments: arguments).sequence)
+        let plan = try sut.plan(document, arguments: arguments)
 
         // Then
         #expect(plan.time.storyline[0].source.media?.reference == "shorts/leak.mov")
@@ -221,53 +221,6 @@ struct DocumentPlannerTests {
         #expect(wrongError.map { "\($0)" } == "/abs/args.json: clip (template arguments): expected a media reference, found 3")
         let listError = #expect(throws: ModelError.self) { try sut.plan(document, arguments: list) }
         #expect(listError?.description == "/abs/args.json: top level (template arguments): expected an object, found a list of 1")
-    }
-
-    @Test("an image template given as the document plans as a picture of the image its arguments give")
-    func plansImageTemplateWithArguments() throws {
-        // Given
-        let document = try Fixture.json(#"""
-            { "kind": "image", "params": { "shot": { "type": "image" } }, "source": { "param": "shot" }, "ops": [ { "pad": 20 } ] }
-            """#)
-        let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "shot": "/abs/page.png" }"#))
-
-        // When
-        let plan = try sut.plan(document, arguments: arguments)
-
-        // Then
-        guard case let .picture(picture) = plan else {
-            Issue.record("the template does not plan as a picture")
-            return
-        }
-        #expect(picture.size == Size(width: 1040, height: 840))
-        guard case let .picture(.media(_, name, _), _, frame) = picture.steps.first?.content else {
-            Issue.record("the image is not drawn first")
-            return
-        }
-        #expect(name == "/abs/page.png")
-        #expect(frame == Rectangle(x: 20, y: 20, width: 1000, height: 800))
-    }
-
-    @Test("an instance whose shape choice picks an arrow draws it from the side the template writes")
-    func drawsPickedArrowFromWrittenSide() throws {
-        // Given
-        let document = try Fixture.json(#"""
-            { "kind": "image", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "source": "/abs/page.png",
-              "ops": [ { "shape": { "param": "s" }, "area": [100, 100, 100, 100], "side": "top" } ] }
-            """#)
-        let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "s": "arrow" }"#))
-
-        // When
-        let plan = try sut.plan(document, arguments: arguments)
-
-        // Then
-        guard case let .picture(picture) = plan, case let .arrow(tail, tip, _, _, _) = picture.steps.last?.content else {
-            Issue.record("the arrow is not drawn last")
-            return
-        }
-        #expect(tip.x == 150)
-        #expect(tail.x == tip.x)
-        #expect(tail.y < tip.y)
     }
 
     @Test("a template given as the document without --args needs a default for every parameter")
@@ -333,7 +286,7 @@ struct DocumentPlannerTests {
             """#)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         #expect(plan.time.duration == 2)

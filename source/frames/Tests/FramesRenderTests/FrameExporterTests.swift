@@ -144,28 +144,6 @@ struct FrameExporterTests {
         #expect(frames[2].isPixel(x: 80, y: 89, blue, tolerance: 1.0 / 255))
     }
 
-    @Test("an image document has no times, so still, sheet and extract stop and write nothing")
-    func refusesImageDocument() throws {
-        // Given
-        let media = try TemporaryDirectory()
-        let output = try TemporaryDirectory()
-        let file = try image(in: media, named: "grey.png", color: [128, 128, 128])
-        let document = try DocumentResolver().resolve(#"{ "kind": "image", "source": "\#(file)" }"#)
-        let sut = exporter()
-
-        // When, Then
-        #expect(throws: ExportError.timelessDocument(kind: "image")) {
-            try sut.still(document, at: [0], to: output.file("still.png"))
-        }
-        #expect(throws: ExportError.timelessDocument(kind: "image")) {
-            try sut.sheet(.document(document), range: FrameRange(), columns: 6, to: output.file("sheet.png"))
-        }
-        #expect(throws: ExportError.timelessDocument(kind: "image")) {
-            try sut.extract(.document(document), range: FrameRange(), to: output.file("frames"))
-        }
-        #expect(try contents(of: output).isEmpty)
-    }
-
     @Test("a time outside the sequence, an output that is not a PNG and a file that is not a video stop")
     func refusesBadArguments() throws {
         // Given
@@ -233,7 +211,7 @@ struct FrameExporterTests {
     }
 
     // An orange image for [0, 0.5) and a blue one for [0.5, 1), at 160 x 90 and 10 frames a second.
-    private func sequence(in media: TemporaryDirectory) throws -> ResolvedDocument {
+    private func sequence(in media: TemporaryDirectory) throws -> ResolvedSequence {
         let first = try image(in: media, named: "orange.png", color: orange)
         let second = try image(in: media, named: "blue.png", color: blue)
 

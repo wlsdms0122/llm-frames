@@ -11,7 +11,6 @@ struct Template: Equatable, Sendable {
     // MARK: - Property
     let document: JSONValue
     let place: Place
-    let kind: MediaKind
     let parameters: [TemplateParameter]
     let references: [ParameterReference]
 
@@ -24,13 +23,11 @@ struct Template: Equatable, Sendable {
     init(
         document: JSONValue,
         place: Place,
-        kind: MediaKind,
         parameters: [TemplateParameter],
         references: [ParameterReference]
     ) {
         self.document = document
         self.place = place
-        self.kind = kind
         self.parameters = parameters
         self.references = references
     }

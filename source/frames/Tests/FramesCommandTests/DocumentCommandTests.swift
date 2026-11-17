@@ -26,11 +26,11 @@ struct DocumentCommandTests {
     }
 
     // MARK: - Test
-    @Test("resolve writes the resolved document of an image document and prints its path and size")
-    func resolvesImage() throws {
+    @Test("resolve writes the resolved document of a sequence and prints its path and size")
+    func resolvesSequence() throws {
         // Given
         let image = try picture(named: "card.png")
-        let document = try sut.write(#"{ "kind": "image", "source": "\#(image)" }"#, named: "card.json")
+        let document = try sut.write(#"{ "kind": "sequence", "storyline": [ { "media": "\#(image)", "duration": 1 } ] }"#, named: "card.json")
         let output = sut.directory.file("card.resolved.json")
 
         // When
@@ -41,7 +41,7 @@ struct DocumentCommandTests {
         #expect(code == 0)
         #expect(sut.standardError.isEmpty)
         #expect(try sut.standardOutput == line(of: output))
-        #expect(text.hasPrefix("{\n  \"kind\": \"image\",\n  \"resolved\": \"1.0.0\""))
+        #expect(text.hasPrefix("{\n  \"kind\": \"sequence\",\n  \"resolved\": \"1.0.0\""))
     }
 
     @Test("resolve of a resolved document writes it as it is")
@@ -148,15 +148,14 @@ struct DocumentCommandTests {
         #expect(sut.standardOutput.hasPrefix("duration 2\n"))
     }
 
-    @Test("render draws an image document to one PNG and prints its path and size")
-    func rendersImage() throws {
+    @Test("render draws the frame of a sequence at --at to one PNG and prints its path and size")
+    func rendersFrame() throws {
         // Given
-        let image = try picture(named: "card.png")
-        let document = try sut.write(#"{ "kind": "image", "source": "\#(image)" }"#, named: "card.json")
+        let document = try sut.write(sequence, named: "doc.json")
         let output = sut.directory.file("out.png")
 
         // When
-        let code = sut.run(["render", document, "-o", output])
+        let code = sut.run(["render", document, "-o", output, "--at", "1.2"])
 
         // Then
         #expect(code == 0)
@@ -190,18 +189,26 @@ struct DocumentCommandTests {
         #expect(try sut.standardOutput == line(of: again))
     }
 
-    @Test("render of a sequence to another extension stops with the pipeline's reason")
-    func stopsOnOutputExtension() throws {
+    @Test("render to another extension, or with --at to a master, stops with the pipeline's reason", arguments: [
+        ("out.gif", [] as [String], "render writes a .mov master or a .png frame"),
+        ("out.mov", ["--at", "1"], "--at picks the frame of a .png, and a .mov master holds every frame")
+    ])
+    func stopsOnOutput(
+        name: String,
+        options: [String],
+        reason: String
+    ) throws {
         // Given
         let document = try sut.write(sequence, named: "doc.json")
-        let output = sut.directory.file("out.png")
+        let output = sut.directory.file(name)
 
         // When
-        let code = sut.run(["render", document, "-o", output])
+        let code = sut.run(["render", document, "-o", output] + options)
 
         // Then
         #expect(code == 1)
-        #expect(sut.standardError == "frames: \"\(output)\": sequence documents render to .mov files\n")
+        #expect(sut.standardError == "frames: \"\(output)\": \(reason)\n")
+        #expect(!FileManager.default.fileExists(atPath: output))
     }
 
     // MARK: - Private

@@ -220,81 +220,15 @@ struct EvaluationReporterTests {
         }
     }
 
-    @Test("an image document takes any time and reports its one list, its source picture named by its source")
-    func reportsPictureAtAnyTime() throws {
-        // Given
-        let document = try resolved(#"{ "kind": "image", "source": "/abs/page.png", "ops": [] }"#)
-
-        // When
-        let early = try sut.report(of: document, at: 0)
-        let late = try sut.report(of: document, at: 7.5)
-
-        // Then
-        #expect(late.time == 7.5)
-        #expect(early.items == late.items)
-        #expect(late.size == Size(width: 1000, height: 800))
-        #expect(late.items == [
-            EvaluationItem(
-                origin: ItemOrigin(place: "source", id: nil, kind: "image"),
-                bounds: Rectangle(x: 0, y: 0, width: 1000, height: 800),
-                opacity: 1
-            )
-        ])
-    }
-
-    @Test("an image document's items name the op that drew them, with its id, and its kind as messages name it")
-    func reportsImageOperationPlaces() throws {
-        // Given
-        let document = try resolved(#"""
-            { "kind": "image", "source": "/abs/page.png",
-              "ops": [ { "pad": [10, 0, 0, 0], "id": "room" }, { "shape": "box", "area": [100, 100, 200, 100] } ] }
-            """#)
-
-        // When
-        let report = try sut.report(of: document, at: 0)
-
-        // Then
-        #expect(report.items.map(\.origin) == [
-            ItemOrigin(place: "source", id: nil, kind: "image"),
-            ItemOrigin(place: "ops[0]#room", id: "room", kind: "pad"),
-            ItemOrigin(place: "ops[1]", id: nil, kind: "box")
-        ])
-        #expect(report.items[1].bounds == Rectangle(x: 0, y: 0, width: 1000, height: 10))
-    }
-
-    @Test("a layout names its background and its items, and an image document an item holds continues the item's place")
-    func reportsLayoutPlaces() throws {
-        // Given
-        let document = try resolved(#"""
-            { "kind": "layout", "border": false,
-              "items": [ { "heading": "Before",
-                           "image": { "kind": "image", "source": "/abs/page.png",
-                                      "ops": [ { "shape": "box", "area": [100, 100, 200, 100], "id": "serial" } ] } },
-                         { "image": "/abs/card.png" } ] }
-            """#)
-
-        // When
-        let report = try sut.report(of: document, at: 0)
-
-        // Then
-        // The nested image's list is transparent, so its picture is reported as its own items.
-        #expect(report.items.map(\.origin) == [
-            ItemOrigin(place: "top level", id: nil, kind: "layout"),
-            ItemOrigin(place: "items[0]", id: nil, kind: "layout item"),
-            ItemOrigin(place: "items[0].image.source", id: nil, kind: "image"),
-            ItemOrigin(place: "items[0].image.ops[0]#serial", id: "serial", kind: "box"),
-            ItemOrigin(place: "items[1]", id: nil, kind: "layout item")
-        ])
-    }
-
-    @Test("an image document a connected clip shows names its ops in the clip's place")
-    func reportsNestedImageInClip() throws {
+    @Test("a compound clip a connected clip shows names its own clips in the clip's place")
+    func reportsCompoundInClip() throws {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4,
-                               "connected": [ { "media": { "kind": "image", "source": "/abs/page.png",
-                                                           "ops": [ { "border": "#FF0000" } ] },
+                               "connected": [ { "media": { "kind": "sequence",
+                                                           "storyline": [ { "media": "/abs/page.png", "duration": 2,
+                                                               "connected": [ { "shape": "box", "area": [100, 100, 200, 100] } ] } ] },
                                                 "at": [0, 2] } ] } ] }
             """#)
 
@@ -303,8 +237,8 @@ struct EvaluationReporterTests {
 
         // Then
         let places = report.items.compactMap(\.origin?.place)
-        #expect(places.contains("storyline[0].connected[0].media.source"))
-        #expect(places.contains("storyline[0].connected[0].media.ops[0]"))
+        #expect(places.contains("storyline[0].connected[0].media.storyline[0]"))
+        #expect(places.contains("storyline[0].connected[0].media.storyline[0].connected[0]"))
         #expect(!places.contains("storyline[0].connected[0]"))
     }
 
@@ -357,8 +291,8 @@ struct EvaluationReporterTests {
         DisplayList(size: size, background: background ?? transparent, seed: 0, items: items)
     }
 
-    private func resolved(_ document: String) throws -> ResolvedDocument {
-        try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    private func resolved(_ document: String) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     private func isClose(
