@@ -68,7 +68,7 @@ struct TranscoderTests {
         let log = RoleCallLog()
         let input = try source(in: directory, name: "in.wav")
         let output = directory.file("out.m4a")
-        let sut = transcoder(log: log, facts: [input: ProbedMedia(kind: .audio, duration: 2.5, hasSound: true)])
+        let sut = transcoder(log: log, facts: [input: ProbedMedia(kind: .audio, duration: 2.5, sound: stereo)])
 
         // When
         let result = try sut.transcode(TranscodeRequest(input: input, output: output, quality: .high))
@@ -264,7 +264,7 @@ struct TranscoderTests {
             image(width: 40, height: 30)
 
         case .audio:
-            ProbedMedia(kind: .audio, duration: 1, hasSound: true)
+            ProbedMedia(kind: .audio, duration: 1, sound: stereo)
 
         default:
             video(hasSound: true)
@@ -299,7 +299,7 @@ struct TranscoderTests {
             image(width: 40, height: 30)
 
         case "in.wav":
-            ProbedMedia(kind: .audio, duration: 1, hasSound: true)
+            ProbedMedia(kind: .audio, duration: 1, sound: stereo)
 
         default:
             video(hasSound: true)
@@ -431,7 +431,7 @@ struct TranscoderTests {
             image(width: 40, height: 30)
 
         case "in.wav":
-            ProbedMedia(kind: .audio, duration: 1, hasSound: true)
+            ProbedMedia(kind: .audio, duration: 1, sound: stereo)
 
         default:
             video(hasSound: true)
@@ -497,6 +497,10 @@ struct TranscoderTests {
         ProbedMedia(kind: .image, size: Size(width: width, height: height))
     }
 
+    private var stereo: ProbedSound {
+        ProbedSound(channels: 2, sampleRate: 48_000)
+    }
+
     // Half a second at 10 frames a second whose frames come at 0 and 0.25, as a variable rate recording's do.
     private func video(hasSound: Bool) -> ProbedMedia {
         ProbedMedia(
@@ -505,7 +509,7 @@ struct TranscoderTests {
             fps: 10,
             frames: [0, 0.25],
             size: Size(width: 40, height: 30),
-            hasSound: hasSound
+            sound: hasSound ? stereo : nil
         )
     }
 
