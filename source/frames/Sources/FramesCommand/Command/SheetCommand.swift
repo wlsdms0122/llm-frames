@@ -22,7 +22,13 @@ struct SheetCommand: Command {
     ) throws {
         let source = try context.frameSource(FrameSourceArgument(options.source), command: name)
 
-        try context.exporter().sheet(source, range: options.range, columns: options.columns, to: options.output)
+        try context.exporter.sheet(
+            source,
+            range: options.range,
+            columns: options.columns,
+            labelFace: try context.labelFace(),
+            to: options.output
+        )
         try context.reportWritten(options.output)
     }
 

@@ -20,7 +20,7 @@ struct ContactSheetComposerTests {
 
     // MARK: - Initializer
     init() {
-        sut = ContactSheetComposer(face: face, shaper: Fixture.shaper, hasher: FileHashTable())
+        sut = ContactSheetComposer(shaper: Fixture.shaper, hasher: FileHashTable())
     }
 
     // MARK: - Test
@@ -42,7 +42,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: frame, columns: 1)
+        let sheet = try sut.sheet(of: cells, size: frame, columns: 1, face: face)
 
         // Then
         let label = try #require(labelGlyphs(of: sheet).first)
@@ -55,7 +55,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1)
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
 
         // Then
         // At S 48, "0s" is 48 wide with 24 on each side, and its line box of 48 has 12 above and below.
@@ -84,7 +84,7 @@ struct ContactSheetComposerTests {
         let cells = (0..<4).map { cell(at: Double($0) * 0.5) }
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
 
         // Then
         let pictures = pictureRectangles(of: sheet)
@@ -102,7 +102,7 @@ struct ContactSheetComposerTests {
         let cells = (0..<5).map { cell(at: Double($0)) }
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
 
         // Then
         let pictures = pictureRectangles(of: sheet)
@@ -119,7 +119,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 1)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1)
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
 
         // Then
         #expect(pictureRectangles(of: sheet) == [Rectangle(x: 48, y: 48, width: 1920, height: 1080)])
@@ -133,7 +133,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0), cell(at: 1)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 6)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 6, face: face)
 
         // Then
         #expect(sheet.size.width == 14 + 160 + 14 + 160 + 14)

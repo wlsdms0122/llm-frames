@@ -22,7 +22,7 @@ struct ExtractCommand: Command {
     ) throws {
         let source = try context.frameSource(FrameSourceArgument(options.source), command: name)
 
-        for path in try context.exporter().extract(source, range: options.range, to: options.directory) {
+        for path in try context.exporter.extract(source, range: options.range, to: options.directory) {
             try context.reportWritten(path)
         }
     }

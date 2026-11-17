@@ -40,6 +40,16 @@ struct CommandContext: Sendable {
         )
     }
 
+    var exporter: FrameExporter {
+        FrameExporter(
+            decoder: roles.decoder,
+            renderer: roles.renderer,
+            encoder: roles.encoder,
+            mediaFacts: roles.decoder,
+            shaper: roles.shaper
+        )
+    }
+
     // MARK: - Initializer
     init(
         options: GlobalOptions,
@@ -54,19 +64,13 @@ struct CommandContext: Sendable {
     }
 
     // MARK: - Public
-    func exporter() throws -> FrameExporter {
+    // The face `still` and `sheet` set their time labels in.
+    func labelFace() throws -> FontFace {
         guard let face = roles.shaper.face(named: Self.labelFaceName, in: Self.labelFile) else {
             throw CommandError.missingLabelFace(name: Self.labelFaceName, file: Self.labelFile)
         }
 
-        return FrameExporter(
-            decoder: roles.decoder,
-            renderer: roles.renderer,
-            encoder: roles.encoder,
-            mediaFacts: roles.decoder,
-            shaper: roles.shaper,
-            labelFace: face
-        )
+        return face
     }
 
     // The document a command is given as `argument`, with `--theme` and the `--args` file at `arguments`.

@@ -15,30 +15,28 @@ struct ContactSheetComposer: Sendable {
     private static let labelBackground = Color(written: "#000000B3")
     private static let sheetBackground = Color(written: "#202020FF")
 
-    private let face: FontFace
     private let typesetter: Typesetter
     private let hasher: any FileHashProvider
 
     // MARK: - Initializer
     init(
-        face: FontFace,
         shaper: any ShapingProvider,
         hasher: any FileHashProvider
     ) {
-        self.face = face
         self.typesetter = Typesetter(shaper: shaper)
         self.hasher = hasher
     }
 
     // MARK: - Public
-    // `size` is every frame as drawn, in the sheet's pixels.
+    // `size` is every frame as drawn, in the sheet's pixels, and `face` is the face the labels are set in.
     func sheet(
         of cells: [ContactSheetCell],
         size: Size,
-        columns: Int
+        columns: Int,
+        face: FontFace
     ) throws -> DisplayList {
         let labelSize = max(14, (max(size.width, size.height) / 40).rounded())
-        let style = style(size: labelSize)
+        let style = style(size: labelSize, face: face)
         let columnCount = max(min(columns, cells.count), 1)
         let rowCount = (cells.count + columnCount - 1) / columnCount
         let items = try cells.indices.flatMap { index in
@@ -76,7 +74,10 @@ struct ContactSheetComposer: Sendable {
     // MARK: - Private
     // The line box is the face's ascent and descent at the size, and the background lies around it. The face is given,
     // so the style's families and weight are not read.
-    private func style(size: Double) -> TextStyle {
+    private func style(
+        size: Double,
+        face: FontFace
+    ) -> TextStyle {
         TextStyle(
             families: [],
             pack: nil,
