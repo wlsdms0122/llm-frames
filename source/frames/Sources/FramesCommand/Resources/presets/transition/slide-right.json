@@ -1,0 +1,6 @@
+{
+  "description": "The next clip slides in from the left and covers the previous one, which stays still. Eases in and out. Going back a step.",
+  "seconds": 0.45,
+  "ease": "ease-in-out",
+  "incoming": { "keys": [ { "t": 0, "x": -1 }, { "t": 1, "x": 0 } ] }
+}
