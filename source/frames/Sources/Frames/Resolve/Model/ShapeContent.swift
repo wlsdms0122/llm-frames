@@ -6,7 +6,7 @@
 //
 
 // What a shape draws once its drawing is laid on an area, in the coordinates of that area. A box strokes the
-// rectangle's edge, a fill covers it, a dim darkens its room except the rectangle, and an arrow runs from its tail to
+// rectangle's edge, a fill covers it, a dim darkens the frame except the rectangle, and an arrow runs from its tail to
 // its tip.
 enum ShapeContent: Equatable, Sendable {
     case box(Rectangle, width: Double, radius: Double, color: Color)
