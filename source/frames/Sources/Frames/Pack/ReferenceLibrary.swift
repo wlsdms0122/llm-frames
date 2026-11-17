@@ -21,7 +21,7 @@ package struct ReferenceLibrary: MediaKindProvider {
     let pack: String?
 
     // MARK: - Initializer
-    init(
+    package init(
         packs: PackLibrary,
         mediaFacts: any MediaFactProvider
     ) {

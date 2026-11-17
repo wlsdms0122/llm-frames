@@ -9,7 +9,7 @@
 // `[x, y, w, h]` in media pixels.
 extension TrackReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "track", value: .string(FramesVersion.current)),
             JSONMember(key: "frames", value: .array(frames.map(output)))

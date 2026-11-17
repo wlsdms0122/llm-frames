@@ -9,7 +9,7 @@
 // opacity}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers nothing.
 extension EvaluationReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "evaluate", value: .string(FramesVersion.current)),
             JSONMember(key: "time", value: .time(time)),
