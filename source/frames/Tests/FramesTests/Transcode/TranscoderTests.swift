@@ -358,14 +358,15 @@ struct TranscoderTests {
         try expectStop(request, facts: [input: image(width: 40, height: 30)], error: .maximumSide(maximumSide))
     }
 
-    @Test("--max that rounds a side of a video below 2 pixels stops, naming the size it would give", arguments: [
+    @Test("a video side that rounds below 2 pixels stops, naming the size it would give and the cap that shrank it", arguments: [
         (Size(width: 1920, height: 1080), 1, Size(width: 1, height: 1)),
         (Size(width: 1920, height: 1080), 2, Size(width: 2, height: 1)),
-        (Size(width: 400, height: 2), 100, Size(width: 100, height: 1))
+        (Size(width: 400, height: 2), 100, Size(width: 100, height: 1)),
+        (Size(width: 1, height: 400), nil, Size(width: 1, height: 400))
     ])
     func stopsOnUndersizedVideo(
         source size: Size,
-        maximumSide: Int,
+        maximumSide: Int?,
         fitted: Size
     ) throws {
         // Given
@@ -382,6 +383,25 @@ struct TranscoderTests {
             request,
             facts: [input: media],
             error: .undersizedVideo(path: output, maximumSide: maximumSide, size: fitted)
+        )
+    }
+
+    @Test("a cap larger than a video under 2 pixels wide is not named, since it shrank nothing")
+    func stopsOnUndersizedSourceUnderLargerCap() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try source(in: directory, name: "in.mov")
+        let output = try existingOutput(in: directory, name: "out.mp4")
+        let media = ProbedMedia(kind: .video, duration: 0.1, fps: 10, frames: [0], size: Size(width: 1, height: 400))
+
+        // When
+        let request = TranscodeRequest(input: input, output: output, maximumSide: 1000)
+
+        // Then
+        try expectStop(
+            request,
+            facts: [input: media],
+            error: .undersizedVideo(path: output, maximumSide: nil, size: Size(width: 1, height: 400))
         )
     }
 

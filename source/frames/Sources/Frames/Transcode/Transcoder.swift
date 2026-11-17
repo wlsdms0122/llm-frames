@@ -233,18 +233,17 @@ package struct Transcoder: Sendable {
         guard request.codec == nil else { throw TranscodeError.codecWithoutVideo(path: request.output) }
     }
 
-    // A video's side is at least 2 pixels, the least even number, so a cap that rounds a side below it stops rather
-    // than writing a video larger than the cap.
+    // A video's side is at least 2 pixels, the least even number, so a source or a cap that rounds a side below it
+    // stops rather than writing a video larger than either. The cap is named only when it shrank the video.
     private func checkVideoSize(
         of size: Size,
         for request: TranscodeRequest
     ) throws {
-        guard let maximumSide = request.maximumSide else { return }
+        let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: false)
+        guard fitted.width < 2 || fitted.height < 2 else { return }
 
-        let fitted = outputSize(of: size, maximumSide: maximumSide, isVideo: false)
-        guard fitted.width >= 2, fitted.height >= 2 else {
-            throw TranscodeError.undersizedVideo(path: request.output, maximumSide: maximumSide, size: fitted)
-        }
+        let shrinking = request.maximumSide.flatMap { Double($0) < max(size.width, size.height) ? $0 : nil }
+        throw TranscodeError.undersizedVideo(path: request.output, maximumSide: shrinking, size: fitted)
     }
 
     // `size` with its longer side capped at `maximumSide`, never enlarged, each side rounded to whole pixels. A
@@ -270,7 +269,7 @@ package struct Transcoder: Sendable {
         let whole = max(length.rounded(), 1)
         guard isVideo else { return whole }
 
-        return max(whole - whole.truncatingRemainder(dividingBy: 2), 2)
+        return whole - whole.truncatingRemainder(dividingBy: 2)
     }
 
     // Frame k is written at k / fps for every k whose time, measured to the microsecond, is before `duration`, and

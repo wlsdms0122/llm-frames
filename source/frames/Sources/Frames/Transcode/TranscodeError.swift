@@ -15,7 +15,7 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
     case codecWithoutVideo(path: String)
     case noSound(path: String, input: String)
     case noFrameRate(path: String)
-    case undersizedVideo(path: String, maximumSide: Int, size: Size)
+    case undersizedVideo(path: String, maximumSide: Int?, size: Size)
     case unremovable(path: String, reason: String)
     case unmeasurable(path: String)
 
@@ -50,8 +50,8 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
             "\(quoted(path)): the video has no frame rate to write its frames at"
 
         case let .undersizedVideo(path, maximumSide, size):
-            "\(quoted(path)): --max \(maximumSide) makes the video \(Int(size.width))x\(Int(size.height)), and a video's "
-                + "sides are at least 2 pixels"
+            "\(quoted(path)): \(maximumSide.map { "--max \($0) makes" } ?? "the source is") the video "
+                + "\(Int(size.width))x\(Int(size.height)), and a video's sides are at least 2 pixels"
 
         case let .unremovable(path, reason):
             "\(quoted(path)): the existing file cannot be removed: \(reason)"
