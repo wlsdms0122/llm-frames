@@ -1,0 +1,15 @@
+{
+  "kind": "sequence",
+  "theme": "pr-evidence/pr-evidence",
+  "format": { "size": [1280, 942], "fps": 30, "background": "#FFFFFF", "inset": [222, 0, 0, 0], "conform": "fit" },
+  "storyline": [
+    { "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0,
+      "connected": [
+        { "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
+      ] }
+  ],
+  "clips": [
+    { "id": "conclusion", "title": "Total includes shipping", "style": "bannerHead", "position": [42, 42], "anchor": "top-left" },
+    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "banner", "position": [42, 110], "anchor": "top-left" }
+  ]
+}

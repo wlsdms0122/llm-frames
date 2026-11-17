@@ -1,0 +1,14 @@
+{
+  "kind": "image",
+  "theme": "pr-evidence/pr-evidence",
+  "source": "/path/to/checkout.png",
+  "ops": [
+    { "crop": { "band": { "from": "Order summary", "to": "Total" } } },
+    { "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" },
+    { "shape": "box", "area": "Item total" },
+    { "shape": "box", "area": "Shipping" },
+    { "shape": "box", "area": "Total", "label": "38,000 + 4,000" },
+    { "banner": [ { "text": "Total includes shipping", "style": "bannerHead" }, "42,000 is the item total plus 4,000 shipping" ], "edge": "top" },
+    { "border": true }
+  ]
+}
