@@ -67,10 +67,13 @@ theme
 | `medium` (default) | 0.75 | medium | 64 kbps |
 | `low` | 0.55 | low | 32 kbps |
 
-- `--max` caps the longer side. A smaller source is never enlarged. Video sizes round to even numbers.
+- `--max` caps the longer side. A smaller source is never enlarged. Video sizes round down to even numbers, so neither the source nor `--max` is exceeded.
 - Metadata (EXIF, location) is not copied. Rotation is applied to the pixels. A JPEG gets transparent parts on white.
+- A video is written at its frame rate: frame k is the source frame shown at k / fps, for every k whose time is before the video's duration and frame 0 always, as a sequence's frames are, so a variable rate recording keeps its length.
+- The video levels are the encoder's: with `avfoundation` they are `AVVideoQualityKey` 0.7, 0.5 and 0.3, for H.264 and HEVC alike, which shrink a screen recording written at AVFoundation's default quality to about 90, 60 and 45 percent.
+- Sound with more than 2 channels is downmixed to stereo by ITU-R BS.775, as the mixer downmixes it, and a rate above 48 kHz is converted to 48 kHz. A bit rate too high or low for the sample rate moves to the nearest one the AAC encoder takes.
 - The output line gives size, format and the ratio to the source, and says so when the output is not smaller.
-- The same file as input and output stops, and so does an extension that does not fit the input. An existing output file is removed only after every check passes.
+- The same file as input and output stops, compared with symbolic links resolved and then as the file system names it, so a hard link stops too. An extension that does not fit the input stops, compared ignoring case, and so do `--codec` for an output that is not a video and an output that is a directory. An existing output file is removed only after every check passes.
 
 ### Machine output
 
