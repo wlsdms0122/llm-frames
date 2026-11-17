@@ -1,0 +1,5 @@
+{
+  "description": "Comes down from above and settles, and falls on down as it fades out, for a heading or a card that arrives.",
+  "entrance": { "seconds": 0.45, "keys": [ { "t": 0, "y": -0.8, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "y": 0 } ] },
+  "exit": { "seconds": 0.2, "keys": [ { "t": 0, "y": 0, "opacity": 1 }, { "t": 1, "y": 0.4, "opacity": 0 } ] }
+}

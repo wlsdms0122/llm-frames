@@ -1,0 +1,6 @@
+{
+  "description": "A hard edge crosses from right to left and wipes the next clip in over the previous one. Eases in and out.",
+  "seconds": 0.5,
+  "ease": "ease-in-out",
+  "incoming": { "revealFrom": "right", "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] }
+}

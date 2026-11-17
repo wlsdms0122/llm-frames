@@ -1,0 +1,5 @@
+{
+  "description": "Rises a little from below as it fades in, and drifts up as it fades out, for subtitles and captions.",
+  "entrance": { "seconds": 0.4, "keys": [ { "t": 0, "y": 0.4, "opacity": 0 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "y": 0 } ] },
+  "exit": { "seconds": 0.2, "keys": [ { "t": 0, "y": 0, "opacity": 1 }, { "t": 1, "y": -0.2, "opacity": 0 } ] }
+}

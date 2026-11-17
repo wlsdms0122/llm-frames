@@ -1,0 +1,7 @@
+{
+  "description": "High-contrast black and white with deep blacks, for a dramatic or serious beat",
+  "ops": [
+    { "op": "saturation", "amount": 0 },
+    { "op": "contrast", "amount": 1.45 }
+  ]
+}
