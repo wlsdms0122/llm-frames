@@ -63,38 +63,16 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 
 ## Example
 
-The example names its media by placeholder paths under `/path/to/`. Change each to an absolute path of your own:
+`examples/checkout.json` is a 6 second short in two scenes. It names its media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before it runs:
 
 - `/path/to/checkout.png`: a screenshot of an order summary with the lines `Order summary`, `Item total 38,000`, `Shipping 4,000` and `Total 42,000`.
 - `/path/to/result.png`: any picture of the result. Nothing is found by its text.
 
-`examples/checkout.json`:
+It shows the format and the rules together:
 
-```json
-{
-  "kind": "sequence",
-  "theme": "shorts/shorts",
-  "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "inset": [420, 40, 120, 40], "conform": "fit" },
-  "storyline": [
-    { "media": "/path/to/checkout.png", "duration": 3.5,
-      "keyframes": [
-        { "at": 1, "crop": { "scale": 1 }, "ease": "ease-in-out" },
-        { "at": 1.8, "crop": { "from": "Item total", "to": "Total" } }
-      ],
-      "connected": [
-        { "at": [0, 1.6], "title": "주문 요약을 열면", "style": "subtitle" },
-        { "at": [1.6, 3.5], "title": "**합계**에 배송비가 들어가요", "style": "subtitle" },
-        { "at": [2, 3.5], "shape": "box", "area": "Total", "label": "배송비 포함" }
-      ] },
-    { "media": "/path/to/result.png", "duration": 2.5,
-      "connected": [
-        { "at": [0, 2.5], "title": "이제 **42,000원** 그대로 결제돼요", "style": "subtitle" }
-      ] }
-  ],
-  "clips": [
-    { "title": "결제 금액이\n**한눈에** 보여요", "style": "headline" }
-  ]
-}
-```
+- The headline is the one title in `clips`, with no `at`, so it holds the top band for the whole video: `"결제 금액이\n**한눈에** 보여요"`, two short lines broken by hand and one word in emphasis.
+- The first scene zooms from the whole screenshot to the lines from `Item total` to `Total` with two crop keyframes, then boxes `Total` while its subtitle names it.
+- Its subtitles change back to back in the scene's seconds, `[0, 1.6]` then `[1.6, 3.5]`, and the second scene's subtitle spans that scene.
+- No clip names a transition or an animation: the theme pushes the second scene up, pops the subtitles and the label in, and draws the box.
 
 Check it with `frames timeline examples/checkout.json` and `frames still examples/checkout.json --at 0.5,2.5,4.5 -o check.png`.

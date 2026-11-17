@@ -41,7 +41,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 - Each step is its own storyline clip of the recording with its own `in` and `out`, cut where the screen is still. Cuts on a still screen are not seen.
 - Waits (loading, typing a long text) are cut out or taken at `"speed": 2`. A viewer learns nothing from a wait, and the feature should not look slower or faster than it is beyond that.
-- Clips of one recording follow each other with no transition (the default, `cut`). A `fade` brings in the title card's next clip, a different recording or a screenshot, and the end card. A dissolve says "elsewhere", a cut says "and then".
+- Clips of one recording follow each other with no transition (the default, `cut`). A `fade` brings in the clip after the title card, a different recording or a screenshot of another screen, and the end card. A dissolve says "elsewhere", a cut says "and then".
 - Sound: the recording's own sound is turned off (`"volume": 0`) unless it is part of the feature. Music, if any, is an audio clip in `clips` at `"volume"` 0.2 to 0.3 with a `fadeOut` of 1 second, so it never covers a voice or a feature sound.
 
 ### Length
@@ -61,38 +61,19 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 ## Example
 
-The example names its media by placeholder paths under `/path/to/`. Change each to an absolute path of your own:
+`examples/checkout.json` is an 8.4 second demo of one feature in four storyline clips: the title card, a recording, a screenshot and the end card. It names its media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before it runs:
 
 - `/path/to/checkout.mov`: a recording of an order summary screen, at least 1.4 seconds long.
 - `/path/to/checkout.png`: a screenshot of the order summary with the lines `Order summary`, `Item total 38,000`, `Shipping 4,000` and `Total 42,000`.
 
-`examples/checkout.json`:
+It shows the format and the rules together:
+
+- The title card and the end card are black solids with a centred headline, and only the title card has `**` emphasis.
+- The recording plays from `in` 0 to `out` 1.4 with its sound off, brought in with a `fade` since it follows the title card. The screenshot after it is a cut: the same screen goes on.
+- Each step has one subtitle. The `Total` line sits in the bottom quarter, so the subtitle of the step that boxes it moves to the top:
 
 ```json
-{
-  "kind": "sequence",
-  "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
-  "storyline": [
-    { "id": "title-card", "solid": "#000000", "duration": 1.5,
-      "connected": [
-        { "title": "Checkout\n**Totals now include shipping**", "style": "headline", "placement": "center" }
-      ] },
-    { "id": "open", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "transition": "fade",
-      "connected": [
-        { "at": [0.2, 1.4], "title": "Open the order summary", "style": "subtitle" }
-      ] },
-    { "id": "total", "media": "/path/to/checkout.png", "duration": 4,
-      "connected": [
-        { "at": [0, 1.5], "title": "Item total and shipping are listed", "style": "subtitle" },
-        { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" },
-        { "at": [1.8, 4], "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
-      ] },
-    { "id": "end-card", "solid": "#000000", "duration": 1.5, "transition": "fade",
-      "connected": [
-        { "title": "Available in version 2.4", "style": "headline", "placement": "center" }
-      ] }
-  ]
-}
+{ "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" }
 ```
 
 Check it with `frames timeline examples/checkout.json` and `frames still examples/checkout.json --at 0.5,2,4.5,7.5 -o check.png`.

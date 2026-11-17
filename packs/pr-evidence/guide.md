@@ -78,48 +78,19 @@ Its size is the source's. Leave out `resize`: the code host scales the picture t
 
 ## Example
 
-The examples name their media by placeholder paths under `/path/to/`. Change each to an absolute path of your own:
+Two examples are in `examples/`. They name their media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before they run:
 
 - `/path/to/checkout.png`: a screenshot of an order summary with the lines `Order summary`, `Ship to` and an email address, `Item total 38,000`, `Shipping 4,000` and `Total 42,000`, one above the other.
 - `/path/to/checkout.mov`: a 1280 by 720 recording of an order summary, at least 1.4 seconds long, that shows the line `Total 42,000` on its first frame. A recording of another size changes `size`, `inset` and the title positions as Format says.
 
-`examples/screenshot.json` is the screenshot form. The crop keeps the heading for context and the address line with it, so the address is covered:
+`examples/screenshot.json` is the screenshot form, its operations in the order Format gives. The band crop runs from `Order summary` to `Total`, so it keeps the heading for context and the address line with it, and the address is covered before anything is boxed:
 
 ```json
-{
-  "kind": "image",
-  "theme": "pr-evidence/pr-evidence",
-  "source": "/path/to/checkout.png",
-  "ops": [
-    { "crop": { "band": { "from": "Order summary", "to": "Total" } } },
-    { "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" },
-    { "shape": "box", "area": "Item total" },
-    { "shape": "box", "area": "Shipping" },
-    { "shape": "box", "area": "Total", "label": "38,000 + 4,000" },
-    { "banner": [ { "text": "Total includes shipping", "style": "bannerHead" }, "42,000 is the item total plus 4,000 shipping" ], "edge": "top" },
-    { "border": true }
-  ]
-}
+{ "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" }
 ```
 
-`examples/recording.json` is the recording form, with the banner built from titles:
+The three reason lines each get a box, and only the total, whose box alone does not say why it is boxed, gets a label (`38,000 + 4,000`). The banner gives the conclusion, then the reason.
 
-```json
-{
-  "kind": "sequence",
-  "theme": "pr-evidence/pr-evidence",
-  "format": { "size": [1280, 942], "fps": 30, "background": "#FFFFFF", "inset": [222, 0, 0, 0], "conform": "fit" },
-  "storyline": [
-    { "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0,
-      "connected": [
-        { "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
-      ] }
-  ],
-  "clips": [
-    { "id": "conclusion", "title": "Total includes shipping", "style": "bannerHead", "position": [42, 42], "anchor": "top-left" },
-    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "banner", "position": [42, 110], "anchor": "top-left" }
-  ]
-}
-```
+`examples/recording.json` is the recording form for a 1280 by 720 recording: `size` `[1280, 942]` and `inset` `[222, 0, 0, 0]` make the band, and two sequence clips without `at` write the banner into it for the whole video, the conclusion at `[42, 42]` and the reason at `[42, 110]`. The recording plays at speed 1 with its sound off, and the box on `Total` is connected to it, so it stays on the line.
 
-Check the recording with `frames timeline` and `frames still examples/recording.json --at 0.5 -o check.png`. Render each example, then run `frames ocr` on the result and make sure the address does not come back.
+Check each with `frames timeline` and `frames still` (the screenshot is checked by putting it in a one-clip sequence, or by rendering it to a PNG). Render, then run `frames ocr` on the result and make sure the address does not come back.
