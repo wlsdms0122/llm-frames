@@ -7,7 +7,8 @@
                   "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
     "headline": { "size": 84, "weight": "bold", "color": "#FFFFFF", "emphasis": "emphasis",
                   "stroke": { "width": 6, "color": "#000000" }, "placement": "top", "offset": 110, "align": "center" },
-    "label": { "size": 40, "background": { "color": "accent", "padding": [8, 16], "radius": 12 } }
+    "label": { "size": 40, "weight": "bold", "color": "#FFFFFF",
+               "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
   },
   "shapes": { "box": { "width": 10, "color": "accent" }, "arrow": { "color": "accent" } },
   "placement": { "padding": 40 },
