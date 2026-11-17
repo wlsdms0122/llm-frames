@@ -1,14 +1,21 @@
 {
-  "kind": "image",
+  "kind": "sequence",
   "theme": "pr-evidence/pr-evidence",
-  "source": "/path/to/checkout.png",
-  "ops": [
-    { "crop": { "band": { "from": "Order summary", "to": "Total" } } },
-    { "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" },
-    { "shape": "box", "area": "Item total" },
-    { "shape": "box", "area": "Shipping" },
-    { "shape": "box", "area": "Total", "label": "38,000 + 4,000" },
-    { "banner": [ { "text": "Total includes shipping", "style": "bannerHead" }, "42,000 is the item total plus 4,000 shipping" ], "edge": "top" },
-    { "border": true }
+  "format": { "size": { "fit": "content", "margin": 40 }, "fps": 30, "background": "#FFFFFF", "conform": "fit" },
+  "storyline": [
+    { "id": "checkout", "media": "/path/to/checkout.png", "duration": 1, "crop": { "from": "Order summary", "to": "Total", "padding": 40 },
+      "anchor": "top-left", "position": [0, 168],
+      "connected": [
+        { "shape": "fill", "id": "address", "parent": "checkout", "area": { "text": "Ship to", "padding": 14 }, "color": "#000000" },
+        { "shape": "box", "parent": "checkout", "area": { "text": "Item total", "padding": 14 } },
+        { "shape": "box", "parent": "checkout", "area": { "text": "Shipping", "padding": 14 } },
+        { "shape": "box", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
+        { "title": "38,000 + 4,000", "style": "label", "parent": "total",
+          "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
+      ] }
+  ],
+  "clips": [
+    { "id": "conclusion", "title": "Total includes shipping", "style": "lead", "width": 1126, "position": [0, 0], "anchor": "top-left" },
+    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "body", "width": 1126, "position": [0, 64], "anchor": "top-left" }
   ]
 }

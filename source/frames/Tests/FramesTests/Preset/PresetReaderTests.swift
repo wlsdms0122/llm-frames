@@ -125,7 +125,7 @@ struct PresetReaderTests {
         arguments: [
             (#"{ "description": "x", "seconds": 1, "incoming": { "seconds": 0.5, "keys": [] } }"#, #"incoming (incoming): unknown key "seconds". Allowed: ease, revealFrom, keys"#),
             (#"{ "description": "x", "seconds": 1, "outgoing": { "period": 0.5 } }"#, #"outgoing (outgoing): unknown key "period". Allowed: ease, revealFrom, keys"#),
-            (#"{ "description": "x", "seconds": 1, "over": "outgoing", "matte": { "media": "/abs/m.png" } }"#, #"top level (transition): a matte reveals the incoming unit, so it cannot play with "over": "outgoing""#),
+            (#"{ "description": "x", "seconds": 1, "over": "outgoing", "matte": { "media": "/abs/m.png" } }"#, #"top level (transition): a matte reveals the incoming storyline picture, so it cannot play with "over": "outgoing""#),
             (#"{ "description": "x" }"#, #"top level (transition): missing key "seconds""#),
             (#"{ "description": "x", "seconds": 1, "cover": { "keys": [] } }"#, "cover (cover): needs one of color, media"),
             (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (cover): takes only one of "color", "media""#),

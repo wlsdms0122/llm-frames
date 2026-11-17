@@ -5,14 +5,20 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The probed kind of each media file and template, keyed by the reference written in the document.
+// The probed kind of each media file, keyed by the reference written in the document, and the names of the templates
+// that are there.
 struct MediaKindTable: MediaKindProvider {
     // MARK: - Property
     let kinds: [String: MediaKind]
+    let templates: Set<String>
 
     // MARK: - Initializer
-    init(_ kinds: [String: MediaKind] = [:]) {
+    init(
+        _ kinds: [String: MediaKind] = [:],
+        templates: Set<String> = []
+    ) {
         self.kinds = kinds
+        self.templates = templates
     }
 
     // MARK: - Public
@@ -20,8 +26,8 @@ struct MediaKindTable: MediaKindProvider {
         kinds[reference]
     }
 
-    func templateKind(of name: String) -> MediaKind? {
-        kinds[name]
+    func hasTemplate(named name: String) -> Bool {
+        templates.contains(name)
     }
 
     // MARK: - Private

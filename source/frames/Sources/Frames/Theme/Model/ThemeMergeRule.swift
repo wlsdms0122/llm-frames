@@ -16,10 +16,9 @@ indirect enum ThemeMergeRule: Sendable {
             "colors": .byKey([:], others: .replace),
             "styles": .byKey([:], others: .byKey([:], others: .replace)),
             "shapes": .byKey([:], others: .byKey([:], others: .replace)),
-            "area": .byKey([:], others: .replace),
             "placement": .byKey([:], others: .replace),
-            "image": .byKey([:], others: .replace),
-            "layout": .byKey([:], others: .replace),
+            "border": .byKey([:], others: .replace),
+            "shadow": .byKey([:], others: .replace),
             "defaults": .byKey(
                 [
                     "animation": .byKey(

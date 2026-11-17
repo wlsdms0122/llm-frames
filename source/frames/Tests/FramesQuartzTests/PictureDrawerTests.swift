@@ -70,8 +70,8 @@ struct PictureDrawerTests {
         expectCopy(bitmap, of: source)
     }
 
-    @Test("a storyline unit at rest copies its media's resampled picture to the output pixel for pixel")
-    func copiesUnitAtRest() throws {
+    @Test("a storyline picture at rest copies its media's resampled picture to the output pixel for pixel")
+    func copiesStorylinePictureAtRest() throws {
         // Given
         let decoder = AVFoundationDecoder()
         let sut = QuartzRenderer(decoder: decoder)
@@ -81,7 +81,7 @@ struct PictureDrawerTests {
             rectangle: Rectangle(x: 8, y: 0, width: 16, height: 16),
             destination: Rectangle(x: 0, y: 0, width: 16, height: 16)
         )
-        let unit = DisplayList(
+        let nested = DisplayList(
             size: Size(width: 16, height: 16),
             background: Color(written: "#00000000"),
             seed: 0,
@@ -89,7 +89,7 @@ struct PictureDrawerTests {
         )
         let content = Rectangle(x: 4, y: 4, width: 16, height: 16)
         let picture = PictureItem(
-            source: .displayList(unit),
+            source: .displayList(nested),
             rectangle: Rectangle(x: 0, y: 0, width: 16, height: 16),
             destination: content
         )

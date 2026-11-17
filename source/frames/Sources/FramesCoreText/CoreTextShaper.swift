@@ -88,6 +88,15 @@ package struct CoreTextShaper: Sendable {
         CTFontManagerCreateFontDescriptorsFromURL(URL(fileURLWithPath: file) as CFURL) as? [CTFontDescriptor] ?? []
     }
 
+    private func descriptor(
+        named name: String,
+        in file: String
+    ) -> CTFontDescriptor? {
+        descriptors(in: file).first { descriptor in
+            CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String == name
+        }
+    }
+
     private func file(of font: CTFont) -> String? {
         (CTFontCopyAttribute(font, kCTFontURLAttribute) as? URL)?.path
     }
@@ -97,10 +106,7 @@ package struct CoreTextShaper: Sendable {
         of face: FontFace,
         size: Double
     ) throws -> CTFont {
-        let named = descriptors(in: face.file).first { descriptor in
-            CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String == face.name
-        }
-        guard let named else { throw ShapingError.faceNotInFile(file: face.file, name: face.name) }
+        guard let named = descriptor(named: face.name, in: face.file) else { throw ShapingError.faceNotInFile(file: face.file, name: face.name) }
 
         return CTFontCreateWithFontDescriptor(named, size, nil)
     }
@@ -130,6 +136,13 @@ extension CoreTextShaper: ShapingProvider {
         }
 
         return face(of: CTFontCreateWithFontDescriptor(descriptor, 1, nil), file: file)
+    }
+
+    package func face(
+        named name: String,
+        in file: String
+    ) -> FontFace? {
+        descriptor(named: name, in: file).map { face(of: CTFontCreateWithFontDescriptor($0, 1, nil), file: file) }
     }
 
     package func installedFace(

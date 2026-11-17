@@ -6,16 +6,14 @@
 //
 
 // Turns the media a document names into what time knows of it: the probed facts of a file, the length and frames an
-// image sequence's rate gives, the time plan of a compound clip, a document named by its file or a template
-// instance, and an image or layout document with its theme and the media it takes. Media named by `<pack>/<file>` is
-// found through the library before it is probed.
+// image sequence's rate gives, and the time plan of a compound clip, a document named by its file or a template
+// instance. Media named by `<pack>/<file>` is found through the library before it is probed.
 struct MediaResolver: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
     private let presets: any PresetProvider
     private let library: ReferenceLibrary
     private let instantiator: TemplateInstantiator
-    private let themes: DocumentThemeResolver
 
     // MARK: - Initializer
     init(
@@ -27,7 +25,6 @@ struct MediaResolver: Sendable {
         self.presets = presets
         self.library = library
         self.instantiator = TemplateInstantiator(mediaKinds: library)
-        self.themes = DocumentThemeResolver(library: library)
     }
 
     // MARK: - Public
@@ -91,9 +88,6 @@ struct MediaResolver: Sendable {
         case let .compound(document):
             return nested(try planner(library: library).plan(document, theme: theme), reference: nil)
 
-        case let .picture(document):
-            return try picture(document, reference: nil, theme: theme)
-
         case let .template(name, arguments, passedOnThemes):
             return try instance(
                 of: name,
@@ -128,31 +122,6 @@ struct MediaResolver: Sendable {
         )
     }
 
-    // An image or layout document merges its own theme over the one in effect, which the media it takes starts from.
-    func picture(
-        of document: PictureDocument,
-        theme: MergedTheme
-    ) throws -> NestedPicture {
-        switch document {
-        case let .image(image):
-            try picture(document, theme: image.theme, place: image.place, kind: .image, over: theme) { merged in
-                [try media(of: image.source, place: image.place.appending(key: "source"), kind: .image, theme: merged)]
-            }
-
-        case let .layout(layout):
-            try picture(document, theme: layout.theme, place: layout.place, kind: .layout, over: theme) { merged in
-                try layout.items.map { item in
-                    try media(
-                        of: item.source,
-                        place: item.place.appending(key: "image"),
-                        kind: .layoutItem,
-                        theme: merged
-                    )
-                }
-            }
-        }
-    }
-
     // MARK: - Private
     // A document named by its file stands as if written there, so it starts from the theme in effect there. What it
     // holds is read on the way through its file, so media that holds the document again stops.
@@ -166,12 +135,6 @@ struct MediaResolver: Sendable {
             throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
         }
         let inner = try library.reading(file: document.file, name: reference)
-        guard document.kind == .sequence else {
-            let picture = PictureReader().picture(from: document.value, place: place)
-
-            return try resolver(library: inner).picture(picture, reference: reference, theme: theme)
-        }
-
         let sequence = SequenceReader().sequence(from: document.value, place: place)
         return nested(try planner(library: inner).plan(sequence, theme: theme), reference: reference)
     }
@@ -204,45 +167,8 @@ struct MediaResolver: Sendable {
             theme: theme,
             passedOnThemes: passedOnThemes
         )
-        guard instance.kind == .sequence else {
-            let picture = PictureReader(argumentThemes: argumentThemes).picture(from: instance.document, place: place)
-
-            return try resolver(library: inner).picture(picture, reference: nil, theme: .base)
-        }
-
         let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document, place: place)
         return nested(try planner(library: inner).plan(sequence, theme: .base), reference: nil)
-    }
-
-    private func picture(
-        _ document: PictureDocument,
-        reference: String?,
-        theme: MergedTheme
-    ) throws -> MediaPlan {
-        MediaPlan(
-            kind: .image,
-            reference: reference,
-            source: .picture(try picture(of: document, theme: theme)),
-            duration: 0
-        )
-    }
-
-    private func picture(
-        _ document: PictureDocument,
-        theme reference: ThemeReference?,
-        place: Place,
-        kind: PlaceKind,
-        over theme: MergedTheme,
-        media: (MergedTheme) throws -> [MediaPlan]
-    ) throws -> NestedPicture {
-        let merged = try themes.theme(reference, of: place, kind: kind, over: theme)
-
-        return NestedPicture(document: document, theme: merged, media: try media(merged))
-    }
-
-    // A resolver for the media of a document read from another file, which names media from there.
-    private func resolver(library: ReferenceLibrary) -> MediaResolver {
-        MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
     // A nested sequence is evaluated at whatever time is asked, clamped into [0, duration). It plays sound when any of

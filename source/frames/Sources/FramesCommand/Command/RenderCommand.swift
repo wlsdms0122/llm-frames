@@ -7,7 +7,7 @@
 
 import Frames
 
-// Renders a document through the roles the global options pick: an image or layout to a PNG, and a sequence to a
+// Renders a document through the roles the global options pick: the frame at `--at` to a PNG, or every frame to a
 // master and, with `--deliver`, a delivery from the same frames.
 struct RenderCommand: Command {
     // MARK: - Property
@@ -31,7 +31,7 @@ struct RenderCommand: Command {
             encoder: roles.encoder
         )
 
-        try pipeline.render(resolved, to: options.output, delivery: options.delivery)
+        try pipeline.render(resolved, to: options.output, at: options.time, delivery: options.delivery)
         for path in [options.output] + (options.delivery.map { [$0] } ?? []) {
             try context.reportWritten(path)
         }

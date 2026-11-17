@@ -27,14 +27,13 @@ package struct FrameExporter: Sendable {
     private let evaluator = Evaluator()
 
     // MARK: - Initializer
-    // `shaper` and `library` set the labels.
+    // `shaper` sets the time labels of `still` and `sheet`.
     package init(
         decoder: any MediaDecoder,
         renderer: any Renderer,
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
-        shaper: any ShapingProvider,
-        library: ReferenceLibrary
+        shaper: any ShapingProvider
     ) {
         self.init(
             decoder: decoder,
@@ -42,7 +41,6 @@ package struct FrameExporter: Sendable {
             encoder: encoder,
             mediaFacts: mediaFacts,
             shaper: shaper,
-            library: library,
             hasher: FileHasher()
         )
     }
@@ -53,7 +51,6 @@ package struct FrameExporter: Sendable {
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
         shaper: any ShapingProvider,
-        library: ReferenceLibrary,
         hasher: any FileHashProvider
     ) {
         self.decoder = decoder
@@ -62,18 +59,18 @@ package struct FrameExporter: Sendable {
         self.mediaFacts = mediaFacts
         self.hasher = hasher
         self.pinned = PinnedReferenceChecker(decoder: decoder, hasher: hasher)
-        self.composer = ContactSheetComposer(shaper: shaper, library: library, hasher: hasher)
+        self.composer = ContactSheetComposer(shaper: shaper, hasher: hasher)
     }
 
     // MARK: - Public
-    // The sequence frames at `times`, in the order given, on one row at the sequence's size.
+    // The sequence frames at `times`, in the order given, on one row at the sequence's size, labelled in `labelFace`.
     package func still(
-        _ document: ResolvedDocument,
+        _ sequence: ResolvedSequence,
         at times: [Double],
+        labelFace: FontFace,
         to output: String
     ) throws {
         try checkOutput(output)
-        let sequence = try sequence(of: document)
         guard !times.isEmpty else { throw ExportError.noTime }
 
         let span = FrameSpan(end: sequence.format.duration, kind: "sequence")
@@ -81,16 +78,17 @@ package struct FrameExporter: Sendable {
             try span.check(time, option: "--at")
         }
 
-        let frames = try frames(of: document, sequence: sequence, at: times)
-        try draw(frames, size: frames.size, columns: times.count, to: output)
+        let frames = try frames(of: sequence, at: times)
+        try draw(frames, size: frames.size, columns: times.count, labelFace: labelFace, to: output)
     }
 
     // The frames over `range` on a grid of `columns`, each scaled so its longer side is at most 480 pixels, never
-    // enlarged.
+    // enlarged, labelled in `labelFace`.
     package func sheet(
         _ source: FrameSource,
         range: FrameRange,
         columns: Int,
+        labelFace: FontFace,
         to output: String
     ) throws {
         try checkOutput(output)
@@ -103,7 +101,7 @@ package struct FrameExporter: Sendable {
             width: max((size.width * scale).rounded(), 1),
             height: max((size.height * scale).rounded(), 1)
         )
-        try draw(frames, size: cell, columns: columns, to: output)
+        try draw(frames, size: cell, columns: columns, labelFace: labelFace, to: output)
     }
 
     // The frames over `range` at full size and without labels, as `0000.png`, `0001.png` and on in time order in
@@ -138,9 +136,15 @@ package struct FrameExporter: Sendable {
         _ frames: SampledFrames,
         size: Size,
         columns: Int,
+        labelFace: FontFace,
         to output: String
     ) throws {
-        let sheet = try composer.sheet(of: frames.frames.map(ContactSheetCell.init), size: size, columns: columns)
+        let sheet = try composer.sheet(
+            of: frames.frames.map(ContactSheetCell.init),
+            size: size,
+            columns: columns,
+            face: labelFace
+        )
         try renderer.check(sheet)
 
         try encoder.writeImage(try renderer.frame(of: sheet), to: output)
@@ -154,26 +158,24 @@ package struct FrameExporter: Sendable {
         case let .video(path):
             return try frames(ofVideo: path, range: range)
 
-        case let .document(document):
-            let sequence = try sequence(of: document)
+        case let .document(sequence):
             let times = try range.times(end: sequence.format.duration, kind: "sequence")
 
-            return try frames(of: document, sequence: sequence, at: times)
+            return try frames(of: sequence, at: times)
         }
     }
 
-    // Composite frames at sequence times, as `render` draws them, once the files the document pins are checked.
+    // Composite frames at sequence times, as `render` draws them, once the files the sequence pins are checked.
     private func frames(
-        of document: ResolvedDocument,
-        sequence: ResolvedSequence,
+        of sequence: ResolvedSequence,
         at times: [Double]
     ) throws -> SampledFrames {
-        try pinned.check(document.pinnedReferences)
+        try pinned.check(sequence.pinnedReferences)
 
         return SampledFrames(
             size: sequence.format.size,
             frames: times.map { time in
-                SampledFrame(time: time, picture: .displayList(evaluator.displayList(of: document, at: time)))
+                SampledFrame(time: time, picture: .displayList(evaluator.displayList(of: sequence, at: time)))
             }
         )
     }
@@ -199,17 +201,6 @@ package struct FrameExporter: Sendable {
                 SampledFrame(time: time, picture: .media(MediaFrame(media: media, mediaTime: time)))
             }
         )
-    }
-
-    // Only a sequence has times, so an image or layout document has no frames to take.
-    private func sequence(of document: ResolvedDocument) throws -> ResolvedSequence {
-        switch document {
-        case let .sequence(sequence):
-            sequence
-
-        case let .picture(picture):
-            throw ExportError.timelessDocument(kind: picture.kind)
-        }
     }
 
     // A media frame as the decoder reads it, so it is not resampled, and a display list as the renderer draws it.

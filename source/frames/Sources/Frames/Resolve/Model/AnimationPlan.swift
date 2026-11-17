@@ -30,9 +30,5 @@ struct AnimationPlan: Equatable, Sendable {
     }
 
     // MARK: - Public
-    func withoutEntranceAndExit() -> AnimationPlan {
-        AnimationPlan(entrance: nil, loop: loop, exit: nil)
-    }
-
     // MARK: - Private
 }

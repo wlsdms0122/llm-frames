@@ -49,12 +49,12 @@ struct ResolvedDocumentReaderTests {
 
     // Documents that between them write every kind of resolved entry and value.
     private static let documents = [
-        // A cropped, filtered storyline clip at speed 2, a title that pops in, a picture with a border and music.
+        // A cropped, filtered storyline clip at speed 2, a title that pops in, a still with a border and music.
         #"""
-        { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+        { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
-          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
+          "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
@@ -66,44 +66,21 @@ struct ResolvedDocumentReaderTests {
             { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
-        // Shapes with labels, a tracked area and a band, an adjustment, a timed media clip and sound with fades.
+        // Shapes, tracked areas with and without padding, an adjustment, a timed media clip, a title parented to a shape and sound
+        // with fades.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": "Total", "track": "Total", "label": "a", "labelAnimation": "frames/fade" },
-            { "shape": "fill", "area": { "band": "Total" }, "track": true },
-            { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "label": "b", "lane": -1 },
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
+            { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+            { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
+            { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "lane": -1 },
             { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
+            { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
-        """#,
-        // An image with a crop, a resize, a pad, every shape, a title, adjustments and a border.
-        #"""
-        { "kind": "image", "source": "/abs/page.png",
-          "ops": [ { "crop": [100, 100, 400, 200] }, { "resize": { "width": 800 } }, { "pad": 20 },
-                   { "shape": "box", "area": [150, 150, 100, 50] }, { "shape": "dim", "area": [120, 120, 50, 50] },
-                   { "shape": "arrow", "side": "left", "area": [300, 150, 50, 50] },
-                   { "title": "Hi", "style": "label", "position": [200, 150] },
-                   { "adjust": "mine/grade" }, { "adjust": "mine/grade", "area": [110, 110, 10, 10] }, { "border": true } ] }
-        """#,
-        // A layout with a heading and a nested image.
-        #"""
-        { "kind": "layout",
-          "items": [ { "heading": "Before", "image": "/abs/card.png" }, { "image": { "kind": "image", "source": "/abs/page.png" } } ] }
-        """#,
-        // An image of a video at a media second, and one of a compound clip's sequence at a time of its own.
-        #"""
-        { "kind": "layout",
-          "items": [ { "image": { "kind": "image", "source": "/abs/short.mp4", "time": 1 } },
-                     { "image": { "kind": "image", "time": 1,
-                                  "source": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] } } } ] }
         """#
     ]
-
-    private static let boxedImage = #"""
-        { "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "box", "area": [10, 10, 20, 20], "id": "serial" } ] }
-        """#
 
     // MARK: - Initializer
     // MARK: - Test
@@ -126,14 +103,14 @@ struct ResolvedDocumentReaderTests {
     )
     func refusesOtherVersion(version: String) throws {
         // Given
-        let text = try replacingFirst(#""resolved": "1.0.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[3]))
+        let text = try replacingFirst(#""resolved": "1.0.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[0]))
 
         // When
         let error = #expect(throws: ResolveError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == #"""
-            resolved (image): the resolved document was written by frames "\#(version)", and frames 1.0.0 reads only one \#
+            resolved (sequence): the resolved document was written by frames "\#(version)", and frames 1.0.0 reads only one \#
             written by frames 1.0 up to 1.0
             """#)
     }
@@ -141,13 +118,13 @@ struct ResolvedDocumentReaderTests {
     @Test("a document without resolved is not a resolved document")
     func refusesMissingVersion() throws {
         // Given
-        let text = #"{ "kind": "image", "size": [1, 1], "steps": [] }"#
+        let text = #"{ "kind": "sequence", "format": {}, "storyline": [], "clips": [], "audio": [] }"#
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
 
         // Then
-        #expect(error?.description == #"top level (image): missing key "resolved""#)
+        #expect(error?.description == #"top level (sequence): missing key "resolved""#)
     }
 
     @Test(
@@ -155,12 +132,12 @@ struct ResolvedDocumentReaderTests {
         arguments: [
             (#""in": 2,"#, "", #"storyline[0] (storyline clip): missing key "in""#),
             (#""speed": 2,"#, #""speed": "2","#, #"storyline[0].speed (storyline clip): expected a number, found "2""#),
-            (#""at": 0,"#, #""at": [0],"#, #"storyline[0].crop[0].at (storyline clip): expected a number, found a list of 1"#),
+            (#""at": 0,"#, #""at": [0],"#, #"storyline[0].position[0].at (storyline clip): expected a number, found a list of 1"#),
             (#""size": [1080, 1920],"#, #""size": [1080],"#, #"format.size (format): expected a list of 2 numbers, found a list of 1"#),
             (
                 #""duration": 3,"#,
                 #""duration": 3, "fsp": 30,"#,
-                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, content, conform"#
+                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform"#
             ),
             (
                 #""loop": true,"#,
@@ -196,46 +173,34 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.hasPrefix(#"clips[3] (clip): unknown key "scale""#) == true)
     }
 
-    @Test("a drawing step reads back the place, id and kind of what drew it")
-    func readsStepOrigins() throws {
-        // Given
-        let text = try written(Self.boxedImage)
-
-        // When
-        let read = try sut.read(text)
-
-        // Then
-        guard case let .picture(picture) = read else {
-            Issue.record("the image is read as \(read)")
-            return
-        }
-        #expect(picture.steps.map(\.place) == ["source", "ops[0]#serial"])
-        #expect(picture.steps.map(\.id) == [nil, "serial"])
-        #expect(picture.steps.map(\.kind) == ["image", "box"])
-    }
-
     @Test(
-        "a drawing step without what drew it, or with a key never written there, stops, naming its place",
+        "a parent that names no clip with a picture, or a parent chain that comes back to itself, stops",
         arguments: [
-            (#""place": "source","#, "", #"steps[0] (drawing step): missing key "place""#),
-            (#""id": "serial","#, #""id": 7,"#, #"steps[1].id (drawing step): expected a string, found 7"#),
+            (#""parent": "a""#, #""parent": "ghost""#, #"clips[1].parent (clip): no clip in the document has the id "ghost""#),
+            (#""parent": "a""#, #""parent": "sound""#, #"clips[1].parent (clip): no clip in the document has the id "sound""#),
             (
-                #""kind": "box","#,
-                #""kind": "box", "label": null,"#,
-                #"steps[1] (drawing step): unknown key "label". Allowed: place, id, kind, draw, area, width, radius, color, clip"#
+                #""parent": "screen""#,
+                #""parent": "b""#,
+                #"clips[0].parent (clip): the parent chain comes back to itself: "a" > "b" > "a""#
             )
         ]
     )
-    func refusesUnreadableStep(
+    func refusesParent(
         written: String,
         replacement: String,
         message: String
     ) throws {
         // Given
-        let text = try replacingFirst(written, with: replacement, in: self.written(Self.boxedImage))
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "id": "a", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
+                         { "id": "b", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
+                         { "id": "sound", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
+            """#
+        let text = try replacingFirst(written, with: replacement, in: self.written(document))
 
         // When
-        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+        let error = #expect(throws: ResolveError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == message)
@@ -254,7 +219,7 @@ struct ResolvedDocumentReaderTests {
     }
 
     // MARK: - Private
-    private func resolved(_ document: String) throws -> ResolvedDocument {
+    private func resolved(_ document: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
@@ -264,7 +229,7 @@ struct ResolvedDocumentReaderTests {
             library: Fixture.library
         )
 
-        return try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     private func written(_ document: String) throws -> String {

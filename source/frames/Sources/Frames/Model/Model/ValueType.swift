@@ -14,7 +14,8 @@ indirect enum ValueType: Equatable, Sendable {
     case positiveNumber
     case nonNegativeNumber
     case integer
-    case pixels
+    case nonNegativeInteger
+    case positiveInteger
     case text
     case name
     case color
@@ -29,11 +30,10 @@ indirect enum ValueType: Equatable, Sendable {
     case oneOf([ValueType])
     case area
     case crop
-    case inset
+    case margin
     case media
     case document
     case clips(ClipPlace)
-    case operations
     case parameters
     case argument
     case filterOperation

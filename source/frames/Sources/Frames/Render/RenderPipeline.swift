@@ -7,10 +7,10 @@
 
 import Foundation
 
-// Renders a resolved document through the roles: an image or layout to one PNG, and a sequence to a master and, when
-// asked, a delivery from the same frames in the same pass. Everything that can refuse does before the first frame,
-// in this order: the output paths, every pinned file's hash, the decoder on every pinned media, the renderer on every
-// frame's display list, the mixer on the mix plan, and the encoder on each target.
+// Renders a resolved sequence through the roles: one frame of it to a PNG, or every frame to a master and, when asked,
+// a delivery from the same frames in the same pass. Everything that can refuse does before the first frame, in this
+// order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the renderer on
+// every frame's display list, the mixer on the mix plan, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let renderer: any Renderer
@@ -44,61 +44,61 @@ package struct RenderPipeline: Sendable {
     }
 
     // MARK: - Public
+    // `time` is the frame of a PNG, 0 when it is nil, and must be nil for a master.
     package func render(
-        _ document: ResolvedDocument,
+        _ sequence: ResolvedSequence,
         to output: String,
+        at time: Double?,
         delivery: String?
     ) throws {
-        switch document {
-        case let .sequence(sequence):
-            try render(sequence, of: document, to: output, delivery: delivery)
+        switch pathExtension(of: output) {
+        case "png":
+            try still(sequence, at: time ?? 0, to: output, delivery: delivery)
 
-        case let .picture(picture):
-            try render(picture, of: document, to: output, delivery: delivery)
+        case "mov":
+            guard time == nil else { throw RenderError.timeOfMaster(path: output) }
+            try master(sequence, to: output, delivery: delivery)
+
+        default:
+            throw RenderError.outputExtension(path: output)
         }
     }
 
     // MARK: - Private
-    private func render(
-        _ picture: ResolvedPicture,
-        of document: ResolvedDocument,
+    private func still(
+        _ sequence: ResolvedSequence,
+        at time: Double,
         to output: String,
         delivery: String?
     ) throws {
-        guard pathExtension(of: output) == "png" else {
-            throw RenderError.outputExtension(path: output, kind: picture.kind, expected: "png")
-        }
         if let delivery {
-            throw RenderError.deliveryOfPicture(path: delivery, kind: picture.kind)
+            throw RenderError.deliveryOfStill(path: delivery)
         }
+        try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        try pinned.check(document.pinnedReferences)
+        try pinned.check(sequence.pinnedReferences)
 
-        let list = evaluator.displayList(of: document, at: 0)
+        let list = evaluator.displayList(of: sequence, at: time)
         try renderer.check(list)
 
         try encoder.writeImage(renderer.frame(of: list), to: output)
     }
 
-    private func render(
+    private func master(
         _ sequence: ResolvedSequence,
-        of document: ResolvedDocument,
         to output: String,
         delivery: String?
     ) throws {
-        guard pathExtension(of: output) == "mov" else {
-            throw RenderError.outputExtension(path: output, kind: "sequence", expected: "mov")
-        }
         if let delivery, pathExtension(of: delivery) != "mp4" {
             throw RenderError.deliveryExtension(path: delivery)
         }
 
-        try pinned.check(document.pinnedReferences)
+        try pinned.check(sequence.pinnedReferences)
 
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
         for time in times {
-            try renderer.check(evaluator.displayList(of: document, at: time))
+            try renderer.check(evaluator.displayList(of: sequence, at: time))
         }
 
         let plan = planner.mix(of: sequence)
@@ -117,7 +117,7 @@ package struct RenderPipeline: Sendable {
         }
 
         for time in times {
-            let frame = try renderer.frame(of: evaluator.displayList(of: document, at: time))
+            let frame = try renderer.frame(of: evaluator.displayList(of: sequence, at: time))
             for writer in writers {
                 try writer.append(frame)
             }

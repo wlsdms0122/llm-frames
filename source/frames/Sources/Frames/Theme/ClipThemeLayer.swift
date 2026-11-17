@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The keys on a clip or op that stand in for theme values, written as the strongest theme layer.
+// The keys on a clip that stand in for theme values, written as the strongest theme layer.
 enum ClipThemeLayer {
     static func layer(
         forClip clip: JSONObject,
@@ -26,10 +26,6 @@ enum ClipThemeLayer {
 
         if let animation = clip["animation"], let path = animationPath(clip, kind: kind) {
             layer = setting(path, to: animation, in: layer)
-        }
-
-        if let labelAnimation = clip["labelAnimation"] {
-            layer = setting(["defaults", "animation", "title", "label"], to: labelAnimation, in: layer)
         }
 
         if case let .shape(shape) = kind, let color = clip["color"] {

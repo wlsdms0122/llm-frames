@@ -82,7 +82,7 @@ struct TrackPlanner: Sendable {
     }
 
     // `true` belongs to a shape or an adjustment with an area, and a title or media clip names what it follows. A
-    // connected clip follows its storyline clip's media, so it must be parented on a video or image sequence.
+    // parented clip follows its parent's media, which must be a storyline clip's video or image sequence.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
@@ -96,27 +96,29 @@ struct TrackPlanner: Sendable {
         if target == .own, isNaming(plan.kind) {
             throw ResolveError.trackOwnOnNamingClip(place: place, kind: kind)
         }
-        // A shape without an area is not parented, and what it lacks is the area.
-        if target == .own, first(of: area) == nil {
+        if target == .own, area == nil {
             throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
         }
+        if case let .clip(_, id) = plan.parent {
+            throw ResolveError.trackInClipParent(place: place, kind: kind, id: id)
+        }
         guard
-            plan.isParented,
-            let owner = plan.storyline.map({ storyline[$0] }),
-            let picture = picture(of: owner)
+            case let .storyline(index, _) = plan.parent,
+            let picture = picture(of: storyline[index])
         else {
             throw ResolveError.trackWithoutVideo(place: place, kind: kind)
         }
 
+        let parent = storyline[index]
         let start = try self.target(
             target,
             own: area,
             in: picture.picture,
-            atMediaTime: owner.mediaTime(atSequenceTime: plan.instant),
+            atMediaTime: parent.mediaTime(atSequenceTime: plan.instant),
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: owner, file: picture.file)
+        let followed = try follow(start, on: parent, file: picture.file)
         guard let visible = plan.visible.intersection(followed.range) else {
             throw ResolveError.neverFollowed(place: written.place, kind: kind, visible: plan.visible)
         }
@@ -136,12 +138,12 @@ struct TrackPlanner: Sendable {
     ) throws -> FoundArea {
         switch target {
         case .own:
-            guard let found = first(of: own) else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
+            guard let found = own?.firstValue else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
 
             return found
 
         case let .area(form):
-            return try finder.area(form, in: picture, atMediaTime: time, padding: 0, place: place, kind: kind.label)
+            return try finder.area(form, in: picture, atMediaTime: time, place: place, kind: kind.label)
         }
     }
 
@@ -191,32 +193,9 @@ struct TrackPlanner: Sendable {
         return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file)
     }
 
-    // The value `true` follows: the first keyframe's when the property is keyframed, else the static one.
-    private func first(of property: PropertyValue<FoundArea>?) -> FoundArea? {
-        switch property {
-        case let .value(found):
-            found
-
-        case .keyframes:
-            property?.first?.value
-
-        case nil:
-            nil
-        }
-    }
-
     // A crop `true` follows is an area where it starts, not a `{scale}`.
     private func isArea(_ crop: PropertyValue<CropForm>?) -> Bool {
-        switch crop {
-        case .value(.area):
-            true
-
-        case .keyframes:
-            if case .area = crop?.first?.value { true } else { false }
-
-        default:
-            false
-        }
+        if case .area = crop?.firstValue { true } else { false }
     }
 
     private func isNaming(_ kind: ClipKind) -> Bool {

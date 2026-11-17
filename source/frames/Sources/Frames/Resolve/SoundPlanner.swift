@@ -16,8 +16,8 @@ struct SoundPlanner: Sendable {
     func sound(
         of time: TimePlan,
         written: [Clip],
-        storylineNested: [DocumentPlan?],
-        clipNested: [DocumentPlan?]
+        storylineNested: [SequencePlan?],
+        clipNested: [SequencePlan?]
     ) -> [SoundPlan] {
         let clipSound = { (index: Int) in
             self.sound(of: time.clips[index], written: written[index], nested: clipNested[index])
@@ -40,7 +40,7 @@ struct SoundPlanner: Sendable {
     private func sound(
         of time: TimePlan,
         index: Int,
-        nested: DocumentPlan?
+        nested: SequencePlan?
     ) -> SoundPlan? {
         let plan = time.storyline[index]
         guard let media = plan.source.media, media.hasSound else { return nil }
@@ -64,7 +64,7 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(written?.fadeOut, over: plan.drawn),
             incoming: plan.transition?.range,
             outgoing: outgoing?.range,
-            nested: nested?.sequence?.sound ?? []
+            nested: nested?.sound ?? []
         )
     }
 
@@ -73,7 +73,7 @@ struct SoundPlanner: Sendable {
     private func sound(
         of plan: ClipPlan,
         written: Clip,
-        nested: DocumentPlan?
+        nested: SequencePlan?
     ) -> SoundPlan? {
         guard
             case let .media(clipMedia) = written.content,
@@ -103,7 +103,7 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(clipMedia.fadeOut, over: plan.visible),
             incoming: nil,
             outgoing: nil,
-            nested: nested?.sequence?.sound ?? []
+            nested: nested?.sound ?? []
         )
     }
 

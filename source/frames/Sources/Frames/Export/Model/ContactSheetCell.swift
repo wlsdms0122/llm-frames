@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// One picture of a contact sheet with the label under it.
+// One frame of a contact sheet with its time label.
 struct ContactSheetCell: Equatable, Sendable {
     // MARK: - Property
     let picture: PictureItemSource

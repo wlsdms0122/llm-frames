@@ -5,36 +5,42 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The output frame of a sequence and its content rect, in output pixels, with how storyline crops fill that rect, the
-// colour behind everything, the frame rate it renders at alone, and its duration, the sequence end.
+// The output frame of a sequence in output pixels, with how storyline crops fill it, the colour behind everything, the
+// frame rate it renders at alone, and its duration, the sequence end. `margin` is the room a content-fit frame leaves
+// round what it measures, and nil for a frame of a written or default size.
 struct FormatPlan: Equatable, Sendable {
     // MARK: - Property
     let size: Size
-    let content: Rectangle
     let conform: Conform
     let background: Color
     let fps: Double
     let duration: Double
+    let margin: Margin?
 
     var frame: Rectangle {
         Rectangle(x: 0, y: 0, width: size.width, height: size.height)
     }
 
+    // A content-fit frame is measured from what its sequence draws, which is planned in the measuring space first.
+    var isMeasured: Bool {
+        margin != nil
+    }
+
     // MARK: - Initializer
     init(
         size: Size,
-        content: Rectangle,
         conform: Conform,
         background: Color,
         fps: Double,
-        duration: Double
+        duration: Double,
+        margin: Margin? = nil
     ) {
         self.size = size
-        self.content = content
         self.conform = conform
         self.background = background
         self.fps = fps
         self.duration = duration
+        self.margin = margin
     }
 
     // MARK: - Public

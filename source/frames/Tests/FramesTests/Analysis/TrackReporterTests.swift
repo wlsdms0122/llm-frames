@@ -93,8 +93,8 @@ struct TrackReporterTests {
     }
 
     @Test(
-        "a text area is found by OCR at `--at` and followed before padding, a band by the line inside it",
-        arguments: [(#""Total""#, 0), (#"{"band": "Total"}"#, 0), (#"{"text": "Send", "nth": 1}"#, 2)]
+        "a text area is found by OCR at `--at` and followed before padding",
+        arguments: [(#"{"text": "Total"}"#, 0), (#"{"text": "Total", "padding": 20}"#, 0), (#"{"text": "Send", "nth": 1}"#, 2)]
     )
     func followsFoundArea(area: String, line: Int) throws {
         // Given
@@ -120,7 +120,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(mediaFacts: facts, ocr: ocr, tracker: tracker)
 
         // When
-        let report = try sut.report(of: "/abs/clip.mov", area: #""Total""#, at: at, to: to)
+        let report = try sut.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: at, to: to)
 
         // Then
         #expect(report.frames.map(\.time) == followed)
@@ -129,12 +129,14 @@ struct TrackReporterTests {
     @Test("a bad or unmatched area stops, naming `--area`, and so do an image and times outside the video", arguments: [
         ("/abs/clip.mov", "Total", 0.5, nil, "--area: line 1, column 1: "),
         ("/abs/clip.mov", #"{"text": "Total", "nht": 1}"#, 0.5, nil, #"--area (text area): unknown key "nht". "#),
-        ("/abs/clip.mov", #""Missing""#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
-        ("/abs/clip.mov", #""Send""#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
-        ("/abs/card.png", #""Total""#, 0, nil, #"media "/abs/card.png" is an image, and only a video has frames"#),
-        ("/abs/clip.mov", #""Total""#, 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
-        ("/abs/clip.mov", #""Total""#, 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
-        ("/abs/absent.mov", #""Total""#, 0, nil, #"media "/abs/absent.mov" is not there"#)
+        ("/abs/clip.mov", #""Total""#, 0.5, nil, #"--area (area): expected an area, found "Total""#),
+        ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from"),
+        ("/abs/clip.mov", #"{"text": "Missing"}"#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
+        ("/abs/clip.mov", #"{"text": "Send"}"#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
+        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is an image, and only a video has frames"#),
+        ("/abs/clip.mov", #"{"text": "Total"}"#, 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
+        ("/abs/clip.mov", #"{"text": "Total"}"#, 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
+        ("/abs/absent.mov", #"{"text": "Total"}"#, 0, nil, #"media "/abs/absent.mov" is not there"#)
     ] as [(String, String, Double, Double?, String)])
     func refusesBadArguments(
         file: String,
@@ -168,7 +170,7 @@ struct TrackReporterTests {
         )
 
         // When
-        let report = try sut.report(of: video, area: #""Total""#, at: 0.5)
+        let report = try sut.report(of: video, area: #"{"text": "Total"}"#, at: 0.5)
 
         // Then
         #expect(report.frames.map(\.time) == ScreenRecording.frameTimes)

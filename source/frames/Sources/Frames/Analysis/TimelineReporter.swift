@@ -25,24 +25,7 @@ package struct TimelineReporter: Sendable {
         theme: String? = nil,
         arguments: ArgumentFile? = nil
     ) throws -> TimelineReport {
-        switch try planner.plan(document, theme: theme, arguments: arguments) {
-        case let .sequence(plan):
-            return report(of: plan)
-
-        // An image or layout document has no time, so its report holds nothing once it resolves.
-        case .picture:
-            return TimelineReport(duration: 0, storyline: [], clips: [])
-        }
-    }
-
-    package func report(of document: ResolvedDocument) -> TimelineReport {
-        switch document {
-        case let .sequence(sequence):
-            report(of: sequence)
-
-        case .picture:
-            TimelineReport(duration: 0, storyline: [], clips: [])
-        }
+        report(of: try planner.plan(document, theme: theme, arguments: arguments))
     }
 
     func report(of plan: SequencePlan) -> TimelineReport {
@@ -54,8 +37,20 @@ package struct TimelineReporter: Sendable {
                 entry(of: time.storyline[index], geometry: plan.storyline[index])
             },
             clips: time.clips.indices.map { index in
-                entry(of: time.clips[index], geometry: plan.clips[index], storyline: time.storyline)
+                entry(of: time.clips[index], geometry: plan.clips[index], time: time)
             }
+        )
+    }
+
+    package func report(of sequence: ResolvedSequence) -> TimelineReport {
+        let storyline = sequence.storyline
+
+        return TimelineReport(
+            duration: sequence.format.duration,
+            storyline: storyline.indices.map { index in
+                entry(of: storyline[index], outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil)
+            },
+            clips: sequence.clips.map { entry(of: $0, sequence: sequence) }
         )
     }
 
@@ -73,17 +68,26 @@ package struct TimelineReporter: Sendable {
             clip: clip.source.clipRange,
             speed: clip.source.speed,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
-            nested: geometry.nested?.sequence.map { report(of: $0) }
+            nested: geometry.nested.map { report(of: $0) }
         )
     }
 
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
-        storyline: [StorylinePlan]
+        time: TimePlan
     ) -> TimelineClipEntry {
         let animation = clip.animation
-        let parent = clip.isParented ? clip.storyline.map { storyline[$0].place.description } : nil
+        let parent: String? = switch clip.parent {
+        case let .storyline(index, _):
+            time.storyline[index].place.description
+
+        case let .clip(index, _):
+            time.clips[index].place.description
+
+        case nil:
+            nil
+        }
 
         return TimelineClipEntry(
             place: clip.place.description,
@@ -99,24 +103,12 @@ package struct TimelineReporter: Sendable {
                     loop: animation.loop.map(span),
                     exit: animation.exit.map(span)
                 ),
-            nested: geometry.nested?.sequence.map { report(of: $0) }
+            nested: geometry.nested.map { report(of: $0) }
         )
     }
 
     private func span(_ span: PresetSpan) -> TimelineSpan {
         TimelineSpan(preset: span.preset, length: span.span.length)
-    }
-
-    private func report(of sequence: ResolvedSequence) -> TimelineReport {
-        let storyline = sequence.storyline
-
-        return TimelineReport(
-            duration: sequence.format.duration,
-            storyline: storyline.indices.map { index in
-                entry(of: storyline[index], outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil)
-            },
-            clips: sequence.clips.map { entry(of: $0, storyline: storyline) }
-        )
     }
 
     // A clip is drawn from the start of its incoming transition to the end of its outgoing one.
@@ -145,12 +137,12 @@ package struct TimelineReporter: Sendable {
 
     private func entry(
         of clip: ResolvedClip,
-        storyline: [ResolvedStorylineClip]
+        sequence: ResolvedSequence
     ) -> TimelineClipEntry {
         let animation = clip.animation
-        let parent = clip.isParented
-            ? clip.storyline.flatMap { storyline.indices.contains($0) ? storyline[$0].place : nil }
-            : nil
+        let parent = clip.parent.flatMap { id in
+            sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
+        }
         let media: ResolvedMediaContent? = if case let .media(media) = clip.content { media.media } else { nil }
 
         return TimelineClipEntry(
@@ -201,11 +193,8 @@ package struct TimelineReporter: Sendable {
 
         case let .media(clip):
             switch clip.media {
-            case .nested(.sequence):
+            case .nested:
                 ClipKind.media(.sequence).label
-
-            case .nested(.picture):
-                ClipKind.media(.image).label
 
             case .pinned:
                 ClipKind.media(clip.timing == nil ? .image : .video).label
@@ -227,7 +216,7 @@ package struct TimelineReporter: Sendable {
     }
 
     private func nestedReport(of media: ResolvedMediaContent) -> TimelineReport? {
-        guard case let .nested(.sequence(sequence)) = media else { return nil }
+        guard case let .nested(sequence) = media else { return nil }
 
         return report(of: sequence)
     }

@@ -60,6 +60,24 @@ struct CoreTextShaperTests {
         #expect(inFile.file == file)
     }
 
+    @Test("the face time labels are set in is found by its PostScript name in its file, and a name the file lacks is not")
+    func findsFaceByName() throws {
+        // Given
+        let file = "/System/Library/Fonts/HelveticaNeue.ttc"
+
+        // When
+        let face = try #require(sut.face(named: "HelveticaNeue-Medium", in: file))
+        let missing = sut.face(named: "HelveticaNeue-Missing", in: file)
+
+        // Then
+        #expect(face.name == "HelveticaNeue-Medium")
+        #expect(face.file == file)
+        #expect(face.ascent > 0 && face.ascent < 1.5)
+        #expect(face.descent > 0 && face.descent < 1)
+        #expect(missing == nil)
+        #expect(try sut.shape("0.5s", face: face, size: 48).allSatisfy { $0.face == face })
+    }
+
     // Skia's one normal width face weighs 0.2, and condensed faces of it weigh 0 and 0.35.
     @Test(
         "where only condensed faces have the weight asked for, the normal width face of the nearest weight wins",

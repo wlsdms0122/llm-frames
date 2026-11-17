@@ -25,13 +25,13 @@ struct SequenceReaderTests {
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "box", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
-                { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
+                                 { "shape": "box", "parent": "run", "keyframes": [ { "at": 1.2, "area": { "text": "First line" } } ] } ] },
+                { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
                 { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-                { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": true, "placement": "top" },
+                { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
                 { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } }
               ] }
             """##)
@@ -48,7 +48,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
         #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
-        #expect(sequence.storyline[0].connected[1].hasArea)
+        #expect(sequence.storyline[0].connected[1].parent == "run")
         #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
@@ -57,7 +57,7 @@ struct SequenceReaderTests {
         #expect(sequence.clips[0].clipPlace == .sequence)
         #expect(sequence.clips[1].content == .media(ClipMedia(source: .imageSequence(directory: "/abs/frames", fps: 30), loop: true)))
         #expect(sequence.clips[1].lane == -1)
-        #expect(sequence.clips[1].hasParent && sequence.clips[1].hasPlacement)
+        #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
         #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
     }
@@ -104,15 +104,15 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[1].media?.source == .argument(.file("/abs/run.mp4"), theme: theme))
     }
 
-    @Test("the geometry keys read as written: the format's size, inset and conform, areas, labels and track targets")
+    @Test("the geometry keys read as written: the format's size and conform, areas and track targets")
     func readsGeometryKeys() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [10, 20, 30, 40], "conform": "fill" },
+            { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
-                { "shape": "arrow", "area": { "band": { "from": "a", "to": "b", "toNth": 1 } }, "side": "left",
-                  "label": "here", "track": { "text": "c", "nth": 2 } },
-                { "title": "t", "style": "label", "width": 300, "parent": true,
+                { "shape": "arrow", "area": { "from": "a", "to": "b", "toNth": 1, "padding": 6 }, "side": "left",
+                  "track": { "text": "c", "nth": 2 } },
+                { "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
 
@@ -122,16 +122,39 @@ struct SequenceReaderTests {
         // Then
         let arrow = sequence.storyline[0].connected[0]
         let title = sequence.storyline[0].connected[1]
-        #expect(sequence.format.size == Size(width: 1080, height: 1920))
-        #expect(sequence.format.inset == Inset(top: 10, right: 20, bottom: 30, left: 40))
+        #expect(sequence.format.size == .fixed(Size(width: 1080, height: 1920)))
         #expect(sequence.format.conform == .fill)
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
-        #expect(arrow.area == .value(.band(.range(from: "a", fromNth: nil, to: "b", toNth: 1))))
+        #expect(arrow.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
         #expect(arrow.content == .shape(.arrow(.left)))
-        #expect(arrow.label == "here")
-        #expect(arrow.track == .area(.text("c", nth: 2)))
+        #expect(arrow.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
+    }
+
+    @Test(
+        "a content fit size reads its margin in each form, in the order CSS writes them, and 0 without one",
+        arguments: [
+            (#"{ "fit": "content" }"#, Margin.zero),
+            (#"{ "fit": "content", "margin": 8 }"#, Margin(top: 8, right: 8, bottom: 8, left: 8)),
+            (#"{ "fit": "content", "margin": [8, 16] }"#, Margin(top: 8, right: 16, bottom: 8, left: 16)),
+            (#"{ "fit": "content", "margin": [1, 2, 3, 4] }"#, Margin(top: 1, right: 2, bottom: 3, left: 4))
+        ]
+    )
+    func readsContentFitSize(
+        size: String,
+        margin: Margin
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": \#(size) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            """#)
+
+        // When
+        let sequence = sut.sequence(from: document)
+
+        // Then
+        #expect(sequence.format.size == .content(margin: margin))
     }
 }

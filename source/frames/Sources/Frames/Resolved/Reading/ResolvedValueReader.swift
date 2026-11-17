@@ -32,7 +32,7 @@ struct ResolvedValueReader: Sendable {
 
     // The kind a resolved document or a document nested in one names.
     func documentKind(_ value: PlacedJSONValue) throws -> String {
-        let kinds = ["sequence", "image", "layout"]
+        let kinds = ["sequence"]
 
         return try member("kind", of: value, kind: value.kind).name(among: kinds) { kinds.contains($0) ? $0 : nil }
     }

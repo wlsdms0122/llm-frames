@@ -5,11 +5,12 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `render <document.json> -o <out.mov | out.png> [--deliver <out.mp4>] [--args <args.json>]`
+// `render <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]`
 struct RenderOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
         OptionRule("-o", value: "<out.mov | out.png>"),
+        OptionRule("--at", value: "<t>"),
         OptionRule("--deliver", value: "<out.mp4>"),
         OptionRule("--args", value: "<args.json>")
     ]
@@ -17,6 +18,7 @@ struct RenderOptions: CommandOptions, Equatable {
 
     let document: String
     let output: String
+    let time: Double?
     let delivery: String?
     let arguments: String?
 
@@ -24,6 +26,7 @@ struct RenderOptions: CommandOptions, Equatable {
     init(_ arguments: ScannedArguments) throws {
         self.document = try arguments.requiredPositional(at: 0)
         self.output = try arguments.requiredPath(of: "-o")
+        self.time = try arguments.time(of: "--at")
         self.delivery = try arguments.path(of: "--deliver")
         self.arguments = try arguments.path(of: "--args")
     }

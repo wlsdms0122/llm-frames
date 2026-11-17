@@ -37,7 +37,7 @@ struct ResolveEndToEndTests {
         let sut = planner(packs: packs)
 
         // When
-        let plan = try #require(try sut.plan(document).sequence)
+        let plan = try sut.plan(document)
 
         // Then
         guard case let .value(area) = plan.clips[0].area else {
@@ -58,7 +58,7 @@ struct ResolveEndToEndTests {
         }
 
         let title = try #require(plan.clips[1].title)
-        #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold"])
+        #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold", "HelveticaNeue-Bold", "AppleSDGothicNeo-Bold"])
         #expect(title.runs.allSatisfy { FileManager.default.fileExists(atPath: $0.face.file) })
         #expect(title.runs.flatMap(\.glyphs).count == "결제 완료".unicodeScalars.count)
     }
@@ -69,7 +69,7 @@ struct ResolveEndToEndTests {
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let resolved = try ResolvedDocument(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
+        let resolved = try ResolvedSequence(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
         let sut = Evaluator()
 
         // When
@@ -96,8 +96,8 @@ struct ResolveEndToEndTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
-              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "headline" } ] }
+              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
+              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 
         return (document, drawn)
@@ -120,17 +120,17 @@ struct ResolveEndToEndTests {
         )
     }
 
-    // The box's stroke inside the storyline unit, whose content rect is the whole output frame here.
+    // The box's stroke carried by its item's transform to output pixels, as the rectangle around its corners.
     private func box(in list: DisplayList) throws -> Rectangle {
-        let units = list.items.compactMap { item -> DisplayList? in
-            guard case let .picture(picture) = item.content, case let .displayList(unit) = picture.source else { return nil }
-
-            return unit
-        }
-        let strokes = units.flatMap(\.items).compactMap { item -> Rectangle? in
+        let strokes = list.items.compactMap { item -> Rectangle? in
             guard case let .stroke(stroke) = item.content else { return nil }
 
-            return stroke.rectangle
+            let corners = item.transform.apply(toCornersOf: stroke.rectangle)
+            let xs = corners.map(\.x)
+            let ys = corners.map(\.y)
+            let minX = xs.min() ?? 0
+            let minY = ys.min() ?? 0
+            return Rectangle(x: minX, y: minY, width: (xs.max() ?? 0) - minX, height: (ys.max() ?? 0) - minY)
         }
 
         return try #require(strokes.first)

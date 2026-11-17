@@ -6,9 +6,9 @@
 //
 
 // A clips entry: a title, shape, adjustment or media clip. `start` and `end` are its visible window, already narrowed.
-// `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and
-// `isParented` whether it is composited with that entry's picture. `area` and `box` place it, each nil where the other
-// does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
+// `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and `parent`
+// the id of the clip whose space it is placed in, nil for an unparented clip. `area` and `box` place it, each nil
+// where the other does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
 // `scale` and `rotation` belong to a title or media clip and `blend` to anything but an adjustment, and each is nil
 // where its entry has no such key.
 struct ResolvedClip: Equatable, Sendable {
@@ -20,12 +20,11 @@ struct ResolvedClip: Equatable, Sendable {
     let end: Double
     let lane: Int?
     let storyline: Int?
-    let isParented: Bool
+    let parent: String?
     let area: [Keyframe<Rectangle>]?
     let box: ResolvedBox?
     let crop: [Keyframe<Crop>]?
     let track: ResolvedTrack?
-    let label: ResolvedLabel?
     let opacity: [Keyframe<Double>]
     let scale: [Keyframe<Double>]?
     let rotation: [Keyframe<Double>]?
@@ -41,12 +40,11 @@ struct ResolvedClip: Equatable, Sendable {
         end: Double,
         lane: Int?,
         storyline: Int?,
-        isParented: Bool,
+        parent: String?,
         area: [Keyframe<Rectangle>]?,
         box: ResolvedBox?,
         crop: [Keyframe<Crop>]?,
         track: ResolvedTrack?,
-        label: ResolvedLabel?,
         opacity: [Keyframe<Double>],
         scale: [Keyframe<Double>]?,
         rotation: [Keyframe<Double>]?,
@@ -60,12 +58,11 @@ struct ResolvedClip: Equatable, Sendable {
         self.end = end
         self.lane = lane
         self.storyline = storyline
-        self.isParented = isParented
+        self.parent = parent
         self.area = area
         self.box = box
         self.crop = crop
         self.track = track
-        self.label = label
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

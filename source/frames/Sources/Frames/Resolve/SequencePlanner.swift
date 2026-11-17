@@ -7,17 +7,17 @@
 
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, its titles set, the side of every label, where each clip is placed and how it is drawn, and its
-// sound.
+// tracking leaves, what was found under a shape or adjustment brought into its space, its titles set, where each clip
+// is placed and how it is drawn, and its sound. A content-fit sequence is planned in its measuring space on a frame the
+// size of its first storyline picture's box, which gives its length scale, and then measured.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
     private let tracker: TrackPlanner
     private let text: ThemeTypesetter
-    private let placer = LabelPlacer()
-    private let pictures: PicturePlanner
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
+    private let contentFit = ContentFitPlanner()
 
     // MARK: - Initializer
     init(
@@ -29,9 +29,7 @@ struct SequencePlanner: Sendable {
     ) {
         self.finder = GeometryFinder(ocr: ocr)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
-        let text = ThemeTypesetter(shaper: shaper, library: library)
-        self.text = text
-        self.pictures = PicturePlanner(ocr: ocr, presets: presets, text: text, library: library)
+        self.text = ThemeTypesetter(shaper: shaper, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
 
@@ -40,23 +38,16 @@ struct SequencePlanner: Sendable {
         // A compound clip's or a document's picture is its nested document's output, so the nested plans come first.
         let storylineNested = try time.storyline.map { plan in try plan.source.media.flatMap(nested) }
         let clipNested = try time.clips.map { plan in try plan.media.flatMap(nested) }
-        let format = try self.format(of: time, nested: storylineNested)
+        let crops = try time.storyline.indices.map { index in
+            try crop(of: time.storyline[index], written: time.sequence.storyline[index], nested: storylineNested[index])
+        }
+        let format = try self.format(of: time, nested: storylineNested, crops: crops)
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
         let clipPictures = try time.clips.indices.map { index in
             try picture(
                 of: time.clips[index],
                 nested: clipNested[index],
                 place: written[index].place.appending(key: "media")
-            )
-        }
-
-        let crops = try time.storyline.indices.map { index in
-            try crop(
-                of: time.storyline[index],
-                written: time.sequence.storyline[index],
-                nested: storylineNested[index],
-                format: format,
-                theme: time.theme
             )
         }
         let found = try time.clips.indices.map { index in
@@ -66,12 +57,32 @@ struct SequencePlanner: Sendable {
                 picture: clipPictures[index],
                 time: time,
                 storylineNested: storylineNested,
+                clipPictures: clipPictures,
+                format: format
+            )
+        }
+
+        let storylinePositions = try time.storyline.indices.map { index in
+            try position(
+                of: time.storyline[index],
+                written: time.sequence.storyline[index],
                 format: format
             )
         }
 
         let tracked = try tracker.plan(time, crops: crops, areas: found.map(\.area))
         try checkKeyframes(of: tracked.time)
+        // A tracked clip is parented to a storyline clip, so no text it finds needs a track, and what was found under a
+        // shape or adjustment is brought into its space once every track is planned.
+        let parentSpace = ParentSpacePlanner(tracked: tracked)
+        let placed = time.clips.indices.map { index in
+            let plan = time.clips[index]
+            return (
+                area: parentSpace.area(found[index].area, written: written[index].area, of: plan),
+                position: parentSpace.position(found[index].position, written: written[index].position, of: plan),
+                crop: found[index].crop
+            )
+        }
 
         let lengthScale = time.theme.lengthScale(at: format.size.width)
         let storyline = try time.storyline.indices.map { index in
@@ -88,7 +99,21 @@ struct SequencePlanner: Sendable {
                     defaults: time.defaults,
                     place: time.storyline[index].place.appending(key: "filter")
                 ),
-                color: time.sequence.storyline[index].solid.map(time.theme.color)
+                color: time.sequence.storyline[index].solid.map(time.theme.color),
+                appearance: appearances.appearance(
+                    of: time.storyline[index],
+                    written: time.sequence.storyline[index],
+                    position: storylinePositions[index],
+                    box: try box(
+                        of: time.storyline[index],
+                        crop: crops[index],
+                        nested: storylineNested[index],
+                        format: format
+                    ),
+                    format: format,
+                    scale: lengthScale,
+                    theme: time.theme
+                )
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
@@ -96,35 +121,26 @@ struct SequencePlanner: Sendable {
             let box = try appearances.box(
                 of: tracked.time.clips[index],
                 written: written[index],
-                position: found[index].position,
-                crop: found[index].crop,
+                position: placed[index].position,
+                crop: placed[index].crop,
                 title: title,
                 picture: clipPictures[index],
                 format: format,
                 theme: time.theme
             )
             return ClipGeometry(
-                area: found[index].area,
-                position: found[index].position,
+                area: placed[index].area,
+                position: placed[index].position,
                 box: box,
-                crop: found[index].crop,
+                crop: placed[index].crop,
                 track: tracked.clips[index],
                 title: title,
-                label: try label(
-                    of: tracked.time.clips[index],
-                    written: written[index],
-                    area: found[index].area,
-                    track: tracked.clips[index],
-                    time: tracked.time,
-                    storyline: storyline,
-                    format: format
-                ),
                 nested: clipNested[index],
                 appearance: try appearances.appearance(
                     of: tracked.time.clips[index],
                     written: written[index],
                     box: box,
-                    crop: found[index].crop,
+                    crop: placed[index].crop,
                     picture: clipPictures[index],
                     scale: lengthScale,
                     theme: time.theme,
@@ -140,61 +156,101 @@ struct SequencePlanner: Sendable {
             clipNested: clipNested
         )
 
-        return SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
+        let plan = SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
+        guard let margin = format.margin else { return plan }
+
+        return try contentFit.fitted(plan, margin: margin, inOutputPixels: found.map(\.isInOutputPixels))
     }
 
     // MARK: - Private
-    private func nested(_ media: MediaPlan) throws -> DocumentPlan? {
+    private func nested(_ media: MediaPlan) throws -> SequencePlan? {
         switch media.source {
         case .file:
             nil
 
         case let .sequence(nested):
-            .sequence(try plan(nested))
-
-        case let .picture(nested):
-            .picture(try pictures.plan(nested, sequences: plan))
+            try plan(nested)
         }
     }
 
-    // The content rect lies inside the output frame by the inset, and an inset that leaves none stops. The background is
-    // the theme `background` unless the format gives one.
+    // The background is the theme `background` unless the format gives one. A content-fit frame is the size of its
+    // first storyline picture's box until it is measured.
     private func format(
         of time: TimePlan,
-        nested: [DocumentPlan?]
+        nested: [SequencePlan?],
+        crops: [PropertyValue<FoundArea>?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
-        let size = try format.size ?? defaultSize(of: time, nested: nested)
-        let inset = format.inset ?? .zero
-        let content = Rectangle(
-            x: inset.left,
-            y: inset.top,
-            width: size.width - inset.left - inset.right,
-            height: size.height - inset.top - inset.bottom
-        )
-        guard content.width > 0, content.height > 0 else {
-            throw ResolveError.noContentRect(
-                place: time.sequence.place.appending(key: "format").appending(key: "inset"),
-                kind: .sequence,
-                size: size
-            )
+        let size: Size
+        let margin: Margin?
+        switch format.size {
+        case let .fixed(written):
+            size = written
+            margin = nil
+
+        case .none:
+            size = try defaultSize(of: time, nested: nested)
+            margin = nil
+
+        case let .content(written):
+            let boxes = try time.storyline.indices.compactMap { index in
+                try pictureBox(of: time.storyline[index], crop: crops[index], nested: nested[index])
+            }
+            guard let first = boxes.first else {
+                throw ResolveError.contentFitWithoutPicture(
+                    place: time.sequence.place.appending(key: "format").appending(key: "size"),
+                    kind: .sequence
+                )
+            }
+
+            size = first
+            margin = written
         }
 
         return FormatPlan(
             size: size,
-            content: content,
             conform: format.conform ?? .fit,
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
-            duration: time.duration
+            duration: time.duration,
+            margin: margin
         )
+    }
+
+    // A storyline clip's box is the frame, and under content fit the pixel size of its picture's crop at scale 1: its
+    // first crop's, or its whole picture's without one. A solid has none, since it fills the frame.
+    private func box(
+        of plan: StorylinePlan,
+        crop: PropertyValue<FoundArea>?,
+        nested: SequencePlan?,
+        format: FormatPlan
+    ) throws -> Size? {
+        guard plan.source.media != nil else { return nil }
+        guard format.isMeasured else { return format.size }
+
+        return try pictureBox(of: plan, crop: crop, nested: nested)
+    }
+
+    // The pixel size of a storyline clip's crop at scale 1, nil for a solid, which has no picture of its own.
+    private func pictureBox(
+        of plan: StorylinePlan,
+        crop: PropertyValue<FoundArea>?,
+        nested: SequencePlan?
+    ) throws -> Size? {
+        guard let media = plan.source.media else { return nil }
+
+        if let first = crop?.firstValue.rectangle {
+            return Size(width: first.width, height: first.height)
+        }
+        let place = plan.place.appending(key: "media")
+        return try picture(of: media, kind: plan.source.kind, nested: nested, place: place).size
     }
 
     // The size of the first video on the storyline, or of the first storyline clip when there is no video, rounded to
     // even numbers. A solid has no size of its own.
     private func defaultSize(
         of time: TimePlan,
-        nested: [DocumentPlan?]
+        nested: [SequencePlan?]
     ) throws -> Size {
         let index = time.storyline.firstIndex { $0.source.kind == .media(.video) } ?? 0
         let plan = time.storyline[index]
@@ -211,33 +267,16 @@ struct SequencePlanner: Sendable {
         return Size(width: (size.width / 2).rounded() * 2, height: (size.height / 2).rounded() * 2)
     }
 
-    // A solid fills the content rect, so its picture is that rect's size.
-    private func picture(
-        of plan: StorylinePlan,
-        nested: DocumentPlan?,
-        format: FormatPlan
-    ) throws -> Picture {
-        guard let media = plan.source.media else {
-            return Picture(
-                name: ClipKind.solid.label,
-                source: .solid,
-                size: Size(width: format.content.width, height: format.content.height)
-            )
-        }
-
-        return try picture(of: media, kind: plan.source.kind, nested: nested, place: plan.place.appending(key: "media"))
-    }
-
-    // A media file's picture is its probed size. A compound clip's or an image or layout document's is the output of
-    // its nested document, which is drawn, not read.
+    // A media file's picture is its probed size. A compound clip's is the output frame of its nested sequence, which is
+    // drawn, not read.
     private func picture(
         of media: MediaPlan,
         kind: ClipKind,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         place: Place
     ) throws -> Picture {
         if let nested {
-            return Picture(name: media.reference ?? place.description, source: .document, size: nested.size)
+            return Picture(name: media.reference ?? place.description, source: .document, size: nested.format.size)
         }
         // Media without a nested plan is a file.
         guard case let .file(file) = media.source, let size = file.size else {
@@ -252,7 +291,7 @@ struct SequencePlanner: Sendable {
     // nothing, so it has none.
     private func picture(
         of plan: ClipPlan,
-        nested: DocumentPlan?,
+        nested: SequencePlan?,
         place: Place
     ) throws -> Picture? {
         guard plan.kind != .media(.audio), let media = plan.media else { return nil }
@@ -260,79 +299,115 @@ struct SequencePlanner: Sendable {
         return try picture(of: media, kind: plan.kind, nested: nested, place: place)
     }
 
-    // What a sequence clip's area and an unparented clip's position are in.
+    // What the areas and positions written in output pixels are in, an unparented clip's and a solid's children's: the
+    // output frame, or under content fit the measuring space, which has no edges until it is measured.
     private func output(of format: FormatPlan) -> Picture {
-        Picture(name: "output", source: .document, size: format.size)
+        Picture(name: "output", source: format.isMeasured ? .space : .document, size: format.size)
     }
 
+    // A solid takes no crop.
     private func crop(
         of plan: StorylinePlan,
         written: StorylineClip,
-        nested: DocumentPlan?,
-        format: FormatPlan,
-        theme: MergedTheme
+        nested: SequencePlan?
     ) throws -> PropertyValue<FoundArea>? {
-        guard let crop = written.crop else { return nil }
+        guard let crop = written.crop, let media = plan.source.media else { return nil }
 
-        let picture = try self.picture(of: plan, nested: nested, format: format)
+        let picture = try self.picture(
+            of: media,
+            kind: plan.source.kind,
+            nested: nested,
+            place: plan.place.appending(key: "media")
+        )
         return try finder.crops(
             crop,
             in: picture,
             pictureClock: .storyline(plan),
             clock: plan.map,
             instant: plan.instant,
-            padding: theme.cropPadding * theme.lengthScale(at: picture.size.width),
             place: written.place,
             kind: plan.source.kind.label
         )
     }
 
-    // A parented clip's area and position are in its storyline clip's picture, and a sequence clip's area and an
-    // unparented position in output pixels. A media clip's crop is in its own picture.
+    // A storyline clip has no parent, so its position is in output pixels and a text form stops.
+    private func position(
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        format: FormatPlan
+    ) throws -> PropertyValue<Point>? {
+        guard let position = written.position else { return nil }
+
+        if let text = byText(position, place: written.place) {
+            throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.source.kind))
+        }
+        let space = output(of: format)
+        return try finder.positions(
+            position,
+            in: space,
+            pictureClock: .still,
+            clock: plan.map,
+            instant: plan.instant,
+            place: written.place,
+            kind: plan.source.kind.label
+        )
+    }
+
+    // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels, as are
+    // those of a clip parented to a solid or under a chain of shapes and adjustments that reaches neither a storyline
+    // picture nor a clip with a box. A text form is searched in the parent's picture, the media of a storyline or media
+    // clip, at the media time the parent's clock gives, and under a shape or adjustment what it finds is where it lies
+    // in that media until `ParentSpacePlanner` brings it into the parent's space. A media clip's crop is in its own
+    // picture.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
         picture: Picture?,
         time: TimePlan,
-        storylineNested: [DocumentPlan?],
+        storylineNested: [SequencePlan?],
+        clipPictures: [Picture?],
         format: FormatPlan
-    ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
-        let theme = time.theme
-        let owner = plan.isParented ? plan.storyline : nil
-        let pictureClock = owner.map { PictureClock.storyline(time.storyline[$0]) } ?? .still
-        let parent = { (index: Int) in
-            try self.picture(of: time.storyline[index], nested: storylineNested[index], format: format)
-        }
+    ) throws -> (
+        area: PropertyValue<FoundArea>?,
+        position: PropertyValue<Point>?,
+        crop: PropertyValue<FoundArea>?,
+        isInOutputPixels: Bool
+    ) {
+        let space = try self.space(
+            of: plan.parent,
+            time: time,
+            storylineNested: storylineNested,
+            clipPictures: clipPictures,
+            format: format
+        )
 
         let area = try written.area.map { area in
-            let picture = try owner.map(parent) ?? output(of: format)
+            if space.isOutputPixels, let text = byText(area, place: written.place) {
+                throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
+            }
+
             return try finder.areas(
                 area,
                 key: "area",
-                in: picture,
-                pictureClock: pictureClock,
+                in: space.picture,
+                pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
-                padding: theme.areaPadding * theme.lengthScale(at: picture.size.width),
                 place: written.place,
                 kind: plan.kind.label
             )
         }
         let position = try written.position.map { position in
-            let byArea = self.byArea(position, place: written.place)
-            if let byArea, owner == nil {
-                throw ResolveError.areaPositionWithoutParent(place: byArea, kind: .clip(plan.kind))
+            if space.isOutputPixels, let text = byText(position, place: written.place) {
+                throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
-            // Points need no picture, so a clip placed by points alone looks at none.
-            let picture = try owner.flatMap { byArea == nil ? nil : try parent($0) } ?? output(of: format)
             return try finder.positions(
                 position,
-                in: picture,
-                pictureClock: pictureClock,
+                in: space.picture,
+                pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
-                padding: theme.areaPadding * theme.lengthScale(at: picture.size.width),
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -345,43 +420,104 @@ struct SequencePlanner: Sendable {
                     pictureClock: plan.timing.map { .media($0) } ?? .still,
                     clock: plan.clock,
                     instant: plan.instant,
-                    padding: theme.cropPadding * theme.lengthScale(at: picture.size.width),
                     place: written.place,
                     kind: plan.kind.label
                 )
             }
         }
 
-        return (area, position, crop)
+        return (area, position, crop, space.isOutputPixels)
     }
 
-    // The place of the first position given by an area, which only a parented clip takes.
-    private func byArea(
+    // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
+    // output pixels (FRAMES-10): a storyline clip's media, a media clip's media, a title's text box as a space with no
+    // picture, and for a shape or adjustment the space its geometry is written in, its own parent's. An unparented
+    // clip's space and a solid's are output pixels.
+    private func space(
+        of parent: ClipParent?,
+        time: TimePlan,
+        storylineNested: [SequencePlan?],
+        clipPictures: [Picture?],
+        format: FormatPlan
+    ) throws -> (picture: Picture, clock: PictureClock, isOutputPixels: Bool) {
+        switch parent {
+        case .none:
+            return (output(of: format), .still, true)
+
+        case let .storyline(index, _):
+            let plan = time.storyline[index]
+            guard let media = plan.source.media else { return (output(of: format), .storyline(plan), true) }
+
+            let place = plan.place.appending(key: "media")
+            let picture = try picture(of: media, kind: plan.source.kind, nested: storylineNested[index], place: place)
+            return (picture, .storyline(plan), false)
+
+        case let .clip(index, id):
+            let plan = time.clips[index]
+            if let picture = clipPictures[index] {
+                return (picture, plan.timing.map { .media($0) } ?? .still, false)
+            }
+
+            switch plan.kind {
+            case .shape, .adjust:
+                // ParentFinder has ruled out a cycle, so the chain ends.
+                return try space(
+                    of: plan.parent,
+                    time: time,
+                    storylineNested: storylineNested,
+                    clipPictures: clipPictures,
+                    format: format
+                )
+
+            default:
+                return (Picture(name: id, source: .space, size: format.size), .still, false)
+            }
+        }
+    }
+
+    // The place of the first area written with text, which only a parented clip takes.
+    private func byText(
+        _ area: PropertyValue<AreaForm>,
+        place: Place
+    ) -> Place? {
+        switch area {
+        case let .value(form):
+            return form.isFoundByText ? place.appending(key: "area") : nil
+
+        case let .keyframes(keyframes):
+            return keyframes.first { $0.value.isFoundByText }.map { keyframe in
+                place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "area")
+            }
+        }
+    }
+
+    // The place of the first position given by an area written with text, which only a parented clip takes.
+    private func byText(
         _ position: PropertyValue<PositionForm>,
         place: Place
     ) -> Place? {
         switch position {
         case let .value(form):
-            return isArea(form) ? place.appending(key: "position") : nil
+            return form.isFoundByText ? place.appending(key: "position") : nil
 
         case let .keyframes(keyframes):
-            return keyframes.first { isArea($0.value) }.map { keyframe in
+            return keyframes.first { $0.value.isFoundByText }.map { keyframe in
                 place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "position")
             }
         }
     }
 
-    private func isArea(_ form: PositionForm) -> Bool {
-        if case .area = form { true } else { false }
-    }
-
-    // A title wraps at its `width`, by default the output width less the placement padding on each side.
+    // A title wraps at its `width`, by default the output width less the placement padding on each side, which a
+    // content-fit frame does not have yet.
     private func title(
         of written: Clip,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
         guard case let .title(text, style) = written.content else { return nil }
+        guard written.width != nil || !format.isMeasured else {
+            throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
+        }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(
@@ -393,53 +529,6 @@ struct SequencePlanner: Sendable {
             scale: scale,
             place: written.place.appending(key: "title"),
             kind: ClipKind.title.label
-        )
-    }
-
-    // A label is set on one line in the `label` style. A parented shape is measured through its storyline clip's
-    // picture.
-    private func label(
-        of plan: ClipPlan,
-        written: Clip,
-        area: PropertyValue<FoundArea>?,
-        track: Track?,
-        time: TimePlan,
-        storyline: [StorylineGeometry],
-        format: FormatPlan
-    ) throws -> LabelPlan? {
-        guard let label = written.label else { return nil }
-
-        let text = try self.text.layout(
-            label,
-            style: "label",
-            stylePlace: written.place.appending(key: "label"),
-            width: nil,
-            theme: time.theme,
-            scale: time.theme.lengthScale(at: format.size.width),
-            place: written.place.appending(key: "label"),
-            kind: plan.kind.label
-        )
-        let parent = try plan.storyline.flatMap { index -> ParentPicture? in
-            guard plan.isParented, area != nil else { return nil }
-
-            let owner = time.storyline[index]
-            return ParentPicture(
-                plan: owner,
-                geometry: storyline[index],
-                picture: try picture(of: owner, nested: storyline[index].nested, format: format)
-            )
-        }
-
-        return try placer.label(
-            text,
-            of: plan,
-            written: written,
-            area: area,
-            track: track,
-            parent: parent,
-            storyline: time.storyline,
-            format: format,
-            theme: time.theme
         )
     }
 

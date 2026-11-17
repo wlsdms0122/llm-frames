@@ -29,7 +29,7 @@ struct KeyChecker: Sendable {
         place: Place
     ) throws -> [ParameterReference] {
         var scope = DocumentScope()
-        _ = try checkDocument(
+        try checkDocument(
             template,
             place: place,
             kind: "document",
@@ -46,7 +46,7 @@ struct KeyChecker: Sendable {
         place: Place
     ) throws {
         var scope = DocumentScope()
-        _ = try checkDocument(
+        try checkDocument(
             document,
             place: place,
             kind: "document",
@@ -129,9 +129,13 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
-        case .pixels:
-            // A canvas is whole pixels.
-            guard let number = value.numberValue, number >= 0, Int(exactly: number) != nil else {
+        case .nonNegativeInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer >= 0 else {
+                throw wrongType(value, type, place, kind)
+            }
+
+        case .positiveInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
                 throw wrongType(value, type, place, kind)
             }
 
@@ -179,34 +183,28 @@ struct KeyChecker: Sendable {
             try checkAlternatives(value, as: types, place: place, kind: kind, scope: &scope)
 
         case .area:
-            try checkArea(value, place: place, kind: kind, scope: &scope)
+            try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
 
         case .crop:
             if case let .object(object) = value, object.contains("scale") {
                 try checkObject(object, as: AreaKeyTable.cropScale, place: place, scope: &scope)
             } else {
-                try checkArea(value, place: place, kind: kind, scope: &scope)
+                try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
             }
 
-        case .inset:
-            try checkInset(value, place: place, kind: kind, scope: &scope)
+        case .margin:
+            try checkMargin(value, place: place, kind: kind, scope: &scope)
 
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
         case .document:
-            _ = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
+            try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
 
         case let .clips(clipPlace):
             guard let elements = value.arrayValue else { throw wrongType(value, type, place, kind) }
             for (index, element) in elements.enumerated() {
                 try checkClip(element, place: elementPlace(place, index, element), in: clipPlace, scope: &scope)
-            }
-
-        case .operations:
-            guard let elements = value.arrayValue else { throw wrongType(value, type, place, kind) }
-            for (index, element) in elements.enumerated() {
-                try checkOperation(element, place: elementPlace(place, index, element), scope: &scope)
             }
 
         case .parameters:
@@ -345,37 +343,39 @@ struct KeyChecker: Sendable {
         }
     }
 
+    // A rectangle's width and height are above 0. `type` is the area or crop being checked, which a message names.
     private func checkArea(
         _ value: JSONValue,
+        as type: ValueType,
         place: Place,
         kind: String,
         scope: inout DocumentScope
     ) throws {
         switch value {
-        case .array:
-            try check(value, as: .numbers(4), place: place, kind: kind, scope: &scope)
+        case let .array(elements):
+            guard elements.count == 4 else { throw wrongType(value, type, place, kind) }
 
-        case .string:
-            return
+            for (index, element) in elements.enumerated() {
+                let elementType: ValueType = index < 2 ? .number : .positiveNumber
+                try check(element, as: elementType, place: place.appending(index: index), kind: kind, scope: &scope)
+            }
 
         case let .object(object):
-            if object.contains("band") {
-                try checkObject(object, as: AreaKeyTable.band, place: place, scope: &scope)
-            } else if object.contains("text") {
+            if object.contains("text") {
                 try checkObject(object, as: AreaKeyTable.text, place: place, scope: &scope)
             } else if object.contains("from") || object.contains("to") {
                 try checkObject(object, as: AreaKeyTable.range, place: place, scope: &scope)
             } else {
-                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from", "band"])
+                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from"])
             }
 
         default:
-            throw wrongType(value, .area, place, kind)
+            throw wrongType(value, type, place, kind)
         }
     }
 
-    // An inset is one length for every side, `[vertical, horizontal]` or `[top, right, bottom, left]`.
-    private func checkInset(
+    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
+    private func checkMargin(
         _ value: JSONValue,
         place: Place,
         kind: String,
@@ -383,15 +383,18 @@ struct KeyChecker: Sendable {
     ) throws {
         switch value {
         case .number:
-            try check(value, as: .pixels, place: place, kind: kind, scope: &scope)
+            try check(value, as: .nonNegativeInteger, place: place, kind: kind, scope: &scope)
 
-        case let .array(elements) where elements.count == 2 || elements.count == 4:
+        case let .array(elements):
+            guard elements.count == 2 || elements.count == 4 else { throw wrongType(value, .margin, place, kind) }
+
             for (index, element) in elements.enumerated() {
-                try check(element, as: .pixels, place: place.appending(index: index), kind: kind, scope: &scope)
+                let side = place.appending(index: index)
+                try check(element, as: .nonNegativeInteger, place: side, kind: kind, scope: &scope)
             }
 
         default:
-            throw wrongType(value, .inset, place, kind)
+            throw wrongType(value, .margin, place, kind)
         }
     }
 
@@ -410,7 +413,7 @@ struct KeyChecker: Sendable {
             _ = try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
         case let .object(object) where object.contains("kind"):
-            _ = try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
+            try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
 
         case let .object(object) where object.contains("imageSequence"):
             try checkObject(object, as: TemplateKeyTable.imageSequence, place: place, scope: &scope)
@@ -451,7 +454,7 @@ struct KeyChecker: Sendable {
             return try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
         case let .object(object) where object.contains("kind"):
-            return MediaKind(document: value)
+            return .sequence
 
         case let .object(object) where object.contains("template"):
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
@@ -462,27 +465,25 @@ struct KeyChecker: Sendable {
         }
     }
 
+    // Every template is a sequence, so an instance is a compound clip once the templates it may name are there. The
+    // shape check lets only a choice name a template, and it may name any of its options.
     private func templateKind(
         of template: JSONValue,
         place: Place,
         kind: String,
         scope: DocumentScope
     ) throws -> MediaKind {
-        guard case let .object(reference) = template else {
-            return try probedKind(ofTemplate: template.stringValue ?? "", place: place, kind: kind)
+        let names: [String] = if case let .object(reference) = template {
+            scope.parameters[reference["param"]?.stringValue ?? ""]?["options"]?.arrayValue?.compactMap(\.stringValue)
+                ?? []
+        } else {
+            [template.stringValue ?? ""]
+        }
+        for name in names where try !mediaKinds.hasTemplate(named: name) {
+            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind, name: name)
         }
 
-        // The shape check lets only a choice name a template, and the clip takes the one kind all its options share.
-        let name = reference["param"]?.stringValue ?? ""
-        let templates = scope.parameters[name]?["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        let probed = try templates.map { template in
-            ProbedTemplate(name: template, kind: try probedKind(ofTemplate: template, place: place, kind: kind))
-        }
-        guard let first = probed.first?.kind, probed.allSatisfy({ $0.kind == first }) else {
-            throw ModelError.ambiguousTemplateKind(place: place, kind: kind, name: name, templates: probed)
-        }
-
-        return first
+        return .sequence
     }
 
     private func probedKind(
@@ -503,25 +504,13 @@ struct KeyChecker: Sendable {
         return probed
     }
 
-    private func probedKind(
-        ofTemplate name: String,
-        place: Place,
-        kind: String
-    ) throws -> MediaKind {
-        guard let mediaKind = try mediaKinds.templateKind(of: name) else {
-            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind, name: name)
-        }
-
-        return mediaKind
-    }
-
     private func checkDocument(
         _ value: JSONValue,
         place: Place,
         kind: String,
         isNested: Bool,
         scope: inout DocumentScope
-    ) throws -> String {
+    ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .document, place, kind) }
         guard let kindValue = object["kind"] else {
             throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
@@ -529,18 +518,19 @@ struct KeyChecker: Sendable {
         guard let documentKind = kindValue.stringValue else {
             throw wrongType(kindValue, .text, place.appending(key: "kind"), "document")
         }
-        guard let table = DocumentKeyTable.table(for: documentKind) else {
+        let table = DocumentKeyTable.sequence
+        guard documentKind == table.kind else {
             throw ModelError.unknownValue(
                 place: place.appending(key: "kind"),
                 kind: "document",
                 value: documentKind,
-                allowed: VocabularyTable.documentKinds
+                allowed: [table.kind]
             )
         }
 
         guard !isNested else {
             guard !object.contains("params") else {
-                throw ModelError.nestedTemplate(place: place, kind: documentKind)
+                throw ModelError.nestedTemplate(place: place, kind: table.kind)
             }
 
             // A nested document has ids of its own, while a template's parameters reach into it.
@@ -548,7 +538,7 @@ struct KeyChecker: Sendable {
             scope.identifiers = [:]
             try checkObject(object, as: table, place: place, scope: &scope)
             scope.identifiers = outerIdentifiers
-            return documentKind
+            return
         }
 
         // Declarations are checked before anything refers to them, so a broken one is reported where it is written,
@@ -569,8 +559,6 @@ struct KeyChecker: Sendable {
         for member in parameters where !scope.usedParameters.contains(member.key) {
             throw ModelError.unusedParameter(place: place.appending(key: "params").appending(key: member.key), name: member.key)
         }
-
-        return documentKind
     }
 
     private func checkClip(
@@ -663,35 +651,6 @@ struct KeyChecker: Sendable {
             for property in properties where keyframe.contains(property) && object.contains(property) {
                 throw ModelError.staticAndKeyframed(place: place, kind: kind.label, property: property)
             }
-        }
-    }
-
-    private func checkOperation(
-        _ value: JSONValue,
-        place: Place,
-        scope: inout DocumentScope
-    ) throws {
-        guard let object = value.objectValue else {
-            throw wrongType(value, .object(ObjectTable(kind: "operation", rules: [])), place, "operation")
-        }
-
-        let present = ImageOperationKind.allCases.filter { object.contains($0.rawValue) }
-        guard !present.isEmpty else {
-            throw ModelError.missingKey(place: place, kind: "operation", keys: ImageKeyTable.operationKeys)
-        }
-        guard present.count == 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: "operation", keys: present.map(\.rawValue))
-        }
-
-        guard present[0] == .shape else {
-            try checkObject(object, as: ImageKeyTable.table(for: present[0], shape: nil), place: place, scope: &scope)
-            return
-        }
-
-        let shapes = try shapes(of: object, place: place, scope: &scope)
-        try checkEach(shapes, scope: &scope) { shape, scope in
-            let table = ImageKeyTable.table(for: .shape, shape: shape)
-            try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
         }
     }
 
@@ -902,13 +861,13 @@ struct KeyChecker: Sendable {
         case .media:
             MediaKind(rawValue: parameterType) != nil
 
-        case .text, .area, .crop:
+        case .text:
             parameterType == "text"
 
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .integer, .pixels, .inset:
+        case .number, .positiveNumber, .nonNegativeNumber, .integer, .nonNegativeInteger, .positiveInteger, .margin:
             parameterType == "number"
 
         default:
@@ -949,24 +908,21 @@ struct KeyChecker: Sendable {
             true
 
         case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number),
-             (.pixels, .number):
+             (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.numbers, .array), (.list, .array), (.clips, .array), (.operations, .array):
+        case (.ease, .array), (.numbers, .array), (.list, .array), (.clips, .array):
             true
 
         case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
              (.filterOperation, .object), (.document, .object):
             true
 
-        case (.area, .array), (.area, .string), (.area, .object), (.crop, .array), (.crop, .string), (.crop, .object):
-            true
-
-        case (.inset, .number), (.inset, .array):
+        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
             true
 
         case (.media, .string), (.media, .object):
@@ -1015,8 +971,11 @@ struct KeyChecker: Sendable {
         case .integer:
             "a whole number"
 
-        case .pixels:
-            "whole pixels, 0 or more"
+        case .nonNegativeInteger:
+            "a whole number, 0 or more"
+
+        case .positiveInteger:
+            "a whole number, 1 or more"
 
         case .text, .name, .identifier:
             "a string"
@@ -1045,8 +1004,8 @@ struct KeyChecker: Sendable {
         case .crop:
             "an area or {scale}"
 
-        case .inset:
-            "whole pixels, 0 or more, as n, [vertical, horizontal] or [top, right, bottom, left]"
+        case .margin:
+            "a whole number, 0 or more, or a list of 2 or 4 of them"
 
         case .media:
             "a media reference"
@@ -1056,9 +1015,6 @@ struct KeyChecker: Sendable {
 
         case .clips:
             "a list of clips"
-
-        case .operations:
-            "a list of operations"
 
         case .filterOperation:
             "a filter operation"

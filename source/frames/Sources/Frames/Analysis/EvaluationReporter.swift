@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Evaluates a resolved document at a time and reports its display list as `evaluate` prints it, nested lists
-// flattened. A sequence takes a time in [0, duration), and an image or layout any time, giving its one list.
+// Evaluates a resolved sequence at a time in [0, duration) and reports its display list as `evaluate` prints it,
+// nested lists flattened.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()
@@ -17,14 +17,12 @@ package struct EvaluationReporter: Sendable {
 
     // MARK: - Public
     package func report(
-        of document: ResolvedDocument,
+        of sequence: ResolvedSequence,
         at time: Double
     ) throws -> EvaluationReport {
-        if case let .sequence(sequence) = document {
-            try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
-        }
+        try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayList(of: document, at: time), at: time)
+        return report(of: evaluator.displayList(of: sequence, at: time), at: time)
     }
 
     func report(

@@ -36,14 +36,13 @@ extension ResolvedClip {
             end: plan.visible.end,
             lane: plan.lane,
             storyline: plan.storyline,
-            isParented: plan.isParented,
+            parent: plan.parent?.id,
             area: geometry.area?.keyframes(at: instant) { $0.rectangle },
             box: geometry.box.map { box in
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
-            track: geometry.track.map { ResolvedTrack(track: $0, values: geometry.area) },
-            label: try geometry.label.map { try ResolvedLabel(plan: $0, hashes: hashes) },
+            track: geometry.track.map { ResolvedTrack(track: $0) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,

@@ -29,7 +29,7 @@ struct TemplateCheckTests {
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
-                               "connected": [ { "shape": "box", "area": { "param": "name" }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
+                               "connected": [ { "shape": "box", "area": { "text": { "param": "name" } }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
             }
             """##)
 
@@ -47,7 +47,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
@@ -59,6 +59,8 @@ struct TemplateCheckTests {
              #"clips[0].title (title): parameter "size" of type number cannot stand where a string is expected"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
+            (#"{ "name": { "type": "text" } }"#, #"{ "shape": "box", "area": { "param": "name" } }"#,
+             #"clips[0].area (box): parameter "name" of type text cannot stand where an area is expected"#),
             (#"{ "where": { "type": "choice", "options": ["top", "middle"] } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
@@ -113,16 +115,14 @@ struct TemplateCheckTests {
         #expect(error?.description == message)
     }
 
-    @Test("a template instance takes template and args, and its probed kind picks the row")
+    @Test("a template instance takes template and args")
     func checksTemplateInstance() throws {
         // Given
         let compound = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "name": "Ada" } }, "in": 0, "out": 3 } ] }"#)
-        let still = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "pack/card", "args": {} }, "in": 0 } ] }"#)
         let unknownKey = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "arguments": {} } } ] }"#)
 
         // When, Then
         try sut.check(document: compound)
-        #expect(throws: ModelError.self) { try sut.check(document: still) }
         let error = #expect(throws: ModelError.self) { try sut.check(document: unknownKey) }
         #expect(error?.description == #"storyline[0].media (template instance): unknown key "arguments". Allowed: template, args"#)
     }
@@ -131,24 +131,24 @@ struct TemplateCheckTests {
     func refusesNestedTemplate() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "kind": "image", "source": "/abs/shot.png", "params": {} }, "duration": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "params": {}, "storyline": [] }, "in": 0, "out": 1 } ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "storyline[0].media (image): a document with params is a template and is used only as a template instance")
+        #expect(error?.description == "storyline[0].media (sequence): a document with params is a template and is used only as a template instance")
     }
 
     @Test("a document given as an argument is checked like any document")
     func checksDocumentArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "shot": { "kind": "image", "source": "/abs/shot.png", "opz": [] } } } } ] }
+            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "shot": { "kind": "sequence", "storyline": [], "opz": [] } } } } ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media.args.shot (image): unknown key "opz". Allowed: kind, source, time, theme, params, ops"#)
+        #expect(error?.description == #"storyline[0].media.args.shot (sequence): unknown key "opz". Allowed: kind, format, theme, params, storyline, clips"#)
     }
 
     @Test("a template named by a choice parameter takes the probed kind its options share")
@@ -158,23 +158,10 @@ struct TemplateCheckTests {
             { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"] } },
               "storyline": [ { "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
             """#)
-        let checker = KeyChecker(mediaKinds: MediaKindTable(["pack/intro": .sequence, "pack/outro": .sequence]))
+        let checker = KeyChecker(mediaKinds: MediaKindTable(templates: ["pack/intro", "pack/outro"]))
 
         // When, Then
         try checker.check(document: document)
-    }
-
-    @Test("a template named by a choice whose options are of different kinds stops")
-    func refusesTemplateChoiceOfMixedKinds() throws {
-        // Given
-        let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/card"] } },
-              "storyline": [ { "media": { "template": { "param": "t" }, "args": {} } } ] }
-            """#)
-
-        // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media (storyline clip): parameter "t" names templates of different kinds: "pack/intro" is sequence, "pack/card" is image"#)
     }
 
     @Test("a parameter used only inside a template instance given as an argument counts as used")
@@ -224,20 +211,12 @@ struct TemplateCheckTests {
         "a shape taken by a choice checks its object with each option's keys, so a box and an arrow together stop",
         arguments: [
             (
-                #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } ] }"#,
-                #"ops[0] (arrow): missing key "side""#
-            ),
-            (
-                #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
-                #"ops[0] (box): unknown key "side". Allowed: id, metadata, shape, area, label, color"#
-            ),
-            (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } ] }"#,
                 #"clips[0] (arrow): missing key "side""#
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
-                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend"#
+                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, shape, area, track, color, blend"#
             )
         ]
     )
@@ -253,16 +232,13 @@ struct TemplateCheckTests {
         #expect(error?.description == message)
     }
 
-    @Test(
-        "a shape choice of arrows that names its side passes, with its references taken once",
-        arguments: [
-            #"{ "kind": "image", "source": "/abs/shot.png", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } }, "ops": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }"#,
-            #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }"#
-        ]
-    )
-    func acceptsShapeChoiceOfArrows(text: String) throws {
+    @Test("a shape choice of arrows that names its side passes, with its references taken once")
+    func acceptsShapeChoiceOfArrows() throws {
         // Given
-        let document = try Fixture.json(text)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } },
+              "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }
+            """#)
 
         // When
         let references = try sut.check(template: document, place: .root)

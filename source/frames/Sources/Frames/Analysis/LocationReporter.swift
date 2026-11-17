@@ -8,7 +8,7 @@
 // Maps a point of the output at a time back to what drew it, as `locate` prints it: every item of the display list
 // whose coverage holds the point, nested lists flattened, topmost first. An item covers what its rectangle, cut by its
 // masks, reveals and the pictures holding it, covers; rounded corners, trims, mattes and transparent pixels are not
-// told apart. A sequence takes a time in [0, duration), and an image or layout any time.
+// told apart. The time is in [0, duration).
 package struct LocationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()
@@ -20,15 +20,13 @@ package struct LocationReporter: Sendable {
     // MARK: - Public
     // `point` is in output pixels.
     package func report(
-        of document: ResolvedDocument,
+        of sequence: ResolvedSequence,
         at time: Double,
         point: Point
     ) throws -> LocationReport {
-        if case let .sequence(sequence) = document {
-            try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
-        }
+        try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayList(of: document, at: time), point: point)
+        return report(of: evaluator.displayList(of: sequence, at: time), point: point)
     }
 
     func report(

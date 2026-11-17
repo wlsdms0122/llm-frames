@@ -6,9 +6,10 @@
 //
 
 // Where a picture's pixels come from: a media file or image sequence directory, read through the decoder, or a
-// document or a solid, which are drawn, not read.
+// document, which is drawn, not read. `space` has no pixels and no edges: the text box a title gives its children, and
+// under content fit the measuring space.
 enum PictureSource: Equatable, Sendable {
     case mediaFile(MediaFile)
     case document
-    case solid
+    case space
 }

@@ -1,6 +1,6 @@
 # shorts
 
-A Korean vertical short: 9:16, a headline in the top band, outlined subtitles, scenes that push up.
+A Korean vertical short: 9:16, a headline at the top, outlined subtitles, scenes that push up.
 
 ## What it is for
 
@@ -15,8 +15,8 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 ## Format
 
 - `"size": [1080, 1920]`, `"fps": 30`, `"background": "#000000"`.
-- `"inset": [420, 40, 120, 40]`, `"conform": "fit"`. The content rect, where the scenes play, is 1000 by 1380 below a 420 pixel top band. A landscape screen recording fits it 1000 wide, and the frame stays black around it.
-- The top band is built from the headline: one title in the `headline` style in `clips` with no `placement` and no `position`, so the style puts it at the top, 110 pixels down, centred. Without `at` it holds for the whole video. A video in parts gives each part's headline its own `at`, back to back on the sequence clock. Two lines of 84 pixels end at 320, and the band leaves room below them.
+- `"conform": "fit"`. The scenes play in the whole frame: a landscape screen recording fits it 1080 wide, and the frame stays black around it.
+- The headline is one title in the `headline` style in `clips` with no `placement` and no `position`, so the style puts it at the top, 110 pixels down, centred. Without `at` it holds for the whole video. A video in parts gives each part's headline its own `at`, back to back on the sequence clock. Two lines of 84 pixels end at 320.
 - Subtitles are titles in the `subtitle` style, connected to the scene they belong to, with no `placement`: the style puts them at the bottom, centred, their last line ending at 1590, below a fitted landscape picture and above the platform's caption.
 - Boxes, arrows and labels are connected to their scene by `area`, so they stay on the text they point at while the scene zooms.
 
@@ -70,7 +70,7 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 
 It shows the format and the rules together:
 
-- The headline is the one title in `clips`, with no `at`, so it holds the top band for the whole video: `"결제 금액이\n**한눈에** 보여요"`, two short lines broken by hand and one word in emphasis.
+- The headline is the one title in `clips`, with no `at`, so it holds the top of the frame for the whole video: `"결제 금액이\n**한눈에** 보여요"`, two short lines broken by hand and one word in emphasis.
 - The first scene zooms from the whole screenshot to the lines from `Item total` to `Total` with two crop keyframes, then boxes `Total` while its subtitle names it.
 - Its subtitles change back to back in the scene's seconds, `[0, 1.6]` then `[1.6, 3.5]`, and the second scene's subtitle spans that scene.
 - No clip names a transition or an animation: the theme pushes the second scene up, pops the subtitles and the label in, and draws the box.

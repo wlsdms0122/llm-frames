@@ -41,9 +41,9 @@ package struct ReferenceLibrary: MediaKindProvider {
     }
 
     // MARK: - Lifecycle
-    // A document's kind is the kind of document it is, and a media file's is the one its probe finds, or its failure.
+    // A document is a sequence, and a media file's kind is the one its probe finds, or its failure.
     func mediaKind(of reference: String) throws -> MediaKind? {
-        guard !isDocument(reference) else { return try document(named: reference)?.kind }
+        guard !isDocument(reference) else { return try document(named: reference).map { _ in .sequence } }
         guard let file = try mediaFile(named: reference) else { return nil }
 
         do {
@@ -53,8 +53,8 @@ package struct ReferenceLibrary: MediaKindProvider {
         }
     }
 
-    func templateKind(of name: String) throws -> MediaKind? {
-        try template(named: name)?.kind
+    func hasTemplate(named name: String) throws -> Bool {
+        try template(named: name) != nil
     }
 
     // MARK: - Public
@@ -78,7 +78,7 @@ package struct ReferenceLibrary: MediaKindProvider {
 
         try KeyChecker(mediaKinds: reading(file: file, name: reference))
             .check(nestedDocument: value, place: Place(file: reference, components: []))
-        return DocumentFile(name: reference, file: file, value: value, kind: MediaKind(document: value))
+        return DocumentFile(name: reference, file: file, value: value)
     }
 
     func fontFiles(inPack name: String) throws -> [String] {

@@ -9,32 +9,122 @@ import Testing
 
 @testable import Frames
 
+// The label face has an ascent of 0.8 and a descent of 0.2, so a label's line box is its size S, and the fake shaper
+// sets each glyph 0.5 S wide.
 @Suite("ContactSheetComposer Tests")
 struct ContactSheetComposerTests {
     // MARK: - Property
-    private let sut = ContactSheetComposer(shaper: Fixture.shaper, library: Fixture.library, hasher: FileHashTable())
+    private let face = FontFace(file: "/Fonts/Label.ttc", name: "Label-Medium", ascent: 0.8, descent: 0.2)
+    private let sut: ContactSheetComposer
     private let size = Size(width: 160, height: 90)
 
     // MARK: - Initializer
+    init() {
+        sut = ContactSheetComposer(shaper: Fixture.shaper, hasher: FileHashTable())
+    }
+
     // MARK: - Test
-    @Test("cells run left to right and then top down, a gap apart, with the padding around them")
+    @Test(
+        "the label size is the frame's longer side over 40, rounded, and at least 14",
+        arguments: [
+            (Size(width: 1920, height: 1080), 48.0),
+            (Size(width: 1080, height: 1920), 48.0),
+            (Size(width: 480, height: 270), 14.0),
+            (Size(width: 620, height: 349), 16.0),
+            (Size(width: 160, height: 90), 14.0)
+        ] as [(Size, Double)]
+    )
+    func sizesLabelByFrame(
+        frame: Size,
+        expected: Double
+    ) throws {
+        // Given
+        let cells = [cell(at: 0)]
+
+        // When
+        let sheet = try sut.sheet(of: cells, size: frame, columns: 1, face: face)
+
+        // Then
+        let label = try #require(labelGlyphs(of: sheet).first)
+        #expect(label.runs.map(\.size) == [expected])
+    }
+
+    @Test("the label is white in the given face without a stroke, on a rounded translucent black box around its line")
+    func setsLabelStyle() throws {
+        // Given
+        let cells = [cell(at: 0)]
+
+        // When
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
+
+        // Then
+        // At S 48, "0s" is 48 wide with 24 on each side, and its line box of 48 has 12 above and below.
+        let label = try #require(labelGlyphs(of: sheet).first)
+        let run = try #require(label.runs.first)
+        #expect(label.size == Size(width: 96, height: 72))
+        #expect(
+            label.background == GlyphBackground(
+                rectangle: Rectangle(x: 0, y: 0, width: 96, height: 72),
+                radius: 48 * 0.3,
+                color: Color(written: "#000000B3")
+            )
+        )
+        #expect(label.stroke == nil)
+        #expect(label.runs.count == 1)
+        #expect(run.face == face.name)
+        #expect(run.font.path == face.file)
+        #expect(run.color == Color(written: "#FFFFFFFF"))
+        #expect(run.glyphs.map(\.x) == [24, 48])
+        #expect(run.glyphs.allSatisfy { abs($0.y - (12 + 0.8 * 48)) < 0.000001 })
+    }
+
+    @Test("each label's background has its top left half a label size from its frame's top left")
+    func burnsLabelIntoFrame() throws {
+        // Given
+        let cells = (0..<4).map { cell(at: Double($0) * 0.5) }
+
+        // When
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
+
+        // Then
+        let pictures = pictureRectangles(of: sheet)
+        let labels = labelOrigins(of: sheet)
+        try #require(labels.count == 4)
+        for (picture, label) in zip(pictures, labels) {
+            #expect(label == Point(x: picture.x + 7, y: picture.y + 7))
+        }
+        #expect(labelGlyphs(of: sheet).map { $0.runs.flatMap(\.glyphs).count } == [2, 4, 2, 4])
+    }
+
+    @Test("frames run left to right and then top down, a label size apart, with a label size around them")
     func placesCellsOnGrid() throws {
         // Given
         let cells = (0..<5).map { cell(at: Double($0)) }
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
 
         // Then
-        // The base theme's `layout.gap` and `layout.padding` are both 40 at its width of 1206, so 5 at 160.
         let pictures = pictureRectangles(of: sheet)
-        let band = pictures[2].y - pictures[0].maxY - 5
         #expect(pictures.allSatisfy { $0.width == 160 && $0.height == 90 })
-        #expect(pictures.map(\.x) == [5, 170, 5, 170, 5])
-        #expect(pictures.map(\.y) == [5, 5, 5 + 95 + band, 5 + 95 + band, 5 + (95 + band) * 2])
-        #expect(band > 5 && band.rounded() == band)
-        #expect(sheet.size == Size(width: 5 + 160 + 5 + 160 + 5, height: 5 + (90 + band) * 3 + 5 * 2 + 5))
-        #expect(sheet.background == Color(written: "#FFFFFF"))
+        #expect(pictures.map(\.x) == [14, 188, 14, 188, 14])
+        #expect(pictures.map(\.y) == [14, 14, 118, 118, 222])
+        #expect(sheet.size == Size(width: 14 + 160 + 14 + 160 + 14, height: 14 + 90 + 14 + 90 + 14 + 90 + 14))
+        #expect(sheet.background == Color(written: "#202020FF"))
+    }
+
+    @Test("a single frame is that frame with its label and a label size around it")
+    func framesSingleCell() throws {
+        // Given
+        let cells = [cell(at: 1)]
+
+        // When
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
+
+        // Then
+        #expect(pictureRectangles(of: sheet) == [Rectangle(x: 48, y: 48, width: 1920, height: 1080)])
+        #expect(labelOrigins(of: sheet) == [Point(x: 72, y: 72)])
+        #expect(sheet.size == Size(width: 48 + 1920 + 48, height: 48 + 1080 + 48))
     }
 
     @Test("a sheet with fewer cells than columns is only as wide as its cells")
@@ -43,34 +133,10 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0), cell(at: 1)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 6)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 6, face: face)
 
         // Then
-        #expect(sheet.size.width == 5 + 160 + 5 + 160 + 5)
-    }
-
-    @Test("each label is centred on the band under its picture, in the base theme's label style")
-    func centresLabelOnBand() throws {
-        // Given
-        let cells = (0..<4).map { cell(at: Double($0) * 0.5) }
-
-        // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
-
-        // Then
-        let pictures = pictureRectangles(of: sheet)
-        let frames = labelFrames(of: sheet)
-        let labels = labelGlyphs(of: sheet)
-        try #require(frames.count == 4)
-        for (picture, frame) in zip(pictures, frames) {
-            #expect(abs(frame.center.x - picture.center.x) < 0.000001)
-            #expect(frame.y > picture.maxY)
-        }
-        #expect(frames[0].maxY < pictures[2].y - 5)
-        #expect(abs((frames[0].y - pictures[0].maxY) - (pictures[2].y - 5 - frames[0].maxY)) < 0.000001)
-        #expect(labels.allSatisfy { $0.background?.color == Color(written: "#ED2929") })
-        #expect(labels.allSatisfy { $0.runs.allSatisfy { $0.color == Color(written: "#FFFFFF") } })
-        #expect(labels.map { $0.runs.flatMap(\.glyphs).count } == [2, 4, 2, 4])
+        #expect(sheet.size.width == 14 + 160 + 14 + 160 + 14)
     }
 
     @Test(
@@ -122,12 +188,12 @@ struct ContactSheetComposerTests {
         }
     }
 
-    // A label's box in the sheet: its background fills the box, which its transform moves into place.
-    private func labelFrames(of sheet: DisplayList) -> [Rectangle] {
+    // Where each label's box, which its background fills, lies in the sheet.
+    private func labelOrigins(of sheet: DisplayList) -> [Point] {
         sheet.items.compactMap { item in
-            guard case let .glyphs(glyphs) = item.content, let box = glyphs.background?.rectangle else { return nil }
+            guard case .glyphs = item.content else { return nil }
 
-            return Rectangle(x: item.transform.tx, y: item.transform.ty, width: box.width, height: box.height)
+            return Point(x: item.transform.tx, y: item.transform.ty)
         }
     }
 }

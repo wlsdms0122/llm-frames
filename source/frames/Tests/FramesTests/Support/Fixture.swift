@@ -18,19 +18,20 @@ enum Fixture {
         try json(text).objectValue ?? JSONObject()
     }
 
-    static let mediaKinds = MediaKindTable([
-        "/abs/run.mp4": .video,
-        "/abs/card.png": .image,
-        "/abs/log.png": .image,
-        "/abs/light-leak.mov": .video,
-        "/abs/bgm.m4a": .audio,
-        "/abs/ding.wav": .audio,
-        "/abs/shot.png": .image,
-        "/abs/before.png": .image,
-        "/abs/after.png": .image,
-        "pack/intro": .sequence,
-        "pack/card": .image
-    ])
+    static let mediaKinds = MediaKindTable(
+        [
+            "/abs/run.mp4": .video,
+            "/abs/card.png": .image,
+            "/abs/log.png": .image,
+            "/abs/light-leak.mov": .video,
+            "/abs/bgm.m4a": .audio,
+            "/abs/ding.wav": .audio,
+            "/abs/shot.png": .image,
+            "/abs/before.png": .image,
+            "/abs/after.png": .image
+        ],
+        templates: ["pack/intro", "pack/card"]
+    )
 
     // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent.
     static let mediaFacts = MediaFactTable(

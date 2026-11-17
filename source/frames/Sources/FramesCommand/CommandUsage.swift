@@ -11,7 +11,7 @@ enum CommandUsage {
         frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] \
         [--encoder <name>] [--ocr <name>] [--shaper <name>] [--tracker <name>] <command> ...
 
-        render    <document.json> -o <out.mov | out.png> [--deliver <out.mp4>] [--args <args.json>]
+        render    <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
         still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
         resolve   <document.json> -o <resolved.json> [--args <args.json>]
         timeline  <document.json> [--args <args.json>] [--json]

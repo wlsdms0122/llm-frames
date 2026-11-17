@@ -17,8 +17,7 @@ struct GeometryFinder: Sendable {
     }
 
     // MARK: - Public
-    // `instant` is in sequence time and `clock` is the clip's, which its keyframes are written on. `padding` is in the
-    // picture's pixels.
+    // `instant` is in sequence time and `clock` is the clip's, which its keyframes are written on.
     func areas(
         _ property: PropertyValue<AreaForm>,
         key: String,
@@ -26,7 +25,6 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
-        padding: Double,
         place: Place,
         kind: String
     ) throws -> PropertyValue<FoundArea> {
@@ -35,7 +33,6 @@ struct GeometryFinder: Sendable {
                 form,
                 in: picture,
                 at: pictureClock.mediaTime(atSequenceTime: time),
-                padding: padding,
                 place: place,
                 kind: kind
             )
@@ -49,7 +46,6 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
-        padding: Double,
         place: Place,
         kind: String
     ) throws -> PropertyValue<FoundArea> {
@@ -57,7 +53,7 @@ struct GeometryFinder: Sendable {
             let mediaTime = pictureClock.mediaTime(atSequenceTime: time)
             switch form {
             case let .area(area):
-                return try self.area(area, in: picture, at: mediaTime, padding: padding, place: place, kind: kind)
+                return try self.area(area, in: picture, at: mediaTime, place: place, kind: kind)
 
             case let .scale(scale):
                 let region = Rectangle(
@@ -65,7 +61,7 @@ struct GeometryFinder: Sendable {
                     width: picture.size.width / scale,
                     height: picture.size.height / scale
                 )
-                return FoundArea(rectangle: region, target: region, isBand: false, mediaTime: mediaTime, lines: [])
+                return FoundArea(rectangle: region, target: region, mediaTime: mediaTime, lines: [])
             }
         }
     }
@@ -77,7 +73,6 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
-        padding: Double,
         place: Place,
         kind: String
     ) throws -> PropertyValue<Point> {
@@ -91,7 +86,6 @@ struct GeometryFinder: Sendable {
                     area,
                     in: picture,
                     at: pictureClock.mediaTime(atSequenceTime: time),
-                    padding: padding,
                     place: place.appending(key: "area"),
                     kind: kind
                 )
@@ -104,11 +98,10 @@ struct GeometryFinder: Sendable {
         _ form: AreaForm,
         in picture: Picture,
         at mediaTime: Double,
-        padding: Double,
         place: Place,
         kind: String
     ) throws -> FoundArea {
-        try finder.area(form, in: picture, atMediaTime: mediaTime, padding: padding, place: place, kind: kind)
+        try finder.area(form, in: picture, atMediaTime: mediaTime, place: place, kind: kind)
     }
 
     // MARK: - Private

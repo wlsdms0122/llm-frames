@@ -46,7 +46,7 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "content", "conform"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
         #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.count == 9)
     }
@@ -72,18 +72,18 @@ struct ResolvedSequenceWriterTests {
         #expect(entry["filter"] == .array([]))
     }
 
-    @Test("a storyline crop is written conformed to the content rect, and no crop is the whole picture conformed")
+    @Test("a storyline crop is written conformed to the frame, and no crop is the whole picture conformed")
     func writesConformedCrop() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+            { "kind": "sequence", "format": { "size": [1000, 1380] },
               "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 1, "crop": [0, 0, 1206, 1206] },
                              { "media": "/abs/card.png", "duration": 1 } ] }
             """#
-        let content = Rectangle(x: 40, y: 40, width: 1000, height: 1380)
+        let frame = Rectangle(x: 0, y: 0, width: 1000, height: 1380)
         let conformer = CropConformer()
-        let cropped = conformer.conformed(Rectangle(x: 0, y: 0, width: 1206, height: 1206), to: content, by: .fit)
-        let whole = conformer.conformed(Rectangle(x: 0, y: 0, width: 1080, height: 1350), to: content, by: .fit)
+        let cropped = conformer.conformed(Rectangle(x: 0, y: 0, width: 1206, height: 1206), to: frame, by: .fit)
+        let whole = conformer.conformed(Rectangle(x: 0, y: 0, width: 1080, height: 1350), to: frame, by: .fit)
 
         // When
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
@@ -117,7 +117,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "Hi", "style": "label", "placement": "top", "at": [0, 1] } ] }
+              "clips": [ { "title": "Hi", "style": "title", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When
@@ -132,12 +132,12 @@ struct ResolvedSequenceWriterTests {
         #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 3 } == true)
     }
 
-    @Test("a clip keeps its place, id, visible window, lane, storyline and parenting, and its properties in sequence time")
+    @Test("a clip keeps its place, id, visible window, lane, storyline and parent, and its properties in sequence time")
     func writesClip() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
-                { "id": "mark", "shape": "box", "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1,
+            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
+                { "id": "mark", "shape": "box", "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1, "parent": "run",
                   "keyframes": [ { "at": 3, "opacity": 0, "ease": [0.3, 0, 0.2, 1] }, { "at": 4, "opacity": 1 } ] } ] } ] }
             """#
 
@@ -145,7 +145,7 @@ struct ResolvedSequenceWriterTests {
         let clip = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue)
 
         // Then
-        #expect(clip["place"] == .string("storyline[0].connected[0]#mark"))
+        #expect(clip["place"] == .string("storyline[0]#run.connected[0]#mark"))
         #expect(clip["id"] == .string("mark"))
         #expect(clip["shape"] == .string("box"))
         #expect(clip["color"] == .string(MergedTheme.base.shapeColor(of: .box).hex))
@@ -153,7 +153,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["end"] == .number(3))
         #expect(clip["lane"] == .number(-1))
         #expect(clip["storyline"] == .number(0))
-        #expect(clip["parented"] == .bool(true))
+        #expect(clip["parent"] == .string("run"))
         #expect(clip["area"] == keyframes(at: 1, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clip["opacity"] == .array([
             .object(JSONObject(members: [
@@ -169,6 +169,23 @@ struct ResolvedSequenceWriterTests {
         ]))
         #expect(clip["scale"] == nil)
         #expect(clip["blend"] == .string("normal"))
+    }
+
+    @Test("a clip's parent is written as the id of the clip it names, any clip of the document, or null without one")
+    func writesParent() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "id": "bar", "shape": "box", "area": [0, 0, 100, 20], "at": [0, 1] },
+                         { "title": "a", "style": "title", "at": [0, 1], "parent": "bar", "position": [10, 10] },
+                         { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "run" } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        #expect(clips.map { $0.objectValue?["parent"] } == [.null, .string("bar"), .string("run")])
     }
 
     @Test("a media clip carries its box, its crop conformed to it, its corners, border and shadow, with theme lengths scaled")
@@ -196,28 +213,47 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["conform"] == .string("fill"))
         #expect(clip["radius"] == .number(12))
         #expect(clip["border"] == .object(JSONObject(members: [
-            JSONMember(key: "width", value: .number(2.6865671641791047)),
-            JSONMember(key: "color", value: .string("#D9D9D9FF"))
+            JSONMember(key: "width", value: .number(2.25)),
+            JSONMember(key: "color", value: .string("#FFFFFFFF"))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
-            JSONMember(key: "radius", value: .number(21.492537313432837)),
-            JSONMember(key: "offset", value: .array([.number(0), .number(7.164179104477612)])),
-            JSONMember(key: "color", value: .string("#00000059"))
+            JSONMember(key: "radius", value: .number(18)),
+            JSONMember(key: "offset", value: .array([.number(0), .number(6.75)])),
+            JSONMember(key: "color", value: .string("#00000080"))
         ])))
+    }
+
+    @Test("a border of true takes the theme border colour, never a theme colour named border, and a written colour replaces it")
+    func writesBorderColor() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence",
+              "theme": { "colors": { "ink": "#101418", "border": "#00FF00" }, "border": { "color": "ink" } },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "media": "/abs/card.png", "at": [0, 3], "border": true },
+                         { "media": "/abs/card.png", "at": [0, 3], "border": "#FF0000" } ] }
+            """##
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        let colors = clips.map { $0.objectValue?["border"]?.objectValue?["color"] }
+        #expect(colors == [.string("#101418FF"), .string("#FF0000FF")])
     }
 
     @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")
     func writesSolidColor() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "accent", "duration": 1 } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "shadow", "duration": 1 } ] }
             """#
 
         // When
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == .string("#ED2929FF"))
+        #expect(storyline.first?.objectValue?["solid"] == .string("#00000080"))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 
@@ -249,64 +285,38 @@ struct ResolvedSequenceWriterTests {
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
-    @Test("a shape's label carries its side, the time its side was chosen at, its shaped text and its own animation")
-    func writesLabel() throws {
+    @Test("a tracked clip writes its track as the target, its media time and the frames followed")
+    func writesTrack() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "frames/fade" } ] }
-            """#
-
-        // When
-        let label = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue?["label"]?.objectValue)
-
-        // Then
-        let animation = try #require(label["animation"]?.objectValue)
-        #expect(label.keys == ["side", "at", "text", "animation"])
-        #expect(label["at"] == .number(1))
-        #expect(label["text"]?.objectValue?.keys == ["size", "lines", "background", "stroke", "runs"])
-        #expect(animation["entrance"]?.objectValue?["seconds"] == .number(0.25))
-        #expect(animation["loop"] == .null)
-        #expect(animation["exit"]?.objectValue?["seconds"] == .number(0.25))
-    }
-
-    @Test("a clip whose tracked area is a band writes band true, and one tracking any other area false")
-    func writesBand() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "box", "area": "Total", "track": "Total" },
-                { "shape": "fill", "area": { "band": "Total" }, "track": true } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
+                { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+                { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true } ] } ] }
             """#
 
         // When
         let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
 
         // Then
-        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "band", "frames"])
-        #expect(clips[0]["track"]?.objectValue?["band"] == .bool(false))
-        #expect(clips[1]["track"]?.objectValue?["band"] == .bool(true))
+        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "frames"])
+        #expect(clips[1]["track"]?.objectValue?.keys == ["target", "time", "frames"])
     }
 
-    @Test("a media clip plays in at its window's start, written as origin, even where tracking narrowed its start")
-    func writesOriginOfNarrowedClip() throws {
+    @Test("a media clip plays in at its window's start, written as origin, even where the sequence cuts its start")
+    func writesOriginOfCutClip() throws {
         // Given
-        // The second clip is drawn from 1.75 by its transition, but "Total" is followed only from media second 1,
-        // which it shows at its edit point 2.
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
-              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "transition": "frames/flash", "connected": [
-                { "media": "/abs/short.mp4", "parent": true, "position": [0, 0], "track": "Total" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "media": "/abs/short.mp4", "at": [-0.75, 2] } ] }
             """#
-        let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1...4])
 
         // When
-        let clip = try #require(try write(document, tracker: tracker)["clips"]?.arrayValue?.first?.objectValue)
+        let clip = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue)
 
         // Then
-        #expect(clip["start"] == .number(2))
+        #expect(clip["start"] == .number(0))
         #expect(clip["in"] == .number(0))
-        #expect(clip["origin"] == .number(1.75))
+        #expect(clip["origin"] == .number(-0.75))
     }
 
     @Test("a compound clip carries its nested resolved sequence in place of a file")
@@ -393,7 +403,7 @@ struct ResolvedSequenceWriterTests {
             shaper: Fixture.shaper,
             library: Fixture.library
         )
-        let text = sut.write(try ResolvedDocument(plan: planner.plan(Fixture.json(document)), hashes: hashes))
+        let text = sut.write(try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
     }

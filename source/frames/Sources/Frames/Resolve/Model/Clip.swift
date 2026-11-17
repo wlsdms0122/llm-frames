@@ -6,11 +6,12 @@
 //
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
-// and `crop` are as written, their keyframes on the clip's clock. `placement` and `anchor` are the names written.
-// `labelAnimation` is a shape's label's animation choice as written. `width` is a title's wrapping width, and with
-// `height` and `conform` a media clip's box. `radius`, `border` (the colour written, `border` for `true`) and `shadow`
-// are a media clip's. `opacity`, `scale` and `rotation` are as written, their keyframes on the clip's clock, `color`
-// is a shape's as written, and `filter` the filter choice: a media clip's `filter`, or an adjustment's `adjust`.
+// and `crop` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
+// parent. `placement` and `anchor` are the names written.
+// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
+// theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
+// written, their keyframes on the clip's clock, `color` is a shape's as written, and `filter` the filter choice: a
+// media clip's `filter`, or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -19,9 +20,7 @@ struct Clip: Equatable, Sendable {
     let content: ClipContent
     let at: ClipWindow?
     let lane: Int?
-    let hasParent: Bool
-    let hasPlacement: Bool
-    let hasArea: Bool
+    let parent: String?
     let placement: String?
     let anchor: String?
     let animation: AnimationChoice?
@@ -30,13 +29,11 @@ struct Clip: Equatable, Sendable {
     let position: PropertyValue<PositionForm>?
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
-    let label: String?
-    let labelAnimation: AnimationChoice?
     let width: Double?
     let height: Double?
     let conform: Conform?
     let radius: Double?
-    let border: String?
+    let border: BorderForm?
     let shadow: Bool
     let opacity: PropertyValue<Double>?
     let scale: PropertyValue<Double>?
@@ -53,9 +50,7 @@ struct Clip: Equatable, Sendable {
         content: ClipContent,
         at: ClipWindow?,
         lane: Int?,
-        hasParent: Bool,
-        hasPlacement: Bool,
-        hasArea: Bool,
+        parent: String? = nil,
         placement: String? = nil,
         anchor: String? = nil,
         animation: AnimationChoice?,
@@ -64,13 +59,11 @@ struct Clip: Equatable, Sendable {
         position: PropertyValue<PositionForm>? = nil,
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
-        label: String? = nil,
-        labelAnimation: AnimationChoice? = nil,
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,
         radius: Double? = nil,
-        border: String? = nil,
+        border: BorderForm? = nil,
         shadow: Bool = false,
         opacity: PropertyValue<Double>? = nil,
         scale: PropertyValue<Double>? = nil,
@@ -85,9 +78,7 @@ struct Clip: Equatable, Sendable {
         self.content = content
         self.at = at
         self.lane = lane
-        self.hasParent = hasParent
-        self.hasPlacement = hasPlacement
-        self.hasArea = hasArea
+        self.parent = parent
         self.placement = placement
         self.anchor = anchor
         self.animation = animation
@@ -96,8 +87,6 @@ struct Clip: Equatable, Sendable {
         self.position = position
         self.crop = crop
         self.track = track
-        self.label = label
-        self.labelAnimation = labelAnimation
         self.width = width
         self.height = height
         self.conform = conform

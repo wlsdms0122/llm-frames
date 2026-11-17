@@ -14,10 +14,22 @@ enum ThemeKeyTable {
             KeyRule("colors", .map(.hexColor, kind: "colors")),
             KeyRule("styles", .map(.object(style), kind: "styles")),
             KeyRule("shapes", .object(shapes)),
-            KeyRule("area", .object(group("area", ["padding", "cropPadding"]))),
             KeyRule("placement", .object(group("placement", ["padding"]))),
-            KeyRule("image", .object(group("image", ["bannerPadding"]))),
-            KeyRule("layout", .object(group("layout", ["gap", "padding"]))),
+            KeyRule("border", .object(ObjectTable(
+                kind: "border",
+                rules: [
+                    KeyRule("width", .number),
+                    KeyRule("color", .color)
+                ]
+            ))),
+            KeyRule("shadow", .object(ObjectTable(
+                kind: "shadow",
+                rules: [
+                    KeyRule("radius", .number),
+                    KeyRule("offset", .numbers(2)),
+                    KeyRule("color", .color)
+                ]
+            ))),
             KeyRule("defaults", .object(defaults))
         ]
     )
@@ -53,31 +65,16 @@ enum ThemeKeyTable {
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number),
             KeyRule("align", .literal(["left", "center", "right"])),
-            KeyRule("lines", .integer)
+            KeyRule("lines", .positiveInteger)
         ]
     )
     static let shapes = ObjectTable(
         kind: "shapes",
         rules: [
-            KeyRule("box", .object(shape("box", ["width", "radius"], color: true))),
-            KeyRule("fill", .object(shape("fill", [], color: true))),
-            KeyRule("dim", .object(shape("dim", [], color: true))),
-            KeyRule("arrow", .object(shape("arrow", ["width", "length", "head"], color: true))),
-            KeyRule("border", .object(shape("border", ["width"], color: false))),
-            KeyRule("shadow", .object(ObjectTable(
-                kind: "shadow",
-                rules: [
-                    KeyRule("radius", .number),
-                    KeyRule("offset", .numbers(2)),
-                    KeyRule("color", .color)
-                ]
-            ))),
-            KeyRule("label", .object(ObjectTable(
-                kind: "label",
-                rules: [
-                    KeyRule("sides", .list(.literal(VocabularyTable.sides)))
-                ]
-            )))
+            KeyRule("box", .object(shape("box", ["width", "radius"]))),
+            KeyRule("fill", .object(shape("fill", []))),
+            KeyRule("dim", .object(shape("dim", []))),
+            KeyRule("arrow", .object(shape("arrow", ["width", "length", "head"])))
         ]
     )
     static let defaults = ObjectTable(
@@ -110,10 +107,8 @@ enum ThemeKeyTable {
 
     private static func shape(
         _ kind: String,
-        _ lengths: [String],
-        color: Bool
+        _ lengths: [String]
     ) -> ObjectTable {
-        let colorRule = color ? [KeyRule("color", .color)] : []
-        return ObjectTable(kind: kind, rules: lengths.map { KeyRule($0, .number) } + colorRule)
+        ObjectTable(kind: kind, rules: lengths.map { KeyRule($0, .number) } + [KeyRule("color", .color)])
     }
 }

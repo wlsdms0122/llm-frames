@@ -9,41 +9,25 @@
 package enum BaseTheme {
     package static let text = """
         {
-          "baseWidth": 1206,
-          "font": ["Apple SD Gothic Neo"],
-          "colors": {
-            "accent": "#ED2929", "onAccent": "#FFFFFF",
-            "background": "#FFFFFF", "text": "#000000", "border": "#D9D9D9",
-            "emphasis": "#FFD43B", "shadow": "#00000059"
-          },
+          "baseWidth": 1920,
+          "font": ["Helvetica Neue", "Apple SD Gothic Neo"],
+          "colors": { "text": "#FFFFFF", "background": "#000000", "accent": "#FFFFFF", "shadow": "#00000080" },
           "styles": {
-            "subtitle":   { "size": 58, "weight": "bold", "color": "#FFFFFF", "emphasis": "emphasis",
-                            "background": { "color": "#000000B8", "padding": [12, 24], "radius": 16 },
-                            "placement": "bottom", "offset": 160, "align": "center" },
-            "headline":   { "size": 72, "weight": "bold", "color": "#FFFFFF", "emphasis": "emphasis",
-                            "stroke": { "width": 6, "color": "#000000" },
-                            "placement": "top", "offset": 220, "align": "center" },
-            "label":      { "size": 36, "weight": "bold", "color": "onAccent",
-                            "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 },
-            "banner":     { "size": 38, "weight": "regular", "color": "text", "lineHeight": 64 },
-            "bannerHead": { "size": 44, "weight": "bold", "color": "text", "lineHeight": 64 },
-            "heading":    { "size": 44, "weight": "bold", "color": "accent", "lineHeight": 80 }
+            "title":    { "size": 96, "weight": "bold", "placement": "center", "align": "center" },
+            "subtitle": { "size": 48, "weight": "regular", "stroke": { "width": 3, "color": "#000000" },
+                          "placement": "bottom", "offset": 108, "align": "center", "lines": 2 }
           },
           "shapes": {
-            "box":       { "width": 8, "radius": 18, "color": "accent" },
-            "fill":      { "color": "#FFD43B80" },
-            "dim":       { "color": "#0000008C" },
-            "arrow":     { "width": 10, "length": 160, "head": 32, "color": "accent" },
-            "border":    { "width": 3 },
-            "shadow":    { "radius": 24, "offset": [0, 8], "color": "shadow" },
-            "label":     { "sides": ["right", "bottom", "left", "top"] }
+            "box":   { "width": 8, "radius": 18, "color": "#ED2929" },
+            "fill":  { "color": "#FFD43B80" },
+            "dim":   { "color": "#0000008C" },
+            "arrow": { "width": 10, "length": 160, "head": 32, "color": "#ED2929" }
           },
-          "area":      { "padding": 14, "cropPadding": 40 },
-          "placement": { "padding": 40 },
-          "image":     { "bannerPadding": 40 },
-          "layout":    { "gap": 40, "padding": 40 },
+          "placement": { "padding": 96 },
+          "border":    { "width": 4, "color": "accent" },
+          "shadow":    { "radius": 32, "offset": [0, 12], "color": "shadow" },
           "defaults":  { "transition": "cut", "filter": "none",
-                         "animation": { "title": { "label": "frames/pop" }, "shape": "none", "media": "none", "adjust": "none" } }
+                         "animation": { "title": {}, "shape": "none", "media": "none", "adjust": "none" } }
         }
         """
     // The text above is fixed and well formed, so reading it cannot fail.

@@ -11,18 +11,18 @@ import Frames
 // document, used as it is.
 enum DocumentInput: Sendable {
     case document(JSONValue, theme: String?, arguments: ArgumentFile?)
-    case resolved(ResolvedDocument)
+    case resolved(ResolvedSequence)
 
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func resolved(by planner: DocumentPlanner) throws -> ResolvedDocument {
+    func resolved(by planner: DocumentPlanner) throws -> ResolvedSequence {
         switch self {
         case let .document(document, theme, arguments):
             try planner.resolved(document, theme: theme, arguments: arguments)
 
-        case let .resolved(document):
-            document
+        case let .resolved(sequence):
+            sequence
         }
     }
 

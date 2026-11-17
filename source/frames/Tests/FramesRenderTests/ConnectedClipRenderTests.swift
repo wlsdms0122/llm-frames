@@ -19,10 +19,11 @@ import Testing
 struct ConnectedClipRenderTests {
     // MARK: - Property
     // Pixels and their colours at the middle of each transition into the green picture, whose magenta stripe covers
-    // rows 30 to 60: under the white cover, wiped in on the left half, and slid half way in from the right.
-    private static let unitProbes: [(String, [(Int, Int, [Double])])] = [
-        ("dip", [(40, 45, [255, 255, 255]), (120, 45, [255, 255, 255]), (80, 15, [255, 255, 255])]),
-        ("wipe", [(40, 45, [255, 0, 255]), (120, 45, [255, 0, 0]), (40, 15, [0, 255, 0]), (120, 15, [255, 0, 0])]),
+    // rows 30 to 60: above the white cover, whole while the picture is wiped in on the left half, and slid half way in
+    // from the right with the picture.
+    private static let transitionProbes: [(String, [(Int, Int, [Double])])] = [
+        ("dip", [(40, 45, [255, 0, 255]), (120, 45, [255, 0, 255]), (80, 15, [255, 255, 255])]),
+        ("wipe", [(40, 45, [255, 0, 255]), (120, 45, [255, 0, 255]), (40, 15, [0, 255, 0]), (120, 15, [255, 0, 0])]),
         ("slide", [(40, 45, [255, 0, 0]), (120, 45, [255, 0, 255]), (120, 15, [0, 255, 0]), (40, 15, [255, 0, 0])])
     ]
 
@@ -46,7 +47,7 @@ struct ConnectedClipRenderTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("an unparented connected clip plays its whole window across the edit point and stops at its end")
+    @Test("a connected clip plays its whole window across the edit point and stops at its end")
     func playsAcrossEditPoint() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -89,8 +90,11 @@ struct ConnectedClipRenderTests {
         }
     }
 
-    @Test("a parented clip goes with its picture through a cover, a wipe and a move", arguments: Self.unitProbes)
-    func goesWithPicture(
+    @Test(
+        "a clip parented to a storyline clip moves with its transition, but the cover and the wipe do not reach it",
+        arguments: Self.transitionProbes
+    )
+    func movesWithTransition(
         transition: String,
         probes: [(Int, Int, [Double])]
     ) throws {
@@ -99,10 +103,10 @@ struct ConnectedClipRenderTests {
         let outgoing = try image(in: directory, named: "red.png", width: 160, height: 90, color: [255, 0, 0])
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [0, 255, 0])
         let document = try DocumentResolver(presets: presets).resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "area": { "padding": 0 } },
+            { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
-                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
-                               "connected": [ { "shape": "fill", "area": [0, 30, 160, 30], "color": "#FF00FF" } ] } ] }
+                             { "id": "green", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
+                               "connected": [ { "shape": "fill", "area": [0, 30, 160, 30], "parent": "green", "color": "#FF00FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -119,7 +123,7 @@ struct ConnectedClipRenderTests {
         }
     }
 
-    @Test("a connected shape stays on the part of its picture it covers while the crop zooms")
+    @Test("a shape parented to its storyline clip stays on the part of its picture it covers while the crop zooms")
     func followsCrop() throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -130,10 +134,10 @@ struct ConnectedClipRenderTests {
             canvas.fill(marker, red: 255, green: 0, blue: 0)
         }
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "theme": { "area": { "padding": 0 } },
-              "storyline": [ { "media": "\#(file)", "duration": 1,
+            { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+              "storyline": [ { "id": "marked", "media": "\#(file)", "duration": 1,
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": { "scale": 2 } } ],
-                               "connected": [ { "shape": "fill", "area": [200, 100, 40, 20], "color": "#0000FF" } ] } ] }
+                               "connected": [ { "shape": "fill", "area": [200, 100, 40, 20], "parent": "marked", "color": "#0000FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -176,9 +180,9 @@ struct ConnectedClipRenderTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [180, 320] }, "theme": { "shapes": { "box": { "width": 40 } } },
-              "storyline": [ { "media": "\#(file)",
+              "storyline": [ { "id": "screen", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ] }
+                               "connected": [ { "shape": "box", "area": { "text": "Total", "padding": 4 }, "parent": "screen", "track": true } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -279,29 +283,6 @@ struct ConnectedClipRenderTests {
         }
         #expect(pixels.contains { x, y in isInked(x, y) && !isGlyph(x, y) })
         #expect(far.isEmpty, "the stroke reaches past a round join at \(far.prefix(4))")
-    }
-
-    @Test("a label sits on the first side in the theme's order where it fits")
-    func placesLabelOnFirstSideThatFits() throws {
-        // Given
-        let directory = try TemporaryDirectory()
-        let file = try image(in: directory, named: "grey.png", width: 320, height: 180, color: [128, 128, 128])
-        let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 320 },
-              "storyline": [ { "media": "\#(file)", "duration": 1,
-                               "connected": [ { "shape": "box", "area": [260, 60, 50, 40], "label": "done", "labelAnimation": "none" } ] } ] }
-            """#)
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-
-        // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
-
-        // Then
-        // Right of the box and below it there is no room, so the label goes left: its background ends at the area's
-        // left edge, 260, centred on its height at 80, and its text ends 16 pixels before that.
-        let accent = [237.0, 41, 41]
-        #expect(frame.isPixel(x: 250, y: 80, accent, tolerance: tolerance), "\(frame.pixel(x: 250, y: 80))")
-        #expect(frame.isPixel(x: 285, y: 140, [128, 128, 128], tolerance: tolerance), "\(frame.pixel(x: 285, y: 140))")
     }
 
     // MARK: - Private

@@ -24,7 +24,12 @@ struct StillCommand: Command {
         let document = try context.document(options.document, arguments: options.arguments, command: name)
         let resolved = try document.resolved(by: context.planner)
 
-        try context.exporter.still(resolved, at: options.times, to: options.output)
+        try context.exporter.still(
+            resolved,
+            at: options.times,
+            labelFace: try context.labelFace(),
+            to: options.output
+        )
         try context.reportWritten(options.output)
     }
 

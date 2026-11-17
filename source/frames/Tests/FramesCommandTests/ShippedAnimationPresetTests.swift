@@ -137,12 +137,12 @@ struct ShippedAnimationPresetTests {
         #expect(nudges.min() == 0)
     }
 
-    @Test("a sequence with a box label resolves on the base theme alone, and the label pops in with the shipped pop")
-    func resolvesLabelOnBaseTheme() throws {
+    @Test("a sequence with a title that names the shipped pop resolves on the base theme alone, and the title pops in with it")
+    func resolvesShippedPopOnBaseTheme() throws {
         // Given
-        let document = directory.file("label.json")
-        let resolved = directory.file("label.resolved.json")
-        try Data(labelSequence.utf8).write(to: URL(fileURLWithPath: document))
+        let document = directory.file("pop.json")
+        let resolved = directory.file("pop.resolved.json")
+        try Data(popSequence.utf8).write(to: URL(fileURLWithPath: document))
         let pop = try #require(try sut.animation(named: "frames/pop")?.entrance)
         let recorder = OutputRecorder()
         let environment = CommandEnvironment(
@@ -159,19 +159,19 @@ struct ShippedAnimationPresetTests {
         #expect(code == 0)
         let object = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: resolved))) as? [String: Any]
         let clip = (object?["clips"] as? [[String: Any]])?.first
-        let animation = (clip?["label"] as? [String: Any])?["animation"] as? [String: Any]
+        let animation = clip?["animation"] as? [String: Any]
         let entrance = animation?["entrance"] as? [String: Any]
         #expect(entrance?["seconds"] as? Double == pop.length)
         #expect(entrance?["ease"] as? String == "back-out")
     }
 
     // MARK: - Private
-    private var labelSequence: String {
+    private var popSequence: String {
         #"""
         { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
           "storyline": [
             { "solid": "#FFFFFF", "duration": 2,
-              "connected": [ { "at": [0.5, 1.5], "shape": "box", "area": [100, 120, 200, 80], "label": "here" } ] }
+              "connected": [ { "at": [0.5, 1.5], "title": "here", "style": "title", "animation": "frames/pop" } ] }
           ] }
         """#
     }

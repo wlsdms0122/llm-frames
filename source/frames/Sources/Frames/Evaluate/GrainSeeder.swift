@@ -9,9 +9,6 @@
 // frame and every list nested in it shares it.
 struct GrainSeeder: Sendable {
     // MARK: - Property
-    // An image or layout has one display list, and its grain one seed.
-    static let pictureSeed = 0
-
     // MARK: - Initializer
     init() { }
 

@@ -41,13 +41,13 @@ struct ReferenceLibraryTests {
         #expect(bareTheme == nil)
     }
 
-    @Test("a template is read from the pack's templates, checked, and takes the kind of document it is")
+    @Test("a template is read from the pack's templates and checked")
     func findsTemplate() throws {
         // Given
         try directory.write(
             #"""
             { "kind": "sequence", "params": { "clip": { "type": "video" }, "title": { "type": "text", "default": "New" } },
-              "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "headline" } ] } ] }
+              "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "title" } ] } ] }
             """#,
             in: "shorts",
             at: "templates/leak.json"
@@ -57,7 +57,6 @@ struct ReferenceLibraryTests {
         let template = try #require(try sut.template(named: "shorts/leak"))
 
         // Then
-        #expect(template.kind == .sequence)
         #expect(template.place.description == "shorts/leak: top level")
         #expect(template.parameters == [
             TemplateParameter(name: "clip", type: .video),
@@ -67,7 +66,7 @@ struct ReferenceLibraryTests {
             "shorts/leak: storyline[0].media",
             "shorts/leak: storyline[0].connected[0].title"
         ])
-        #expect(try sut.templateKind(of: "shorts/leak") == .sequence)
+        #expect(try sut.hasTemplate(named: "shorts/leak"))
     }
 
     @Test("an error in a template file names the template as it was referred to, with the place in that file")
@@ -81,7 +80,7 @@ struct ReferenceLibraryTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.template(named: "shorts/leak") }
-        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected"#)
+        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
     @Test("media the probe cannot read throws the probe's failure without a place, for the place that names it to stop at")

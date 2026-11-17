@@ -13,8 +13,6 @@ package struct DocumentPlanner: Sendable {
     private let library: ReferenceLibrary
     private let planner: TimePlanner
     private let sequencePlanner: SequencePlanner
-    private let resolver: MediaResolver
-    private let pictures: PicturePlanner
     private let checker: KeyChecker
     private let reader: TemplateReader
     private let instantiator: TemplateInstantiator
@@ -36,13 +34,6 @@ package struct DocumentPlanner: Sendable {
             tracker: tracker,
             shaper: shaper,
             presets: presets,
-            library: library
-        )
-        self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
-        self.pictures = PicturePlanner(
-            ocr: ocr,
-            presets: presets,
-            text: ThemeTypesetter(shaper: shaper, library: library),
             library: library
         )
         self.checker = KeyChecker(mediaKinds: library)
@@ -76,7 +67,7 @@ package struct DocumentPlanner: Sendable {
         _ document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
-    ) throws -> DocumentPlan {
+    ) throws -> SequencePlan {
         let template = try reader.template(from: document, place: .root)
         let documentKind = document.objectValue?["kind"]?.stringValue ?? ""
 
@@ -86,11 +77,8 @@ package struct DocumentPlanner: Sendable {
             }
 
             let merged = try self.theme(named: theme)
-            guard MediaKind(document: document) == .sequence else {
-                return try picture(PictureReader().picture(from: document), theme: merged)
-            }
 
-            return .sequence(try sequencePlanner.plan(try planner.plan(document: document, theme: merged)))
+            return try sequencePlanner.plan(try planner.plan(document: document, theme: merged))
         }
         guard theme == nil else { throw PackError.themeOnTemplate(place: .root, kind: documentKind) }
 
@@ -111,15 +99,9 @@ package struct DocumentPlanner: Sendable {
         )
         // The command line is the caller, and it gives a template no theme, so what it was given starts from the base.
         let argumentThemes = ArgumentThemeTable(instance: instance, place: .root, theme: .base, passedOnThemes: .empty)
-        guard instance.kind == .sequence else {
-            let picture = PictureReader(argumentThemes: argumentThemes).picture(from: instance.document)
-
-            return try self.picture(picture, theme: .base)
-        }
-
         let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document)
 
-        return .sequence(try sequencePlanner.plan(try planner.plan(sequence, theme: .base)))
+        return try sequencePlanner.plan(try planner.plan(sequence, theme: .base))
     }
 
     // The resolved document of what `plan` decides, with every file it names pinned.
@@ -127,18 +109,11 @@ package struct DocumentPlanner: Sendable {
         _ document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
-    ) throws -> ResolvedDocument {
-        try ResolvedDocument(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
+    ) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
     }
 
     // MARK: - Private
-    private func picture(
-        _ document: PictureDocument,
-        theme: MergedTheme
-    ) throws -> DocumentPlan {
-        .picture(try pictures.plan(try resolver.picture(of: document, theme: theme), sequences: sequencePlanner.plan))
-    }
-
     private func theme(named name: String?) throws -> MergedTheme {
         guard let name else { return .base }
         guard let layer = try library.theme(named: name) else { throw PackError.unknownThemeOption(name: name) }

@@ -18,12 +18,6 @@ struct PresetValueResolverTests {
     // MARK: - Initializer
     init() throws {
         directory = try PackDirectory()
-        // The base theme names `frames/pop` for labels, so the shipped `frames` pack must hold it.
-        try directory.addPack("frames", in: directory.shipped)
-        try directory.write(
-            #"{ "description": "pops", "entrance": { "seconds": 0.3, "keys": [] } }"#,
-            to: directory.shipped.appendingPathComponent("frames/presets/animation/pop.json")
-        )
         try directory.addPack("shorts")
         try directory.write(
             #"{ "description": "film", "ops": [ { "op": "lut", "file": "shorts/film", "amount": 1 } ] }"#,
@@ -59,7 +53,7 @@ struct PresetValueResolverTests {
         let pack = directory.installed.appendingPathComponent("shorts", isDirectory: true)
 
         // When
-        let resolved = ResolvedDocumentWriter().document(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
+        let resolved = ResolvedDocumentWriter().document(try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         let storyline = resolved.objectValue?["storyline"]?.arrayValue ?? []
@@ -107,7 +101,7 @@ struct PresetValueResolverTests {
             over: .incoming,
             incoming: nil,
             outgoing: nil,
-            cover: Cover(source: .color("accent"), span: Span(ease: .linear, keys: [])),
+            cover: Cover(source: .color("shadow"), span: Span(ease: .linear, keys: [])),
             matte: nil
         )
 
@@ -115,12 +109,12 @@ struct PresetValueResolverTests {
         let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
 
         // Then
-        #expect(resolved.cover?.source == .color("#ED2929FF"))
+        #expect(resolved.cover?.source == .color("#00000080"))
     }
 
     @Test(
         "a bloom colour is written as #RRGGBBAA, a theme colour by its value",
-        arguments: [("emphasis", "#FFD43BFF"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
+        arguments: [("shadow", "#00000080"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
     )
     func resolvesBloomColor(
         written: String,

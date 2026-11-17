@@ -6,7 +6,7 @@
 //
 
 // Reads a resolved sequence as `ResolvedSequenceWriter` writes it: its format, its storyline, its other clips and every
-// source of sound. A nested document in place of a file is read as a document of its own kind. Which keys an entry
+// source of sound. A nested document in place of a file is read as a sequence of its own. Which keys an entry
 // holds follows from what it is, so a key resolve writes only for another kind of entry stops by its name.
 struct ResolvedSequenceReader: Sendable {
     // MARK: - Property
@@ -14,8 +14,8 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parented", "area", "size", "position", "anchor", "crop",
-        "track", "label", "opacity", "scale", "rotation", "blend", "animation"
+        "place", "id", "start", "end", "lane", "storyline", "parent", "area", "size", "position", "anchor", "crop",
+        "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
@@ -27,41 +27,77 @@ struct ResolvedSequenceReader: Sendable {
     private static let shapeNames = ["box", "fill", "dim", "arrow"]
 
     private let values = ResolvedValueReader()
-    private let pictures = ResolvedPictureReader()
 
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // A document of the kind it names, with `extraKeys` beside that kind's own: `resolved` on the outermost one.
+    // A document, with `extraKeys` beside a sequence's own: `resolved` on the outermost one.
     func document(
         _ value: PlacedJSONValue,
         extraKeys: [String] = []
-    ) throws -> ResolvedDocument {
+    ) throws -> ResolvedSequence {
         let kind = try values.documentKind(value)
-        guard kind == "sequence" else {
-            let object = try value.object(kind: kind, keys: ResolvedPictureReader.keys + extraKeys)
 
-            return .picture(try pictures.picture(object, kind: kind, sequences: sequence))
-        }
-
-        return .sequence(try sequence(value.object(kind: kind, keys: Self.keys + extraKeys)))
+        return try sequence(value.object(kind: kind, keys: Self.keys + extraKeys))
     }
 
     func sequence(_ object: PlacedJSONObject) throws -> ResolvedSequence {
-        ResolvedSequence(
-            format: try format(object.member("format")),
-            storyline: try object.member("storyline").elements().map(storyline),
-            clips: try object.member("clips").elements().map(clip),
+        let format = try format(object.member("format"))
+        let storyline = try object.member("storyline").elements().map(storyline)
+        let written = try object.member("clips").elements()
+        let clips = try written.map(clip)
+        try checkParents(of: clips, places: written.map(\.place), storyline: storyline)
+
+        return ResolvedSequence(
+            format: format,
+            storyline: storyline,
+            clips: clips,
             audio: try object.member("audio").elements().map(sound)
         )
     }
 
     // MARK: - Private
+    // Evaluation follows each parent chain to its end, so a parent that names no clip with a picture of the sequence,
+    // or a chain that comes back to itself, stops here as it does in resolve. Audio clips are not among the clips.
+    private func checkParents(
+        of clips: [ResolvedClip],
+        places: [Place],
+        storyline: [ResolvedStorylineClip]
+    ) throws {
+        let parents = try clips.indices.map { index -> Int? in
+            guard let id = clips[index].parent, !storyline.contains(where: { $0.id == id }) else { return nil }
+            guard let parent = clips.firstIndex(where: { $0.id == id }) else {
+                throw ResolveError.unknownParent(
+                    place: places[index].appending(key: "parent"),
+                    kind: kind(of: clips[index]),
+                    id: id
+                )
+            }
+
+            return parent
+        }
+
+        let finder = ParentFinder()
+        for index in clips.indices {
+            guard let cycle = finder.cycle(from: index, parents: parents) else { continue }
+
+            throw ResolveError.parentCycle(
+                place: places[cycle[0]].appending(key: "parent"),
+                kind: kind(of: clips[cycle[0]]),
+                ids: cycle.map { clips[$0].id ?? clips[$0].place }
+            )
+        }
+    }
+
+    private func kind(of clip: ResolvedClip) -> PlaceKind {
+        .genericClip(clip.storyline == nil ? .sequence : .connected)
+    }
+
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
-            keys: ["size", "fps", "duration", "background", "content", "conform"]
+            keys: ["size", "fps", "duration", "background", "conform"]
         )
 
         return ResolvedFormat(
@@ -69,15 +105,14 @@ struct ResolvedSequenceReader: Sendable {
             fps: try format.member("fps").number(),
             duration: try format.member("duration").number(),
             background: try values.color(format.member("background")),
-            content: try values.rectangle(format.member("content")),
             conform: try conform(format.member("conform"))
         )
     }
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
-            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "crop", "track", "filter",
-            "transition"
+            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "size", "position", "anchor", "crop",
+            "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border", "shadow", "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -93,6 +128,18 @@ struct ResolvedSequenceReader: Sendable {
             crop: try values.crops(entry.member("crop")),
             track: try entry.member("track").optional(track),
             filter: try values.filter(entry.member("filter")),
+            box: ResolvedBox(
+                size: try values.size(entry.member("size")),
+                position: try values.keyframes(entry.member("position"), read: values.point),
+                anchor: try values.point(entry.member("anchor"))
+            ),
+            opacity: try values.numbers(entry.member("opacity")),
+            scale: try values.numbers(entry.member("scale")),
+            rotation: try values.numbers(entry.member("rotation")),
+            blend: try entry.member("blend").string(),
+            radius: try entry.member("radius").number(),
+            border: try entry.member("border").optional(border),
+            shadow: try entry.member("shadow").optional(shadow),
             transition: try entry.member("transition").optional(transition)
         )
     }
@@ -131,12 +178,11 @@ struct ResolvedSequenceReader: Sendable {
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
-            isParented: try clip.member("parented").bool(),
+            parent: try clip.member("parent").optional { try $0.string() },
             area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
             box: box,
             crop: try clip.member("crop").optional(values.crops),
             track: try clip.member("track").optional(track),
-            label: try clip.member("label").optional(label),
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
@@ -206,25 +252,29 @@ struct ResolvedSequenceReader: Sendable {
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try clip.member("radius").number(),
-                border: try clip.member("border").optional { value in
-                    let border = try value.object(keys: ["width", "color"])
-
-                    return MediaBorder(
-                        width: try border.member("width").number(),
-                        color: try values.color(border.member("color"))
-                    )
-                },
-                shadow: try clip.member("shadow").optional { value in
-                    let shadow = try value.object(keys: ["radius", "offset", "color"])
-
-                    return MediaShadow(
-                        radius: try shadow.member("radius").number(),
-                        offset: try values.point(shadow.member("offset")),
-                        color: try values.color(shadow.member("color"))
-                    )
-                }
+                border: try clip.member("border").optional(border),
+                shadow: try clip.member("shadow").optional(shadow)
             )
         ))
+    }
+
+    private func border(_ value: PlacedJSONValue) throws -> MediaBorder {
+        let border = try value.object(keys: ["width", "color"])
+
+        return MediaBorder(
+            width: try border.member("width").number(),
+            color: try values.color(border.member("color"))
+        )
+    }
+
+    private func shadow(_ value: PlacedJSONValue) throws -> MediaShadow {
+        let shadow = try value.object(keys: ["radius", "offset", "color"])
+
+        return MediaShadow(
+            radius: try shadow.member("radius").number(),
+            offset: try values.point(shadow.member("offset")),
+            color: try values.color(shadow.member("color"))
+        )
     }
 
     private func shape(_ clip: PlacedJSONObject) throws -> ShapeDrawing {
@@ -250,17 +300,6 @@ struct ResolvedSequenceReader: Sendable {
                 color: color
             )
         }
-    }
-
-    private func label(_ value: PlacedJSONValue) throws -> ResolvedLabel {
-        let label = try value.object(kind: "label", keys: ["side", "at", "text", "animation"])
-
-        return ResolvedLabel(
-            side: try side(label.member("side")),
-            at: try label.member("at").number(),
-            text: try values.text(label.member("text")),
-            animation: try values.animation(label.member("animation"))
-        )
     }
 
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
@@ -290,7 +329,7 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // Pinned media, or a nested document, which names its `kind`.
+    // Pinned media, or a nested sequence, which names its `kind`.
     private func media(_ value: PlacedJSONValue) throws -> ResolvedMediaContent {
         guard value.value.objectValue?.contains("kind") == true else { return .pinned(try values.media(value)) }
 
@@ -298,12 +337,11 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func track(_ value: PlacedJSONValue) throws -> ResolvedTrack {
-        let track = try value.object(kind: "track", keys: ["target", "time", "band", "frames"])
+        let track = try value.object(kind: "track", keys: ["target", "time", "frames"])
 
         return ResolvedTrack(
             target: try values.rectangle(track.member("target")),
             mediaTime: try track.member("time").number(),
-            isBand: try track.member("band").bool(),
             frames: try track.member("frames").elements().map { element in
                 let frame = try element.object(keys: ["time", "value"])
 

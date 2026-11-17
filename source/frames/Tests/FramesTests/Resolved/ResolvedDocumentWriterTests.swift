@@ -22,21 +22,21 @@ struct ResolvedDocumentWriterTests {
     ])
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
-    // title that pops in, a picture with a border in the centre, and looping music that fades out.
+    // title in a style its theme adds that pops in, a still with a border in the centre, and looping music that fades
+    // out.
     private let sequence = #"""
-        { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+        { "kind": "sequence", "format": { "size": [1080, 1920] },
+          "theme": { "styles": { "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
+                                            "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 } } },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
-                           "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
+                           "anchor": "top-left", "position": [0, 0], "blend": "screen", "border": true,
+                           "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920], "scale": 1 },
+                                          { "at": 8, "crop": [45, 97, 990, 1760], "scale": 0.5 } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
-    private let image = #"""
-        { "kind": "image", "source": "/abs/page.png",
-          "ops": [ { "crop": [100, 100, 400, 200] }, { "shape": "box", "area": [150, 150, 100, 50], "id": "serial" } ] }
-        """#
-
     private let resolvedSequence = #"""
         {
           "kind": "sequence",
@@ -45,8 +45,7 @@ struct ResolvedDocumentWriterTests {
             "size": [1080, 1920],
             "fps": 30,
             "duration": 3,
-            "background": "#FFFFFFFF",
-            "content": [40, 40, 1000, 1380],
+            "background": "#000000FF",
             "conform": "fit"
           },
           "storyline": [
@@ -63,19 +62,55 @@ struct ResolvedDocumentWriterTests {
               "speed": 2,
               "start": 0,
               "end": 3,
+              "size": [1080, 1920],
+              "position": [
+                {
+                  "at": 0,
+                  "value": [0, 0],
+                  "ease": "linear"
+                }
+              ],
+              "anchor": [0, 0],
               "crop": [
                 {
                   "at": 0,
-                  "value": [-155.6521739130435, 0, 1391.304347826087, 1920],
+                  "value": [0, 0, 1080, 1920],
                   "ease": "linear"
                 },
                 {
                   "at": 3,
-                  "value": [-97.68115942028987, 97, 1275.3623188405797, 1760],
+                  "value": [45, 97, 990, 1760],
                   "ease": "linear"
                 }
               ],
               "track": null,
+              "opacity": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                }
+              ],
+              "scale": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                },
+                {
+                  "at": 3,
+                  "value": 0.5,
+                  "ease": "linear"
+                }
+              ],
+              "rotation": [
+                {
+                  "at": 0,
+                  "value": 0,
+                  "ease": "linear"
+                }
+              ],
+              "blend": "screen",
               "filter": [
                 {
                   "op": "saturation",
@@ -83,9 +118,15 @@ struct ResolvedDocumentWriterTests {
                 },
                 {
                   "op": "blur",
-                  "radius": 3.582089552238806
+                  "radius": 2.25
                 }
               ],
+              "radius": 0,
+              "border": {
+                "width": 2.25,
+                "color": "#FFFFFFFF"
+              },
+              "shadow": null,
               "transition": null
             }
           ],
@@ -94,12 +135,12 @@ struct ResolvedDocumentWriterTests {
               "place": "clips[0]",
               "id": null,
               "title": {
-                "size": [60.8955223880597, 54.62686567164179],
+                "size": [38.25, 34.3125],
                 "lines": 1,
                 "background": {
                   "color": "#ED2929FF",
-                  "padding": [14.328358208955224, 7.164179104477612],
-                  "radius": 10.746268656716419
+                  "padding": [9, 4.5],
+                  "radius": 6.75
                 },
                 "stroke": null,
                 "runs": [
@@ -107,11 +148,11 @@ struct ResolvedDocumentWriterTests {
                     "file": "/System/Apple SD Gothic Neo.ttc",
                     "sha256": "41aa0c9e5d17",
                     "face": "Apple SD Gothic Neo-bold",
-                    "size": 32.23880597014926,
+                    "size": 20.25,
                     "color": "#FFFFFFFF",
                     "glyphs": [
-                      [72, 14.328358208955224, 36.985074626865675],
-                      [105, 30.44776119402985, 36.985074626865675]
+                      [72, 9, 23.23125],
+                      [105, 19.125, 23.23125]
                     ]
                   }
                 ]
@@ -120,20 +161,19 @@ struct ResolvedDocumentWriterTests {
               "end": 3,
               "lane": 1,
               "storyline": null,
-              "parented": false,
+              "parent": null,
               "area": null,
-              "size": [60.8955223880597, 54.62686567164179],
+              "size": [38.25, 34.3125],
               "position": [
                 {
                   "at": 0,
-                  "value": [44.952238805970154, 1682.486567164179],
+                  "value": [56.275000000000006, 1692.64375],
                   "ease": "linear"
                 }
               ],
-              "anchor": [30.44776119402985, 27.313432835820894],
+              "anchor": [19.125, 17.15625],
               "crop": null,
               "track": null,
-              "label": null,
               "opacity": [
                 {
                   "at": 0,
@@ -178,15 +218,15 @@ struct ResolvedDocumentWriterTests {
               "conform": "fit",
               "radius": 0,
               "border": {
-                "width": 2.6865671641791047,
-                "color": "#D9D9D9FF"
+                "width": 2.25,
+                "color": "#FFFFFFFF"
               },
               "shadow": null,
               "start": 0,
               "end": 3,
               "lane": 1,
               "storyline": null,
-              "parented": false,
+              "parent": null,
               "area": null,
               "size": [200, 160],
               "position": [
@@ -205,7 +245,6 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "track": null,
-              "label": null,
               "opacity": [
                 {
                   "at": 0,
@@ -304,41 +343,6 @@ struct ResolvedDocumentWriterTests {
         }
 
         """#
-    private let resolvedImage = #"""
-        {
-          "kind": "image",
-          "resolved": "1.0.0",
-          "size": [400, 200],
-          "steps": [
-            {
-              "place": "source",
-              "id": null,
-              "kind": "image",
-              "draw": "picture",
-              "picture": {
-                "file": "/abs/page.png",
-                "sha256": "5d17e0a9b2c4",
-                "time": 0
-              },
-              "crop": [100, 100, 400, 200],
-              "frame": [0, 0, 400, 200],
-              "clip": [0, 0, 400, 200]
-            },
-            {
-              "place": "ops[1]#serial",
-              "id": "serial",
-              "kind": "box",
-              "draw": "box",
-              "area": [50, 50, 100, 50],
-              "width": 2.6533996683250414,
-              "radius": 5.970149253731343,
-              "color": "#ED2929FF",
-              "clip": [0, 0, 400, 200]
-            }
-          ]
-        }
-
-        """#
 
     // MARK: - Initializer
     // MARK: - Test
@@ -348,31 +352,20 @@ struct ResolvedDocumentWriterTests {
         let plan = try Fixture.documentPlanner.plan(Fixture.json(sequence))
 
         // When
-        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
+        let text = sut.write(try ResolvedSequence(plan: plan, hashes: hashes))
 
         // Then
         #expect(text == resolvedSequence)
     }
 
-    @Test("an image resolves to the same text as its golden resolved document")
-    func writesGoldenImage() throws {
+    @Test("resolving the same document twice gives the same bytes")
+    func resolvesDeterministically() throws {
         // Given
-        let plan = try Fixture.documentPlanner.plan(Fixture.json(image))
+        let document = try Fixture.json(sequence)
 
         // When
-        let text = sut.write(try ResolvedDocument(plan: plan, hashes: hashes))
-
-        // Then
-        #expect(text == resolvedImage)
-    }
-
-    @Test("resolving the same document twice gives the same bytes", arguments: [0, 1])
-    func resolvesDeterministically(index: Int) throws {
-        // Given
-        let document = try Fixture.json([sequence, image][index])
-        // When
-        let first = sut.write(try ResolvedDocument(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable()))
-        let second = ResolvedDocumentWriter().write(try ResolvedDocument(plan: planner().plan(document), hashes: FileHashTable()))
+        let first = sut.write(try ResolvedSequence(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable()))
+        let second = ResolvedDocumentWriter().write(try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable()))
 
         // Then
         #expect(Data(first.utf8) == Data(second.utf8))
@@ -381,7 +374,7 @@ struct ResolvedDocumentWriterTests {
     @Test("a resolved document reads back to the value it was written from")
     func readsBack() throws {
         // Given
-        let value = sut.document(try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(sequence)), hashes: hashes))
+        let value = sut.document(try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(sequence)), hashes: hashes))
 
         // When
         let read = try JSONReader().read(JSONWriter().write(value))
