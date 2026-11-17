@@ -7,7 +7,7 @@
 
 // What `timeline` prints: for every storyline clip its ranges, speed and incoming transition, and for every other
 // clip its visible range, kind, lane, parent and animation.
-struct TimelineReport: Equatable, Sendable {
+package struct TimelineReport: Equatable, Sendable {
     // MARK: - Property
     let duration: Double
     let storyline: [TimelineStorylineEntry]

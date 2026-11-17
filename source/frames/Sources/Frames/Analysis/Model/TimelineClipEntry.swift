@@ -8,23 +8,23 @@
 // `lane` is nil for a sound, and `parent` is the place of the storyline clip a parented clip is composited with.
 struct TimelineClipEntry: Equatable, Sendable {
     // MARK: - Property
-    let place: Place
+    let place: String
     let id: String?
     let kind: String
     let visible: TimeRange
     let lane: Int?
-    let parent: Place?
+    let parent: String?
     let animation: TimelineAnimation?
     let nested: TimelineReport?
 
     // MARK: - Initializer
     init(
-        place: Place,
+        place: String,
         id: String?,
         kind: String,
         visible: TimeRange,
         lane: Int?,
-        parent: Place?,
+        parent: String?,
         animation: TimelineAnimation?,
         nested: TimelineReport?
     ) {

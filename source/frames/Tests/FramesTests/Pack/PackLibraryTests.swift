@@ -120,6 +120,45 @@ struct PackLibraryTests {
         #expect(settingPack?.directory.standardizedFileURL.path == framesHome.appendingPathComponent("packs/shorts").path)
     }
 
+    @Test("every installed and shipped pack is listed in name order, and a hidden entry is no pack")
+    func listsPacks() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.addPack("demo", in: directory.shipped)
+        try directory.write("", to: directory.installed.appendingPathComponent(".DS_Store"))
+        try directory.write("", to: directory.shipped.appendingPathComponent(".gitkeep"))
+        let sut = directory.packs
+
+        // When
+        let packs = try sut.packs()
+
+        // Then
+        #expect(packs.map(\.name) == ["demo", "shorts"])
+    }
+
+    @Test("a pack's folder lists its names in order, without the extension its kind takes and without hidden files")
+    func listsFolderNames() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.write("{}", in: "shorts", at: "themes/warm.json")
+        try directory.write("{}", in: "shorts", at: "themes/cool.json")
+        try directory.write("notes", in: "shorts", at: "themes/README.md")
+        try directory.write("", in: "shorts", at: "themes/.gitkeep")
+        try directory.write("", in: "shorts", at: "media/leak.mov")
+        let sut = directory.packs
+        let pack = try #require(try sut.pack(named: "shorts"))
+
+        // When
+        let themes = try sut.names(in: "themes", of: pack, pathExtension: "json")
+        let media = try sut.names(in: "media", of: pack, pathExtension: nil)
+        let luts = try sut.names(in: "luts", of: pack, pathExtension: "cube")
+
+        // Then
+        #expect(themes == ["cool", "warm"])
+        #expect(media == ["leak.mov"])
+        #expect(luts.isEmpty)
+    }
+
     @Test(
         "a name is an absolute path, <pack>/<name> or a bare built in name, and any other spelling names nothing",
         arguments: [

@@ -9,7 +9,7 @@
 // instance. `clip` is `[in, out)` on its clip time.
 struct TimelineStorylineEntry: Equatable, Sendable {
     // MARK: - Property
-    let place: Place
+    let place: String
     let id: String?
     let media: String?
     let edit: TimeRange
@@ -21,7 +21,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
-        place: Place,
+        place: String,
         id: String?,
         media: String?,
         edit: TimeRange,

@@ -8,7 +8,7 @@
 // A message quotes a value as JSON text, the way the file says it, rather than the way Swift prints the tree.
 extension JSONValue {
     // MARK: - Property
-    var written: String {
+    package var written: String {
         switch self {
         case .null:
             "null"

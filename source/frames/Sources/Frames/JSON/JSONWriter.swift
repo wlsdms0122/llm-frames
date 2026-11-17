@@ -9,16 +9,16 @@
 // order the object holds them in. An object and a list of lists or objects put each member or element on its own
 // line, indented by two spaces, and a list of plain values stays on one line. A number is the shortest decimal that
 // reads back to the same `Double`, with no exponent and no fraction when it is whole, and `-0` is `0`.
-struct JSONWriter: Sendable {
+package struct JSONWriter: Sendable {
     // MARK: - Property
     private static let indent = "  "
 
     // MARK: - Initializer
-    init() { }
+    package init() { }
 
     // MARK: - Public
     // The text ends with a line break, as a file does.
-    func write(_ value: JSONValue) -> String {
+    package func write(_ value: JSONValue) -> String {
         var text = ""
         write(value, depth: 0, into: &text)
 

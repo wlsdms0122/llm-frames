@@ -6,6 +6,6 @@
 //
 
 // The version of frames this build describes, which machine output and the resolved document are stamped with.
-enum FramesVersion {
-    static let current = "1.0.0"
+package enum FramesVersion {
+    package static let current = "1.0.0"
 }
