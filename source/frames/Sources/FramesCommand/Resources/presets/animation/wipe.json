@@ -1,0 +1,5 @@
+{
+  "description": "Wiped in from the left at an even pace, as if written, and wiped away to the right, for text read as it appears.",
+  "entrance": { "seconds": 0.6, "ease": "linear", "revealFrom": "left", "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] },
+  "exit": { "seconds": 0.3, "ease": "ease-in-out", "revealFrom": "right", "keys": [ { "t": 0, "reveal": 1 }, { "t": 1, "reveal": 0 } ] }
+}
