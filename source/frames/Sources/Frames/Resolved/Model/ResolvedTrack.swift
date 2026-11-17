@@ -39,7 +39,7 @@ struct ResolvedTrack: Equatable, Sendable {
     }
 
     func bringBack(
-        point: Point,
+        _ point: Point,
         fromMediaTime time: Double
     ) -> Point {
         track.motion(atMediaTime: time).bringBack(point)

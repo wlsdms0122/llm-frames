@@ -55,7 +55,7 @@ struct ParentSpacePlanner: Sendable {
             guard form.isFoundByText else { return point }
 
             return tracks(under: parent, at: time).reduce(point) { point, link in
-                link.track.bringBack(point: point, fromMediaTime: link.mediaTime)
+                link.track.bringBack(point, fromMediaTime: link.mediaTime)
             }
         }
     }

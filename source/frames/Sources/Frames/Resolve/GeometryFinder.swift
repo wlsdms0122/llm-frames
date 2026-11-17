@@ -86,7 +86,7 @@ struct GeometryFinder: Sendable {
                     area,
                     in: picture,
                     at: pictureClock.mediaTime(atSequenceTime: time),
-                        place: place.appending(key: "area"),
+                    place: place.appending(key: "area"),
                     kind: kind
                 )
                 return found.rectangle.point(named: point)

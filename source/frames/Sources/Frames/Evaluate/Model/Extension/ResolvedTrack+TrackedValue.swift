@@ -37,7 +37,7 @@ extension ResolvedTrack {
         let brought = keyframes.map { keyframe in
             Keyframe(
                 at: keyframe.at,
-                value: bringBack(point: keyframe.value, fromMediaTime: entry.mediaTime(at: keyframe.at)),
+                value: bringBack(keyframe.value, fromMediaTime: entry.mediaTime(at: keyframe.at)),
                 ease: keyframe.ease
             )
         }
