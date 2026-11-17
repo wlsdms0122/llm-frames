@@ -1,0 +1,7 @@
+{
+  "description": "The previous clip slides away to the left and uncovers the next one, which waits still beneath. Eases in and out. Dismissing a screen.",
+  "seconds": 0.45,
+  "ease": "ease-in-out",
+  "over": "outgoing",
+  "outgoing": { "keys": [ { "t": 0, "x": 0 }, { "t": 1, "x": -1 } ] }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A hard edge comes down from the top and wipes the next clip in over the previous one, like a blind. Eases in and out.",
+  "seconds": 0.5,
+  "ease": "ease-in-out",
+  "incoming": { "revealFrom": "top", "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] }
+}
