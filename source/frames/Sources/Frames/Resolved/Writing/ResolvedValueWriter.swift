@@ -105,10 +105,17 @@ struct ResolvedValueWriter: Sendable {
         self.keyframes(keyframes) { .number($0) }
     }
 
-    // Each operation is `op` followed by its values, and a LUT's file is pinned.
-    func filter(_ operations: [ResolvedFilterOperation]) -> JSONValue {
+    // Each operation is `op` followed by its values, and a LUT's file is pinned. A display list's `grain` also carries
+    // `seed`, the number of the output frame it is drawn in, which a resolved document has none of.
+    func filter(
+        _ operations: [ResolvedFilterOperation],
+        seed: Int? = nil
+    ) -> JSONValue {
         .array(operations.map { operation in
-            .object(JSONObject(members: members(of: operation)))
+            let members = members(of: operation)
+            guard case .grain = operation, let seed else { return .object(JSONObject(members: members)) }
+
+            return .object(JSONObject(members: members + [JSONMember(key: "seed", value: .number(Double(seed)))]))
         })
     }
 
@@ -156,22 +163,25 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "color", value: color(stroke.color))
             ]))
         }
-        let runs = text.runs.map { run in
-            JSONValue.object(JSONObject(members: pinned(run.font) + [
-                JSONMember(key: "face", value: .string(run.face)),
-                JSONMember(key: "size", value: .number(run.size)),
-                JSONMember(key: "color", value: color(run.color)),
-                JSONMember(key: "glyphs", value: .array(run.glyphs.map { numbers([Double($0.id), $0.x, $0.y]) }))
-            ]))
-        }
 
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
             JSONMember(key: "lines", value: .number(Double(text.lineCount))),
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "stroke", value: stroke ?? .null),
-            JSONMember(key: "runs", value: .array(runs))
+            JSONMember(key: "runs", value: runs(text.runs))
         ]))
+    }
+
+    func runs(_ runs: [ResolvedGlyphRun]) -> JSONValue {
+        .array(runs.map { run in
+            .object(JSONObject(members: pinned(run.font) + [
+                JSONMember(key: "face", value: .string(run.face)),
+                JSONMember(key: "size", value: .number(run.size)),
+                JSONMember(key: "color", value: color(run.color)),
+                JSONMember(key: "glyphs", value: .array(run.glyphs.map { numbers([Double($0.id), $0.x, $0.y]) }))
+            ]))
+        })
     }
 
     // MARK: - Private

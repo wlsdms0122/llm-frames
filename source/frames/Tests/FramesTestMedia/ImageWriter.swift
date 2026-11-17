@@ -11,19 +11,23 @@ import Frames
 import ImageIO
 import UniformTypeIdentifiers
 
-// Writes an sRGB PNG of `size` drawn by a test, with 8 or 16 bits per component.
+// Writes an sRGB PNG of `size` drawn by a test, with 8 or 16 bits per component, and with an alpha channel unless it
+// is `opaque`.
 package struct ImageWriter {
     // MARK: - Property
     private let size: Size
     private let bitsPerComponent: Int
+    private let isOpaque: Bool
 
     // MARK: - Initializer
     package init(
         size: Size,
-        bitsPerComponent: Int = 8
+        bitsPerComponent: Int = 8,
+        opaque isOpaque: Bool = false
     ) {
         self.size = size
         self.bitsPerComponent = bitsPerComponent
+        self.isOpaque = isOpaque
     }
 
     // MARK: - Public
@@ -31,9 +35,10 @@ package struct ImageWriter {
         to path: String,
         drawing: (Canvas) -> Void
     ) throws {
+        let alpha = isOpaque ? CGImageAlphaInfo.noneSkipLast : CGImageAlphaInfo.premultipliedLast
         let bitmapInfo = bitsPerComponent == 16
-            ? CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder16Little.rawValue
-            : CGImageAlphaInfo.premultipliedLast.rawValue
+            ? alpha.rawValue | CGBitmapInfo.byteOrder16Little.rawValue
+            : alpha.rawValue
         guard
             let context = CGContext(
                 data: nil,

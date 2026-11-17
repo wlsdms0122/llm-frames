@@ -30,9 +30,11 @@ struct PictureReader: Sendable {
             let operationsPlace = place.appending(key: "ops")
             let operations = (object["ops"]?.arrayValue ?? []).enumerated().map { index, element in
                 let operation = element.objectValue ?? JSONObject()
+                let id = operation["id"]?.stringValue
 
                 return ImageOperation(
-                    place: operationsPlace.appending(index: index, id: operation["id"]?.stringValue),
+                    place: operationsPlace.appending(index: index, id: id),
+                    id: id,
                     content: content(of: operation)
                 )
             }

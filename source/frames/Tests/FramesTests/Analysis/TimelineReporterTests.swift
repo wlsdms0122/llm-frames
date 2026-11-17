@@ -65,6 +65,45 @@ struct TimelineReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
+    @Test("a resolved document reports the ranges it holds, with no preset names, its media pinned and no audio clips")
+    func reportsResolvedDocument() throws {
+        // Given
+        let resolved = try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+
+        // When
+        let report = sut.report(of: resolved)
+
+        // Then
+        let expected = #"""
+            {"timeline": "1.0.0", "duration": 4, "storyline": [\#
+            {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "speed": 1, "transition": null}, \#
+            {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "transition": {"preset": null, "seconds": 1}}], \#
+            "clips": [\#
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "box", "visible": [0, 2.5], "lane": 1, "parent": "storyline[0]#intro", "animation": {"entrance": null, "loop": {"preset": null, "period": 1}, "exit": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null}}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+        #expect(report.text.split(separator: "\n").last == "clips[0]  title  visible [0, 4)  animation 0.25s / - / -")
+    }
+
+    @Test("a resolved compound clip reports its nested sequence, with places continued")
+    func nestsResolvedCompoundTimeline() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "kind": "sequence", "storyline": [
+              { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
+                           "clips": [ { "title": "a", "style": "headline" } ] } }
+            ] }
+            """##)
+        let resolved = try ResolvedDocument(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // When
+        let report = sut.report(of: resolved)
+
+        // Then
+        #expect(report == (try sut.report(of: value)))
+    }
+
     @Test("times and lengths are written to the nearest microsecond, in their shortest form")
     func roundsTimes() throws {
         // Given

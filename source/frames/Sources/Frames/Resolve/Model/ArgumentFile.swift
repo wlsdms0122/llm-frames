@@ -6,7 +6,7 @@
 //
 
 // The arguments a command is given with `--args`, read from the file `name` names, as it was written.
-struct ArgumentFile: Equatable, Sendable {
+package struct ArgumentFile: Equatable, Sendable {
     // MARK: - Property
     let name: String
     let value: JSONValue
@@ -16,7 +16,7 @@ struct ArgumentFile: Equatable, Sendable {
     }
 
     // MARK: - Initializer
-    init(
+    package init(
         name: String,
         value: JSONValue
     ) {

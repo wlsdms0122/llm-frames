@@ -9,7 +9,7 @@
 // object has the same form.
 extension TimelineReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "timeline", value: .string(FramesVersion.current)),
             JSONMember(key: "duration", value: .time(duration)),
@@ -24,12 +24,12 @@ extension TimelineReport {
     private func output(_ entry: TimelineStorylineEntry) -> JSONValue {
         let transition = entry.transition.map { transition in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "preset", value: .string(transition.preset)),
+                JSONMember(key: "preset", value: text(transition.preset)),
                 JSONMember(key: "seconds", value: .time(transition.seconds))
             ]))
         }
         let members = [
-            JSONMember(key: "place", value: .string(entry.place.description)),
+            JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: text(entry.id)),
             JSONMember(key: "media", value: text(entry.media)),
             JSONMember(key: "edit", value: output(entry.edit)),
@@ -51,12 +51,12 @@ extension TimelineReport {
             ]))
         }
         let members = [
-            JSONMember(key: "place", value: .string(entry.place.description)),
+            JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: text(entry.id)),
             JSONMember(key: "kind", value: .string(entry.kind)),
             JSONMember(key: "visible", value: output(entry.visible)),
             JSONMember(key: "lane", value: entry.lane.map { .number(Double($0)) } ?? .null),
-            JSONMember(key: "parent", value: text(entry.parent?.description)),
+            JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
         ]
 
@@ -71,7 +71,7 @@ extension TimelineReport {
         guard let span else { return .null }
 
         return .object(JSONObject(members: [
-            JSONMember(key: "preset", value: .string(span.preset)),
+            JSONMember(key: "preset", value: text(span.preset)),
             JSONMember(key: key, value: .time(span.length))
         ]))
     }

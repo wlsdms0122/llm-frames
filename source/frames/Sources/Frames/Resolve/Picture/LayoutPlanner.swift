@@ -8,7 +8,8 @@
 // Plans a layout document: its items on a grid, every column as wide as its widest item and every row as tall as its
 // tallest, each item centred in its cell, with the heading above its cell in the `heading` style, the banner above
 // the grid and a border around every cell. `layout.padding` lies around the grid and `layout.gap` between cells, and
-// theme lengths scale by the widest item. The canvas is filled with the theme `background` first.
+// theme lengths scale by the widest item. The canvas is filled with the theme `background` first. The background is
+// drawn by the layout and the banner by its `banner`, and a cell's heading, picture and border by its item.
 struct LayoutPlanner: Sendable {
     // MARK: - Property
     private let text: ThemeTypesetter
@@ -75,10 +76,16 @@ struct LayoutPlanner: Sendable {
         )
         let gridHeight = zip(heights, headingHeights).map(+).reduce(0, +) + gap * Double(rows.count - 1)
         let bounds = Rectangle(x: 0, y: 0, width: width, height: (banner.height + padding * 2 + gridHeight).rounded(.up))
-        var contents: [DrawingContent] = [.fill(bounds, color: theme.color("background"))] + banner.text
+        let layoutOrigin = DrawingOrigin(place: document.place, id: nil, kind: .layout)
+        let bannerOrigin = DrawingOrigin(place: document.place.appending(key: "banner"), id: nil, kind: .layout)
+        let background = DrawingContent.fill(bounds, color: theme.color("background"))
+        var steps = [DrawingStep(origin: layoutOrigin, content: background, clip: bounds)]
+            + banner.text.map { DrawingStep(origin: bannerOrigin, content: $0, clip: bounds) }
         var top = banner.height + padding
         for (rowIndex, row) in rows.enumerated() {
             for index in row {
+                // A cell's heading, picture and border are its item's.
+                let itemOrigin = DrawingOrigin(place: document.items[index].place, id: nil, kind: .layoutItem)
                 let column = index % columns
                 let left = padding + widths[..<column].reduce(0, +) + gap * Double(column)
                 let cell = Rectangle(
@@ -89,12 +96,8 @@ struct LayoutPlanner: Sendable {
                 )
                 if let heading = headings[index] {
                     let line = Rectangle(x: left, y: top, width: widths[column], height: heading.size.height)
-                    contents.append(.text(heading, frame: text.frame(
-                        of: heading,
-                        style: "heading",
-                        theme: theme,
-                        along: line
-                    )))
+                    let frame = text.frame(of: heading, style: "heading", theme: theme, along: line)
+                    steps.append(DrawingStep(origin: itemOrigin, content: .text(heading, frame: frame), clip: bounds))
                 }
                 let size = items[index].size
                 let frame = Rectangle(
@@ -103,25 +106,30 @@ struct LayoutPlanner: Sendable {
                     width: size.width,
                     height: size.height
                 )
-                contents.append(.picture(
-                    items[index].picture,
-                    crop: Rectangle(x: 0, y: 0, width: size.width, height: size.height),
-                    frame: frame
+                steps.append(DrawingStep(
+                    origin: itemOrigin,
+                    content: .picture(
+                        items[index].picture,
+                        crop: Rectangle(x: 0, y: 0, width: size.width, height: size.height),
+                        frame: frame
+                    ),
+                    clip: bounds
                 ))
                 if let border = document.border {
                     // The border lies around the cell, so it covers none of the item.
                     let lineWidth = theme.borderWidth * scale
-                    contents.append(.border(cell.grown(by: lineWidth), width: lineWidth, color: theme.color(border)))
+                    let content = DrawingContent.border(
+                        cell.grown(by: lineWidth),
+                        width: lineWidth,
+                        color: theme.color(border)
+                    )
+                    steps.append(DrawingStep(origin: itemOrigin, content: content, clip: bounds))
                 }
             }
             top += headingHeights[rowIndex] + heights[rowIndex] + gap
         }
 
-        return PicturePlan(
-            kind: "layout",
-            size: Size(width: bounds.width, height: bounds.height),
-            steps: contents.map { DrawingStep(content: $0, clip: bounds) }
-        )
+        return PicturePlan(kind: "layout", size: Size(width: bounds.width, height: bounds.height), steps: steps)
     }
 
     // MARK: - Private

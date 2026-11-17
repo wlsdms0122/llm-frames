@@ -8,7 +8,7 @@
 // Plans a whole document as a command takes it: checked with what the library finds, with `--theme` over the base
 // theme, or, for a template, instantiated with `--args` on the base theme. Only its arguments change a template, so
 // it takes no `--theme`, and a document that is not a template takes no `--args`.
-struct DocumentPlanner: Sendable {
+package struct DocumentPlanner: Sendable {
     // MARK: - Property
     private let library: ReferenceLibrary
     private let planner: TimePlanner
@@ -48,6 +48,26 @@ struct DocumentPlanner: Sendable {
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
+    }
+
+    // The planner a command plans with: presets from `presets`, and what a document names found in `packs`, with the
+    // facts of its media from `mediaFacts`.
+    package init(
+        mediaFacts: any MediaFactProvider,
+        presets: PresetLibrary,
+        ocr: any OCRProvider,
+        tracker: any TrackerProvider,
+        shaper: any ShapingProvider,
+        packs: PackLibrary
+    ) {
+        self.init(
+            mediaFacts: mediaFacts,
+            presets: presets,
+            ocr: ocr,
+            tracker: tracker,
+            shaper: shaper,
+            library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts)
+        )
     }
 
     // MARK: - Public
@@ -100,6 +120,15 @@ struct DocumentPlanner: Sendable {
         let sequence = SequenceReader(argumentThemes: argumentThemes).sequence(from: instance.document)
 
         return .sequence(try sequencePlanner.plan(try planner.plan(sequence, theme: .base)))
+    }
+
+    // The resolved document of what `plan` decides, with every file it names pinned.
+    package func resolved(
+        _ document: JSONValue,
+        theme: String? = nil,
+        arguments: ArgumentFile? = nil
+    ) throws -> ResolvedDocument {
+        try ResolvedDocument(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
     }
 
     // MARK: - Private

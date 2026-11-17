@@ -25,6 +25,7 @@ final class VideoReader: Sendable {
     let fps: Double
     let duration: Double
     let hasSound: Bool
+    let hasAlpha: Bool
     let depth: BitDepth
 
     var frameTimes: [Double] {
@@ -55,8 +56,11 @@ final class VideoReader: Sendable {
             CGAffineTransform(translationX: -turned.minX, y: -turned.minY)
         )
         self.displaySize = Size(width: turned.width.rounded(), height: turned.height.rounded())
-        self.fps = Double(loaded.nominalFrameRate)
+        // The rate is stored as a 32-bit float, so it is read back in its shortest decimal form, 29.97 and not
+        // 29.969999313354492.
+        self.fps = Double("\(loaded.nominalFrameRate)") ?? Double(loaded.nominalFrameRate)
         self.hasSound = loaded.hasSound
+        self.hasAlpha = loaded.hasAlpha
         self.depth = BitDepth(holding: loaded.bitsPerComponent)
         self.frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
         self.duration = CMTimeGetSeconds(loaded.duration)
@@ -109,10 +113,25 @@ final class VideoReader: Sendable {
             preferredTransform: try waiter.value(of: .preferredTransform, key: "preferredTransform", in: track),
             nominalFrameRate: try waiter.value(of: .nominalFrameRate, key: "nominalFrameRate", in: track),
             bitsPerComponent: depth as? Int ?? 8,
+            hasAlpha: formats.first.map(hasAlpha) ?? false,
             edits: segments.filter { !$0.isEmpty }.map(\.timeMapping),
             duration: try waiter.value(of: .duration, key: "duration", in: asset),
             hasSound: !(try waiter.tracks(of: asset, type: .audio)).isEmpty
         )
+    }
+
+    // A codec that carries alpha says so in its format: HEVC with alpha by its codec type, and ProRes 4444 and the
+    // other RGB codecs by an alpha flag or a depth of 32 bits a pixel, where 24 has none.
+    private static func hasAlpha(_ format: CMFormatDescription) -> Bool {
+        let containsAlpha = CMFormatDescriptionGetExtension(
+            format,
+            extensionKey: kCMFormatDescriptionExtension_ContainsAlphaChannel
+        )
+        let depth = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_Depth)
+
+        return CMFormatDescriptionGetMediaSubType(format) == kCMVideoCodecType_HEVCWithAlpha
+            || containsAlpha as? Bool == true
+            || depth as? Int == 32
     }
 
     // The time each sample is presented at, read without decoding. An undecoded sample carries its time before the edit

@@ -8,6 +8,9 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
+    products: [
+        .executable(name: "frames", targets: ["FramesTool"])
+    ],
     targets: [
         .target(name: "Frames"),
         .target(
@@ -29,6 +32,25 @@ let package = Package(
         .target(
             name: "FramesQuartz",
             dependencies: ["Frames"]
+        ),
+        .target(
+            name: "FramesCommand",
+            dependencies: [
+                "Frames",
+                "FramesAVFoundation",
+                "FramesQuartz",
+                "FramesVision",
+                "FramesCoreText",
+                "FramesPointTracker"
+            ],
+            resources: [
+                .copy("Resources/presets"),
+                .copy("Resources/packs")
+            ]
+        ),
+        .executableTarget(
+            name: "FramesTool",
+            dependencies: ["FramesCommand"]
         ),
         .target(
             name: "FramesTestMedia",
@@ -65,6 +87,10 @@ let package = Package(
         .testTarget(
             name: "FramesQuartzTests",
             dependencies: ["FramesQuartz", "FramesAVFoundation", "FramesTestMedia"]
+        ),
+        .testTarget(
+            name: "FramesCommandTests",
+            dependencies: ["FramesCommand", "Frames", "FramesTestMedia"]
         ),
         .testTarget(
             name: "FramesRenderTests",

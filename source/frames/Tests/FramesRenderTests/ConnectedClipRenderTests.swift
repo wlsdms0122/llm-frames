@@ -234,7 +234,13 @@ struct ConnectedClipRenderTests {
                     blend: item.blend,
                     mask: item.mask,
                     reveal: item.reveal,
-                    content: .glyphs(GlyphsItem(runs: glyphs.runs, stroke: nil, background: glyphs.background))
+                    content: .glyphs(GlyphsItem(
+                        size: glyphs.size,
+                        runs: glyphs.runs,
+                        stroke: nil,
+                        background: glyphs.background
+                    )),
+                    origin: item.origin
                 )
             }
         )

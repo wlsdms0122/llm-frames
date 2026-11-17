@@ -11,12 +11,13 @@ import Frames
 import ImageIO
 import UniformTypeIdentifiers
 
-// A still image file, opened once: its size as it is displayed, its bit depth, and its picture. An orientation that
-// turns it a quarter swaps width and height.
+// A still image file, opened once: its size as it is displayed, its bit depth, whether it carries alpha, and its
+// picture. An orientation that turns it a quarter swaps width and height.
 struct StillReader {
     // MARK: - Property
     let displaySize: Size
     let depth: BitDepth
+    let hasAlpha: Bool
 
     private let source: CGImageSource
     private let orientation: CGImagePropertyOrientation
@@ -48,6 +49,7 @@ struct StillReader {
             ? Size(width: height, height: width)
             : Size(width: width, height: height)
         self.depth = BitDepth(holding: properties[kCGImagePropertyDepth] as? Int ?? 8)
+        self.hasAlpha = properties[kCGImagePropertyHasAlpha] as? Bool ?? false
     }
 
     // MARK: - Public

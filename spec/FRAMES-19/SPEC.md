@@ -78,7 +78,7 @@ How it is written, so the same plan gives the same bytes:
 
 ### Resolved image and layout
 
-An image document and a layout resolve to their final size and one list of drawing steps: the source picture with its crop and scale, pads as fills, shapes, adjustments over what is below them inside their areas, shaped text and borders, each clipped to its canvas, in operation order and in output pixels. Evaluating them at any time gives the same display list.
+An image document and a layout resolve to their final size and one list of drawing steps: the source picture with its crop and scale, pads as fills, shapes, adjustments over what is below them inside their areas, shaped text and borders, each clipped to its canvas, in operation order and in output pixels. Evaluating them at any time gives the same display list. Every step carries `place`, `id` and `kind`, what drew it as messages name it: its operation (`ops[2]#logo`, `pad`, a shape by its shape, `box`), the source picture (`source`, `image`), the layout's background (the layout's own place, `layout`) and banner (`banner`, `layout`), or the layout item whose heading, picture or cell border it is (`items[1]`, `layout item`), a nested document's places continued from the clip or item that holds it.
 
 ### Reading a resolved document
 

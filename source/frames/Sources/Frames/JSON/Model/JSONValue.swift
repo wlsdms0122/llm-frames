@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-enum JSONValue: Equatable, Sendable {
+package enum JSONValue: Equatable, Sendable {
     case null
     case bool(Bool)
     case number(Double)

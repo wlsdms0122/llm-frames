@@ -101,6 +101,10 @@ struct ResolvedDocumentReaderTests {
         """#
     ]
 
+    private static let boxedImage = #"""
+        { "kind": "image", "source": "/abs/page.png", "ops": [ { "shape": "box", "area": [10, 10, 20, 20], "id": "serial" } ] }
+        """#
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("a resolved document reads back to the model it was written from", arguments: documents.indices)
@@ -190,6 +194,51 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description.hasPrefix(#"clips[3] (clip): unknown key "scale""#) == true)
+    }
+
+    @Test("a drawing step reads back the place, id and kind of what drew it")
+    func readsStepOrigins() throws {
+        // Given
+        let text = try written(Self.boxedImage)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        guard case let .picture(picture) = read else {
+            Issue.record("the image is read as \(read)")
+            return
+        }
+        #expect(picture.steps.map(\.place) == ["source", "ops[0]#serial"])
+        #expect(picture.steps.map(\.id) == [nil, "serial"])
+        #expect(picture.steps.map(\.kind) == ["image", "box"])
+    }
+
+    @Test(
+        "a drawing step without what drew it, or with a key never written there, stops, naming its place",
+        arguments: [
+            (#""place": "source","#, "", #"steps[0] (drawing step): missing key "place""#),
+            (#""id": "serial","#, #""id": 7,"#, #"steps[1].id (drawing step): expected a string, found 7"#),
+            (
+                #""kind": "box","#,
+                #""kind": "box", "label": null,"#,
+                #"steps[1] (drawing step): unknown key "label". Allowed: place, id, kind, draw, area, width, radius, color, clip"#
+            )
+        ]
+    )
+    func refusesUnreadableStep(
+        written: String,
+        replacement: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacingFirst(written, with: replacement, in: self.written(Self.boxedImage))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     @Test("a root that is not an object stops")

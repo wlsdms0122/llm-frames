@@ -36,6 +36,9 @@ struct EvaluatorTests {
         source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64))),
         frameTimes: (0..<20).map { Double($0) / 4 }
     )
+    // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
+    private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
+    private let fillOrigin = ItemOrigin(place: "clips[0]", id: nil, kind: "fill")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -128,6 +131,36 @@ struct EvaluatorTests {
             DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: content, color: white))),
             outsideItem()
         ])
+    }
+
+    @Test("each item names the clip that drew it, and a transition cover and the background outside the content rect none")
+    func namesDrawingClips() {
+        // Given
+        let cover = ResolvedCover(source: .color(white), span: Span(ease: .linear, keys: []))
+        let transition = ResolvedTransition(
+            start: 1.5,
+            end: 2.5,
+            over: .incoming,
+            incoming: nil,
+            outgoing: nil,
+            cover: cover,
+            matte: nil
+        )
+        let sequence = sequence(
+            [
+                storylineClip(.pinned(first), in: 1, start: 0, end: 2),
+                storylineClip(nil, solid: red, start: 2, end: 4, transition: transition)
+            ],
+            clips: [fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 1)]
+        )
+
+        // When
+        let list = sut.displayList(of: .sequence(sequence), at: 1.75)
+
+        // Then
+        let solid = ItemOrigin(place: "storyline", id: nil, kind: "solid")
+        #expect(list.items.map(\.origin) == [videoEntry, solid, nil, nil, fillOrigin])
+        #expect(displayList(of: list.items[1])?.items.map(\.origin) == [solid])
     }
 
     @Test("a cover video and a matte show their frames at progress times their duration, the matte's progress eased")
@@ -239,7 +272,11 @@ struct EvaluatorTests {
         let list = sut.displayList(of: .sequence(sequence), at: 1.3)
 
         // Then
-        #expect(list.items == [unitItem([mediaItem(still, frame: 0)], seed: 13), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "image")
+        #expect(list.items == [
+            unitItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry),
+            outsideItem()
+        ])
     }
 
     @Test("a solid fills its whole unit with its colour")
@@ -251,8 +288,9 @@ struct EvaluatorTests {
         let list = sut.displayList(of: .sequence(sequence), at: 1)
 
         // Then
-        let fill = DisplayItem(content: .fill(FillItem(rectangle: content, color: red)))
-        #expect(list.items == [unitItem([fill], seed: 10), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
+        let fill = DisplayItem(content: .fill(FillItem(rectangle: content, color: red)), origin: entry)
+        #expect(list.items == [unitItem([fill], seed: 10, origin: entry), outsideItem()])
     }
 
     @Test("a compound clip is its nested sequence evaluated at the clip's media time, with the outer seed")
@@ -278,7 +316,11 @@ struct EvaluatorTests {
             ]
         )
         let picture = PictureItem(source: .displayList(nestedList), rectangle: crop, destination: content)
-        #expect(list.items == [unitItem([DisplayItem(content: .picture(picture))], seed: 5), outsideItem()])
+        let entry = ItemOrigin(place: "storyline", id: nil, kind: "compound")
+        #expect(list.items == [
+            unitItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry),
+            outsideItem()
+        ])
     }
 
     @Test("a tracked crop's keyframes are brought back to the instant at their own times and carried to the time shown")
@@ -413,13 +455,18 @@ struct EvaluatorTests {
         #expect([list.seed, unit.seed, nested.seed, nestedUnit.seed] == [7, 7, 7, 7])
     }
 
-    @Test("an image document's steps become items in order, each cut to its step's canvas, the same at any time")
+    @Test("an image document's steps become items in order, each cut to its step's canvas and named by what drew it")
     func drawsImageSteps() {
         // Given
         let canvas = Rectangle(x: 0, y: 0, width: 300, height: 200)
         let inner = Rectangle(x: 10, y: 10, width: 280, height: 180)
         let badge = ResolvedPicture(kind: "image", size: Size(width: 50, height: 50), steps: [
-            ResolvedDrawingStep(content: .fill(Rectangle(x: 0, y: 0, width: 50, height: 50), color: red), clip: canvas)
+            step(
+                "ops[0].media.ops[0]",
+                "pad",
+                .fill(Rectangle(x: 0, y: 0, width: 50, height: 50), color: red),
+                clip: canvas
+            )
         ])
         let text = ResolvedText(
             size: Size(width: 100, height: 40),
@@ -429,50 +476,55 @@ struct EvaluatorTests {
             runs: [run()]
         )
         let picture = ResolvedPicture(kind: "image", size: Size(width: 300, height: 200), steps: [
-            ResolvedDrawingStep(
-                content: .picture(
-                    .media(first, time: 0.6),
-                    crop: whole,
-                    frame: Rectangle(x: 0, y: 0, width: 300, height: 150)
-                ),
+            step(
+                "source",
+                "image",
+                .picture(.media(first, time: 0.6), crop: whole, frame: Rectangle(x: 0, y: 0, width: 300, height: 150)),
                 clip: canvas
             ),
-            ResolvedDrawingStep(
-                content: .picture(
+            step(
+                "ops[0]",
+                "title",
+                .picture(
                     .picture(badge),
                     crop: Rectangle(x: 0, y: 0, width: 50, height: 50),
                     frame: Rectangle(x: 10, y: 10, width: 50, height: 50)
                 ),
                 clip: canvas
             ),
+            step("ops[1]", "pad", .fill(Rectangle(x: 0, y: 150, width: 300, height: 50), color: white), clip: canvas),
             ResolvedDrawingStep(
-                content: .fill(Rectangle(x: 0, y: 150, width: 300, height: 50), color: white),
-                clip: canvas
-            ),
-            ResolvedDrawingStep(
+                place: "ops[2]#serial",
+                id: "serial",
+                kind: "box",
                 content: .box(Rectangle(x: 20, y: 20, width: 100, height: 50), width: 4, radius: 6, color: red),
                 clip: canvas
             ),
-            ResolvedDrawingStep(
-                content: .border(Rectangle(x: 10, y: 10, width: 100, height: 50), width: 4, color: white),
+            step(
+                "ops[3]",
+                "border",
+                .border(Rectangle(x: 10, y: 10, width: 100, height: 50), width: 4, color: white),
                 clip: canvas
             ),
-            ResolvedDrawingStep(
-                content: .dim(Rectangle(x: 50, y: 50, width: 100, height: 50), color: background),
+            step(
+                "ops[4]",
+                "dim",
+                .dim(Rectangle(x: 50, y: 50, width: 100, height: 50), color: background),
                 clip: inner
             ),
-            ResolvedDrawingStep(
-                content: .arrow(tail: Point(x: 0, y: 0), tip: Point(x: 40, y: 30), width: 3, head: 12, color: red),
+            step(
+                "ops[5]",
+                "arrow",
+                .arrow(tail: Point(x: 0, y: 0), tip: Point(x: 40, y: 30), width: 3, head: 12, color: red),
                 clip: canvas
             ),
-            ResolvedDrawingStep(
-                content: .adjustment([.blur(radius: 2)], area: Rectangle(x: 0, y: 0, width: 150, height: 100)),
+            step(
+                "ops[6]",
+                "adjust",
+                .adjustment([.blur(radius: 2)], area: Rectangle(x: 0, y: 0, width: 150, height: 100)),
                 clip: canvas
             ),
-            ResolvedDrawingStep(
-                content: .text(text, frame: Rectangle(x: 10, y: 20, width: 200, height: 80)),
-                clip: inner
-            )
+            step("ops[7]", "title", .text(text, frame: Rectangle(x: 10, y: 20, width: 200, height: 80)), clip: inner)
         ])
 
         // When
@@ -483,56 +535,87 @@ struct EvaluatorTests {
         let badgeList = DisplayList(size: Size(width: 50, height: 50), background: transparent, seed: 0, items: [
             DisplayItem(
                 mask: canvas,
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50), color: red))
+                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50), color: red)),
+                origin: ItemOrigin(place: "ops[0].media.ops[0]", id: nil, kind: "pad")
             )
         ])
         let expected = DisplayList(size: Size(width: 300, height: 200), background: transparent, seed: 0, items: [
-            DisplayItem(mask: canvas, content: .picture(PictureItem(
-                source: .media(MediaFrame(media: first, index: 2)),
-                rectangle: whole,
-                destination: Rectangle(x: 0, y: 0, width: 300, height: 150)
-            ))),
-            DisplayItem(mask: canvas, content: .picture(PictureItem(
-                source: .displayList(badgeList),
-                rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50),
-                destination: Rectangle(x: 10, y: 10, width: 50, height: 50)
-            ))),
             DisplayItem(
                 mask: canvas,
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 150, width: 300, height: 50), color: white))
+                content: .picture(PictureItem(
+                    source: .media(MediaFrame(media: first, index: 2)),
+                    rectangle: whole,
+                    destination: Rectangle(x: 0, y: 0, width: 300, height: 150)
+                )),
+                origin: ItemOrigin(place: "source", id: nil, kind: "image")
             ),
-            DisplayItem(mask: canvas, content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 20, y: 20, width: 100, height: 50),
-                radius: 6,
-                width: 4,
-                color: red
-            ))),
-            DisplayItem(mask: canvas, content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 12, y: 12, width: 96, height: 46),
-                radius: 0,
-                width: 4,
-                color: white
-            ))),
-            DisplayItem(mask: inner, content: .fill(FillItem(
-                rectangle: inner,
-                color: background,
-                hole: RoundedRectangle(rectangle: Rectangle(x: 50, y: 50, width: 100, height: 50), radius: 0)
-            ))),
-            DisplayItem(mask: canvas, content: .arrow(ArrowItem(
-                tail: Point(x: 0, y: 0),
-                head: Point(x: 40, y: 30),
-                width: 3,
-                headSize: 12,
-                color: red
-            ))),
-            DisplayItem(mask: canvas, content: .adjust(AdjustItem(
-                rectangle: Rectangle(x: 0, y: 0, width: 150, height: 100),
-                filter: [.blur(radius: 2)]
-            ))),
+            DisplayItem(
+                mask: canvas,
+                content: .picture(PictureItem(
+                    source: .displayList(badgeList),
+                    rectangle: Rectangle(x: 0, y: 0, width: 50, height: 50),
+                    destination: Rectangle(x: 10, y: 10, width: 50, height: 50)
+                )),
+                origin: ItemOrigin(place: "ops[0]", id: nil, kind: "title")
+            ),
+            DisplayItem(
+                mask: canvas,
+                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 150, width: 300, height: 50), color: white)),
+                origin: ItemOrigin(place: "ops[1]", id: nil, kind: "pad")
+            ),
+            DisplayItem(
+                mask: canvas,
+                content: .stroke(StrokeItem(
+                    rectangle: Rectangle(x: 20, y: 20, width: 100, height: 50),
+                    radius: 6,
+                    width: 4,
+                    color: red
+                )),
+                origin: ItemOrigin(place: "ops[2]#serial", id: "serial", kind: "box")
+            ),
+            DisplayItem(
+                mask: canvas,
+                content: .stroke(StrokeItem(
+                    rectangle: Rectangle(x: 12, y: 12, width: 96, height: 46),
+                    radius: 0,
+                    width: 4,
+                    color: white
+                )),
+                origin: ItemOrigin(place: "ops[3]", id: nil, kind: "border")
+            ),
+            DisplayItem(
+                mask: inner,
+                content: .fill(FillItem(
+                    rectangle: inner,
+                    color: background,
+                    hole: RoundedRectangle(rectangle: Rectangle(x: 50, y: 50, width: 100, height: 50), radius: 0)
+                )),
+                origin: ItemOrigin(place: "ops[4]", id: nil, kind: "dim")
+            ),
+            DisplayItem(
+                mask: canvas,
+                content: .arrow(ArrowItem(
+                    tail: Point(x: 0, y: 0),
+                    head: Point(x: 40, y: 30),
+                    width: 3,
+                    headSize: 12,
+                    color: red
+                )),
+                origin: ItemOrigin(place: "ops[5]", id: nil, kind: "arrow")
+            ),
+            DisplayItem(
+                mask: canvas,
+                content: .adjust(AdjustItem(
+                    rectangle: Rectangle(x: 0, y: 0, width: 150, height: 100),
+                    filter: [.blur(radius: 2)]
+                )),
+                origin: ItemOrigin(place: "ops[6]", id: nil, kind: "adjust")
+            ),
             DisplayItem(
                 transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 20),
                 mask: inner,
                 content: .glyphs(GlyphsItem(
+                    size: Size(width: 100, height: 40),
                     runs: [run()],
                     stroke: TextStroke(width: 2, color: background),
                     background: GlyphBackground(
@@ -540,7 +623,8 @@ struct EvaluatorTests {
                         radius: 5,
                         color: red
                     )
-                ))
+                )),
+                origin: ItemOrigin(place: "ops[7]", id: nil, kind: "title")
             )
         ])
         #expect(early == expected)
@@ -553,8 +637,10 @@ struct EvaluatorTests {
         let nestedContent = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let canvas = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let picture = ResolvedPicture(kind: "layout", size: Size(width: 100, height: 50), steps: [
-            ResolvedDrawingStep(
-                content: .picture(.sequence(nestedSequence(), time: 5), crop: nestedContent, frame: canvas),
+            step(
+                "items[0]",
+                "layout item",
+                .picture(.sequence(nestedSequence(), time: 5), crop: nestedContent, frame: canvas),
                 clip: canvas
             )
         ])
@@ -574,11 +660,15 @@ struct EvaluatorTests {
             ]
         )
         #expect(list.items == [
-            DisplayItem(mask: canvas, content: .picture(PictureItem(
-                source: .displayList(nestedList),
-                rectangle: nestedContent,
-                destination: canvas
-            )))
+            DisplayItem(
+                mask: canvas,
+                content: .picture(PictureItem(
+                    source: .displayList(nestedList),
+                    rectangle: nestedContent,
+                    destination: canvas
+                )),
+                origin: ItemOrigin(place: "items[0]", id: nil, kind: "layout item")
+            )
         ])
     }
 
@@ -820,7 +910,8 @@ struct EvaluatorTests {
                 radius: 6,
                 border: border,
                 shadow: shadow
-            ))
+            )),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "video")
         ))
     }
 
@@ -842,7 +933,8 @@ struct EvaluatorTests {
         // Then
         let adjust = DisplayItem(
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)]))
+            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)])),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
         #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10), outsideItem()])
     }
@@ -894,7 +986,8 @@ struct EvaluatorTests {
         // since the filter reaches the whole output.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
-            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)]))
+            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)])),
+            origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         ))
     }
 
@@ -951,6 +1044,15 @@ struct EvaluatorTests {
     }
 
     // MARK: - Private
+    private func step(
+        _ place: String,
+        _ kind: String,
+        _ content: ResolvedDrawingContent,
+        clip: Rectangle
+    ) -> ResolvedDrawingStep {
+        ResolvedDrawingStep(place: place, id: nil, kind: kind, content: content, clip: clip)
+    }
+
     private func storylineClip(
         _ media: ResolvedMediaContent?,
         solid: Color? = nil,
@@ -1103,7 +1205,7 @@ struct EvaluatorTests {
     }
 
     private func fillItem(_ rectangle: Rectangle) -> DisplayItem {
-        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)))
+        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)), origin: fillOrigin)
     }
 
     private func text(_ size: Size) -> ResolvedText {
@@ -1148,7 +1250,8 @@ struct EvaluatorTests {
         content: Rectangle? = nil,
         transform: AffineTransform = .identity,
         opacity: Double = 1,
-        matte: PictureMatte? = nil
+        matte: PictureMatte? = nil,
+        origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let content = content ?? self.content
         let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
@@ -1161,14 +1264,21 @@ struct EvaluatorTests {
 
         let picture = PictureItem(source: .displayList(list), rectangle: unit, destination: content, matte: matte)
 
-        return DisplayItem(transform: transform, opacity: opacity, mask: content, content: .picture(picture))
+        return DisplayItem(
+            transform: transform,
+            opacity: opacity,
+            mask: content,
+            content: .picture(picture),
+            origin: origin ?? videoEntry
+        )
     }
 
     private func mediaItem(
         _ media: PinnedMedia,
         frame: Int,
         filter: [ResolvedFilterOperation] = [],
-        in content: Rectangle? = nil
+        in content: Rectangle? = nil,
+        origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let content = content ?? self.content
         let picture = PictureItem(
@@ -1178,7 +1288,7 @@ struct EvaluatorTests {
             filter: filter
         )
 
-        return DisplayItem(content: .picture(picture))
+        return DisplayItem(content: .picture(picture), origin: origin ?? videoEntry)
     }
 
     private func outsideItem(

@@ -11,6 +11,7 @@ package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case unencodable(file: String, codec: String)
     case unwritable(file: String, reason: String)
     case frameSize(file: String, index: Int, size: Size, video: Size)
+    case undownmixable(file: String)
 
     // MARK: - Property
     package var description: String {
@@ -23,6 +24,10 @@ package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .frameSize(file, index, size, video):
             "frame \(index) of \(file) is \(written(size)), where the video is \(written(video))"
+
+        case let .undownmixable(file):
+            "encoder avfoundation cannot write \(file): its sound has a channel ITU-R BS.775 names no speaker for, so "
+                + "it is not downmixed to stereo"
         }
     }
 

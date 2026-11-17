@@ -9,7 +9,8 @@
 // Areas and points are written in the media pixels of the source and mapped through the canvas operations before
 // them, so they reach into pads and banners only after those. Text areas are found by the OCR provider in the source
 // picture at the document's `time`. A drawing is made with theme lengths scaled by the canvas width at its operation
-// and clipped to that canvas, and one wholly outside it stops.
+// and clipped to that canvas, and one wholly outside it stops. The source picture is drawn by `source`, and every other
+// step by its operation.
 struct ImagePlanner: Sendable {
     // MARK: - Property
     private let finder: AreaFinder
@@ -42,7 +43,11 @@ struct ImagePlanner: Sendable {
         picture: Picture,
         time: Double
     ) throws -> PicturePlan {
-        var canvas = ImageCanvas(picture: source, size: picture.size)
+        var canvas = ImageCanvas(
+            picture: source,
+            size: picture.size,
+            origin: DrawingOrigin(place: document.place.appending(key: "source"), id: nil, kind: .image)
+        )
         for operation in document.operations {
             try run(operation, on: &canvas, time: time, picture: picture, theme: theme)
         }
@@ -59,6 +64,7 @@ struct ImagePlanner: Sendable {
         theme: MergedTheme
     ) throws {
         let place = operation.place
+        let origin = DrawingOrigin(operation)
         let scale = theme.lengthScale(at: canvas.size.width)
         func find(
             _ form: AreaForm,
@@ -110,7 +116,7 @@ struct ImagePlanner: Sendable {
             ))
 
         case let .pad(inset, color):
-            canvas.extend(by: inset, color: theme.color(color ?? "background"))
+            canvas.extend(by: inset, color: theme.color(color ?? "background"), origin: origin)
 
         case let .shape(shape, form, label, color):
             let kind = PlaceKind.shape(shape.kind)
@@ -120,11 +126,12 @@ struct ImagePlanner: Sendable {
                 area: area,
                 color: color.map(theme.color) ?? theme.shapeColor(of: shape.kind),
                 on: &canvas,
+                origin: origin,
                 scale: scale,
                 theme: theme
             )
             if let label {
-                try draw(label, beside: box, on: &canvas, scale: scale, theme: theme, place: place, kind: kind)
+                try draw(label, beside: box, on: &canvas, origin: origin, scale: scale, theme: theme)
             }
 
         case let .adjust(choice, form):
@@ -136,7 +143,7 @@ struct ImagePlanner: Sendable {
                 place: place.appending(key: "adjust"),
                 kind: kind
             )
-            canvas.draw(.adjustment(operations.map { $0.scaled(by: scale) }, area: area))
+            canvas.draw(.adjustment(operations.map { $0.scaled(by: scale) }, area: area), origin: origin)
 
         case let .title(title, position, anchor, style, width):
             let kind = PlaceKind.operation(.title)
@@ -167,7 +174,7 @@ struct ImagePlanner: Sendable {
             guard frame.intersection(canvas.bounds) != nil else {
                 throw ResolveError.outsideCanvas(place: place.appending(key: "position"), kind: kind, size: canvas.size)
             }
-            canvas.draw(.text(layout, frame: frame))
+            canvas.draw(.text(layout, frame: frame), origin: origin)
 
         case let .banner(lines, edge):
             let banner = try banners.banner(
@@ -186,14 +193,18 @@ struct ImagePlanner: Sendable {
                     bottom: edge == .top ? 0 : banner.height,
                     left: 0
                 ),
-                color: theme.color("background")
+                color: theme.color("background"),
+                origin: origin
             )
             for line in banner.text {
-                canvas.draw(line)
+                canvas.draw(line, origin: origin)
             }
 
         case let .border(color):
-            canvas.draw(.border(canvas.bounds, width: theme.borderWidth * scale, color: theme.color(color)))
+            canvas.draw(
+                .border(canvas.bounds, width: theme.borderWidth * scale, color: theme.color(color)),
+                origin: origin
+            )
         }
     }
 
@@ -251,12 +262,13 @@ struct ImagePlanner: Sendable {
         area: Rectangle,
         color: Color,
         on canvas: inout ImageCanvas,
+        origin: DrawingOrigin,
         scale: Double,
         theme: MergedTheme
     ) -> Rectangle {
         let drawing = drawer.drawing(of: shape, color: color, scale: scale, theme: theme)
         let laid = drawer.content(of: drawing, on: area)
-        canvas.draw(laid.content)
+        canvas.draw(laid.content, origin: origin)
 
         return laid.box
     }
@@ -266,12 +278,12 @@ struct ImagePlanner: Sendable {
         _ label: String,
         beside box: Rectangle,
         on canvas: inout ImageCanvas,
+        origin: DrawingOrigin,
         scale: Double,
-        theme: MergedTheme,
-        place: Place,
-        kind: PlaceKind
+        theme: MergedTheme
     ) throws {
-        let place = place.appending(key: "label")
+        let place = origin.place.appending(key: "label")
+        let kind = origin.kind
         let layout = try text.layout(
             label,
             style: "label",
@@ -286,6 +298,6 @@ struct ImagePlanner: Sendable {
             throw ResolveError.labelWithoutRoom(place: place, kind: kind, label: label, sides: sides, room: "canvas")
         }
 
-        canvas.draw(.text(layout, frame: sideFinder.rectangle(of: layout.size, beside: box, on: side)))
+        canvas.draw(.text(layout, frame: sideFinder.rectangle(of: layout.size, beside: box, on: side)), origin: origin)
     }
 }

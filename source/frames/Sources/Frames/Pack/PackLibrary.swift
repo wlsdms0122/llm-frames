@@ -9,7 +9,7 @@ import Foundation
 
 // Finds packs and the files they hold. Installed packs live in `installed`, and the packs that ship with frames in
 // `shipped`, found as if installed. Every file a named thing is read from is read here.
-struct PackLibrary: Sendable {
+package struct PackLibrary: Sendable {
     // MARK: - Property
     private let installed: URL
     private let shipped: URL
@@ -25,7 +25,7 @@ struct PackLibrary: Sendable {
     }
 
     // Installed packs live at `$FRAMES_HOME/packs`, and `FRAMES_HOME` defaults to `~/.config/frames`.
-    init(
+    package init(
         environment: [String: String],
         shipped: URL
     ) {
@@ -39,7 +39,7 @@ struct PackLibrary: Sendable {
     // MARK: - Public
     // A pack is the directory it is in, whatever its manifest calls it. It is checked each time it is used, since what
     // is installed can change between uses.
-    func pack(named name: String) throws -> Pack? {
+    package func pack(named name: String) throws -> Pack? {
         let installedDirectory = installed.appendingPathComponent(name, isDirectory: true)
         let shippedDirectory = shipped.appendingPathComponent(name, isDirectory: true)
         let isInstalled = isDirectory(installedDirectory)
@@ -69,9 +69,41 @@ struct PackLibrary: Sendable {
         return Pack(name: name, directory: directory, manifest: manifest)
     }
 
+    // Every installed and shipped pack, in name order, each checked as it is when it is used.
+    package func packs() throws -> [Pack] {
+        let names = Set(try entries(in: installed) + entries(in: shipped))
+
+        return try names.sorted().compactMap { try pack(named: $0) }
+    }
+
+    // What one of a pack's folders holds, by the names `<pack>/<name>` gives them, in name order. Where its kind of
+    // file takes `pathExtension`, the name leaves it out and a file without it is not of that kind.
+    package func names(
+        in folder: String,
+        of pack: Pack,
+        pathExtension: String?
+    ) throws -> [String] {
+        try names(in: pack.directory.appendingPathComponent(folder, isDirectory: true), pathExtension: pathExtension)
+    }
+
+    // The names of the files in `directory` that end in `pathExtension`, without it, in name order.
+    func names(
+        in directory: URL,
+        pathExtension: String?
+    ) throws -> [String] {
+        try entries(in: directory).compactMap { entry in
+            guard let pathExtension else { return entry }
+
+            let url = URL(fileURLWithPath: entry)
+            guard url.pathExtension == pathExtension else { return nil }
+
+            return url.deletingPathExtension().lastPathComponent
+        }
+    }
+
     // The file a reference names: a path as it is, and `<pack>/<name>` in a folder of its pack, with the extension
     // its kind of file takes. A bare name is built in, so no pack holds it, and a pack that is not there holds nothing.
-    func file(
+    package func file(
         of reference: PackReference,
         in folder: String,
         pathExtension: String?
@@ -98,16 +130,12 @@ struct PackLibrary: Sendable {
         guard let pack = try pack(named: name) else { return [] }
 
         let directory = pack.directory.appendingPathComponent("fonts", isDirectory: true)
-        guard isDirectory(directory) else { return [] }
 
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else {
-            throw PackError.unreadableFile(file: directory.path)
-        }
-        return names.filter { !$0.hasPrefix(".") }.sorted().map { directory.appendingPathComponent($0).path }
+        return try entries(in: directory).map { directory.appendingPathComponent($0).path }
     }
 
     // A file that is not there is nil, and one that is there but cannot be read stops.
-    func contents(of file: URL) throws -> Data? {
+    package func contents(of file: URL) throws -> Data? {
         var isDirectory: ObjCBool = false
         guard
             FileManager.default.fileExists(atPath: file.path, isDirectory: &isDirectory),
@@ -128,4 +156,15 @@ struct PackLibrary: Sendable {
     }
 
     // MARK: - Private
+    // What a directory holds, in name order, so a listing does not depend on the order the disk gives. A hidden entry,
+    // such as `.gitkeep` or `.DS_Store`, is not part of what it holds. A directory that is not there holds nothing, and
+    // one that is there but cannot be read stops.
+    private func entries(in directory: URL) throws -> [String] {
+        guard isDirectory(directory) else { return [] }
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else {
+            throw PackError.unreadableFile(file: directory.path)
+        }
+
+        return names.filter { !$0.hasPrefix(".") }.sorted()
+    }
 }

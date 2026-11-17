@@ -123,8 +123,12 @@ struct ResolvedValueReader: Sendable {
         try keyframes(value) { Crop(try rectangle($0)) }
     }
 
-    func filter(_ value: PlacedJSONValue) throws -> [ResolvedFilterOperation] {
-        try value.elements().map(operation)
+    // `grainKeys` are the keys a `grain` may hold besides its values: a display list's `seed`, which its reader reads.
+    func filter(
+        _ value: PlacedJSONValue,
+        grainKeys: [String] = []
+    ) throws -> [ResolvedFilterOperation] {
+        try value.elements().map { try operation($0, grainKeys: grainKeys) }
     }
 
     func span(_ object: PlacedJSONObject) throws -> Span {
@@ -186,8 +190,12 @@ struct ResolvedValueReader: Sendable {
 
                 return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
             },
-            runs: try text.member("runs").elements().map(run)
+            runs: try runs(text.member("runs"))
         )
+    }
+
+    func runs(_ value: PlacedJSONValue) throws -> [ResolvedGlyphRun] {
+        try value.elements().map(run)
     }
 
     // MARK: - Private
@@ -210,13 +218,16 @@ struct ResolvedValueReader: Sendable {
     }
 
     // `op` names the operation, and the rest of its keys are its values.
-    private func operation(_ value: PlacedJSONValue) throws -> ResolvedFilterOperation {
+    private func operation(
+        _ value: PlacedJSONValue,
+        grainKeys: [String]
+    ) throws -> ResolvedFilterOperation {
         let names = [
             "exposure", "contrast", "saturation", "temperature", "hue", "sepia", "levels", "lut", "blur", "sharpen",
             "bloom", "vignette", "pixelate", "grain"
         ]
         let name = try value.object(keys: ["op", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
-                                            "radius", "color", "size"])
+                                            "radius", "color", "size"] + grainKeys)
             .member("op")
             .name(among: names) { names.contains($0) ? $0 : nil }
         let keys = { (keys: [String]) in try value.object(keys: ["op"] + keys) }
@@ -283,7 +294,7 @@ struct ResolvedValueReader: Sendable {
             return .pixelate(size: try number(operation, "size"))
 
         default:
-            let operation = try keys(["amount", "size"])
+            let operation = try keys(["amount", "size"] + grainKeys)
             return .grain(amount: try number(operation, "amount"), size: try number(operation, "size"))
         }
     }

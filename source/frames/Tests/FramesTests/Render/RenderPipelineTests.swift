@@ -395,7 +395,13 @@ struct RenderPipelineTests {
     }
 
     private func picture() -> ResolvedPicture {
-        let step = ResolvedDrawingStep(content: .picture(.media(card, time: 0), crop: whole, frame: whole), clip: whole)
+        let step = ResolvedDrawingStep(
+            place: "source",
+            id: nil,
+            kind: "image",
+            content: .picture(.media(card, time: 0), crop: whole, frame: whole),
+            clip: whole
+        )
 
         return ResolvedPicture(kind: "image", size: size, steps: [step])
     }

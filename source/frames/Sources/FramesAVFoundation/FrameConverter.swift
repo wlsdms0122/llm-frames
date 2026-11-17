@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import CoreGraphics
 import CoreVideo
 import Foundation
 import Frames
@@ -12,9 +13,13 @@ import Frames
 // Copies a bitmap into a pixel buffer of a target's pixel format, tagged BT.709 primaries, the sRGB transfer and the
 // BT.709 matrix. `kCVPixelFormatType_64RGBALE` is the bitmap's own layout at sixteen bits, so values reach the codec
 // unchanged. `kCVPixelFormatType_32BGRA` takes each component rounded to eight bits. A target without alpha gets
-// alpha one: premultiplied colour with its alpha dropped is that colour over black.
+// alpha one: premultiplied colour with its alpha dropped is that colour over black. A bitmap of another size than the
+// buffer is scaled to it by Core Graphics at high interpolation, which only a compressed target, a 32BGRA one without
+// alpha, asks for.
 struct FrameConverter: Sendable {
     // MARK: - Property
+    private static let workingSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+
     private let keepsAlpha: Bool
 
     private var attachments: [CFString: CFString] {
@@ -31,11 +36,12 @@ struct FrameConverter: Sendable {
     }
 
     // MARK: - Public
-    // `buffer` is as wide and as high as `bitmap`.
+    // Gives whether the bitmap went in, which a scaled one does not when Core Graphics cannot draw it.
+    @discardableResult
     func copy(
         _ bitmap: Bitmap,
         into buffer: CVPixelBuffer
-    ) {
+    ) -> Bool {
         for (key, value) in attachments {
             CVBufferSetAttachment(buffer, key, value, .shouldPropagate)
         }
@@ -44,6 +50,11 @@ struct FrameConverter: Sendable {
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
         let destination = CVPixelBufferGetBaseAddress(buffer)!
         let destinationBytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        guard bitmap.width == width, bitmap.height == height else {
+            return draw(bitmap, into: destination, width: width, height: height, bytesPerRow: destinationBytesPerRow)
+        }
 
         bitmap.pixels.withUnsafeBytes { source in
             for row in 0..<bitmap.height {
@@ -57,9 +68,43 @@ struct FrameConverter: Sendable {
                 }
             }
         }
+
+        return true
     }
 
     // MARK: - Private
+    // Onto black, with alpha one, so the colour is the premultiplied colour over black as a copied row gives it.
+    private func draw(
+        _ bitmap: Bitmap,
+        into destination: UnsafeMutableRawPointer,
+        width: Int,
+        height: Int,
+        bytesPerRow: Int
+    ) -> Bool {
+        guard
+            let image = bitmap.image(),
+            let context = CGContext(
+                data: destination,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: bytesPerRow,
+                space: Self.workingSpace,
+                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+            )
+        else {
+            return false
+        }
+
+        let whole = CGRect(x: 0, y: 0, width: width, height: height)
+        context.setFillColor(CGColor(colorSpace: Self.workingSpace, components: [0, 0, 0, 1])!)
+        context.fill(whole)
+        context.interpolationQuality = .high
+        context.draw(image, in: whole)
+
+        return true
+    }
+
     private func copyRow(
         _ source: UnsafeRawPointer,
         depth: BitDepth,

@@ -6,8 +6,8 @@
 //
 
 // The floor every theme merges over. Its values are part of the contract, so they are kept exactly as written.
-enum BaseTheme {
-    static let text = """
+package enum BaseTheme {
+    package static let text = """
         {
           "baseWidth": 1206,
           "font": ["Apple SD Gothic Neo"],

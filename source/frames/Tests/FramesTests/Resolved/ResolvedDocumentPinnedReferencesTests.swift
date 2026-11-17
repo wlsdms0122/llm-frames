@@ -32,8 +32,8 @@ struct ResolvedDocumentPinnedReferencesTests {
     func listsSequenceReferences() {
         // Given
         let picture = ResolvedPicture(kind: "image", size: size, steps: [
-            step(.picture(.media(card, time: 0), crop: whole, frame: whole)),
-            step(.text(text(), frame: whole))
+            step("clips[1].media.source", "image", .picture(.media(card, time: 0), crop: whole, frame: whole)),
+            step("clips[1].media.ops[0]", "title", .text(text(), frame: whole))
         ])
         let sut = ResolvedDocument.sequence(ResolvedSequence(
             format: format(),
@@ -64,25 +64,25 @@ struct ResolvedDocumentPinnedReferencesTests {
             .media(stinger, place: "storyline[1]"),
             .media(wipe, place: "storyline[1]"),
             .file(font, place: "clips[0]"),
-            .media(card, place: "clips[1]"),
-            .file(font, place: "clips[1]"),
+            .media(card, place: "clips[1].media.source"),
+            .file(font, place: "clips[1].media.ops[0]"),
             .media(music, place: "clips[2]")
         ])
     }
 
-    @Test("an image document's own steps have no place")
-    func listsPictureReferencesWithoutPlace() {
+    @Test("an image document's steps pin their files at the places of what drew them")
+    func listsPictureReferencesAtStepPlaces() {
         // Given
         let sut = ResolvedDocument.picture(ResolvedPicture(kind: "image", size: size, steps: [
-            step(.picture(.media(card, time: 0), crop: whole, frame: whole)),
-            step(.adjustment([.lut(file: lut, amount: 0.5)], area: whole))
+            step("source", "image", .picture(.media(card, time: 0), crop: whole, frame: whole)),
+            step("ops[0]", "adjust", .adjustment([.lut(file: lut, amount: 0.5)], area: whole))
         ]))
 
         // When
         let references = sut.pinnedReferences
 
         // Then
-        #expect(references == [.media(card, place: nil), .file(lut, place: nil)])
+        #expect(references == [.media(card, place: "source"), .file(lut, place: "ops[0]")])
     }
 
     @Test("an image sequence pins each of its frame files in frame order")
@@ -213,8 +213,12 @@ struct ResolvedDocumentPinnedReferencesTests {
         )
     }
 
-    private func step(_ content: ResolvedDrawingContent) -> ResolvedDrawingStep {
-        ResolvedDrawingStep(content: content, clip: whole)
+    private func step(
+        _ place: String,
+        _ kind: String,
+        _ content: ResolvedDrawingContent
+    ) -> ResolvedDrawingStep {
+        ResolvedDrawingStep(place: place, id: nil, kind: kind, content: content, clip: whole)
     }
 
     private func text() -> ResolvedText {

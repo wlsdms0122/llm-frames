@@ -13,11 +13,10 @@ import Foundation
 // frame's display list, the mixer on the mix plan, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
-    private let decoder: any MediaDecoder
     private let renderer: any Renderer
     private let mixer: any Mixer
     private let encoder: any Encoder
-    private let hasher: any FileHashProvider
+    private let pinned: PinnedReferenceChecker
     private let evaluator = Evaluator()
     private let planner = MixPlanner()
 
@@ -38,11 +37,10 @@ package struct RenderPipeline: Sendable {
         encoder: any Encoder,
         hasher: any FileHashProvider
     ) {
-        self.decoder = decoder
         self.renderer = renderer
         self.mixer = mixer
         self.encoder = encoder
-        self.hasher = hasher
+        self.pinned = PinnedReferenceChecker(decoder: decoder, hasher: hasher)
     }
 
     // MARK: - Public
@@ -74,7 +72,7 @@ package struct RenderPipeline: Sendable {
             throw RenderError.deliveryOfPicture(path: delivery, kind: picture.kind)
         }
 
-        try checkPinned(document.pinnedReferences)
+        try pinned.check(document.pinnedReferences)
 
         let list = evaluator.displayList(of: document, at: 0)
         try renderer.check(list)
@@ -95,7 +93,7 @@ package struct RenderPipeline: Sendable {
             throw RenderError.deliveryExtension(path: delivery)
         }
 
-        try checkPinned(document.pinnedReferences)
+        try pinned.check(document.pinnedReferences)
 
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
@@ -127,39 +125,6 @@ package struct RenderPipeline: Sendable {
         for writer in writers {
             try writer.finish()
         }
-    }
-
-    // Every pinned file's hash first, each file once at the first place that pins it, then the decoder on each media
-    // once.
-    private func checkPinned(_ references: [PinnedReference]) throws {
-        var hashed: Set<String> = []
-        for reference in references {
-            for file in reference.files where hashed.insert(file.path).inserted {
-                try checkHash(of: file, place: reference.place)
-            }
-        }
-
-        var checked: Set<String> = []
-        for case let .media(media, _) in references {
-            let file = MediaFile(media: media)
-            guard checked.insert(file.path).inserted else { continue }
-
-            try decoder.check(file)
-        }
-    }
-
-    private func checkHash(
-        of file: PinnedFile,
-        place: String?
-    ) throws {
-        let digest: String
-        do {
-            digest = try hasher.sha256(ofFile: file.path)
-        } catch {
-            throw RenderError.unreadableFile(path: file.path, place: place)
-        }
-
-        guard digest == file.sha256 else { throw RenderError.changedFile(path: file.path, place: place) }
     }
 
     private func pathExtension(of path: String) -> String {

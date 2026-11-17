@@ -39,7 +39,9 @@ struct RecordingDecoder: MediaDecoder {
         from start: Double,
         to end: Double
     ) throws -> SoundBuffer {
-        SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
+        log.record(.readSound(path: file.path, from: start, to: end))
+
+        return SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
     }
 
     // MARK: - Public

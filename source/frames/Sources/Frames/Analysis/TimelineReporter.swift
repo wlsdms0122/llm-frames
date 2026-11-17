@@ -5,19 +5,22 @@
 //  Created by JSilver on 11/15/26.
 //
 
+import Foundation
+
 // Plans a sequence without rendering and reports its time as `timeline` prints it, with every window as tracking
-// leaves it. It stops wherever the plan does.
-struct TimelineReporter: Sendable {
+// leaves it. It stops wherever the plan does. A resolved document is reported as it is written: it keeps no names, so
+// its presets are nil and its media is the pinned file, and it holds an audio clip only as sound, so it reports none.
+package struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
 
     // MARK: - Initializer
-    init(planner: DocumentPlanner) {
+    package init(planner: DocumentPlanner) {
         self.planner = planner
     }
 
     // MARK: - Public
-    func report(
+    package func report(
         of document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
@@ -29,6 +32,16 @@ struct TimelineReporter: Sendable {
         // An image or layout document has no time, so its report holds nothing once it resolves.
         case .picture:
             return TimelineReport(duration: 0, storyline: [], clips: [])
+        }
+    }
+
+    package func report(of document: ResolvedDocument) -> TimelineReport {
+        switch document {
+        case let .sequence(sequence):
+            report(of: sequence)
+
+        case .picture:
+            TimelineReport(duration: 0, storyline: [], clips: [])
         }
     }
 
@@ -52,7 +65,7 @@ struct TimelineReporter: Sendable {
         geometry: StorylineGeometry
     ) -> TimelineStorylineEntry {
         TimelineStorylineEntry(
-            place: clip.place,
+            place: clip.place.description,
             id: clip.id,
             media: clip.source.media?.reference,
             edit: clip.edit,
@@ -70,10 +83,10 @@ struct TimelineReporter: Sendable {
         storyline: [StorylinePlan]
     ) -> TimelineClipEntry {
         let animation = clip.animation
-        let parent = clip.isParented ? clip.storyline.map { storyline[$0].place } : nil
+        let parent = clip.isParented ? clip.storyline.map { storyline[$0].place.description } : nil
 
         return TimelineClipEntry(
-            place: clip.place,
+            place: clip.place.description,
             id: clip.id,
             kind: clip.kind.label,
             visible: clip.visible,
@@ -92,5 +105,130 @@ struct TimelineReporter: Sendable {
 
     private func span(_ span: PresetSpan) -> TimelineSpan {
         TimelineSpan(preset: span.preset, length: span.span.length)
+    }
+
+    private func report(of sequence: ResolvedSequence) -> TimelineReport {
+        let storyline = sequence.storyline
+
+        return TimelineReport(
+            duration: sequence.format.duration,
+            storyline: storyline.indices.map { index in
+                entry(of: storyline[index], outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil)
+            },
+            clips: sequence.clips.map { entry(of: $0, storyline: storyline) }
+        )
+    }
+
+    // A clip is drawn from the start of its incoming transition to the end of its outgoing one.
+    private func entry(
+        of clip: ResolvedStorylineClip,
+        outgoing: ResolvedStorylineClip?
+    ) -> TimelineStorylineEntry {
+        let edit = TimeRange(start: clip.start, end: clip.end)
+        let drawn = TimeRange(
+            start: clip.transition?.start ?? clip.start,
+            end: outgoing?.transition?.end ?? clip.end
+        )
+
+        return TimelineStorylineEntry(
+            place: clip.place,
+            id: clip.id,
+            media: clip.media.flatMap(file(of:)),
+            edit: edit,
+            drawn: drawn,
+            clip: TimeRange(start: clip.in, end: clip.out),
+            speed: clip.speed,
+            transition: clip.transition.map { TimelineTransition(preset: nil, seconds: $0.end - $0.start) },
+            nested: clip.media.flatMap(nestedReport(of:))
+        )
+    }
+
+    private func entry(
+        of clip: ResolvedClip,
+        storyline: [ResolvedStorylineClip]
+    ) -> TimelineClipEntry {
+        let animation = clip.animation
+        let parent = clip.isParented
+            ? clip.storyline.flatMap { storyline.indices.contains($0) ? storyline[$0].place : nil }
+            : nil
+        let media: ResolvedMediaContent? = if case let .media(media) = clip.content { media.media } else { nil }
+
+        return TimelineClipEntry(
+            place: clip.place,
+            id: clip.id,
+            kind: kind(of: clip.content),
+            visible: TimeRange(start: clip.start, end: clip.end),
+            lane: clip.lane,
+            parent: parent,
+            animation: animation == .none
+                ? nil
+                : TimelineAnimation(
+                    entrance: animation.entrance.map(span),
+                    loop: animation.loop.map(span),
+                    exit: animation.exit.map(span)
+                ),
+            nested: media.flatMap(nestedReport(of:))
+        )
+    }
+
+    private func span(_ span: AnimationSpan) -> TimelineSpan {
+        TimelineSpan(preset: nil, length: span.length)
+    }
+
+    // The kind a clip was written as, as far as what it draws tells it: a media clip without timing shows a still.
+    private func kind(of content: ResolvedClipContent) -> String {
+        switch content {
+        case .title:
+            ClipKind.title.label
+
+        case let .shape(drawing):
+            switch drawing {
+            case .box:
+                "box"
+
+            case .fill:
+                "fill"
+
+            case .dim:
+                "dim"
+
+            case .arrow:
+                "arrow"
+            }
+
+        case .adjustment:
+            ClipKind.adjust.label
+
+        case let .media(clip):
+            switch clip.media {
+            case .nested(.sequence):
+                ClipKind.media(.sequence).label
+
+            case .nested(.picture):
+                ClipKind.media(.image).label
+
+            case .pinned:
+                ClipKind.media(clip.timing == nil ? .image : .video).label
+            }
+        }
+    }
+
+    // An image sequence is pinned as its frame files, so it is named by the directory that holds them.
+    private func file(of media: ResolvedMediaContent) -> String? {
+        guard case let .pinned(pinned) = media else { return nil }
+
+        switch pinned.source {
+        case let .file(file):
+            return file.path
+
+        case let .imageSequence(files):
+            return files.first.map { URL(fileURLWithPath: $0.path).deletingLastPathComponent().path }
+        }
+    }
+
+    private func nestedReport(of media: ResolvedMediaContent) -> TimelineReport? {
+        guard case let .nested(.sequence(sequence)) = media else { return nil }
+
+        return report(of: sequence)
     }
 }
