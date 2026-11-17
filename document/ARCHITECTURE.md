@@ -73,6 +73,7 @@ frames/
     howto/<name>.md
   packs/                   the first forms, installed by copying, not part of the tool
     pr-evidence/  shorts/  demo/
+  source/install.sh        builds the tool and installs it with its presets
   source/frames/           the Swift package and the built tool
     Sources/FramesCommand/ the commands, their arguments and the role table
       Resources/

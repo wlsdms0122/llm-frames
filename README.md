@@ -18,13 +18,11 @@ The specification in [`spec/`](spec/README.md) is the authority on every rule. T
 frames is a Swift package for macOS. It renders with Apple's frameworks (AVFoundation, Core Graphics, Core Image, Vision, Core Text).
 
 ```sh
-swift build -c release --package-path source/frames
-cp source/frames/.build/release/frames /usr/local/bin/frames
-cp -R source/frames/.build/release/Frames_FramesCommand.bundle /usr/local/bin/
+sh source/install.sh
 frames --version
 ```
 
-The built in presets live in `Frames_FramesCommand.bundle`, which goes in the same directory as the tool.
+It builds a release, then installs `frames` and `Frames_FramesCommand.bundle`, which holds the built in presets, side by side in `/usr/local/bin`. `--prefix <dir>` (or `FRAMES_PREFIX`) installs them elsewhere, and `open-package install` runs the same script.
 
 The tool is `frames`. Packs (looks, forms and templates others made) are installed by copying a directory into `$FRAMES_HOME/packs/`, and `FRAMES_HOME` defaults to `~/.config/frames`:
 
