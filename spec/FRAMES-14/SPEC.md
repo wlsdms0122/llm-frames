@@ -4,36 +4,76 @@ Status: accepted
 
 ## Summary
 
-Presets as data files: the motion properties and spans they share, animation presets (entrance, loop, exit) and transition presets (motion, cover and matte).
+Presets as data files with published parameters: how a preset declares parameters and a document passes arguments, the motion properties and spans every preset shares, animation presets (entrance, loop, exit) and transition presets (motion of the two storyline pictures, cover, matte and the sound crossfade).
 
 ## Motivation
 
-A look is shared and sold as data, and adding one must need no rebuild. Spans of keys over progress let any entrance or wipe be written without code.
+Editors reuse motion. The same cross dissolve runs between hundreds of shots, every lower third enters the same way, and each chapter of a film dips to the same colour. Final Cut Pro and Premiere Pro keep these as effects applied by name, each with a few published controls (a colour, a direction, a softness) set per use. frames keeps them as data files with parameters, so a look is shared and sold without a rebuild, an agent writes a new one without code, and one dip with a `color` parameter gives a dip to black in one place and a dip to a brand blue in another, where two copies of the file would drift apart as soon as one is fixed. Spans of keys over progress let any entrance, loop or wipe be written without code.
 
 ## Rules
 
 A preset is one JSON file at `presets/<transition|animation|filter>/<name>.json`. `<pack>/<name>` is a preset in a pack ([FRAMES-17](../FRAMES-17/SPEC.md)), the ones frames ships in the pack `frames` (`frames/pop`), and an absolute path reads that file. Adding a preset needs no rebuild.
 
-Every preset has a `description`: one line on how it looks and when to use it, which `presets` prints. Unknown keys and broken rules in a preset stop when it is read.
+Every preset has a `description`: one line on how it looks and moves, which `presets` prints. It says what the viewer sees, not what the preset is for. Unknown keys and broken rules in a preset stop when it is read.
+
+### Parameters and arguments
+
+A preset may publish parameters, as an NLE effect publishes its controls. `params` maps a name to a parameter, the same object a template's parameters are ([FRAMES-17](../FRAMES-17/SPEC.md)), with these limits for a preset:
+
+- `type` is `number`, `color` or `choice`. A preset holds no text and no media, so any other type stops.
+- `default` is required, so a preset named without arguments always works.
+- A `choice`'s `options` are eases ([FRAMES-4](../FRAMES-4/SPEC.md)).
+
+Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's type wherever a number, a colour or an ease is written: a key's property value or `t`, a span's `seconds` or `period`, a transition's `seconds`, `matte.softness`, a cover `color`, a spring's `bounce`, or a span's or transition's `ease`. It never stands for a key, a name (a `revealFrom` side, `over`, `audio`) or a file. A number parameter stands only where a number is written, a colour parameter only where a colour is, and a choice only where an ease is.
+
+```json
+{ "description": "Dips to a colour and holds a beat, then the next clip comes up out of it.",
+  "params": {
+    "color": { "type": "color", "default": "#000000", "description": "colour of the dip" },
+    "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" } },
+  "seconds": 0.7, "ease": { "param": "curve" },
+  "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
+  "cover": { "color": { "param": "color" },
+             "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+```
+
+A preset is checked when it is read: its keys, that every `{"param"}` names one of its parameters and stands where its type is taken, that every parameter is referred to (a declared parameter nothing refers to stops), and every value with each parameter at its default. Where a choice passes arguments, the values are checked again with them, and a value its place does not take (a `seconds` of 0, an opacity outside 0 to 1) stops, naming the choice's place.
+
+A document passes arguments in its preset choices:
+
+| Choice | Forms |
+| --- | --- |
+| transition choice | `"cut"`, a preset name, or `{preset, seconds, args}` |
+| animation choice | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}` |
+| side of `{entrance, exit}` | `"none"`, a preset name, or `{preset, args}` |
+| filter choice | [FRAMES-15](../FRAMES-15/SPEC.md) |
+
+- A preset name is `<pack>/<name>` or an absolute path.
+- In an object choice `preset` is required, and so is at least one of the other keys: `{preset}` alone stops, since the name alone is that choice.
+- `seconds` in a transition choice replaces the preset's own. It is above 0, as a preset's own is, and 0 or less stops.
+- `args` maps parameter names to values. An unknown name stops, a value of the wrong type stops (a choice value that is not one of its options included), and a parameter with no argument takes its default.
+- A choice is the same wherever it is written: on a clip ([FRAMES-7](../FRAMES-7/SPEC.md)), in a theme's `defaults` ([FRAMES-22](../FRAMES-22/SPEC.md)), or as a template's argument or option ([FRAMES-17](../FRAMES-17/SPEC.md)).
+
+```json
+"transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } },
+"animation": { "entrance": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } }, "exit": "frames/fade" }
+```
+
+Resolve applies the arguments, so a resolved preset holds plain values and no parameters ([FRAMES-19](../FRAMES-19/SPEC.md)).
 
 ### Motion properties
 
 | Property | Default | Meaning |
 | --- | --- | --- |
-| `opacity` | 1 | opacity |
-| `scale` | 1 | scale around the anchor point ([FRAMES-1](../FRAMES-1/SPEC.md)), or the centre of the box for a clip placed by an area |
-| `x`, `y` | 0 | offset in multiples of the thing's own size, or of the content rect in a transition. Down is positive |
+| `opacity` | 1 | opacity, multiplied with the receiver's own |
+| `scale` | 1 | scale around the anchor point ([FRAMES-1](../FRAMES-1/SPEC.md)) |
+| `x`, `y` | 0 | offset in multiples of the receiver's own size, its box before any scale ([FRAMES-1](../FRAMES-1/SPEC.md)). In a transition, multiples of the frame's width and height. Right and down are positive |
 | `rotation` | 0 | degrees, clockwise positive, around the same point as `scale` |
-| `reveal` | 1 | 0 shows nothing, 1 shows everything. How it reveals depends on what receives it (below) |
-| `nudge` | 0 | moves an arrow towards what it points at by multiples of its length. Only arrows read it |
+| `reveal` | 1 | how much of the receiver shows: 0 nothing, 1 everything, wiped from the `revealFrom` side (below) |
 
-| Receiver of `reveal` | How it reveals |
-| --- | --- |
-| box | the border is drawn around |
-| fill | painted from the `revealFrom` side |
-| dim | closes in from all it darkens to the area |
-| arrow | grows from its tail to its head |
-| title, media, adjustment, storyline picture | wiped from the `revealFrom` side |
+`reveal` wipes every receiver the same way. The receiver's box is the bounds of everything it draws, in its own space before the animation's transform: a title's text box with its background and stroke, a media clip's box with its border and shadow, a shape's outline with its stroke, arrowheads and shadow, an adjustment's mask (the frame when it has none), and in a transition a storyline picture's frame. At reveal r, the part of that box from the `revealFrom` side up to r of its width (`left`, `right`) or of its height (`top`, `bottom`) shows, and the rest is hidden, with a hard straight edge. The edge lies in the receiver's own space, so it turns and moves with the receiver's transform.
+
+**Note.** Drawing a stroke on, as an outline traced around or a line growing to its arrowhead, is a shape's `trim` keyframes ([FRAMES-11](../FRAMES-11/SPEC.md)), not a preset property. A preset that moves one kind of clip only would be a purpose built into a tool.
 
 A span is:
 
@@ -46,13 +86,14 @@ A span is:
 - Each property joins only the keys that name it, in straight lines. Opacity can finish at 30% while scale runs to the end.
 - Two keys that name a property at the same `t` make it jump there: it takes the first key's value up to that point and the second's from it.
 - A property the span does not name takes its default.
-- `ease` bends the progress first, and the bent value drives every property. Where an ease leaves 0 to 1 (`back-out`), a property whose keys reach that end goes on along its last line, so it overshoots. One whose keys stop short of it holds.
+- `ease` bends the progress first, and the bent value drives every property. It takes every ease form of [FRAMES-4](../FRAMES-4/SPEC.md), the spring included. Where an ease leaves 0 to 1 (`back-out`, a spring with bounce), a property whose keys reach that end goes on along its last line, so it overshoots. One whose keys stop short of it holds.
 - `revealFrom` is `left`, `right`, `top` or `bottom`. The default is `left`.
 
 ### animation
 
 ```json
 { "description": "...",
+  "params": { ... },
   "entrance": { "seconds": 0.35, "ease": "back-out", "keys": [ ... ] },
   "loop":     { "period": 0.9, "keys": [ ... ] },
   "exit":     { "seconds": 0.15, "keys": [ ... ] } }
@@ -65,15 +106,17 @@ A span is:
 | `exit` | for the last `seconds` of the visible window | `seconds` | `ease-in` |
 
 - Every span is optional. Without one the clip simply shows.
+- An animation is taken by titles, media clips with a picture, shapes and adjustments. A storyline clip takes none and moves only by its keyframes and its transitions.
 - On a short clip the entrance runs first and the exit takes what time is left.
-- `{entrance, exit}` as a choice takes the entrance from one preset and the exit from another. Both are written, and a side without one is `none`.
+- `{entrance, exit}` as a choice takes the entrance span from one preset and the exit span from another, each with its own arguments, and no loop. Both sides are written, and a side without a span is `"none"`.
 - An animation is applied over the clip's keyframes, about the same point: its scale and opacity multiply, and its x, y and rotation add. A preset's look is the same for every anchor point, made about that point.
 
 ### transition
 
 ```json
 { "description": "...",
-  "seconds": 0.45, "ease": "ease-in-out", "over": "incoming",
+  "params": { ... },
+  "seconds": 0.45, "ease": "ease-in-out", "over": "incoming", "audio": "constant-power",
   "incoming": { "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
   "outgoing": { "keys": [ { "t": 0, "y": 0 }, { "t": 1, "y": -1 } ] },
   "cover":    { "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
@@ -81,27 +124,28 @@ A span is:
 
 | Key | Meaning |
 | --- | --- |
-| `seconds` | default length, required. `{preset, seconds}` in a document overrides it, and writes both |
+| `seconds` | default length, required. A transition choice's `seconds` replaces it |
 | `ease` | default curve of incoming, outgoing, cover and matte |
-| `over` | which unit is on top during the transition: `incoming` (default) or `outgoing` |
-| `incoming` | motion of the incoming clip |
-| `outgoing` | motion of the outgoing clip |
-| `cover` | `{color, keys}` or `{media, keys}`: a colour (a dip to colour) or an image or video with alpha (a stinger) over both units, stretched over the content rect. Its keys take `t` and `opacity` only |
+| `over` | which storyline picture is on top during the transition: `incoming` (default) or `outgoing` |
+| `audio` | the curve of the sound crossfade: `constant-power` (default) or `constant-gain` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| `incoming` | motion of the incoming storyline picture |
+| `outgoing` | motion of the outgoing storyline picture |
+| `cover` | `{color, keys}` or `{media, keys}`: a colour (a dip to colour) or an image or video with alpha (a stinger) over both storyline pictures, stretched over the frame. Its keys take `t` and `opacity` only |
 | `matte` | `{media, softness, invert}`: a luma wipe (below) |
 
-- A storyline picture reads opacity, scale, x, y, rotation and reveal. Scale, x, y and rotation act around the centre of the content rect, and reveal shows the content rect from the `revealFrom` side.
-- `seconds` in a `{preset, seconds}` choice is above 0, as a preset's own is, and 0 or less stops.
+- A transition moves the two storyline pictures and nothing else. Each reads opacity, scale, x, y, rotation and reveal. The motion is applied after the picture's own transform ([FRAMES-9](../FRAMES-9/SPEC.md)): scale and rotation act around the centre of the frame, x and y move by multiples of the frame, opacity multiplies the picture's own, and reveal shows the frame from the `revealFrom` side.
 - `seconds` or `period` inside a span stops. A transition's time is its length.
 - To change scenes while the cover hides them, cut the incoming opacity from 0 to 1 at that point.
-- `matte.media` is a greyscale image or video, stretched over the content rect. The incoming unit shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a track-matte wipe that shows the incoming unit where it is black. Either gives any wipe shape without code. A matte reveals the incoming unit, so a transition with both `matte` and `"over": "outgoing"` stops.
+- `matte.media` is a greyscale image or video, stretched over the frame. The incoming picture shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a track-matte wipe that shows the incoming picture where it is black. Either gives any wipe shape without code. A matte reveals the incoming picture, so a transition with both `matte` and `"over": "outgoing"` stops.
 - A video in `matte` or `cover` is stretched over the transition: at progress p it shows media time p × its duration, so the transition's seconds change its speed, not its shape.
+- `audio` shapes the sound only. Its curve runs over the transition's time at an even pace, and the preset's `ease` does not bend it.
 
 ## Interactions
 
-Presets come from packs ([FRAMES-17](../FRAMES-17/SPEC.md)). The presets that ship are [FRAMES-16](../FRAMES-16/SPEC.md). Defaults are in the theme ([FRAMES-22](../FRAMES-22/SPEC.md)).
+Presets come from packs ([FRAMES-17](../FRAMES-17/SPEC.md)), and preset parameters share the parameter table of templates there. The presets that ship are [FRAMES-16](../FRAMES-16/SPEC.md). Filter presets and the filter choice are [FRAMES-15](../FRAMES-15/SPEC.md). Ease forms, the spring included, are [FRAMES-4](../FRAMES-4/SPEC.md). Defaults are in the theme ([FRAMES-22](../FRAMES-22/SPEC.md)). Where the cover sits among the lanes is [FRAMES-9](../FRAMES-9/SPEC.md), and the crossfade gains are [FRAMES-13](../FRAMES-13/SPEC.md). A clip parented to an animated clip or to a storyline picture in a transition follows the scale, rotation, x and y of that motion, but not its opacity or reveal ([FRAMES-10](../FRAMES-10/SPEC.md)). To have a title leave with its picture in a dissolve or a wipe, put both in a compound clip and give the transition to that clip ([FRAMES-9](../FRAMES-9/SPEC.md)).
 
 ## Alternatives considered
 
-Effects as code: packs carry data only, so every role can draw them (README).
+Effects as code: packs carry data only, so every role can draw them (README). Parameters as expressions, as After Effects writes them: an expression is code, set aside for the same reason. Presets without parameters: each variant (a dip to black, to white, to a brand colour) would be its own copy of the file, and a fix to one would not reach the others. A `reveal` that differs by receiver (an outline traced around on one kind of clip, a line grown from its tail on another): a property whose meaning depends on one kind of clip is a purpose built into a tool, and a shape's `trim` draws any stroke on. A motion property only one kind of clip reads, such as a jab towards a target: the same reason, and position keyframes or a parent give it. Transition offsets in multiples of the picture's own box: a picture scaled to half the frame would push only half a frame and leave a gap, while every NLE pushes and slides by the frame. A transition that moves a picture together with the clips parented to it: it would move clips the editor did not put in the transition, and a compound clip already says what moves together.
 
 ## Notes

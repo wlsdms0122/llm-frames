@@ -4,18 +4,24 @@ Status: accepted
 
 ## Summary
 
-Filter presets as chains of operations from a fixed table, each with its formula in the working space.
+Filter presets as chains of operations from a fixed table, each with its formula in the working space, with published parameters inside the operations, and the filter choice that applies them with arguments.
 
 ## Motivation
 
-A preset must look the same on every renderer, or swapping the renderer changes every look. The formulas are the contract, so a renderer maps each op to its own and keeps the result.
+A grade, a blur or a film look made in one place is used on many shots and must look the same wherever the document is rendered. If an op were a name only, swapping the renderer would change every look, so the formulas are the contract and a renderer maps each op to its own. Editors also set a look per shot, as a colourist turns a grain down on a dark scene or a vignette up on a close-up, so a filter publishes the numbers worth changing and a document sets them without copying the preset.
 
 ## Rules
 
 A filter preset is a chain of operations from this table, applied in order. The operations are frames vocabulary and their formulas are the contract, so every renderer maps them to its own and a preset looks the same on each.
 
 ```json
-{ "description": "...", "ops": [ { "op": "saturation", "amount": 0 }, { "op": "contrast", "amount": 1.3 } ] }
+{ "description": "Lifted blacks, muted colour and a fine grain, like a print film stock.",
+  "params": {
+    "lift":  { "type": "number", "default": 0.08, "description": "how far the blacks are lifted" },
+    "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
+  "ops": [ { "op": "saturation", "amount": 0.8 },
+           { "op": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
+           { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
 ```
 
 | op | Parameters | Meaning |
@@ -36,7 +42,7 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | `grain` | `amount` (0 to 1), `size` (theme length) | adds amount × 4L(1 - L) × n to each channel, where n is monochrome noise with standard deviation 1 and grains `size` across. Evaluation writes its `seed` ([FRAMES-20](../FRAMES-20/SPEC.md)), so a render made again has the same grain |
 
 - An unknown op stops when the preset is read, and so does a parameter outside its range: the ranges in the table, `levels` with black at or above white, a length or size (`radius`, `size`) at or below 0, and a `vignette` radius outside 0 to 1.
-- Parameters are numbers, lists of numbers, colours, or for `lut` a file: `<pack>/<name>` for `luts/<name>.cube` in a pack, or an absolute path.
+- Op parameters are numbers, lists of numbers, colours, or for `lut` a file: `<pack>/<name>` for `luts/<name>.cube` in a pack, or an absolute path.
 - v is a channel of a pixel's colour with alpha unpremultiplied, and L is its luminance ([FRAMES-21](../FRAMES-21/SPEC.md)). Colour operations leave alpha as it is, and every operation's result is clamped to 0 to 1. smoothstep is as in GLSL.
 - Blur, sharpen, bloom and pixelate work on colour premultiplied by alpha, so a transparent pixel adds nothing to its neighbours, and their result is clamped so that alpha and the unpremultiplied colour lie in 0 to 1. A bloom colour's alpha scales the bloom.
 - `pixelate` blocks lie on a grid from the picture's top left corner, and a block holds the pixels whose centres lie in it, so a block at the right or bottom edge averages fewer pixels.
@@ -45,12 +51,32 @@ A filter preset is a chain of operations from this table, applied in order. The 
 - The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) read the edge pixels extended outward, and are cropped back to the original size.
 - Every renderer computes these formulas in the working space ([FRAMES-21](../FRAMES-21/SPEC.md)). Pixels differ between renderers only by rounding, and grain by its noise generator, which is the renderer's.
 
+### Parameters
+
+A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-14/SPEC.md)), with the parameter table of [FRAMES-17](../FRAMES-17/SPEC.md). Inside `ops`, `{"param": "<name>"}` stands for a number wherever an op takes a number, an element of `input` and `output` included, and for a colour where an op takes a colour (`bloom` `color`). It never stands for an `op` name, a key or a `lut` file. A filter has no ease, so its parameters are `number` or `color`, and a `choice` stops. The ranges above are checked when the preset is read, with every parameter at its default, and again with the arguments a choice gives, naming that choice.
+
+### Filter choice
+
+| Form | Meaning |
+| --- | --- |
+| `"none"` | no filter. On a clip it turns off the theme's default filter |
+| a preset name | that preset with its defaults: `<pack>/<name>` or an absolute path |
+| `{preset, args}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them. `args` is required, since the name alone is the form above |
+| a list of names and `{preset, args}` | each in turn, the first applied first |
+
+- A list holds at least one entry and no `"none"`. An empty list, or one that holds `"none"`, stops.
+- The same preset may appear twice in a list, each time with its own arguments.
+
+```json
+"filter": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
+```
+
 ## Interactions
 
-The working space is [FRAMES-21](../FRAMES-21/SPEC.md). Shipped filters are [FRAMES-16](../FRAMES-16/SPEC.md).
+The working space is [FRAMES-21](../FRAMES-21/SPEC.md). Which clips take a filter, and at what size it is applied, is [FRAMES-9](../FRAMES-9/SPEC.md) and [FRAMES-11](../FRAMES-11/SPEC.md). An adjustment clip's `adjust` is a filter choice ([FRAMES-11](../FRAMES-11/SPEC.md)). The default filter is in the theme ([FRAMES-22](../FRAMES-22/SPEC.md)). Shipped filters are [FRAMES-16](../FRAMES-16/SPEC.md). Parameters share the table of [FRAMES-17](../FRAMES-17/SPEC.md).
 
 ## Alternatives considered
 
-Names without formulas: the meaning of a shipped preset's numbers would be each renderer's.
+Names without formulas: the meaning of a shipped preset's numbers would be each renderer's. A filter without parameters: a grain turned down for one dark shot would be a copy of the whole preset. A parameter that stands for a LUT file or an op: the preset's files and chain would then be the document's, while a preset is checked whole when it is read. A pack ships one filter per LUT instead, and a template's `choice` picks among them ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
 ## Notes
