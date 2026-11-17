@@ -12,8 +12,8 @@ import Foundation
 // in an .m4a, and a video to H.264 or HEVC in an .mp4, .mov or .m4v with its sound in AAC, or to its sound alone in an
 // .m4a. Pictures are taken as the decoder displays them, turned, and nothing else of the input is carried over.
 // Everything that can stop does before anything is written, in this order: `--max`, the input, the paths, the output
-// extension, `--codec`, a video's sound or frame rate, the decoder on the input and the encoder on the target. An
-// existing output file is removed only then.
+// extension, `--codec`, a video's sound or frame rate, the decoder on the input, and the encoder on the target and on
+// the layout of the sound read for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -137,10 +137,14 @@ package struct Transcoder: Sendable {
             size: outputSize(of: size, maximumSide: request.maximumSide, isVideo: true)
         )
         try decoder.check(file)
-        try encoder.check(target)
-
         let frameCount = frameCount(duration: media.duration, fps: fps)
         let sound = media.hasSound ? try decoder.sound(of: file, from: 0, to: Double(frameCount) / fps) : nil
+        try encoder.check(target)
+        // A video's sound goes to AAC as a sound file's does, so the encoder checks its layout the same way.
+        if let sound {
+            try encoder.check(SoundTarget(path: request.output, quality: request.quality, layout: sound.layout))
+        }
+
         try removeExisting(request.output)
 
         // A writer let go before it finishes, as when a frame cannot be read, cancels and removes its file.
@@ -158,11 +162,11 @@ package struct Transcoder: Sendable {
         duration: Double,
         for request: TranscodeRequest
     ) throws {
-        let target = SoundTarget(path: request.output, quality: request.quality)
         try decoder.check(file)
+        let sound = try decoder.sound(of: file, from: 0, to: duration)
+        let target = SoundTarget(path: request.output, quality: request.quality, layout: sound.layout)
         try encoder.check(target)
 
-        let sound = try decoder.sound(of: file, from: 0, to: duration)
         try removeExisting(request.output)
         try encoder.writeSound(sound, for: target)
     }

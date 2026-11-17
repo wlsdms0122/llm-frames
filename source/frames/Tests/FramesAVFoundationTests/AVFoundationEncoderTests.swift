@@ -229,11 +229,23 @@ struct AVFoundationEncoderTests {
         let checked = Result {
             try targets.forEach(sut.check)
             try images.forEach(sut.check)
-            try sut.check(SoundTarget(path: "i.m4a", quality: .medium))
+            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: ChannelLayout(channels: 6)))
         }
 
         // Then
         #expect(throws: Never.self) { try checked.get() }
+    }
+
+    @Test("the check of a sound target refuses a layout of more than two channels that BS.775 cannot downmix")
+    func refusesUndownmixableLayout() {
+        // Given
+        let sut = AVFoundationEncoder()
+        let layout = ChannelLayout(labels: [.left, .right, .discrete])
+
+        // When, Then
+        #expect(throws: EncoderError.undownmixable(file: "i.m4a")) {
+            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: layout))
+        }
     }
 
     @Test(
@@ -400,7 +412,7 @@ struct AVFoundationEncoderTests {
         // When
         try sut.writeSound(
             tone(seconds: 1, sampleRate: sampleRate, channels: channels),
-            for: SoundTarget(path: path, quality: quality)
+            for: SoundTarget(path: path, quality: quality, layout: ChannelLayout(channels: channels))
         )
 
         // Then

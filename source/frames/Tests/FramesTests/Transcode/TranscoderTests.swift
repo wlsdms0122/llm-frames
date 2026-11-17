@@ -74,11 +74,11 @@ struct TranscoderTests {
         let result = try sut.transcode(TranscodeRequest(input: input, output: output, quality: .high))
 
         // Then
-        let target = SoundTarget(path: output, quality: .high)
+        let target = SoundTarget(path: output, quality: .high, layout: silence.layout)
         #expect(log.calls == [
             .checkMedia(path: input),
-            .checkSoundTarget(target),
             .readSound(path: input, from: 0, to: 2.5),
+            .checkSoundTarget(target),
             .writeSound(target, sound: silence)
         ])
         #expect(result.format == .aac)
@@ -97,11 +97,11 @@ struct TranscoderTests {
         let result = try sut.transcode(TranscodeRequest(input: input, output: output))
 
         // Then
-        let target = SoundTarget(path: output, quality: .medium)
+        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout)
         #expect(log.calls == [
             .checkMedia(path: input),
-            .checkSoundTarget(target),
             .readSound(path: input, from: 0, to: 0.5),
+            .checkSoundTarget(target),
             .writeSound(target, sound: silence)
         ])
         #expect(result.format == .aac)
@@ -132,8 +132,9 @@ struct TranscoderTests {
         )
         #expect(log.calls == [
             .checkMedia(path: input),
-            .checkTarget(target),
             .readSound(path: input, from: 0, to: 0.5),
+            .checkTarget(target),
+            .checkSoundTarget(SoundTarget(path: output, quality: .medium, layout: silence.layout)),
             .videoWriter(target, size: Size(width: 40, height: 30), fps: 10, sound: silence)
         ] + [0, 0, 0, 1, 1].map { .append(path: output, frame: $0) } + [
             .finish(path: output)
@@ -410,6 +411,35 @@ struct TranscoderTests {
         // Then
         #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == Self.existing)
         #expect(!log.calls.contains { if case .videoWriter = $0 { true } else { false } })
+    }
+
+    @Test("an encoder that refuses a sound's layout stops before an existing output is removed", arguments: [
+        ("in.wav", "out.m4a"),
+        ("in.mov", "out.m4a")
+    ])
+    func keepsOutputOnRefusedSound(
+        inputName: String,
+        outputName: String
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: inputName)
+        let output = try existingOutput(in: directory, name: outputName)
+        let media = inputName == "in.wav"
+            ? ProbedMedia(kind: .audio, duration: 1, sound: stereo)
+            : video(hasSound: true)
+        let sut = transcoder(log: log, facts: [input: media], refusal: .encoder)
+
+        // When
+        #expect(throws: RoleRefusal.encoder) {
+            try sut.transcode(TranscodeRequest(input: input, output: output))
+        }
+
+        // Then
+        #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == Self.existing)
+        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout)
+        #expect(log.calls.last == .checkSoundTarget(target))
     }
 
     @Test("an existing output is removed once every check has passed, before the encoder writes", arguments: [
