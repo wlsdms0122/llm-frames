@@ -117,7 +117,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "Hi", "style": "label", "placement": "top", "at": [0, 1] } ] }
+              "clips": [ { "title": "Hi", "style": "title", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When
@@ -266,27 +266,6 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
-    }
-
-    @Test("a shape's label carries its side, the time its side was chosen at, its shaped text and its own animation")
-    func writesLabel() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "frames/fade" } ] }
-            """#
-
-        // When
-        let label = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue?["label"]?.objectValue)
-
-        // Then
-        let animation = try #require(label["animation"]?.objectValue)
-        #expect(label.keys == ["side", "at", "text", "animation"])
-        #expect(label["at"] == .number(1))
-        #expect(label["text"]?.objectValue?.keys == ["size", "lines", "background", "stroke", "runs"])
-        #expect(animation["entrance"]?.objectValue?["seconds"] == .number(0.25))
-        #expect(animation["loop"] == .null)
-        #expect(animation["exit"]?.objectValue?["seconds"] == .number(0.25))
     }
 
     @Test("a clip whose tracked area is a band writes band true, and one tracking any other area false")

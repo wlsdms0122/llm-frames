@@ -22,9 +22,12 @@ struct ResolvedDocumentWriterTests {
     ])
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
-    // title that pops in, a still with a border in the centre, and looping music that fades out.
+    // title in a style its theme adds that pops in, a still with a border in the centre, and looping music that fades
+    // out.
     private let sequence = #"""
         { "kind": "sequence", "format": { "size": [1080, 1920] },
+          "theme": { "styles": { "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
+                                            "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 } } },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
@@ -127,7 +130,6 @@ struct ResolvedDocumentWriterTests {
               "anchor": [19.125, 17.15625],
               "crop": null,
               "track": null,
-              "label": null,
               "opacity": [
                 {
                   "at": 0,
@@ -199,7 +201,6 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "track": null,
-              "label": null,
               "opacity": [
                 {
                   "at": 0,

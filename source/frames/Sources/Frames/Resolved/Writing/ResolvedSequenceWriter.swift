@@ -73,8 +73,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "position", value: clip.box.map { values.keyframes($0.position, value: values.point) } ?? .null),
             JSONMember(key: "anchor", value: clip.box.map { values.point($0.anchor) } ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
-            JSONMember(key: "track", value: clip.track.map(track) ?? .null),
-            JSONMember(key: "label", value: clip.label.map(label) ?? .null)
+            JSONMember(key: "track", value: clip.track.map(track) ?? .null)
         ]
 
         return .object(JSONObject(members: [
@@ -171,15 +170,6 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "border", value: border ?? .null),
             JSONMember(key: "shadow", value: shadow ?? .null)
         ]
-    }
-
-    private func label(_ label: ResolvedLabel) -> JSONValue {
-        .object(JSONObject(members: [
-            JSONMember(key: "side", value: .string(label.side.rawValue)),
-            JSONMember(key: "at", value: .number(label.at)),
-            JSONMember(key: "text", value: values.text(label.text)),
-            JSONMember(key: "animation", value: values.animation(label.animation))
-        ]))
     }
 
     private func sound(_ sound: ResolvedSound) -> JSONValue {

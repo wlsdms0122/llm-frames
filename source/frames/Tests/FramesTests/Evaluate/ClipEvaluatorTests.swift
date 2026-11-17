@@ -99,7 +99,6 @@ struct ClipEvaluatorTests {
             ),
             crop: nil,
             track: nil,
-            label: nil,
             opacity: [Keyframe(at: 0, value: opacity)],
             scale: [Keyframe(at: 0, value: scale)],
             rotation: [Keyframe(at: 0, value: rotation)],

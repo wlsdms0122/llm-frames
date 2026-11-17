@@ -166,7 +166,6 @@ struct ResolvedSequencePinnedReferencesTests {
             box: nil,
             crop: nil,
             track: nil,
-            label: nil,
             opacity: [Keyframe(at: 0, value: 1)],
             scale: nil,
             rotation: nil,

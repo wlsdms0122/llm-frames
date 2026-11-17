@@ -43,7 +43,6 @@ extension ResolvedClip {
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
             track: geometry.track.map { ResolvedTrack(track: $0, values: geometry.area) },
-            label: try geometry.label.map { try ResolvedLabel(plan: $0, hashes: hashes) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,

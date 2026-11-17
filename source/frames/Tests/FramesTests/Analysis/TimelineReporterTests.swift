@@ -312,10 +312,10 @@ struct TimelineReporterTests {
         ])
     }
 
-    @Test("a text area found by OCR, a track, a title and a labelled shape report, with the window tracking leaves")
-    func reportsAreasTrackingAndLabels() throws {
+    @Test("a text area found by OCR, a track, a title and a shape report, with the window tracking leaves")
+    func reportsAreasAndTracking() throws {
         // Given
-        let value = try Fixture.json(tracked(sides: #"["top", "bottom"]"#))
+        let value = try Fixture.json(tracked)
 
         // When
         let report = try trackingReporter.report(of: value)
@@ -331,16 +331,6 @@ struct TimelineReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
-    @Test("a label with no room stops timeline with resolve's message")
-    func stopsOnLabelWithoutRoom() throws {
-        // Given
-        let value = try Fixture.json(tracked(sides: #"["left"]"#))
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try trackingReporter.report(of: value) }
-        #expect(error?.description == #"storyline[0].connected[0].label (box): the label "Total" fits inside the frame on none of the sides left"#)
-    }
-
     @Test("timeline stops wherever resolve stops, with the same message")
     func stopsWithPlan() throws {
         // Given
@@ -352,12 +342,12 @@ struct TimelineReporterTests {
     }
 
     // MARK: - Private
-    // A box on the text "Total", tracked, with a label tried on `sides`, and a title over the whole sequence.
-    private func tracked(sides: String) -> String {
+    // A box on the text "Total", tracked, and a title over the whole sequence.
+    private var tracked: String {
         #"""
-        { "kind": "sequence", "theme": { "baseWidth": 1206, "shapes": { "label": { "sides": \#(sides) } } },
+        { "kind": "sequence", "theme": { "baseWidth": 1206 },
           "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
-            "connected": [ { "shape": "box", "area": "Total", "at": [1.5, 3], "track": "Total", "label": "Total" } ] } ],
+            "connected": [ { "shape": "box", "area": "Total", "at": [1.5, 3], "track": "Total" } ] } ],
           "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
         """#
     }

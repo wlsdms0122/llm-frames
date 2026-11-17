@@ -8,7 +8,9 @@
         { "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" },
         { "shape": "box", "area": "Item total" },
         { "shape": "box", "area": "Shipping" },
-        { "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
+        { "shape": "box", "area": "Total" },
+        { "title": "38,000 + 4,000", "style": "label", "parent": true,
+          "position": { "area": "Total", "point": "right" }, "anchor": "left" }
       ] }
   ],
   "clips": [

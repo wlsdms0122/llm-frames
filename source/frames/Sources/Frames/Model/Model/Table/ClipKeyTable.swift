@@ -113,7 +113,7 @@ enum ClipKeyTable {
 
         case let (_, .shape(shape)):
             let side = shape == "arrow" ? ["side"] : []
-            return everyClip + ["shape", "area", "track", "label", "labelAnimation", "color", "blend"] + side
+            return everyClip + ["shape", "area", "track", "color", "blend"] + side
 
         case (_, .adjust), (_, .solid):
             return everyClip + ["adjust", "area", "track"]
@@ -141,7 +141,7 @@ enum ClipKeyTable {
         case "lane":
             .integer
 
-        case "animation", "labelAnimation":
+        case "animation":
             ChoiceKeyTable.animation
 
         case "keyframes":
@@ -187,7 +187,7 @@ enum ClipKeyTable {
         case "border":
             .oneOf([.exactly(.bool(true)), .color])
 
-        case "title", "label":
+        case "title":
             .text
 
         case "style":

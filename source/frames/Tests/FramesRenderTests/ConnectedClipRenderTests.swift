@@ -281,29 +281,6 @@ struct ConnectedClipRenderTests {
         #expect(far.isEmpty, "the stroke reaches past a round join at \(far.prefix(4))")
     }
 
-    @Test("a label sits on the first side in the theme's order where it fits")
-    func placesLabelOnFirstSideThatFits() throws {
-        // Given
-        let directory = try TemporaryDirectory()
-        let file = try image(in: directory, named: "grey.png", width: 320, height: 180, color: [128, 128, 128])
-        let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 320 },
-              "storyline": [ { "media": "\#(file)", "duration": 1,
-                               "connected": [ { "shape": "box", "area": [260, 60, 50, 40], "label": "done", "labelAnimation": "none" } ] } ] }
-            """#)
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-
-        // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
-
-        // Then
-        // Right of the box and below it there is no room, so the label goes left: its background ends at the area's
-        // left edge, 260, centred on its height at 80, and its text ends 16 pixels before that.
-        let accent = [237.0, 41, 41]
-        #expect(frame.isPixel(x: 250, y: 80, accent, tolerance: tolerance), "\(frame.pixel(x: 250, y: 80))")
-        #expect(frame.isPixel(x: 285, y: 140, [128, 128, 128], tolerance: tolerance), "\(frame.pixel(x: 285, y: 140))")
-    }
-
     // MARK: - Private
     private func image(
         in directory: TemporaryDirectory,

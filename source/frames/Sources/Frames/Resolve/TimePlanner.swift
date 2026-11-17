@@ -369,7 +369,6 @@ struct TimePlanner: Sendable {
             visible: visible,
             instant: clip.at == nil ? ownerPlan?.edit.start ?? window.start : window.start,
             animation: try animation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
-            labelAnimation: try labelAnimation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
             media: source.media,
             timing: source.timing.map { timing in
                 MediaTiming(
@@ -562,27 +561,6 @@ struct TimePlanner: Sendable {
         guard kind != .media(.audio) else { return .none }
 
         let plan = try animationPlan(of: clip, kind: kind, defaults: defaults)
-        guard isParented, clip.at == nil else { return plan }
-
-        return plan.withoutEntranceAndExit()
-    }
-
-    // A shape's label takes `labelAnimation`, else the `label` entry of the title defaults, over the shape's window, so
-    // it starts and ends as the shape's own does.
-    private func labelAnimation(
-        of clip: Clip,
-        kind: ClipKind,
-        isParented: Bool,
-        defaults: ThemeDefaults
-    ) throws -> AnimationPlan {
-        guard
-            clip.label != nil,
-            let choice = clip.labelAnimation ?? defaults.titleAnimations["label"]
-        else {
-            return .none
-        }
-
-        let plan = try animationPlan(choice, place: clip.place, kind: kind)
         guard isParented, clip.at == nil else { return plan }
 
         return plan.withoutEntranceAndExit()

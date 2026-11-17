@@ -254,7 +254,7 @@ struct ClipBoxTests {
     func refusesTitleWithoutPlacement() throws {
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3] }"#)
+            try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3] }"#)
         }
         #expect(error == .titleWithoutPlacement(
             place: Place.root.appending(key: "clips").appending(index: 0),
@@ -267,8 +267,8 @@ struct ClipBoxTests {
     @Test("a title in a style without a placement is placed by its own placement or position")
     func placesUnstyledTitle() throws {
         // When
-        let placed = try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "placement": "top-left" }"#)
-        let positioned = try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
+        let placed = try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "placement": "top-left" }"#)
+        let positioned = try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
 
         // Then
         #expect(placed?.position == .value(Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding)))
@@ -278,6 +278,16 @@ struct ClipBoxTests {
     // MARK: - Private
     private func box(of clip: String) throws -> ClipBox? {
         try geometry(of: clip).box
+    }
+
+    // A clip in a sequence whose theme adds the style `label`, which gives no placement.
+    private func labelBox(of clip: String) throws -> ClipBox? {
+        let document = #"""
+            { "kind": "sequence", "theme": { "styles": { "label": { "size": 36 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
+            """#
+
+        return try plan(document).clips[0].box
     }
 
     private func geometry(of clip: String) throws -> ClipGeometry {

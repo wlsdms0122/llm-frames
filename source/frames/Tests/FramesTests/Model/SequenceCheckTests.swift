@@ -30,8 +30,8 @@ struct SequenceCheckTests {
                   "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
-                  "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "label": "done", "animation": "frames/stamp" },
-                                 { "shape": "box", "area": "Account 110-", "track": true, "label": "this account" } ] },
+                  "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "animation": "frames/stamp" },
+                                 { "shape": "box", "area": "Account 110-", "track": true } ] },
                 { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "box",
@@ -65,7 +65,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend, side"#)
+        #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, color, blend, side"#)
     }
 
     @Test(
@@ -136,6 +136,7 @@ struct SequenceCheckTests {
             (#"{ "media": "/abs/log.png", "at": [0, 1], "loop": true }"#, "clips", #"clips[0] (image): unknown key "loop""#),
             (#"{ "title": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
             (#"{ "shape": "box", "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (box): unknown key "side""#),
+            (#"{ "shape": "box", "area": [0, 0, 1, 1], "label": "x" }"#, "clips", #"clips[0] (box): unknown key "label""#),
             (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#)
         ]
     )
@@ -346,7 +347,7 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
-            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "labelAnimation": "none", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#
+            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#
         ]
     )
     func acceptsEveryForm(body: String) throws {
@@ -496,7 +497,7 @@ struct SequenceCheckTests {
     func refusesEmptyTitleWidth() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "title": "Hi", "style": "label", "at": [0, 1], "position": [0, 0], "width": 0 } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "title": "Hi", "style": "title", "at": [0, 1], "position": [0, 0], "width": 0 } ] }
             """#)
 
         // When, Then

@@ -104,15 +104,15 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[1].media?.source == .argument(.file("/abs/run.mp4"), theme: theme))
     }
 
-    @Test("the geometry keys read as written: the format's size and conform, areas, labels and track targets")
+    @Test("the geometry keys read as written: the format's size and conform, areas and track targets")
     func readsGeometryKeys() throws {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
                 { "shape": "arrow", "area": { "band": { "from": "a", "to": "b", "toNth": 1 } }, "side": "left",
-                  "label": "here", "track": { "text": "c", "nth": 2 } },
-                { "title": "t", "style": "label", "width": 300, "parent": true,
+                  "track": { "text": "c", "nth": 2 } },
+                { "title": "t", "style": "title", "width": 300, "parent": true,
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
 
@@ -128,7 +128,6 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(arrow.area == .value(.band(.range(from: "a", fromNth: nil, to: "b", toNth: 1))))
         #expect(arrow.content == .shape(.arrow(.left)))
-        #expect(arrow.label == "here")
         #expect(arrow.track == .area(.text("c", nth: 2)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))

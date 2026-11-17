@@ -19,7 +19,7 @@ struct Typesetter: Sendable {
     }
 
     // MARK: - Public
-    // `width` is the wrapping width in output pixels, and nil keeps the text on one line, as a label is. A style that
+    // `width` is the wrapping width in output pixels, and nil keeps the text on one line. A style that
     // keeps its text on one line wraps at no width, and is too wide when it is wider than `width`.
     func layout(
         _ text: String,

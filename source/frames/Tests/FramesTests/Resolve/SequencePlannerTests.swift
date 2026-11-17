@@ -149,8 +149,8 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [
-                { "title": "a", "style": "label", "parent": true, "anchor": "right", "position": { "area": "Total", "point": "left" } },
-                { "title": "b", "style": "label", "position": [10, 20] } ] } ] }
+                { "title": "a", "style": "title", "parent": true, "anchor": "right", "position": { "area": "Total", "point": "left" } },
+                { "title": "b", "style": "title", "position": [10, 20] } ] } ] }
             """#)
 
         // Then
@@ -172,7 +172,7 @@ struct SequencePlannerTests {
     ) throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "label", \#(keys) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", \#(keys) } ] } ] }
             """#
 
         // When, Then
@@ -297,7 +297,7 @@ struct SequencePlannerTests {
         // When, Then
         let error = #expect(throws: ThemeError.self) { try plan(document) }
         #expect(error?.description == #"clips[0].style (title): style "nope" is not in styles, "#
-            + #"which hold "label", "subtitle", "title""#)
+            + #"which hold "subtitle", "title""#)
     }
 
     @Test(
@@ -314,7 +314,7 @@ struct SequencePlannerTests {
         // When, Then
         let error = #expect(throws: ThemeError.self) { try plan(document) }
         #expect(error?.description == #"clips[0].style (title): style "\#(style)" is not in styles, "#
-            + #"which hold "label", "subtitle", "title""#)
+            + #"which hold "subtitle", "title""#)
     }
 
     @Test("a title takes a style its document's theme adds")
@@ -328,40 +328,6 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.clips[0].title?.runs.first?.size == 40 * (1206 / 1920.0))
-    }
-
-    @Test("a label is set on one line in the label style and goes on the side that fits")
-    func placesLabel() throws {
-        // When
-        let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "shape": "box", "area": "Total", "label": "Total" } ] } ] }
-            """#)
-
-        // Then
-        let label = try #require(plan.clips[0].label)
-        #expect(label.side == .right)
-        #expect(label.instant == 0)
-        #expect(label.text.lineCount == 1)
-        let scale = 1206 / 1920.0
-        #expect(abs(label.text.size.width - (5 * 18 + 32) * scale) < 1e-9)
-        #expect(abs(label.text.size.height - (36 * 1.25 + 16) * scale) < 1e-9)
-    }
-
-    @Test("a label is measured at the first instant of the window tracking leaves")
-    func measuresLabelAfterTracking() throws {
-        // Given
-        let sut = planner(followed: 1.5...3)
-
-        // When
-        let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "box", "at": [1, 3], "track": true, "label": "a",
-                  "keyframes": [ { "at": 2, "area": "Total" }, { "at": 2.5, "area": "Total" } ] } ] } ] }
-            """#)))
-
-        // Then
-        #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 2))
-        #expect(plan.clips[0].label?.instant == 0.5)
     }
 
     @Test("a nested document is planned on its own, with its own format, for a storyline clip and another clip")
@@ -388,7 +354,7 @@ struct SequencePlannerTests {
         let document = #"""
             { "kind": "sequence", "format": { "size": [2160, 3840] },
               "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "mine/grade", "connected": [
-                { "title": "a", "style": "label", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
+                { "title": "a", "style": "title", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1] },

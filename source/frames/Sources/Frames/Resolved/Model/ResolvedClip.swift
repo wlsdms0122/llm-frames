@@ -25,7 +25,6 @@ struct ResolvedClip: Equatable, Sendable {
     let box: ResolvedBox?
     let crop: [Keyframe<Crop>]?
     let track: ResolvedTrack?
-    let label: ResolvedLabel?
     let opacity: [Keyframe<Double>]
     let scale: [Keyframe<Double>]?
     let rotation: [Keyframe<Double>]?
@@ -46,7 +45,6 @@ struct ResolvedClip: Equatable, Sendable {
         box: ResolvedBox?,
         crop: [Keyframe<Crop>]?,
         track: ResolvedTrack?,
-        label: ResolvedLabel?,
         opacity: [Keyframe<Double>],
         scale: [Keyframe<Double>]?,
         rotation: [Keyframe<Double>]?,
@@ -65,7 +63,6 @@ struct ResolvedClip: Equatable, Sendable {
         self.box = box
         self.crop = crop
         self.track = track
-        self.label = label
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

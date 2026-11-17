@@ -108,8 +108,6 @@ struct SequenceReader: Sendable {
             position: property("position", of: object, read: PositionForm.init(value:)),
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
-            label: object["label"]?.stringValue,
-            labelAnimation: object["labelAnimation"].flatMap(AnimationChoice.init(value:)),
             width: object["width"]?.numberValue,
             height: object["height"]?.numberValue,
             conform: object["conform"]?.stringValue.flatMap(Conform.init),

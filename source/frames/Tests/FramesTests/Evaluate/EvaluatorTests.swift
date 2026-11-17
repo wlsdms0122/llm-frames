@@ -741,54 +741,6 @@ struct EvaluatorTests {
         ))
     }
 
-    @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the frame")
-    func agreesWithResolvedLabelSide() throws {
-        // Given
-        // The crop zooms in two times over the clip, so at the label's instant the box is shown through a crop
-        // between the two.
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
-                "keyframes": [ { "at": 1, "crop": [0, 0, 1206, 2622] }, { "at": 3, "crop": [301.5, 655.5, 603, 1311] } ],
-                "connected": [ { "shape": "box", "area": [700, 1250, 300, 40], "at": [2, 3], "label": "Total",
-                    "animation": "none", "labelAnimation": "none" } ] } ] }
-            """#
-        let sequence = try ResolvedSequence(
-            plan: Fixture.documentPlanner.plan(Fixture.json(document)),
-            hashes: FileHashTable()
-        )
-        let clip = try #require(sequence.clips.first)
-        let label = try #require(clip.label)
-        let frame = sequence.format.frame
-
-        // When
-        let list = sut.displayList(of: sequence, at: label.at)
-
-        // Then
-        let unit = try #require(displayList(of: list.items.first))
-        let shape = try #require(unit.items.dropLast().last)
-        let labelItem = try #require(unit.items.last)
-        guard case let .stroke(stroke) = shape.content else {
-            Issue.record("a box is a stroke")
-            return
-        }
-        let size = label.text.size
-        let corners = labelItem.transform.apply(toCornersOf: Rectangle(x: 0, y: 0, width: size.width, height: size.height))
-        let drawn = Rectangle(
-            x: corners[0].x + frame.x,
-            y: corners[0].y + frame.y,
-            width: corners[2].x - corners[0].x,
-            height: corners[2].y - corners[0].y
-        )
-        let box = Rectangle(
-            x: stroke.rectangle.x + frame.x,
-            y: stroke.rectangle.y + frame.y,
-            width: stroke.rectangle.width,
-            height: stroke.rectangle.height
-        )
-        #expect(isClose(drawn, LabelSideFinder().rectangle(of: size, beside: box, on: label.side)))
-        #expect(frame.contains(drawn))
-    }
-
     // MARK: - Private
     private func storylineClip(
         _ media: ResolvedMediaContent?,
@@ -912,7 +864,6 @@ struct EvaluatorTests {
             box: box,
             crop: crop,
             track: track,
-            label: nil,
             opacity: [Keyframe(at: 0, value: opacity)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],

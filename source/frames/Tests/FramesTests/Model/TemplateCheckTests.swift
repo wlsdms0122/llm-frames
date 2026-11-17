@@ -214,7 +214,7 @@ struct TemplateCheckTests {
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
-                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend"#
+                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, color, blend"#
             )
         ]
     )

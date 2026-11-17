@@ -28,10 +28,6 @@ enum ClipThemeLayer {
             layer = setting(path, to: animation, in: layer)
         }
 
-        if let labelAnimation = clip["labelAnimation"] {
-            layer = setting(["defaults", "animation", "title", "label"], to: labelAnimation, in: layer)
-        }
-
         if case let .shape(shape) = kind, let color = clip["color"] {
             layer = setting(["shapes", shape, "color"], to: color, in: layer)
         }

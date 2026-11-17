@@ -20,7 +20,7 @@ struct TrackPlannerTests {
             "clips[0].track (box): track follows the video or image sequence of a storyline clip, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "label", "at": [0, 1], "track": "Total" } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": "Total" } ] } ] }"#,
             "storyline[0].connected[0].track (title): track follows the video or image sequence of a storyline clip, and there is none to follow here"
         ),
         (
@@ -32,7 +32,7 @@ struct TrackPlannerTests {
             "storyline[0].track (compound): track follows the video or image sequence of a storyline clip, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "label", "parent": true, "position": [0, 0], "track": true } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": true, "position": [0, 0], "track": true } ] } ] }"#,
             #"storyline[0].connected[0].track (title): a title or media clip names the area it tracks, so it cannot take "track": true"#
         ),
         (

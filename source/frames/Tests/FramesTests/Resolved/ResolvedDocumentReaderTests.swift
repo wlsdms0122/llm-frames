@@ -54,7 +54,7 @@ struct ResolvedDocumentReaderTests {
         { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
-          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
+          "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
@@ -66,12 +66,12 @@ struct ResolvedDocumentReaderTests {
             { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
-        // Shapes with labels, a tracked area and a band, an adjustment, a timed media clip and sound with fades.
+        // Shapes, a tracked area and a band, an adjustment, a timed media clip and sound with fades.
         #"""
         { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": "Total", "track": "Total", "label": "a", "labelAnimation": "frames/fade" },
+            { "shape": "box", "area": "Total", "track": "Total" },
             { "shape": "fill", "area": { "band": "Total" }, "track": true },
-            { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "label": "b", "lane": -1 },
+            { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "lane": -1 },
             { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",

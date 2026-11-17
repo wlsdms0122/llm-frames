@@ -40,7 +40,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
-    case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side])
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
@@ -166,10 +165,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .neverFollowed(place, kind, visible):
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
-
-        case let .labelWithoutRoom(place, kind, label, sides):
-            "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the frame on none of the sides "
-                + sides.map(\.rawValue).joined(separator: ", ")
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"

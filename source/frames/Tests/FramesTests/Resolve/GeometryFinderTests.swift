@@ -158,7 +158,7 @@ struct GeometryFinderTests {
     func findsPositionOnArea() throws {
         // Given
         let plan = try plan(#"""
-            { "title": "a", "style": "label", "parent": true, "position": { "area": "Total", "point": "right" } }
+            { "title": "a", "style": "title", "parent": true, "position": { "area": "Total", "point": "right" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 

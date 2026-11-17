@@ -15,7 +15,7 @@ struct ResolvedSequenceReader: Sendable {
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
         "place", "id", "start", "end", "lane", "storyline", "parented", "area", "size", "position", "anchor", "crop",
-        "track", "label", "opacity", "scale", "rotation", "blend", "animation"
+        "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
@@ -129,7 +129,6 @@ struct ResolvedSequenceReader: Sendable {
             box: box,
             crop: try clip.member("crop").optional(values.crops),
             track: try clip.member("track").optional(track),
-            label: try clip.member("label").optional(label),
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
@@ -243,17 +242,6 @@ struct ResolvedSequenceReader: Sendable {
                 color: color
             )
         }
-    }
-
-    private func label(_ value: PlacedJSONValue) throws -> ResolvedLabel {
-        let label = try value.object(kind: "label", keys: ["side", "at", "text", "animation"])
-
-        return ResolvedLabel(
-            side: try side(label.member("side")),
-            at: try label.member("at").number(),
-            text: try values.text(label.member("text")),
-            animation: try values.animation(label.member("animation"))
-        )
     }
 
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {

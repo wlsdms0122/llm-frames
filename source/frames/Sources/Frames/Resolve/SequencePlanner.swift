@@ -7,14 +7,12 @@
 
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, its titles set, the side of every label, where each clip is placed and how it is drawn, and its
-// sound.
+// tracking leaves, its titles set, where each clip is placed and how it is drawn, and its sound.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
     private let tracker: TrackPlanner
     private let text: ThemeTypesetter
-    private let placer = LabelPlacer()
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
 
@@ -107,15 +105,6 @@ struct SequencePlanner: Sendable {
                 crop: found[index].crop,
                 track: tracked.clips[index],
                 title: title,
-                label: try label(
-                    of: tracked.time.clips[index],
-                    written: written[index],
-                    area: found[index].area,
-                    track: tracked.clips[index],
-                    time: tracked.time,
-                    storyline: storyline,
-                    format: format
-                ),
                 nested: clipNested[index],
                 appearance: try appearances.appearance(
                     of: tracked.time.clips[index],
@@ -371,53 +360,6 @@ struct SequencePlanner: Sendable {
             scale: scale,
             place: written.place.appending(key: "title"),
             kind: ClipKind.title.label
-        )
-    }
-
-    // A label is set on one line in the `label` style. A parented shape is measured through its storyline clip's
-    // picture.
-    private func label(
-        of plan: ClipPlan,
-        written: Clip,
-        area: PropertyValue<FoundArea>?,
-        track: Track?,
-        time: TimePlan,
-        storyline: [StorylineGeometry],
-        format: FormatPlan
-    ) throws -> LabelPlan? {
-        guard let label = written.label else { return nil }
-
-        let text = try self.text.layout(
-            label,
-            style: "label",
-            stylePlace: written.place.appending(key: "label"),
-            width: nil,
-            theme: time.theme,
-            scale: time.theme.lengthScale(at: format.size.width),
-            place: written.place.appending(key: "label"),
-            kind: plan.kind.label
-        )
-        let parent = try plan.storyline.flatMap { index -> ParentPicture? in
-            guard plan.isParented, area != nil else { return nil }
-
-            let owner = time.storyline[index]
-            return ParentPicture(
-                plan: owner,
-                geometry: storyline[index],
-                picture: try picture(of: owner, nested: storyline[index].nested, format: format)
-            )
-        }
-
-        return try placer.label(
-            text,
-            of: plan,
-            written: written,
-            area: area,
-            track: track,
-            parent: parent,
-            storyline: time.storyline,
-            format: format,
-            theme: time.theme
         )
     }
 
