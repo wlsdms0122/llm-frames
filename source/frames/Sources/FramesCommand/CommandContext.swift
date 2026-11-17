@@ -72,17 +72,18 @@ struct CommandContext: Sendable {
             .input(of: argument, theme: options.theme, arguments: arguments, command: command)
     }
 
-    // What `sheet` and `extract` take frames from: a `.json` file, a pack template or standard input is a document,
-    // used resolved, and any other absolute path a video.
+    // The frames of `sheet` and `extract` that `argument` names, a document used resolved.
     func frameSource(
-        _ argument: String,
+        _ argument: FrameSourceArgument,
         command: String
     ) throws -> FrameSource {
-        guard argument.hasPrefix("/"), URL(fileURLWithPath: argument).pathExtension.lowercased() != "json" else {
-            return .document(try document(argument, arguments: nil, command: command).resolved(by: planner))
-        }
+        switch argument {
+        case let .document(document):
+            .document(try self.document(document, arguments: nil, command: command).resolved(by: planner))
 
-        return .video(path: argument)
+        case let .video(path):
+            .video(path: path)
+        }
     }
 
     func write(
