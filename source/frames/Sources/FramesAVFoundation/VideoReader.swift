@@ -57,8 +57,9 @@ final class VideoReader: Sendable {
         )
         self.displaySize = Size(width: turned.width.rounded(), height: turned.height.rounded())
         // The rate is stored as a 32-bit float, so it is read back in its shortest decimal form, 29.97 and not
-        // 29.969999313354492.
-        self.fps = Double("\(loaded.nominalFrameRate)") ?? Double(loaded.nominalFrameRate)
+        // 29.969999313354492, and then as the exact rate the encoder would write it at.
+        let nominal = Double("\(loaded.nominalFrameRate)") ?? Double(loaded.nominalFrameRate)
+        self.fps = FrameTiming(fps: nominal).rate
         self.hasSound = loaded.hasSound
         self.hasAlpha = loaded.hasAlpha
         self.depth = BitDepth(holding: loaded.bitsPerComponent)

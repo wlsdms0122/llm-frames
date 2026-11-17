@@ -16,6 +16,7 @@ struct FrameTimingTests {
     // A frame rate, the timescale it gets, and how long a frame is on it.
     private static let rates: [(Double, CMTimeScale, CMTimeValue)] = [
         (30, 30_000, 1000),
+        (29.999998, 30_000, 1000),
         (24, 24_000, 1000),
         (23.976, 24_000, 1001),
         (29.97, 30_000, 1001),
@@ -41,6 +42,23 @@ struct FrameTimingTests {
         // Then
         #expect(sut.timescale == timescale)
         #expect(times.map(\.value) == [0, 1, 2, 100_000].map { $0 * frameDuration })
+    }
+
+    @Test("a rate within a hundred-thousandth of a whole or an NTSC rate is exactly that rate", arguments: [
+        (29.999998, 30),
+        (29.97002997, 30_000.0 / 1001),
+        (23.976, 24_000.0 / 1001),
+        (12.5, 12.5)
+    ])
+    func readsExactRate(fps: Double, rate: Double) {
+        // Given
+        let sut = FrameTiming(fps: fps)
+
+        // When
+        let read = sut.rate
+
+        // Then
+        #expect(read == rate)
     }
 
     @Test("an NTSC rate written in decimals does not drift from k × 1001 / 30000 over hours")
