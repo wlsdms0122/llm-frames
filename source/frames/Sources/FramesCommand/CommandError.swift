@@ -17,6 +17,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingArgument(command: String, placeholder: String)
     case unexpectedArgument(command: String, argument: String)
     case relativePath(command: String, option: String, path: String)
+    case invalidValue(command: String, option: String, value: String, expected: String)
+    case exclusiveOptions(command: String, option: String, other: String)
     case argumentsAfterVersion(arguments: [String])
     case unknownRole(option: String, role: String, name: String, known: [String])
     case unknownCommand(name: String)
@@ -55,6 +57,12 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .relativePath(command, option, path):
             "\(command): \(option) \(quoted(path)) is not an absolute path, and paths are absolute"
+
+        case let .invalidValue(command, option, value, expected):
+            "\(command): \(option) \(quoted(value)) is not \(expected)"
+
+        case let .exclusiveOptions(command, option, other):
+            "\(command): \(option) and \(other) are not given together"
 
         case let .argumentsAfterVersion(arguments):
             "--version takes no arguments, found \(arguments.map(quoted).joined(separator: ", "))"
