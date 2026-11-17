@@ -69,7 +69,7 @@ theme
 | `medium` (default) | 0.75 | medium | 64 kbps |
 | `low` | 0.55 | low | 32 kbps |
 
-- `--max` caps the longer side. A smaller source is never enlarged. Video sizes round down to even numbers, so neither the source nor `--max` is exceeded. A video whose side `--max` would round below 2 pixels stops, naming `--max` and the size it would give, before anything is written.
+- `--max` caps the longer side. A smaller source is never enlarged. Video sizes round down to even numbers, so neither the source nor `--max` is exceeded. A video whose side would round below 2 pixels, from its source or under `--max`, stops before anything is written, naming the size it would give, and `--max` when it is what shrank it.
 - Metadata (EXIF, location) is not copied. Rotation is applied to the pixels. A JPEG gets transparent parts on white.
 - A video is written at its frame rate: frame k is the source frame shown at k / fps, for every k whose time is before the video's duration and frame 0 always, as a sequence's frames are, so a variable rate recording keeps its length.
 - The video levels are the encoder's: with `avfoundation` they are `AVVideoQualityKey` 0.7, 0.5 and 0.3, for H.264 and HEVC alike, which shrink a screen recording written at AVFoundation's default quality to about 90, 60 and 45 percent.
