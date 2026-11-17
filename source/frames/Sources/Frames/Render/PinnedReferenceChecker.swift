@@ -42,7 +42,7 @@ struct PinnedReferenceChecker: Sendable {
     // MARK: - Private
     private func checkHash(
         of file: PinnedFile,
-        place: String?
+        place: String
     ) throws {
         let digest: String
         do {

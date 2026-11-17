@@ -10,24 +10,20 @@
 extension ResolvedDocument {
     // MARK: - Property
     var pinnedReferences: [PinnedReference] {
-        references(of: self, place: nil)
+        references(of: self)
     }
 
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
-    // `place` is the clip that holds the document, which the steps of an image or layout have no place of their own
-    // under.
-    private func references(
-        of document: ResolvedDocument,
-        place: String?
-    ) -> [PinnedReference] {
+    // A nested document's places already continue the place of the clip that holds it.
+    private func references(of document: ResolvedDocument) -> [PinnedReference] {
         switch document {
         case let .sequence(sequence):
             references(of: sequence)
 
         case let .picture(picture):
-            references(of: picture, place: place)
+            references(of: picture)
         }
     }
 
@@ -84,26 +80,23 @@ extension ResolvedDocument {
         return media + sound.nested.flatMap(references(of:))
     }
 
-    private func references(
-        of picture: ResolvedPicture,
-        place: String?
-    ) -> [PinnedReference] {
+    private func references(of picture: ResolvedPicture) -> [PinnedReference] {
         picture.steps.flatMap { step -> [PinnedReference] in
             switch step.content {
             case let .picture(.media(media, _), _, _):
-                [.media(media, place: place)]
+                [.media(media, place: step.place)]
 
             case let .picture(.picture(picture), _, _):
-                references(of: picture, place: place)
+                references(of: picture)
 
             case let .picture(.sequence(sequence, _), _, _):
                 references(of: sequence)
 
             case let .adjustment(filter, _):
-                references(of: filter, place: place)
+                references(of: filter, place: step.place)
 
             case let .text(text, _):
-                references(of: text, place: place)
+                references(of: text, place: step.place)
 
             case .fill, .box, .dim, .arrow, .border:
                 []
@@ -120,13 +113,13 @@ extension ResolvedDocument {
             [.media(media, place: place)]
 
         case let .nested(document):
-            references(of: document, place: place)
+            references(of: document)
         }
     }
 
     private func references(
         of filter: [ResolvedFilterOperation],
-        place: String?
+        place: String
     ) -> [PinnedReference] {
         filter.compactMap { operation in
             guard case let .lut(file, _) = operation else { return nil }
@@ -137,7 +130,7 @@ extension ResolvedDocument {
 
     private func references(
         of text: ResolvedText,
-        place: String?
+        place: String
     ) -> [PinnedReference] {
         text.runs.map { run in .file(run.font, place: place) }
     }

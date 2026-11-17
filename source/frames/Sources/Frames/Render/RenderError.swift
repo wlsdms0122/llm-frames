@@ -9,8 +9,8 @@ package enum RenderError: Error, Equatable, CustomStringConvertible, Sendable {
     case outputExtension(path: String, kind: String, expected: String)
     case deliveryExtension(path: String)
     case deliveryOfPicture(path: String, kind: String)
-    case changedFile(path: String, place: String?)
-    case unreadableFile(path: String, place: String?)
+    case changedFile(path: String, place: String)
+    case unreadableFile(path: String, place: String)
 
     // MARK: - Property
     package var description: String {
@@ -35,14 +35,12 @@ package enum RenderError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
-    // A pinned file by the place that pins it, or by its path alone where the model gives no place.
+    // A pinned file by the place that pins it.
     private func subject(
         _ path: String,
-        _ place: String?
+        _ place: String
     ) -> String {
-        guard let place else { return "\(quoted(path)): the file" }
-
-        return "\(place): file \(quoted(path))"
+        "\(place): file \(quoted(path))"
     }
 
     private func quoted(_ string: String) -> String {

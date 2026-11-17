@@ -6,14 +6,13 @@
 //
 
 // Something a resolved document pins for a role to open: media, which the decoder reads, or a single file, a font or a
-// LUT. `place` is the entry that names it, or for what an image or layout's steps name, the clip that holds that
-// picture, nil at the top level.
+// LUT. `place` is the entry or drawing step that names it.
 enum PinnedReference: Equatable, Sendable {
-    case media(PinnedMedia, place: String?)
-    case file(PinnedFile, place: String?)
+    case media(PinnedMedia, place: String)
+    case file(PinnedFile, place: String)
 
     // MARK: - Property
-    var place: String? {
+    var place: String {
         switch self {
         case let .media(_, place), let .file(_, place):
             place
