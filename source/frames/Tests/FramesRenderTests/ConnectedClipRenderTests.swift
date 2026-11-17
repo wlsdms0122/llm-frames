@@ -103,7 +103,7 @@ struct ConnectedClipRenderTests {
         let outgoing = try image(in: directory, named: "red.png", width: 160, height: 90, color: [255, 0, 0])
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [0, 255, 0])
         let document = try DocumentResolver(presets: presets).resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "area": { "padding": 0 } },
+            { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
                              { "id": "green", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
                                "connected": [ { "shape": "fill", "area": [0, 30, 160, 30], "parent": "green", "color": "#FF00FF" } ] } ] }
@@ -134,7 +134,7 @@ struct ConnectedClipRenderTests {
             canvas.fill(marker, red: 255, green: 0, blue: 0)
         }
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "theme": { "area": { "padding": 0 } },
+            { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
               "storyline": [ { "id": "marked", "media": "\#(file)", "duration": 1,
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": { "scale": 2 } } ],
                                "connected": [ { "shape": "fill", "area": [200, 100, 40, 20], "parent": "marked", "color": "#0000FF" } ] } ] }
@@ -182,7 +182,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "size": [180, 320] }, "theme": { "shapes": { "box": { "width": 40 } } },
               "storyline": [ { "id": "screen", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "box", "area": "Total", "parent": "screen", "track": true } ] } ] }
+                               "connected": [ { "shape": "box", "area": { "text": "Total", "padding": 4 }, "parent": "screen", "track": true } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

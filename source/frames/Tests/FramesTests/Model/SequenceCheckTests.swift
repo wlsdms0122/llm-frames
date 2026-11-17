@@ -30,12 +30,12 @@ struct SequenceCheckTests {
                   "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
-                  "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "animation": "frames/stamp" },
-                                 { "shape": "box", "area": "Account 110-", "track": true } ] },
+                  "connected": [ { "at": [19, 22], "shape": "box", "area": { "text": "Sent" }, "animation": "frames/stamp" },
+                                 { "shape": "box", "area": { "text": "Account 110-" }, "track": true } ] },
                 { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "box",
-                                   "keyframes": [ { "at": 1.2, "area": "First line" }, { "at": 1.65, "area": "Second line" } ] } ] }
+                                   "keyframes": [ { "at": 1.2, "area": { "text": "First line" } }, { "at": 1.65, "area": { "text": "Second line" } } ] } ] }
               ],
               "clips": [
                 { "at": [0, 30], "title": "Top title\n**emphasis**", "style": "headline", "lane": 2 },
@@ -59,7 +59,7 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
               { "media": "/abs/run.mp4" }, { "media": "/abs/run.mp4" },
-              { "media": "/abs/run.mp4", "connected": [ { "shape": "arrow", "area": "Send", "side": "left", "anim": "pop" } ] }
+              { "media": "/abs/run.mp4", "connected": [ { "shape": "arrow", "area": { "text": "Send" }, "side": "left", "anim": "pop" } ] }
             ] }
             """#)
 
@@ -390,13 +390,59 @@ struct SequenceCheckTests {
     }
 
     @Test(
+        "an area written in a removed form, or with a size or padding it cannot take, stops where it is written",
+        arguments: [
+            (
+                #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": "Total" } ] }"#,
+                #"storyline[0].crop (video): expected an area or {scale}, found "Total""#
+            ),
+            (
+                #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "Total" } } } ] }"#,
+                "storyline[0].crop (area): needs one of text, from"
+            ),
+            (
+                #"{ "clips": [ { "shape": "box", "area": [0, 0, 0, 10] } ] }"#,
+                "clips[0].area[2] (box): expected a number above 0, found 0"
+            ),
+            (
+                #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, -1] } ] } ] }"#,
+                "clips[0].keyframes[0].area[3] (keyframe): expected a number above 0, found -1"
+            ),
+            (
+                #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "text": "a", "padding": -1 } } ] }"#,
+                "storyline[0].track.padding (text area): expected a number, 0 or more, found -1"
+            ),
+            (
+                #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "toNth": -1 } } ] }"#,
+                "storyline[0].crop.toNth (text range area): expected a whole number, 0 or more, found -1"
+            ),
+            (
+                #"{ "clips": [ { "title": "a", "style": "s", "position": { "area": "Send", "point": "left" } } ] }"#,
+                #"clips[0].position.area (area point): expected an area, found "Send""#
+            )
+        ]
+    )
+    func refusesAreaForms(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
         "every form the specification gives a value is taken",
         arguments: [
             #"{ "clips": [ { "media": "/abs/run.mp4", "at": 2 } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": "accent", "conform": "fill", "anchor": "top-left" } ] }"#,
-            #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": "Send", "point": "left" }, "anchor": "right" } ] } ] }"#,
-            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": "Send", "point": "left" } }, { "shape": "box", "parent": "run", "area": "Send" } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "a", "nth": 1 } }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
+            #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" }, "anchor": "right" } ] } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" } }, { "shape": "box", "parent": "run", "area": { "text": "Send" } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": 1, "padding": 40 }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "padding": 0 }, "track": [0, 0, 0.5, 0.5] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,

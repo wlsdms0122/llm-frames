@@ -8,7 +8,7 @@
 // A tracked clip's geometry at a sequence time, where it is at the instant in the media pixels of the storyline entry
 // it follows: each keyframe is brought back through the motion at the entry's media time at the keyframe's `at`, and
 // the keyframes are interpolated there by their eases. `transform` then carries the instant to the frame the entry
-// shows at a time. A band keeps the full width of its picture and takes the vertical move and scale of the motion.
+// shows at a time.
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -49,9 +49,7 @@ extension ResolvedTrack {
         on entry: ResolvedStorylineClip,
         at time: Double
     ) -> AffineTransform {
-        let motion = track.motion(atMediaTime: entry.mediaTime(at: time))
-
-        return isBand ? AffineTransform(carryingBand: motion) : AffineTransform(carrying: motion)
+        AffineTransform(carrying: track.motion(atMediaTime: entry.mediaTime(at: time)))
     }
 
     // MARK: - Private

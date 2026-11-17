@@ -51,8 +51,7 @@ struct SequencePlanner: Sendable {
                 of: time.storyline[index],
                 written: time.sequence.storyline[index],
                 nested: storylineNested[index],
-                format: format,
-                theme: time.theme
+                format: format
             )
         }
         let found = try time.clips.indices.map { index in
@@ -71,8 +70,7 @@ struct SequencePlanner: Sendable {
             try position(
                 of: time.storyline[index],
                 written: time.sequence.storyline[index],
-                format: format,
-                theme: time.theme
+                format: format
             )
         }
 
@@ -80,7 +78,7 @@ struct SequencePlanner: Sendable {
         try checkKeyframes(of: tracked.time)
         // A tracked clip is parented to a storyline clip, so no text it finds needs a track, and what was found under a
         // shape or adjustment is brought into its space once every track is planned.
-        let parentSpace = ParentSpacePlanner(tracked: tracked, areas: found.map(\.area))
+        let parentSpace = ParentSpacePlanner(tracked: tracked)
         let placed = time.clips.indices.map { index in
             let plan = time.clips[index]
             return (
@@ -266,8 +264,7 @@ struct SequencePlanner: Sendable {
         of plan: StorylinePlan,
         written: StorylineClip,
         nested: SequencePlan?,
-        format: FormatPlan,
-        theme: MergedTheme
+        format: FormatPlan
     ) throws -> PropertyValue<FoundArea>? {
         guard let crop = written.crop else { return nil }
 
@@ -278,7 +275,6 @@ struct SequencePlanner: Sendable {
             pictureClock: .storyline(plan),
             clock: plan.map,
             instant: plan.instant,
-            padding: theme.cropPadding * theme.lengthScale(at: picture.size.width),
             place: written.place,
             kind: plan.source.kind.label
         )
@@ -288,8 +284,7 @@ struct SequencePlanner: Sendable {
     private func position(
         of plan: StorylinePlan,
         written: StorylineClip,
-        format: FormatPlan,
-        theme: MergedTheme
+        format: FormatPlan
     ) throws -> PropertyValue<Point>? {
         guard let position = written.position else { return nil }
 
@@ -303,7 +298,6 @@ struct SequencePlanner: Sendable {
             pictureClock: .still,
             clock: plan.map,
             instant: plan.instant,
-            padding: theme.areaPadding * theme.lengthScale(at: space.size.width),
             place: written.place,
             kind: plan.source.kind.label
         )
@@ -323,7 +317,6 @@ struct SequencePlanner: Sendable {
         clipPictures: [Picture?],
         format: FormatPlan
     ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
-        let theme = time.theme
         let parent = try plan.parent.flatMap { parent in
             try space(of: parent, time: time, storylineNested: storylineNested, clipPictures: clipPictures, format: format)
         }
@@ -342,7 +335,6 @@ struct SequencePlanner: Sendable {
                 pictureClock: spaceClock,
                 clock: plan.clock,
                 instant: plan.instant,
-                padding: theme.areaPadding * theme.lengthScale(at: space.size.width),
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -358,7 +350,6 @@ struct SequencePlanner: Sendable {
                 pictureClock: spaceClock,
                 clock: plan.clock,
                 instant: plan.instant,
-                padding: theme.areaPadding * theme.lengthScale(at: space.size.width),
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -371,7 +362,6 @@ struct SequencePlanner: Sendable {
                     pictureClock: plan.timing.map { .media($0) } ?? .still,
                     clock: plan.clock,
                     instant: plan.instant,
-                    padding: theme.cropPadding * theme.lengthScale(at: picture.size.width),
                     place: written.place,
                     kind: plan.kind.label
                 )

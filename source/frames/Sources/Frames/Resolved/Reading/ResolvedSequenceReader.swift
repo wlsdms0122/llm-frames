@@ -337,12 +337,11 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func track(_ value: PlacedJSONValue) throws -> ResolvedTrack {
-        let track = try value.object(kind: "track", keys: ["target", "time", "band", "frames"])
+        let track = try value.object(kind: "track", keys: ["target", "time", "frames"])
 
         return ResolvedTrack(
             target: try values.rectangle(track.member("target")),
             mediaTime: try track.member("time").number(),
-            isBand: try track.member("band").bool(),
             frames: try track.member("frames").elements().map { element in
                 let frame = try element.object(keys: ["time", "value"])
 

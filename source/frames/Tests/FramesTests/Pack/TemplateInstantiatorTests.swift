@@ -25,7 +25,7 @@ struct TemplateInstantiatorTests {
           },
           "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
                            "connected": [ { "title": { "param": "title" }, "style": "title" },
-                                          { "shape": "box", "area": "Send", "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
+                                          { "shape": "box", "area": { "text": "Send" }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
         """##
 
     // MARK: - Initializer
@@ -44,7 +44,7 @@ struct TemplateInstantiatorTests {
             { "kind": "sequence",
               "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
                                "connected": [ { "title": "New feature", "style": "title" },
-                                              { "shape": "box", "area": "Send", "color": "#FF0000", "opacity": 0.5 } ] } ] }
+                                              { "shape": "box", "area": { "text": "Send" }, "color": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)
         #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
@@ -144,6 +144,11 @@ struct TemplateInstantiatorTests {
                 #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
+            ),
+            (
+                #"{ "w": { "type": "number" } }, "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
+                #"{ "w": 0 }"#,
+                "storyline[0].crop[2] (video): expected a number above 0, found 0"
             )
         ]
     )

@@ -16,19 +16,19 @@ struct TrackPlannerTests {
     // MARK: - Property
     private static let untrackable: [(String, String)] = [
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "track": "Total" } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "track": { "text": "Total" } } ] }"#,
             "clips[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": "Total" } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": { "text": "Total" } } ] } ] }"#,
             "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "box", "area": "Total", "parent": "page", "track": "Total" } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "page", "track": { "text": "Total" } } ] } ] }"#,
             "storyline[0]#page.connected[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": "Total" } ] }"##,
+            ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": { "text": "Total" } } ] }"##,
             "storyline[0].track (compound): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
@@ -44,7 +44,7 @@ struct TrackPlannerTests {
             #"storyline[0].connected[0].track (box): "track": true follows the clip's own area or crop, and it has none given as an area"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": "Total" } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
             #"clips[1].track (box): track follows the media of a storyline parent, and the parent "card" is a connected or sequence clip, whose media is not followed"#
         )
     ]
@@ -60,7 +60,7 @@ struct TrackPlannerTests {
     func followsStorylineTarget() throws {
         // Given
         let sut = planner()
-        let time = try plan(storyline: #""track": "Total""#)
+        let time = try plan(storyline: #""track": { "text": "Total" }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [])
@@ -79,7 +79,7 @@ struct TrackPlannerTests {
     func refusesLostStorylineTarget() throws {
         // Given
         let sut = planner(followed: 0...2.4)
-        let time = try plan(storyline: #""track": "Total""#)
+        let time = try plan(storyline: #""track": { "text": "Total" }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, crops: [nil], areas: []) }
@@ -95,7 +95,7 @@ struct TrackPlannerTests {
         let sut = planner(followed: 0...3)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": "Total" },
+                { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": { "text": "Total" } },
                 { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } } ] }
             """#))
 
@@ -113,9 +113,9 @@ struct TrackPlannerTests {
     func followsOwnCrop() throws {
         // Given
         let sut = planner()
-        let staticTime = try plan(storyline: #""crop": "Total", "track": true"#)
+        let staticTime = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
         let keyframedTime = try plan(storyline: #"""
-            "track": true, "keyframes": [ { "at": 2.5, "crop": { "scale": 2 } }, { "at": 1.5, "crop": "Total" } ]
+            "track": true, "keyframes": [ { "at": 2.5, "crop": { "scale": 2 } }, { "at": 1.5, "crop": { "text": "Total" } } ]
             """#)
         let crop = Rectangle(x: 120, y: 300, width: 400, height: 300)
 
@@ -142,7 +142,7 @@ struct TrackPlannerTests {
         arguments: [
             #""track": true"#,
             #""track": true, "crop": { "scale": 2 }"#,
-            #""track": true, "keyframes": [ { "at": 1.5, "crop": { "scale": 2 } }, { "at": 2, "crop": "Total" } ]"#
+            #""track": true, "keyframes": [ { "at": 1.5, "crop": { "scale": 2 } }, { "at": 2, "crop": { "text": "Total" } } ]"#
         ]
     )
     func refusesOwnCropWithoutArea(keys: String) throws {
@@ -164,7 +164,7 @@ struct TrackPlannerTests {
     func narrowsConnectedWindow() throws {
         // Given
         let sut = planner(followed: 0...1.9)
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -182,7 +182,7 @@ struct TrackPlannerTests {
     func findsTargetAtStorylineIn() throws {
         // Given
         let sut = planner()
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -197,7 +197,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let time = try plan(connected: #"""
-            { "shape": "box", "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": "Total" }, { "at": 2.2, "area": "Total" } ] }
+            { "shape": "box", "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
             """#)
         let first = Rectangle(x: 10, y: 20, width: 30, height: 40)
 
@@ -220,7 +220,7 @@ struct TrackPlannerTests {
     func refusesNeverFollowed() throws {
         // Given
         let sut = planner(followed: 3...3.9)
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, crops: [nil], areas: [nil]) }
@@ -277,7 +277,7 @@ struct TrackPlannerTests {
         _ target: Rectangle,
         at mediaTime: Double
     ) -> FoundArea {
-        FoundArea(rectangle: target.grown(by: 14), target: target, isBand: false, mediaTime: mediaTime, lines: [])
+        FoundArea(rectangle: target.grown(by: 14), target: target, mediaTime: mediaTime, lines: [])
     }
 
     private func moved(

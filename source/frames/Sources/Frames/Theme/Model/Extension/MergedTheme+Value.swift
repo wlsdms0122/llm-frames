@@ -14,14 +14,6 @@ extension MergedTheme {
         number(at: ["baseWidth"])
     }
 
-    var areaPadding: Double {
-        number(at: ["area", "padding"])
-    }
-
-    var cropPadding: Double {
-        number(at: ["area", "cropPadding"])
-    }
-
     var placementPadding: Double {
         number(at: ["placement", "padding"])
     }

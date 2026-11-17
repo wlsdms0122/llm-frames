@@ -3,14 +3,14 @@
   "theme": "pr-evidence/pr-evidence",
   "format": { "size": [1206, 900], "fps": 30, "background": "#FFFFFF", "conform": "fit" },
   "storyline": [
-    { "id": "checkout", "media": "/path/to/checkout.png", "duration": 1, "crop": { "band": { "from": "Order summary", "to": "Total" } },
+    { "id": "checkout", "media": "/path/to/checkout.png", "duration": 1, "crop": { "from": "Order summary", "to": "Total", "padding": 40 },
       "connected": [
-        { "shape": "fill", "id": "address", "parent": "checkout", "area": "Ship to", "color": "#000000" },
-        { "shape": "box", "parent": "checkout", "area": "Item total" },
-        { "shape": "box", "parent": "checkout", "area": "Shipping" },
-        { "shape": "box", "id": "total", "parent": "checkout", "area": "Total" },
+        { "shape": "fill", "id": "address", "parent": "checkout", "area": { "text": "Ship to", "padding": 14 }, "color": "#000000" },
+        { "shape": "box", "parent": "checkout", "area": { "text": "Item total", "padding": 14 } },
+        { "shape": "box", "parent": "checkout", "area": { "text": "Shipping", "padding": 14 } },
+        { "shape": "box", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
         { "title": "38,000 + 4,000", "style": "label", "parent": "total",
-          "position": { "area": "Total", "point": "right" }, "anchor": "left" }
+          "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] }
   ],
   "clips": [

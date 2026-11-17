@@ -66,12 +66,12 @@ struct ResolvedDocumentReaderTests {
             { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
-        // Shapes, a tracked area and a band, an adjustment, a timed media clip, a title parented to a shape and sound
+        // Shapes, tracked areas with and without padding, an adjustment, a timed media clip, a title parented to a shape and sound
         // with fades.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": "Total", "parent": "screen", "track": "Total" },
-            { "shape": "fill", "area": { "band": "Total" }, "parent": "screen", "track": true },
+            { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+            { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
             { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "lane": -1 },
             { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },

@@ -53,7 +53,6 @@ struct BaseThemeTests {
         #expect(theme["placement"] == (try Fixture.json(#"{ "padding": 96 }"#)))
         #expect(theme["border"] == (try Fixture.json(#"{ "width": 4, "color": "accent" }"#)))
         #expect(theme["shadow"] == (try Fixture.json(#"{ "radius": 32, "offset": [0, 12], "color": "shadow" }"#)))
-        #expect(theme["area"] == (try Fixture.json(#"{ "padding": 14, "cropPadding": 40 }"#)))
         #expect(defaults?["transition"] == .string("cut"))
         #expect(defaults?["filter"] == .string("none"))
         #expect(defaults?["animation"] == (try Fixture.json(
@@ -61,7 +60,7 @@ struct BaseThemeTests {
         )))
     }
 
-    @Test("the base theme holds no image or layout group, no banner, heading, headline or label style and no shape label")
+    @Test("the base theme holds no image, layout or area group, no banner, heading, headline or label style and no shape label")
     func holdsNoRemovedGroup() throws {
         // Given
         let theme = try #require(sut.objectValue)
@@ -73,6 +72,7 @@ struct BaseThemeTests {
         // Then
         #expect(theme["image"] == nil)
         #expect(theme["layout"] == nil)
+        #expect(theme["area"] == nil)
         #expect(styles == ["title", "subtitle"])
         #expect(shapes == ["box", "fill", "dim", "arrow"])
     }

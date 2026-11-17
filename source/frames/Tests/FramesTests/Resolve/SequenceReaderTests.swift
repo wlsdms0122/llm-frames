@@ -25,7 +25,7 @@ struct SequenceReaderTests {
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "box", "parent": "run", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
+                                 { "shape": "box", "parent": "run", "keyframes": [ { "at": 1.2, "area": { "text": "First line" } } ] } ] },
                 { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
@@ -110,7 +110,7 @@ struct SequenceReaderTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
-                { "shape": "arrow", "area": { "band": { "from": "a", "to": "b", "toNth": 1 } }, "side": "left",
+                { "shape": "arrow", "area": { "from": "a", "to": "b", "toNth": 1, "padding": 6 }, "side": "left",
                   "track": { "text": "c", "nth": 2 } },
                 { "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
@@ -126,9 +126,9 @@ struct SequenceReaderTests {
         #expect(sequence.format.conform == .fill)
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
-        #expect(arrow.area == .value(.band(.range(from: "a", fromNth: nil, to: "b", toNth: 1))))
+        #expect(arrow.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
         #expect(arrow.content == .shape(.arrow(.left)))
-        #expect(arrow.track == .area(.text("c", nth: 2)))
+        #expect(arrow.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
     }

@@ -92,6 +92,7 @@ struct ThemeValidatorTests {
         arguments: [
             #"{ "image": { "bannerPadding": 40 } }"#,
             #"{ "layout": { "gap": 40, "padding": 40 } }"#,
+            #"{ "area": { "padding": 14, "cropPadding": 40 } }"#,
             #"{ "shapes": { "border": { "width": 3 } } }"#,
             #"{ "shapes": { "shadow": { "radius": 24 } } }"#
         ]

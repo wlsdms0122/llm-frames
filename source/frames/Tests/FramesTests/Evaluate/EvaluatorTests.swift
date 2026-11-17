@@ -320,7 +320,7 @@ struct EvaluatorTests {
     func carriesTrackedCrop() throws {
         // Given
         let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: false, frames: [
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
             TrackedFrame(time: 0, rectangle: target),
             TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 40, y: 0, width: 10, height: 10))
@@ -339,59 +339,6 @@ struct EvaluatorTests {
         // by the motion at 1.
         let rectangle = try #require(mediaPicture(of: list)?.rectangle)
         #expect(isClose(rectangle, Rectangle(x: 25, y: 0, width: 100, height: 50)))
-    }
-
-    @Test("a tracked band crop keeps its full width and takes only the vertical part of the motion")
-    func carriesTrackedBand() throws {
-        // Given
-        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
-            TrackedFrame(time: 0, rectangle: target),
-            TrackedFrame(time: 1, rectangle: Rectangle(x: 30, y: 20, width: 10, height: 10))
-        ])
-        let sequence = sequence([
-            storylineClip(
-                .pinned(first),
-                start: 0,
-                end: 4,
-                crop: Rectangle(x: 0, y: 0, width: 200, height: 100),
-                track: track
-            )
-        ])
-
-        // When
-        let list = sut.displayList(of: sequence, at: 1)
-
-        // Then
-        let rectangle = try #require(mediaPicture(of: list)?.rectangle)
-        #expect(rectangle == Rectangle(x: 0, y: 20, width: 200, height: 100))
-    }
-
-    @Test("a tracked band crop takes the vertical move of a zooming target but not its scale, so it keeps its ratio")
-    func keepsBandCropRatio() throws {
-        // Given
-        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
-            TrackedFrame(time: 0, rectangle: target),
-            TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 20, width: 20, height: 20))
-        ])
-        let sequence = sequence([
-            storylineClip(
-                .pinned(first),
-                start: 0,
-                end: 4,
-                crop: Rectangle(x: 0, y: 0, width: 200, height: 100),
-                track: track
-            )
-        ])
-
-        // When
-        let list = sut.displayList(of: sequence, at: 1)
-
-        // Then
-        // The target's centre moves down from 5 to 30 and it doubles, but the crop only moves.
-        let rectangle = try #require(mediaPicture(of: list)?.rectangle)
-        #expect(rectangle == Rectangle(x: 0, y: 25, width: 200, height: 100))
     }
 
     @Test("a `fit` crop beyond the picture is drawn as conformed, leaving what lies outside the picture transparent")
@@ -543,7 +490,7 @@ struct EvaluatorTests {
         // The page scrolls up 40 a second. The second keyframe is 40 right of the first where it is at 2, so at the
         // instant it lies 40 right of the first and halfway is (120, 100), scrolled up 40 at 1.
         let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: false, frames: [
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
             TrackedFrame(time: 0, rectangle: target),
             TrackedFrame(time: 1, rectangle: Rectangle(x: 100, y: 60, width: 40, height: 20)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 100, y: 20, width: 40, height: 20))
@@ -564,39 +511,6 @@ struct EvaluatorTests {
         // (120, 100, 40, 20) at the instant, carried up 40 by the motion and then at half size.
         let carried = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: -20)
         #expect(list.items.last == fillItem(Rectangle(x: 120, y: 100, width: 40, height: 20), transform: carried))
-    }
-
-    @Test("a tracked band keeps the full width of its picture and takes the vertical move and scale of its height")
-    func carriesTrackedBandArea() throws {
-        // Given
-        // The target's centre moves from (120, 110) to (120, 55) and it grows 1.5 times.
-        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: true, frames: [
-            TrackedFrame(time: 0, rectangle: target),
-            TrackedFrame(time: 1, rectangle: Rectangle(x: 90, y: 40, width: 60, height: 30))
-        ])
-        let band = Rectangle(x: 0, y: 100, width: 400, height: 20)
-        let sequence = sequence(
-            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
-            clips: [
-                clip(
-                    .shape(.fill(color: red)),
-                    storyline: 0,
-                    parent: "shot",
-                    area: [Keyframe(at: 0, value: band)],
-                    track: track
-                )
-            ]
-        )
-
-        // When
-        let list = sut.displayList(of: sequence, at: 1)
-
-        // Then
-        // The band is drawn where it is at the instant, and the motion takes it to (0, 40, 400, 30) in the picture,
-        // carried at half size.
-        let carried = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.75, tx: 0, ty: -55)
-        #expect(list.items.last == fillItem(band, transform: carried))
     }
 
     @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")

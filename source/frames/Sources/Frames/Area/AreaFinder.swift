@@ -6,8 +6,8 @@
 //
 
 // Finds an area in a picture at one media time: a rectangle as written, or text through the OCR provider. An area
-// found by text grows by `padding`, in the picture's pixels, before a band widens it. Every area is cut to the
-// picture, and one wholly outside it stops.
+// found by text grows by its padding, in the picture's pixels. Every area is cut to the picture, and one wholly
+// outside it stops.
 struct AreaFinder: Sendable {
     // MARK: - Property
     private let ocr: any OCRProvider
@@ -23,36 +23,20 @@ struct AreaFinder: Sendable {
         _ form: AreaForm,
         in picture: Picture,
         atMediaTime time: Double,
-        padding: Double,
         place: Place,
         kind: String
     ) throws -> FoundArea {
         switch form {
-        case let .band(inner):
-            let found = try area(inner, in: picture, atMediaTime: time, padding: padding, place: place, kind: kind)
-            return FoundArea(
-                rectangle: Rectangle(
-                    x: 0,
-                    y: found.rectangle.y,
-                    width: picture.size.width,
-                    height: found.rectangle.height
-                ),
-                target: found.target,
-                isBand: true,
-                mediaTime: time,
-                lines: found.lines
-            )
-
         case let .rectangle(rectangle):
             let cut = try cut(rectangle, to: picture, place: place, kind: kind)
-            return FoundArea(rectangle: cut, target: cut, isBand: false, mediaTime: time, lines: [])
+            return FoundArea(rectangle: cut, target: cut, mediaTime: time, lines: [])
 
-        case let .text(text, nth):
+        case let .text(text, nth, padding):
             let lines = try recognisedLines(in: picture, atMediaTime: time, place: place, kind: kind)
             let line = try line(text, nth: nth, among: lines, picture: picture, time: time, place: place, kind: kind)
             return try textArea([line], in: picture, atMediaTime: time, padding: padding, place: place, kind: kind)
 
-        case let .range(from, fromNth, to, toNth):
+        case let .range(from, fromNth, to, toNth, padding):
             let lines = try recognisedLines(in: picture, atMediaTime: time, place: place, kind: kind)
             let ends = [
                 try line(from, nth: fromNth, among: lines, picture: picture, time: time, place: place, kind: kind),
@@ -111,7 +95,6 @@ struct AreaFinder: Sendable {
         return FoundArea(
             rectangle: try cut(rectangle.grown(by: padding), to: picture, place: place, kind: kind),
             target: try cut(rectangle, to: picture, place: place, kind: kind),
-            isBand: false,
             mediaTime: time,
             lines: lines
         )

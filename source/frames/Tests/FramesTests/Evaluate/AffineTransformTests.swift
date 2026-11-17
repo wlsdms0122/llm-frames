@@ -137,23 +137,6 @@ struct AffineTransformTests {
         #expect(point == Point(x: 190, y: 150))
     }
 
-    @Test("a band's motion as a matrix keeps a point's x and takes the vertical move and scale")
-    func carriesBandMotion() {
-        // Given
-        let motion = TrackMotion(
-            from: Rectangle(x: 0, y: 0, width: 100, height: 50),
-            to: Rectangle(x: 50, y: -50, width: 200, height: 400)
-        )
-        let sut = AffineTransform(carryingBand: motion)
-
-        // When
-        let point = sut.apply(to: Point(x: 60, y: 20))
-
-        // Then
-        // The target's centre moves down from 25 to 150 and the motion scales 4 times.
-        #expect(point == Point(x: 60, y: 130))
-    }
-
     // MARK: - Private
     private func expectClose(
         _ point: Point,

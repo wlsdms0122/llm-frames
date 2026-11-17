@@ -10,7 +10,8 @@ enum AreaKeyTable {
         kind: "text area",
         rules: [
             KeyRule("text", .text, isRequired: true),
-            KeyRule("nth", .integer)
+            KeyRule("nth", .nonNegativeInteger),
+            KeyRule("padding", .nonNegativeNumber)
         ]
     )
     static let range = ObjectTable(
@@ -18,14 +19,9 @@ enum AreaKeyTable {
         rules: [
             KeyRule("from", .text, isRequired: true),
             KeyRule("to", .text, isRequired: true),
-            KeyRule("fromNth", .integer),
-            KeyRule("toNth", .integer)
-        ]
-    )
-    static let band = ObjectTable(
-        kind: "band area",
-        rules: [
-            KeyRule("band", .area, isRequired: true)
+            KeyRule("fromNth", .nonNegativeInteger),
+            KeyRule("toNth", .nonNegativeInteger),
+            KeyRule("padding", .nonNegativeNumber)
         ]
     )
     static let cropScale = ObjectTable(

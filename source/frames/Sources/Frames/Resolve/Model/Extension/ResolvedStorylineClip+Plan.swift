@@ -38,7 +38,7 @@ extension ResolvedStorylineClip {
             start: plan.edit.start,
             end: plan.edit.end,
             crop: crop,
-            track: geometry.track.map { ResolvedTrack(track: $0, values: geometry.crop) },
+            track: geometry.track.map { ResolvedTrack(track: $0) },
             filter: try geometry.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) },
             box: ResolvedBox(
                 size: appearance.box.size,

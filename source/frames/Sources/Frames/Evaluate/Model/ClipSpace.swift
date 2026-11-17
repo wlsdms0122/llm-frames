@@ -13,8 +13,7 @@ import Foundation
 // degrees. `frame` is the list's frame: what a shape without an area covers and what a dim darkens. `storyline` is the
 // storyline parent whose media a tracked clip follows. A tracked clip's values are where they are at the instant, and
 // its track's motion is a moving parent between them and this space: `area` and `anchor` answer in the clip's values'
-// coordinates, and `tracked(by:at:)` is the space that maps those coordinates to output pixels. A band's motion keeps
-// the width of its picture, so a band's tracked space is not a similarity, and `scale` is then its horizontal scale.
+// coordinates, and `tracked(by:at:)` is the space that maps those coordinates to output pixels.
 struct ClipSpace: Sendable {
     // MARK: - Property
     let frame: Rectangle

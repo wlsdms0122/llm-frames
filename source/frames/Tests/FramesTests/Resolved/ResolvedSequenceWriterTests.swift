@@ -285,22 +285,21 @@ struct ResolvedSequenceWriterTests {
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
-    @Test("a clip whose tracked area is a band writes band true, and one tracking any other area false")
-    func writesBand() throws {
+    @Test("a tracked clip writes its track as the target, its media time and the frames followed")
+    func writesTrack() throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "box", "area": "Total", "parent": "screen", "track": "Total" },
-                { "shape": "fill", "area": { "band": "Total" }, "parent": "screen", "track": true } ] } ] }
+                { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+                { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true } ] } ] }
             """#
 
         // When
         let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
 
         // Then
-        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "band", "frames"])
-        #expect(clips[0]["track"]?.objectValue?["band"] == .bool(false))
-        #expect(clips[1]["track"]?.objectValue?["band"] == .bool(true))
+        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "frames"])
+        #expect(clips[1]["track"]?.objectValue?.keys == ["target", "time", "frames"])
     }
 
     @Test("a media clip plays in at its window's start, written as origin, even where the sequence cuts its start")

@@ -129,6 +129,11 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .nonNegativeInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer >= 0 else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .positiveInteger:
             guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
                 throw wrongType(value, type, place, kind)
@@ -178,13 +183,13 @@ struct KeyChecker: Sendable {
             try checkAlternatives(value, as: types, place: place, kind: kind, scope: &scope)
 
         case .area:
-            try checkArea(value, place: place, kind: kind, scope: &scope)
+            try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
 
         case .crop:
             if case let .object(object) = value, object.contains("scale") {
                 try checkObject(object, as: AreaKeyTable.cropScale, place: place, scope: &scope)
             } else {
-                try checkArea(value, place: place, kind: kind, scope: &scope)
+                try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
             }
 
         case .media:
@@ -335,32 +340,34 @@ struct KeyChecker: Sendable {
         }
     }
 
+    // A rectangle's width and height are above 0. `type` is the area or crop being checked, which a message names.
     private func checkArea(
         _ value: JSONValue,
+        as type: ValueType,
         place: Place,
         kind: String,
         scope: inout DocumentScope
     ) throws {
         switch value {
-        case .array:
-            try check(value, as: .numbers(4), place: place, kind: kind, scope: &scope)
+        case let .array(elements):
+            guard elements.count == 4 else { throw wrongType(value, type, place, kind) }
 
-        case .string:
-            return
+            for (index, element) in elements.enumerated() {
+                let elementType: ValueType = index < 2 ? .number : .positiveNumber
+                try check(element, as: elementType, place: place.appending(index: index), kind: kind, scope: &scope)
+            }
 
         case let .object(object):
-            if object.contains("band") {
-                try checkObject(object, as: AreaKeyTable.band, place: place, scope: &scope)
-            } else if object.contains("text") {
+            if object.contains("text") {
                 try checkObject(object, as: AreaKeyTable.text, place: place, scope: &scope)
             } else if object.contains("from") || object.contains("to") {
                 try checkObject(object, as: AreaKeyTable.range, place: place, scope: &scope)
             } else {
-                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from", "band"])
+                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from"])
             }
 
         default:
-            throw wrongType(value, .area, place, kind)
+            throw wrongType(value, type, place, kind)
         }
     }
 
@@ -827,13 +834,13 @@ struct KeyChecker: Sendable {
         case .media:
             MediaKind(rawValue: parameterType) != nil
 
-        case .text, .area, .crop:
+        case .text:
             parameterType == "text"
 
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .integer, .positiveInteger:
+        case .number, .positiveNumber, .nonNegativeNumber, .integer, .nonNegativeInteger, .positiveInteger:
             parameterType == "number"
 
         default:
@@ -874,7 +881,7 @@ struct KeyChecker: Sendable {
             true
 
         case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number),
-             (.positiveInteger, .number):
+             (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -888,7 +895,7 @@ struct KeyChecker: Sendable {
              (.filterOperation, .object), (.document, .object):
             true
 
-        case (.area, .array), (.area, .string), (.area, .object), (.crop, .array), (.crop, .string), (.crop, .object):
+        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object):
             true
 
         case (.media, .string), (.media, .object):
@@ -936,6 +943,9 @@ struct KeyChecker: Sendable {
 
         case .integer:
             "a whole number"
+
+        case .nonNegativeInteger:
+            "a whole number, 0 or more"
 
         case .positiveInteger:
             "a whole number, 1 or more"

@@ -223,7 +223,6 @@ struct ResolvedSequenceWriter: Sendable {
         .object(JSONObject(members: [
             JSONMember(key: "target", value: values.rectangle(track.target)),
             JSONMember(key: "time", value: .number(track.mediaTime)),
-            JSONMember(key: "band", value: .bool(track.isBand)),
             JSONMember(key: "frames", value: .array(track.frames.map { frame in
                 .object(JSONObject(members: [
                     JSONMember(key: "time", value: .number(frame.time)),

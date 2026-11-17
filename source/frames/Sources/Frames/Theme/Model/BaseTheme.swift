@@ -23,7 +23,6 @@ package enum BaseTheme {
             "dim":   { "color": "#0000008C" },
             "arrow": { "width": 10, "length": 160, "head": 32, "color": "#ED2929" }
           },
-          "area":      { "padding": 14, "cropPadding": 40 },
           "placement": { "padding": 96 },
           "border":    { "width": 4, "color": "accent" },
           "shadow":    { "radius": 32, "offset": [0, 12], "color": "shadow" },

@@ -45,7 +45,7 @@ struct ClipThemeLayerTests {
     @Test("a shape op's colour replaces its shape's theme colour")
     func layersOperationColour() throws {
         // Given
-        let operation = try Fixture.object(##"{ "shape": "fill", "area": "x", "color": "#000000" }"##)
+        let operation = try Fixture.object(##"{ "shape": "fill", "area": { "text": "x" }, "color": "#000000" }"##)
 
         // When
         let layer = ClipThemeLayer.layer(forOperation: operation)

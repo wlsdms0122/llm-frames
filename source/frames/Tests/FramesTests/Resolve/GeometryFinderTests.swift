@@ -30,7 +30,7 @@ struct GeometryFinderTests {
     @Test("a static area is found at the clip's instant, in the media time of the storyline clip it is on")
     func findsStaticAreaAtInstant() throws {
         // Given
-        let plan = try plan(#"{ "shape": "box", "parent": "screen", "area": "Total" }"#)
+        let plan = try plan(#"{ "shape": "box", "parent": "screen", "area": { "text": "Total", "padding": 14 } }"#)
         let clip = plan.sequence.storyline[0].connected[0]
 
         // When
@@ -40,7 +40,6 @@ struct GeometryFinderTests {
         #expect(found == .value(FoundArea(
             rectangle: Rectangle(x: 86, y: 86, width: 228, height: 68),
             target: Rectangle(x: 100, y: 100, width: 200, height: 40),
-            isBand: false,
             mediaTime: 1,
             lines: [RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 100, width: 200, height: 40))]
         )))
@@ -51,7 +50,7 @@ struct GeometryFinderTests {
         // Given
         let plan = try plan(#"""
             { "shape": "box", "parent": "screen", "at": [1, 3],
-              "keyframes": [ { "at": 1, "area": "Total", "ease": "ease-in-out" }, { "at": 2.5, "area": "Total" } ] }
+              "keyframes": [ { "at": 1, "area": { "text": "Total" }, "ease": "ease-in-out" }, { "at": 2.5, "area": { "text": "Total" } } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -74,9 +73,9 @@ struct GeometryFinderTests {
     func findsAtStorylineMediaTime() throws {
         // Given
         let keyframed = try plan(#"""
-            { "shape": "box", "at": [1.5, 3], "keyframes": [ { "at": 1.5, "area": "Total" }, { "at": 3, "area": "Total" } ] }
+            { "shape": "box", "at": [1.5, 3], "keyframes": [ { "at": 1.5, "area": { "text": "Total" } }, { "at": 3, "area": { "text": "Total" } } ] }
             """#, storylineKeys: #""speed": 2,"#)
-        let still = try plan(#"{ "shape": "box", "at": [2, 3], "area": "Total" }"#, storylineKeys: #""speed": 2,"#)
+        let still = try plan(#"{ "shape": "box", "at": [2, 3], "area": { "text": "Total" } }"#, storylineKeys: #""speed": 2,"#)
         let storyline = keyframed.storyline[0]
 
         // When
@@ -99,7 +98,7 @@ struct GeometryFinderTests {
     func namesKeyframeInStop() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "box", "parent": "screen", "keyframes": [ { "at": 1, "area": "Total" }, { "at": 2, "area": "Cart" } ] }
+            { "shape": "box", "parent": "screen", "keyframes": [ { "at": 1, "area": { "text": "Total" } }, { "at": 2, "area": { "text": "Cart" } } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -113,11 +112,11 @@ struct GeometryFinderTests {
             """#)
     }
 
-    @Test("a crop of {scale} is the centred region of 1/scale the picture, and an area crop takes the crop padding")
+    @Test("a crop of {scale} is the centred region of 1/scale the picture, and a text crop grows by its padding")
     func findsCrops() throws {
         // Given
         let scalePlan = try plan(nil, storylineKeys: #""crop": { "scale": 2 },"#)
-        let areaPlan = try self.plan(nil, storylineKeys: #""crop": "Total","#)
+        let areaPlan = try self.plan(nil, storylineKeys: #""crop": { "text": "Total", "padding": 40 },"#)
 
         // When
         let scale = try sut.crops(
@@ -126,7 +125,6 @@ struct GeometryFinderTests {
             pictureClock: .storyline(scalePlan.storyline[0]),
             clock: scalePlan.storyline[0].map,
             instant: scalePlan.storyline[0].edit.start,
-            padding: 40,
             place: scalePlan.storyline[0].place,
             kind: "video"
         )
@@ -136,7 +134,6 @@ struct GeometryFinderTests {
             pictureClock: .storyline(areaPlan.storyline[0]),
             clock: areaPlan.storyline[0].map,
             instant: areaPlan.storyline[0].edit.start,
-            padding: 40,
             place: areaPlan.storyline[0].place,
             kind: "video"
         )
@@ -145,7 +142,6 @@ struct GeometryFinderTests {
         #expect(scale == .value(FoundArea(
             rectangle: Rectangle(x: 301.5, y: 655.5, width: 603, height: 1311),
             target: Rectangle(x: 301.5, y: 655.5, width: 603, height: 1311),
-            isBand: false,
             mediaTime: 1,
             lines: []
         )))
@@ -158,7 +154,7 @@ struct GeometryFinderTests {
     func findsPositionOnArea() throws {
         // Given
         let plan = try plan(#"""
-            { "title": "a", "style": "title", "parent": "screen", "position": { "area": "Total", "point": "right" } }
+            { "title": "a", "style": "title", "parent": "screen", "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -169,13 +165,51 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: plan.clips[0].window.start,
-            padding: 14,
             place: clip.place,
             kind: "title"
         )
 
         // Then
         #expect(position == .value(Point(x: 314, y: 120)))
+    }
+
+    @Test(
+        "a position by an area and a placement name is that point of the area, padding included",
+        arguments: [
+            ("top-left", Point(x: 90, y: 90)),
+            ("top", Point(x: 200, y: 90)),
+            ("top-right", Point(x: 310, y: 90)),
+            ("left", Point(x: 90, y: 120)),
+            ("center", Point(x: 200, y: 120)),
+            ("right", Point(x: 310, y: 120)),
+            ("bottom-left", Point(x: 90, y: 150)),
+            ("bottom", Point(x: 200, y: 150)),
+            ("bottom-right", Point(x: 310, y: 150))
+        ]
+    )
+    func findsEveryPointOfArea(
+        name: String,
+        point: Point
+    ) throws {
+        // Given
+        let plan = try plan(#"""
+            { "title": "a", "style": "title", "parent": "screen", "position": { "area": { "text": "Total", "padding": 10 }, "point": "\#(name)" } }
+            """#)
+        let clip = plan.sequence.storyline[0].connected[0]
+
+        // When
+        let position = try sut.positions(
+            clip.position ?? .value(.point(Point(x: 0, y: 0))),
+            in: screen,
+            pictureClock: .storyline(plan.storyline[0]),
+            clock: plan.clips[0].clock,
+            instant: plan.clips[0].window.start,
+            place: clip.place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(position == .value(point))
     }
 
     // MARK: - Private
@@ -201,7 +235,6 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: instant,
-            padding: 14,
             place: plan.clips[0].place,
             kind: "box"
         )

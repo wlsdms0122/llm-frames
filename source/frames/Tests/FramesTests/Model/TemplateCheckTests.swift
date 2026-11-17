@@ -29,7 +29,7 @@ struct TemplateCheckTests {
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
-                               "connected": [ { "shape": "box", "area": { "param": "name" }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
+                               "connected": [ { "shape": "box", "area": { "text": { "param": "name" } }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
             }
             """##)
 
@@ -59,6 +59,8 @@ struct TemplateCheckTests {
              #"clips[0].title (title): parameter "size" of type number cannot stand where a string is expected"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
+            (#"{ "name": { "type": "text" } }"#, #"{ "shape": "box", "area": { "param": "name" } }"#,
+             #"clips[0].area (box): parameter "name" of type text cannot stand where an area is expected"#),
             (#"{ "where": { "type": "choice", "options": ["top", "middle"] } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,

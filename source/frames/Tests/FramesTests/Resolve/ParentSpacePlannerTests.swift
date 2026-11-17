@@ -16,7 +16,7 @@ import Testing
 struct ParentSpacePlannerTests {
     // MARK: - Property
     private static let drift = Point(x: 10, y: 40)
-    private static let padding = 14 * (1206 / 1920.0)
+    private static let padding = 14.0
 
     // MARK: - Initializer
     // MARK: - Test
@@ -36,10 +36,10 @@ struct ParentSpacePlannerTests {
         let sut = planner(growth: growth)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 4], "area": "Total", "track": true },
+                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 4], "area": { "text": "Total" }, "track": true },
                 { "id": "inner", "shape": "box", "parent": "box", "at": [0, 4], "area": [0, 0, 10, 10] },
                 { "title": "a", "style": "title", "parent": "\#(parent)", "at": [2, 4], "anchor": "left",
-                  "position": { "area": "Total", "point": "right" } } ] } ] }
+                  "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] }
             """#)
 
         // When
@@ -84,7 +84,7 @@ struct ParentSpacePlannerTests {
         let sut = planner(growth: 0.25)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 2], "area": "Total", "track": true },
+                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 2], "area": { "text": "Total" }, "track": true },
                 { "title": "a", "style": "title", "parent": "box", "anchor": "left", \#(title) },
                 { "title": "a", "style": "title", "parent": "screen", "anchor": "left", \#(title) } ] } ] }
             """#)
@@ -112,11 +112,11 @@ struct ParentSpacePlannerTests {
         let sut = planner(growth: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 4], "area": "Total", "track": true },
+                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 4], "area": { "text": "Total" }, "track": true },
                 { "shape": "box", "parent": "box", "at": [0, 4], "area": [300, 100, 50, 50] },
                 { "title": "a", "style": "title", "parent": "box", "at": [0, 4], "anchor": "left", "keyframes": [
                     { "at": 2, "position": [300, 100] },
-                    { "at": 3, "position": { "area": "Total", "point": "right" } } ] } ] } ] }
+                    { "at": 3, "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] } ] }
             """#)
 
         // When
@@ -141,7 +141,7 @@ struct ParentSpacePlannerTests {
     }
 
     // MARK: - Private
-    private static let beside = #"{ "area": "Total", "point": "right" }"#
+    private static let beside = #"{ "area": { "text": "Total", "padding": 14 }, "point": "right" }"#
 
     private static func anchor(
         of clip: ResolvedClip,

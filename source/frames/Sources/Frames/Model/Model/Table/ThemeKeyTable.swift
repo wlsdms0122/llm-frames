@@ -14,7 +14,6 @@ enum ThemeKeyTable {
             KeyRule("colors", .map(.hexColor, kind: "colors")),
             KeyRule("styles", .map(.object(style), kind: "styles")),
             KeyRule("shapes", .object(shapes)),
-            KeyRule("area", .object(group("area", ["padding", "cropPadding"]))),
             KeyRule("placement", .object(group("placement", ["padding"]))),
             KeyRule("border", .object(ObjectTable(
                 kind: "border",

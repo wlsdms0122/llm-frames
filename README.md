@@ -109,7 +109,7 @@ A template renders on its own with its arguments: `frames render mine/intro --ar
 ```sh
 frames probe /path/to/recording.mp4
 frames ocr /path/to/recording.mp4 --from 0 --to 3 --step 0.5 --json
-frames track /path/to/recording.mp4 --at 1 --area '"Total"' --to 2.5
+frames track /path/to/recording.mp4 --at 1 --area '{"text": "Total"}' --to 2.5
 frames extract /path/to/recording.mp4 /path/to/out/frames --from 1 --to 3 --step 0.5
 frames sheet /path/to/recording.mp4 -o /path/to/out/sheet.png --step 1 --cols 6
 frames timeline /path/to/short.json
@@ -117,7 +117,7 @@ frames evaluate /path/to/short.json --at 1
 frames locate /path/to/short.json --at 1 --point 540,960
 ```
 
-`--area` takes an area as JSON text, so a text area is quoted twice: `'"Total"'` or `'{"text": "Total", "nth": 1}'`. `extract` and `sheet` take a document too, and then draw it as `still` does, so what you check is what `render` makes.
+`--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Total", "nth": 1}'`. `extract` and `sheet` take a document too, and then draw it as `still` does, so what you check is what `render` makes.
 
 With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name set to the version of frames: `{"probe": "1.0.0", "kind": "video", ...}`. That output is a contract that extensions build on ([FRAMES-23](spec/FRAMES-23/SPEC.md)). The text output is for people.
 

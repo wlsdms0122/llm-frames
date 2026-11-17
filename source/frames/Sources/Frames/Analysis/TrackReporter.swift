@@ -6,9 +6,9 @@
 //
 
 // Finds an area in a video at media time `--at` and follows it with the tracker provider, as `track` on a clip does,
-// and reports it as `track` prints it. The area is JSON text in one of a document's area forms, and is found before
-// padding: a text form with OCR, a rectangle as written, and a band by the area inside it, which is what a tracker
-// follows. It is followed over the whole video, or over the frames shown from `--at` to `--to`, either way.
+// and reports it as `track` prints it. The area is JSON text in one of a document's area forms, and is followed as
+// found, before padding: a text form with OCR, a rectangle as written. It is followed over the whole video, or over
+// the frames shown from `--at` to `--to`, either way.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
@@ -61,14 +61,7 @@ package struct TrackReporter: Sendable {
 
         let file = MediaFile(path: path, probed: probed)
         let picture = Picture(name: path, source: .mediaFile(file), size: size)
-        let found = try finder.area(
-            form,
-            in: picture,
-            atMediaTime: time,
-            padding: 0,
-            place: Self.place,
-            kind: Self.kind
-        )
+        let found = try finder.area(form, in: picture, atMediaTime: time, place: Self.place, kind: Self.kind)
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
         let frames = try tracker.track(

@@ -85,11 +85,11 @@ struct SequencePlannerTests {
         #expect(error?.description == #"top level (sequence): the storyline has no video and its first clip is a solid, which has no size, so the format needs "size""#)
     }
 
-    @Test("a storyline crop is found in its media and grows by the crop padding, in that picture's pixels")
+    @Test("a storyline crop is found in its media and grows by its padding, in that picture's pixels")
     func findsStorylineCrop() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "crop": "Total" }, { "media": "/abs/short.mp4", "crop": [0, 0, 540, 960] } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "crop": { "text": "Total", "padding": 40 } }, { "media": "/abs/short.mp4", "crop": [0, 0, 540, 960] } ] }
             """#)
 
         // Then
@@ -97,22 +97,21 @@ struct SequencePlannerTests {
             Issue.record("the crop was not found")
             return
         }
-        #expect(crop.rectangle == Fixture.total.grown(by: 40 * (1206 / 1920.0)))
+        #expect(crop.rectangle == Fixture.total.grown(by: 40))
         #expect(crop.target == Fixture.total)
         #expect(plan.storyline[1].crop == .value(FoundArea(
             rectangle: Rectangle(x: 0, y: 0, width: 540, height: 960),
             target: Rectangle(x: 0, y: 0, width: 540, height: 960),
-            isBand: false,
             mediaTime: 0,
             lines: []
         )))
     }
 
-    @Test("a text area is found in its storyline parent's picture and grows by the area padding of that picture")
+    @Test("a text area is found in its storyline parent's picture and grows by its padding, in that picture's pixels")
     func findsParentedArea() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "box", "area": "Send", "parent": "short" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "box", "area": { "text": "Send", "padding": 14 }, "parent": "short" } ] } ] }
             """#)
 
         // Then
@@ -120,9 +119,7 @@ struct SequencePlannerTests {
             Issue.record("the area was not found")
             return
         }
-        let padding = 14 * (1080 / 1920.0)
-        #expect(abs(area.rectangle.x - (Fixture.send.x - padding)) < 1e-9)
-        #expect(abs(area.rectangle.width - (Fixture.send.width + padding * 2)) < 1e-9)
+        #expect(area.rectangle == Fixture.send.grown(by: 14))
         #expect(area.lines.map(\.text) == ["Send"])
     }
 
@@ -138,7 +135,6 @@ struct SequencePlannerTests {
         #expect(plan.clips[0].area == .value(FoundArea(
             rectangle: Rectangle(x: 10, y: 20, width: 30, height: 40),
             target: Rectangle(x: 10, y: 20, width: 30, height: 40),
-            isBand: false,
             mediaTime: 0,
             lines: []
         )))
@@ -149,23 +145,22 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "title": "a", "style": "title", "parent": "screen", "anchor": "right", "position": { "area": "Total", "point": "left" } },
+                { "title": "a", "style": "title", "parent": "screen", "anchor": "right", "position": { "area": { "text": "Total", "padding": 14 }, "point": "left" } },
                 { "title": "b", "style": "title", "position": [10, 20] } ] } ] }
             """#)
 
         // Then
-        let padding = 14 * (1206 / 1920.0)
-        #expect(plan.clips[0].position == .value(Point(x: 100 - padding, y: 100 - padding + (40 + padding * 2) / 2)))
+        #expect(plan.clips[0].position == .value(Point(x: 86, y: 120)))
         #expect(plan.clips[1].position == .value(Point(x: 10, y: 20)))
     }
 
     @Test(
         "a text area or a position given by one on a clip without a parent stops, naming where it is written",
         arguments: [
-            (#"{ "title": "a", "style": "title", "position": { "area": "Total", "point": "left" } }"#, "storyline[0].connected[0].position", "title"),
-            (#"{ "title": "a", "style": "title", "keyframes": [ { "at": 0, "position": [0, 0] }, { "at": 1, "position": { "area": "Total", "point": "left" } } ] }"#, "storyline[0].connected[0].keyframes[1].position", "title"),
-            (#"{ "shape": "box", "area": "Total" }"#, "storyline[0].connected[0].area", "box"),
-            (#"{ "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": "Total" } ] }"#, "storyline[0].connected[0].keyframes[1].area", "box")
+            (#"{ "title": "a", "style": "title", "position": { "area": { "text": "Total" }, "point": "left" } }"#, "storyline[0].connected[0].position", "title"),
+            (#"{ "title": "a", "style": "title", "keyframes": [ { "at": 0, "position": [0, 0] }, { "at": 1, "position": { "area": { "text": "Total" }, "point": "left" } } ] }"#, "storyline[0].connected[0].keyframes[1].position", "title"),
+            (#"{ "shape": "box", "area": { "text": "Total" } }"#, "storyline[0].connected[0].area", "box"),
+            (#"{ "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": { "text": "Total" } } ] }"#, "storyline[0].connected[0].keyframes[1].area", "box")
         ]
     )
     func refusesTextAreaWithoutParent(
@@ -200,7 +195,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [
-                { "shape": "box", "at": [0, 1], "parent": "screen", "area": "Total" } ] }
+                { "shape": "box", "at": [0, 1], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -217,7 +212,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1.5, "at": [0, 2], "width": 300 },
-                { "shape": "box", "at": [0, 2], "parent": "screen", "area": "Total" } ] }
+                { "shape": "box", "at": [0, 2], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -229,13 +224,59 @@ struct SequencePlannerTests {
         #expect(area.mediaTime == 1.5)
     }
 
+    @Test("a text area under a media clip parent with a speed is searched at the media time its time map gives")
+    func findsTextAreaThroughTimeMap() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "speed": 2, "at": [0, 2], "width": 300 },
+                { "shape": "box", "at": [0.5, 2], "parent": "screen", "area": { "text": "Total" } } ] }
+            """#)
+
+        // Then
+        guard case let .value(area) = plan.clips[1].area else {
+            Issue.record("the area was not found")
+            return
+        }
+        // Sequence second 0.5 is clip second 0.5 of the parent, which plays from media second 1 at twice the speed.
+        #expect(area.mediaTime == 2)
+    }
+
+    @Test(
+        "a text form on or under a picture that is drawn, not read, stops: a compound clip, a solid, and a shape under a compound clip",
+        arguments: [
+            #"""
+            { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
+              "connected": [ { "shape": "box", "parent": "nest", "area": { "text": "Total" } } ] } ] }
+            """#,
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
+              "crop": { "text": "Total" } } ] }
+            """#,
+            #"""
+            { "kind": "sequence", "format": { "size": [100, 100] }, "storyline": [ { "id": "black", "solid": "#000000", "duration": 1,
+              "connected": [ { "shape": "box", "parent": "black", "area": { "text": "Total" } } ] } ] }
+            """#,
+            #"""
+            { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
+              "connected": [ { "id": "box", "shape": "box", "parent": "nest", "area": [0, 0, 10, 10] },
+                             { "title": "a", "style": "title", "parent": "box", "position": { "area": { "text": "Total" }, "point": "left" } } ] } ] }
+            """#
+        ]
+    )
+    func refusesTextInDrawnPicture(document: String) throws {
+        // When, Then
+        let error = #expect(throws: AreaError.self) { try plan(document) }
+        #expect(error?.description.contains("drawn, not read") == true)
+    }
+
     @Test("a text area under a title parent stops, since its text box has no picture to read")
     func refusesTextAreaInSpace() throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
                 { "id": "parent", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "box", "at": [0, 1], "parent": "parent", "area": "Total" } ] }
+                { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
@@ -254,7 +295,7 @@ struct SequencePlannerTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                \#(parent), { "shape": "box", "at": [0, 1], "parent": "parent", "area": "Total" } ] }
+                \#(parent), { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
@@ -270,13 +311,12 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "area": "Total" },
-                { "title": "a", "style": "title", "parent": "box", "anchor": "left", "position": { "area": "Total", "point": "right" } } ] } ] }
+                { "id": "box", "shape": "box", "parent": "screen", "area": { "text": "Total" } },
+                { "title": "a", "style": "title", "parent": "box", "anchor": "left", "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] }
             """#)
 
         // Then
-        let padding = 14 * (1206 / 1920.0)
-        #expect(plan.clips[1].position == .value(Point(x: 300 + padding, y: 100 - padding + (40 + padding * 2) / 2)))
+        #expect(plan.clips[1].position == .value(Point(x: 314, y: 120)))
     }
 
     @Test(
@@ -322,7 +362,7 @@ struct SequencePlannerTests {
     func findsMediaClipCrop() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/screen.mp4", "in": 1.5, "at": 0, "crop": "Total" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/screen.mp4", "in": 1.5, "at": 0, "crop": { "text": "Total", "padding": 40 } } ] } ] }
             """#)
 
         // Then
@@ -330,7 +370,7 @@ struct SequencePlannerTests {
             Issue.record("the crop was not found")
             return
         }
-        #expect(crop.rectangle == Fixture.total.grown(by: 40 * (1206 / 1920.0)))
+        #expect(crop.rectangle == Fixture.total.grown(by: 40))
         #expect(crop.mediaTime == 1.5)
     }
 
@@ -342,7 +382,7 @@ struct SequencePlannerTests {
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total" } ] } ] }
+              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } } ] } ] }
             """#)))
 
         // Then
@@ -357,7 +397,7 @@ struct SequencePlannerTests {
         let sut = planner(followed: 0...1.9)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total",
+              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" },
                                "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
             """#))
 
@@ -588,7 +628,7 @@ struct SequencePlannerTests {
     func refusesStorylineTextPosition() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "position": { "area": "Total", "point": "center" } } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "position": { "area": { "text": "Total" }, "point": "center" } } ] }
             """#
 
         // When, Then

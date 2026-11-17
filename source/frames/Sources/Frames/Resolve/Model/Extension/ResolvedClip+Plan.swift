@@ -42,7 +42,7 @@ extension ResolvedClip {
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
-            track: geometry.track.map { ResolvedTrack(track: $0, values: geometry.area) },
+            track: geometry.track.map { ResolvedTrack(track: $0) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,

@@ -17,7 +17,7 @@ struct TimelineReporterTests {
         { "kind": "sequence",
           "storyline": [
             { "id": "intro", "media": "/abs/short.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "area": "Send", "parent": "intro", "animation": "frames/pulse" } ] },
+              "connected": [ { "shape": "box", "area": { "text": "Send" }, "parent": "intro", "animation": "frames/pulse" } ] },
             { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
@@ -368,7 +368,7 @@ struct TimelineReporterTests {
         #"""
         { "kind": "sequence", "theme": { "baseWidth": 1206 },
           "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-            "connected": [ { "shape": "box", "area": "Total", "parent": "screen", "at": [1.5, 3], "track": "Total" } ] } ],
+            "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "at": [1.5, 3], "track": { "text": "Total" } } ] } ],
           "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
         """#
     }

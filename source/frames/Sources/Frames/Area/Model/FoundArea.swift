@@ -6,13 +6,12 @@
 //
 
 // An area as resolve found it, in the pixels of its picture: `rectangle` is what it stands for, padded and cut to the
-// picture, and `target` is the area before padding and before a band widens it, which a tracker follows. `lines` are
-// the recognised lines it was made from, searched at `mediaTime`, and are empty for a rectangle.
+// picture, and `target` is the area before padding, which a tracker follows. `lines` are the recognised lines it was
+// made from, searched at `mediaTime`, and are empty for a rectangle.
 struct FoundArea: Equatable, Sendable {
     // MARK: - Property
     let rectangle: Rectangle
     let target: Rectangle
-    let isBand: Bool
     let mediaTime: Double
     let lines: [RecognisedLine]
 
@@ -20,13 +19,11 @@ struct FoundArea: Equatable, Sendable {
     init(
         rectangle: Rectangle,
         target: Rectangle,
-        isBand: Bool,
         mediaTime: Double,
         lines: [RecognisedLine]
     ) {
         self.rectangle = rectangle
         self.target = target
-        self.isBand = isBand
         self.mediaTime = mediaTime
         self.lines = lines
     }

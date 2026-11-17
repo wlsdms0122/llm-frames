@@ -143,7 +143,7 @@ struct TrackPlanner: Sendable {
             return found
 
         case let .area(form):
-            return try finder.area(form, in: picture, atMediaTime: time, padding: 0, place: place, kind: kind.label)
+            return try finder.area(form, in: picture, atMediaTime: time, place: place, kind: kind.label)
         }
     }
 

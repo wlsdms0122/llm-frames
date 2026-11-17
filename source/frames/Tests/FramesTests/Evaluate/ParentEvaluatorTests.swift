@@ -189,7 +189,7 @@ struct ParentEvaluatorTests {
         // The target moves 20 right at 0.5, and at 1 its centre moves from (5, 5) to (25, 5) and it doubles. The
         // title's anchor point (50, 40) in the picture is carried by that motion and then at half size.
         let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
-        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: false, frames: [
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
             TrackedFrame(time: 0, rectangle: target),
             TrackedFrame(time: 0.5, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
             TrackedFrame(time: 1, rectangle: Rectangle(x: 15, y: -5, width: 20, height: 20))

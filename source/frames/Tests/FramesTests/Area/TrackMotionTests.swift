@@ -43,30 +43,4 @@ struct TrackMotionTests {
         #expect(roundTrip == rectangle)
         #expect(sut.bringBack(Point(x: 190, y: 150)) == Point(x: 60, y: 25))
     }
-
-    @Test("a band brought back keeps its full width and takes only the vertical part of the motion")
-    func bringsBackBand() {
-        // Given
-        let band = Rectangle(x: 0, y: 130, width: 1206, height: 40)
-
-        // When
-        let brought = sut.bringBackBand(band)
-
-        // Then
-        #expect(brought == Rectangle(x: 0, y: 20, width: 1206, height: 10))
-    }
-
-    @Test("a band crop takes only the vertical move of the target's centre, so it keeps its size and ratio")
-    func carriesBandCrop() {
-        // Given
-        let crop = Rectangle(x: 0, y: 20, width: 1206, height: 603)
-
-        // When
-        let carried = sut.carryBandCrop(crop)
-
-        // Then
-        // The target's centre moves down from 25 to 150.
-        #expect(carried == Rectangle(x: 0, y: 145, width: 1206, height: 603))
-        #expect(sut.bringBackBandCrop(carried) == crop)
-    }
 }

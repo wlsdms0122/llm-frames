@@ -13,16 +13,10 @@
 struct ParentSpacePlanner: Sendable {
     // MARK: - Property
     private let tracked: TrackPlan
-    private let areas: [PropertyValue<FoundArea>?]
 
     // MARK: - Initializer
-    // `areas` are what was found for each clip's area in the time plan's order, which say whether a track is a band's.
-    init(
-        tracked: TrackPlan,
-        areas: [PropertyValue<FoundArea>?]
-    ) {
+    init(tracked: TrackPlan) {
         self.tracked = tracked
-        self.areas = areas
     }
 
     // MARK: - Public
@@ -44,7 +38,6 @@ struct ParentSpacePlanner: Sendable {
                 target: links.reduce(area.target) { rectangle, link in
                     link.track.bringBack(rectangle, fromMediaTime: link.mediaTime)
                 },
-                isBand: area.isBand,
                 mediaTime: area.mediaTime,
                 lines: area.lines
             )
@@ -91,7 +84,7 @@ struct ParentSpacePlanner: Sendable {
         guard let track = tracked.clips[index], case let .storyline(storyline, _) = plan.parent else { return outer }
 
         let mediaTime = tracked.time.storyline[storyline].mediaTime(atSequenceTime: plan.visible.held(time))
-        return outer + [(ResolvedTrack(track: track, values: areas[index]), mediaTime)]
+        return outer + [(ResolvedTrack(track: track), mediaTime)]
     }
 
     // A static value is found at the clip's instant and a keyframe at its own, both in sequence time, and the found
