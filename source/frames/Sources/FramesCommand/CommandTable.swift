@@ -10,8 +10,17 @@
 enum CommandTable {
     static let commands: [any Command] = [
         RenderCommand(),
+        StillCommand(),
         ResolveCommand(),
         TimelineCommand(),
+        EvaluateCommand(),
+        LocateCommand(),
+        ProbeCommand(),
+        OCRCommand(),
+        TrackCommand(),
+        ExtractCommand(),
+        SheetCommand(),
+        TranscodeCommand(),
         PresetsCommand(),
         PacksCommand(),
         ThemeCommand()
