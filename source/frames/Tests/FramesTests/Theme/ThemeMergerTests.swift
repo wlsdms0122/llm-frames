@@ -123,7 +123,7 @@ struct ThemeMergerTests {
         #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors"#)
         #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles, "#
             + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
-        try sut.merge([ThemeLayer(value: defined, place: .root)])
+        _ = try sut.merge([ThemeLayer(value: defined, place: .root)])
     }
 
     @Test("a colour named by a weaker layer can be referred to by a stronger one")
@@ -133,7 +133,7 @@ struct ThemeMergerTests {
         let document = try Fixture.json(#"{ "shapes": { "arrow": { "color": "brand" } } }"#)
 
         // When, Then
-        try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
+        _ = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
     }
 
     @Test("a colour in colors is written in hexadecimal")

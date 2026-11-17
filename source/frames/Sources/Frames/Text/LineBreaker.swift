@@ -182,8 +182,7 @@ struct LineBreaker: Sendable {
         case (_, .numeric) where Self.numberParts.contains(before):
             return .prohibited
 
-        case (.prefixNumeric, .openPunctuation), (.prefixNumeric, .hyphen),
-             (.postfixNumeric, .openPunctuation), (.postfixNumeric, .hyphen):
+        case (.prefixNumeric, .openPunctuation), (.postfixNumeric, .openPunctuation):
             return next == .numeric ? .prohibited : .allowed
 
         case (let before, .postfixNumeric) where Self.jamo.contains(before):
