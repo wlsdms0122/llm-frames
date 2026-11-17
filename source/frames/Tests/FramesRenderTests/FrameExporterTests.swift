@@ -35,7 +35,7 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         try sut.still(document, at: [0.2, 0.7], to: output.file("still.png"))
@@ -70,7 +70,7 @@ struct FrameExporterTests {
                 { "font": ["Helvetica"], "colors": { "accent": "#00FF00", "background": "#0000FF", "text": "#FF00FF" } }
                 """#
         )
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         try sut.still(plain, at: [0.2], to: output.file("plain.png"))
@@ -86,7 +86,7 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let video = try await self.video(in: media)
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         try sut.sheet(.video(path: video), range: FrameRange(), columns: 2, to: output.file("sheet.png"))
@@ -113,7 +113,7 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         try sut.sheet(.document(document), range: FrameRange(step: 0.5), columns: 6, to: output.file("sheet.png"))
@@ -132,7 +132,7 @@ struct FrameExporterTests {
         let output = try TemporaryDirectory()
         let video = try await self.video(in: media)
         let directory = output.file("nested/frames")
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         let files = try sut.extract(.video(path: video), range: FrameRange(from: 1), to: directory)
@@ -154,7 +154,7 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         let range = FrameRange(from: 0.2, to: 0.8, step: 0.2)
@@ -175,7 +175,7 @@ struct FrameExporterTests {
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
         let still = media.file("orange.png")
-        let sut = exporter()
+        let sut = try exporter()
 
         // When, Then
         #expect(throws: ExportError.timeOutside(option: "--at", time: 1, end: 1, kind: "sequence")) {
@@ -203,7 +203,7 @@ struct FrameExporterTests {
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
         _ = try image(in: media, named: "orange.png", color: [255, 129, 0])
-        let sut = exporter()
+        let sut = try exporter()
 
         // When
         let error = #expect(throws: RenderError.self) {
@@ -220,15 +220,20 @@ struct FrameExporterTests {
     }
 
     // MARK: - Private
-    private func exporter() -> FrameExporter {
+    private func exporter() throws -> FrameExporter {
         let decoder = AVFoundationDecoder()
+        let shaper = CoreTextShaper()
+        let face = try #require(
+            shaper.face(named: "HelveticaNeue-Medium", in: "/System/Library/Fonts/HelveticaNeue.ttc")
+        )
 
         return FrameExporter(
             decoder: decoder,
             renderer: QuartzRenderer(decoder: decoder),
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
-            shaper: CoreTextShaper()
+            shaper: shaper,
+            labelFace: face
         )
     }
 
