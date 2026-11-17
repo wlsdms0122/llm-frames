@@ -66,7 +66,7 @@ enum ThemeKeyTable {
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number),
             KeyRule("align", .literal(["left", "center", "right"])),
-            KeyRule("lines", .integer)
+            KeyRule("lines", .positiveInteger)
         ]
     )
     static let shapes = ObjectTable(

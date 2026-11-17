@@ -19,8 +19,9 @@ struct Typesetter: Sendable {
     }
 
     // MARK: - Public
-    // `width` is the wrapping width in output pixels, and nil keeps the text on one line. A style that
-    // keeps its text on one line wraps at no width, and is too wide when it is wider than `width`.
+    // `width` is the wrapping width in output pixels, and nil keeps the text on one line. Text that takes more lines
+    // than its style's `lines`, counting every `\n`, stops. A style of one line wraps at no width, and is too wide when
+    // it is wider than `width`.
     func layout(
         _ text: String,
         style: TextStyle,
@@ -29,11 +30,14 @@ struct Typesetter: Sendable {
         place: Place,
         kind: String
     ) throws -> TextLayout {
-        let isOneLine = style.isOneLine || width == nil
+        let limit = width == nil ? 1 : style.lines
+        let isOneLine = limit == 1
         let lines = try paragraphs(of: spans(of: text, style: style)).flatMap { paragraph in
             try self.lines(of: paragraph, face: face, size: style.size, width: isOneLine ? nil : width)
         }
-        guard !isOneLine || lines.count == 1 else { throw TextError.lineBreakOnOneLine(place: place, kind: kind) }
+        if let limit, lines.count > limit {
+            throw TextError.tooManyLines(place: place, kind: kind, count: lines.count, limit: limit)
+        }
 
         let textWidth = lines.map(\.width).reduce(0, max)
         if isOneLine, let width, textWidth > width {

@@ -129,6 +129,11 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .positiveInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .color, .hexColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
@@ -828,7 +833,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .integer:
+        case .number, .positiveNumber, .nonNegativeNumber, .integer, .positiveInteger:
             parameterType == "number"
 
         default:
@@ -868,7 +873,8 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number):
+        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number),
+             (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -930,6 +936,9 @@ struct KeyChecker: Sendable {
 
         case .integer:
             "a whole number"
+
+        case .positiveInteger:
+            "a whole number, 1 or more"
 
         case .text, .name, .identifier:
             "a string"

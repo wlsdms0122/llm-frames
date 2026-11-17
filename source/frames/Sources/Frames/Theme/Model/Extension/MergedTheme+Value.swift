@@ -147,7 +147,7 @@ extension MergedTheme {
                 )
             },
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
-            isOneLine: style["lines"]?.numberValue == 1
+            lines: style["lines"]?.numberValue.map { Int($0) }
         )
     }
 

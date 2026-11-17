@@ -6,18 +6,15 @@
 //
 
 // Lays frames of one size out on a grid, left to right and then top down, each with its time label burnt into its
-// top left corner. The label is set in one fixed tool style that no theme changes, at a size S that follows the longer
-// side of the frame as drawn. Frames lie S apart with S around them, and S is a whole number of pixels, so every frame
+// top left corner. The label is set in the face it is given, in one fixed tool style that no theme changes, at a size S
+// that follows the longer side of the frame as drawn. Frames lie S apart with S around them, and S is a whole number of pixels, so every frame
 // starts on a pixel edge and is resampled once, from its source to its cell.
 struct ContactSheetComposer: Sendable {
     // MARK: - Property
-    private static let fontFile = "/System/Library/Fonts/HelveticaNeue.ttc"
-    private static let faceName = "HelveticaNeue-Medium"
     private static let textColor = Color(written: "#FFFFFFFF")
     private static let labelBackground = Color(written: "#000000B3")
     private static let sheetBackground = Color(written: "#202020FF")
 
-    private let shaper: any ShapingProvider
     private let typesetter: Typesetter
     private let hasher: any FileHashProvider
 
@@ -26,24 +23,20 @@ struct ContactSheetComposer: Sendable {
         shaper: any ShapingProvider,
         hasher: any FileHashProvider
     ) {
-        self.shaper = shaper
         self.typesetter = Typesetter(shaper: shaper)
         self.hasher = hasher
     }
 
     // MARK: - Public
-    // `size` is every frame as drawn, in the sheet's pixels.
+    // `size` is every frame as drawn, in the sheet's pixels, and `face` is the face the labels are set in.
     func sheet(
         of cells: [ContactSheetCell],
         size: Size,
-        columns: Int
+        columns: Int,
+        face: FontFace
     ) throws -> DisplayList {
-        guard let face = shaper.face(named: Self.faceName, in: Self.fontFile) else {
-            throw ExportError.missingLabelFace(name: Self.faceName, file: Self.fontFile)
-        }
-
         let labelSize = max(14, (max(size.width, size.height) / 40).rounded())
-        let style = style(of: face, size: labelSize)
+        let style = style(size: labelSize, face: face)
         let columnCount = max(min(columns, cells.count), 1)
         let rowCount = (cells.count + columnCount - 1) / columnCount
         let items = try cells.indices.flatMap { index in
@@ -79,11 +72,11 @@ struct ContactSheetComposer: Sendable {
     }
 
     // MARK: - Private
-    // The line box is the face's ascent and descent at the size, and the background lies around it. The face is found
-    // by its name, so the style's families and weight are not read.
+    // The line box is the face's ascent and descent at the size, and the background lies around it. The face is given,
+    // so the style's families and weight are not read.
     private func style(
-        of face: FontFace,
-        size: Double
+        size: Double,
+        face: FontFace
     ) -> TextStyle {
         TextStyle(
             families: [],
@@ -100,7 +93,7 @@ struct ContactSheetComposer: Sendable {
                 radius: size * 0.3
             ),
             align: .left,
-            isOneLine: true
+            lines: 1
         )
     }
 

@@ -8,7 +8,7 @@
 enum TextError: Error, Equatable, CustomStringConvertible, Sendable {
     case noFontFamily(place: Place, kind: String, families: [String], weight: FontWeight)
     case tooWide(place: Place, kind: String, width: Double, room: Double)
-    case lineBreakOnOneLine(place: Place, kind: String)
+    case tooManyLines(place: Place, kind: String, count: Int, limit: Int)
 
     // MARK: - Property
     var description: String {
@@ -21,8 +21,8 @@ enum TextError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind)): the text is \(number(width)) wide on one line, wider than its room of "
                 + "\(number(room)), and a cut line would say something else"
 
-        case let .lineBreakOnOneLine(place, kind):
-            "\(place) (\(kind)): the text has a line break, and its style keeps it on one line"
+        case let .tooManyLines(place, kind, count, limit):
+            "\(place) (\(kind)): the text takes \(count) lines, and its style allows at most \(limit)"
         }
     }
 

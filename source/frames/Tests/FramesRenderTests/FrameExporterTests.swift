@@ -35,10 +35,11 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
+        let face = try labelFace()
         let sut = exporter()
 
         // When
-        try sut.still(document, at: [0.2, 0.7], to: output.file("still.png"))
+        try sut.still(document, at: [0.2, 0.7], labelFace: face, to: output.file("still.png"))
 
         // Then
         // The label size is 14 on a 160 wide frame, so frames lie 14 apart with 14 around them, and each label's
@@ -70,11 +71,12 @@ struct FrameExporterTests {
                 { "font": ["Helvetica"], "colors": { "accent": "#00FF00", "background": "#0000FF", "text": "#FF00FF" } }
                 """#
         )
+        let face = try labelFace()
         let sut = exporter()
 
         // When
-        try sut.still(plain, at: [0.2], to: output.file("plain.png"))
-        try sut.still(themed, at: [0.2], to: output.file("themed.png"))
+        try sut.still(plain, at: [0.2], labelFace: face, to: output.file("plain.png"))
+        try sut.still(themed, at: [0.2], labelFace: face, to: output.file("themed.png"))
 
         // Then
         #expect(try picture(at: output.file("plain.png")) == picture(at: output.file("themed.png")))
@@ -86,10 +88,17 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let video = try await self.video(in: media)
+        let face = try labelFace()
         let sut = exporter()
 
         // When
-        try sut.sheet(.video(path: video), range: FrameRange(), columns: 2, to: output.file("sheet.png"))
+        try sut.sheet(
+            .video(path: video),
+            range: FrameRange(),
+            columns: 2,
+            labelFace: face,
+            to: output.file("sheet.png")
+        )
 
         // Then
         // 640 x 360 cells shrink to 480 x 270, where the label size is 14.
@@ -113,10 +122,17 @@ struct FrameExporterTests {
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
+        let face = try labelFace()
         let sut = exporter()
 
         // When
-        try sut.sheet(.document(document), range: FrameRange(step: 0.5), columns: 6, to: output.file("sheet.png"))
+        try sut.sheet(
+            .document(document),
+            range: FrameRange(step: 0.5),
+            columns: 6,
+            labelFace: face,
+            to: output.file("sheet.png")
+        )
 
         // Then
         let sheet = try picture(at: output.file("sheet.png"))
@@ -175,17 +191,30 @@ struct FrameExporterTests {
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
         let still = media.file("orange.png")
+        let face = try labelFace()
         let sut = exporter()
 
         // When, Then
         #expect(throws: ExportError.timeOutside(option: "--at", time: 1, end: 1, kind: "sequence")) {
-            try sut.still(document, at: [0.5, 1], to: output.file("still.png"))
+            try sut.still(document, at: [0.5, 1], labelFace: face, to: output.file("still.png"))
         }
         #expect(throws: ExportError.outputExtension(path: output.file("sheet.jpg"))) {
-            try sut.sheet(.document(document), range: FrameRange(), columns: 6, to: output.file("sheet.jpg"))
+            try sut.sheet(
+                .document(document),
+                range: FrameRange(),
+                columns: 6,
+                labelFace: face,
+                to: output.file("sheet.jpg")
+            )
         }
         #expect(throws: ExportError.nonPositiveColumns(0)) {
-            try sut.sheet(.document(document), range: FrameRange(), columns: 0, to: output.file("sheet.png"))
+            try sut.sheet(
+                .document(document),
+                range: FrameRange(),
+                columns: 0,
+                labelFace: face,
+                to: output.file("sheet.png")
+            )
         }
         #expect(throws: ExportError.notVideo(path: still, kind: .image)) {
             try sut.extract(.video(path: still), range: FrameRange(), to: output.file("frames"))
@@ -229,6 +258,12 @@ struct FrameExporterTests {
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
             shaper: CoreTextShaper()
+        )
+    }
+
+    private func labelFace() throws -> FontFace {
+        try #require(
+            CoreTextShaper().face(named: "HelveticaNeue-Medium", in: "/System/Library/Fonts/HelveticaNeue.ttc")
         )
     }
 

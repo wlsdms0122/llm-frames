@@ -9,15 +9,20 @@ import Testing
 
 @testable import Frames
 
-// The fake shaper's faces have an ascent of 0.8 and a descent of 0.2, so a label's line box is its size S, and each
-// glyph is 0.5 S wide.
+// The label face has an ascent of 0.8 and a descent of 0.2, so a label's line box is its size S, and the fake shaper
+// sets each glyph 0.5 S wide.
 @Suite("ContactSheetComposer Tests")
 struct ContactSheetComposerTests {
     // MARK: - Property
-    private let sut = ContactSheetComposer(shaper: Fixture.shaper, hasher: FileHashTable())
+    private let face = FontFace(file: "/Fonts/Label.ttc", name: "Label-Medium", ascent: 0.8, descent: 0.2)
+    private let sut: ContactSheetComposer
     private let size = Size(width: 160, height: 90)
 
     // MARK: - Initializer
+    init() {
+        sut = ContactSheetComposer(shaper: Fixture.shaper, hasher: FileHashTable())
+    }
+
     // MARK: - Test
     @Test(
         "the label size is the frame's longer side over 40, rounded, and at least 14",
@@ -37,20 +42,20 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: frame, columns: 1)
+        let sheet = try sut.sheet(of: cells, size: frame, columns: 1, face: face)
 
         // Then
         let label = try #require(labelGlyphs(of: sheet).first)
         #expect(label.runs.map(\.size) == [expected])
     }
 
-    @Test("the label is white Helvetica Neue Medium without a stroke, on a rounded translucent black box around its line")
+    @Test("the label is white in the given face without a stroke, on a rounded translucent black box around its line")
     func setsLabelStyle() throws {
         // Given
         let cells = [cell(at: 0)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1)
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
 
         // Then
         // At S 48, "0s" is 48 wide with 24 on each side, and its line box of 48 has 12 above and below.
@@ -66,8 +71,8 @@ struct ContactSheetComposerTests {
         )
         #expect(label.stroke == nil)
         #expect(label.runs.count == 1)
-        #expect(run.face == "HelveticaNeue-Medium")
-        #expect(run.font.path == "/System/Library/Fonts/HelveticaNeue.ttc")
+        #expect(run.face == face.name)
+        #expect(run.font.path == face.file)
         #expect(run.color == Color(written: "#FFFFFFFF"))
         #expect(run.glyphs.map(\.x) == [24, 48])
         #expect(run.glyphs.allSatisfy { abs($0.y - (12 + 0.8 * 48)) < 0.000001 })
@@ -79,7 +84,7 @@ struct ContactSheetComposerTests {
         let cells = (0..<4).map { cell(at: Double($0) * 0.5) }
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
 
         // Then
         let pictures = pictureRectangles(of: sheet)
@@ -97,7 +102,7 @@ struct ContactSheetComposerTests {
         let cells = (0..<5).map { cell(at: Double($0)) }
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 2)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 2, face: face)
 
         // Then
         let pictures = pictureRectangles(of: sheet)
@@ -114,7 +119,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 1)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1)
+        let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
 
         // Then
         #expect(pictureRectangles(of: sheet) == [Rectangle(x: 48, y: 48, width: 1920, height: 1080)])
@@ -128,7 +133,7 @@ struct ContactSheetComposerTests {
         let cells = [cell(at: 0), cell(at: 1)]
 
         // When
-        let sheet = try sut.sheet(of: cells, size: size, columns: 6)
+        let sheet = try sut.sheet(of: cells, size: size, columns: 6, face: face)
 
         // Then
         #expect(sheet.size.width == 14 + 160 + 14 + 160 + 14)

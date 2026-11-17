@@ -27,7 +27,7 @@ package struct FrameExporter: Sendable {
     private let evaluator = Evaluator()
 
     // MARK: - Initializer
-    // `shaper` sets the time labels.
+    // `shaper` sets the time labels of `still` and `sheet`.
     package init(
         decoder: any MediaDecoder,
         renderer: any Renderer,
@@ -63,10 +63,11 @@ package struct FrameExporter: Sendable {
     }
 
     // MARK: - Public
-    // The sequence frames at `times`, in the order given, on one row at the sequence's size.
+    // The sequence frames at `times`, in the order given, on one row at the sequence's size, labelled in `labelFace`.
     package func still(
         _ sequence: ResolvedSequence,
         at times: [Double],
+        labelFace: FontFace,
         to output: String
     ) throws {
         try checkOutput(output)
@@ -78,15 +79,16 @@ package struct FrameExporter: Sendable {
         }
 
         let frames = try frames(of: sequence, at: times)
-        try draw(frames, size: frames.size, columns: times.count, to: output)
+        try draw(frames, size: frames.size, columns: times.count, labelFace: labelFace, to: output)
     }
 
     // The frames over `range` on a grid of `columns`, each scaled so its longer side is at most 480 pixels, never
-    // enlarged.
+    // enlarged, labelled in `labelFace`.
     package func sheet(
         _ source: FrameSource,
         range: FrameRange,
         columns: Int,
+        labelFace: FontFace,
         to output: String
     ) throws {
         try checkOutput(output)
@@ -99,7 +101,7 @@ package struct FrameExporter: Sendable {
             width: max((size.width * scale).rounded(), 1),
             height: max((size.height * scale).rounded(), 1)
         )
-        try draw(frames, size: cell, columns: columns, to: output)
+        try draw(frames, size: cell, columns: columns, labelFace: labelFace, to: output)
     }
 
     // The frames over `range` at full size and without labels, as `0000.png`, `0001.png` and on in time order in
@@ -134,9 +136,15 @@ package struct FrameExporter: Sendable {
         _ frames: SampledFrames,
         size: Size,
         columns: Int,
+        labelFace: FontFace,
         to output: String
     ) throws {
-        let sheet = try composer.sheet(of: frames.frames.map(ContactSheetCell.init), size: size, columns: columns)
+        let sheet = try composer.sheet(
+            of: frames.frames.map(ContactSheetCell.init),
+            size: size,
+            columns: columns,
+            face: labelFace
+        )
         try renderer.check(sheet)
 
         try encoder.writeImage(try renderer.frame(of: sheet), to: output)

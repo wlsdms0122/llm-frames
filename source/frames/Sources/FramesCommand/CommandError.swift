@@ -31,6 +31,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPresetKind(kind: String, known: [String])
     case unknownPreset(kind: String, name: String)
     case unknownPack(name: String)
+    case missingLabelFace(name: String, file: String)
 
     // MARK: - Property
     var description: String {
@@ -101,6 +102,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPack(name):
             "packs: unknown pack \(quoted(name))"
+
+        case let .missingLabelFace(name, file):
+            "\(quoted(file)): the file has no face \(quoted(name)), which time labels are set in"
         }
     }
 

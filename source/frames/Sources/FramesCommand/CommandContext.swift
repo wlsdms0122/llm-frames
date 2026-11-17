@@ -12,6 +12,10 @@ import Frames
 // the command writes.
 struct CommandContext: Sendable {
     // MARK: - Property
+    // The face of the time labels of `still` and `sheet`, in a font file macOS installs.
+    private static let labelFile = "/System/Library/Fonts/HelveticaNeue.ttc"
+    private static let labelFaceName = "HelveticaNeue-Medium"
+
     let options: GlobalOptions
     let roles: Roles
     let output: CommandOutput
@@ -25,16 +29,6 @@ struct CommandContext: Sendable {
         PresetLibrary(packs: packs)
     }
 
-    var exporter: FrameExporter {
-        FrameExporter(
-            decoder: roles.decoder,
-            renderer: roles.renderer,
-            encoder: roles.encoder,
-            mediaFacts: roles.decoder,
-            shaper: roles.shaper
-        )
-    }
-
     var planner: DocumentPlanner {
         DocumentPlanner(
             mediaFacts: roles.decoder,
@@ -43,6 +37,16 @@ struct CommandContext: Sendable {
             tracker: roles.tracker,
             shaper: roles.shaper,
             packs: packs
+        )
+    }
+
+    var exporter: FrameExporter {
+        FrameExporter(
+            decoder: roles.decoder,
+            renderer: roles.renderer,
+            encoder: roles.encoder,
+            mediaFacts: roles.decoder,
+            shaper: roles.shaper
         )
     }
 
@@ -60,6 +64,15 @@ struct CommandContext: Sendable {
     }
 
     // MARK: - Public
+    // The face `still` and `sheet` set their time labels in.
+    func labelFace() throws -> FontFace {
+        guard let face = roles.shaper.face(named: Self.labelFaceName, in: Self.labelFile) else {
+            throw CommandError.missingLabelFace(name: Self.labelFaceName, file: Self.labelFile)
+        }
+
+        return face
+    }
+
     // The document a command is given as `argument`, with `--theme` and the `--args` file at `arguments`.
     func document(
         _ argument: String,
