@@ -67,6 +67,31 @@ struct TrackReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
+    @Test("the machine output writes each rectangle to the nearest millionth, without the tracker's noise")
+    func roundsRectangles() throws {
+        // Given
+        let noisy = Rectangle(x: 93.99999999268294, y: 99.99999997439016, width: 200.00000000000003, height: 42)
+        let sut = TrackReporter(
+            mediaFacts: facts,
+            ocr: OCRTable([:]),
+            tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0, 0.25]])
+        )
+
+        // When
+        let report = try sut.report(
+            of: "/abs/clip.mov",
+            area: "[\(noisy.x), \(noisy.y), \(noisy.width), \(noisy.height)]",
+            at: 0
+        )
+
+        // Then
+        let expected = #"""
+            {"track": "1.0.0", "frames": [{"time": 0, "rect": [94, 100, 200, 42]}, \#
+            {"time": 0.25, "rect": [94, 100, 200, 42]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
     @Test(
         "a text area is found by OCR at `--at` and followed before padding, a band by the line inside it",
         arguments: [(#""Total""#, 0), (#"{"band": "Total"}"#, 0), (#"{"text": "Send", "nth": 1}"#, 2)]

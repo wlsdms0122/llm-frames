@@ -12,7 +12,7 @@ extension OCRReport {
     package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "ocr", value: .string(FramesVersion.current)),
-            JSONMember(key: "size", value: .array([.number(size.width), .number(size.height)])),
+            JSONMember(key: "size", value: .array([.measure(size.width), .measure(size.height)])),
             JSONMember(key: "frames", value: .array(frames.map(output)))
         ]))
     }
@@ -34,7 +34,7 @@ extension OCRReport {
             JSONMember(key: "text", value: .string(line.text)),
             JSONMember(
                 key: "rect",
-                value: .array([rectangle.x, rectangle.y, rectangle.width, rectangle.height].map(JSONValue.number))
+                value: .array([rectangle.x, rectangle.y, rectangle.width, rectangle.height].map(JSONValue.measure))
             )
         ]))
     }

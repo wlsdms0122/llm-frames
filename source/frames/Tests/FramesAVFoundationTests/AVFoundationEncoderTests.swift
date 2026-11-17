@@ -123,6 +123,21 @@ struct AVFoundationEncoderTests {
         #expect(zip(pixel(of: picture, x: 40, y: 24), [0, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
     }
 
+    @Test("a delivery written at 30 fps probes at exactly 30, past its container's timescale noise")
+    func probesDeliveryRate() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("delivery.mp4")
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+        try write(.delivery(path: path), fps: 30, sound: tone(seconds: 4.0 / 30), frameCount: 4, with: sut)
+
+        // When
+        let probed = try #require(try AVFoundationDecoder().probedMedia(of: path))
+
+        // Then
+        #expect(probed.fps == 30)
+    }
+
     @Test(
         "sound and frames longer than the writer interleaves at once all go in, in a master and in a delivery",
         arguments: ["master.mov", "delivery.mp4"]
