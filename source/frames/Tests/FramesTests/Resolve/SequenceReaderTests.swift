@@ -20,19 +20,19 @@ struct SequenceReaderTests {
     func readsSequence() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "format": { "fps": 25 }, "theme": { "defaults": { "transition": "push-up" } },
+            { "kind": "sequence", "format": { "fps": 25 }, "theme": { "defaults": { "transition": "frames/push-up" } },
               "storyline": [
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
                                  { "shape": "box", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
-                { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5, "transition": { "preset": "wipe-right", "seconds": 0.5 } },
+                { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
                 { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
                 { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": true, "placement": "top" },
-                { "adjust": "vivid", "animation": { "entrance": "pop", "exit": "none" } }
+                { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } }
               ] }
             """##)
 
@@ -41,7 +41,7 @@ struct SequenceReaderTests {
 
         // Then
         #expect(sequence.format.fps == 25)
-        #expect(sequence.theme == .object(try Fixture.json(#"{ "defaults": { "transition": "push-up" } }"#)))
+        #expect(sequence.theme == .object(try Fixture.json(#"{ "defaults": { "transition": "frames/push-up" } }"#)))
         #expect(sequence.storyline[0].place.description == "storyline[0]#run")
         #expect(sequence.storyline[0].media == ClipMedia(source: .file("/abs/run.mp4"), in: 2, out: 8, speed: 2))
         #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, properties: ["crop"])])
@@ -49,7 +49,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].hasArea)
-        #expect(sequence.storyline[1].transition == .timed(preset: "wipe-right", seconds: 0.5))
+        #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
         #expect(sequence.storyline[2].transition == .cut)
@@ -59,7 +59,7 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].lane == -1)
         #expect(sequence.clips[1].hasParent && sequence.clips[1].hasPlacement)
         #expect(sequence.clips[2].content == .adjust)
-        #expect(sequence.clips[2].animation == .split(entrance: "pop", exit: "none"))
+        #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
     }
 
     @Test("a nested sequence reads as a compound clip whose places continue the place of the clip that holds it")
@@ -91,7 +91,7 @@ struct SequenceReaderTests {
               { "media": "/abs/run.mp4" }
             ] }
             """#)
-        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: .root)])
+        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "frames/flash" } }"#), place: .root)])
         let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("media")])
         let sut = SequenceReader(argumentThemes: ArgumentThemeTable(themes: [place: theme]))
 

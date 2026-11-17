@@ -46,7 +46,7 @@ struct BaseThemeTests {
         #expect(theme["shapes"]?.objectValue?.keys == ["box", "fill", "dim", "arrow", "border", "shadow", "label"])
         #expect(theme["area"] == (try Fixture.json(#"{ "padding": 14, "cropPadding": 40 }"#)))
         #expect(defaults?["transition"] == .string("cut"))
-        #expect(defaults?["animation"] == (try Fixture.json(#"{ "title": { "label": "pop" }, "shape": "none", "media": "none", "adjust": "none" }"#)))
+        #expect(defaults?["animation"] == (try Fixture.json(#"{ "title": { "label": "frames/pop" }, "shape": "none", "media": "none", "adjust": "none" }"#)))
     }
 
     @Test("the theme key table holds every group of the base theme and nothing else")

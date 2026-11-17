@@ -18,10 +18,11 @@ struct PresetValueResolverTests {
     // MARK: - Initializer
     init() throws {
         directory = try PackDirectory()
-        // The base theme names `pop` for labels, so it must be built in.
+        // The base theme names `frames/pop` for labels, so the shipped `frames` pack must hold it.
+        try directory.addPack("frames", in: directory.shipped)
         try directory.write(
             #"{ "description": "pops", "entrance": { "seconds": 0.3, "keys": [] } }"#,
-            to: directory.builtIn.appendingPathComponent("animation/pop.json")
+            to: directory.shipped.appendingPathComponent("frames/presets/animation/pop.json")
         )
         try directory.addPack("shorts")
         try directory.write(
@@ -156,7 +157,7 @@ struct PresetValueResolverTests {
 
     // MARK: - Private
     private func presets() -> PresetLibrary {
-        PresetLibrary(builtIn: directory.builtIn, packs: directory.packs)
+        PresetLibrary(packs: directory.packs)
     }
 
     // The pack's matte is probed as any other media.

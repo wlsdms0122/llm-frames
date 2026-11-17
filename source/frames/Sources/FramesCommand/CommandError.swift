@@ -97,6 +97,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPreset(kind, name):
             "presets: unknown \(kind) preset \(quoted(name))"
+                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
 
         case let .unknownPack(name):
             "packs: unknown pack \(quoted(name))"

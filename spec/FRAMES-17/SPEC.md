@@ -26,8 +26,8 @@ A pack is a set of looks and edits that someone made to share or sell. It is a d
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
 | `guide.md`, `examples/` | the guide and example documents of the form a pack is for ([FRAMES-25](../FRAMES-25/SPEC.md)) | read by people and agents, not by frames |
 
-- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. Installing a pack is copying its directory there. frames ships presets ([FRAMES-16](../FRAMES-16/SPEC.md)) and no pack, so every pack, a form's too, is one that was installed. frames has no network command.
-- A name is an absolute path, `<pack>/<name>` with one `/` and no empty, `.` or `..` part, or a bare name, which is built in. Any other spelling names nothing. An unknown pack, or a name a pack does not hold, stops.
+- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. Installing a pack is copying its directory there. frames ships one pack, `frames`, which holds its presets ([FRAMES-16](../FRAMES-16/SPEC.md)). It is found as if installed, and an installed pack of that name stops. Every other pack, a form's too, is one that was installed. frames has no network command.
+- A name is an absolute path, or `<pack>/<name>` with one `/` and no empty, `.` or `..` part. Any other spelling, a bare name too, names nothing. An unknown pack, or a name a pack does not hold, stops.
 - A pack directory without a `pack.json` stops, and so does one whose `pack.json` misses `engine`, writes a key as another type than a string, or holds another key.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
 - A pack's files name each other by `<pack>/<name>`, as anything outside does, so every name has one spelling and a pack works wherever `FRAMES_HOME` is. Which pack it is, is the directory it is in: the `<pack>` of `<pack>/<name>` is the directory's name, and the `name` in `pack.json` is only what the pack calls itself, so nothing has to match.
@@ -44,7 +44,7 @@ A template is a document with published parameters, as an NLE's motion graphics 
   "params": {
     "clip":  { "type": "video", "description": "the recording to show" },
     "title": { "type": "text", "default": "New feature", "description": "headline in the top band" },
-    "tone":  { "type": "choice", "options": ["warm", "cool"], "default": "warm", "description": "colour of the whole clip" }
+    "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
   },
   "storyline": [
     { "media": { "param": "clip" }, "in": 0, "out": 6, "filter": { "param": "tone" },

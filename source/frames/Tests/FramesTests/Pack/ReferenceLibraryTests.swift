@@ -27,7 +27,7 @@ struct ReferenceLibraryTests {
     @Test("a theme is <pack>/<name> in the pack's themes or an absolute path, and its place names it as written")
     func findsTheme() throws {
         // Given
-        try directory.write(#"{ "defaults": { "transition": "flash" } }"#, in: "shorts", at: "themes/shorts.json")
+        try directory.write(#"{ "defaults": { "transition": "frames/flash" } }"#, in: "shorts", at: "themes/shorts.json")
         let file = try directory.write(#"{ "baseWidth": 1080 }"#, in: "loose", at: "wide.json")
 
         // When
@@ -36,7 +36,7 @@ struct ReferenceLibraryTests {
         let bareTheme = try sut.theme(named: "shorts")
 
         // Then
-        #expect(packTheme == ThemeLayer(value: try Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: Place(file: "shorts/shorts", components: []), pack: "shorts"))
+        #expect(packTheme == ThemeLayer(value: try Fixture.json(#"{ "defaults": { "transition": "frames/flash" } }"#), place: Place(file: "shorts/shorts", components: []), pack: "shorts"))
         #expect(pathTheme?.place.description == "\(file.path): top level")
         #expect(bareTheme == nil)
     }

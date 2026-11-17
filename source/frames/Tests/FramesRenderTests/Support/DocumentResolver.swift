@@ -14,24 +14,31 @@ import FramesVision
 
 @testable import Frames
 
-// Resolves a document on the real decoder, OCR, tracker and shaper, with no pack installed and the built in
-// presets written into a directory of its own, as `render` would before it hands the document to the roles.
+// Resolves a document on the real decoder, OCR, tracker and shaper, with the shipped `frames` pack holding `pop` alone
+// and the presets a test gives in an installed pack `mine`, as `render` would before it hands the document to the
+// roles.
 struct DocumentResolver {
     // MARK: - Property
     // The base theme's defaults name it, so a theme without it stops.
     private static let pop = #"""
         { "description": "pops in", "entrance": { "seconds": 0.25, "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 1, "scale": 1 } ] } }
         """#
+    private static let manifest = #"{ "engine": "^1" }"#
 
-    private let presets: TemporaryDirectory
+    private let directory: TemporaryDirectory
     private let decoder = AVFoundationDecoder()
 
     // MARK: - Initializer
-    // `presets` are preset files by `<kind>/<name>`, as `transition/push`.
+    // `presets` are preset files by `<kind>/<name>`, as `transition/push`, named `mine/<name>` in a document.
     init(presets: [String: String] = [:]) throws {
         let directory = try TemporaryDirectory()
-        for (name, text) in presets.merging(["animation/pop": Self.pop], uniquingKeysWith: { written, _ in written }) {
-            let file = URL(fileURLWithPath: directory.file("\(name).json"))
+        var files = ["shipped/frames/pack.json": Self.manifest, "shipped/frames/presets/animation/pop.json": Self.pop]
+        files["installed/mine/pack.json"] = Self.manifest
+        for (name, text) in presets {
+            files["installed/mine/presets/\(name).json"] = text
+        }
+        for (name, text) in files {
+            let file = URL(fileURLWithPath: directory.file(name))
             try FileManager.default.createDirectory(
                 at: file.deletingLastPathComponent(),
                 withIntermediateDirectories: true
@@ -39,7 +46,7 @@ struct DocumentResolver {
             try Data(text.utf8).write(to: file)
         }
 
-        self.presets = directory
+        self.directory = directory
     }
 
     // MARK: - Public
@@ -49,13 +56,15 @@ struct DocumentResolver {
 
     // MARK: - Private
     private func planner() -> DocumentPlanner {
-        let directory = URL(fileURLWithPath: presets.path, isDirectory: true)
-        let packs = PackLibrary(installed: directory)
+        let packs = PackLibrary(
+            installed: URL(fileURLWithPath: directory.file("installed"), isDirectory: true),
+            shipped: URL(fileURLWithPath: directory.file("shipped"), isDirectory: true)
+        )
         let library = ReferenceLibrary(packs: packs, mediaFacts: decoder)
 
         return DocumentPlanner(
             mediaFacts: decoder,
-            presets: PresetLibrary(builtIn: directory, packs: packs),
+            presets: PresetLibrary(packs: packs),
             ocr: VisionOCR(decoder: decoder),
             tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),

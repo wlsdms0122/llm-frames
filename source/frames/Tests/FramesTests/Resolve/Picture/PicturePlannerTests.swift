@@ -224,9 +224,9 @@ struct PicturePlannerTests {
         // Given
         let document = #"""
             { "kind": "image", "source": "/abs/page.png",
-              "ops": [ { "title": "Hi", "style": "label", "position": [500, 400] }, { "adjust": "warm" }, { "adjust": ["warm", "none"], "area": [0, 0, 10, 10] } ] }
+              "ops": [ { "title": "Hi", "style": "label", "position": [500, 400] }, { "adjust": "frames/warm" }, { "adjust": ["frames/warm", "none"], "area": [0, 0, 10, 10] } ] }
             """#
-        let unknown = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "adjust": "cold" } ] }"#
+        let unknown = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "adjust": "mine/cold" } ] }"#
 
         // When
         let plan = try picture(document)
@@ -240,7 +240,7 @@ struct PicturePlannerTests {
         #expect(plan.steps[2].content == .adjustment([], area: Rectangle(x: 0, y: 0, width: 1000, height: 800)))
         #expect(plan.steps[3].content == .adjustment([], area: Rectangle(x: 0, y: 0, width: 10, height: 10)))
         let error = #expect(throws: ResolveError.self) { try picture(unknown) }
-        #expect(error?.description == #"ops[0].adjust (adjust): unknown filter preset "cold""#)
+        #expect(error?.description == #"ops[0].adjust (adjust): unknown filter preset "mine/cold". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
     }
 
     @Test("a banner extends the canvas by a band as tall as its text, and the picture moves with it")

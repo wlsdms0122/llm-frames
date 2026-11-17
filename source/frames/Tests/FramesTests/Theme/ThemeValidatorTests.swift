@@ -21,31 +21,31 @@ struct ThemeValidatorTests {
         arguments: [
             (
                 #"{ "defaults": { "transition": "dissolve" } }"#,
-                #"defaults.transition (defaults): unknown transition preset "dissolve""#
+                #"defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "defaults": { "transition": { "preset": "dissolve", "seconds": 1 } } }"#,
-                #"defaults.transition (defaults): unknown transition preset "dissolve""#
+                #"defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "defaults": { "filter": "grain" } }"#,
-                #"defaults.filter (defaults): unknown filter preset "grain""#
+                #"defaults.filter (defaults): unknown filter preset "grain". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "defaults": { "filter": ["none", "grain"] } }"#,
-                #"defaults.filter[1] (defaults): unknown filter preset "grain""#
+                #"defaults.filter[1] (defaults): unknown filter preset "grain". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "defaults": { "animation": { "media": "spin" } } }"#,
-                #"defaults.animation.media (animation defaults): unknown animation preset "spin""#
+                #"{ "defaults": { "animation": { "media": "mine/spin" } } }"#,
+                #"defaults.animation.media (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "defaults": { "animation": { "adjust": { "entrance": "pop", "exit": "spin" } } } }"#,
-                #"defaults.animation.adjust (animation defaults): unknown animation preset "spin""#
+                #"{ "defaults": { "animation": { "adjust": { "entrance": "frames/pop", "exit": "mine/spin" } } } }"#,
+                #"defaults.animation.adjust (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "defaults": { "animation": { "title": { "headline": "spin" } } } }"#,
-                #"defaults.animation.title.headline (title animations): unknown animation preset "spin""#
+                #"{ "defaults": { "animation": { "title": { "headline": "mine/spin" } } } }"#,
+                #"defaults.animation.title.headline (title animations): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             )
         ]
     )
@@ -66,8 +66,8 @@ struct ThemeValidatorTests {
         // Given
         let theme = try ThemeMerger().merge([
             ThemeLayer(value: Fixture.json(#"""
-                { "defaults": { "transition": { "preset": "flash", "seconds": 1 }, "filter": ["warm", "none"],
-                                "animation": { "title": { "headline": "fade" }, "shape": { "entrance": "draw", "exit": "none" } } } }
+                { "defaults": { "transition": { "preset": "frames/flash", "seconds": 1 }, "filter": ["frames/warm", "none"],
+                                "animation": { "title": { "headline": "frames/fade" }, "shape": { "entrance": "frames/draw", "exit": "none" } } } }
                 """#), place: .root)
         ])
 
@@ -75,15 +75,15 @@ struct ThemeValidatorTests {
         let defaults = try sut.defaults(in: theme, presets: Fixture.presets)
 
         // Then
-        #expect(defaults.transition == .timed(preset: "flash", seconds: 1))
+        #expect(defaults.transition == .timed(preset: "frames/flash", seconds: 1))
         #expect(defaults.filter == [
             ThemeFilterPreset(
                 preset: FilterPreset(description: "", operations: []),
                 place: Place.root.appending(key: "defaults").appending(key: "filter").appending(index: 0)
             )
         ])
-        #expect(defaults.titleAnimations == ["label": .preset("pop"), "headline": .preset("fade")])
-        #expect(defaults.shapeAnimation == .split(entrance: "draw", exit: "none"))
+        #expect(defaults.titleAnimations == ["label": .preset("frames/pop"), "headline": .preset("frames/fade")])
+        #expect(defaults.shapeAnimation == .split(entrance: "frames/draw", exit: "none"))
         #expect(defaults.mediaAnimation == AnimationChoice.none)
     }
 }

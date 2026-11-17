@@ -17,8 +17,8 @@ struct ClipWindowTests {
     // A clip at speed 2 between two solids, brought in and out by one-second transitions: edit [2, 5), drawn [1.5, 5.5).
     private let fastClip = ##"""
         { "solid": "#000000", "duration": 2 },
-        { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "transition": { "preset": "flash", "seconds": 1 }, "connected": [ %@ ] },
-        { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "flash", "seconds": 1 } }
+        { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "transition": { "preset": "frames/flash", "seconds": 1 }, "connected": [ %@ ] },
+        { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
         """##
 
     // MARK: - Initializer
@@ -263,7 +263,7 @@ struct ClipWindowTests {
     @Test("an adjustment is parented only when an area places it")
     func parentsAdjustmentByArea() throws {
         // Given
-        let document = try sequence(connected: #"{ "adjust": "vivid" }, { "adjust": "vivid", "area": [0, 0, 10, 10] }"#)
+        let document = try sequence(connected: #"{ "adjust": "frames/vivid" }, { "adjust": "frames/vivid", "area": [0, 0, 10, 10] }"#)
 
         // When
         let plan = try sut.plan(document: document)

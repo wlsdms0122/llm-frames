@@ -22,7 +22,7 @@ sh source/install.sh
 frames --version
 ```
 
-It builds a release, then installs `frames` and `Frames_FramesCommand.bundle`, which holds the built in presets, side by side in `/usr/local/bin`. `--prefix <dir>` (or `FRAMES_PREFIX`) installs them elsewhere, and `open-package install` runs the same script.
+It builds a release, then installs `frames` and `Frames_FramesCommand.bundle`, which holds the `frames` pack of presets, side by side in `/usr/local/bin`. `--prefix <dir>` (or `FRAMES_PREFIX`) installs them elsewhere, and `open-package install` runs the same script.
 
 The tool is `frames`. Packs (looks, forms and templates others made) are installed by copying a directory into `$FRAMES_HOME/packs/`, and `FRAMES_HOME` defaults to `~/.config/frames`:
 
@@ -125,8 +125,8 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 
 | Command | What it prints |
 | --- | --- |
-| `presets [<kind>] [<name>]` | the shipped presets with their descriptions, or one preset's JSON |
-| `packs [<pack>]` | the installed packs, or what one pack holds, each thing by the name a document gives it |
+| `presets [<kind>] [<name>]` | the presets of every pack by kind, with their descriptions, or one preset's JSON |
+| `packs [<pack>]` | the packs, the one that ships with frames and the installed ones, or what one pack holds, each thing by the name a document gives it |
 | `theme` | the base theme, which is also the list of every key a theme can hold |
 | `--version` | the version of frames |
 
@@ -197,7 +197,7 @@ A sequence plays clips over time. The storyline plays one clip after another, co
       "connected": [
         { "at": [0.4, 1.5], "title": "The total **includes shipping**", "style": "subtitle" },
         { "at": [0.6, 1.5], "shape": "box", "area": "Total", "label": "fixed" } ] },
-    { "media": "/path/to/shot.png", "duration": 2.5, "transition": "fade",
+    { "media": "/path/to/shot.png", "duration": 2.5, "transition": "frames/fade",
       "keyframes": [ { "at": 0, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 2.5, "crop": { "scale": 1.2 } } ] }
   ],
   "clips": [
@@ -207,7 +207,7 @@ A sequence plays clips over time. The storyline plays one clip after another, co
 
 - The recording plays from media second 0.2 to 1.5. The subtitle and box use the recording's own seconds, so `"at": [0.6, 1.5]` starts at the frame a `sheet` of the recording labels 0.6.
 - The box finds `Total` in the frame at 0.6 seconds and stays on it as part of the picture, fitted into the content rect with it. It ends where the screen changes, since a box found on one screen does not follow the text to the next.
-- The screenshot comes in with a `fade` and zooms slowly with crop keyframes on its own clock (seconds since it started).
+- The screenshot comes in with a `frames/fade` and zooms slowly with crop keyframes on its own clock (seconds since it started).
 - The headline is a sequence clip without `at`, so it spans the whole sequence, in the band the inset leaves at the top.
 
 ### Templates
@@ -370,7 +370,7 @@ Precedence, weakest first: base theme, `--theme`, the document's `theme`, keys o
 
 ### Presets
 
-frames ships 42 presets: 14 transitions, 14 animations and 14 filters. `frames presets` lists them and says how each looks. [FRAMES-16](spec/FRAMES-16/SPEC.md), and the format [FRAMES-14](spec/FRAMES-14/SPEC.md) and [FRAMES-15](spec/FRAMES-15/SPEC.md). How to write one: [PRESET.md](document/PRESET.md).
+frames ships 42 presets as the pack `frames`: 14 transitions, 14 animations and 14 filters. A document names them like any pack's presets, `frames/fade`. `frames presets` lists them and says how each looks. [FRAMES-16](spec/FRAMES-16/SPEC.md), and the format [FRAMES-14](spec/FRAMES-14/SPEC.md) and [FRAMES-15](spec/FRAMES-15/SPEC.md). How to write one: [PRESET.md](document/PRESET.md).
 
 ### Packs and templates
 

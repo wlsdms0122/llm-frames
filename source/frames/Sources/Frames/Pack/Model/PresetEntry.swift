@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// A preset as `presets` lists it: its kind, the name a document gives it (a bare name when built in, `<pack>/<name>`
-// in a pack) and its description.
+// A preset as `presets` lists it: its kind, the name a document gives it (`<pack>/<name>`) and its description.
 package struct PresetEntry: Equatable, Sendable {
     // MARK: - Property
     package let kind: PresetKind

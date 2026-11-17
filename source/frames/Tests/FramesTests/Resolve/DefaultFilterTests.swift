@@ -126,7 +126,7 @@ struct DefaultFilterTests {
 
     private func document(_ storylineClip: String) throws -> JSONValue {
         try Fixture.json(#"""
-            { "kind": "sequence", "theme": { "defaults": { "filter": "grade" } }, "storyline": [ \#(storylineClip) ] }
+            { "kind": "sequence", "theme": { "defaults": { "filter": "mine/grade" } }, "storyline": [ \#(storylineClip) ] }
             """#)
     }
 

@@ -254,7 +254,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "fade" } ] }
+              "clips": [ { "shape": "box", "area": [100, 100, 100, 100], "at": [1, 3], "label": "a", "labelAnimation": "frames/fade" } ] }
             """#
 
         // When
@@ -295,7 +295,7 @@ struct ResolvedSequenceWriterTests {
         // which it shows at its edit point 2.
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
-              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "transition": "flash", "connected": [
+              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "transition": "frames/flash", "connected": [
                 { "media": "/abs/short.mp4", "parent": true, "position": [0, 0], "track": "Total" } ] } ] }
             """#
         let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1...4])

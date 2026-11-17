@@ -378,12 +378,12 @@ struct SequencePlannerTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [2160, 3840] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "grade", "connected": [
+              "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "mine/grade", "connected": [
                 { "title": "a", "style": "label", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "adjust": ["grade", "none"], "area": [0, 0, 10, 10], "at": [0, 1] } ] }
+                { "adjust": ["mine/grade", "none"], "area": [0, 0, 10, 10], "at": [0, 1] } ] }
             """#
 
         // When
@@ -414,12 +414,12 @@ struct SequencePlannerTests {
     func refusesUnknownFilter() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": ["grade", "cold"] } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": ["mine/grade", "mine/cold"] } ] }
             """#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error == .unknownPreset(place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "filter").appending(index: 1), kind: .clip(.media(.video)), presetKind: "filter", name: "cold"))
+        #expect(error == .unknownPreset(place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "filter").appending(index: 1), kind: .clip(.media(.video)), presetKind: "filter", name: "mine/cold"))
     }
 
     private func plan(_ document: String) throws -> SequencePlan {

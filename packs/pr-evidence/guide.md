@@ -10,7 +10,7 @@ The reviewers of a pull request watch it, in the pull request's description or i
 
 `pr-evidence/pr-evidence`. Every document of this form writes `"theme": "pr-evidence/pr-evidence"`.
 
-It changes only `shapes.label.sides`, to `["right", "bottom", "left"]`. A label never goes above a box, where it would cover the line above, and the line above is often the one that gives the boxed line its meaning. Everything else is the base theme: red boxes with white-on-red labels, a white banner with black text, the base `fill` colour, and no default presets but `pop` on labels.
+It changes only `shapes.label.sides`, to `["right", "bottom", "left"]`. A label never goes above a box, where it would cover the line above, and the line above is often the one that gives the boxed line its meaning. Everything else is the base theme: red boxes with white-on-red labels, a white banner with black text, the base `fill` colour, and no default presets but `frames/pop` on labels.
 
 ## Format
 
@@ -59,8 +59,8 @@ Its size is the source's. Leave out `resize`: the code host scales the picture t
 
 - Crops are bands (`{"band": ...}`), since evidence keeps whole lines. A line cut in half can be read as hiding its other half.
 - A recording is cut to the action: from just before the input to just after the result shows, at speed 1. Speeding it up changes what it proves about time.
-- Cut a recording only where nothing changes on the screen, and put a `fade` at the cut. A cut that hides itself looks like something was taken out.
-- Transitions are `fade` at 0.3 to 0.5 seconds. A plain dissolve shows that time passed without telling a story.
+- Cut a recording only where nothing changes on the screen, and put a `frames/fade` at the cut. A cut that hides itself looks like something was taken out.
+- Transitions are `frames/fade` at 0.3 to 0.5 seconds. A plain dissolve shows that time passed without telling a story.
 - No filters. The colours of a screen are part of what it shows.
 - No music, and a recording's own sound is turned off (`"volume": 0`) unless the sound is the evidence. Reviewers watch inline and muted, and sound that proves nothing is noise.
 
@@ -72,12 +72,12 @@ Its size is the source's. Leave out `resize`: the code host scales the picture t
 
 ## Presets
 
-- Use `fade` between recording parts, at 0.3 to 0.5 seconds: `{"preset": "fade", "seconds": 0.4}`.
-- Labels keep the theme's default `pop`. It lands the label once and then holds still.
+- Use `frames/fade` between recording parts, at 0.3 to 0.5 seconds: `{"preset": "frames/fade", "seconds": 0.4}`.
+- Labels keep the theme's default `frames/pop`. It lands the label once and then holds still.
 - Boxes and covers take no animation. The theme leaves `shape` at `none`, so a reviewer who pauses on any frame sees the box whole. Write `"animation": "none"` on covers anyway, so a `--theme` given on the command line cannot animate them.
 - Do not use filters, for the reason in Cuts.
-- Do not use moving transitions (`push-*`, `slide-*`, `uncover-left`, `wipe-*`, `zoom-*`), `flash` or `dip-black`. They make an edit look like a story and pull the eye from the proof.
-- Do not use `pulse`, `blink` or `shake`. They draw the eye away from the reason lines, and the frame a reviewer pauses on may catch them mid-motion.
+- Do not use moving transitions (`frames/push-*`, `frames/slide-*`, `frames/uncover-left`, `frames/wipe-*`, `frames/zoom-*`), `frames/flash` or `frames/dip-black`. They make an edit look like a story and pull the eye from the proof.
+- Do not use `frames/pulse`, `frames/blink` or `frames/shake`. They draw the eye away from the reason lines, and the frame a reviewer pauses on may catch them mid-motion.
 
 ## Example
 

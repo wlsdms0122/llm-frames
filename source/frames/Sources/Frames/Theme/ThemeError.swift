@@ -23,6 +23,7 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPreset(place, kind, presetKind, name):
             "\(place) (\(kind)): unknown \(presetKind) preset \"\(name)\""
+                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
 
         case let .styleWithoutSize(place, kind, name):
             "\(place) (\(kind)): style \"\(name)\" has no size, and text is set only in a style with one"

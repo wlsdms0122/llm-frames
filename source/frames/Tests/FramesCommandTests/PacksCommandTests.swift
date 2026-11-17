@@ -21,12 +21,13 @@ struct PacksCommandTests {
     }
 
     // MARK: - Test
-    @Test("packs lists the installed packs in name order, with what pack.json says and - where it says nothing")
+    @Test("packs lists the installed and shipped packs in name order, with what pack.json says and - where it says nothing")
     func listsPacks() throws {
         // Given
         try sut.addPack("shorts")
-        try sut.addPack("demo", manifest: #"{ "engine": "^1" }"#)
+        try sut.addPack("demo", manifest: #"{ "engine": "^1" }"#, in: sut.shipped)
         try sut.write("", to: sut.installed.appendingPathComponent(".DS_Store"))
+        try sut.write("", to: sut.shipped.appendingPathComponent(".gitkeep"))
 
         // When
         let code = sut.run(["packs"])
@@ -35,6 +36,7 @@ struct PacksCommandTests {
         #expect(code == 0)
         #expect(sut.standardOutput == """
             demo  -  -  -
+            frames  Frames  -  -
             shorts  Shorts  1.2.0  Looks for shorts
 
             """)

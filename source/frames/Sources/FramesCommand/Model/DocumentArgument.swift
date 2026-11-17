@@ -32,7 +32,7 @@ enum DocumentArgument: Equatable, Sendable {
         case let .pack(pack, name):
             self = .template(pack: pack, name: name)
 
-        case .builtIn, nil:
+        case nil:
             throw CommandError.unknownDocument(command: command, argument: argument)
         }
     }

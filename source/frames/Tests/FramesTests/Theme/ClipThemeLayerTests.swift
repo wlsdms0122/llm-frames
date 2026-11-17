@@ -17,14 +17,14 @@ struct ClipThemeLayerTests {
     @Test(
         "the keys on a clip stand in for the theme values they name",
         arguments: [
-            (#"{ "media": "/abs/run.mp4", "transition": "flash", "filter": "vivid" }"#, ClipKind.media(.video), #"{ "defaults": { "transition": "flash", "filter": "vivid" } }"#),
-            (#"{ "title": "a", "style": "subtitle", "animation": "pop" }"#, ClipKind.title, #"{ "defaults": { "animation": { "title": { "subtitle": "pop" } } } }"#),
-            (#"{ "shape": "arrow", "animation": "draw", "labelAnimation": "none" }"#, ClipKind.shape("arrow"), #"{ "defaults": { "animation": { "shape": "draw", "title": { "label": "none" } } } }"#),
-            (#"{ "adjust": "vivid", "animation": "fade" }"#, ClipKind.adjust, #"{ "defaults": { "animation": { "adjust": "fade" } } }"#),
-            (#"{ "media": "/abs/log.png", "animation": "pop" }"#, ClipKind.media(.image), #"{ "defaults": { "animation": { "media": "pop" } } }"#),
+            (#"{ "media": "/abs/run.mp4", "transition": "frames/flash", "filter": "frames/vivid" }"#, ClipKind.media(.video), #"{ "defaults": { "transition": "frames/flash", "filter": "frames/vivid" } }"#),
+            (#"{ "title": "a", "style": "subtitle", "animation": "frames/pop" }"#, ClipKind.title, #"{ "defaults": { "animation": { "title": { "subtitle": "frames/pop" } } } }"#),
+            (#"{ "shape": "arrow", "animation": "frames/draw", "labelAnimation": "none" }"#, ClipKind.shape("arrow"), #"{ "defaults": { "animation": { "shape": "frames/draw", "title": { "label": "none" } } } }"#),
+            (#"{ "adjust": "frames/vivid", "animation": "frames/fade" }"#, ClipKind.adjust, #"{ "defaults": { "animation": { "adjust": "frames/fade" } } }"#),
+            (#"{ "media": "/abs/log.png", "animation": "frames/pop" }"#, ClipKind.media(.image), #"{ "defaults": { "animation": { "media": "frames/pop" } } }"#),
             (#"{ "media": { "kind": "sequence" } }"#, ClipKind.media(.sequence), #"{ "defaults": { "filter": "none" } }"#),
             (#"{ "media": { "template": "pack/card" } }"#, ClipKind.media(.image), #"{ "defaults": { "filter": "none" } }"#),
-            (#"{ "media": { "template": "pack/card" }, "filter": "vivid" }"#, ClipKind.media(.image), #"{ "defaults": { "filter": "vivid" } }"#)
+            (#"{ "media": { "template": "pack/card" }, "filter": "frames/vivid" }"#, ClipKind.media(.image), #"{ "defaults": { "filter": "frames/vivid" } }"#)
         ]
     )
     func layersClipKeys(

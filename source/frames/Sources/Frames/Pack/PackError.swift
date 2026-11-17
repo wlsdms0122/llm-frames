@@ -9,6 +9,7 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingManifest(place: Place)
     case invalidEngine(place: Place, engine: String)
     case unsupportedEngine(place: Place, pack: String, engine: String, version: String)
+    case duplicatePack(place: Place, name: String, shipped: String)
     case unreadableFile(file: String)
     case circularReference(place: Place, files: [String])
     case unknownThemeOption(name: String)
@@ -31,6 +32,10 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unsupportedEngine(place, pack, engine, version):
             "\(place) (\(PackKeyTable.manifest.kind)): "
                 + "pack \(quoted(pack)) is written for frames \(engine), and this is frames \(version)"
+
+        case let .duplicatePack(place, name, shipped):
+            "\(place) (\(PackKeyTable.manifest.kind)): "
+                + "a pack named \(quoted(name)) ships with frames at \(shipped), so an installed one of that name stops. Rename or remove the installed one"
 
         case let .unreadableFile(file):
             "\(file): the file is there but cannot be read"

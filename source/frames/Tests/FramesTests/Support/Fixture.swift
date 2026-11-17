@@ -92,27 +92,27 @@ enum Fixture {
 
     static let presets = PresetTable(
         transitions: [
-            "flash": transition(seconds: 0.5),
-            "push-up": transition(seconds: 0.5),
-            "wipe-right": transition(seconds: 1),
-            "long": transition(seconds: 4)
+            "frames/flash": transition(seconds: 0.5),
+            "frames/push-up": transition(seconds: 0.5),
+            "frames/wipe-right": transition(seconds: 1),
+            "mine/long": transition(seconds: 4)
         ],
         animations: [
-            "pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
-            "fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
-            "stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
-            "draw": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
-            "pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
+            "frames/pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
+            "frames/fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
+            "frames/stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
+            "frames/draw": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
+            "frames/pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
         ],
         filters: [
-            "warm": FilterPreset(description: "", operations: []),
-            "grade": FilterPreset(description: "", operations: [.saturation(amount: 1.25), .blur(radius: 4)])
+            "frames/warm": FilterPreset(description: "", operations: []),
+            "mine/grade": FilterPreset(description: "", operations: [.saturation(amount: 1.25), .blur(radius: 4)])
         ]
     )
 
-    // No pack is installed, so only absolute paths name anything.
+    // No pack is installed or shipped, so only absolute paths name anything.
     static let library = ReferenceLibrary(
-        packs: PackLibrary(installed: emptyDirectory),
+        packs: PackLibrary(installed: emptyDirectory, shipped: emptyDirectory),
         mediaFacts: mediaFacts
     )
 

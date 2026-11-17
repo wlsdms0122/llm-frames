@@ -106,7 +106,7 @@ struct ResolveEndToEndTests {
     private func planner(packs: TemporaryDirectory) -> DocumentPlanner {
         let decoder = AVFoundationDecoder()
         let library = ReferenceLibrary(
-            packs: PackLibrary(installed: URL(fileURLWithPath: packs.path)),
+            packs: PackLibrary(installed: URL(fileURLWithPath: packs.path), shipped: URL(fileURLWithPath: packs.path)),
             mediaFacts: decoder
         )
 

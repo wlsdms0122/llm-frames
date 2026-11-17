@@ -8,7 +8,7 @@ People who will use the feature watch it: users reading release notes or a chang
 
 ## Theme
 
-The base theme. A demo writes no `theme`, so it looks like what frames draws by default and like every other demo made with it: red boxes with white-on-red labels, subtitles in white on a dark rounded box, headlines in white with a black outline. Labels `pop` in, and every other default is none: no default transition, filter or animation.
+The base theme. A demo writes no `theme`, so it looks like what frames draws by default and like every other demo made with it: red boxes with white-on-red labels, subtitles in white on a dark rounded box, headlines in white with a black outline. Labels `frames/pop` in, and every other default is none: no default transition, filter or animation.
 
 ## Format
 
@@ -41,7 +41,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 - Each step is its own storyline clip of the recording with its own `in` and `out`, cut where the screen is still. Cuts on a still screen are not seen.
 - Waits (loading, typing a long text) are cut out or taken at `"speed": 2`. A viewer learns nothing from a wait, and the feature should not look slower or faster than it is beyond that.
-- Clips of one recording follow each other with no transition (the default, `cut`). A `fade` brings in the clip after the title card, a different recording or a screenshot of another screen, and the end card. A dissolve says "elsewhere", a cut says "and then".
+- Clips of one recording follow each other with no transition (the default, `cut`). A `frames/fade` brings in the clip after the title card, a different recording or a screenshot of another screen, and the end card. A dissolve says "elsewhere", a cut says "and then".
 - Sound: the recording's own sound is turned off (`"volume": 0`) unless it is part of the feature. Music, if any, is an audio clip in `clips` at `"volume"` 0.2 to 0.3 with a `fadeOut` of 1 second, so it never covers a voice or a feature sound.
 
 ### Length
@@ -52,11 +52,11 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 ## Presets
 
-- Use `fade` at its default 0.4 seconds out of the title card, between different recordings, and into the end card.
-- Labels keep the base default `pop`. Boxes may take `draw`, which leads the eye along the box as it appears.
-- `zoom-in` can bring in a result that the demo builds to, once.
-- Do not use `push-*`, `slide-*`, `uncover-left` or `wipe-*` between steps. They suggest the product itself moves that way.
-- Do not use `flash`, `shake`, `blink` or `pulse`. They are for a short's attention, and a demo has its viewer's already.
+- Use `frames/fade` at its default 0.4 seconds out of the title card, between different recordings, and into the end card.
+- Labels keep the base default `frames/pop`. Boxes may take `frames/draw`, which leads the eye along the box as it appears.
+- `frames/zoom-in` can bring in a result that the demo builds to, once.
+- Do not use `frames/push-*`, `frames/slide-*`, `frames/uncover-left` or `frames/wipe-*` between steps. They suggest the product itself moves that way.
+- Do not use `frames/flash`, `frames/shake`, `frames/blink` or `frames/pulse`. They are for a short's attention, and a demo has its viewer's already.
 - Do not use filters on the recording. The demo shows the product as it is, colours included.
 
 ## Example
@@ -69,7 +69,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 It shows the format and the rules together:
 
 - The title card and the end card are black solids with a centred headline, and only the title card has `**` emphasis.
-- The recording plays from `in` 0 to `out` 1.4 with its sound off, brought in with a `fade` since it follows the title card. The screenshot after it is a cut: the same screen goes on.
+- The recording plays from `in` 0 to `out` 1.4 with its sound off, brought in with a `frames/fade` since it follows the title card. The screenshot after it is a cut: the same screen goes on.
 - Each step has one subtitle. The `Total` line sits in the bottom quarter, so the subtitle of the step that boxes it moves to the top:
 
 ```json

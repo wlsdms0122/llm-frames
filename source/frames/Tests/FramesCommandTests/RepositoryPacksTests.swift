@@ -11,7 +11,7 @@ import Testing
 @testable import FramesCommand
 
 // The packs kept in the repository under `packs/`, installed by copying them into a temporary `FRAMES_HOME` beside
-// the presets frames ships, as a user installs them.
+// the pack frames ships, as a user installs them.
 @Suite("RepositoryPacks Tests")
 struct RepositoryPacksTests {
     // MARK: - Property
@@ -23,8 +23,8 @@ struct RepositoryPacksTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
     private static let packs = root.appendingPathComponent("packs", isDirectory: true)
-    private static let builtInPresets = root.appendingPathComponent(
-        "source/frames/Sources/FramesCommand/Resources/presets",
+    private static let framesPack = root.appendingPathComponent(
+        "source/frames/Sources/FramesCommand/Resources/packs/frames",
         isDirectory: true
     )
 
@@ -50,7 +50,9 @@ struct RepositoryPacksTests {
     // MARK: - Initializer
     init() throws {
         sut = try TestShell()
-        try copy(Self.builtInPresets, into: sut.builtIn)
+        let shippedFrames = sut.shipped.appendingPathComponent("frames", isDirectory: true)
+        try FileManager.default.removeItem(at: shippedFrames)
+        try FileManager.default.copyItem(at: Self.framesPack, to: shippedFrames)
         for pack in Self.packNames {
             try FileManager.default.copyItem(
                 at: Self.packs.appendingPathComponent(pack, isDirectory: true),
@@ -72,10 +74,10 @@ struct RepositoryPacksTests {
         #expect(packs == expected)
     }
 
-    @Test("packs lists every installed pack with the name, version 1.0.0 and description its pack.json gives")
+    @Test("packs lists the pack frames ships and every installed pack with the name, version 1.0.0 and description its pack.json gives")
     func listsPacks() {
         // Given
-        let expected: [[String?]] = Self.packNames.map { [$0, "1.0.0"] }
+        let expected: [[String?]] = (Self.packNames + ["frames"]).sorted().map { [$0, "1.0.0"] }
 
         // When
         let code = sut.run(["packs"])
@@ -134,23 +136,5 @@ struct RepositoryPacksTests {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
 
         return names.filter { !$0.hasPrefix(".") }.sorted()
-    }
-
-    // Copies every preset frames ships over the ones the shell starts with, kind by kind.
-    private func copy(
-        _ presets: URL,
-        into builtIn: URL
-    ) throws {
-        for kind in Self.entries(in: presets) {
-            let folder = builtIn.appendingPathComponent(kind, isDirectory: true)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            for file in Self.entries(in: presets.appendingPathComponent(kind, isDirectory: true)) {
-                let target = folder.appendingPathComponent(file)
-                if FileManager.default.fileExists(atPath: target.path) {
-                    try FileManager.default.removeItem(at: target)
-                }
-                try FileManager.default.copyItem(at: presets.appendingPathComponent("\(kind)/\(file)"), to: target)
-            }
-        }
     }
 }

@@ -1,0 +1,6 @@
+{
+  "engine": "^1",
+  "name": "Frames",
+  "version": "1.0.0",
+  "description": "The transitions, animations and filters that ship with frames"
+}

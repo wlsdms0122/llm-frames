@@ -37,30 +37,29 @@ struct ShippedFilterPresetTests {
         let empty = URL(fileURLWithPath: shell.directory.file("empty"), isDirectory: true)
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
         sut = PresetLibrary(
-            builtIn: CommandEnvironment.current.builtInPresets,
-            packs: PackLibrary(installed: empty)
+            packs: PackLibrary(installed: empty, shipped: CommandEnvironment.current.shippedPacks)
         )
         try FileManager.default.copyItem(
-            at: CommandEnvironment.current.builtInPresets.appendingPathComponent("filter", isDirectory: true),
-            to: shell.builtIn.appendingPathComponent("filter", isDirectory: true)
+            at: CommandEnvironment.current.shippedPacks.appendingPathComponent("frames/presets/filter", isDirectory: true),
+            to: shell.framesPresets.appendingPathComponent("filter", isDirectory: true)
         )
     }
 
     // MARK: - Test
-    @Test("the built in filters are exactly the 14 that FRAMES-16 names")
+    @Test("the shipped filters are exactly the 14 that FRAMES-16 names")
     func namesShippedFilters() throws {
         // Given, When
         let names = try sut.presets(of: .filter).map(\.name)
 
         // Then
         #expect(names.count == Self.names.count)
-        #expect(Set(names) == Self.names)
+        #expect(Set(names) == Set(Self.names.map { "frames/\($0)" }))
     }
 
-    @Test("every built in filter reads, with a one line description and at least one operation", arguments: names)
+    @Test("every shipped filter reads, with a one line description and at least one operation", arguments: names)
     func readsShippedFilter(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.filter(named: name))
+        let preset = try #require(try sut.filter(named: "frames/\(name)"))
 
         // Then
         #expect(!preset.description.isEmpty)
@@ -222,7 +221,7 @@ struct ShippedFilterPresetTests {
     }
 
     // MARK: - Private
-    // Draws the test picture through the built in filter `name` with `still`, at the picture's own size.
+    // Draws the test picture through the shipped filter `frames/<name>` with `still`, at the picture's own size.
     private func draw(_ name: String) throws -> RenderedPicture {
         let image = shell.directory.file("picture.png")
         if !FileManager.default.fileExists(atPath: image) {
@@ -231,7 +230,7 @@ struct ShippedFilterPresetTests {
         let document = try shell.write(
             #"""
             { "kind": "sequence", "format": { "size": [1206, 400], "fps": 10 },
-              "storyline": [ { "media": "\#(image)", "duration": 1, "filter": "\#(name)" } ] }
+              "storyline": [ { "media": "\#(image)", "duration": 1, "filter": "frames/\#(name)" } ] }
             """#,
             named: "\(name).json"
         )

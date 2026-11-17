@@ -44,7 +44,7 @@ let package = Package(
                 "FramesPointTracker"
             ],
             resources: [
-                .copy("Resources/presets")
+                .copy("Resources/packs")
             ]
         ),
         .executableTarget(

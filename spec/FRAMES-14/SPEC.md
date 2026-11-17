@@ -12,7 +12,7 @@ A look is shared and sold as data, and adding one must need no rebuild. Spans of
 
 ## Rules
 
-A preset is one JSON file at `presets/<transition|animation|filter>/<name>.json`. A bare name is a preset frames ships, `<pack>/<name>` is a preset in an installed pack ([FRAMES-17](../FRAMES-17/SPEC.md)), and an absolute path reads that file. Adding a preset needs no rebuild.
+A preset is one JSON file at `presets/<transition|animation|filter>/<name>.json`. `<pack>/<name>` is a preset in a pack ([FRAMES-17](../FRAMES-17/SPEC.md)), the ones frames ships in the pack `frames` (`frames/pop`), and an absolute path reads that file. Adding a preset needs no rebuild.
 
 Every preset has a `description`: one line on how it looks and when to use it, which `presets` prints. Unknown keys and broken rules in a preset stop when it is read.
 

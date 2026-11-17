@@ -34,7 +34,7 @@ struct DocumentPlannerTests {
         try directory.addPack("shorts")
         try directory.write(leak, in: "shorts", at: "templates/leak.json")
         try directory.write(intro, in: "shorts", at: "media/intro.json")
-        try directory.write(#"{ "defaults": { "transition": "flash" } }"#, in: "shorts", at: "themes/shorts.json")
+        try directory.write(#"{ "defaults": { "transition": "frames/flash" } }"#, in: "shorts", at: "themes/shorts.json")
 
         let media = directory.installed.appendingPathComponent("shorts/media", isDirectory: true)
         let mediaFacts = MediaFactTable(
@@ -83,7 +83,7 @@ struct DocumentPlannerTests {
     func plansThemes() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov", "intro": \#(intro) } } } ] }
             """#)
 
@@ -94,14 +94,14 @@ struct DocumentPlannerTests {
         let template = try #require(plan.time.storyline[0].source.media?.sequence)
         let argument = try #require(template.storyline[1].source.media?.sequence)
         #expect(template.storyline[1].transition == nil)
-        #expect(argument.storyline[1].transition?.preset == "flash")
+        #expect(argument.storyline[1].transition?.preset == "frames/flash")
     }
 
     @Test("a template's default document is written in the template, so it keeps the template's theme")
     func plansDefaultInTemplateTheme() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } } ] }
             """#)
 
@@ -127,7 +127,7 @@ struct DocumentPlannerTests {
         let nested = try #require(plan.time.storyline[0].source.media?.sequence)
         #expect(plan.time.storyline[0].source.media?.reference == "shorts/intro.json")
         #expect(nested.storyline[1].place.description == "storyline[0].media.storyline[1]")
-        #expect(nested.storyline[1].transition?.preset == "flash")
+        #expect(nested.storyline[1].transition?.preset == "frames/flash")
     }
 
     @Test("pack media and image sequence directories are found in the pack before they are probed")
@@ -154,7 +154,7 @@ struct DocumentPlannerTests {
         let plan = try #require(try sut.plan(document, theme: "shorts/shorts").sequence)
 
         // Then
-        #expect(plan.time.storyline[1].transition?.preset == "flash")
+        #expect(plan.time.storyline[1].transition?.preset == "frames/flash")
     }
 
     @Test(
@@ -183,7 +183,7 @@ struct DocumentPlannerTests {
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.plan(document) }
-        #expect(error?.description == #"shorts/broken: defaults.transition (defaults): unknown transition preset "dissolve""#)
+        #expect(error?.description == #"shorts/broken: defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
     }
 
     @Test("a resolve error inside a template instance continues the entry's place")

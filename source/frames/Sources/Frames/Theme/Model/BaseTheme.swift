@@ -43,7 +43,7 @@ package enum BaseTheme {
           "image":     { "bannerPadding": 40 },
           "layout":    { "gap": 40, "padding": 40 },
           "defaults":  { "transition": "cut", "filter": "none",
-                         "animation": { "title": { "label": "pop" }, "shape": "none", "media": "none", "adjust": "none" } }
+                         "animation": { "title": { "label": "frames/pop" }, "shape": "none", "media": "none", "adjust": "none" } }
         }
         """
     // The text above is fixed and well formed, so reading it cannot fail.

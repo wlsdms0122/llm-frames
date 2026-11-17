@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-The 42 presets that ship with frames, by name and look.
+The 42 presets that ship with frames as the pack `frames`, by name and look.
 
 ## Motivation
 
@@ -12,7 +12,7 @@ Templates and forms are timed to these names, so their names, looks and files ar
 
 ## Rules
 
-The names, how each looks, and the preset files frames ships are the contract, so a template timed to `pop` keeps its timing. Changing a shipped preset's numbers raises the major version ([FRAMES-18](../FRAMES-18/SPEC.md)). Seconds are the default length.
+They are the pack `frames`, which ships with frames, so a document names them like any pack's presets: `frames/pop` ([FRAMES-17](../FRAMES-17/SPEC.md)). The tables give the names in the pack. The names, how each looks, and the preset files frames ships are the contract, so a template timed to `frames/pop` keeps its timing. Changing a shipped preset's numbers raises the major version ([FRAMES-18](../FRAMES-18/SPEC.md)). Seconds are the default length.
 
 **transition (14)**
 
@@ -52,7 +52,7 @@ The names, how each looks, and the preset files frames ships are the contract, s
 | `blink` | blinks |
 | `shake` | lands large, shakes side to side, then trembles while it stays |
 
-`none` ships as a file with no span, so `presets` lists it with the others. A choice of `none` reads no file, and the clip simply shows.
+`none` ships as a file with no span, so `presets` lists `frames/none` with the others, and a clip given it simply shows. The choice `none` reads no file and shows the clip the same way.
 
 **filter (14)**
 

@@ -23,24 +23,24 @@ struct SequenceCheckTests {
             {
               "kind": "sequence",
               "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "inset": [420, 40, 120, 40], "conform": "fit" },
-              "theme": { "defaults": { "transition": "push-up", "filter": "vivid", "animation": { "title": { "subtitle": "pop" }, "shape": "draw" } } },
+              "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw" } } },
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],
                   "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
-                { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "flash", "volume": 0,
+                { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
-                  "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "label": "done", "animation": "stamp" },
+                  "connected": [ { "at": [19, 22], "shape": "box", "area": "Sent", "label": "done", "animation": "frames/stamp" },
                                  { "shape": "box", "area": "Account 110-", "track": true, "label": "this account" } ] },
                 { "media": { "kind": "image", "source": "/abs/card.png" }, "duration": 2.5,
-                  "transition": { "preset": "wipe-right", "seconds": 0.5 },
+                  "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "box",
                                    "keyframes": [ { "at": 1.2, "area": "First line" }, { "at": 1.65, "area": "Second line" } ] } ] }
               ],
               "clips": [
                 { "at": [0, 30], "title": "Top title\n**emphasis**", "style": "headline", "lane": 2 },
                 { "at": [1, 6], "media": "/abs/log.png", "width": 420, "radius": 24, "shadow": true,
-                  "animation": { "entrance": "pop", "exit": "fade" }, "lane": 5,
+                  "animation": { "entrance": "frames/pop", "exit": "frames/fade" }, "lane": 5,
                   "keyframes": [ { "at": 3, "position": [600, 500], "ease": "ease-in-out" }, { "at": 4, "position": [330, 900], "scale": 1.5 } ] },
                 { "at": [0, 4], "media": "/abs/light-leak.mov", "blend": "screen", "lane": 3 },
                 { "media": "/abs/bgm.m4a", "volume": 0.3, "loop": true, "fadeOut": 1 },
@@ -108,7 +108,7 @@ struct SequenceCheckTests {
             (#"{ "media": "/abs/log.png", "at": [0, 1], "loop": true }"#, "clips", #"clips[0] (image): unknown key "loop""#),
             (#"{ "title": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
             (#"{ "shape": "box", "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (box): unknown key "side""#),
-            (#"{ "adjust": "vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#)
+            (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#)
         ]
     )
     func picksRowByMedia(
@@ -288,7 +288,7 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "seconds": 1 } } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["vivid", 2] } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", 2] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": "1" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "middle": "a" } } ] }"#,
@@ -316,9 +316,9 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": true, "position": { "area": "Send", "point": "left" }, "anchor": "right" } ] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "a", "nth": 1 } }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
-            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "labelAnimation": "none", "animation": { "entrance": "pop", "exit": "none" } } ] }"#
+            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "labelAnimation": "none", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#
         ]
     )
     func acceptsEveryForm(body: String) throws {
@@ -332,10 +332,10 @@ struct SequenceCheckTests {
     @Test(
         "a choice written as an object takes both of its keys",
         arguments: [
-            (#"{ "clips": [ { "shape": "box", "animation": { "entrance": "pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
-            (#"{ "clips": [ { "shape": "box", "animation": { "exit": "fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
-            (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "push-up" } } ] }"#, #"storyline[0].transition (transition choice): missing key "seconds""#),
-            (#"{ "theme": { "defaults": { "transition": { "preset": "push-up" } } } }"#, #"theme.defaults.transition (transition choice): missing key "seconds""#)
+            (#"{ "clips": [ { "shape": "box", "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
+            (#"{ "clips": [ { "shape": "box", "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): missing key "seconds""#),
+            (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): missing key "seconds""#)
         ]
     )
     func requiresBothChoiceKeys(
@@ -421,7 +421,7 @@ struct SequenceCheckTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "flash", "seconds": 0 } }
+              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 0 } }
             ] }
             """##)
 

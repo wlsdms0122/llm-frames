@@ -19,23 +19,26 @@ struct PresetLibraryTests {
     // MARK: - Initializer
     init() throws {
         directory = try PackDirectory()
-        sut = PresetLibrary(builtIn: directory.builtIn, packs: directory.packs)
+        sut = PresetLibrary(packs: directory.packs)
     }
 
     // MARK: - Test
-    @Test("a bare name is a built in preset, laid out as a pack's presets")
-    func findsBuiltInPreset() throws {
+    @Test("a pack that ships with frames names its presets <pack>/<name>, as an installed one does, and a bare name names none")
+    func findsShippedPreset() throws {
         // Given
+        try directory.addPack("frames", in: directory.shipped)
         try directory.write(
             #"{ "description": "a flash", "seconds": 0.4 }"#,
-            to: directory.builtIn.appendingPathComponent("transition/flash.json")
+            to: directory.shipped.appendingPathComponent("frames/presets/transition/flash.json")
         )
 
         // When
-        let preset = try sut.transition(named: "flash")
+        let preset = try sut.transition(named: "frames/flash")
+        let bare = try sut.transition(named: "flash")
 
         // Then
         #expect(preset?.seconds == 0.4)
+        #expect(bare == nil)
     }
 
     @Test("<pack>/<name> is a preset in that pack's presets, and an absolute path reads that file")
@@ -77,11 +80,12 @@ struct PresetLibraryTests {
         #expect(error?.description == #"shorts/flash: top level (transition): missing key "seconds""#)
     }
 
-    @Test("a kind lists the built in presets first and then each pack's, with their descriptions, hidden files skipped")
+    @Test("a kind lists each pack's presets in pack name order, shipped and installed alike, with their descriptions, hidden files skipped")
     func listsPresets() throws {
         // Given
-        try directory.write(#"{ "description": "a flash", "seconds": 0.4 }"#, to: directory.builtIn.appendingPathComponent("transition/flash.json"))
-        try directory.write("", to: directory.builtIn.appendingPathComponent("transition/.gitkeep"))
+        try directory.addPack("frames", in: directory.shipped)
+        try directory.write(#"{ "description": "a flash", "seconds": 0.4 }"#, to: directory.shipped.appendingPathComponent("frames/presets/transition/flash.json"))
+        try directory.write("", to: directory.shipped.appendingPathComponent("frames/presets/transition/.gitkeep"))
         try directory.addPack("shorts")
         try directory.write(#"{ "description": "pushes up", "seconds": 0.3 }"#, in: "shorts", at: "presets/transition/push-up.json")
         try directory.write(#"{ "description": "pops", "entrance": { "seconds": 0.3, "keys": [] } }"#, in: "shorts", at: "presets/animation/pop.json")
@@ -92,7 +96,7 @@ struct PresetLibraryTests {
 
         // Then
         #expect(transitions == [
-            PresetEntry(kind: .transition, name: "flash", description: "a flash"),
+            PresetEntry(kind: .transition, name: "frames/flash", description: "a flash"),
             PresetEntry(kind: .transition, name: "shorts/push-up", description: "pushes up")
         ])
         #expect(animations == [PresetEntry(kind: .animation, name: "shorts/pop", description: "pops")])
@@ -112,7 +116,8 @@ struct PresetLibraryTests {
     @Test("one pack lists only its own presets of a kind")
     func listsPackPresets() throws {
         // Given
-        try directory.write(#"{ "description": "a flash", "seconds": 0.4 }"#, to: directory.builtIn.appendingPathComponent("transition/flash.json"))
+        try directory.addPack("frames", in: directory.shipped)
+        try directory.write(#"{ "description": "a flash", "seconds": 0.4 }"#, to: directory.shipped.appendingPathComponent("frames/presets/transition/flash.json"))
         try directory.addPack("shorts")
         try directory.write(#"{ "description": "pushes up", "seconds": 0.3 }"#, in: "shorts", at: "presets/transition/push-up.json")
         let pack = try #require(try directory.packs.pack(named: "shorts"))
@@ -128,18 +133,19 @@ struct PresetLibraryTests {
     func readsPresetText() throws {
         // Given
         let text = "{\n  \"description\": \"a flash\",   \"seconds\": 0.4\n}\n"
-        try directory.write(text, to: directory.builtIn.appendingPathComponent("transition/flash.json"))
+        try directory.addPack("frames", in: directory.shipped)
+        try directory.write(text, to: directory.shipped.appendingPathComponent("frames/presets/transition/flash.json"))
         try directory.addPack("shorts")
         let packed = try directory.write(text, in: "shorts", at: "presets/transition/flash.json")
 
         // When
-        let builtIn = try sut.text(named: "flash", kind: .transition)
+        let shipped = try sut.text(named: "frames/flash", kind: .transition)
         let pack = try sut.text(named: "shorts/flash", kind: .transition)
         let path = try sut.text(named: packed.path, kind: .transition)
-        let missing = try sut.text(named: "flash", kind: .animation)
+        let missing = try sut.text(named: "frames/flash", kind: .animation)
 
         // Then
-        #expect(builtIn == text)
+        #expect(shipped == text)
         #expect(pack == text)
         #expect(path == text)
         #expect(missing == nil)

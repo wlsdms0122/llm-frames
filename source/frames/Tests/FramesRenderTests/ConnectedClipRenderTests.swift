@@ -101,7 +101,7 @@ struct ConnectedClipRenderTests {
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 }, "theme": { "area": { "padding": 0 } },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
-                             { "media": "\#(incoming)", "duration": 1, "transition": "\#(transition)",
+                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
                                "connected": [ { "shape": "fill", "area": [0, 30, 160, 30], "color": "#FF00FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())

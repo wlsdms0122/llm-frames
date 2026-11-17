@@ -10,7 +10,7 @@ Viewers scrolling a vertical feed on a phone watch it: YouTube Shorts, Instagram
 
 `shorts/shorts` ([FRAMES-22](../../spec/FRAMES-22/SPEC.md)). Every document of this form writes `"theme": "shorts/shorts"`.
 
-It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide short. It makes the accent red `#FF3B30` and the emphasis yellow `#FFE14D`. Subtitles are 66 pixels, white with a 7 pixel black outline and no box, their bottom 330 pixels above the bottom of the frame. The headline is 84 pixels, white with the base theme's black outline, its top 110 pixels below the top of the frame. Labels are 40 pixels and boxes 10 pixels wide. Its defaults push every scene up in 0.3 seconds (`push-up`), pop subtitles, labels and media clips in (`pop`), draw shapes in (`draw`), and show the headline without an entrance.
+It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide short. It makes the accent red `#FF3B30` and the emphasis yellow `#FFE14D`. Subtitles are 66 pixels, white with a 7 pixel black outline and no box, their bottom 330 pixels above the bottom of the frame. The headline is 84 pixels, white with the base theme's black outline, its top 110 pixels below the top of the frame. Labels are 40 pixels and boxes 10 pixels wide. Its defaults push every scene up in 0.3 seconds (`frames/push-up`), pop subtitles, labels and media clips in (`frames/pop`), draw shapes in (`frames/draw`), and show the headline without an entrance.
 
 ## Format
 
@@ -40,7 +40,7 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 ### Cuts
 
 - A scene lasts 2 to 4 seconds. A still picture held longer is where viewers swipe away.
-- Scenes change with the theme's `push-up`, so write no `transition` between them. The push moves the way the feed moves.
+- Scenes change with the theme's `frames/push-up`, so write no `transition` between them. The push moves the way the feed moves.
 - A jump inside one recording, the same screen going on, takes `"transition": "cut"`. A push there would look like a new scene.
 - Subtitles change back to back, each with its own `at` in its scene's seconds, so one is always on screen while someone speaks.
 
@@ -52,14 +52,14 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 
 ## Presets
 
-- Keep the theme defaults: `push-up` between scenes, `pop` on subtitles, labels and media clips, `draw` on shapes. They are timed for a 1 to 2 second subtitle.
-- `zoom-in` can open a scene that reveals a result.
-- `stamp` or `bounce` can land one label that carries the point of the video.
-- Do not use horizontal transitions (`push-left`, `slide-left`, `slide-right`, `uncover-left`, `wipe-left`, `wipe-right`). They move across the vertical swipe.
-- Do not use `dip-black` or `fade` between scenes. A dip reads as the end, and a dissolve is slow for a 2 second scene.
-- Do not use `fade` on subtitles. A line of 1 to 2 seconds spends too much of it fading.
-- Do not use `noir`, `sepia`, `mono` or `faded` on a screen recording. The colours of an app's screen mean something. `vivid` and `warm` are for camera footage.
-- Use `shake` and `blink` at most once, for a warning. Used more, they are noise.
+- Keep the theme defaults: `frames/push-up` between scenes, `frames/pop` on subtitles, labels and media clips, `frames/draw` on shapes. They are timed for a 1 to 2 second subtitle.
+- `frames/zoom-in` can open a scene that reveals a result.
+- `frames/stamp` or `frames/bounce` can land one label that carries the point of the video.
+- Do not use horizontal transitions (`frames/push-left`, `frames/slide-left`, `frames/slide-right`, `frames/uncover-left`, `frames/wipe-left`, `frames/wipe-right`). They move across the vertical swipe.
+- Do not use `frames/dip-black` or `frames/fade` between scenes. A dip reads as the end, and a dissolve is slow for a 2 second scene.
+- Do not use `frames/fade` on subtitles. A line of 1 to 2 seconds spends too much of it fading.
+- Do not use `frames/noir`, `frames/sepia`, `frames/mono` or `frames/faded` on a screen recording. The colours of an app's screen mean something. `frames/vivid` and `frames/warm` are for camera footage.
+- Use `frames/shake` and `frames/blink` at most once, for a warning. Used more, they are noise.
 
 ## Example
 

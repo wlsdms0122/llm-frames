@@ -57,7 +57,7 @@ An extension reads what frames reports ([FRAMES-23](../FRAMES-23/SPEC.md)) and w
 frames ships no form, since a form is a purpose. The first forms are packs kept in the frames repository under `packs/`, outside the tool, and are installed like any other pack by copying one into `$FRAMES_HOME/packs/` ([FRAMES-17](../FRAMES-17/SPEC.md)). Their examples name media by absolute paths to change before they run. They are:
 
 - **pr-evidence:** its theme `pr-evidence/pr-evidence` changes only `shapes.label.sides`. The conclusion and the reason go in the banner, the conclusion first in `bannerHead`. Crops are bands (`{"band": ...}`), since evidence keeps whole lines. Labels never go above a box, where they would cover the line above, which is why its theme takes `top` out of `shapes.label.sides`. Only the reason lines get a box. Personal data is covered with an opaque `fill` at opacity 1 with no animation, on every clip and every frame that shows it: on video with `track`, or area keyframes from `ocr --json` where it leaves the screen and comes back. A template is a closed box, so a recording given to one is covered first: render it with its covers to a master and pass that file. The finished file is checked with `ocr`. No filters and no music. Transitions are `fade` at 0.3 to 0.5.
-- **shorts:** Korean vertical short-form, 9:16, with the theme `shorts/shorts` ([FRAMES-22](../FRAMES-22/SPEC.md)). A headline in the top band, outlined subtitles with `pop`, `push-up` between scenes.
+- **shorts:** Korean vertical short-form, 9:16, with the theme `shorts/shorts` ([FRAMES-22](../FRAMES-22/SPEC.md)). A headline in the top band, outlined subtitles with `frames/pop`, `frames/push-up` between scenes.
 - **demo:** a feature demo on the base theme.
 
 First how-tos:

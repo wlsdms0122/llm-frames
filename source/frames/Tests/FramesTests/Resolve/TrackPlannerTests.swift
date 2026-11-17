@@ -92,7 +92,7 @@ struct TrackPlannerTests {
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
                 { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": "Total" },
-                { "solid": "#000000", "duration": 2, "transition": { "preset": "flash", "seconds": 1 } } ] }
+                { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } } ] }
             """#))
 
         // When

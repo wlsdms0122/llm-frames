@@ -7,8 +7,8 @@
 
 import Frames
 
-// Lists the built in presets and those of every pack with their descriptions, every kind or one, or prints one
-// preset's JSON as its file is written.
+// Lists the presets of every pack with their descriptions, every kind or one, or prints one preset's JSON as its file
+// is written.
 struct PresetsCommand: Command {
     // MARK: - Property
     let name = "presets"
@@ -24,7 +24,9 @@ struct PresetsCommand: Command {
         let presets = context.presets
         let kinds = try options.kind.map { [try kind(named: $0)] } ?? PresetKind.allCases
         guard let name = options.name, let kind = kinds.first else {
-            let lines = try kinds.flatMap { try presets.presets(of: $0) }.map(line)
+            let lines = try kinds.flatMap { kind in
+                try [kind.rawValue] + presets.presets(of: kind).map(line)
+            }
             context.output.write(lines.map { "\($0)\n" }.joined())
             return
         }
@@ -45,8 +47,8 @@ struct PresetsCommand: Command {
         return kind
     }
 
-    // `<kind>/<name>  <description>`, a pack's preset named `<pack>/<name>`.
+    // `  <pack>/<name>  <description>`, under the line of its kind, by the name a document gives it.
     private func line(_ entry: PresetEntry) -> String {
-        "\(entry.kind.rawValue)/\(entry.name)  \(entry.description)"
+        "  \(entry.name)  \(entry.description)"
     }
 }
