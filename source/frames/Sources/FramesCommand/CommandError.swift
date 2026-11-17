@@ -25,6 +25,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTemplate(command: String, name: String)
     case missingFile(path: String)
     case unwritableFile(path: String)
+    case resolvedExtension(path: String)
     case unknownPresetKind(kind: String, known: [String])
     case unknownPreset(kind: String, name: String)
     case unknownPack(name: String)
@@ -79,6 +80,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unwritableFile(path):
             "\(path): the file cannot be written"
+
+        case let .resolvedExtension(path):
+            "resolve: \(quoted(path)): a resolved document is written to a .json file"
 
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"

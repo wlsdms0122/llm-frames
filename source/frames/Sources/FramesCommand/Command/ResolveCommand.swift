@@ -5,9 +5,11 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Foundation
 import Frames
 
-// Writes the resolved document of a document, a template with its arguments, or a resolved document as it is.
+// Writes the resolved document of a document, a template with its arguments, or a resolved document as it is, to a
+// `.json` file, checked before the document is read.
 struct ResolveCommand: Command {
     // MARK: - Property
     let name = "resolve"
@@ -20,6 +22,10 @@ struct ResolveCommand: Command {
         _ options: ResolveOptions,
         in context: CommandContext
     ) throws {
+        guard URL(fileURLWithPath: options.output).pathExtension.lowercased() == "json" else {
+            throw CommandError.resolvedExtension(path: options.output)
+        }
+
         let document = try context.document(options.document, arguments: options.arguments, command: name)
         let resolved = try document.resolved(by: context.planner)
 

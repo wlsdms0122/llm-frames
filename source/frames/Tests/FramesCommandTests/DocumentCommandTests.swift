@@ -60,6 +60,24 @@ struct DocumentCommandTests {
         #expect(try Data(contentsOf: URL(fileURLWithPath: second)) == Data(contentsOf: URL(fileURLWithPath: first)))
     }
 
+    @Test("resolve -o names a .json file, whatever its case, and another extension stops before anything is read")
+    func stopsOnResolvedExtension() throws {
+        // Given
+        let document = try sut.write(sequence, named: "doc.json")
+        let upper = sut.directory.file("upper.JSON")
+        let other = sut.directory.file("resolved.txt")
+
+        // When
+        let upperCode = sut.run(["resolve", document, "-o", upper])
+        let otherCode = sut.run(["resolve", sut.directory.file("absent.json"), "-o", other])
+
+        // Then
+        #expect(upperCode == 0)
+        #expect(otherCode == 1)
+        #expect(sut.standardError == "frames: resolve: \"\(other)\": a resolved document is written to a .json file\n")
+        #expect(!FileManager.default.fileExists(atPath: other))
+    }
+
     @Test("timeline prints one line per clip for people")
     func printsTimelineText() throws {
         // Given
