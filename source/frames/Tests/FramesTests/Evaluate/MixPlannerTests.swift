@@ -316,7 +316,6 @@ struct MixPlannerTests {
                 fps: fps,
                 duration: duration,
                 background: Color(written: "#000000"),
-                content: Rectangle(x: 0, y: 0, width: 1920, height: 1080),
                 conform: .fit
             ),
             storyline: [],

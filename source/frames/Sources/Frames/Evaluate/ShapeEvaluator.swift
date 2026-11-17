@@ -6,9 +6,9 @@
 //
 
 // Evaluates a shape clip at an instant into its item and its label's, in the coordinates of the space it is composited
-// in. The shape is drawn on its area at the instant, or on the room without one, and `reveal` acts by what receives
+// in. The shape is drawn on its area at the instant, or on the frame without one, and `reveal` acts by what receives
 // it: a box's border is drawn around as its `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in
-// from the whole room to the area, and an arrow is nudged and grows from its tail. Scale, rotation and the offset act
+// from the whole frame to the area, and an arrow is nudged and grows from its tail. Scale, rotation and the offset act
 // about the centre of the shape's box: its area, or for an arrow the box it fills from tail to head.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
@@ -28,7 +28,7 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> [DisplayItem] {
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let drawn = drawer.content(of: drawing, on: area ?? space.room)
+        let drawn = drawer.content(of: drawing, on: area ?? space.frame)
         let presentation = ItemPresentation(area: drawn.box, opacity: sample.opacity, motion: sample.animation.motion)
         let shape = item(of: drawn.content, area: area, in: space, sample: sample, presentation: presentation)
         guard let label = clip.label else { return [shape] }
@@ -37,7 +37,7 @@ struct ShapeEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // The item of what the drawer laid the shape as, on the shape's area or the room. `area` is the shape's own area,
+    // The item of what the drawer laid the shape as, on the shape's area or the frame. `area` is the shape's own area,
     // nil without one.
     private func item(
         of content: ShapeContent,
@@ -74,11 +74,11 @@ struct ShapeEvaluator: Sendable {
             )
 
         case let .dim(_, color):
-            // Without an area a dim darkens the whole room.
+            // Without an area a dim darkens the whole frame.
             let hole = area.map { area in
-                RoundedRectangle(rectangle: reveal.hole(closingFrom: space.room, to: area), radius: 0)
+                RoundedRectangle(rectangle: reveal.hole(closingFrom: space.frame, to: area), radius: 0)
             }
-            let fill = FillItem(rectangle: space.room, color: color, hole: hole)
+            let fill = FillItem(rectangle: space.frame, color: color, hole: hole)
             return DisplayItem(
                 transform: presentation.transform,
                 opacity: presentation.opacity,

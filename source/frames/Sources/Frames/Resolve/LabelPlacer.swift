@@ -6,10 +6,10 @@
 //
 
 // Chooses the side a shape's label goes on: the first of the theme's `shapes.label.sides` where the label, outside the
-// shape's box and centred along that side, fits inside the content rect, or the output frame for a sequence clip.
-// The box is measured at one instant with the geometry evaluation would draw there and nothing of animation: keyframes
-// interpolated by their eases, carried by the track, and shown through the storyline crop conformed into the content
-// rect. Everything else that moves the shape over time is evaluation's.
+// shape's box and centred along that side, fits inside the frame. The box is measured at one instant with the geometry
+// evaluation would draw there and nothing of animation: keyframes interpolated by their eases, carried by the track,
+// and shown through the storyline crop conformed into the frame. Everything else that moves the shape over time is
+// evaluation's.
 struct LabelPlacer: Sendable {
     // MARK: - Property
     private let conformer = CropConformer()
@@ -33,26 +33,22 @@ struct LabelPlacer: Sendable {
         theme: MergedTheme
     ) throws -> LabelPlan {
         let instant = self.instant(of: clip, storyline: storyline)
-        let isInOutput = clip.storyline == nil
-        let room = isInOutput ? format.frame : format.content
         let box = self.box(
             of: written,
             area: area,
             track: track,
             parent: parent,
             at: instant,
-            room: room,
             format: format,
             theme: theme
         )
         let sides = theme.labelSides
-        guard let side = sideFinder.side(of: text.size, beside: box, in: room, sides: sides) else {
+        guard let side = sideFinder.side(of: text.size, beside: box, in: format.frame, sides: sides) else {
             throw ResolveError.labelWithoutRoom(
                 place: written.place.appending(key: "label"),
                 kind: .clip(clip.kind),
                 label: written.label ?? "",
-                sides: sides,
-                room: isInOutput ? "output frame" : "content rect"
+                sides: sides
             )
         }
 
@@ -78,18 +74,17 @@ struct LabelPlacer: Sendable {
     }
 
     // The shape's box in output pixels: its area, or an arrow's from tail to head. A shape without an area covers the
-    // room it is measured against.
+    // frame.
     private func box(
         of written: Clip,
         area: PropertyValue<FoundArea>?,
         track: Track?,
         parent: ParentPicture?,
         at instant: Double,
-        room: Rectangle,
         format: FormatPlan,
         theme: MergedTheme
     ) -> Rectangle {
-        guard let area else { return room }
+        guard let area else { return format.frame }
 
         let rectangle = output(of: area, track: track, parent: parent, at: instant, format: format)
         guard case let .shape(.arrow(side)) = written.content else { return rectangle }
@@ -117,7 +112,7 @@ struct LabelPlacer: Sendable {
         return conformer.output(
             of: value(of: area, at: instant, mediaTime: mediaTime, track: track),
             crop: crop(of: parent, at: instant, mediaTime: mediaTime, format: format),
-            content: format.content
+            box: format.frame
         )
     }
 
@@ -148,7 +143,7 @@ struct LabelPlacer: Sendable {
         let track = parent.geometry.track
         let keyframes = values.map { timed in
             let motion = track?.motion(atMediaTime: timed.value.mediaTime) ?? .identity
-            let crop = conformer.conformed(timed.value.rectangle, to: format.content, by: format.conform)
+            let crop = conformer.conformed(timed.value.rectangle, to: format.frame, by: format.conform)
 
             return Keyframe(
                 at: timed.at,

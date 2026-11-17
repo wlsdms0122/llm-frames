@@ -13,7 +13,6 @@ struct SequenceFormat: Equatable, Sendable {
 
     let fps: Double?
     let size: Size?
-    let inset: Inset?
     let conform: Conform?
     let background: String?
 
@@ -21,13 +20,11 @@ struct SequenceFormat: Equatable, Sendable {
     init(
         fps: Double? = nil,
         size: Size? = nil,
-        inset: Inset? = nil,
         conform: Conform? = nil,
         background: String? = nil
     ) {
         self.fps = fps
         self.size = size
-        self.inset = inset
         self.conform = conform
         self.background = background
     }

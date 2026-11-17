@@ -103,7 +103,6 @@ struct ResolvedSequencePinnedReferencesTests {
             fps: 10,
             duration: 2,
             background: Color(written: "#000000"),
-            content: whole,
             conform: .fit
         )
     }

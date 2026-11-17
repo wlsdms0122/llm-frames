@@ -338,7 +338,7 @@ struct TimelineReporterTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try trackingReporter.report(of: value) }
-        #expect(error?.description == #"storyline[0].connected[0].label (box): the label "Total" fits inside the content rect on none of the sides left"#)
+        #expect(error?.description == #"storyline[0].connected[0].label (box): the label "Total" fits inside the frame on none of the sides left"#)
     }
 
     @Test("timeline stops wherever resolve stops, with the same message")

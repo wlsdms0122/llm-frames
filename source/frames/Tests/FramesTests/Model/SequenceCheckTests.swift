@@ -22,7 +22,7 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             {
               "kind": "sequence",
-              "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "inset": [420, 40, 120, 40], "conform": "fit" },
+              "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "conform": "fit" },
               "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw" } } },
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
@@ -66,6 +66,34 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend, side"#)
+    }
+
+    @Test(
+        "a format takes no inset, in a document as in a compound clip",
+        arguments: [
+            (
+                #"{ "kind": "sequence", "format": { "inset": [10, 10, 10, 10] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+                #"format (format): unknown key "inset". Allowed: size, fps, background, conform"#
+            ),
+            (
+                #"""
+                { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "format": { "size": [640, 480], "inset": [10, 10, 10, 10] },
+                  "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
+                """#,
+                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform"#
+            )
+        ]
+    )
+    func refusesInset(
+        document: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(document)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test("a value of the wrong type stops with its place")

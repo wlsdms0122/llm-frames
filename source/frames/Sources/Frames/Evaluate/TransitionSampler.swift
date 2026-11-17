@@ -26,14 +26,14 @@ struct TransitionSampler: Sendable {
     // An incoming or outgoing unit moved by its span, or still when the transition gives it none.
     func unit(
         moving span: Span?,
-        in content: Rectangle,
+        in frame: Rectangle,
         at progress: Double
     ) -> UnitPresentation {
         let sample = span.map { span in
             MotionSample(motion: evaluator.motion(of: span, at: progress), revealFrom: span.revealFrom)
         }
 
-        return UnitPresentation(sample: sample ?? .none, content: content)
+        return UnitPresentation(sample: sample ?? .none, frame: frame)
     }
 
     // A cover's keys take only opacity.

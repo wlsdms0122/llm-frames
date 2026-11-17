@@ -55,7 +55,7 @@ struct ResolvedSequenceReader: Sendable {
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
-            keys: ["size", "fps", "duration", "background", "content", "conform"]
+            keys: ["size", "fps", "duration", "background", "conform"]
         )
 
         return ResolvedFormat(
@@ -63,7 +63,6 @@ struct ResolvedSequenceReader: Sendable {
             fps: try format.member("fps").number(),
             duration: try format.member("duration").number(),
             background: try values.color(format.member("background")),
-            content: try values.rectangle(format.member("content")),
             conform: try conform(format.member("conform"))
         )
     }

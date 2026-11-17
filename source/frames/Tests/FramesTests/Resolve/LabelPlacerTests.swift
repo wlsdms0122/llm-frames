@@ -9,7 +9,7 @@ import Testing
 
 @testable import Frames
 
-// The output and the content rect are the 1206x2622 frame of `/abs/screen.mp4`, so without a crop a parented area lands
+// The frame is the 1206x2622 frame of `/abs/screen.mp4`, so without a crop a parented area lands
 // where it is in the picture. The label is 200 wide and 60 high, and the base theme tries right, bottom, left, top.
 @Suite("LabelPlacer Tests")
 struct LabelPlacerTests {
@@ -32,7 +32,6 @@ struct LabelPlacerTests {
     )
     private let format = FormatPlan(
         size: Size(width: 1206, height: 2622),
-        content: Rectangle(x: 0, y: 0, width: 1206, height: 2622),
         conform: .fit,
         background: Color(written: "#FFFFFF"),
         fps: 30,
@@ -95,12 +94,12 @@ struct LabelPlacerTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try place(.value(found(area, at: 1)), document: document) }
         #expect(error?.description == #"""
-            storyline[0].connected[0].label (box): the label "Total" fits inside the content rect on none of the \#
-            sides left, top
+            storyline[0].connected[0].label (box): the label "Total" fits inside the frame on none of the sides left, \#
+            top
             """#)
     }
 
-    @Test("a shape without an area is measured against the content rect it covers, so its label has no room")
+    @Test("a shape without an area is measured against the frame it covers, so its label has no room")
     func refusesShapeWithoutArea() throws {
         // Given
         let document = connected(#"{ "shape": "dim", "label": "a" }"#)
@@ -108,37 +107,9 @@ struct LabelPlacerTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try place(nil, document: document) }
         #expect(error?.description == #"""
-            storyline[0].connected[0].label (dim): the label "a" fits inside the content rect on none of the sides \#
-            right, bottom, left, top
+            storyline[0].connected[0].label (dim): the label "a" fits inside the frame on none of the sides right, \#
+            bottom, left, top
             """#)
-    }
-
-    @Test("a sequence clip's label is measured against the output frame, not the content rect")
-    func measuresSequenceClipInOutput() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "theme": { "shapes": { "label": { "sides": ["top"] } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "shape": "box", "area": [0, 0, 1, 1], "at": [0, 1], "label": "a" } ] }
-            """#
-        let inset = FormatPlan(
-            size: format.size,
-            content: Rectangle(x: 0, y: 200, width: 1206, height: 2422),
-            conform: .fit,
-            background: format.background,
-            fps: format.fps,
-            duration: format.duration
-        )
-
-        // When
-        let label = try place(
-            .value(found(Rectangle(x: 100, y: 210, width: 200, height: 40), at: 0)),
-            document: document,
-            format: inset
-        )
-
-        // Then
-        #expect(label.side == .top)
     }
 
     @Test(
@@ -228,7 +199,7 @@ struct LabelPlacerTests {
     }
 
     @Test(
-        "a parented area is shown through its storyline clip's crop conformed into the content rect",
+        "a parented area is shown through its storyline clip's crop conformed into the frame",
         arguments: [
             (nil, Side.right),
             (Rectangle(x: 301.5, y: 655.5, width: 603, height: 1311), Side.bottom),
@@ -299,8 +270,7 @@ struct LabelPlacerTests {
         index: Int = 0,
         track: Track? = nil,
         crop: PropertyValue<FoundArea>? = nil,
-        cropTrack: Track? = nil,
-        format: FormatPlan? = nil
+        cropTrack: Track? = nil
     ) throws -> LabelPlan {
         let time = try Fixture.planner.plan(document: Fixture.json(document))
         let clip = time.clips[index]
@@ -323,7 +293,7 @@ struct LabelPlacerTests {
             track: track,
             parent: parent,
             storyline: time.storyline,
-            format: format ?? self.format,
+            format: format,
             theme: time.theme
         )
     }

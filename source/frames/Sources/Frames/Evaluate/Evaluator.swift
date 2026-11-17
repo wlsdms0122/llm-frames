@@ -28,8 +28,8 @@ package struct Evaluator: Sendable {
     }
 
     // MARK: - Private
-    // Bottom first: unparented clips on negative lanes, the storyline units, the transition cover, the background
-    // outside the content rect, and unparented clips on positive lanes.
+    // Bottom first: unparented clips on negative lanes, the storyline units, the transition cover, and unparented clips
+    // on positive lanes.
     private func displayList(
         of sequence: ResolvedSequence,
         at time: Double,
@@ -39,8 +39,7 @@ package struct Evaluator: Sendable {
         let transition = ActiveTransition(storyline: sequence.storyline, at: time)
         let items = clipItems(of: sequence, parent: nil, side: .below, at: time, seed: seed)
             + unitItems(of: sequence, transition: transition, at: time, seed: seed)
-            + coverItems(of: transition, in: format.content, at: time)
-            + [outsideItem(of: format)]
+            + coverItems(of: transition, in: format.frame, at: time)
             + clipItems(of: sequence, parent: nil, side: .above, at: time, seed: seed)
 
         return DisplayList(size: format.size, background: format.background, seed: seed, items: items)
@@ -56,10 +55,8 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        let content = sequence.format.content
-        let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
-        let frame = Rectangle(x: 0, y: 0, width: sequence.format.size.width, height: sequence.format.size.height)
-        let parentSpace = parent.map { ClipSpace(parent: sequence.storyline[$0], unit: unit, at: time) }
+        let frame = sequence.format.frame
+        let parentSpace = parent.map { ClipSpace(parent: sequence.storyline[$0], unit: frame, at: time) }
 
         return sequence.clips.enumerated()
             .filter { _, clip in
@@ -73,7 +70,7 @@ package struct Evaluator: Sendable {
                 (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
             }
             .flatMap { _, clip in
-                let space = parentSpace ?? .output(room: clip.storyline == nil ? frame : content, frame: frame)
+                let space = parentSpace ?? .output(frame: frame)
                 let picture = picture(of: clip, at: time, seed: seed)
                 let origin = ItemOrigin(clip: clip)
                 return clipEvaluator.items(of: clip, in: space, picture: picture, at: time).map { $0.drawn(by: origin) }
@@ -100,7 +97,7 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        let content = sequence.format.content
+        let frame = sequence.format.frame
         guard let transition else {
             let storyline = sequence.storyline
             return storyline.indices
@@ -109,7 +106,7 @@ package struct Evaluator: Sendable {
                     unitItem(
                         of: index,
                         in: sequence,
-                        presentation: UnitPresentation(sample: .none, content: content),
+                        presentation: UnitPresentation(sample: .none, frame: frame),
                         matte: nil,
                         at: time,
                         seed: seed
@@ -125,7 +122,7 @@ package struct Evaluator: Sendable {
                 unitItem(
                     of: transition.incoming,
                     in: sequence,
-                    presentation: transitionSampler.unit(moving: spans.incoming, in: content, at: progress),
+                    presentation: transitionSampler.unit(moving: spans.incoming, in: frame, at: progress),
                     matte: spans.matte.map { matte(of: $0, at: progress) },
                     at: time,
                     seed: seed
@@ -135,7 +132,7 @@ package struct Evaluator: Sendable {
                 unitItem(
                     of: transition.outgoing,
                     in: sequence,
-                    presentation: transitionSampler.unit(moving: spans.outgoing, in: content, at: progress),
+                    presentation: transitionSampler.unit(moving: spans.outgoing, in: frame, at: progress),
                     matte: nil,
                     at: time,
                     seed: seed
@@ -144,8 +141,8 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A unit drawn as one picture of its nested list, the size of the content rect and in its coordinates, so the
-    // transition's motion, reveal and matte act on it whole, and the content rect cuts it.
+    // A unit drawn as one picture of its nested list, the size of the frame, so the transition's motion, reveal and
+    // matte act on it whole.
     private func unitItem(
         of index: Int,
         in sequence: ResolvedSequence,
@@ -154,48 +151,41 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> DisplayItem {
-        let content = sequence.format.content
-        let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
+        let frame = sequence.format.frame
         let items = clipItems(of: sequence, parent: index, side: .below, at: time, seed: seed)
-            + pictureItems(of: sequence.storyline[index], filling: unit, at: time, seed: seed)
+            + pictureItems(of: sequence.storyline[index], filling: frame, at: time, seed: seed)
             + clipItems(of: sequence, parent: index, side: .above, at: time, seed: seed)
-        let list = DisplayList(
-            size: Size(width: unit.width, height: unit.height),
-            background: Self.transparent,
-            seed: seed,
-            items: items
-        )
+        let list = DisplayList(size: sequence.format.size, background: Self.transparent, seed: seed, items: items)
 
-        let picture = PictureItem(source: .displayList(list), rectangle: unit, destination: content, matte: matte)
+        let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
-            mask: content,
             reveal: presentation.reveal,
             content: .picture(picture),
             origin: ItemOrigin(entry: sequence.storyline[index])
         )
     }
 
-    // A storyline entry's own picture over the whole unit: its media's conformed crop with its filter, or the fill of
+    // A storyline entry's own picture over the whole frame: its media's conformed crop with its filter, or the fill of
     // a solid.
     private func pictureItems(
         of entry: ResolvedStorylineClip,
-        filling unit: Rectangle,
+        filling frame: Rectangle,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
         let origin = ItemOrigin(entry: entry)
         guard let media = entry.media else {
-            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: unit, color: $0)), origin: origin)] }
+            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: frame, color: $0)), origin: origin)] }
                 ?? []
         }
 
         let picture = PictureItem(
             source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
             rectangle: entry.crop(at: time),
-            destination: unit,
+            destination: frame,
             filter: entry.filter
         )
         return [DisplayItem(content: .picture(picture), origin: origin)]
@@ -237,11 +227,11 @@ package struct Evaluator: Sendable {
         )
     }
 
-    // A transition's cover over both units: its colour or its media's frame stretched over the content rect, at the
-    // opacity its keys give.
+    // A transition's cover over both units: its colour or its media's frame stretched over the frame, at the opacity its
+    // keys give.
     private func coverItems(
         of transition: ActiveTransition?,
-        in content: Rectangle,
+        in frame: Rectangle,
         at time: Double
     ) -> [DisplayItem] {
         guard let transition, let cover = transition.transition.cover else { return [] }
@@ -250,27 +240,15 @@ package struct Evaluator: Sendable {
         let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress)
         switch cover.source {
         case let .color(color):
-            return [DisplayItem(opacity: opacity, content: .fill(FillItem(rectangle: content, color: color)))]
+            return [DisplayItem(opacity: opacity, content: .fill(FillItem(rectangle: frame, color: color)))]
 
         case let .media(media):
             let picture = PictureItem(
                 source: .media(MediaFrame(media: media, progress: progress)),
                 rectangle: nil,
-                destination: content
+                destination: frame
             )
             return [DisplayItem(opacity: opacity, content: .picture(picture))]
         }
-    }
-
-    // The background over the whole frame but the content rect, so nothing drawn in a unit shows outside it.
-    private func outsideItem(of format: ResolvedFormat) -> DisplayItem {
-        let frame = Rectangle(x: 0, y: 0, width: format.size.width, height: format.size.height)
-        let fill = FillItem(
-            rectangle: frame,
-            color: format.background,
-            hole: RoundedRectangle(rectangle: format.content, radius: 0)
-        )
-
-        return DisplayItem(content: .fill(fill))
     }
 }

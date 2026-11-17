@@ -203,7 +203,7 @@ struct LocationReporterTests {
 
         // Then
         // The 1080 x 1920 picture fills the 540 x 960 frame, so its centre is the picture's, on the frame at 2. The
-        // background lies below it, and the background outside the content rect has all of the frame as its hole.
+        // background lies below it.
         let entry = ItemOrigin(place: "storyline[0]", id: nil, kind: "video")
         let hit = try #require(report.hits.first)
         #expect(report.hits.map(\.origin) == [entry, nil])

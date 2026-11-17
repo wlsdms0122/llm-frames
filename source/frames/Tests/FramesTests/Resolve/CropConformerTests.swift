@@ -13,7 +13,7 @@ import Testing
 struct CropConformerTests {
     // MARK: - Property
     private let sut = CropConformer()
-    private let content = Rectangle(x: 10, y: 20, width: 100, height: 200)
+    private let box = Rectangle(x: 10, y: 20, width: 100, height: 200)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -33,19 +33,19 @@ struct CropConformerTests {
         conformed: Rectangle
     ) {
         // Given, When
-        let result = sut.conformed(crop, to: content, by: conform)
+        let result = sut.conformed(crop, to: box, by: conform)
 
         // Then
         #expect(result == conformed)
     }
 
-    @Test("a rectangle of the media lands where the conformed crop puts it in the content rect")
+    @Test("a rectangle of the media lands where the conformed crop puts it in the box")
     func placesMediaRectangle() {
         // Given
         let crop = Rectangle(x: 0, y: -50, width: 50, height: 100)
 
         // When
-        let output = sut.output(of: Rectangle(x: 20, y: 30, width: 10, height: 10), crop: crop, content: content)
+        let output = sut.output(of: Rectangle(x: 20, y: 30, width: 10, height: 10), crop: crop, box: box)
 
         // Then
         #expect(output == Rectangle(x: 50, y: 180, width: 20, height: 20))

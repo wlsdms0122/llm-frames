@@ -180,12 +180,10 @@ struct SequenceReader: Sendable {
 
     private func format(_ object: JSONObject) -> SequenceFormat {
         let size = object["size"]?.arrayValue?.compactMap(\.numberValue) ?? []
-        let inset = object["inset"]?.arrayValue?.compactMap(\.numberValue) ?? []
 
         return SequenceFormat(
             fps: object["fps"]?.numberValue,
             size: size.count == 2 ? Size(width: size[0], height: size[1]) : nil,
-            inset: inset.count == 4 ? Inset(top: inset[0], right: inset[1], bottom: inset[2], left: inset[3]) : nil,
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
             background: object["background"]?.stringValue
         )

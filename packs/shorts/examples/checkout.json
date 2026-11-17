@@ -1,7 +1,7 @@
 {
   "kind": "sequence",
   "theme": "shorts/shorts",
-  "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "inset": [420, 40, 120, 40], "conform": "fit" },
+  "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "conform": "fit" },
   "storyline": [
     { "media": "/path/to/checkout.png", "duration": 3.5,
       "keyframes": [

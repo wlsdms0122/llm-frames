@@ -23,11 +23,11 @@ struct StorylineRenderTests {
     // Resampled and filtered colours keep to within one eight bit step.
     private let tolerance = 1.0 / 255
     private let presets = [
-        "transition/inset-in": #"""
+        "transition/half-in": #"""
             { "description": "the incoming clip at half size over the outgoing one", "seconds": 1,
               "incoming": { "keys": [ { "t": 0, "scale": 0.5 }, { "t": 1, "scale": 0.5 } ] } }
             """#,
-        "transition/inset-out": #"""
+        "transition/half-out": #"""
             { "description": "the outgoing clip at half size over the incoming one", "seconds": 1, "over": "outgoing",
               "outgoing": { "keys": [ { "t": 0, "scale": 0.5 }, { "t": 1, "scale": 0.5 } ] } }
             """#,
@@ -45,43 +45,11 @@ struct StorylineRenderTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("nothing of a cropped, filled or moving storyline clip shows outside the content rect")
-    func keepsInsideContentRect() throws {
-        // Given
-        let directory = try TemporaryDirectory()
-        let square = try image(in: directory, named: "square.png", width: 200, height: 200, color: [0, 255, 0])
-        let wide = try image(in: directory, named: "wide.png", width: 300, height: 100, color: [255, 255, 0])
-        let document = try DocumentResolver(presets: presets).resolve(#"""
-            { "kind": "sequence",
-              "format": { "size": [160, 90], "fps": 10, "background": "#0000FF", "inset": [10, 20, 10, 20], "conform": "fill" },
-              "storyline": [
-                { "media": "\#(square)", "duration": 1,
-                  "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": [150, 0, 50, 50] } ] },
-                { "media": "\#(wide)", "duration": 1, "transition": "mine/grow" } ] }
-            """#)
-        let content = document.format.content
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-
-        // When
-        let frames = try (0..<20).map { index in
-            try sut.frame(of: Evaluator().displayList(of: document, at: Double(index) / 10))
-        }
-
-        // Then
-        for (index, frame) in frames.enumerated() {
-            let leaks = outsidePixels(of: content, in: frame).filter { x, y in
-                !frame.isPixel(x: x, y: y, [0, 0, 255], tolerance: exact)
-            }
-            #expect(leaks.isEmpty, "frame \(index) shows a clip at \(leaks.prefix(4)) outside \(content)")
-            #expect(!frame.isPixel(x: 80, y: 45, [0, 0, 255], tolerance: tolerance), "frame \(index) shows no clip")
-        }
-    }
-
     @Test(
         "during a transition both units show, the incoming one above unless the preset puts the outgoing one there",
         arguments: [
-            ("inset-in", [0.0, 255, 0], [255.0, 0, 0]),
-            ("inset-out", [255.0, 0, 0], [0.0, 255, 0])
+            ("half-in", [0.0, 255, 0], [255.0, 0, 0]),
+            ("half-out", [255.0, 0, 0], [0.0, 255, 0])
         ]
     )
     func stacksTransitionUnits(
@@ -104,7 +72,7 @@ struct StorylineRenderTests {
         let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 1))
 
         // Then
-        // The unit at half size covers [40, 120) by [22.5, 67.5) around the centre of the content rect.
+        // The unit at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
         #expect(frame.isPixel(x: 80, y: 45, middle, tolerance: tolerance), "\(frame.pixel(x: 80, y: 45))")
         #expect(frame.isPixel(x: 50, y: 30, middle, tolerance: tolerance), "\(frame.pixel(x: 50, y: 30))")
         #expect(frame.isPixel(x: 10, y: 45, rim, tolerance: tolerance), "\(frame.pixel(x: 10, y: 45))")
@@ -190,20 +158,5 @@ struct StorylineRenderTests {
         y: Int
     ) -> [Double] {
         [Double((x * 37 + y * 11) % 256), Double((x * 5 + y * 53) % 256), Double((x * y + 17) % 256)]
-    }
-
-    // The pixels wholly outside `content`.
-    private func outsidePixels(
-        of content: Rectangle,
-        in frame: Bitmap
-    ) -> [(Int, Int)] {
-        (0..<frame.height).flatMap { y in
-            (0..<frame.width).compactMap { x -> (Int, Int)? in
-                let isOutside = Double(x + 1) <= content.x || Double(x) >= content.maxX
-                    || Double(y + 1) <= content.y || Double(y) >= content.maxY
-
-                return isOutside ? (x, y) : nil
-            }
-        }
     }
 }

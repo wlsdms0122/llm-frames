@@ -14,10 +14,7 @@ struct ClipEvaluatorTests {
     // MARK: - Property
     private let sut = ClipEvaluator()
 
-    private let frame = ClipSpace.output(
-        room: Rectangle(x: 0, y: 0, width: 200, height: 200),
-        frame: Rectangle(x: 0, y: 0, width: 200, height: 200)
-    )
+    private let frame = ClipSpace.output(frame: Rectangle(x: 0, y: 0, width: 200, height: 200))
     private let white = Color(written: "#FFFFFF")
 
     // MARK: - Initializer

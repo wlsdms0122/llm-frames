@@ -24,7 +24,7 @@ struct ResolvedDocumentWriterTests {
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
     // title that pops in, a still with a border in the centre, and looping music that fades out.
     private let sequence = #"""
-        { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+        { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
@@ -41,7 +41,6 @@ struct ResolvedDocumentWriterTests {
             "fps": 30,
             "duration": 3,
             "background": "#FFFFFFFF",
-            "content": [40, 40, 1000, 1380],
             "conform": "fit"
           },
           "storyline": [
@@ -61,12 +60,12 @@ struct ResolvedDocumentWriterTests {
               "crop": [
                 {
                   "at": 0,
-                  "value": [-155.6521739130435, 0, 1391.304347826087, 1920],
+                  "value": [0, 0, 1080, 1920],
                   "ease": "linear"
                 },
                 {
                   "at": 3,
-                  "value": [-97.68115942028987, 97, 1275.3623188405797, 1760],
+                  "value": [45, 97, 990, 1760],
                   "ease": "linear"
                 }
               ],

@@ -15,12 +15,12 @@ struct EvaluatorTests {
     private let sut = Evaluator()
 
     private let size = Size(width: 200, height: 100)
-    private let content = Rectangle(x: 0, y: 0, width: 200, height: 100)
+    private let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
     private let background = Color(written: "#000000")
     private let transparent = Color(written: "#00000000")
     private let white = Color(written: "#FFFFFF")
     private let red = Color(written: "#FF0000")
-    // The whole of a 400 x 200 picture, already the content rect's aspect ratio.
+    // The whole of a 400 x 200 picture, already the frame's aspect ratio.
     private let whole = Rectangle(x: 0, y: 0, width: 400, height: 200)
     // From the whole picture at 0 to its middle 200 x 100 at 2.
     private let zoom = [
@@ -62,7 +62,7 @@ struct EvaluatorTests {
             size: size,
             background: background,
             seed: seed,
-            items: [unitItem([mediaItem(media, frame: frame)], seed: seed), outsideItem()]
+            items: [unitItem([mediaItem(media, frame: frame)], seed: seed)]
         ))
     }
 
@@ -90,7 +90,7 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
-        // Progress 0.25: opacity 0.25 and x 0.75 of the content rect's 200 wide. The outgoing clip plays its media
+        // Progress 0.25: opacity 0.25 and x 0.75 of the frame's 200 wide. The outgoing clip plays its media
         // from 1 at 0, so 2.75, and the incoming one starts 0.25 before its `in` of 1, so 0.75.
         let outgoingUnit = unitItem([mediaItem(first, frame: 11)], seed: 17)
         let incomingUnit = unitItem(
@@ -100,10 +100,10 @@ struct EvaluatorTests {
             opacity: 0.25
         )
         let units = over == .incoming ? [outgoingUnit, incomingUnit] : [incomingUnit, outgoingUnit]
-        #expect(list.items == units + [outsideItem()])
+        #expect(list.items == units)
     }
 
-    @Test("a colour cover fills the content rect over both units at the opacity its keys give")
+    @Test("a colour cover fills the frame over both units at the opacity its keys give")
     func coversWithColor() {
         // Given
         let span = Span(ease: .linear, keys: [
@@ -128,12 +128,11 @@ struct EvaluatorTests {
         #expect(list.items == [
             unitItem([mediaItem(first, frame: 11)], seed: 17),
             unitItem([mediaItem(second, frame: 3)], seed: 17),
-            DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: content, color: white))),
-            outsideItem()
+            DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: frame, color: white)))
         ])
     }
 
-    @Test("each item names the clip that drew it, and a transition cover and the background outside the content rect none")
+    @Test("each item names the clip that drew it, and a transition cover none")
     func namesDrawingClips() {
         // Given
         let cover = ResolvedCover(source: .color(white), span: Span(ease: .linear, keys: []))
@@ -159,7 +158,7 @@ struct EvaluatorTests {
 
         // Then
         let solid = ItemOrigin(place: "storyline", id: nil, kind: "solid")
-        #expect(list.items.map(\.origin) == [videoEntry, solid, nil, nil, fillOrigin])
+        #expect(list.items.map(\.origin) == [videoEntry, solid, nil, fillOrigin])
         #expect(displayList(of: list.items[1])?.items.map(\.origin) == [solid])
     }
 
@@ -208,13 +207,12 @@ struct EvaluatorTests {
         let coverPicture = PictureItem(
             source: .media(MediaFrame(media: stinger, index: 1)),
             rectangle: nil,
-            destination: content
+            destination: frame
         )
         #expect(list.items == [
             unitItem([mediaItem(first, frame: 11)], seed: 17),
             unitItem([mediaItem(second, frame: 3)], seed: 17, matte: pictureMatte),
-            DisplayItem(content: .picture(coverPicture)),
-            outsideItem()
+            DisplayItem(content: .picture(coverPicture))
         ])
     }
 
@@ -241,8 +239,7 @@ struct EvaluatorTests {
         // The outgoing clip would show media time 5, past its last frame at 4.75.
         #expect(list.items == [
             unitItem([mediaItem(first, frame: 19)], seed: 20),
-            unitItem([mediaItem(second, frame: 1)], seed: 20),
-            outsideItem()
+            unitItem([mediaItem(second, frame: 1)], seed: 20)
         ])
     }
 
@@ -258,7 +255,7 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
-        #expect(list.items == [unitItem([mediaItem(first, frame: 8, filter: filter)], seed: 5), outsideItem()])
+        #expect(list.items == [unitItem([mediaItem(first, frame: 8, filter: filter)], seed: 5)])
     }
 
     @Test("a still shows its one frame at any time")
@@ -274,12 +271,11 @@ struct EvaluatorTests {
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "image")
         #expect(list.items == [
-            unitItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry),
-            outsideItem()
+            unitItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry)
         ])
     }
 
-    @Test("a solid fills its whole unit with its colour")
+    @Test("a solid fills the frame with its colour")
     func fillsSolid() {
         // Given
         let sequence = sequence([storylineClip(nil, solid: red, start: 0, end: 3)])
@@ -289,14 +285,14 @@ struct EvaluatorTests {
 
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
-        let fill = DisplayItem(content: .fill(FillItem(rectangle: content, color: red)), origin: entry)
-        #expect(list.items == [unitItem([fill], seed: 10, origin: entry), outsideItem()])
+        let fill = DisplayItem(content: .fill(FillItem(rectangle: frame, color: red)), origin: entry)
+        #expect(list.items == [unitItem([fill], seed: 10, origin: entry)])
     }
 
     @Test("a compound clip is its nested sequence evaluated at the clip's media time, with the outer seed")
     func evaluatesCompoundClip() {
         // Given
-        let nestedContent = Rectangle(x: 0, y: 0, width: 100, height: 50)
+        let nestedFrame = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let nested = nestedSequence()
         let crop = Rectangle(x: 0, y: 0, width: 100, height: 50)
         let sequence = sequence([storylineClip(.nested(nested), in: 1, start: 0, end: 2, crop: crop)])
@@ -310,16 +306,12 @@ struct EvaluatorTests {
             size: Size(width: 100, height: 50),
             background: red,
             seed: 5,
-            items: [
-                unitItem([mediaItem(first, frame: 6, in: nestedContent)], seed: 5, content: nestedContent),
-                outsideItem(size: Size(width: 100, height: 50), content: nestedContent, color: red)
-            ]
+            items: [unitItem([mediaItem(first, frame: 6, in: nestedFrame)], seed: 5, frame: nestedFrame)]
         )
-        let picture = PictureItem(source: .displayList(nestedList), rectangle: crop, destination: content)
+        let picture = PictureItem(source: .displayList(nestedList), rectangle: crop, destination: frame)
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "compound")
         #expect(list.items == [
-            unitItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry),
-            outsideItem()
+            unitItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry)
         ])
     }
 
@@ -413,27 +405,7 @@ struct EvaluatorTests {
         // Then
         let picture = try #require(mediaPicture(of: list))
         #expect(picture.rectangle == crop)
-        #expect(picture.destination == content)
-    }
-
-    @Test("under an inset the unit fills the content rect and the background the rest, with the content rect as hole")
-    func fillsOutsideContentRect() {
-        // Given
-        let inset = Rectangle(x: 20, y: 10, width: 160, height: 80)
-        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], content: inset)
-
-        // When
-        let list = sut.displayList(of: sequence, at: 0.5)
-
-        // Then
-        #expect(list.items == [
-            unitItem([mediaItem(first, frame: 2, in: inset)], seed: 5, content: inset),
-            DisplayItem(content: .fill(FillItem(
-                rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100),
-                color: background,
-                hole: RoundedRectangle(rectangle: inset, radius: 0)
-            )))
-        ])
+        #expect(picture.destination == frame)
     }
 
     @Test("frame k has seed k, and every list nested in it carries the same seed")
@@ -488,7 +460,6 @@ struct EvaluatorTests {
                 ],
                 seed: 10
             ),
-            outsideItem(),
             fillItem(Rectangle(x: 20, y: 0, width: 10, height: 10)),
             fillItem(Rectangle(x: 0, y: 0, width: 10, height: 10)),
             fillItem(Rectangle(x: 40, y: 0, width: 10, height: 10))
@@ -639,7 +610,7 @@ struct EvaluatorTests {
 
         // Then
         // At 2 the clip is one second past its origin, on the second media's frame at 1.
-        #expect(early.items.count == 2)
+        #expect(early.items.count == 1)
         #expect(clipPicture(of: late)?.source == .media(MediaFrame(media: second, index: 4)))
     }
 
@@ -719,20 +690,18 @@ struct EvaluatorTests {
             content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
-        #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10), outsideItem()])
+        #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10)])
     }
 
-    @Test("a dim without an area darkens the content rect for a connected clip and the output frame for a sequence clip")
-    func dimsRoomOfClip() {
+    @Test("a dim without an area darkens the frame, for a connected clip as for a sequence clip")
+    func dimsFrameOfClip() {
         // Given
-        let inset = Rectangle(x: 20, y: 10, width: 160, height: 80)
         let sequence = sequence(
             [storylineClip(.pinned(first), start: 0, end: 4)],
             clips: [
                 clip(.shape(.dim(color: background)), storyline: 0),
                 clip(.shape(.dim(color: background)))
-            ],
-            content: inset
+            ]
         )
 
         // When
@@ -743,13 +712,12 @@ struct EvaluatorTests {
             guard case let .fill(fill) = item.content else { return nil }
             return fill.rectangle
         }
-        #expect(rooms == [inset, Rectangle(x: 0, y: 0, width: 200, height: 100)])
+        #expect(rooms == [frame, frame])
     }
 
-    @Test("a connected adjustment without an area under an inset filters, moves and wipes the whole output frame")
+    @Test("a connected adjustment without an area filters, moves and wipes the whole frame")
     func adjustsWholeFrameOfConnectedClip() {
         // Given
-        let inset = Rectangle(x: 20, y: 10, width: 160, height: 80)
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
@@ -759,14 +727,13 @@ struct EvaluatorTests {
             storyline: 0,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
         )
-        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment], content: inset)
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
 
         // When
         let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
-        // Halfway through its entrance the wipe shows the left half of the 200 x 100 output frame, letterbox and all,
-        // since the filter reaches the whole output.
+        // Halfway through its entrance the wipe shows the left half of the 200 x 100 frame.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
             content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)])),
@@ -774,7 +741,7 @@ struct EvaluatorTests {
         ))
     }
 
-    @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the content rect")
+    @Test("a resolved label's box at the time its side was chosen lies on that side of its box, inside the frame")
     func agreesWithResolvedLabelSide() throws {
         // Given
         // The crop zooms in two times over the clip, so at the label's instant the box is shown through a crop
@@ -791,7 +758,7 @@ struct EvaluatorTests {
         )
         let clip = try #require(sequence.clips.first)
         let label = try #require(clip.label)
-        let content = sequence.format.content
+        let frame = sequence.format.frame
 
         // When
         let list = sut.displayList(of: sequence, at: label.at)
@@ -807,19 +774,19 @@ struct EvaluatorTests {
         let size = label.text.size
         let corners = labelItem.transform.apply(toCornersOf: Rectangle(x: 0, y: 0, width: size.width, height: size.height))
         let drawn = Rectangle(
-            x: corners[0].x + content.x,
-            y: corners[0].y + content.y,
+            x: corners[0].x + frame.x,
+            y: corners[0].y + frame.y,
             width: corners[2].x - corners[0].x,
             height: corners[2].y - corners[0].y
         )
         let box = Rectangle(
-            x: stroke.rectangle.x + content.x,
-            y: stroke.rectangle.y + content.y,
+            x: stroke.rectangle.x + frame.x,
+            y: stroke.rectangle.y + frame.y,
             width: stroke.rectangle.width,
             height: stroke.rectangle.height
         )
         #expect(isClose(drawn, LabelSideFinder().rectangle(of: size, beside: box, on: label.side)))
-        #expect(content.contains(drawn))
+        #expect(frame.contains(drawn))
     }
 
     // MARK: - Private
@@ -881,7 +848,6 @@ struct EvaluatorTests {
     private func sequence(
         _ storyline: [ResolvedStorylineClip],
         clips: [ResolvedClip] = [],
-        content: Rectangle? = nil,
         fps: Double = 10
     ) -> ResolvedSequence {
         ResolvedSequence(
@@ -890,7 +856,6 @@ struct EvaluatorTests {
                 fps: fps,
                 duration: storyline.last?.end ?? 0,
                 background: background,
-                content: content ?? self.content,
                 conform: .fit
             ),
             storyline: storyline,
@@ -1005,7 +970,6 @@ struct EvaluatorTests {
                 fps: 30,
                 duration: 3,
                 background: red,
-                content: Rectangle(x: 0, y: 0, width: 100, height: 50),
                 conform: .fit
             ),
             storyline: [storylineClip(.pinned(first), start: 0, end: 3)],
@@ -1017,27 +981,25 @@ struct EvaluatorTests {
     private func unitItem(
         _ items: [DisplayItem],
         seed: Int,
-        content: Rectangle? = nil,
+        frame: Rectangle? = nil,
         transform: AffineTransform = .identity,
         opacity: Double = 1,
         matte: PictureMatte? = nil,
         origin: ItemOrigin? = nil
     ) -> DisplayItem {
-        let content = content ?? self.content
-        let unit = Rectangle(x: 0, y: 0, width: content.width, height: content.height)
+        let frame = frame ?? self.frame
         let list = DisplayList(
-            size: Size(width: content.width, height: content.height),
+            size: Size(width: frame.width, height: frame.height),
             background: transparent,
             seed: seed,
             items: items
         )
 
-        let picture = PictureItem(source: .displayList(list), rectangle: unit, destination: content, matte: matte)
+        let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
 
         return DisplayItem(
             transform: transform,
             opacity: opacity,
-            mask: content,
             content: .picture(picture),
             origin: origin ?? videoEntry
         )
@@ -1047,33 +1009,17 @@ struct EvaluatorTests {
         _ media: PinnedMedia,
         frame: Int,
         filter: [ResolvedFilterOperation] = [],
-        in content: Rectangle? = nil,
+        in unit: Rectangle? = nil,
         origin: ItemOrigin? = nil
     ) -> DisplayItem {
-        let content = content ?? self.content
         let picture = PictureItem(
             source: .media(MediaFrame(media: media, index: frame)),
             rectangle: whole,
-            destination: Rectangle(x: 0, y: 0, width: content.width, height: content.height),
+            destination: unit ?? self.frame,
             filter: filter
         )
 
         return DisplayItem(content: .picture(picture), origin: origin ?? videoEntry)
-    }
-
-    private func outsideItem(
-        size: Size? = nil,
-        content: Rectangle? = nil,
-        color: Color? = nil
-    ) -> DisplayItem {
-        let size = size ?? self.size
-        let fill = FillItem(
-            rectangle: Rectangle(x: 0, y: 0, width: size.width, height: size.height),
-            color: color ?? background,
-            hole: RoundedRectangle(rectangle: content ?? self.content, radius: 0)
-        )
-
-        return DisplayItem(content: .fill(fill))
     }
 
     private func run() -> ResolvedGlyphRun {

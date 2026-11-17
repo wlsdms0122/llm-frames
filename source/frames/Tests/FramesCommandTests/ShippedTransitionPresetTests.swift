@@ -37,7 +37,7 @@ struct ShippedTransitionPresetTests {
     private let sut: PresetLibrary
     private let installed: TemporaryDirectory
     private let sampler = TransitionSampler()
-    private let content = Rectangle(x: 0, y: 0, width: 1920, height: 1080)
+    private let frame = Rectangle(x: 0, y: 0, width: 1920, height: 1080)
 
     // MARK: - Initializer
     init() throws {
@@ -77,11 +77,11 @@ struct ShippedTransitionPresetTests {
         let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
-        let incoming = sampler.unit(moving: preset.incoming, in: content, at: 1)
-        let outgoing = sampler.unit(moving: preset.outgoing, in: content, at: 1)
+        let incoming = sampler.unit(moving: preset.incoming, in: frame, at: 1)
+        let outgoing = sampler.unit(moving: preset.outgoing, in: frame, at: 1)
 
         // Then
-        #expect(incoming == UnitPresentation(sample: .none, content: content))
+        #expect(incoming == UnitPresentation(sample: .none, frame: frame))
         #expect(coverOpacity(of: preset, at: 1) == 0)
         if preset.over == .outgoing {
             #expect(!covers(outgoing))
@@ -94,11 +94,11 @@ struct ShippedTransitionPresetTests {
         let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
-        let incoming = sampler.unit(moving: preset.incoming, in: content, at: 0)
-        let outgoing = sampler.unit(moving: preset.outgoing, in: content, at: 0)
+        let incoming = sampler.unit(moving: preset.incoming, in: frame, at: 0)
+        let outgoing = sampler.unit(moving: preset.outgoing, in: frame, at: 0)
 
         // Then
-        #expect(outgoing == UnitPresentation(sample: .none, content: content))
+        #expect(outgoing == UnitPresentation(sample: .none, frame: frame))
         #expect(coverOpacity(of: preset, at: 0) == 0)
         if preset.over == .incoming {
             #expect(!covers(incoming))
@@ -112,8 +112,8 @@ struct ShippedTransitionPresetTests {
 
         // When
         let changes = zip(Self.progresses, Self.progresses.dropFirst()).filter { before, after in
-            sampler.unit(moving: preset.incoming, in: content, at: before).opacity
-                != sampler.unit(moving: preset.incoming, in: content, at: after).opacity
+            sampler.unit(moving: preset.incoming, in: frame, at: before).opacity
+                != sampler.unit(moving: preset.incoming, in: frame, at: after).opacity
         }
 
         // Then
@@ -125,7 +125,7 @@ struct ShippedTransitionPresetTests {
     }
 
     @Test(
-        "a push moves both clips as one strip, one content rect apart in the direction it pushes",
+        "a push moves both clips as one strip, one frame apart in the direction it pushes",
         arguments: [("push-left", MotionProperty.x), ("push-up", MotionProperty.y)]
     )
     func pushesStrip(
@@ -203,18 +203,18 @@ struct ShippedTransitionPresetTests {
         preset.cover.map { sampler.coverOpacity(of: $0.span, at: progress) } ?? 0
     }
 
-    // Whether a unit shows anything over the content rect: some opacity, some reveal, and its moved rect overlapping.
+    // Whether a unit shows anything over the frame: some opacity, some reveal, and its moved rect overlapping.
     private func covers(_ unit: UnitPresentation) -> Bool {
         guard unit.opacity > 0 else { return false }
         if let reveal = unit.reveal, reveal.width <= 0 || reveal.height <= 0 {
             return false
         }
 
-        let corners = unit.transform.apply(toCornersOf: content)
+        let corners = unit.transform.apply(toCornersOf: frame)
         let xs = corners.map(\.x)
         let ys = corners.map(\.y)
-        let overlapsWidth = min(xs.max() ?? 0, content.x + content.width) - max(xs.min() ?? 0, content.x)
-        let overlapsHeight = min(ys.max() ?? 0, content.y + content.height) - max(ys.min() ?? 0, content.y)
+        let overlapsWidth = min(xs.max() ?? 0, frame.x + frame.width) - max(xs.min() ?? 0, frame.x)
+        let overlapsHeight = min(ys.max() ?? 0, frame.y + frame.height) - max(ys.min() ?? 0, frame.y)
         return overlapsWidth > 1e-9 && overlapsHeight > 1e-9
     }
 }

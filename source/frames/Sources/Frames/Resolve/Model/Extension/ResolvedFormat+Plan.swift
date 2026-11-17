@@ -15,7 +15,6 @@ extension ResolvedFormat {
             fps: plan.fps,
             duration: plan.duration,
             background: plan.background,
-            content: plan.content,
             conform: plan.conform
         )
     }

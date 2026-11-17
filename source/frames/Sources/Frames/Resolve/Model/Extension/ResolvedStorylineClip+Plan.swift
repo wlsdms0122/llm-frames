@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A storyline clip as resolve decided it. Its crop is conformed to the content rect, so evaluation fills that rect with
-// it as it is, and a clip written without a crop shows its whole picture, conformed the same way. A static crop is one
+// A storyline clip as resolve decided it. Its crop is conformed to the frame, so evaluation fills the frame with it as
+// it is, and a clip written without a crop shows its whole picture, conformed the same way. A static crop is one
 // keyframe at the clip's `in`.
 extension ResolvedStorylineClip {
     // MARK: - Property
@@ -19,10 +19,10 @@ extension ResolvedStorylineClip {
     ) throws {
         let conformer = CropConformer()
         let conform = { (rectangle: Rectangle) in
-            Crop(conformer.conformed(rectangle, to: format.content, by: format.conform))
+            Crop(conformer.conformed(rectangle, to: format.frame, by: format.conform))
         }
         let file: MediaFile? = if case let .file(file) = plan.source.media?.source { file } else { nil }
-        let whole = geometry.nested?.format.size ?? file?.size ?? Size(width: format.content.width, height: format.content.height)
+        let whole = geometry.nested?.format.size ?? file?.size ?? format.size
         let crop = geometry.crop?.keyframes(at: plan.instant) { conform($0.rectangle) }
             ?? [Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))]
 

@@ -120,7 +120,7 @@ struct ResolveEndToEndTests {
         )
     }
 
-    // The box's stroke inside the storyline unit, whose content rect is the whole output frame here.
+    // The box's stroke inside the storyline unit, the size of the frame.
     private func box(in list: DisplayList) throws -> Rectangle {
         let units = list.items.compactMap { item -> DisplayList? in
             guard case let .picture(picture) = item.content, case let .displayList(unit) = picture.source else { return nil }

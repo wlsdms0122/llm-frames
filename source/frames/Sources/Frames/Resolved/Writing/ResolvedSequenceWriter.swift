@@ -36,7 +36,6 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "fps", value: .number(format.fps)),
             JSONMember(key: "duration", value: .number(format.duration)),
             JSONMember(key: "background", value: values.color(format.background)),
-            JSONMember(key: "content", value: values.rectangle(format.content)),
             JSONMember(key: "conform", value: .string(format.conform.rawValue))
         ]))
     }

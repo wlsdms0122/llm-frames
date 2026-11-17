@@ -9,17 +9,17 @@ import Testing
 
 @testable import Frames
 
-// Shapes are sequence clips in a 200 x 100 output frame, which is the room a dim darkens.
+// Shapes are sequence clips in a 200 x 100 frame, which is what a dim darkens.
 @Suite("ShapeEvaluator Tests")
 struct ShapeEvaluatorTests {
     // MARK: - Property
     private static let red = Color(written: "#FF0000")
-    private static let room = Rectangle(x: 0, y: 0, width: 200, height: 100)
+    private static let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
     private static let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
 
     private let sut = ShapeEvaluator()
 
-    private let space = ClipSpace.output(room: Self.room, frame: Self.room)
+    private let space = ClipSpace.output(frame: Self.frame)
     private let text = ResolvedText(size: Size(width: 30, height: 10), lineCount: 1, background: nil, stroke: nil, runs: [])
 
     // MARK: - Initializer
@@ -47,7 +47,7 @@ struct ShapeEvaluatorTests {
             (
                 ShapeDrawing.dim(color: ShapeEvaluatorTests.red),
                 DisplayItem(content: .fill(FillItem(
-                    rectangle: ShapeEvaluatorTests.room,
+                    rectangle: ShapeEvaluatorTests.frame,
                     color: ShapeEvaluatorTests.red,
                     hole: RoundedRectangle(rectangle: Rectangle(x: 10, y: 5, width: 160, height: 80), radius: 0)
                 )))
@@ -69,7 +69,7 @@ struct ShapeEvaluatorTests {
         item: DisplayItem
     ) {
         // Given
-        // The dim's hole closes a quarter of the way from the room to the area, and the arrow, its tip at the middle
+        // The dim's hole closes a quarter of the way from the frame to the area, and the arrow, its tip at the middle
         // of the area's left side and its tail 30 beyond it, grows a quarter of its length from its tail.
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
@@ -182,7 +182,7 @@ struct ShapeEvaluatorTests {
         ])
     }
 
-    @Test("a shape without an area is drawn on the room, and a dim without one darkens all of it")
+    @Test("a shape without an area is drawn on the frame, and a dim without one darkens all of it")
     func drawsOnRoomWithoutArea() {
         // Given
         let drawing = ShapeDrawing.dim(color: Self.red)
@@ -192,7 +192,7 @@ struct ShapeEvaluatorTests {
         let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
 
         // Then
-        #expect(items == [DisplayItem(content: .fill(FillItem(rectangle: Self.room, color: Self.red)))])
+        #expect(items == [DisplayItem(content: .fill(FillItem(rectangle: Self.frame, color: Self.red)))])
     }
 
     // MARK: - Private

@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// One item `evaluate` reports: the clip that drew it, nil for the background, a transition cover and the background
-// outside the content rect, the axis-aligned box of what it covers of the output, nil when it covers nothing, and its
-// opacity times that of every picture holding it.
+// One item `evaluate` reports: the clip that drew it, nil for the background and a transition cover, the axis-aligned
+// box of what it covers of the output, nil when it covers nothing, and its opacity times that of every picture holding
+// it.
 package struct EvaluationItem: Equatable, Sendable {
     // MARK: - Property
     package let origin: ItemOrigin?

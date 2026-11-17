@@ -351,7 +351,6 @@ struct RenderPipelineTests {
                 fps: fps,
                 duration: duration,
                 background: background,
-                content: whole,
                 conform: .fit
             ),
             storyline: [entry],

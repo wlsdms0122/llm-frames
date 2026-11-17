@@ -7,8 +7,8 @@
 
 // A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
 // colour as `solid`. `in`, `out` and `speed` are media time, and `start` and `end` its edit range in sequence time.
-// `crop` is every crop conformed to the content rect, the whole picture when none was written, with keyframes in
-// sequence time.
+// `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes in sequence
+// time.
 struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String

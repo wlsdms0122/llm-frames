@@ -151,32 +151,16 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The content rect lies inside the output frame by the inset, and an inset that leaves none stops. The background is
-    // the theme `background` unless the format gives one.
+    // The background is the theme `background` unless the format gives one.
     private func format(
         of time: TimePlan,
         nested: [SequencePlan?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
         let size = try format.size ?? defaultSize(of: time, nested: nested)
-        let inset = format.inset ?? .zero
-        let content = Rectangle(
-            x: inset.left,
-            y: inset.top,
-            width: size.width - inset.left - inset.right,
-            height: size.height - inset.top - inset.bottom
-        )
-        guard content.width > 0, content.height > 0 else {
-            throw ResolveError.noContentRect(
-                place: time.sequence.place.appending(key: "format").appending(key: "inset"),
-                kind: .sequence,
-                size: size
-            )
-        }
 
         return FormatPlan(
             size: size,
-            content: content,
             conform: format.conform ?? .fit,
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
@@ -205,7 +189,7 @@ struct SequencePlanner: Sendable {
         return Size(width: (size.width / 2).rounded() * 2, height: (size.height / 2).rounded() * 2)
     }
 
-    // A solid fills the content rect, so its picture is that rect's size.
+    // A solid fills the frame, so its picture is the frame's size.
     private func picture(
         of plan: StorylinePlan,
         nested: SequencePlan?,
@@ -215,7 +199,7 @@ struct SequencePlanner: Sendable {
             return Picture(
                 name: ClipKind.solid.label,
                 source: .solid,
-                size: Size(width: format.content.width, height: format.content.height)
+                size: format.size
             )
         }
 

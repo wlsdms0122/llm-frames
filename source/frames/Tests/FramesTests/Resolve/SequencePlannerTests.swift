@@ -19,7 +19,7 @@ struct SequencePlannerTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("the format defaults to the size of the first video on the storyline, rounded to even numbers, all content")
+    @Test("the format defaults to the size of the first video on the storyline, rounded to even numbers")
     func defaultsFormatToFirstVideo() throws {
         // When
         let plan = try plan(#"""
@@ -29,7 +29,6 @@ struct SequencePlannerTests {
         // Then
         #expect(plan.format == FormatPlan(
             size: Size(width: 1080, height: 1920),
-            content: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
             conform: .fit,
             background: Color(written: "#FFFFFF"),
             fps: 25,
@@ -55,19 +54,18 @@ struct SequencePlannerTests {
         #expect(plan.format.size == size)
     }
 
-    @Test("a written size and inset give the content rect, and conform, fps and background are kept")
+    @Test("a written size, conform, fps and background are kept")
     func readsWrittenFormat() throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence",
-              "format": { "size": [1081, 1920], "fps": 60, "background": "accent", "inset": [100, 20, 300, 40], "conform": "fill" },
+              "format": { "size": [1081, 1920], "fps": 60, "background": "accent", "conform": "fill" },
               "storyline": [ { "media": "/abs/run.mp4" } ] }
             """#)
 
         // Then
         #expect(plan.format == FormatPlan(
             size: Size(width: 1081, height: 1920),
-            content: Rectangle(x: 40, y: 100, width: 1021, height: 1520),
             conform: .fill,
             background: Color(written: "#ED2929"),
             fps: 60,
@@ -75,26 +73,16 @@ struct SequencePlannerTests {
         ))
     }
 
-    @Test(
-        "a format without a size on a storyline of no video that starts with a solid stops, as does an inset leaving no content",
-        arguments: [
-            (
-                ##"{ "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 }, { "media": "/abs/card.png", "duration": 1 } ] }"##,
-                #"top level (sequence): the storyline has no video and its first clip is a solid, which has no size, so the format needs "size""#
-            ),
-            (
-                #"{ "kind": "sequence", "format": { "inset": [1000, 0, 920, 0] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                "format.inset (sequence): the inset leaves no content rect in the output of 1080x1920"
-            )
-        ]
-    )
-    func refusesFormat(
-        document: String,
-        message: String
-    ) throws {
+    @Test("a format without a size on a storyline of no video that starts with a solid stops")
+    func refusesFormatWithoutSize() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 }, { "media": "/abs/card.png", "duration": 1 } ] }
+            """##
+
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description == message)
+        #expect(error?.description == #"top level (sequence): the storyline has no video and its first clip is a solid, which has no size, so the format needs "size""#)
     }
 
     @Test("a storyline crop is found in its media and grows by the crop padding, in that picture's pixels")

@@ -46,7 +46,7 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "content", "conform"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
         #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.count == 9)
     }
@@ -72,18 +72,18 @@ struct ResolvedSequenceWriterTests {
         #expect(entry["filter"] == .array([]))
     }
 
-    @Test("a storyline crop is written conformed to the content rect, and no crop is the whole picture conformed")
+    @Test("a storyline crop is written conformed to the frame, and no crop is the whole picture conformed")
     func writesConformedCrop() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+            { "kind": "sequence", "format": { "size": [1000, 1380] },
               "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 1, "crop": [0, 0, 1206, 1206] },
                              { "media": "/abs/card.png", "duration": 1 } ] }
             """#
-        let content = Rectangle(x: 40, y: 40, width: 1000, height: 1380)
+        let frame = Rectangle(x: 0, y: 0, width: 1000, height: 1380)
         let conformer = CropConformer()
-        let cropped = conformer.conformed(Rectangle(x: 0, y: 0, width: 1206, height: 1206), to: content, by: .fit)
-        let whole = conformer.conformed(Rectangle(x: 0, y: 0, width: 1080, height: 1350), to: content, by: .fit)
+        let cropped = conformer.conformed(Rectangle(x: 0, y: 0, width: 1206, height: 1206), to: frame, by: .fit)
+        let whole = conformer.conformed(Rectangle(x: 0, y: 0, width: 1080, height: 1350), to: frame, by: .fit)
 
         // When
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)

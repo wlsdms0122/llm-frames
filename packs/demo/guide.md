@@ -13,7 +13,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 ## Format
 
 - `"size": [1920, 1080]`, `"fps": 30`, `"background": "#000000"`. A recording of another 16:9 size is fitted to it, and one of another shape is shown whole with black around it.
-- No `inset`, and `conform` stays `fit`: the recording fills the frame and is never cut.
+- `conform` stays `fit`: the recording fills the frame and is never cut.
 - A demo has no band and no banner. Its words are built from titles in two places:
   - The title card and the end card are `solid` storyline clips of `#000000`, each with a connected title in the `headline` style placed at `center`. The title card names the product area on its first line and what the feature does on its second, in `**` emphasis. The end card says where to get the feature.
   - Each step is captioned by a connected title in the `subtitle` style, with no placement, so the style puts it at the bottom, centred, on its dark box. It moves to the top only when it would cover what its step points at.

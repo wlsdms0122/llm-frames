@@ -51,7 +51,7 @@ struct ResolvedDocumentReaderTests {
     private static let documents = [
         // A cropped, filtered storyline clip at speed 2, a title that pops in, a still with a border and music.
         #"""
-        { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
+        { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
@@ -135,7 +135,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""duration": 3,"#,
                 #""duration": 3, "fsp": 30,"#,
-                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, content, conform"#
+                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform"#
             ),
             (
                 #""loop": true,"#,

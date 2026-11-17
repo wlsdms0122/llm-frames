@@ -8,8 +8,7 @@
 // Evaluates one clips entry at an instant into the items it draws, bottom first, in the coordinates of the space it is
 // composited in: its keyframes sampled, its animation over its visible window combined on top, and its blend. A title
 // or media clip is drawn in its box's own pixels, its box's top left at its position and scale and rotation about its
-// anchor point. A shape or adjustment is drawn in the space's coordinates on its area, or without one a shape on the
-// room and an adjustment over the frame.
+// anchor point. A shape or adjustment is drawn in the space's coordinates on its area, or without one over the frame.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()

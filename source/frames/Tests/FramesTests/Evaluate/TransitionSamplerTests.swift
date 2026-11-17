@@ -13,8 +13,8 @@ import Testing
 struct TransitionSamplerTests {
     // MARK: - Property
     private let sut = TransitionSampler()
-    // Centred on (540, 1110).
-    private let content = Rectangle(x: 40, y: 420, width: 1000, height: 1380)
+    // Centred on (540, 960).
+    private let frame = Rectangle(x: 0, y: 0, width: 1080, height: 1920)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -33,35 +33,49 @@ struct TransitionSamplerTests {
         #expect(value == progress)
     }
 
-    @Test("a unit's offset is in multiples of the content rect")
-    func offsetsByContentRect() {
+    @Test(
+        "a unit's offset is in multiples of the frame, so x 1 moves it by one frame width",
+        arguments: [
+            (MotionProperty.x, 1.0, Point(x: 1080, y: 0)),
+            (MotionProperty.x, -0.5, Point(x: -540, y: 0)),
+            (MotionProperty.y, 0.75, Point(x: 0, y: 1440))
+        ]
+    )
+    func offsetsByFrame(
+        property: MotionProperty,
+        value: Double,
+        translation: Point
+    ) {
         // Given
-        let span = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.y: 1]), SpanKey(t: 1, values: [.y: 0])])
+        let span = Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [property: value]),
+            SpanKey(t: 1, values: [property: value])
+        ])
 
         // When
-        let unit = sut.unit(moving: span, in: content, at: 0.25)
+        let unit = sut.unit(moving: span, in: frame, at: 0.25)
 
         // Then
-        #expect(unit.transform == AffineTransform(translation: Point(x: 0, y: 1035)))
+        #expect(unit.transform == AffineTransform(translation: translation))
         #expect(unit.opacity == 1)
         #expect(unit.reveal == nil)
     }
 
-    @Test("a unit scales about the centre of the content rect")
-    func scalesAboutContentCenter() {
+    @Test("a unit scales about the centre of the frame")
+    func scalesAboutFrameCenter() {
         // Given
         let span = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.5]), SpanKey(t: 1, values: [.scale: 1])])
 
         // When
-        let unit = sut.unit(moving: span, in: content, at: 0)
+        let unit = sut.unit(moving: span, in: frame, at: 0)
 
         // Then
-        #expect(unit.transform.apply(to: Point(x: 540, y: 1110)) == Point(x: 540, y: 1110))
-        #expect(unit.transform.apply(to: Point(x: 40, y: 420)) == Point(x: 290, y: 765))
+        #expect(unit.transform.apply(to: Point(x: 540, y: 960)) == Point(x: 540, y: 960))
+        #expect(unit.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 270, y: 480))
     }
 
-    @Test("a unit's reveal shows the content rect from its span's side")
-    func revealsContentRect() {
+    @Test("a unit's reveal shows the frame from its span's side")
+    func revealsFrame() {
         // Given
         let span = Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
@@ -69,10 +83,10 @@ struct TransitionSamplerTests {
         ])
 
         // When
-        let unit = sut.unit(moving: span, in: content, at: 0.25)
+        let unit = sut.unit(moving: span, in: frame, at: 0.25)
 
         // Then
-        #expect(unit.reveal == Rectangle(x: 790, y: 420, width: 250, height: 1380))
+        #expect(unit.reveal == Rectangle(x: 810, y: 0, width: 270, height: 1920))
     }
 
     @Test("each span bends the transition's progress by its own ease")
@@ -81,7 +95,7 @@ struct TransitionSamplerTests {
         let span = Span(ease: .easeIn, keys: [SpanKey(t: 0, values: [.opacity: 0]), SpanKey(t: 1, values: [.opacity: 1])])
 
         // When
-        let unit = sut.unit(moving: span, in: content, at: 0.5)
+        let unit = sut.unit(moving: span, in: frame, at: 0.5)
 
         // Then
         #expect(unit.opacity == 0.125)
@@ -93,10 +107,10 @@ struct TransitionSamplerTests {
         let span: Span? = nil
 
         // When
-        let unit = sut.unit(moving: span, in: content, at: 0.5)
+        let unit = sut.unit(moving: span, in: frame, at: 0.5)
 
         // Then
-        #expect(unit.transform.apply(toCornersOf: content) == AffineTransform.identity.apply(toCornersOf: content))
+        #expect(unit.transform.apply(toCornersOf: frame) == AffineTransform.identity.apply(toCornersOf: frame))
         #expect(unit.opacity == 1)
         #expect(unit.reveal == nil)
     }

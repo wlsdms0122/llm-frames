@@ -185,8 +185,7 @@ struct EvaluationReporterTests {
         let report = try sut.report(of: document, at: 1.5)
 
         // Then
-        // The connected fill is parented, so it is drawn inside its unit, below the background outside the content
-        // rect, which is the whole frame and so leaves nothing.
+        // The connected fill is parented, so it is drawn inside its unit.
         let frame = Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         #expect(report.time == 1.5)
         #expect(report.size == Size(width: 1080, height: 1920))
@@ -201,8 +200,7 @@ struct EvaluationReporterTests {
                 origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "fill"),
                 bounds: Rectangle(x: 100, y: 200, width: 300, height: 400),
                 opacity: 1
-            ),
-            EvaluationItem(origin: nil, bounds: nil, opacity: 1)
+            )
         ])
     }
 
@@ -236,10 +234,11 @@ struct EvaluationReporterTests {
         let report = try sut.report(of: document, at: 1)
 
         // Then
+        // Only the nested background, drawn by no clip of the nested sequence, is the compound clip's picture.
         let places = report.items.compactMap(\.origin?.place)
         #expect(places.contains("storyline[0].connected[0].media.storyline[0]"))
         #expect(places.contains("storyline[0].connected[0].media.storyline[0].connected[0]"))
-        #expect(!places.contains("storyline[0].connected[0]"))
+        #expect(places.filter { $0 == "storyline[0].connected[0]" }.count == 1)
     }
 
     @Test("the machine output is the evaluate object FRAMES-23 gives, bounds and opacity rounded to a millionth")
