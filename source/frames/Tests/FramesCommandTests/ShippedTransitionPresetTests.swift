@@ -45,7 +45,7 @@ struct ShippedTransitionPresetTests {
         installed = try TemporaryDirectory()
         sut = PresetLibrary(
             builtIn: environment.builtInPresets,
-            packs: PackLibrary(installed: URL(fileURLWithPath: installed.path, isDirectory: true), shipped: environment.shippedPacks)
+            packs: PackLibrary(installed: URL(fileURLWithPath: installed.path, isDirectory: true))
         )
     }
 
