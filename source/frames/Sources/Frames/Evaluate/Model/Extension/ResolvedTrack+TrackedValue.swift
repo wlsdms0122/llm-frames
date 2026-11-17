@@ -5,11 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A tracked clip's geometry at a sequence time, in the media pixels of the storyline entry it follows. Each keyframe is
-// where it is at its own time: it is brought back through the motion at the entry's media time at the keyframe's `at`,
-// the keyframes are interpolated there by their eases, and the result is carried by the motion at the media time of
-// the time asked. An area of a band keeps the full width of its picture and takes the vertical move and scale of its
-// height, and a point of a band only the vertical part of the motion.
+// A tracked clip's geometry at a sequence time, where it is at the instant in the media pixels of the storyline entry
+// it follows: each keyframe is brought back through the motion at the entry's media time at the keyframe's `at`, and
+// the keyframes are interpolated there by their eases. `transform` then carries the instant to the frame the entry
+// shows at a time. A band keeps the full width of its picture and takes the vertical move and scale of the motion.
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -27,7 +26,7 @@ extension ResolvedTrack {
             )
         }
 
-        return carry(brought.value(at: time), toMediaTime: entry.mediaTime(at: time))
+        return brought.value(at: time)
     }
 
     func point(
@@ -43,25 +42,17 @@ extension ResolvedTrack {
             )
         }
 
-        return carry(point: brought.value(at: time), toMediaTime: entry.mediaTime(at: time))
+        return brought.value(at: time)
+    }
+
+    func transform(
+        on entry: ResolvedStorylineClip,
+        at time: Double
+    ) -> AffineTransform {
+        let motion = track.motion(atMediaTime: entry.mediaTime(at: time))
+
+        return isBand ? AffineTransform(carryingBand: motion) : AffineTransform(carrying: motion)
     }
 
     // MARK: - Private
-    private func bringBack(
-        point: Point,
-        fromMediaTime time: Double
-    ) -> Point {
-        let brought = track.motion(atMediaTime: time).bringBack(point)
-
-        return isBand ? Point(x: point.x, y: brought.y) : brought
-    }
-
-    private func carry(
-        point: Point,
-        toMediaTime time: Double
-    ) -> Point {
-        let carried = track.motion(atMediaTime: time).carry(point)
-
-        return isBand ? Point(x: point.x, y: carried.y) : carried
-    }
 }

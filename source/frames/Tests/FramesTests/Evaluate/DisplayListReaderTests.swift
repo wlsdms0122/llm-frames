@@ -183,7 +183,7 @@ struct DisplayListReaderTests {
             seed: 12,
             items: [DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)])))]
         )
-        let unit = list(
+        let nested = list(
             size: Size(width: 1080, height: 1500),
             seed: 12,
             items: [
@@ -203,7 +203,7 @@ struct DisplayListReaderTests {
             items: [DisplayItem(
                 mask: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
                 content: .picture(PictureItem(
-                    source: .displayList(unit),
+                    source: .displayList(nested),
                     rectangle: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
                     destination: Rectangle(x: 0, y: 0, width: 1080, height: 1500)
                 ))

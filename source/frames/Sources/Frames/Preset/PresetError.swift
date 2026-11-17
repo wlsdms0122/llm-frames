@@ -15,7 +15,7 @@ enum PresetError: Error, Equatable, CustomStringConvertible, Sendable {
     var description: String {
         switch self {
         case let .matteOverOutgoing(place):
-            "\(place) (transition): a matte reveals the incoming unit, so it cannot play with \"over\": \"outgoing\""
+            "\(place) (transition): a matte reveals the incoming storyline picture, so it cannot play with \"over\": \"outgoing\""
 
         case let .progressOutOfRange(place, t):
             "\(place) (span key): t is progress through the span and lies between 0 and 1, found \(JSONValue.number(t).written)"

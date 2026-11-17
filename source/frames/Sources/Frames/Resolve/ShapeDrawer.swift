@@ -40,14 +40,16 @@ struct ShapeDrawer: Sendable {
         }
     }
 
-    // What a drawing draws on an area, and the box its label is measured beside: the area, or the arrow's.
+    // What a drawing draws on an area, and the box its animation acts about: the area, or the arrow's. Its lengths are
+    // divided by `scale`, the scale above 0 its area's space is drawn at, so they stay the same in output pixels.
     func content(
         of drawing: ShapeDrawing,
-        on area: Rectangle
+        on area: Rectangle,
+        scale: Double
     ) -> (content: ShapeContent, box: Rectangle) {
         switch drawing {
         case let .box(width, radius, color):
-            return (.box(area, width: width, radius: radius, color: color), area)
+            return (.box(area, width: width / scale, radius: radius / scale, color: color), area)
 
         case let .fill(color):
             return (.fill(area, color: color), area)
@@ -56,8 +58,11 @@ struct ShapeDrawer: Sendable {
             return (.dim(area, color: color), area)
 
         case let .arrow(side, length, width, head, color):
-            let arrow = Arrow(pointingAt: area, from: side, length: length, breadth: max(head, width))
-            return (.arrow(tail: arrow.tail, tip: arrow.tip, width: width, head: head, color: color), arrow.box)
+            let arrow = Arrow(pointingAt: area, from: side, length: length / scale, breadth: max(head, width) / scale)
+            return (
+                .arrow(tail: arrow.tail, tip: arrow.tip, width: width / scale, head: head / scale, color: color),
+                arrow.box
+            )
         }
     }
 

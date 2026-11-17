@@ -30,7 +30,7 @@ struct GeometryFinderTests {
     @Test("a static area is found at the clip's instant, in the media time of the storyline clip it is on")
     func findsStaticAreaAtInstant() throws {
         // Given
-        let plan = try plan(#"{ "shape": "box", "parent": true, "area": "Total" }"#)
+        let plan = try plan(#"{ "shape": "box", "parent": "screen", "area": "Total" }"#)
         let clip = plan.sequence.storyline[0].connected[0]
 
         // When
@@ -50,7 +50,7 @@ struct GeometryFinderTests {
     func findsKeyframesAtTheirTimes() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "box", "parent": true, "at": [1, 3],
+            { "shape": "box", "parent": "screen", "at": [1, 3],
               "keyframes": [ { "at": 1, "area": "Total", "ease": "ease-in-out" }, { "at": 2.5, "area": "Total" } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
@@ -99,7 +99,7 @@ struct GeometryFinderTests {
     func namesKeyframeInStop() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "box", "parent": true, "keyframes": [ { "at": 1, "area": "Total" }, { "at": 2, "area": "Cart" } ] }
+            { "shape": "box", "parent": "screen", "keyframes": [ { "at": 1, "area": "Total" }, { "at": 2, "area": "Cart" } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -108,7 +108,7 @@ struct GeometryFinderTests {
             try find(clip.area, plan: plan, instant: plan.clips[0].window.start)
         }
         #expect(error?.description == #"""
-            storyline[0].connected[0].keyframes[1].area (box): no line of "/abs/screen.mp4" at media second 2 \#
+            storyline[0]#screen.connected[0].keyframes[1].area (box): no line of "/abs/screen.mp4" at media second 2 \#
             contains "Cart"
             """#)
     }
@@ -158,7 +158,7 @@ struct GeometryFinderTests {
     func findsPositionOnArea() throws {
         // Given
         let plan = try plan(#"""
-            { "title": "a", "style": "label", "parent": true, "position": { "area": "Total", "point": "right" } }
+            { "title": "a", "style": "title", "parent": "screen", "position": { "area": "Total", "point": "right" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -185,7 +185,7 @@ struct GeometryFinderTests {
     ) throws -> TimePlan {
         let clips = connected.map { #", "connected": [ \#($0) ]"# } ?? ""
         return try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { \#(storylineKeys) "media": "/abs/screen.mp4", "in": 1\#(clips) } ] }
+            { "kind": "sequence", "storyline": [ { \#(storylineKeys) "id": "screen", "media": "/abs/screen.mp4", "in": 1\#(clips) } ] }
             """#))
     }
 

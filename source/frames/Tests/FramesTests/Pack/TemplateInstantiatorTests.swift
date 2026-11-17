@@ -126,12 +126,12 @@ struct TemplateInstantiatorTests {
         "a value its place cannot take stops at that place in the template, as the same value written there would",
         arguments: [
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "width": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
                 #"{ "p": -5 }"#,
                 "clips[0].width (title): expected a number above 0, found -5"
             ),
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
@@ -141,7 +141,7 @@ struct TemplateInstantiatorTests {
                 "clips[0].radius (image): expected a number, 0 or more, found -1"
             ),
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "label", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             )
@@ -177,7 +177,7 @@ struct TemplateInstantiatorTests {
         let template = try template(#"""
             { "kind": "sequence", "params": { "p": { "type": "number" } },
               "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "p" } } } ],
-              "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": { "param": "p" } } ] }
+              "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "p": 2 }"#)
 
@@ -187,7 +187,7 @@ struct TemplateInstantiatorTests {
         // Then
         let expected = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": 2 } } ],
-              "clips": [ { "title": "x", "style": "label", "at": [0, 1], "lane": 2 } ] }
+              "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": 2 } ] }
             """#)
         #expect(instance.document == expected)
     }

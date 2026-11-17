@@ -15,16 +15,13 @@ package enum BaseTheme {
           "styles": {
             "title":    { "size": 96, "weight": "bold", "placement": "center", "align": "center" },
             "subtitle": { "size": 48, "weight": "regular", "stroke": { "width": 3, "color": "#000000" },
-                          "placement": "bottom", "offset": 108, "align": "center", "lines": 2 },
-            "label":    { "size": 36, "weight": "bold", "color": "#FFFFFF",
-                          "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 }
+                          "placement": "bottom", "offset": 108, "align": "center", "lines": 2 }
           },
           "shapes": {
             "box":   { "width": 8, "radius": 18, "color": "#ED2929" },
             "fill":  { "color": "#FFD43B80" },
             "dim":   { "color": "#0000008C" },
-            "arrow": { "width": 10, "length": 160, "head": 32, "color": "#ED2929" },
-            "label": { "sides": ["right", "bottom", "left", "top"] }
+            "arrow": { "width": 10, "length": 160, "head": 32, "color": "#ED2929" }
           },
           "area":      { "padding": 14, "cropPadding": 40 },
           "placement": { "padding": 96 },

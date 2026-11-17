@@ -20,6 +20,18 @@ extension AffineTransform {
         )
     }
 
+    // A band's motion keeps the full width of its picture: it takes only the vertical move and scale.
+    init(carryingBand motion: TrackMotion) {
+        self.init(
+            a: 1,
+            b: 0,
+            c: 0,
+            d: motion.scale,
+            tx: 0,
+            ty: motion.center.y - motion.origin.y * motion.scale
+        )
+    }
+
     // MARK: - Public
     // MARK: - Private
 }

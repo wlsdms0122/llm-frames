@@ -78,6 +78,15 @@ struct SequenceReader: Sendable {
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
             filter: object["filter"],
+            anchor: object["anchor"]?.stringValue,
+            position: property("position", of: object, read: PositionForm.init(value:)),
+            scale: property("scale", of: object, read: \.numberValue),
+            rotation: property("rotation", of: object, read: \.numberValue),
+            opacity: property("opacity", of: object, read: \.numberValue),
+            blend: object["blend"]?.stringValue,
+            radius: object["radius"]?.numberValue,
+            border: object["border"].flatMap(BorderForm.init(value:)),
+            shadow: object["shadow"]?.boolValue ?? false,
             connected: connected
         )
     }
@@ -88,7 +97,6 @@ struct SequenceReader: Sendable {
         in clipPlace: ClipPlace
     ) -> Clip {
         let keyframes = keyframes(object["keyframes"])
-        let hasKeyframedArea = keyframes.contains { $0.properties.contains("area") }
 
         return Clip(
             place: place,
@@ -97,9 +105,7 @@ struct SequenceReader: Sendable {
             content: content(of: object, place: place),
             at: object["at"].flatMap(window),
             lane: object["lane"]?.numberValue.flatMap { Int(exactly: $0) },
-            hasParent: object["parent"]?.boolValue ?? false,
-            hasPlacement: object.contains("placement"),
-            hasArea: object.contains("area") || hasKeyframedArea,
+            parent: object["parent"]?.stringValue,
             placement: object["placement"]?.stringValue,
             anchor: object["anchor"]?.stringValue,
             animation: object["animation"].flatMap(AnimationChoice.init(value:)),
@@ -108,8 +114,6 @@ struct SequenceReader: Sendable {
             position: property("position", of: object, read: PositionForm.init(value:)),
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
-            label: object["label"]?.stringValue,
-            labelAnimation: object["labelAnimation"].flatMap(AnimationChoice.init(value:)),
             width: object["width"]?.numberValue,
             height: object["height"]?.numberValue,
             conform: object["conform"]?.stringValue.flatMap(Conform.init),

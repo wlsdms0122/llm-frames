@@ -30,17 +30,19 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case placementWithPosition(place: Place, kind: PlaceKind)
     case parentWithoutPosition(place: Place, kind: PlaceKind)
     case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
-    case parentOnSequenceClip(place: Place, kind: PlaceKind)
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
-    case areaPositionWithoutParent(place: Place, kind: PlaceKind)
+    case textAreaInOutputPixels(place: Place, kind: PlaceKind)
+    case unknownParent(place: Place, kind: PlaceKind, id: String)
+    case audioParent(place: Place, kind: PlaceKind, id: String)
+    case parentCycle(place: Place, kind: PlaceKind, ids: [String])
+    case trackInClipParent(place: Place, kind: PlaceKind, id: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
-    case labelWithoutRoom(place: Place, kind: PlaceKind, label: String, sides: [Side])
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
@@ -116,21 +118,18 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): lane 0 is the storyline. A clip takes a lane above or below it"
 
         case let .parentWithPlacement(place, kind):
-            "\(place) (\(kind.label)): "
-                + "\"parent\": true cannot take \"placement\", since placement names the output frame"
+            "\(place) (\(kind.label)): a parented clip cannot take \"placement\", "
+                + "since placement names the frame and not its parent's space"
 
         case let .placementWithPosition(place, kind):
             "\(place) (\(kind.label)): \"placement\" and \"position\" both place the clip, so it takes one of them"
 
         case let .parentWithoutPosition(place, kind):
-            "\(place) (\(kind.label)): \"parent\": true needs \"position\", since a parented clip has no default place"
+            "\(place) (\(kind.label)): a parented clip has no default place, so it needs \"position\""
 
         case let .titleWithoutPlacement(place, kind, style):
             "\(place) (\(kind.label)): style \(quoted(style)) gives no placement, so the title needs \"placement\" or "
                 + "\"position\""
-
-        case let .parentOnSequenceClip(place, kind):
-            "\(place) (\(kind.label)): a sequence clip has no parent, so it cannot take \"parent\": true"
 
         case let .keyframesOutsideVisibleRange(place, kind, property, visible):
             "\(place) (\(kind.label)): every keyframe of \(quoted(property)) lies outside \(written(visible)), "
@@ -143,12 +142,26 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
 
-        case let .areaPositionWithoutParent(place, kind):
-            "\(place) (\(kind.label)): a position given by an area is in the picture of a parented clip, "
-                + "so it needs \"parent\": true"
+        case let .textAreaInOutputPixels(place, kind):
+            "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
+                + "and this clip's coordinates are output pixels"
+
+        case let .unknownParent(place, kind, id):
+            "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"
+
+        case let .audioParent(place, kind, id):
+            "\(place) (\(kind.label)): \(quoted(id)) is an audio clip, which has no picture to be a parent"
+
+        case let .parentCycle(place, kind, ids):
+            "\(place) (\(kind.label)): the parent chain comes back to itself: "
+                + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .trackInClipParent(place, kind, id):
+            "\(place) (\(kind.label)): track follows the media of a storyline parent, and the parent \(quoted(id)) "
+                + "is a connected or sequence clip, whose media is not followed"
 
         case let .trackWithoutVideo(place, kind):
-            "\(place) (\(kind.label)): track follows the video or image sequence of a storyline clip, "
+            "\(place) (\(kind.label)): track follows the video or image sequence of the clip's storyline parent, "
                 + "and there is none to follow here"
 
         case let .trackOwnWithoutArea(place, kind):
@@ -166,10 +179,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .neverFollowed(place, kind, visible):
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
-
-        case let .labelWithoutRoom(place, kind, label, sides):
-            "\(place) (\(kind.label)): the label \(quoted(label)) fits inside the frame on none of the sides "
-                + sides.map(\.rawValue).joined(separator: ", ")
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"

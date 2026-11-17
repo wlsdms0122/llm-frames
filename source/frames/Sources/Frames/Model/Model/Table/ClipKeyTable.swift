@@ -31,10 +31,10 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "volume"]
+            ["crop", "position", "scale", "rotation", "opacity", "volume"]
 
         case (.storyline, _):
-            ["crop"]
+            ["crop", "position", "scale", "rotation", "opacity"]
 
         case (_, .media(.audio)):
             ["volume"]
@@ -70,7 +70,13 @@ enum ClipKeyTable {
         )
     }
 
-    private static let everyClip = ["id", "metadata", "at", "lane", "opacity", "animation", "keyframes"]
+    private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
+
+    // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
+    // parent.
+    private static let storylineTransform = [
+        "anchor", "position", "scale", "rotation", "opacity", "blend", "radius", "border", "shadow"
+    ]
 
     private static func keys(
         for kind: ClipKind,
@@ -79,15 +85,15 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
-                "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition",
-                "volume", "fadeIn", "fadeOut", "keyframes", "connected"
-            ]
+                "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition"
+            ] + storylineTransform + ["volume", "fadeIn", "fadeOut", "keyframes", "connected"]
 
         case (.storyline, .solid):
             return ["id", "metadata", "solid", "duration", "transition", "connected"]
 
         case (.storyline, _):
-            return ["id", "metadata", "media", "duration", "crop", "filter", "transition", "keyframes", "connected"]
+            return ["id", "metadata", "media", "duration", "crop", "filter", "transition"] + storylineTransform
+                + ["keyframes", "connected"]
 
         case (_, .media(.audio)):
             return ["id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut", "keyframes"]
@@ -95,25 +101,25 @@ enum ClipKeyTable {
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
                 "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut",
-                "placement", "position", "parent", "scale", "rotation", "crop", "conform", "filter", "blend",
+                "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend",
                 "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
-                "track", "anchor", "media", "placement", "position", "parent", "scale", "rotation", "crop",
+                "track", "anchor", "media", "placement", "position", "scale", "rotation", "crop",
                 "conform", "filter", "blend", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
             return everyClip + [
-                "track", "anchor", "title", "style", "width", "placement", "position", "parent", "scale",
+                "track", "anchor", "title", "style", "width", "placement", "position", "scale",
                 "rotation", "blend"
             ]
 
         case let (_, .shape(shape)):
             let side = shape == "arrow" ? ["side"] : []
-            return everyClip + ["shape", "area", "track", "label", "labelAnimation", "color", "blend"] + side
+            return everyClip + ["shape", "area", "track", "color", "blend"] + side
 
         case (_, .adjust), (_, .solid):
             return everyClip + ["adjust", "area", "track"]
@@ -141,7 +147,7 @@ enum ClipKeyTable {
         case "lane":
             .integer
 
-        case "animation", "labelAnimation":
+        case "animation":
             ChoiceKeyTable.animation
 
         case "keyframes":
@@ -165,18 +171,17 @@ enum ClipKeyTable {
         case "solid", "color":
             .color
 
-        case "loop", "parent", "shadow":
+        case "loop", "shadow":
             .bool
 
         case "anchor", "placement":
             .literal(VocabularyTable.placementNames)
 
         case "position":
-            // A sequence clip has no parent, so its position is only output pixels.
-            place == .sequence ? .numbers(2) : .oneOf([.numbers(2), .object(AreaKeyTable.point)])
+            .oneOf([.numbers(2), .object(AreaKeyTable.point)])
 
         case "area":
-            place == .sequence ? .numbers(4) : .area
+            .area
 
         case "conform":
             .literal(VocabularyTable.conforms)
@@ -187,10 +192,10 @@ enum ClipKeyTable {
         case "border":
             .oneOf([.exactly(.bool(true)), .color])
 
-        case "title", "label":
+        case "title":
             .text
 
-        case "style":
+        case "style", "parent":
             .name
 
         case "shape":

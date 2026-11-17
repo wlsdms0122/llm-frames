@@ -47,7 +47,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
@@ -214,7 +214,7 @@ struct TemplateCheckTests {
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
-                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, label, labelAnimation, color, blend"#
+                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, shape, area, track, color, blend"#
             )
         ]
     )

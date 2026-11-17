@@ -6,7 +6,7 @@
 //
 
 // Evaluates a resolved sequence into the display list of one output frame at a sequence time, every value sampled.
-// Lists nested in it, for storyline units and compound clips, carry its seed.
+// Lists nested in it, for storyline pictures and compound clips, carry its seed.
 package struct Evaluator: Sendable {
     // MARK: - Property
     // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
@@ -28,8 +28,7 @@ package struct Evaluator: Sendable {
     }
 
     // MARK: - Private
-    // Bottom first: unparented clips on negative lanes, the storyline units, the transition cover, and unparented clips
-    // on positive lanes.
+    // Bottom first: clips on negative lanes, the storyline pictures, the transition cover, and clips on positive lanes.
     private func displayList(
         of sequence: ResolvedSequence,
         at time: Double,
@@ -37,40 +36,35 @@ package struct Evaluator: Sendable {
     ) -> DisplayList {
         let format = sequence.format
         let transition = ActiveTransition(storyline: sequence.storyline, at: time)
-        let items = clipItems(of: sequence, parent: nil, side: .below, at: time, seed: seed)
-            + unitItems(of: sequence, transition: transition, at: time, seed: seed)
+        let items = clipItems(of: sequence, side: .below, at: time, seed: seed)
+            + storylineItems(of: sequence, transition: transition, at: time, seed: seed)
             + coverItems(of: transition, in: format.frame, at: time)
-            + clipItems(of: sequence, parent: nil, side: .above, at: time, seed: seed)
+            + clipItems(of: sequence, side: .above, at: time, seed: seed)
 
         return DisplayList(size: format.size, background: format.background, seed: seed, items: items)
     }
 
-    // The items of the connected and sequence clips composited at one level and visible at the time, bottom first by
-    // lane and then in document order: the unparented clips of the sequence in output pixels when `parent` is nil, or
-    // the clips parented to that storyline entry in its unit's coordinates, on the negative or positive lanes.
+    // The items of the connected and sequence clips on the negative or positive lanes and visible at the time, bottom
+    // first by lane and then in document order, each in the space its parent gives it.
     private func clipItems(
         of sequence: ResolvedSequence,
-        parent: Int?,
         side: LaneSide,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        let frame = sequence.format.frame
-        let parentSpace = parent.map { ClipSpace(parent: sequence.storyline[$0], unit: frame, at: time) }
+        let parents = ParentEvaluator(sequence: sequence)
 
         return sequence.clips.enumerated()
             .filter { _, clip in
                 // Every clip drawn has a lane.
                 let lane = clip.lane ?? 1
-                return (clip.isParented ? clip.storyline : nil) == parent
-                    && (side == .below ? lane < 0 : lane > 0)
-                    && TimeRange(start: clip.start, end: clip.end).contains(time)
+                return (side == .below ? lane < 0 : lane > 0) && TimeRange(start: clip.start, end: clip.end).contains(time)
             }
             .sorted { left, right in
                 (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
             }
             .flatMap { _, clip in
-                let space = parentSpace ?? .output(frame: frame)
+                let space = parents.space(of: clip, at: time)
                 let picture = picture(of: clip, at: time, seed: seed)
                 let origin = ItemOrigin(clip: clip)
                 return clipEvaluator.items(of: clip, in: space, picture: picture, at: time).map { $0.drawn(by: origin) }
@@ -88,30 +82,20 @@ package struct Evaluator: Sendable {
         return source(of: media.media, at: media.timing?.mediaTime(at: time) ?? 0, seed: seed)
     }
 
-    // The units visible at the time, bottom first. During a transition the two it joins are visible, stacked as its
-    // `over` says, and the incoming one takes its matte. Elsewhere the drawn ranges are the edit ranges, so the one
-    // entry whose edit range holds the time is.
-    private func unitItems(
+    // The storyline pictures visible at the time, bottom first. During a transition the two it joins are visible,
+    // stacked as its `over` says, and the incoming one takes its matte. Elsewhere the drawn ranges are the edit ranges,
+    // so the one entry whose edit range holds the time is.
+    private func storylineItems(
         of sequence: ResolvedSequence,
         transition: ActiveTransition?,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        let frame = sequence.format.frame
         guard let transition else {
             let storyline = sequence.storyline
             return storyline.indices
                 .filter { TimeRange(start: storyline[$0].start, end: storyline[$0].end).contains(time) }
-                .map { index in
-                    unitItem(
-                        of: index,
-                        in: sequence,
-                        presentation: UnitPresentation(sample: .none, frame: frame),
-                        matte: nil,
-                        at: time,
-                        seed: seed
-                    )
-                }
+                .map { index in storylineItem(of: index, in: sequence, matte: nil, at: time, seed: seed) }
         }
 
         let progress = transitionSampler.progress(through: transition.range, at: time)
@@ -119,76 +103,82 @@ package struct Evaluator: Sendable {
         return spans.over.bottomFirst.map { order in
             switch order {
             case .incoming:
-                unitItem(
+                storylineItem(
                     of: transition.incoming,
                     in: sequence,
-                    presentation: transitionSampler.unit(moving: spans.incoming, in: frame, at: progress),
                     matte: spans.matte.map { matte(of: $0, at: progress) },
                     at: time,
                     seed: seed
                 )
 
             case .outgoing:
-                unitItem(
-                    of: transition.outgoing,
-                    in: sequence,
-                    presentation: transitionSampler.unit(moving: spans.outgoing, in: frame, at: progress),
-                    matte: nil,
-                    at: time,
-                    seed: seed
-                )
+                storylineItem(of: transition.outgoing, in: sequence, matte: nil, at: time, seed: seed)
             }
         }
     }
 
-    // A unit drawn as one picture of its nested list, the size of the frame, so the transition's motion, reveal and
-    // matte act on it whole.
-    private func unitItem(
+    // A storyline picture is two items: the outer one a picture of a nested list the size of the frame, carrying the
+    // clip's blend and its transition motion about the centre of the frame, the motion's opacity and reveal, and the
+    // matte; the inner one, the one item of that list, its media or its fill with its own transform.
+    private func storylineItem(
         of index: Int,
         in sequence: ResolvedSequence,
-        presentation: UnitPresentation,
         matte: PictureMatte?,
         at time: Double,
         seed: Int
     ) -> DisplayItem {
         let frame = sequence.format.frame
-        let items = clipItems(of: sequence, parent: index, side: .below, at: time, seed: seed)
-            + pictureItems(of: sequence.storyline[index], filling: frame, at: time, seed: seed)
-            + clipItems(of: sequence, parent: index, side: .above, at: time, seed: seed)
+        let entry = sequence.storyline[index]
+        let items = innerItems(of: entry, at: time, seed: seed)
         let list = DisplayList(size: sequence.format.size, background: Self.transparent, seed: seed, items: items)
-
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
+        let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
+        let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
-            reveal: presentation.reveal,
+            blend: entry.blend,
+            reveal: sample.reveal.rectangle(wiping: frame, from: sample.revealFrom),
             content: .picture(picture),
-            origin: ItemOrigin(entry: sequence.storyline[index])
+            origin: ItemOrigin(entry: entry)
         )
     }
 
-    // A storyline entry's own picture over the whole frame: its media's conformed crop with its filter, or the fill of
-    // a solid.
-    private func pictureItems(
+    // A storyline entry's own picture in its box: its media's conformed crop with its filter, rounded corners, border
+    // and shadow, or the fill of a solid, carried into the frame by its own transform and opacity, blended normally.
+    private func innerItems(
         of entry: ResolvedStorylineClip,
-        filling frame: Rectangle,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
         let origin = ItemOrigin(entry: entry)
-        guard let media = entry.media else {
-            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: frame, color: $0)), origin: origin)] }
-                ?? []
+        let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
+        let presentation = entry.presentation(at: time)
+        let content: DisplayContent
+        if let media = entry.media {
+            content = .picture(PictureItem(
+                source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
+                rectangle: entry.crop(at: time),
+                destination: box,
+                filter: entry.filter,
+                radius: entry.radius,
+                border: entry.border,
+                shadow: entry.shadow
+            ))
+        } else if let solid = entry.solid {
+            content = .fill(FillItem(rectangle: box, color: solid))
+        } else {
+            return []
         }
 
-        let picture = PictureItem(
-            source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
-            rectangle: entry.crop(at: time),
-            destination: frame,
-            filter: entry.filter
+        let item = DisplayItem(
+            transform: presentation.transform,
+            opacity: presentation.opacity,
+            content: content,
+            origin: origin
         )
-        return [DisplayItem(content: .picture(picture), origin: origin)]
+        return [item]
     }
 
     private func source(
@@ -227,7 +217,7 @@ package struct Evaluator: Sendable {
         )
     }
 
-    // A transition's cover over both units: its colour or its media's frame stretched over the frame, at the opacity its
+    // A transition's cover over both storyline pictures: its colour or its media's frame stretched over the frame, at the opacity its
     // keys give.
     private func coverItems(
         of transition: ActiveTransition?,

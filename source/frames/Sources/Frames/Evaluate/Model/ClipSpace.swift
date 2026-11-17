@@ -5,82 +5,84 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Where a clip is composited at one instant, and the coordinates its items are drawn in. `frame` is the whole list's
-// frame: what a shape without an area covers, what a dim darkens and what an adjustment without an area filters.
-enum ClipSpace: Sendable {
-    // An unparented clip, drawn in output pixels.
-    case output(frame: Rectangle)
-    // A parented clip, drawn in its unit's coordinates, the frame. Its positions and areas, in the media pixels of the
-    // storyline entry's picture, are mapped into the unit through `crop`, that entry's conformed crop at the instant, so
-    // they follow the crop.
-    case parented(entry: ResolvedStorylineClip, crop: Rectangle, unit: Rectangle)
+import Foundation
 
+// The coordinate space a clip's positions and areas are written in, at one instant. `transform` is P(t), the map from
+// that space to output pixels of the list the clip is drawn in: its parent's chain composed down to the output, or the
+// identity for an unparented clip. It is a similarity, so `scale` and `rotation` are its one scale and its turn in
+// degrees. `frame` is the list's frame: what a shape without an area covers and what a dim darkens. `storyline` is the
+// storyline parent whose media a tracked clip follows. A tracked clip's values are where they are at the instant, and
+// its track's motion is a moving parent between them and this space: `area` and `anchor` answer in the clip's values'
+// coordinates, and `tracked(by:at:)` is the space that maps those coordinates to output pixels. A band's motion keeps
+// the width of its picture, so a band's tracked space is not a similarity, and `scale` is then its horizontal scale.
+struct ClipSpace: Sendable {
     // MARK: - Property
-    var frame: Rectangle {
-        switch self {
-        case let .output(frame):
-            frame
+    let frame: Rectangle
+    let transform: AffineTransform
+    let storyline: ResolvedStorylineClip?
 
-        case let .parented(_, _, unit):
-            unit
-        }
+    var scale: Double {
+        (transform.a * transform.a + transform.b * transform.b).squareRoot()
+    }
+
+    var rotation: Double {
+        atan2(transform.b, transform.a) * 180 / .pi
     }
 
     // MARK: - Initializer
-    // A parented clip's space, the unit of `entry` the size of the frame.
     init(
-        parent entry: ResolvedStorylineClip,
-        unit: Rectangle,
-        at time: Double
+        frame: Rectangle,
+        transform: AffineTransform = .identity,
+        storyline: ResolvedStorylineClip? = nil
     ) {
-        self = .parented(entry: entry, crop: entry.crop(at: time), unit: unit)
+        self.frame = frame
+        self.transform = transform
+        self.storyline = storyline
     }
 
     // MARK: - Public
-    // A clip's area at the time, its keyframes carried by its track when it is tracked.
+    // A clip's area at the time, each keyframe brought back to the instant when it is tracked.
     func area(
         of keyframes: [Keyframe<Rectangle>],
         track: ResolvedTrack?,
         at time: Double
     ) -> Rectangle {
-        switch self {
-        case .output:
-            return keyframes.value(at: time)
+        guard let track, let storyline else { return keyframes.value(at: time) }
 
-        case let .parented(entry, crop, unit):
-            let area = track?.area(of: keyframes, on: entry, at: time) ?? keyframes.value(at: time)
-            return CropConformer().output(of: area, crop: crop, box: unit)
-        }
+        return track.area(of: keyframes, on: storyline, at: time)
     }
 
-    // The top left of a box clip's box at the time. A parented clip's anchor point, `position + anchor` in media
-    // pixels and carried by its track when it is tracked, is mapped into the unit, and the box keeps its size in
-    // output pixels around it.
-    func position(
+    // A box clip's anchor point at the time, `position + anchor`, each keyframe brought back to the instant when it is
+    // tracked.
+    func anchor(
         of box: ResolvedBox,
         track: ResolvedTrack?,
         at time: Double
     ) -> Point {
-        switch self {
-        case .output:
-            return box.position.value(at: time)
-
-        case let .parented(entry, crop, unit):
-            let anchors = box.position.map { keyframe in
-                Keyframe(
-                    at: keyframe.at,
-                    value: Point(x: keyframe.value.x + box.anchor.x, y: keyframe.value.y + box.anchor.y),
-                    ease: keyframe.ease
-                )
-            }
-            let anchor = track?.point(of: anchors, on: entry, at: time) ?? anchors.value(at: time)
-            let scale = unit.width / crop.width
-
-            return Point(
-                x: unit.x + (anchor.x - crop.x) * scale - box.anchor.x,
-                y: unit.y + (anchor.y - crop.y) * scale - box.anchor.y
+        let anchors = box.position.map { keyframe in
+            Keyframe(
+                at: keyframe.at,
+                value: Point(x: keyframe.value.x + box.anchor.x, y: keyframe.value.y + box.anchor.y),
+                ease: keyframe.ease
             )
         }
+        guard let track, let storyline else { return anchors.value(at: time) }
+
+        return track.point(of: anchors, on: storyline, at: time)
+    }
+
+    // The space a clip's values are carried in at the time: its track's motion there, then P(t).
+    func tracked(
+        by track: ResolvedTrack?,
+        at time: Double
+    ) -> ClipSpace {
+        guard let track, let storyline else { return self }
+
+        return ClipSpace(
+            frame: frame,
+            transform: track.transform(on: storyline, at: time).concatenating(transform),
+            storyline: storyline
+        )
     }
 
     // MARK: - Private

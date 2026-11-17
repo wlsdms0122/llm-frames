@@ -91,6 +91,9 @@ struct AreaFinder: Sendable {
 
         case .solid:
             throw AreaError.textInSolid(place: place, kind: kind)
+
+        case .space:
+            throw AreaError.textInSpace(place: place, kind: kind, parent: picture.name)
         }
     }
 
@@ -154,6 +157,8 @@ struct AreaFinder: Sendable {
         place: Place,
         kind: String
     ) throws -> Rectangle {
+        // A space has no edges to cut at.
+        guard picture.source != .space else { return rectangle }
         guard let cut = rectangle.intersection(picture.bounds) else {
             throw AreaError.outsidePicture(place: place, kind: kind, rectangle: rectangle, size: picture.size)
         }

@@ -1,6 +1,12 @@
 {
   "kind": "sequence",
   "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
+  "theme": {
+    "styles": {
+      "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
+                 "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 }
+    }
+  },
   "storyline": [
     { "id": "title-card", "solid": "#000000", "duration": 1.5,
       "connected": [
@@ -14,7 +20,9 @@
       "connected": [
         { "at": [0, 1.5], "title": "Item total and shipping are listed", "style": "subtitle" },
         { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" },
-        { "at": [1.8, 4], "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
+        { "at": [1.8, 4], "shape": "box", "id": "total-box", "parent": "total", "area": "Total" },
+        { "at": [1.8, 4], "title": "38,000 + 4,000", "style": "label", "parent": "total-box",
+          "position": { "area": "Total", "point": "right" }, "anchor": "left" }
       ] },
     { "id": "end-card", "solid": "#000000", "duration": 1.5, "transition": "frames/fade",
       "connected": [

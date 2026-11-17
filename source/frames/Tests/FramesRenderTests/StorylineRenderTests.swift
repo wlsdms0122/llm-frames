@@ -31,6 +31,10 @@ struct StorylineRenderTests {
             { "description": "the outgoing clip at half size over the incoming one", "seconds": 1, "over": "outgoing",
               "outgoing": { "keys": [ { "t": 0, "scale": 0.5 }, { "t": 1, "scale": 0.5 } ] } }
             """#,
+        "transition/over": #"""
+            { "description": "the incoming clip over the outgoing one, as it is", "seconds": 1,
+              "incoming": { "keys": [ { "t": 0, "scale": 1 }, { "t": 1, "scale": 1 } ] } }
+            """#,
         "transition/grow": #"""
             { "description": "the incoming clip grows in from the right as the outgoing one leaves left", "seconds": 1,
               "ease": "linear",
@@ -46,14 +50,16 @@ struct StorylineRenderTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "during a transition both units show, the incoming one above unless the preset puts the outgoing one there",
+        "during a transition both storyline pictures show, the incoming one above unless the preset puts it below, at half size by the motion or its own scale",
         arguments: [
-            ("half-in", [0.0, 255, 0], [255.0, 0, 0]),
-            ("half-out", [255.0, 0, 0], [0.0, 255, 0])
+            ("half-in", "", [0.0, 255, 0], [255.0, 0, 0]),
+            ("half-out", "", [255.0, 0, 0], [0.0, 255, 0]),
+            ("over", #", "scale": 0.5"#, [0.0, 255, 0], [255.0, 0, 0])
         ]
     )
-    func stacksTransitionUnits(
+    func stacksTransitionPictures(
         transition: String,
+        transform: String,
         middle: [Double],
         rim: [Double]
     ) throws {
@@ -64,7 +70,7 @@ struct StorylineRenderTests {
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
-                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)" } ] }
+                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)"\#(transform) } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -72,7 +78,7 @@ struct StorylineRenderTests {
         let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 1))
 
         // Then
-        // The unit at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
+        // The picture at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
         #expect(frame.isPixel(x: 80, y: 45, middle, tolerance: tolerance), "\(frame.pixel(x: 80, y: 45))")
         #expect(frame.isPixel(x: 50, y: 30, middle, tolerance: tolerance), "\(frame.pixel(x: 50, y: 30))")
         #expect(frame.isPixel(x: 10, y: 45, rim, tolerance: tolerance), "\(frame.pixel(x: 10, y: 45))")

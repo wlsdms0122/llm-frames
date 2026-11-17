@@ -8,23 +8,27 @@
 @testable import Frames
 
 // A fake tracker: in each file the target can be followed on the frames whose media times lie in a range, and on
-// each it has moved by `drift` per media second from where it was given, so a test tells which rectangle was given.
+// each it has moved by `drift` per media second from where it was given, and grown by `growth` of its size per media
+// second about its centre, so a test tells which rectangle was given.
 // Outside that range the target is lost.
 struct TrackerTable: TrackerProvider {
     // MARK: - Property
     let frameTimes: [String: [Double]]
     let followed: [String: ClosedRange<Double>]
     let drift: Point
+    let growth: Double
 
     // MARK: - Initializer
     init(
         frameTimes: [String: [Double]],
         followed: [String: ClosedRange<Double>] = [:],
-        drift: Point = Point(x: 0, y: 0)
+        drift: Point = Point(x: 0, y: 0),
+        growth: Double = 0
     ) {
         self.frameTimes = frameTimes
         self.followed = followed
         self.drift = drift
+        self.growth = growth
     }
 
     // MARK: - Public
@@ -45,13 +49,15 @@ struct TrackerTable: TrackerProvider {
         let before = times[..<index].reversed().prefix { range.contains($0) && followed.contains($0) }
 
         return (before.reversed() + after).map { frameTime in
-            TrackedFrame(
+            let elapsed = frameTime - shown
+            let size = 1 + growth * elapsed
+
+            return TrackedFrame(
                 time: frameTime,
                 rectangle: Rectangle(
-                    x: target.x + drift.x * (frameTime - shown),
-                    y: target.y + drift.y * (frameTime - shown),
-                    width: target.width,
-                    height: target.height
+                    center: Point(x: target.center.x + drift.x * elapsed, y: target.center.y + drift.y * elapsed),
+                    width: target.width * size,
+                    height: target.height * size
                 )
             )
         }

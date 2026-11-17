@@ -4,10 +4,9 @@
   "colors": { "text": "#000000", "background": "#FFFFFF", "accent": "#ED2929", "shadow": "#00000059" },
   "styles": {
     "lead": { "size": 44, "weight": "bold", "lineHeight": 64 },
-    "body": { "size": 38, "lineHeight": 64 }
-  },
-  "shapes": {
-    "label": { "sides": ["right", "bottom", "left"] }
+    "body": { "size": 38, "lineHeight": 64 },
+    "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
+               "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
   },
   "placement": { "padding": 40 },
   "border": { "width": 3, "color": "#D9D9D9" },

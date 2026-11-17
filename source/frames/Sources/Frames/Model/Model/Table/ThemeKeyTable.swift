@@ -75,13 +75,7 @@ enum ThemeKeyTable {
             KeyRule("box", .object(shape("box", ["width", "radius"]))),
             KeyRule("fill", .object(shape("fill", []))),
             KeyRule("dim", .object(shape("dim", []))),
-            KeyRule("arrow", .object(shape("arrow", ["width", "length", "head"]))),
-            KeyRule("label", .object(ObjectTable(
-                kind: "label",
-                rules: [
-                    KeyRule("sides", .list(.literal(VocabularyTable.sides)))
-                ]
-            )))
+            KeyRule("arrow", .object(shape("arrow", ["width", "length", "head"])))
         ]
     )
     static let defaults = ObjectTable(

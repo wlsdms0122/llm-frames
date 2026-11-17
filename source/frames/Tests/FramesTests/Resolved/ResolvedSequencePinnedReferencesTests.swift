@@ -126,7 +126,8 @@ struct ResolvedSequencePinnedReferencesTests {
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
             filter: filter,
-            transition: transition
+            transition: transition,
+            filling: size
         )
     }
 
@@ -161,12 +162,11 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 2,
             lane: 1,
             storyline: nil,
-            isParented: false,
+            parent: nil,
             area: nil,
             box: nil,
             crop: nil,
             track: nil,
-            label: nil,
             opacity: [Keyframe(at: 0, value: 1)],
             scale: nil,
             rotation: nil,

@@ -45,13 +45,6 @@ struct TrackMotion: Equatable, Sendable {
     }
 
     // A band keeps the full width of its picture and takes only the vertical part of the motion.
-    func carryBand(_ rectangle: Rectangle) -> Rectangle {
-        let centerY = center.y + (rectangle.center.y - origin.y) * scale
-        let height = rectangle.height * scale
-
-        return Rectangle(x: rectangle.x, y: centerY - height / 2, width: rectangle.width, height: height)
-    }
-
     func bringBackBand(_ rectangle: Rectangle) -> Rectangle {
         let centerY = origin.y + (rectangle.center.y - center.y) / scale
         let height = rectangle.height / scale

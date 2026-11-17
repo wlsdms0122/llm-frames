@@ -23,17 +23,22 @@ struct TransitionSampler: Sendable {
         min(max((time - range.start) / range.length, 0), 1)
     }
 
-    // An incoming or outgoing unit moved by its span, or still when the transition gives it none.
-    func unit(
-        moving span: Span?,
-        in frame: Rectangle,
-        at progress: Double
-    ) -> UnitPresentation {
-        let sample = span.map { span in
-            MotionSample(motion: evaluator.motion(of: span, at: progress), revealFrom: span.revealFrom)
+    // The transition motion of storyline entry `index`: its incoming transition's span for its side while that
+    // transition runs, its outgoing one's while that runs, and none between or for a side the transition gives no span.
+    // Outside its drawn range it holds the motion at the range's edge.
+    func motion(
+        of index: Int,
+        in storyline: [ResolvedStorylineClip],
+        at time: Double
+    ) -> MotionSample {
+        if let incoming = storyline[index].transition, time < incoming.end {
+            return sample(of: incoming.incoming, through: incoming, at: time)
+        }
+        if storyline.indices.contains(index + 1), let outgoing = storyline[index + 1].transition, time >= outgoing.start {
+            return sample(of: outgoing.outgoing, through: outgoing, at: time)
         }
 
-        return UnitPresentation(sample: sample ?? .none, frame: frame)
+        return .none
     }
 
     // A cover's keys take only opacity.
@@ -44,7 +49,7 @@ struct TransitionSampler: Sendable {
         evaluator.motion(of: span, at: progress).value(of: .opacity)
     }
 
-    // The luminance below which a matte shows the incoming unit.
+    // The luminance below which a matte shows the incoming storyline picture.
     func matteProgress(
         easedBy ease: Ease,
         at progress: Double
@@ -53,4 +58,14 @@ struct TransitionSampler: Sendable {
     }
 
     // MARK: - Private
+    private func sample(
+        of span: Span?,
+        through transition: ResolvedTransition,
+        at time: Double
+    ) -> MotionSample {
+        guard let span else { return .none }
+
+        let progress = progress(through: TimeRange(start: transition.start, end: transition.end), at: time)
+        return MotionSample(motion: evaluator.motion(of: span, at: progress), revealFrom: span.revealFrom)
+    }
 }

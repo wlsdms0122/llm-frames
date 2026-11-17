@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker followed for a property, which is a band when all of its values are bands, as resolve measures a
-// label through it.
+// What the tracker followed for a property, which is a band when all of its values are bands.
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer

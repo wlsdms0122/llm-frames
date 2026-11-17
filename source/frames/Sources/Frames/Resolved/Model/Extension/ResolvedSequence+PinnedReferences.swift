@@ -45,22 +45,19 @@ extension ResolvedSequence {
     }
 
     private func references(of clip: ResolvedClip) -> [PinnedReference] {
-        let label = clip.label.map { references(of: $0.text, place: clip.place) } ?? []
-
         switch clip.content {
         case let .title(text):
-            return references(of: text, place: clip.place) + label
+            return references(of: text, place: clip.place)
 
         case .shape:
-            return label
+            return []
 
         case let .adjustment(filter):
-            return references(of: filter, place: clip.place) + label
+            return references(of: filter, place: clip.place)
 
         case let .media(media):
             return references(of: media.media, place: clip.place)
                 + references(of: media.filter, place: clip.place)
-                + label
         }
     }
 

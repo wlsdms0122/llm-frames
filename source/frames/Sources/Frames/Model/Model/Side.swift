@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A side of a box: where an arrow points from and where a label goes.
+// A side of a box: where an arrow points from.
 enum Side: String, Equatable, Sendable {
     case left
     case right

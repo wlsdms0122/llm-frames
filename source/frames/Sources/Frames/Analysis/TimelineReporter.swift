@@ -37,7 +37,7 @@ package struct TimelineReporter: Sendable {
                 entry(of: time.storyline[index], geometry: plan.storyline[index])
             },
             clips: time.clips.indices.map { index in
-                entry(of: time.clips[index], geometry: plan.clips[index], storyline: time.storyline)
+                entry(of: time.clips[index], geometry: plan.clips[index], time: time)
             }
         )
     }
@@ -50,7 +50,7 @@ package struct TimelineReporter: Sendable {
             storyline: storyline.indices.map { index in
                 entry(of: storyline[index], outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil)
             },
-            clips: sequence.clips.map { entry(of: $0, storyline: storyline) }
+            clips: sequence.clips.map { entry(of: $0, sequence: sequence) }
         )
     }
 
@@ -75,10 +75,19 @@ package struct TimelineReporter: Sendable {
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
-        storyline: [StorylinePlan]
+        time: TimePlan
     ) -> TimelineClipEntry {
         let animation = clip.animation
-        let parent = clip.isParented ? clip.storyline.map { storyline[$0].place.description } : nil
+        let parent: String? = switch clip.parent {
+        case let .storyline(index, _):
+            time.storyline[index].place.description
+
+        case let .clip(index, _):
+            time.clips[index].place.description
+
+        case nil:
+            nil
+        }
 
         return TimelineClipEntry(
             place: clip.place.description,
@@ -128,12 +137,12 @@ package struct TimelineReporter: Sendable {
 
     private func entry(
         of clip: ResolvedClip,
-        storyline: [ResolvedStorylineClip]
+        sequence: ResolvedSequence
     ) -> TimelineClipEntry {
         let animation = clip.animation
-        let parent = clip.isParented
-            ? clip.storyline.flatMap { storyline.indices.contains($0) ? storyline[$0].place : nil }
-            : nil
+        let parent = clip.parent.flatMap { id in
+            sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
+        }
         let media: ResolvedMediaContent? = if case let .media(media) = clip.content { media.media } else { nil }
 
         return TimelineClipEntry(

@@ -51,9 +51,19 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "speed", value: .number(entry.speed)),
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
+            JSONMember(key: "size", value: values.size(entry.box.size)),
+            JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.point)),
+            JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
+            JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
+            JSONMember(key: "scale", value: values.numbers(entry.scale)),
+            JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
+            JSONMember(key: "blend", value: .string(entry.blend)),
             JSONMember(key: "filter", value: values.filter(entry.filter)),
+            JSONMember(key: "radius", value: .number(entry.radius)),
+            JSONMember(key: "border", value: entry.border.map(border) ?? .null),
+            JSONMember(key: "shadow", value: entry.shadow.map(shadow) ?? .null),
             JSONMember(key: "transition", value: entry.transition.map(transition) ?? .null)
         ]))
     }
@@ -73,8 +83,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "position", value: clip.box.map { values.keyframes($0.position, value: values.point) } ?? .null),
             JSONMember(key: "anchor", value: clip.box.map { values.point($0.anchor) } ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
-            JSONMember(key: "track", value: clip.track.map(track) ?? .null),
-            JSONMember(key: "label", value: clip.label.map(label) ?? .null)
+            JSONMember(key: "track", value: clip.track.map(track) ?? .null)
         ]
 
         return .object(JSONObject(members: [
@@ -85,7 +94,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "end", value: .number(clip.end)),
             JSONMember(key: "lane", value: clip.lane.map { .number(Double($0)) } ?? .null),
             JSONMember(key: "storyline", value: clip.storyline.map { .number(Double($0)) } ?? .null),
-            JSONMember(key: "parented", value: .bool(clip.isParented))
+            JSONMember(key: "parent", value: clip.parent.map(JSONValue.string) ?? .null)
         ] + geometry + [
             JSONMember(key: "opacity", value: number(clip.opacity))
         ] + transform + [
@@ -151,34 +160,26 @@ struct ResolvedSequenceWriter: Sendable {
 
     // How a media clip's picture fills its box, its crop aside, which is written with the geometry.
     private func appearance(_ appearance: ResolvedMediaAppearance) -> [JSONMember] {
-        let border = appearance.border.map { border in
-            JSONValue.object(JSONObject(members: [
-                JSONMember(key: "width", value: .number(border.width)),
-                JSONMember(key: "color", value: values.color(border.color))
-            ]))
-        }
-        let shadow = appearance.shadow.map { shadow in
-            JSONValue.object(JSONObject(members: [
-                JSONMember(key: "radius", value: .number(shadow.radius)),
-                JSONMember(key: "offset", value: values.point(shadow.offset)),
-                JSONMember(key: "color", value: values.color(shadow.color))
-            ]))
-        }
-
-        return [
+        [
             JSONMember(key: "conform", value: .string(appearance.conform.rawValue)),
             JSONMember(key: "radius", value: .number(appearance.radius)),
-            JSONMember(key: "border", value: border ?? .null),
-            JSONMember(key: "shadow", value: shadow ?? .null)
+            JSONMember(key: "border", value: appearance.border.map(border) ?? .null),
+            JSONMember(key: "shadow", value: appearance.shadow.map(shadow) ?? .null)
         ]
     }
 
-    private func label(_ label: ResolvedLabel) -> JSONValue {
+    private func border(_ border: MediaBorder) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "side", value: .string(label.side.rawValue)),
-            JSONMember(key: "at", value: .number(label.at)),
-            JSONMember(key: "text", value: values.text(label.text)),
-            JSONMember(key: "animation", value: values.animation(label.animation))
+            JSONMember(key: "width", value: .number(border.width)),
+            JSONMember(key: "color", value: values.color(border.color))
+        ]))
+    }
+
+    private func shadow(_ shadow: MediaShadow) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "radius", value: .number(shadow.radius)),
+            JSONMember(key: "offset", value: values.point(shadow.offset)),
+            JSONMember(key: "color", value: values.color(shadow.color))
         ]))
     }
 

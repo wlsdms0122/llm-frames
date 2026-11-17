@@ -61,18 +61,20 @@ struct BaseThemeTests {
         )))
     }
 
-    @Test("the base theme holds no image or layout group and no banner, heading or headline style")
+    @Test("the base theme holds no image or layout group, no banner, heading, headline or label style and no shape label")
     func holdsNoRemovedGroup() throws {
         // Given
         let theme = try #require(sut.objectValue)
 
         // When
         let styles = theme["styles"]?.objectValue?.keys ?? []
+        let shapes = theme["shapes"]?.objectValue?.keys ?? []
 
         // Then
         #expect(theme["image"] == nil)
         #expect(theme["layout"] == nil)
-        #expect(styles == ["title", "subtitle", "label"])
+        #expect(styles == ["title", "subtitle"])
+        #expect(shapes == ["box", "fill", "dim", "arrow"])
     }
 
     @Test("theme lengths scale by the frame width over 1920", arguments: [(1920.0, 1.0), (1080.0, 0.5625)])

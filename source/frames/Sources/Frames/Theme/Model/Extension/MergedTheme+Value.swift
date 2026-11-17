@@ -68,10 +68,6 @@ extension MergedTheme {
         color(value(at: ["shadow", "color"])?.stringValue ?? "shadow")
     }
 
-    var labelSides: [Side] {
-        (value(at: ["shapes", "label", "sides"])?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(Side.init) }
-    }
-
     // The names of the styles the theme holds, in order, which a stop on a name it lacks lists.
     var styleNames: [String] {
         (value(at: ["styles"])?.objectValue?.keys ?? []).sorted()

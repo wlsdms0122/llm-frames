@@ -6,10 +6,10 @@
 //
 
 // What resolve found and set for a connected or sequence clip, with keyframes in sequence time. `area` and `position`
-// are in the media pixels of the picture a parented clip is on, and a sequence clip's area in output pixels. `crop` is
-// in the clip's own media. `box` is where a title or media clip is drawn, and `position` the anchor point it was found
-// from. `title` and `label` are the text set for a title and a shape's label, `nested` the
-// plan of a nested sequence the clip shows, and `appearance` how it is drawn.
+// are in the space a parented clip's parent gives, and an unparented clip's in output pixels. `crop` is in the clip's
+// own media. `box` is where a title or media clip is drawn, and `position` the anchor point it was found
+// from. `title` is the text set for a title, `nested` the plan of a nested sequence the clip shows, and `appearance`
+// how it is drawn.
 struct ClipGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<FoundArea>?
@@ -18,7 +18,6 @@ struct ClipGeometry: Equatable, Sendable {
     let crop: PropertyValue<FoundArea>?
     let track: Track?
     let title: TextLayout?
-    let label: LabelPlan?
     let nested: SequencePlan?
     let appearance: ClipAppearance
 
@@ -30,7 +29,6 @@ struct ClipGeometry: Equatable, Sendable {
         crop: PropertyValue<FoundArea>?,
         track: Track?,
         title: TextLayout?,
-        label: LabelPlan?,
         nested: SequencePlan?,
         appearance: ClipAppearance
     ) {
@@ -40,7 +38,6 @@ struct ClipGeometry: Equatable, Sendable {
         self.crop = crop
         self.track = track
         self.title = title
-        self.label = label
         self.nested = nested
         self.appearance = appearance
     }

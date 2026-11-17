@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Which unit is on top during a transition.
+// Which storyline picture is on top during a transition.
 enum TransitionOrder: String, Sendable {
     case incoming
     case outgoing

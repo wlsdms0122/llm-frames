@@ -176,8 +176,8 @@ struct TypesetterTests {
         let style = style(lines: 1)
 
         // When
-        let fits = try sut.layout("aa bb cc", style: style, face: face, width: 150, place: place, kind: "label")
-        let unbounded = try sut.layout("aa bb cc", style: self.style(), face: face, width: nil, place: place, kind: "label")
+        let fits = try sut.layout("aa bb cc", style: style, face: face, width: 150, place: place, kind: "title")
+        let unbounded = try sut.layout("aa bb cc", style: self.style(), face: face, width: nil, place: place, kind: "title")
 
         // Then
         #expect(fits.lineCount == 1)
@@ -190,13 +190,13 @@ struct TypesetterTests {
         arguments: [
             (
                 "aa bb cc",
-                "title (label): the text is 140 wide on one line, wider than its room of 100, and a cut line would "
+                "title (title): the text is 140 wide on one line, wider than its room of 100, and a cut line would "
                     + "say something else"
             ),
-            ("a\nb", "title (label): the text takes 2 lines, and its style allows at most 1"),
+            ("a\nb", "title (title): the text takes 2 lines, and its style allows at most 1"),
             (
                 "결제하기버튼",
-                "title (label): the text is 120 wide on one line, wider than its room of 100, and a cut line would "
+                "title (title): the text is 120 wide on one line, wider than its room of 100, and a cut line would "
                     + "say something else"
             )
         ]
@@ -210,7 +210,7 @@ struct TypesetterTests {
 
         // When, Then
         let error = #expect(throws: TextError.self) {
-            try sut.layout(text, style: style, face: face, width: 100, place: place, kind: "label")
+            try sut.layout(text, style: style, face: face, width: 100, place: place, kind: "title")
         }
         #expect(error?.description == message)
     }

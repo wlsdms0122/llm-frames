@@ -73,7 +73,7 @@ struct LocationReporterTests {
     @Test("a point in a nested list maps through the list's picture and the item inside it, named by its own clip")
     func mapsPointThroughNestedList() throws {
         // Given
-        // A unit of 100 x 50 drawn at (100, 50) scaled 1, holding the media's middle 200 x 100 over the whole unit.
+        // A nested list of 100 x 50 drawn at (100, 50) scaled 1, holding the media's middle 200 x 100 over all of it.
         let media = DisplayItem(
             content: .picture(PictureItem(
                 source: .media(MediaFrame(media: video, index: 0)),
@@ -82,9 +82,9 @@ struct LocationReporterTests {
             )),
             origin: ItemOrigin(place: "storyline[0].media.storyline[1]", id: nil, kind: "video")
         )
-        let unit = DisplayList(size: Size(width: 100, height: 50), background: transparent, seed: 0, items: [media])
+        let nested = DisplayList(size: Size(width: 100, height: 50), background: transparent, seed: 0, items: [media])
         let picture = PictureItem(
-            source: .displayList(unit),
+            source: .displayList(nested),
             rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50),
             destination: Rectangle(x: 100, y: 50, width: 100, height: 50)
         )
@@ -97,7 +97,7 @@ struct LocationReporterTests {
         let report = sut.report(of: list([item]), point: Point(x: 150, y: 75))
 
         // Then
-        // The unit's centre (50, 25) shows the media's centre (200, 100).
+        // The nested list's centre (50, 25) shows the media's centre (200, 100).
         let hit = try #require(report.hits.first)
         #expect(hit.origin?.place == "storyline[0].media.storyline[1]")
         #expect(hit.media?.point == Point(x: 200, y: 100))

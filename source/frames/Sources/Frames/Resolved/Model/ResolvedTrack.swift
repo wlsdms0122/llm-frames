@@ -44,14 +44,15 @@ struct ResolvedTrack: Equatable, Sendable {
         return isBand ? motion.bringBackBand(rectangle) : motion.bringBack(rectangle)
     }
 
-    // A rectangle where it is at the instant, carried by the motion to the frame at a media time.
-    func carry(
-        _ rectangle: Rectangle,
-        toMediaTime time: Double
-    ) -> Rectangle {
-        let motion = track.motion(atMediaTime: time)
+    // A point where it is on the frame at a media time, brought back as `bringBack` does. A band keeps the full width of
+    // its picture, so the point keeps its x.
+    func bringBack(
+        point: Point,
+        fromMediaTime time: Double
+    ) -> Point {
+        let brought = track.motion(atMediaTime: time).bringBack(point)
 
-        return isBand ? motion.carryBand(rectangle) : motion.carry(rectangle)
+        return isBand ? Point(x: point.x, y: brought.y) : brought
     }
 
     // A storyline crop brought back as `bringBack` does, except that a band crop takes only the vertical move of the
