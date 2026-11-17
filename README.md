@@ -397,5 +397,5 @@ The first key holds the version. Times are rounded to the microsecond and positi
 - [document/PRESET.md](document/PRESET.md): how to write a transition, an animation and a filter.
 - [document/PACK.md](document/PACK.md): how to make a pack, a form and a template.
 - [document/howto/](document/howto/): techniques that belong to no form, such as [motion graphics](document/howto/motion-graphics.md) and [effects](document/howto/effects.md).
-- [packs/](packs/): the first forms, `pr-evidence`, `shorts` and `demo`, each with its guide and examples.
+- [packs/](packs/): the first forms, `pr-evidence`, `shorts` and `demo`, each with its guide and examples, and `film`, five film looks made of LUTs with grain, halation and vignettes.
 - [document/ARCHITECTURE.md](document/ARCHITECTURE.md): how the code is laid out.

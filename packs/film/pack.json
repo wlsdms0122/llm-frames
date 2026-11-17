@@ -1,0 +1,6 @@
+{
+  "engine": "^1",
+  "name": "Film",
+  "version": "1.0.0",
+  "description": "Five film looks: LUTs with grain, halation and vignettes"
+}

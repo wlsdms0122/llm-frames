@@ -34,6 +34,11 @@ struct RepositoryPacksTests {
             .filter { $0.hasSuffix(".json") }
             .map { "\(pack)/\(String($0.dropLast(".json".count)))" }
     }
+    private static let filters = packNames.flatMap { pack in
+        entries(in: packs.appendingPathComponent("\(pack)/presets/filter", isDirectory: true))
+            .filter { $0.hasSuffix(".json") }
+            .map { "\(pack)/\(String($0.dropLast(".json".count)))" }
+    }
 
     // A sequence that needs no media, so a theme is merged and checked without reading anything else.
     private static let solid = #"""
@@ -55,16 +60,16 @@ struct RepositoryPacksTests {
     }
 
     // MARK: - Test
-    @Test("the repository keeps the three first forms as packs")
-    func holdsForms() {
+    @Test("the repository keeps the three first forms and the film looks as packs")
+    func holdsPacks() {
         // Given
-        let forms = ["demo", "pr-evidence", "shorts"]
+        let expected = ["demo", "film", "pr-evidence", "shorts"]
 
         // When
         let packs = Self.packNames
 
         // Then
-        #expect(packs == forms)
+        #expect(packs == expected)
     }
 
     @Test("packs lists every installed pack with the name, version 1.0.0 and description its pack.json gives")
@@ -102,6 +107,22 @@ struct RepositoryPacksTests {
 
         // When
         let code = sut.run(arguments, input: Self.solid)
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+    }
+
+    @Test("every filter a pack holds resolves on an adjustment clip, the LUTs it names read", arguments: filters)
+    func resolvesFilter(_ filter: String) {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "adjust": "\#(filter)", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let code = sut.run(["resolve", "-", "-o", sut.directory.file("resolved.json")], input: document)
 
         // Then
         #expect(code == 0, "\(sut.standardError)")
