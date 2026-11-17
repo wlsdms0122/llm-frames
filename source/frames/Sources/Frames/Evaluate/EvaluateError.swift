@@ -9,6 +9,7 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
     // `form` is what was read, `display list` or `mix plan`.
     case unreadableVersion(place: Place, kind: String, form: String, written: String, current: String)
     case differentSeed(place: Place, kind: String, seed: Int, listSeed: Int)
+    case frameOutOfRange(place: Place, kind: String, frame: Int, count: Int)
 
     // MARK: - Property
     var description: String {
@@ -21,6 +22,9 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .differentSeed(place, kind, seed, listSeed):
             "\(place) (\(kind)): seed \(seed) differs from \(listSeed), the seed of the first grain in the list, and "
                 + "every grain of an output frame takes that frame's number"
+
+        case let .frameOutOfRange(place, kind, frame, count):
+            "\(place) (\(kind)): frame \(frame) is not a frame of the media, whose frames are 0 to \(count - 1)"
         }
     }
 

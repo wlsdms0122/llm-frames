@@ -11,7 +11,7 @@
 // resolved document's keys, so its stops name its `kind` as written.
 struct ResolvedDocumentChecker: Sendable {
     // MARK: - Property
-    private let current: String
+    let current: String
 
     // MARK: - Initializer
     init(current: String = FramesVersion.current) {
