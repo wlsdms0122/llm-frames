@@ -5,15 +5,20 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The probed kind of each media file, and the templates that are there, keyed by the reference written in the
-// document. A template is a sequence.
+// The probed kind of each media file, keyed by the reference written in the document, and the names of the templates
+// that are there.
 struct MediaKindTable: MediaKindProvider {
     // MARK: - Property
     let kinds: [String: MediaKind]
+    let templates: Set<String>
 
     // MARK: - Initializer
-    init(_ kinds: [String: MediaKind] = [:]) {
+    init(
+        _ kinds: [String: MediaKind] = [:],
+        templates: Set<String> = []
+    ) {
         self.kinds = kinds
+        self.templates = templates
     }
 
     // MARK: - Public
@@ -22,7 +27,7 @@ struct MediaKindTable: MediaKindProvider {
     }
 
     func hasTemplate(named name: String) -> Bool {
-        kinds[name] == .sequence
+        templates.contains(name)
     }
 
     // MARK: - Private

@@ -156,7 +156,7 @@ struct TemplateCheckTests {
             { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"] } },
               "storyline": [ { "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
             """#)
-        let checker = KeyChecker(mediaKinds: MediaKindTable(["pack/intro": .sequence, "pack/outro": .sequence]))
+        let checker = KeyChecker(mediaKinds: MediaKindTable(templates: ["pack/intro", "pack/outro"]))
 
         // When, Then
         try checker.check(document: document)
