@@ -17,6 +17,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingArgument(command: String, placeholder: String)
     case unexpectedArgument(command: String, argument: String)
     case relativePath(command: String, option: String, path: String)
+    case invalidValue(command: String, option: String, value: String, expected: String)
+    case exclusiveOptions(command: String, option: String, other: String)
     case argumentsAfterVersion(arguments: [String])
     case unknownRole(option: String, role: String, name: String, known: [String])
     case unknownCommand(name: String)
@@ -25,6 +27,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTemplate(command: String, name: String)
     case missingFile(path: String)
     case unwritableFile(path: String)
+    case resolvedExtension(path: String)
     case unknownPresetKind(kind: String, known: [String])
     case unknownPreset(kind: String, name: String)
     case unknownPack(name: String)
@@ -55,6 +58,12 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .relativePath(command, option, path):
             "\(command): \(option) \(quoted(path)) is not an absolute path, and paths are absolute"
 
+        case let .invalidValue(command, option, value, expected):
+            "\(command): \(option) \(quoted(value)) is not \(expected)"
+
+        case let .exclusiveOptions(command, option, other):
+            "\(command): \(option) and \(other) are not given together"
+
         case let .argumentsAfterVersion(arguments):
             "--version takes no arguments, found \(arguments.map(quoted).joined(separator: ", "))"
 
@@ -79,6 +88,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unwritableFile(path):
             "\(path): the file cannot be written"
+
+        case let .resolvedExtension(path):
+            "resolve: \(quoted(path)): a resolved document is written to a .json file"
 
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"

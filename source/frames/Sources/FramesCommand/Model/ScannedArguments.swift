@@ -5,8 +5,11 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Frames
+
 // A command's arguments sorted into its positional arguments, the values of its options and the flags it was given,
-// with the rules they were scanned by, so what is missing is named as usage writes it.
+// with the rules they were scanned by, so what is missing is named as usage writes it. Times and numbers are decimals,
+// and a value that is not one, or is not finite, stops naming its option.
 struct ScannedArguments: Equatable, Sendable {
     // MARK: - Property
     let command: String
@@ -47,6 +50,16 @@ struct ScannedArguments: Equatable, Sendable {
         return argument
     }
 
+    // Paths are absolute, so a relative one stops, named by its placeholder.
+    func requiredPositionalPath(at index: Int) throws -> String {
+        let path = try requiredPositional(at: index)
+        guard path.hasPrefix("/") else {
+            throw CommandError.relativePath(command: command, option: placeholders[index], path: path)
+        }
+
+        return path
+    }
+
     func value(of option: String) -> String? {
         values[option]
     }
@@ -80,5 +93,83 @@ struct ScannedArguments: Equatable, Sendable {
         flags.contains(flag)
     }
 
+    // Seconds.
+    func time(of option: String) throws -> Double? {
+        guard values[option] != nil else { return nil }
+
+        return try requiredTime(of: option)
+    }
+
+    func requiredTime(of option: String) throws -> Double {
+        let value = try requiredValue(of: option)
+        guard let time = number(value) else { throw invalidValue(of: option, value, expected: "a number of seconds") }
+
+        return time
+    }
+
+    // Seconds separated by commas, as `0.5,1,2.25`.
+    func requiredTimes(of option: String) throws -> [Double] {
+        let value = try requiredValue(of: option)
+        let times = value.split(separator: ",", omittingEmptySubsequences: false).map { number(String($0)) }
+        guard !times.contains(nil) else {
+            throw invalidValue(of: option, value, expected: "seconds separated by commas")
+        }
+
+        return times.compactMap(\.self)
+    }
+
+    func integer(of option: String) throws -> Int? {
+        guard let value = values[option] else { return nil }
+        guard let integer = Int(value) else { throw invalidValue(of: option, value, expected: "a whole number") }
+
+        return integer
+    }
+
+    // `x,y`.
+    func requiredPoint(of option: String) throws -> Point {
+        let value = try requiredValue(of: option)
+        let coordinates = value.split(separator: ",", omittingEmptySubsequences: false).map { number(String($0)) }
+        guard coordinates.count == 2, let horizontal = coordinates[0], let vertical = coordinates[1] else {
+            throw invalidValue(of: option, value, expected: "x,y")
+        }
+
+        return Point(x: horizontal, y: vertical)
+    }
+
+    // One of the values' names, as `--quality high`.
+    func choice<Value: RawRepresentable & CaseIterable>(
+        of option: String
+    ) throws -> Value? where Value.RawValue == String {
+        guard let value = values[option] else { return nil }
+        guard let choice = Value(rawValue: value) else {
+            let names = Value.allCases.map(\.rawValue).joined(separator: ", ")
+            throw invalidValue(of: option, value, expected: "one of \(names)")
+        }
+
+        return choice
+    }
+
+    // The range `--from`, `--to` and `--step` give, a step of a second when `--step` is not given.
+    func frameRange() throws -> FrameRange {
+        FrameRange(
+            from: try time(of: "--from"),
+            to: try time(of: "--to"),
+            step: try time(of: "--step") ?? 1
+        )
+    }
+
     // MARK: - Private
+    private func number(_ text: String) -> Double? {
+        guard let number = Double(text), number.isFinite else { return nil }
+
+        return number
+    }
+
+    private func invalidValue(
+        of option: String,
+        _ value: String,
+        expected: String
+    ) -> CommandError {
+        CommandError.invalidValue(command: command, option: option, value: value, expected: expected)
+    }
 }

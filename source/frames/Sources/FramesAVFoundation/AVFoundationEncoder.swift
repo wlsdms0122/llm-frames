@@ -181,6 +181,7 @@ extension AVFoundationEncoder: Encoder {
         guard canEncodeAAC() else {
             throw EncoderError.unencodable(file: target.path, codec: "AAC")
         }
+        try soundConverter.check(target.layout, path: target.path)
     }
 
     package func writeImage(

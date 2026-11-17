@@ -74,9 +74,9 @@ struct OCRReporterTests {
     @Test("a video is read at the start with no time, at `--at`, or at each step of a range", arguments: [
         (TimeSelection.start, [0.0]),
         (.at(0.6), [0.6]),
-        (.range(from: nil, to: nil, step: 0.25), [0, 0.25, 0.5, 0.75]),
-        (.range(from: 0.25, to: 0.75, step: 0.2), [0.25, 0.45, 0.65]),
-        (.range(from: 0, to: 0.3, step: 0.1), [0, 0.1, 0.2])
+        (.range(FrameRange(from: nil, to: nil, step: 0.25)), [0, 0.25, 0.5, 0.75]),
+        (.range(FrameRange(from: 0.25, to: 0.75, step: 0.2)), [0.25, 0.45, 0.65]),
+        (.range(FrameRange(from: 0, to: 0.3, step: 0.1)), [0, 0.1, 0.2])
     ])
     func readsTimes(selection: TimeSelection, times: [Double]) throws {
         // Given
@@ -97,7 +97,7 @@ struct OCRReporterTests {
 
         // When
         let single = try sut.report(of: "/abs/clip.mov", at: .at(0.5))
-        let range = try sut.report(of: "/abs/clip.mov", at: .range(from: 0.25, to: nil, step: 0.5))
+        let range = try sut.report(of: "/abs/clip.mov", at: .range(FrameRange(from: 0.25, to: nil, step: 0.5)))
 
         // Then
         #expect(single.text.split(separator: "\n") == [
@@ -122,13 +122,13 @@ struct OCRReporterTests {
             ("/abs/clip.mov", .at(-0.5), #"--at: media second -0.5 is before the start of "/abs/clip.mov""#),
             (
                 "/abs/clip.mov",
-                .range(from: nil, to: 2, step: 1),
+                .range(FrameRange(from: nil, to: 2, step: 1)),
                 #"--to: media second 2 is after the end of "/abs/clip.mov" at 1"#
             ),
-            ("/abs/clip.mov", .range(from: 0.5, to: 0.5, step: 0.1), "--from: 0.5 is not before --to 0.5"),
+            ("/abs/clip.mov", .range(FrameRange(from: 0.5, to: 0.5, step: 0.1)), "--from: 0.5 is not before --to 0.5"),
             (
                 "/abs/clip.mov",
-                .range(from: nil, to: nil, step: 0),
+                .range(FrameRange(from: nil, to: nil, step: 0)),
                 "--step: the step must be at least a microsecond, found 0"
             ),
             (

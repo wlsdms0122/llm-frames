@@ -39,7 +39,6 @@ package struct OCRReporter: Sendable {
     }
 
     // MARK: - Private
-    // A range runs from + k × step while it is before `to`, compared to the microsecond.
     private func times(
         _ selection: TimeSelection,
         in probed: ProbedMedia,
@@ -60,18 +59,18 @@ package struct OCRReporter: Sendable {
             try checkTime("--at", time, end: end, file: file)
             return [time]
 
-        case let .range(from, to, step):
-            guard step.timeTicks > 0 else { throw AnalysisError.nonPositiveStep(step: step) }
+        case let .range(range):
+            guard range.step.timeTicks > 0 else { throw AnalysisError.nonPositiveStep(step: range.step) }
 
-            let start = from ?? 0
-            let stop = to ?? end
+            let start = range.start
+            let stop = range.last(end: end)
             try checkTime("--from", start, end: end, file: file)
             guard stop.roundedTime <= end.roundedTime else {
                 throw AnalysisError.afterMediaEnd(option: "--to", time: stop, file: file, end: end)
             }
             guard start.roundedTime < stop.roundedTime else { throw AnalysisError.emptyRange(from: start, to: stop) }
 
-            return Array((0...).lazy.map { start + Double($0) * step }.prefix { $0.roundedTime < stop.roundedTime })
+            return range.times(before: stop)
         }
     }
 

@@ -9,7 +9,7 @@
 // also `media`, the file its frame is read from, `mediaTime` and `point`, `[x, y]` in that media's pixels or `null`.
 extension LocationReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "locate", value: .string(FramesVersion.current)),
             JSONMember(key: "hits", value: .array(hits.map(output)))

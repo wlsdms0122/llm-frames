@@ -9,7 +9,7 @@
 // `[width, height]` and `audio` is `{channels, sampleRate}`, each `null` where the medium has none.
 extension ProbeReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         let audio = sound.map { sound in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "channels", value: .number(Double(sound.channels))),

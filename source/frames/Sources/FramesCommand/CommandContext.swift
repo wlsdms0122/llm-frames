@@ -25,6 +25,18 @@ struct CommandContext: Sendable {
         PresetLibrary(builtIn: environment.builtInPresets, packs: packs)
     }
 
+    // Labels are set in the base theme, read through the packs.
+    var exporter: FrameExporter {
+        FrameExporter(
+            decoder: roles.decoder,
+            renderer: roles.renderer,
+            encoder: roles.encoder,
+            mediaFacts: roles.decoder,
+            shaper: roles.shaper,
+            library: ReferenceLibrary(packs: packs, mediaFacts: roles.decoder)
+        )
+    }
+
     var planner: DocumentPlanner {
         DocumentPlanner(
             mediaFacts: roles.decoder,
@@ -58,6 +70,19 @@ struct CommandContext: Sendable {
     ) throws -> DocumentInput {
         try DocumentLoader(environment: environment, packs: packs)
             .input(of: argument, theme: options.theme, arguments: arguments, command: command)
+    }
+
+    // What `sheet` and `extract` take frames from: a `.json` file, a pack template or standard input is a document,
+    // used resolved, and any other absolute path a video.
+    func frameSource(
+        _ argument: String,
+        command: String
+    ) throws -> FrameSource {
+        guard argument.hasPrefix("/"), URL(fileURLWithPath: argument).pathExtension.lowercased() != "json" else {
+            return .document(try document(argument, arguments: nil, command: command).resolved(by: planner))
+        }
+
+        return .video(path: argument)
     }
 
     func write(

@@ -7,18 +7,23 @@
 
 // A sound file an encoder writes: an MPEG-4 audio file of AAC at its quality's `soundBitRate` per channel, with the
 // sound's channels up to 2, more downmixed to stereo, and its sample rate up to 48 kHz, a higher one converted to it.
+// `layout` is the layout of the sound it is given, so the encoder's check refuses one it cannot downmix before an
+// existing file is removed.
 package struct SoundTarget: Equatable, Sendable {
     // MARK: - Property
     package let path: String
     package let quality: EncodeQuality
+    package let layout: ChannelLayout
 
     // MARK: - Initializer
     package init(
         path: String,
-        quality: EncodeQuality
+        quality: EncodeQuality,
+        layout: ChannelLayout
     ) {
         self.path = path
         self.quality = quality
+        self.layout = layout
     }
 
     // MARK: - Public

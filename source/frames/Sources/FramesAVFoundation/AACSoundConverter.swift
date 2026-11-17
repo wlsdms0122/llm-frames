@@ -19,6 +19,16 @@ struct AACSoundConverter: Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
+    // Refuses sound of `layout` that has more channels than AAC stores here and a channel BS.775 names no speaker for.
+    func check(
+        _ layout: ChannelLayout,
+        path: String
+    ) throws {
+        guard layout.labels.count <= Self.maximumChannels || StereoDownmixer(layout: layout) != nil else {
+            throw EncoderError.undownmixable(file: path)
+        }
+    }
+
     func fitted(
         _ sound: SoundBuffer,
         path: String

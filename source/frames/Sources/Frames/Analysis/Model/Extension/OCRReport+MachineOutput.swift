@@ -9,7 +9,7 @@
 // `{time, lines}` and each line `{text, rect}`, its rectangle `[x, y, w, h]` in media pixels.
 extension OCRReport {
     // MARK: - Property
-    var machineOutput: JSONValue {
+    package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "ocr", value: .string(FramesVersion.current)),
             JSONMember(key: "size", value: .array([.number(size.width), .number(size.height)])),
