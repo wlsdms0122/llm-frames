@@ -41,7 +41,7 @@ struct ShapeDrawer: Sendable {
     }
 
     // What a drawing draws on an area, and the box its animation acts about: the area, or the arrow's. Its lengths are
-    // divided by `scale`, the scale its area's space is drawn at, so they stay the same in output pixels.
+    // divided by `scale`, the scale above 0 its area's space is drawn at, so they stay the same in output pixels.
     func content(
         of drawing: ShapeDrawing,
         on area: Rectangle,

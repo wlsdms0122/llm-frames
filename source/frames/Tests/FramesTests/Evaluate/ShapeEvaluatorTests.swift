@@ -157,6 +157,29 @@ struct ShapeEvaluatorTests {
         #expect(items == [DisplayItem(transform: transform, content: content)])
     }
 
+    @Test(
+        "a shape on an area under a parent at scale 0 draws nothing, and its children land on the point it flattens to",
+        arguments: [
+            ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
+            ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red)
+        ]
+    )
+    func drawsNothingAtZeroScale(drawing: ShapeDrawing) {
+        // Given
+        let transform = AffineTransform(a: 0, b: 0, c: 0, d: 0, tx: 10, ty: 20)
+        let space = ClipSpace(frame: Self.frame, transform: transform)
+        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)])
+        let sample = ClipSample(clip: clip, at: 1)
+
+        // When
+        let items = sut.items(of: drawing, clip: clip, sample: sample, in: space, at: 1)
+        let children = sut.transform(of: drawing, clip: clip, sample: sample, in: space, at: 1)
+
+        // Then
+        #expect(items.isEmpty)
+        #expect(children == transform)
+    }
+
     // MARK: - Private
     private func shape(
         _ drawing: ShapeDrawing,

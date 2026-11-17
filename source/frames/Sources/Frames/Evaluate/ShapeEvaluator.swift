@@ -26,8 +26,13 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> [DisplayItem] {
+        let tracked = space.tracked(by: clip.track, at: time)
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let laid = laid(drawing, on: area, sample: sample, in: space.tracked(by: clip.track, at: time))
+        // A space at scale 0, a parent entering from 0 or keyed to 0, flattens the shape to a point, and its lengths
+        // cannot be kept there, so it draws nothing.
+        guard area == nil || tracked.scale > 0 else { return [] }
+
+        let laid = laid(drawing, on: area, sample: sample, in: tracked)
         let frame = frame(of: laid.presentation.transform, covering: space.frame)
 
         return [item(of: laid.content, area: area, frame: frame, sample: sample, presentation: laid.presentation)]
@@ -43,6 +48,9 @@ struct ShapeEvaluator: Sendable {
     ) -> AffineTransform {
         let tracked = space.tracked(by: clip.track, at: time)
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
+        // At scale 0 every point of the space lands on one, and the shape's own motion leaves it there.
+        guard area == nil || tracked.scale > 0 else { return tracked.transform }
+
         let transform = laid(drawing, on: area, sample: sample, in: tracked).presentation.transform
 
         return area == nil ? tracked.transform.concatenating(transform) : transform
