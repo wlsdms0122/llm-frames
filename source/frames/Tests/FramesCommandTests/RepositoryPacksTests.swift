@@ -23,7 +23,7 @@ struct RepositoryPacksTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
     private static let packs = root.appendingPathComponent("packs", isDirectory: true)
-    private static let shippedPresets = root.appendingPathComponent(
+    private static let builtInPresets = root.appendingPathComponent(
         "source/frames/Sources/FramesCommand/Resources/presets",
         isDirectory: true
     )
@@ -45,7 +45,7 @@ struct RepositoryPacksTests {
     // MARK: - Initializer
     init() throws {
         sut = try TestShell()
-        try copy(Self.shippedPresets, into: sut.builtIn)
+        try copy(Self.builtInPresets, into: sut.builtIn)
         for pack in Self.packNames {
             try FileManager.default.copyItem(
                 at: Self.packs.appendingPathComponent(pack, isDirectory: true),

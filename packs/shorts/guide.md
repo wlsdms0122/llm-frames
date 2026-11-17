@@ -75,4 +75,4 @@ It shows the format and the rules together:
 - Its subtitles change back to back in the scene's seconds, `[0, 1.6]` then `[1.6, 3.5]`, and the second scene's subtitle spans that scene.
 - No clip names a transition or an animation: the theme pushes the second scene up, pops the subtitles and the label in, and draws the box.
 
-Check it with `frames timeline examples/checkout.json` and `frames still examples/checkout.json --at 0.5,2.5,4.5 -o check.png`.
+Check it with `frames timeline /path/to/work/checkout.json` and `frames still /path/to/work/checkout.json --at 0.5,2.5,4.5 -o /path/to/out/check.png`, where `/path/to/work/` is where you copied it (paths are absolute).

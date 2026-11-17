@@ -20,8 +20,11 @@ frames is a Swift package for macOS. It renders with Apple's frameworks (AVFound
 ```sh
 swift build -c release --package-path source/frames
 cp source/frames/.build/release/frames /usr/local/bin/frames
+cp -R source/frames/.build/release/Frames_FramesCommand.bundle /usr/local/bin/
 frames --version
 ```
+
+The built in presets live in `Frames_FramesCommand.bundle`, which goes in the same directory as the tool.
 
 The tool is `frames`. Packs (looks, forms and templates others made) are installed by copying a directory into `$FRAMES_HOME/packs/`, and `FRAMES_HOME` defaults to `~/.config/frames`:
 
@@ -90,7 +93,7 @@ frames transcode /path/to/out/total.png -o /path/to/out/total.jpg --quality high
 frames transcode /path/to/out/short.mov -o /path/to/out/short.mp4 --quality medium
 ```
 
-A template renders on its own with its arguments: `frames render shorts/intro --args /path/to/args.json -o /path/to/out/intro.mov`. A resolved document already has its theme and arguments written in, so `--theme` or `--args` with one stops.
+A template renders on its own with its arguments: `frames render mine/intro --args /path/to/args.json -o /path/to/out/intro.mov`. A resolved document already has its theme and arguments written in, so `--theme` or `--args` with one stops.
 
 ### Looking at material and results
 
@@ -369,20 +372,11 @@ Precedence, weakest first: base theme, `--theme`, the document's `theme`, keys o
 
 ### Presets
 
-The 42 shipped presets: 14 transitions (`fade`, `dip-black`, `flash`, `push-left`, `push-up`, `slide-left`, `slide-right`, `slide-up`, `uncover-left`, `wipe-left`, `wipe-right`, `wipe-down`, `zoom-in`, `zoom-out`), 14 animations (`none`, `fade`, `pop`, `stamp`, `zoom`, `draw`, `wipe`, `rise`, `drop`, `slide-left`, `bounce`, `pulse`, `blink`, `shake`) and 14 filters (`mono`, `noir`, `sepia`, `warm`, `cool`, `vivid`, `faded`, `bright`, `dark`, `soft`, `sharpen`, `blur`, `vignette`, `pixelate`). `frames presets` describes each. [FRAMES-16](spec/FRAMES-16/SPEC.md), and the format [FRAMES-14](spec/FRAMES-14/SPEC.md) and [FRAMES-15](spec/FRAMES-15/SPEC.md).
+frames ships 42 presets: 14 transitions, 14 animations and 14 filters. `frames presets` lists them and says how each looks. [FRAMES-16](spec/FRAMES-16/SPEC.md), and the format [FRAMES-14](spec/FRAMES-14/SPEC.md) and [FRAMES-15](spec/FRAMES-15/SPEC.md). How to write one: [PRESET.md](document/PRESET.md).
 
 ### Packs and templates
 
-| In a pack | Named as |
-| --- | --- |
-| `pack.json` | `{ "engine": "^1", "name", "version", "description" }` |
-| `presets/<kind>/<name>.json` | `<pack>/<name>` |
-| `themes/<name>.json` | `<pack>/<name>` |
-| `templates/<name>.json` | `<pack>/<name>` |
-| `luts/<name>.cube` | `<pack>/<name>` |
-| `media/<file>` | `<pack>/<file.ext>`, or `<pack>/<dir>` for an image sequence |
-| `fonts/` | by family, in the pack's themes |
-| `guide.md`, `examples/` | read by people and agents |
+What a pack holds and how its things are named: [PACK.md](document/PACK.md).
 
 A parameter is `{type, default, description}`, with `options` for a `choice`. Types: `video, sequence, image, audio, text, color, number, choice`. `{"param": "<name>"}` stands for a value of that type. [FRAMES-17](spec/FRAMES-17/SPEC.md)
 

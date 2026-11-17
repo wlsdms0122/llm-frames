@@ -76,4 +76,4 @@ It shows the format and the rules together:
 { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" }
 ```
 
-Check it with `frames timeline examples/checkout.json` and `frames still examples/checkout.json --at 0.5,2,4.5,7.5 -o check.png`.
+Check it with `frames timeline /path/to/work/checkout.json` and `frames still /path/to/work/checkout.json --at 0.5,2,4.5,7.5 -o /path/to/out/check.png`, where `/path/to/work/` is where you copied it (paths are absolute).
