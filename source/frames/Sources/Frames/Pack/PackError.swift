@@ -35,7 +35,7 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .duplicatePack(place, name, shipped):
             "\(place) (\(PackKeyTable.manifest.kind)): "
-                + "a pack named \(quoted(name)) ships with frames at \(shipped), so an installed one of that name stops"
+                + "a pack named \(quoted(name)) ships with frames at \(shipped), so an installed one of that name stops. Rename or remove the installed one"
 
         case let .unreadableFile(file):
             "\(file): the file is there but cannot be read"

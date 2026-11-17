@@ -52,7 +52,7 @@ struct ShippedTransitionPresetTests {
     }
 
     // MARK: - Test
-    @Test("the built in transitions are exactly the fourteen that ship, each read without error")
+    @Test("the shipped transitions are exactly the fourteen of the frames pack, each read without error")
     func shipsNames() throws {
         // Given, When
         let names = try sut.presets(of: .transition).map(\.name)

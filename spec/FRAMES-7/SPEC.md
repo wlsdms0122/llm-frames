@@ -66,9 +66,9 @@ A typo that renders as no effect is the costliest mistake an agent can make, sin
 | shape clip | every clip's, `shape, area, track, label, labelAnimation, color, blend`, and `side` for an arrow |
 | adjustment clip | every clip's, `adjust, area, track` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
-| transition choice | a preset name, a `<pack>/<name>`, an absolute path, `"cut"`, or `{preset, seconds}` |
-| animation choice | a preset name, a `<pack>/<name>`, an absolute path, `"none"`, or `{entrance, exit}` |
-| filter choice | a preset name, a `<pack>/<name>`, an absolute path, a list of those, or `"none"` |
+| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds}` |
+| animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, or `{entrance, exit}` |
+| filter choice | a preset as `<pack>/<name>` or an absolute path, a list of those, or `"none"` |
 | image document | `kind, source, time, theme, params, ops`, and each op's keys from [FRAMES-6](../FRAMES-6/SPEC.md) |
 | layout document | `kind, theme, params, banner, columns, border, items`. An item takes `heading, image` |
 | template instance | `template, args` |

@@ -65,7 +65,7 @@ FRAMES_HOME=/path/to/try frames packs mine
 - **A pack names its own files like anyone else does.** A template in `mine` that uses its own theme writes `"theme": "mine/dark"`, not a relative path. So every file has one spelling, and the pack works wherever `FRAMES_HOME` is.
 - **The kind comes from where the name is written.** A transition and an animation may both be called `pop-in`, since `"transition"` and `"animation"` look in different folders.
 - **Pick names for what a thing looks like, not where it is used.** `drop-in`, `warm-screen` and `lower-third` say what you get. `episode-3-intro` says nothing to the next reader. Use lowercase words joined by `-`, as the shipped presets do.
-- **Pick a pack name that is unlikely to clash**, since two packs cannot share a directory. `frames` is the pack that ships with frames. A short brand or project name works.
+- **Pick a pack name that is unlikely to clash**, since two packs cannot share a directory. `frames` is taken by the pack that ships with frames, and an installed pack of that name stops every command that reads packs. A short brand or project name works.
 
 Presets are covered in [PRESET.md](PRESET.md). LUTs are `.cube` files named in a filter's `lut` op as `mine/film`. Media in `media/` is named with its extension (`mine/grain.mov`), and an image sequence is a folder named without one (`{ "imageSequence": "mine/confetti", "fps": 30 }`).
 

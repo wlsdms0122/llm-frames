@@ -11,7 +11,7 @@ The same six steps make a PR screenshot, a short or a demo ([FRAMES-25](../spec/
 A form is a kind of result, kept as a pack. Its guide says who the result is for, its format, and the rules it keeps. Its examples are documents to start from.
 
 ```sh
-frames packs                                   # installed packs
+frames packs                                   # the shipped and installed packs
 frames packs shorts                            # what one holds: theme, presets, templates, media
 cat ~/.config/frames/packs/shorts/guide.md
 cp ~/.config/frames/packs/shorts/examples/checkout.json /path/to/work/short.json

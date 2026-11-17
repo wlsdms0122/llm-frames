@@ -46,7 +46,7 @@ struct ShippedFilterPresetTests {
     }
 
     // MARK: - Test
-    @Test("the built in filters are exactly the 14 that FRAMES-16 names")
+    @Test("the shipped filters are exactly the 14 that FRAMES-16 names")
     func namesShippedFilters() throws {
         // Given, When
         let names = try sut.presets(of: .filter).map(\.name)
@@ -56,7 +56,7 @@ struct ShippedFilterPresetTests {
         #expect(Set(names) == Set(Self.names.map { "frames/\($0)" }))
     }
 
-    @Test("every built in filter reads, with a one line description and at least one operation", arguments: names)
+    @Test("every shipped filter reads, with a one line description and at least one operation", arguments: names)
     func readsShippedFilter(name: String) throws {
         // Given, When
         let preset = try #require(try sut.filter(named: "frames/\(name)"))
@@ -221,7 +221,7 @@ struct ShippedFilterPresetTests {
     }
 
     // MARK: - Private
-    // Draws the test picture through the built in filter `name` with `still`, at the picture's own size.
+    // Draws the test picture through the shipped filter `frames/<name>` with `still`, at the picture's own size.
     private func draw(_ name: String) throws -> RenderedPicture {
         let image = shell.directory.file("picture.png")
         if !FileManager.default.fileExists(atPath: image) {

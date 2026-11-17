@@ -90,7 +90,7 @@ package struct ReferenceLibrary: MediaKindProvider {
     }
 
     // The file or directory a media reference names: a path as it is, and `<pack>/<name.ext>` or `<pack>/<dir>` in
-    // the pack's `media/`. There is no built in media.
+    // the pack's `media/`.
     func mediaFile(named reference: String) throws -> String? {
         guard let reference = PackReference(reference) else { return nil }
 
@@ -98,7 +98,6 @@ package struct ReferenceLibrary: MediaKindProvider {
     }
 
     // The `.cube` file a LUT reference names: a path as it is, and `<pack>/<name>` for `luts/<name>.cube` in the pack.
-    // There is no built in LUT.
     func lutFile(named reference: String) throws -> String? {
         guard let reference = PackReference(reference) else { return nil }
 

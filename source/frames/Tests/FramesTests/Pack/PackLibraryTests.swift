@@ -60,7 +60,7 @@ struct PackLibraryTests {
         let error = #expect(throws: PackError.self) { try sut.pack(named: "shorts") }
         let manifest = directory.installed.appendingPathComponent("shorts/pack.json").path
         let shipped = directory.shipped.appendingPathComponent("shorts").path
-        #expect(error?.description == #"\#(manifest): top level (manifest): a pack named "shorts" ships with frames at \#(shipped), so an installed one of that name stops"#)
+        #expect(error?.description == #"\#(manifest): top level (manifest): a pack named "shorts" ships with frames at \#(shipped), so an installed one of that name stops. Rename or remove the installed one"#)
     }
 
     @Test("a pack directory without a pack.json stops")
