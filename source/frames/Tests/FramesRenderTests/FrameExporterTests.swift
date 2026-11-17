@@ -228,7 +228,7 @@ struct FrameExporterTests {
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
             shaper: CoreTextShaper(),
-            library: ReferenceLibrary(packs: PackLibrary(installed: directory, shipped: directory), mediaFacts: decoder)
+            library: ReferenceLibrary(packs: PackLibrary(installed: directory), mediaFacts: decoder)
         )
     }
 

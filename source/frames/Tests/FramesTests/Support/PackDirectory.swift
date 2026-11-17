@@ -9,8 +9,7 @@ import Foundation
 
 @testable import Frames
 
-// A temporary directory with room for installed packs, shipped packs and built in presets, removed when the test
-// that made it ends.
+// A temporary directory with room for installed packs and built in presets, removed when the test that made it ends.
 final class PackDirectory {
     // MARK: - Property
     let root: URL
@@ -19,16 +18,12 @@ final class PackDirectory {
         root.appendingPathComponent("installed", isDirectory: true)
     }
 
-    var shipped: URL {
-        root.appendingPathComponent("shipped", isDirectory: true)
-    }
-
     var builtIn: URL {
         root.appendingPathComponent("presets", isDirectory: true)
     }
 
     var packs: PackLibrary {
-        PackLibrary(installed: installed, shipped: shipped)
+        PackLibrary(installed: installed)
     }
 
     // MARK: - Initializer
@@ -36,7 +31,6 @@ final class PackDirectory {
         root = FileManager.default.temporaryDirectory
             .appendingPathComponent("frames-test-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: shipped, withIntermediateDirectories: true)
     }
 
     deinit {

@@ -7,8 +7,8 @@
 
 import Frames
 
-// Lists the installed and shipped packs with what their `pack.json` says, or what one pack holds, by kind, each
-// thing by the name a document gives it.
+// Lists the installed packs with what their `pack.json` says, or what one pack holds, by kind, each thing by the name
+// a document gives it.
 struct PacksCommand: Command {
     // MARK: - Property
     let name = "packs"

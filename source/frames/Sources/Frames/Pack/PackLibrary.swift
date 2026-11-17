@@ -7,51 +7,35 @@
 
 import Foundation
 
-// Finds packs and the files they hold. Installed packs live in `installed`, and the packs that ship with frames in
-// `shipped`, found as if installed. Every file a named thing is read from is read here.
+// Finds the packs installed in `installed` and the files they hold. Every file a named thing is read from is read here.
 package struct PackLibrary: Sendable {
     // MARK: - Property
     private let installed: URL
-    private let shipped: URL
     private let reader = ManifestReader()
 
     // MARK: - Initializer
-    init(
-        installed: URL,
-        shipped: URL
-    ) {
+    init(installed: URL) {
         self.installed = installed
-        self.shipped = shipped
     }
 
     // Installed packs live at `$FRAMES_HOME/packs`, and `FRAMES_HOME` defaults to `~/.config/frames`.
-    package init(
-        environment: [String: String],
-        shipped: URL
-    ) {
+    package init(environment: [String: String]) {
         let home = environment["FRAMES_HOME"].map { URL(fileURLWithPath: $0, isDirectory: true) }
             ?? URL(fileURLWithPath: environment["HOME"] ?? NSHomeDirectory(), isDirectory: true)
                 .appendingPathComponent(".config", isDirectory: true)
                 .appendingPathComponent("frames", isDirectory: true)
-        self.init(installed: home.appendingPathComponent("packs", isDirectory: true), shipped: shipped)
+        self.init(installed: home.appendingPathComponent("packs", isDirectory: true))
     }
 
     // MARK: - Public
     // A pack is the directory it is in, whatever its manifest calls it. It is checked each time it is used, since what
     // is installed can change between uses.
     package func pack(named name: String) throws -> Pack? {
-        let installedDirectory = installed.appendingPathComponent(name, isDirectory: true)
-        let shippedDirectory = shipped.appendingPathComponent(name, isDirectory: true)
-        let isInstalled = isDirectory(installedDirectory)
-        let isShipped = isDirectory(shippedDirectory)
-        guard isInstalled || isShipped else { return nil }
+        let directory = installed.appendingPathComponent(name, isDirectory: true)
+        guard isDirectory(directory) else { return nil }
 
-        let directory = isInstalled ? installedDirectory : shippedDirectory
         let file = directory.appendingPathComponent("pack.json").path
         let place = Place(file: file, components: [])
-        guard !(isInstalled && isShipped) else {
-            throw PackError.duplicatePack(place: place, name: name, shipped: shippedDirectory.path)
-        }
         guard let data = try contents(of: URL(fileURLWithPath: file)) else {
             throw PackError.missingManifest(place: place)
         }
@@ -69,11 +53,9 @@ package struct PackLibrary: Sendable {
         return Pack(name: name, directory: directory, manifest: manifest)
     }
 
-    // Every installed and shipped pack, in name order, each checked as it is when it is used.
+    // Every installed pack, in name order, each checked as it is when it is used.
     package func packs() throws -> [Pack] {
-        let names = Set(try entries(in: installed) + entries(in: shipped))
-
-        return try names.sorted().compactMap { try pack(named: $0) }
+        try entries(in: installed).sorted().compactMap { try pack(named: $0) }
     }
 
     // What one of a pack's folders holds, by the names `<pack>/<name>` gives them, in name order. Where its kind of

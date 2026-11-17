@@ -36,33 +36,6 @@ struct PackLibraryTests {
         #expect(pack?.manifest.name == "A pack for tests")
     }
 
-    @Test("a pack that ships with frames is found as if installed")
-    func findsShippedPack() throws {
-        // Given
-        let packDirectory = try directory.addPack("pr-evidence", in: directory.shipped)
-        let sut = directory.packs
-
-        // When
-        let pack = try sut.pack(named: "pr-evidence")
-
-        // Then
-        #expect(pack?.directory.path == packDirectory.path)
-    }
-
-    @Test("an installed pack of the same name as a shipped one stops")
-    func refusesDuplicatePack() throws {
-        // Given
-        try directory.addPack("shorts")
-        try directory.addPack("shorts", in: directory.shipped)
-        let sut = directory.packs
-
-        // When, Then
-        let error = #expect(throws: PackError.self) { try sut.pack(named: "shorts") }
-        let manifest = directory.installed.appendingPathComponent("shorts/pack.json").path
-        let shipped = directory.shipped.appendingPathComponent("shorts").path
-        #expect(error?.description == #"\#(manifest): top level (manifest): a pack named "shorts" ships with frames at \#(shipped), so an installed one of that name stops"#)
-    }
-
     @Test("a pack directory without a pack.json stops")
     func refusesMissingManifest() throws {
         // Given
@@ -108,8 +81,8 @@ struct PackLibraryTests {
         let home = directory.root.appendingPathComponent("home", isDirectory: true)
         let framesHome = home.appendingPathComponent(".config/frames", isDirectory: true)
         try directory.addPack("shorts", in: framesHome.appendingPathComponent("packs", isDirectory: true))
-        let byDefault = PackLibrary(environment: ["HOME": home.path], shipped: directory.shipped)
-        let bySetting = PackLibrary(environment: ["HOME": "/nowhere", "FRAMES_HOME": framesHome.path], shipped: directory.shipped)
+        let byDefault = PackLibrary(environment: ["HOME": home.path])
+        let bySetting = PackLibrary(environment: ["HOME": "/nowhere", "FRAMES_HOME": framesHome.path])
 
         // When
         let defaultPack = try byDefault.pack(named: "shorts")
@@ -120,13 +93,12 @@ struct PackLibraryTests {
         #expect(settingPack?.directory.standardizedFileURL.path == framesHome.appendingPathComponent("packs/shorts").path)
     }
 
-    @Test("every installed and shipped pack is listed in name order, and a hidden entry is no pack")
+    @Test("every installed pack is listed in name order, and a hidden entry is no pack")
     func listsPacks() throws {
         // Given
         try directory.addPack("shorts")
-        try directory.addPack("demo", in: directory.shipped)
+        try directory.addPack("demo")
         try directory.write("", to: directory.installed.appendingPathComponent(".DS_Store"))
-        try directory.write("", to: directory.shipped.appendingPathComponent(".gitkeep"))
         let sut = directory.packs
 
         // When

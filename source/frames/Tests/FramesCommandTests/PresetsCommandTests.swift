@@ -26,10 +26,10 @@ struct PresetsCommandTests {
             #"{ "description": "pushes up", "seconds": 0.3 }"#,
             to: sut.installed.appendingPathComponent("shorts/presets/transition/push-up.json")
         )
-        try sut.addPack("demo", in: sut.shipped)
+        try sut.addPack("demo")
         try sut.write(
             #"{ "description": "warms the picture", "ops": [] }"#,
-            to: sut.shipped.appendingPathComponent("demo/presets/filter/warm.json")
+            to: sut.installed.appendingPathComponent("demo/presets/filter/warm.json")
         )
     }
 

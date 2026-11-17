@@ -10,8 +10,8 @@ import FramesTestMedia
 
 @testable import FramesCommand
 
-// A shell with its own `FRAMES_HOME`, built in presets and shipped packs in a temporary directory, so a command runs
-// in process without the bundle or what is installed on the machine, and the output of its last run is kept.
+// A shell with its own `FRAMES_HOME` and built in presets in a temporary directory, so a command runs in process
+// without the bundle or what is installed on the machine, and the output of its last run is kept.
 final class TestShell {
     // MARK: - Property
     // The base theme's defaults name it, so a theme without it stops.
@@ -34,10 +34,6 @@ final class TestShell {
         URL(fileURLWithPath: directory.file("presets"), isDirectory: true)
     }
 
-    var shipped: URL {
-        URL(fileURLWithPath: directory.file("shipped"), isDirectory: true)
-    }
-
     var standardOutput: String {
         recorder.standardOutput
     }
@@ -49,7 +45,7 @@ final class TestShell {
     // MARK: - Initializer
     init() throws {
         directory = try TemporaryDirectory()
-        for url in [installed, builtIn, shipped] {
+        for url in [installed, builtIn] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
         try write(Self.pop, to: builtIn.appendingPathComponent("animation/pop.json"))
@@ -66,7 +62,6 @@ final class TestShell {
         let environment = CommandEnvironment(
             variables: ["FRAMES_HOME": home.path, "PATH": "/usr/bin:/bin"].merging(variables) { _, given in given },
             builtInPresets: builtIn,
-            shippedPacks: shipped,
             standardInput: { Data(input.utf8) }
         )
 
@@ -75,14 +70,13 @@ final class TestShell {
         return CommandShell(environment: environment, output: recorder.output).run(arguments)
     }
 
-    // A pack with a `pack.json` for frames 1, installed unless another directory is given.
+    // An installed pack with a `pack.json` for frames 1.
     @discardableResult
     func addPack(
         _ name: String,
-        manifest: String = #"{ "engine": "^1", "name": "Shorts", "version": "1.2.0", "description": "Looks for shorts" }"#,
-        in packs: URL? = nil
+        manifest: String = #"{ "engine": "^1", "name": "Shorts", "version": "1.2.0", "description": "Looks for shorts" }"#
     ) throws -> URL {
-        let directory = (packs ?? installed).appendingPathComponent(name, isDirectory: true)
+        let directory = installed.appendingPathComponent(name, isDirectory: true)
         try write(manifest, to: directory.appendingPathComponent("pack.json"))
 
         return directory

@@ -18,7 +18,7 @@ struct CommandContext: Sendable {
     private let environment: CommandEnvironment
 
     var packs: PackLibrary {
-        PackLibrary(environment: environment.variables, shipped: environment.shippedPacks)
+        PackLibrary(environment: environment.variables)
     }
 
     var presets: PresetLibrary {

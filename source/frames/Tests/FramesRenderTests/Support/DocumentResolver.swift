@@ -50,7 +50,7 @@ struct DocumentResolver {
     // MARK: - Private
     private func planner() -> DocumentPlanner {
         let directory = URL(fileURLWithPath: presets.path, isDirectory: true)
-        let packs = PackLibrary(installed: directory, shipped: directory)
+        let packs = PackLibrary(installed: directory)
         let library = ReferenceLibrary(packs: packs, mediaFacts: decoder)
 
         return DocumentPlanner(
