@@ -84,7 +84,7 @@ A style is a named set of text properties. Any name is allowed, and frames reads
 | `align` | `left`, `center` or `right`. The default is `left` |
 | `lines` | `1` keeps the text on one line. Absent means no limit |
 
-A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it.
+A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it. A style a document names that the theme in effect there does not hold stops, naming where it is named and listing the styles that theme holds.
 
 ### Defaults
 
