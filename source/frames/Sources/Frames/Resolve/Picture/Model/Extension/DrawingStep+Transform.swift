@@ -12,7 +12,7 @@ extension DrawingStep {
     // MARK: - Initializer
     // MARK: - Public
     func transformed(by transform: CanvasTransform) -> DrawingStep {
-        DrawingStep(content: content(transformedBy: transform), clip: transform.rectangle(clip))
+        DrawingStep(origin: origin, content: content(transformedBy: transform), clip: transform.rectangle(clip))
     }
 
     // MARK: - Private

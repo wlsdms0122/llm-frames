@@ -19,20 +19,28 @@ struct ImageCanvas: Equatable, Sendable {
     }
 
     // MARK: - Initializer
-    // The canvas starts as the source picture, which fills it.
+    // The canvas starts as the source picture, drawn by `origin`, which fills it.
     init(
         picture: DrawnPicture,
-        size: Size
+        size: Size,
+        origin: DrawingOrigin
     ) {
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         self.size = size
         self.transform = .identity
-        self.steps = [DrawingStep(content: .picture(picture, crop: bounds, frame: bounds), clip: bounds)]
+        self.steps = [DrawingStep(
+            origin: origin,
+            content: .picture(picture, crop: bounds, frame: bounds),
+            clip: bounds
+        )]
     }
 
     // MARK: - Public
-    mutating func draw(_ content: DrawingContent) {
-        steps.append(DrawingStep(content: content, clip: bounds))
+    mutating func draw(
+        _ content: DrawingContent,
+        origin: DrawingOrigin
+    ) {
+        steps.append(DrawingStep(origin: origin, content: content, clip: bounds))
     }
 
     // `rectangle` lies inside the canvas, and becomes it.
@@ -45,7 +53,8 @@ struct ImageCanvas: Equatable, Sendable {
         steps = steps.compactMap { step in
             guard let clip = step.clip.intersection(rectangle) else { return nil }
 
-            return DrawingStep(content: cropped(step.content, to: clip), clip: clip).transformed(by: move)
+            return DrawingStep(origin: step.origin, content: cropped(step.content, to: clip), clip: clip)
+                .transformed(by: move)
         }
         size = Size(width: rectangle.width, height: rectangle.height)
         transform = transform.followed(by: move)
@@ -63,10 +72,11 @@ struct ImageCanvas: Equatable, Sendable {
         transform = transform.followed(by: resize)
     }
 
-    // Adds room around the canvas, filled with `color`.
+    // Adds room around the canvas, filled with `color` by `origin`.
     mutating func extend(
         by inset: Inset,
-        color: Color
+        color: Color,
+        origin: DrawingOrigin
     ) {
         let move = CanvasTransform(
             horizontalScale: 1,
@@ -78,7 +88,7 @@ struct ImageCanvas: Equatable, Sendable {
         size = Size(width: size.width + inset.left + inset.right, height: size.height + inset.top + inset.bottom)
         transform = transform.followed(by: move)
         for rectangle in room(around: old) {
-            draw(.fill(rectangle, color: color))
+            draw(.fill(rectangle, color: color), origin: origin)
         }
     }
 

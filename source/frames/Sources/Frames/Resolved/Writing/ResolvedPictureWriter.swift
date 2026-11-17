@@ -6,8 +6,8 @@
 //
 
 // Writes a resolved image or layout document as the members of its resolved document after `kind`: its final size and
-// its drawing steps in operation order, in output pixels, each with what it draws under `draw` and the canvas it is
-// clipped to under `clip`.
+// its drawing steps in operation order, in output pixels, each with the `place`, `id` and `kind` of what drew it, what
+// it draws under `draw` and the canvas it is clipped to under `clip`.
 struct ResolvedPictureWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -23,16 +23,28 @@ struct ResolvedPictureWriter: Sendable {
     ) -> [JSONMember] {
         [
             JSONMember(key: "size", value: values.size(picture.size)),
-            JSONMember(key: "steps", value: .array(picture.steps.map { step in
-                .object(JSONObject(
-                    members: members(of: step.content, sequences: sequences)
-                        + [JSONMember(key: "clip", value: values.rectangle(step.clip))]
-                ))
-            }))
+            JSONMember(key: "steps", value: .array(picture.steps.map { step in self.step(step, sequences: sequences) }))
         ]
     }
 
     // MARK: - Private
+    private func step(
+        _ step: ResolvedDrawingStep,
+        sequences: (ResolvedSequence) -> [JSONMember]
+    ) -> JSONValue {
+        let origin = [
+            JSONMember(key: "place", value: .string(step.place)),
+            JSONMember(key: "id", value: step.id.map(JSONValue.string) ?? .null),
+            JSONMember(key: "kind", value: .string(step.kind))
+        ]
+
+        return .object(JSONObject(
+            members: origin
+                + members(of: step.content, sequences: sequences)
+                + [JSONMember(key: "clip", value: values.rectangle(step.clip))]
+        ))
+    }
+
     private func members(
         of content: ResolvedDrawingContent,
         sequences: (ResolvedSequence) -> [JSONMember]

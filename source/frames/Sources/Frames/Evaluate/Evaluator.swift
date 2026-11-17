@@ -288,7 +288,7 @@ package struct Evaluator: Sendable {
         return DisplayItem(content: .fill(fill))
     }
 
-    // An image or layout's steps in order, each cut to its step's canvas.
+    // An image or layout's steps in order, each cut to its step's canvas and drawn by what drew its step.
     private func displayList(
         of picture: ResolvedPicture,
         seed: Int
@@ -305,21 +305,23 @@ package struct Evaluator: Sendable {
         of step: ResolvedDrawingStep,
         seed: Int
     ) -> DisplayItem {
+        let origin = ItemOrigin(step: step)
         switch step.content {
         case let .picture(picture, crop, frame):
             let item = PictureItem(source: source(of: picture, seed: seed), rectangle: crop, destination: frame)
-            return DisplayItem(mask: step.clip, content: .picture(item))
+            return DisplayItem(mask: step.clip, content: .picture(item), origin: origin)
 
         case let .fill(rectangle, color):
-            return DisplayItem(mask: step.clip, content: .fill(FillItem(rectangle: rectangle, color: color)))
+            let fill = FillItem(rectangle: rectangle, color: color)
+            return DisplayItem(mask: step.clip, content: .fill(fill), origin: origin)
 
         case let .box(rectangle, width, radius, color):
             let stroke = StrokeItem(rectangle: rectangle, radius: radius, width: width, color: color)
-            return DisplayItem(mask: step.clip, content: .stroke(stroke))
+            return DisplayItem(mask: step.clip, content: .stroke(stroke), origin: origin)
 
         case let .border(rectangle, width, color):
             let stroke = StrokeItem(border: rectangle, width: width, color: color)
-            return DisplayItem(mask: step.clip, content: .stroke(stroke))
+            return DisplayItem(mask: step.clip, content: .stroke(stroke), origin: origin)
 
         case let .dim(rectangle, color):
             let fill = FillItem(
@@ -327,20 +329,22 @@ package struct Evaluator: Sendable {
                 color: color,
                 hole: RoundedRectangle(rectangle: rectangle, radius: 0)
             )
-            return DisplayItem(mask: step.clip, content: .fill(fill))
+            return DisplayItem(mask: step.clip, content: .fill(fill), origin: origin)
 
         case let .arrow(tail, tip, width, head, color):
             let arrow = ArrowItem(tail: tail, head: tip, width: width, headSize: head, color: color)
-            return DisplayItem(mask: step.clip, content: .arrow(arrow))
+            return DisplayItem(mask: step.clip, content: .arrow(arrow), origin: origin)
 
         case let .adjustment(filter, area):
-            return DisplayItem(mask: step.clip, content: .adjust(AdjustItem(rectangle: area, filter: filter)))
+            let adjustment = AdjustItem(rectangle: area, filter: filter)
+            return DisplayItem(mask: step.clip, content: .adjust(adjustment), origin: origin)
 
         case let .text(text, frame):
             return DisplayItem(
                 transform: AffineTransform(mapping: text.size, onto: frame),
                 mask: step.clip,
-                content: .glyphs(GlyphsItem(text: text))
+                content: .glyphs(GlyphsItem(text: text)),
+                origin: origin
             )
         }
     }

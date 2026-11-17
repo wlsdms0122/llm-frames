@@ -35,6 +35,7 @@ struct PicturePlannerTests {
         let frame = Rectangle(x: 20, y: 20, width: 800, height: 400)
         #expect(plan.size == Size(width: 840, height: 440))
         #expect(plan.steps.first == DrawingStep(
+            origin: DrawingOrigin(place: Place.root.appending(key: "source"), id: nil, kind: .image),
             content: .picture(
                 .media(try mediaFile("/abs/page.png"), name: "/abs/page.png", time: 0),
                 crop: Rectangle(x: 100, y: 100, width: 400, height: 200),
@@ -338,7 +339,7 @@ struct PicturePlannerTests {
         #expect(plan.storyline[0].nested?.size == Size(width: 1040, height: 840))
     }
 
-    @Test("a connected clip and a layout item that are image documents are drawn from their own plans")
+    @Test("a connected clip and a layout item that are image documents are drawn from their own plans, in their places")
     func plansNestedImageDocuments() throws {
         // Given
         let image = #"{ "kind": "image", "source": "/abs/page.png", "ops": [ { "pad": 20 } ] }"#
@@ -352,16 +353,78 @@ struct PicturePlannerTests {
         let layoutPlan = try picture(layout)
 
         // Then
-        #expect(sequencePlan.clips[0].nested == .picture(try picture(image)))
+        let alone = try picture(image)
         let drawn = layoutPlan.steps.compactMap { step -> (DrawnPicture, Rectangle)? in
             guard case let .picture(picture, _, frame) = step.content else { return nil }
 
             return (picture, frame)
         }
+        guard
+            case let .picture(connected) = sequencePlan.clips[0].nested,
+            case let .picture(item)? = drawn.first?.0
+        else {
+            Issue.record("the image documents are not drawn from their own plans")
+            return
+        }
         #expect(drawn.count == 1)
-        #expect(drawn.first?.0 == .picture(try picture(image)))
+        #expect(connected.steps.map(\.content) == alone.steps.map(\.content))
+        #expect(item.steps.map(\.content) == alone.steps.map(\.content))
         #expect(drawn.first?.1.width == 1040)
         #expect(drawn.first?.1.height == 840)
+        #expect(Set(connected.steps.map(\.origin.place.description)) == [
+            "storyline[0].connected[0].media.source",
+            "storyline[0].connected[0].media.ops[0]"
+        ])
+        #expect(Set(item.steps.map(\.origin.place.description)) == ["items[0].image.source", "items[0].image.ops[0]"])
+    }
+
+    @Test("every step is drawn by its operation, a shape's label too, and the source picture by the source")
+    func namesImageSteps() throws {
+        // Given
+        let document = #"""
+            { "kind": "image", "source": "/abs/page.png",
+              "ops": [ { "crop": [100, 100, 400, 200] }, { "pad": 20, "id": "room" },
+                       { "shape": "box", "area": [150, 150, 100, 50], "label": "here" },
+                       { "banner": [ "Line" ], "edge": "bottom" }, { "border": true } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let origins = plan.steps.map { step in
+            "\(step.origin.place) \(step.origin.id ?? "-") \(step.origin.kind.label)"
+        }
+        #expect(origins.first == "source - image")
+        #expect(origins.filter { $0 == "ops[1]#room room pad" }.count == 4)
+        #expect(origins.filter { $0 == "ops[2] - box" }.count == 2)
+        #expect(origins.filter { $0 == "ops[3] - banner" }.count == 2)
+        #expect(origins.last == "ops[4] - border")
+        #expect(!origins.contains { $0.hasPrefix("ops[0]") })
+    }
+
+    @Test("a layout's background and banner are its own, and a cell's heading, picture and border its item's")
+    func namesLayoutSteps() throws {
+        // Given
+        let document = #"""
+            { "kind": "layout", "banner": [ "Line" ],
+              "items": [ { "heading": "Before", "image": "/abs/page.png" }, { "image": "/abs/card.png" } ] }
+            """#
+
+        // When
+        let plan = try picture(document)
+
+        // Then
+        let origins = plan.steps.map { step in "\(step.origin.place) \(step.origin.kind.label)" }
+        #expect(origins == [
+            "top level layout",
+            "banner layout",
+            "items[0] layout item",
+            "items[0] layout item",
+            "items[0] layout item",
+            "items[1] layout item",
+            "items[1] layout item"
+        ])
     }
 
     // MARK: - Private
