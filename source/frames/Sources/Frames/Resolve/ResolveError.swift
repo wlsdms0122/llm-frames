@@ -7,7 +7,7 @@
 
 enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
-    case unprobedMedia(place: Place, kind: PlaceKind, reference: String)
+    case missingMedia(place: Place, kind: PlaceKind, reference: String)
     case unreadableMedia(place: Place, kind: PlaceKind, reference: String, reason: String)
     case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
@@ -55,8 +55,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .emptyStoryline(place, kind):
             "\(place) (\(kind.label)): the storyline is empty, and a sequence needs at least one storyline clip"
 
-        case let .unprobedMedia(place, kind, reference):
-            "\(place) (\(kind.label)): media \(quoted(reference)) has no probed facts"
+        case let .missingMedia(place, kind, reference):
+            "\(place) (\(kind.label)): media \(quoted(reference)) is not there"
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind.label)): media \(quoted(reference)) cannot be probed: \(reason)"

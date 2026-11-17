@@ -156,7 +156,7 @@ struct TransitionTimeTests {
         #expect(transition.coverMedia?.duration == 2)
         #expect(transition.matteMedia?.file.path == "/abs/matte.png")
         #expect(transition.matteMedia?.file.frameTimes == [])
-        #expect(error?.description == #"storyline[1].transition (solid): media "/abs/lost.png" has no probed facts"#)
+        #expect(error?.description == #"storyline[1].transition (solid): media "/abs/lost.png" is not there"#)
     }
 
     @Test("a transition written on the first storyline clip stops, even a cut")

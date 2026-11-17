@@ -49,7 +49,7 @@ struct MediaResolver: Sendable {
                     try mediaFacts.probedMedia(of: file)
                 })
             else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
+                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
 
             return MediaPlan(
@@ -68,7 +68,7 @@ struct MediaResolver: Sendable {
                     try mediaFacts.probedImageSequence(at: directory)
                 })
             else {
-                throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
+                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
@@ -119,7 +119,7 @@ struct MediaResolver: Sendable {
         guard
             let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
         else {
-            throw ResolveError.unprobedMedia(place: place, kind: kind, reference: path)
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: path)
         }
 
         return TransitionMedia(
@@ -163,7 +163,7 @@ struct MediaResolver: Sendable {
         theme: MergedTheme
     ) throws -> MediaPlan {
         guard let document = try library.document(named: reference) else {
-            throw ResolveError.unprobedMedia(place: place, kind: kind, reference: reference)
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
         }
         let inner = try library.reading(file: document.file, name: reference)
         guard document.kind == .sequence else {

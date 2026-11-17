@@ -18,7 +18,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case misplacedParameter(place: Place, kind: String, name: String, type: String, expected: String)
     case unusedParameter(place: Place, name: String)
     case nestedTemplate(place: Place, kind: String)
-    case unprobedMedia(place: Place, kind: String, reference: String)
+    case missingMedia(place: Place, kind: String, reference: String)
     case unreadableMedia(place: Place, kind: String, reference: String, reason: String)
     case unknownTemplate(place: Place, kind: String, name: String)
     case ambiguousTemplateKind(place: Place, kind: String, name: String, templates: [ProbedTemplate])
@@ -67,8 +67,8 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .nestedTemplate(place, kind):
             "\(place) (\(kind)): a document with params is a template and is used only as a template instance"
 
-        case let .unprobedMedia(place, kind, reference):
-            "\(place) (\(kind)): media \"\(reference)\" has no probed kind"
+        case let .missingMedia(place, kind, reference):
+            "\(place) (\(kind)): media \"\(reference)\" is not there"
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind)): media \"\(reference)\" cannot be probed: \(reason)"

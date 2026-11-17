@@ -83,7 +83,7 @@ struct TemplateInstantiatorTests {
             (#"{ "clip": 4 }"#, "args.clip (template arguments): expected a media reference, found 4"),
             (#"{ "clip": "/abs/card.png" }"#, #"args.clip (template arguments): parameter "clip" takes video media, found image"#),
             (#"{ "clip": "/abs/bgm.m4a" }"#, #"args.clip (template arguments): parameter "clip" takes video media, found audio"#),
-            (#"{ "clip": "/abs/missing.mp4" }"#, #"args.clip (template arguments): media "/abs/missing.mp4" has no probed kind"#)
+            (#"{ "clip": "/abs/missing.mp4" }"#, #"args.clip (template arguments): media "/abs/missing.mp4" is not there"#)
         ]
     )
     func refusesWrongType(text: String, message: String) throws {
