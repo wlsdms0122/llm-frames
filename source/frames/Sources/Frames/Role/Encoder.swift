@@ -8,7 +8,10 @@
 // Writes rendered frames, mixed sound and transcoded media to files. Nothing a file was read from is copied into it
 // but its pixels and samples.
 package protocol Encoder: Sendable {
-    // Refuses a target the encoder cannot write, naming what it lacks and the file.
+    // Refuses a target the encoder cannot write, naming what it lacks and the file. Everything a write of the target
+    // would refuse on the target alone is refused here, before a caller removes an existing file, and a write takes
+    // only a target that passed its check. A compressed video's sound depends on the sound, so it is checked as a
+    // sound target of the same path and quality.
     func check(_ target: EncodeTarget) throws
 
     func check(_ target: ImageTarget) throws

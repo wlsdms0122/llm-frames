@@ -48,9 +48,6 @@ final class AssetSoundWriter {
         } catch {
             throw EncoderError.unwritable(file: path, reason: error.localizedDescription)
         }
-        guard writer.canApply(outputSettings: settings.outputSettings, forMediaType: .audio) else {
-            throw EncoderError.unwritable(file: path, reason: "AAC at \(settings.sampleRate) Hz is not written")
-        }
         let audio = AVAssetWriterInput(mediaType: .audio, outputSettings: settings.outputSettings)
         audio.expectsMediaDataInRealTime = false
         writer.add(audio)

@@ -74,7 +74,7 @@ struct TranscoderTests {
         let result = try sut.transcode(TranscodeRequest(input: input, output: output, quality: .high))
 
         // Then
-        let target = SoundTarget(path: output, quality: .high, layout: silence.layout)
+        let target = SoundTarget(path: output, quality: .high, layout: silence.layout, sampleRate: silence.sampleRate)
         #expect(log.calls == [
             .checkMedia(path: input),
             .readSound(path: input, from: 0, to: 2.5),
@@ -97,7 +97,7 @@ struct TranscoderTests {
         let result = try sut.transcode(TranscodeRequest(input: input, output: output))
 
         // Then
-        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout)
+        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout, sampleRate: silence.sampleRate)
         #expect(log.calls == [
             .checkMedia(path: input),
             .readSound(path: input, from: 0, to: 0.5),
@@ -134,7 +134,9 @@ struct TranscoderTests {
             .checkMedia(path: input),
             .readSound(path: input, from: 0, to: 0.5),
             .checkTarget(target),
-            .checkSoundTarget(SoundTarget(path: output, quality: .medium, layout: silence.layout)),
+            .checkSoundTarget(
+                SoundTarget(path: output, quality: .medium, layout: silence.layout, sampleRate: silence.sampleRate)
+            ),
             .videoWriter(target, size: Size(width: 40, height: 30), fps: 10, sound: silence)
         ] + [0, 0, 0, 1, 1].map { .append(path: output, frame: $0) } + [
             .finish(path: output)
@@ -438,7 +440,7 @@ struct TranscoderTests {
 
         // Then
         #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == Self.existing)
-        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout)
+        let target = SoundTarget(path: output, quality: .medium, layout: silence.layout, sampleRate: silence.sampleRate)
         #expect(log.calls.last == .checkSoundTarget(target))
     }
 

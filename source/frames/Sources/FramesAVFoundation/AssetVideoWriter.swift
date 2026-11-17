@@ -80,11 +80,7 @@ final class AssetVideoWriter {
         )
         writer.add(video)
 
-        let audioSettings = sound.map(format.audioSettings(for:))
-        if let audioSettings, !writer.canApply(outputSettings: audioSettings, forMediaType: .audio) {
-            throw EncoderError.unwritable(file: format.path, reason: "its sound format is not written")
-        }
-        let audio = audioSettings.map { AVAssetWriterInput(mediaType: .audio, outputSettings: $0) }
+        let audio = sound.map { AVAssetWriterInput(mediaType: .audio, outputSettings: format.audioSettings(for: $0)) }
         if let audio {
             audio.expectsMediaDataInRealTime = false
             writer.add(audio)

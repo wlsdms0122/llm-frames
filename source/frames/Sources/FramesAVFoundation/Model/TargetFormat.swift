@@ -42,6 +42,37 @@ struct TargetFormat: Equatable, Sendable {
         ]
     }
 
+    // A master's or a delivery's sound settings, the same for any sound, so the encoder's check tries them before a
+    // file is written. A compressed video's depend on its sound, which is checked as a sound target, so it has none.
+    var fixedAudioSettings: [String: Any]? {
+        switch target {
+        case .master:
+            var channelLayout = AudioChannelLayout()
+            channelLayout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
+
+            return [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: Self.sampleRate,
+                AVNumberOfChannelsKey: Self.channels,
+                AVChannelLayoutKey: Data(bytes: &channelLayout, count: MemoryLayout<AudioChannelLayout>.size),
+                AVLinearPCMBitDepthKey: 24,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsNonInterleaved: false
+            ]
+
+        case .delivery:
+            return AACSettings(
+                sampleRate: Double(Self.sampleRate),
+                channels: Self.channels,
+                bitRate: Self.deliveryBitRate
+            ).outputSettings
+
+        case .compressed:
+            return nil
+        }
+    }
+
     // MARK: - Initializer
     init(target: EncodeTarget) {
         self.target = target
@@ -80,6 +111,21 @@ struct TargetFormat: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The settings for `sound`, which a compressed target has fitted to AAC already.
+    func audioSettings(for sound: SoundBuffer) -> [String: Any] {
+        switch target {
+        case let .compressed(_, _, quality, _):
+            AACSettings(
+                sampleRate: sound.sampleRate,
+                channels: sound.channels,
+                bitRate: quality.soundBitRate * sound.channels
+            ).outputSettings
+
+        case .master, .delivery:
+            fixedAudioSettings ?? [:]
+        }
+    }
+
     func videoSettings(
         width: Int,
         height: Int
@@ -105,40 +151,6 @@ struct TargetFormat: Equatable, Sendable {
             AVVideoColorPropertiesKey: colorProperties,
             AVVideoCompressionPropertiesKey: compression
         ]
-    }
-
-    // The settings for `sound`, which a compressed target has fitted to AAC already.
-    func audioSettings(for sound: SoundBuffer) -> [String: Any] {
-        switch target {
-        case .master:
-            var channelLayout = AudioChannelLayout()
-            channelLayout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
-
-            return [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: Self.sampleRate,
-                AVNumberOfChannelsKey: Self.channels,
-                AVChannelLayoutKey: Data(bytes: &channelLayout, count: MemoryLayout<AudioChannelLayout>.size),
-                AVLinearPCMBitDepthKey: 24,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsBigEndianKey: false,
-                AVLinearPCMIsNonInterleaved: false
-            ]
-
-        case .delivery:
-            return AACSettings(
-                sampleRate: Double(Self.sampleRate),
-                channels: Self.channels,
-                bitRate: Self.deliveryBitRate
-            ).outputSettings
-
-        case let .compressed(_, _, quality, _):
-            return AACSettings(
-                sampleRate: sound.sampleRate,
-                channels: sound.channels,
-                bitRate: quality.soundBitRate * sound.channels
-            ).outputSettings
-        }
     }
 
     // MARK: - Private

@@ -159,6 +159,18 @@ package final class AVFoundationEncoder: Sendable {
 
         return formats.contains(kAudioFormatMPEG4AAC)
     }
+
+    // Whether AVAssetWriter takes `settings` for sound in a file of `fileType`. The writer is made for a path in the
+    // temporary directory and never started, so no file is touched.
+    private func canWriteSound(
+        _ settings: [String: Any],
+        fileType: AVFileType
+    ) -> Bool {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: fileType) else { return false }
+
+        return writer.canApply(outputSettings: settings, forMediaType: .audio)
+    }
 }
 
 extension AVFoundationEncoder: Encoder {
@@ -167,6 +179,9 @@ extension AVFoundationEncoder: Encoder {
         let format = TargetFormat(target: target)
         guard canEncode(format.codecType) else {
             throw EncoderError.unencodable(file: format.path, codec: format.codecName)
+        }
+        if let settings = format.fixedAudioSettings, !canWriteSound(settings, fileType: format.fileType) {
+            throw EncoderError.unwritable(file: format.path, reason: "its sound format is not written")
         }
     }
 
@@ -182,6 +197,13 @@ extension AVFoundationEncoder: Encoder {
             throw EncoderError.unencodable(file: target.path, codec: "AAC")
         }
         try soundConverter.check(target.layout, path: target.path)
+        let settings = soundConverter.settings(for: target)
+        guard canWriteSound(settings.outputSettings, fileType: .m4a) else {
+            throw EncoderError.unwritable(
+                file: target.path,
+                reason: "AAC at \(Int(settings.sampleRate)) Hz is not written"
+            )
+        }
     }
 
     package func writeImage(
@@ -214,11 +236,7 @@ extension AVFoundationEncoder: Encoder {
         for target: SoundTarget
     ) throws {
         let fitted = try soundConverter.fitted(sound, path: target.path)
-        let settings = AACSettings(
-            sampleRate: fitted.sampleRate,
-            channels: fitted.channels,
-            bitRate: target.quality.soundBitRate * fitted.channels
-        )
+        let settings = soundConverter.settings(for: target)
 
         try AssetSoundWriter(path: target.path, settings: settings, deadline: deadline).write(fitted)
     }

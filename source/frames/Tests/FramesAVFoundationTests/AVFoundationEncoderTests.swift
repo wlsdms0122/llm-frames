@@ -229,7 +229,9 @@ struct AVFoundationEncoderTests {
         let checked = Result {
             try targets.forEach(sut.check)
             try images.forEach(sut.check)
-            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: ChannelLayout(channels: 6)))
+            try sut.check(
+                SoundTarget(path: "i.m4a", quality: .medium, layout: ChannelLayout(channels: 6), sampleRate: 48_000)
+            )
         }
 
         // Then
@@ -244,7 +246,19 @@ struct AVFoundationEncoderTests {
 
         // When, Then
         #expect(throws: EncoderError.undownmixable(file: "i.m4a")) {
-            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: layout))
+            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: layout, sampleRate: 48_000))
+        }
+    }
+
+    @Test("the check of a sound target refuses a sample rate AAC is not written at")
+    func refusesUnwritableSampleRate() {
+        // Given
+        let sut = AVFoundationEncoder()
+        let target = SoundTarget(path: "i.m4a", quality: .medium, layout: ChannelLayout(channels: 2), sampleRate: 9_000)
+
+        // When, Then
+        #expect(throws: EncoderError.unwritable(file: "i.m4a", reason: "AAC at 9000 Hz is not written")) {
+            try sut.check(target)
         }
     }
 
@@ -412,7 +426,12 @@ struct AVFoundationEncoderTests {
         // When
         try sut.writeSound(
             tone(seconds: 1, sampleRate: sampleRate, channels: channels),
-            for: SoundTarget(path: path, quality: quality, layout: ChannelLayout(channels: channels))
+            for: SoundTarget(
+                path: path,
+                quality: quality,
+                layout: ChannelLayout(channels: channels),
+                sampleRate: sampleRate
+            )
         )
 
         // Then

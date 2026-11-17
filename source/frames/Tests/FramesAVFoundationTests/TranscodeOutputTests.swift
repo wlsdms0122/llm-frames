@@ -211,6 +211,26 @@ struct TranscodeOutputTests {
         #expect(try decoder.probedMedia(of: output)?.kind == .video)
     }
 
+    @Test("a sound the encoder cannot write stops in its check and leaves an existing output in place")
+    func keepsOutputOfUnwritableSound() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("in.wav")
+        try await SoundWriter(end: 0.5, sampleRate: 9_000).write(to: input)
+        let output = directory.file("out.m4a")
+        let existing = Data("not a sound".utf8)
+        try existing.write(to: URL(fileURLWithPath: output))
+        let (sut, _) = transcoder()
+
+        // When
+        #expect(throws: EncoderError.unwritable(file: output, reason: "AAC at 9000 Hz is not written")) {
+            try sut.transcode(TranscodeRequest(input: input, output: output))
+        }
+
+        // Then
+        #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == existing)
+    }
+
     // MARK: - Private
     private func transcoder() -> (Transcoder, AVFoundationDecoder) {
         let decoder = AVFoundationDecoder()

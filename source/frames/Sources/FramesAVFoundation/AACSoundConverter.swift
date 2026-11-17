@@ -29,6 +29,17 @@ struct AACSoundConverter: Sendable {
         }
     }
 
+    // The AAC settings the sound of `target` is written with once fitted.
+    func settings(for target: SoundTarget) -> AACSettings {
+        let channels = min(target.layout.labels.count, Self.maximumChannels)
+
+        return AACSettings(
+            sampleRate: min(target.sampleRate, Self.maximumSampleRate),
+            channels: channels,
+            bitRate: target.quality.soundBitRate * channels
+        )
+    }
+
     func fitted(
         _ sound: SoundBuffer,
         path: String

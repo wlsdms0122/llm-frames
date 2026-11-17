@@ -13,7 +13,7 @@ import Foundation
 // .m4a. Pictures are taken as the decoder displays them, turned, and nothing else of the input is carried over.
 // Everything that can stop does before anything is written, in this order: `--max`, the input, the paths, the output
 // extension, `--codec`, a video's sound or frame rate, the decoder on the input, and the encoder on the target and on
-// the layout of the sound read for it. An existing output file is removed only then.
+// the sound read for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -142,7 +142,14 @@ package struct Transcoder: Sendable {
         try encoder.check(target)
         // A video's sound goes to AAC as a sound file's does, so the encoder checks its layout the same way.
         if let sound {
-            try encoder.check(SoundTarget(path: request.output, quality: request.quality, layout: sound.layout))
+            try encoder.check(
+                SoundTarget(
+                    path: request.output,
+                    quality: request.quality,
+                    layout: sound.layout,
+                    sampleRate: sound.sampleRate
+                )
+            )
         }
 
         try removeExisting(request.output)
@@ -164,7 +171,12 @@ package struct Transcoder: Sendable {
     ) throws {
         try decoder.check(file)
         let sound = try decoder.sound(of: file, from: 0, to: duration)
-        let target = SoundTarget(path: request.output, quality: request.quality, layout: sound.layout)
+        let target = SoundTarget(
+            path: request.output,
+            quality: request.quality,
+            layout: sound.layout,
+            sampleRate: sound.sampleRate
+        )
         try encoder.check(target)
 
         try removeExisting(request.output)
