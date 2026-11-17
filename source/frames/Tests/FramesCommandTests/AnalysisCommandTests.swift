@@ -147,6 +147,29 @@ struct AnalysisCommandTests {
         #expect(sut.standardOutput.contains(#""place": "storyline[1]""#))
     }
 
+    @Test("evaluate and locate stop on --at outside the sequence, as still does", arguments: [
+        ("evaluate", "1", [String]()),
+        ("locate", "-0.5", ["--point", "80,45"])
+    ])
+    func stopsOnTimeOutsideSequence(
+        command: String,
+        time: String,
+        options: [String]
+    ) throws {
+        // Given
+        let document = try sut.write(sequence, named: "doc.json")
+
+        // When
+        let code = sut.run([command, document, "--at", time] + options)
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == """
+            frames: --at \(time): the sequence has no frame then, since it runs over [0, 1)
+
+            """)
+    }
+
     // MARK: - Private
     private var sequence: String {
         #"""

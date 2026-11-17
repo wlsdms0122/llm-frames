@@ -6,7 +6,7 @@
 //
 
 // Evaluates a resolved document at a time and reports its display list as `evaluate` prints it, nested lists
-// flattened. An image or layout takes any time and gives its one list.
+// flattened. A sequence takes a time in [0, duration), and an image or layout any time, giving its one list.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()
@@ -19,8 +19,12 @@ package struct EvaluationReporter: Sendable {
     package func report(
         of document: ResolvedDocument,
         at time: Double
-    ) -> EvaluationReport {
-        report(of: evaluator.displayList(of: document, at: time), at: time)
+    ) throws -> EvaluationReport {
+        if case let .sequence(sequence) = document {
+            try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
+        }
+
+        return report(of: evaluator.displayList(of: document, at: time), at: time)
     }
 
     func report(

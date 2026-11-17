@@ -76,9 +76,9 @@ package struct FrameExporter: Sendable {
         let sequence = try sequence(of: document)
         guard !times.isEmpty else { throw ExportError.noTime }
 
-        let duration = sequence.format.duration
-        for time in times where time.timeTicks < 0 || time.timeTicks >= duration.timeTicks {
-            throw ExportError.timeOutside(option: "--at", time: time, end: duration, kind: "sequence")
+        let span = FrameSpan(end: sequence.format.duration, kind: "sequence")
+        for time in times {
+            try span.check(time, option: "--at")
         }
 
         let frames = try frames(of: document, sequence: sequence, at: times)

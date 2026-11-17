@@ -182,7 +182,7 @@ struct EvaluationReporterTests {
             """#)
 
         // When
-        let report = sut.report(of: document, at: 1.5)
+        let report = try sut.report(of: document, at: 1.5)
 
         // Then
         // The connected fill is parented, so it is drawn inside its unit, below the background outside the content
@@ -206,14 +206,28 @@ struct EvaluationReporterTests {
         ])
     }
 
+    @Test("a sequence stops on a time outside [0, duration) as still does", arguments: [-0.5, 4])
+    func stopsOnTimeOutsideSequence(time: Double) throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [160, 90] },
+              "storyline": [ { "solid": "#FF8000", "duration": 4 } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: ExportError.timeOutside(option: "--at", time: time, end: 4, kind: "sequence")) {
+            try sut.report(of: document, at: time)
+        }
+    }
+
     @Test("an image document takes any time and reports its one list, its source picture named by its source")
     func reportsPictureAtAnyTime() throws {
         // Given
         let document = try resolved(#"{ "kind": "image", "source": "/abs/page.png", "ops": [] }"#)
 
         // When
-        let early = sut.report(of: document, at: 0)
-        let late = sut.report(of: document, at: 7.5)
+        let early = try sut.report(of: document, at: 0)
+        let late = try sut.report(of: document, at: 7.5)
 
         // Then
         #expect(late.time == 7.5)
@@ -237,7 +251,7 @@ struct EvaluationReporterTests {
             """#)
 
         // When
-        let report = sut.report(of: document, at: 0)
+        let report = try sut.report(of: document, at: 0)
 
         // Then
         #expect(report.items.map(\.origin) == [
@@ -260,7 +274,7 @@ struct EvaluationReporterTests {
             """#)
 
         // When
-        let report = sut.report(of: document, at: 0)
+        let report = try sut.report(of: document, at: 0)
 
         // Then
         // The nested image's list is transparent, so its picture is reported as its own items.
@@ -285,7 +299,7 @@ struct EvaluationReporterTests {
             """#)
 
         // When
-        let report = sut.report(of: document, at: 1)
+        let report = try sut.report(of: document, at: 1)
 
         // Then
         let places = report.items.compactMap(\.origin?.place)

@@ -27,6 +27,34 @@ struct LocationReporterTests {
 
     // MARK: - Initializer
     // MARK: - Test
+    @Test("a sequence stops on a time outside [0, duration) as still does", arguments: [-0.5, 4])
+    func stopsOnTimeOutsideSequence(time: Double) throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [160, 90] },
+              "storyline": [ { "solid": "#FF8000", "duration": 4 } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: ExportError.timeOutside(option: "--at", time: time, end: 4, kind: "sequence")) {
+            try sut.report(of: document, at: time, point: Point(x: 10, y: 10))
+        }
+    }
+
+    @Test("an image document takes any time")
+    func locatesPictureAtAnyTime() throws {
+        // Given
+        let document = try resolved(#"{ "kind": "image", "source": "/abs/page.png", "ops": [] }"#)
+
+        // When
+        let early = try sut.report(of: document, at: 0, point: Point(x: 10, y: 10))
+        let late = try sut.report(of: document, at: 7.5, point: Point(x: 10, y: 10))
+
+        // Then
+        #expect(late == early)
+        #expect(late.hits.count == 1)
+    }
+
     @Test("a point on a turned, scaled picture maps back through its transform and source rect into its media's pixels")
     func mapsPointThroughTransform() throws {
         // Given
@@ -185,7 +213,7 @@ struct LocationReporterTests {
         )
 
         // When
-        let report = sut.report(of: document, at: 2.5, point: Point(x: 270, y: 480))
+        let report = try sut.report(of: document, at: 2.5, point: Point(x: 270, y: 480))
 
         // Then
         // The 1080 x 1920 picture fills the 540 x 960 frame, so its centre is the picture's, on the frame at 2. The
@@ -212,7 +240,7 @@ struct LocationReporterTests {
         let padding = 40 * 1000 / 1206.0
 
         // When
-        let report = sut.report(of: document, at: 0, point: Point(x: padding + 100, y: padding + 150))
+        let report = try sut.report(of: document, at: 0, point: Point(x: padding + 100, y: padding + 150))
 
         // Then
         // The point lies on the box's left edge, over the source picture and the layout's background.
@@ -269,6 +297,10 @@ struct LocationReporterTests {
     }
 
     // MARK: - Private
+    private func resolved(_ document: String) throws -> ResolvedDocument {
+        try ResolvedDocument(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
     private func list(_ items: [DisplayItem]) -> DisplayList {
         DisplayList(size: size, background: transparent, seed: 0, items: items)
     }
