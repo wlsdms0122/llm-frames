@@ -1,0 +1,6 @@
+{
+  "description": "One step brighter, for a picture that came out dark",
+  "ops": [
+    { "op": "exposure", "ev": 0.5 }
+  ]
+}

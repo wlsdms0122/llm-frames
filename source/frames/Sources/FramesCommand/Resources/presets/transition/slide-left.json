@@ -1,0 +1,6 @@
+{
+  "description": "The next clip slides in from the right and covers the previous one, which stays still. Eases in and out. Bringing in the next card or screen.",
+  "seconds": 0.45,
+  "ease": "ease-in-out",
+  "incoming": { "keys": [ { "t": 0, "x": 1 }, { "t": 1, "x": 0 } ] }
+}

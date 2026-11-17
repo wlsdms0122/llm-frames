@@ -52,6 +52,8 @@ The names, how each looks, and the preset files frames ships are the contract, s
 | `blink` | blinks |
 | `shake` | lands large, shakes side to side, then trembles while it stays |
 
+`none` ships as a file with no span, so `presets` lists it with the others. A choice of `none` reads no file, and the clip simply shows.
+
 **filter (14)**
 
 | Name | Looks like |
