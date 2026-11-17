@@ -136,14 +136,14 @@ struct SequenceCheckTests {
         try video.check(document: document)
     }
 
-    @Test("media that was not probed stops")
-    func refusesUnprobedMedia() throws {
+    @Test("media that is not there stops")
+    func refusesMissingMedia() throws {
         // Given
         let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/unknown.mov" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media (storyline clip): media "/abs/unknown.mov" has no probed kind"#)
+        #expect(error?.description == #"storyline[0].media (storyline clip): media "/abs/unknown.mov" is not there"#)
     }
 
     @Test("a storyline clip whose media holds only sound stops")

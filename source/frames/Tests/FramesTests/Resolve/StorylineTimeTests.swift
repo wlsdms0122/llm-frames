@@ -223,6 +223,6 @@ struct StorylineTimeTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error == .unprobedMedia(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: .genericClip(.storyline), reference: "/abs/intro.json"))
+        #expect(error == .missingMedia(place: Place(components: [.key("storyline"), .index(0, id: nil), .key("media")]), kind: .genericClip(.storyline), reference: "/abs/intro.json"))
     }
 }

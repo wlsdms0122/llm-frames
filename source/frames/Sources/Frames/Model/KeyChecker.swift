@@ -497,7 +497,7 @@ struct KeyChecker: Sendable {
             throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
         }
         guard let probed else {
-            throw ModelError.unprobedMedia(place: place, kind: kind, reference: reference)
+            throw ModelError.missingMedia(place: place, kind: kind, reference: reference)
         }
 
         return probed
