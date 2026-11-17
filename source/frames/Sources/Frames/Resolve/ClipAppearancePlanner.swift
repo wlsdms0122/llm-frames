@@ -154,16 +154,30 @@ struct ClipAppearancePlanner: Sendable {
     // A storyline clip's box is `box`, which its conformed crop fills, and its anchor point, `center` unless written,
     // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its
     // transform fills the frame exactly, and under content fit the box's top left lies at the origin. Its border and
-    // shadow are drawn as a media clip's.
+    // shadow are drawn as a media clip's. A solid has no box, and takes no transform (FRAMES-9), so it keeps the plain
+    // values and its transform is the identity, as its children's space is output pixels (FRAMES-10).
     func appearance(
         of plan: StorylinePlan,
         written: StorylineClip,
         position: PropertyValue<Point>?,
-        box: Size,
+        box: Size?,
         format: FormatPlan,
         scale: Double,
         theme: MergedTheme
     ) -> StorylineAppearance {
+        guard let box else {
+            return StorylineAppearance(
+                box: nil,
+                opacity: .value(1),
+                scale: .value(1),
+                rotation: .value(0),
+                blend: "normal",
+                radius: 0,
+                border: nil,
+                shadow: nil
+            )
+        }
+
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { topLeft(of: $0, anchor: anchor) }

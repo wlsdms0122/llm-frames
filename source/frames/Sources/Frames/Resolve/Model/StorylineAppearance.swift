@@ -8,10 +8,11 @@
 // How a storyline clip's picture is drawn inside its storyline picture: `box`, the frame its conformed crop fills,
 // placed by its position and anchor; `opacity`, `scale` and `rotation` with keyframes in sequence time, 1, 1 and 0
 // when not written; the blend mode its storyline picture takes over what lies below; and the radius of the box's
-// corners in output pixels, its border and its shadow. A solid takes none of these and keeps their plain values.
+// corners in output pixels, its border and its shadow. A solid takes none of these and keeps their plain values, and
+// has no box of its own, since it fills the frame.
 struct StorylineAppearance: Equatable, Sendable {
     // MARK: - Property
-    let box: ClipBox
+    let box: ClipBox?
     let opacity: PropertyValue<Double>
     let scale: PropertyValue<Double>
     let rotation: PropertyValue<Double>
@@ -22,7 +23,7 @@ struct StorylineAppearance: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
-        box: ClipBox,
+        box: ClipBox?,
         opacity: PropertyValue<Double>,
         scale: PropertyValue<Double>,
         rotation: PropertyValue<Double>,

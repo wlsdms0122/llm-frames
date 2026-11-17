@@ -218,16 +218,17 @@ struct SequencePlanner: Sendable {
     }
 
     // A storyline clip's box is the frame, and under content fit the pixel size of its picture's crop at scale 1: its
-    // first crop's, or its whole picture's without one. A solid fills the frame.
+    // first crop's, or its whole picture's without one. A solid has none, since it fills the frame.
     private func box(
         of plan: StorylinePlan,
         crop: PropertyValue<FoundArea>?,
         nested: SequencePlan?,
         format: FormatPlan
-    ) throws -> Size {
+    ) throws -> Size? {
+        guard plan.source.media != nil else { return nil }
         guard format.margin != nil else { return format.size }
 
-        return try pictureBox(of: plan, crop: crop, nested: nested) ?? format.size
+        return try pictureBox(of: plan, crop: crop, nested: nested)
     }
 
     // The pixel size of a storyline clip's crop at scale 1, nil for a solid, which has no picture of its own.

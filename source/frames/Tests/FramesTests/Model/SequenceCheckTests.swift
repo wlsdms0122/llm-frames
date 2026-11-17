@@ -328,6 +328,28 @@ struct SequenceCheckTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a storyline solid takes no transform key, keyframed or not, so its transform is always the identity",
+        arguments: [
+            (#""anchor": "top-left""#, "anchor"),
+            (#""position": [0, 0]"#, "position"),
+            (#""scale": 2"#, "scale"),
+            (#""rotation": 90"#, "rotation"),
+            (#""keyframes": [ { "at": 0, "position": [0, 0] } ]"#, "keyframes")
+        ]
+    )
+    func refusesSolidTransform(
+        key: String,
+        name: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(##"{ "kind": "sequence", "storyline": [ { "solid": "#FF0000", "duration": 2, \##(key) } ] }"##)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0] (solid): unknown key "\#(name)". Allowed: id, metadata, solid, duration, transition, connected"#)
+    }
+
     @Test("an id is a string unique within its document, and a nested document has its own")
     func checksIdentifiers() throws {
         // Given

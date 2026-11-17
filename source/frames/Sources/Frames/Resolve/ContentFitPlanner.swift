@@ -55,9 +55,7 @@ struct ContentFitPlanner: Sendable {
         return SequencePlan(
             time: time,
             format: format,
-            storyline: time.storyline.indices.map { index in
-                moved(plan.storyline[index], isSolid: time.storyline[index].source.media == nil, by: offset, on: format)
-            },
+            storyline: plan.storyline.map { moved($0, by: offset) },
             clips: time.clips.indices.map { index in
                 isInMeasuringSpace(time.clips[index].parent, time: time)
                     ? moved(plan.clips[index], by: offset)
@@ -240,21 +238,15 @@ struct ContentFitPlanner: Sendable {
         }
     }
 
-    // A storyline picture's box moves with the content, and a solid's is the measured frame.
+    // A storyline picture's box moves with the content. A solid has none, and fills the measured frame.
     private func moved(
         _ geometry: StorylineGeometry,
-        isSolid: Bool,
-        by offset: Point,
-        on format: FormatPlan
+        by offset: Point
     ) -> StorylineGeometry {
         let appearance = geometry.appearance
-        let box = isSolid
-            ? ClipBox(size: format.size, position: .value(Point(x: 0, y: 0)), anchor: format.frame.center)
-            : ClipBox(
-                size: appearance.box.size,
-                position: appearance.box.position.map { moved($0, by: offset) },
-                anchor: appearance.box.anchor
-            )
+        let box = appearance.box.map { box in
+            ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
+        }
 
         return StorylineGeometry(
             crop: geometry.crop,

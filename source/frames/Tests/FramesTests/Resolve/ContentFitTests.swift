@@ -34,8 +34,8 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == size)
-        #expect(plan.storyline[0].appearance.box.size == size)
-        #expect(plan.storyline[0].appearance.box.position == .value(Point(x: 0, y: 0)))
+        #expect(plan.storyline[0].appearance.box?.size == size)
+        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 0, y: 0)))
     }
 
     @Test("a later storyline crop conforms to the box of the first, which does not scale it to the frame")
@@ -104,7 +104,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 450, height: 350))
-        #expect(plan.storyline[0].appearance.box.position == .value(Point(x: 50, y: 50)))
+        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 50, y: 50)))
         #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 50, y: 50, width: 100, height: 100))
     }
 
@@ -130,7 +130,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == size)
         #expect(plan.format.margin != nil)
-        #expect(plan.storyline[0].appearance.box.position == .value(position))
+        #expect(plan.storyline[0].appearance.box?.position == .value(position))
     }
 
     @Test(
@@ -164,7 +164,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 410, height: 258))
-        #expect(plan.storyline[0].appearance.box.position == .value(Point(x: 105, y: 54)))
+        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 105, y: 54)))
         #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4.5, y: 4, width: 50, height: 50))
         #expect(plan.clips[1].position == .value(Point(x: 105, y: 54)))
         #expect(plan.clips[1].box?.position == .value(Point(x: 55, y: 4)))
@@ -172,18 +172,42 @@ struct ContentFitTests {
 
     @Test("a solid fills the measured frame and is not measured")
     func fillsMeasuredFrameWithSolid() throws {
-        // When
+        // Given
         let plan = try plan(##"""
             { "storyline": [ { "solid": "#FF0000", "duration": 1 }, { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] }
             """##, margin: "10")
 
+        // When
+        let resolved = try ResolvedSequence(plan: plan, hashes: PlaceholderHasher())
+
         // Then
         #expect(plan.format.size == Size(width: 320, height: 220))
-        #expect(plan.storyline[0].appearance.box == ClipBox(
+        #expect(plan.storyline[0].appearance.box == nil)
+        #expect(resolved.storyline[0].box == ResolvedBox(
             size: Size(width: 320, height: 220),
-            position: .value(Point(x: 0, y: 0)),
+            position: [Keyframe(at: 0, value: Point(x: 0, y: 0))],
             anchor: Point(x: 160, y: 110)
         ))
+    }
+
+    @Test("a solid's transform is the identity, so its children are drawn where they were measured, moved by the offset")
+    func drawsSolidChildWhereMeasured() throws {
+        // Given
+        let plan = try plan(##"""
+            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
+              { "id": "back", "solid": "#FF0000", "duration": 1,
+                "connected": [ { "shape": "fill", "parent": "back", "area": [-100, -50, 50, 50] } ] } ] }
+            """##, margin: "4")
+
+        // When
+        let resolved = try ResolvedSequence(plan: plan, hashes: PlaceholderHasher())
+        let space = ParentEvaluator(sequence: resolved).space(of: resolved.clips[0], at: 0)
+
+        // Then
+        #expect(plan.format.size == Size(width: 408, height: 258))
+        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 104, y: 54)))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4, y: 4, width: 50, height: 50))
+        #expect(space.transform == .identity)
     }
 
     @Test("a solid's children are in the measuring space, which has no edges, so an area outside the first box grows the frame")

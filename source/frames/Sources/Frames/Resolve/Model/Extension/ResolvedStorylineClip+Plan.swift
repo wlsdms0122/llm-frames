@@ -7,8 +7,8 @@
 
 // A storyline clip as resolve decided it. Its crop is conformed to its box, the frame or under content fit the pixel
 // size of its first crop, so evaluation fills the box with it as it is, and a clip written without a crop shows its
-// whole picture, conformed the same way. A static crop is one
-// keyframe at the clip's `in`, and so is every other static property.
+// whole picture, conformed the same way. A solid's box is the frame at the origin, so its transform is the identity. A
+// static crop is one keyframe at the clip's `in`, and so is every other static property.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,8 +19,10 @@ extension ResolvedStorylineClip {
         hashes: any FileHashProvider
     ) throws {
         let appearance = geometry.appearance
+        let clipBox = appearance.box
+            ?? ClipBox(size: format.size, position: .value(Point(x: 0, y: 0)), anchor: format.frame.center)
         let conformer = CropConformer()
-        let box = Rectangle(x: 0, y: 0, width: appearance.box.size.width, height: appearance.box.size.height)
+        let box = Rectangle(x: 0, y: 0, width: clipBox.size.width, height: clipBox.size.height)
         let conform = { (rectangle: Rectangle) in
             Crop(conformer.conformed(rectangle, to: box, by: format.conform))
         }
@@ -43,9 +45,9 @@ extension ResolvedStorylineClip {
             track: geometry.track.map { ResolvedTrack(track: $0) },
             filter: try geometry.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) },
             box: ResolvedBox(
-                size: appearance.box.size,
-                position: appearance.box.position.keyframes(at: plan.instant) { $0 },
-                anchor: appearance.box.anchor
+                size: clipBox.size,
+                position: clipBox.position.keyframes(at: plan.instant) { $0 },
+                anchor: clipBox.anchor
             ),
             opacity: appearance.opacity.keyframes(at: plan.instant) { $0 },
             scale: appearance.scale.keyframes(at: plan.instant) { $0 },
