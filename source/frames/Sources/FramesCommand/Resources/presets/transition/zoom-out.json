@@ -1,0 +1,6 @@
+{
+  "description": "The next clip fades in small over the previous one and grows to fill the frame, easing in and out. Stepping back to the wider picture.",
+  "seconds": 0.4,
+  "ease": "ease-in-out",
+  "incoming": { "keys": [ { "t": 0, "scale": 0.7, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "scale": 1 } ] }
+}

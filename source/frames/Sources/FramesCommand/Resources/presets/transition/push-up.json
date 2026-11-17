@@ -1,0 +1,7 @@
+{
+  "description": "The next clip pushes the previous one up and out, like a scroll in vertical video. Eases in and out.",
+  "seconds": 0.45,
+  "ease": "ease-in-out",
+  "incoming": { "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
+  "outgoing": { "keys": [ { "t": 0, "y": 0 }, { "t": 1, "y": -1 } ] }
+}
