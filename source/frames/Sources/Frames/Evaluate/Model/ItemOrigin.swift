@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The clip that drew a display item: its place in the document, continued into a nested document from the clip that
-// holds it, its `id`, and its kind as `timeline` names it.
+// The clip or op that drew a display item: its place in the document, continued into a nested document from the clip
+// that holds it, its `id`, and its kind, a clip's as `timeline` names it and an image or layout step's as messages
+// name what drew it.
 package struct ItemOrigin: Equatable, Sendable {
     // MARK: - Property
     package let place: String
@@ -46,6 +47,10 @@ package struct ItemOrigin: Equatable, Sendable {
         let kind: ClipKind = entry.media.map { .media(Self.kind(of: $0)) } ?? .solid
 
         self.init(place: entry.place, id: entry.id, kind: kind.label)
+    }
+
+    init(step: ResolvedDrawingStep) {
+        self.init(place: step.place, id: step.id, kind: step.kind)
     }
 
     // MARK: - Public

@@ -8,8 +8,8 @@
 // One drawing step of a display list. `transform` carries the item's own coordinates into output pixels, `blend` is
 // its blend mode by name, `mask` a rectangle in output pixels it is cut to, and `reveal` a rectangle in its own
 // coordinates, before the transform, outside which nothing of it shows, so a wipe turns with the item. `origin` is the
-// clip that drew it, nil for the background outside the content rect and a transition cover, which no clip draws, and
-// for what an image or layout's steps draw, which the resolved document keeps no place for. A role draws without it.
+// clip or op that drew it, nil for the background outside the content rect and a transition cover, which no clip
+// draws. A role draws without it.
 package struct DisplayItem: Equatable, Sendable {
     // MARK: - Property
     package let transform: AffineTransform
