@@ -1,0 +1,6 @@
+{
+  "description": "Blurred, to push a background back behind text or a title",
+  "ops": [
+    { "op": "blur", "radius": 10 }
+  ]
+}
