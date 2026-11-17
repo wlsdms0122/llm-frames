@@ -48,9 +48,12 @@ Its size is the source's. Leave out `resize`: the code host scales the picture t
 - Only the reason lines get a box. A box on anything else asks the reviewer to check something that proves nothing.
 - One box per reason line, with a label only where the line alone does not say why it matters. A picture full of boxes points at nothing.
 - A `dim` around the reason lines is used only when the crop still holds much more than they do. It darkens the context the reader may need, so it is the exception.
-- Personal data is covered with an opaque `fill` at opacity 1 with no animation (`"color": "#000000"`, or the colour of the screen behind it, and `"animation": "none"` on a sequence), on every clip and every frame that shows it. On video, use `track`, or area keyframes from `ocr --json` where the data leaves the screen and comes back. Evidence is posted where many people read it, and one frame is enough to leak it.
+- Personal data is covered with an opaque `fill` at opacity 1 with no animation (`"color": "#000000"`, or the colour of the screen behind it, and `"animation": "none"` on a sequence), on every clip and every frame that shows it. Evidence is posted where many people read it, and one frame is enough to leak it.
+- On video, a cover follows a line that moves with the data and stays on screen the whole time, such as a total in the same list: `{"shape": "fill", "area": "jane@example.com", "track": "Total", ...}`. The cover's area is found where the data is, and the line's motion carries it, so it slides off an edge with the data and comes back with it. `"track": true` follows the data itself and suits only data that never reaches an edge: the tracker loses text as it leaves the screen, the cover ends while part of the text still shows, and it does not come back when the text does.
+- When nothing that moves with the data stays on screen, cut or crop the recording so the data never crosses an edge.
 - A template is a closed box, so a recording given to one is covered first: render it with its covers to a master and pass that file. The template cannot cover what it cannot see.
-- The finished file is checked with `ocr` (`frames ocr out.png`, and over a range with `--from`, `--to` and `--step 0.5` for a video), and no covered text may come back. A cover that misses by a frame or a few pixels shows in text recognition before a person sees it.
+- The finished file is checked with `ocr` (`frames ocr out.png`, and on a video over every frame, `--from 0 --to <duration> --step <1 / fps>`), and no covered text may come back. A cover that misses by a frame or a few pixels shows in text recognition before a person sees it.
+- On a video, also look at a `sheet` of every frame where covered data crosses an edge of the recording (`--step <1 / fps>` over that stretch). Text cut in half by an edge does not come back in `ocr`, and people can still read it.
 
 ### Cuts
 
