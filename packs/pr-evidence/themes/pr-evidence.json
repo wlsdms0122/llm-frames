@@ -1,5 +1,16 @@
 {
+  "baseWidth": 1206,
+  "font": ["Apple SD Gothic Neo"],
+  "colors": { "text": "#000000", "background": "#FFFFFF", "accent": "#ED2929", "shadow": "#00000059" },
+  "styles": {
+    "lead": { "size": 44, "weight": "bold", "lineHeight": 64 },
+    "body": { "size": 38, "lineHeight": 64 }
+  },
   "shapes": {
     "label": { "sides": ["right", "bottom", "left"] }
-  }
+  },
+  "placement": { "padding": 40 },
+  "border": { "width": 3, "color": "#D9D9D9" },
+  "shadow": { "radius": 24, "offset": [0, 8], "color": "shadow" },
+  "defaults": { "animation": { "title": { "label": "frames/pop" } } }
 }

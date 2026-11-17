@@ -9,7 +9,7 @@
       ] }
   ],
   "clips": [
-    { "id": "conclusion", "title": "Total includes shipping", "style": "bannerHead", "position": [42, 42], "anchor": "top-left" },
-    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "banner", "position": [42, 110], "anchor": "top-left" }
+    { "id": "conclusion", "title": "Total includes shipping", "style": "lead", "position": [42, 42], "anchor": "top-left" },
+    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "body", "position": [42, 110], "anchor": "top-left" }
   ]
 }

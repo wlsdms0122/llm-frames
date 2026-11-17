@@ -1,12 +1,16 @@
 {
   "baseWidth": 1080,
+  "font": ["Apple SD Gothic Neo"],
   "colors": { "accent": "#FF3B30", "emphasis": "#FFE14D" },
   "styles": {
-    "subtitle": { "size": 66, "background": false, "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
-    "headline": { "size": 84, "offset": 110 },
-    "label": { "size": 40 }
+    "subtitle": { "size": 66, "weight": "bold", "emphasis": "emphasis", "background": false,
+                  "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
+    "headline": { "size": 84, "weight": "bold", "color": "#FFFFFF", "emphasis": "emphasis",
+                  "stroke": { "width": 6, "color": "#000000" }, "placement": "top", "offset": 110, "align": "center" },
+    "label": { "size": 40, "background": { "color": "accent", "padding": [8, 16], "radius": 12 } }
   },
-  "shapes": { "box": { "width": 10 } },
+  "shapes": { "box": { "width": 10, "color": "accent" }, "arrow": { "color": "accent" } },
+  "placement": { "padding": 40 },
   "defaults": {
     "transition": { "preset": "frames/push-up", "seconds": 0.3 },
     "animation": {
