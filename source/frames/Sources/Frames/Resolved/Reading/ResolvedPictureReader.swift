@@ -6,7 +6,8 @@
 //
 
 // Reads a resolved image or layout document as `ResolvedPictureWriter` writes it: its final size and its drawing
-// steps, each with what it draws under `draw` and the canvas it is clipped to under `clip`.
+// steps, each with the `place`, `id` and `kind` of what drew it, what it draws under `draw` and the canvas it is
+// clipped to under `clip`.
 struct ResolvedPictureReader: Sendable {
     // MARK: - Property
     static let keys = ["kind", "size", "steps"]
@@ -36,14 +37,17 @@ struct ResolvedPictureReader: Sendable {
     }
 
     // MARK: - Private
-    // `draw` names what a step draws, which decides the keys it holds besides `clip`.
+    // `draw` names what a step draws, which decides the keys it holds besides what drew it and `clip`.
     private func step(
         _ value: PlacedJSONValue,
         sequences: (PlacedJSONObject) throws -> ResolvedSequence
     ) throws -> ResolvedDrawingStep {
         let name = try values.member("draw", of: value, kind: "drawing step")
             .name(among: Self.drawingNames) { Self.drawingNames.contains($0) ? $0 : nil }
-        let step = try value.object(kind: "drawing step", keys: ["draw"] + keys(of: name) + ["clip"])
+        let step = try value.object(
+            kind: "drawing step",
+            keys: ["place", "id", "kind", "draw"] + keys(of: name) + ["clip"]
+        )
         let rectangle = { (key: String) in try values.rectangle(step.member(key)) }
         let point = { (key: String) in try values.point(step.member(key)) }
         let number = { (key: String) in try step.member(key).number() }
@@ -85,7 +89,13 @@ struct ResolvedPictureReader: Sendable {
             .border(try rectangle("area"), width: try number("width"), color: try color())
         }
 
-        return ResolvedDrawingStep(content: content, clip: try rectangle("clip"))
+        return ResolvedDrawingStep(
+            place: try step.member("place").string(),
+            id: try step.member("id").optional { try $0.string() },
+            kind: try step.member("kind").string(),
+            content: content,
+            clip: try rectangle("clip")
+        )
     }
 
     private func keys(of name: String) -> [String] {
