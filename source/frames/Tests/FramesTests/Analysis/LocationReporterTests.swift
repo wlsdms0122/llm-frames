@@ -197,6 +197,33 @@ struct LocationReporterTests {
         #expect(hit.media?.mediaTime == 2)
     }
 
+    @Test("a point in a layout names the ops of the image document its item holds, in the item's place, and the layout")
+    func locatesLayoutOperations() throws {
+        // Given
+        let document = try ResolvedDocument(
+            plan: Fixture.documentPlanner.plan(Fixture.json(#"""
+                { "kind": "layout", "border": false,
+                  "items": [ { "image": { "kind": "image", "source": "/abs/page.png",
+                                          "ops": [ { "shape": "box", "area": [100, 100, 200, 100], "id": "serial" } ] } } ] }
+                """#)),
+            hashes: FileHashTable()
+        )
+        // The 1000 x 800 item sits inside the layout padding, 40 at the base width of 1206.
+        let padding = 40 * 1000 / 1206.0
+
+        // When
+        let report = sut.report(of: document, at: 0, point: Point(x: padding + 100, y: padding + 150))
+
+        // Then
+        // The point lies on the box's left edge, over the source picture and the layout's background.
+        #expect(report.hits.map(\.origin) == [
+            ItemOrigin(place: "items[0].image.ops[0]#serial", id: "serial", kind: "box"),
+            ItemOrigin(place: "items[0].image.source", id: nil, kind: "image"),
+            ItemOrigin(place: "top level", id: nil, kind: "layout")
+        ])
+        #expect(report.hits[1].media?.file == "/abs/page.png")
+    }
+
     @Test("the machine output is the locate object FRAMES-23 gives, with media only on a picture of media")
     func writesMachineOutput() {
         // Given
