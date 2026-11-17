@@ -94,6 +94,28 @@ struct TranscodeCommandTests {
             """)
     }
 
+    @Test("--max that would make a video's side under 2 pixels stops before anything is written, naming the size")
+    func stopsOnUndersizedVideo() async throws {
+        // Given
+        let video = sut.directory.file("clip.mov")
+        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0], end: 0.5)
+        try await writer.write(to: video) { canvas, _ in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        let output = sut.directory.file("clip.mp4")
+
+        // When
+        let code = sut.run(["transcode", video, "-o", output, "--max", "1"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == """
+            frames: "\(output)": --max 1 makes the video 1x1, and a video's sides are at least 2 pixels
+
+            """)
+        #expect(!FileManager.default.fileExists(atPath: output))
+    }
+
     // MARK: - Private
     private func line(
         of path: String,

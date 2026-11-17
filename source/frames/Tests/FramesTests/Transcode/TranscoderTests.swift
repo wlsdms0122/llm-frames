@@ -358,6 +358,33 @@ struct TranscoderTests {
         try expectStop(request, facts: [input: image(width: 40, height: 30)], error: .maximumSide(maximumSide))
     }
 
+    @Test("--max that rounds a side of a video below 2 pixels stops, naming the size it would give", arguments: [
+        (Size(width: 1920, height: 1080), 1, Size(width: 1, height: 1)),
+        (Size(width: 1920, height: 1080), 2, Size(width: 2, height: 1)),
+        (Size(width: 400, height: 2), 100, Size(width: 100, height: 1))
+    ])
+    func stopsOnUndersizedVideo(
+        source size: Size,
+        maximumSide: Int,
+        fitted: Size
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try source(in: directory, name: "in.mov")
+        let output = try existingOutput(in: directory, name: "out.mp4")
+        let media = ProbedMedia(kind: .video, duration: 0.1, fps: 10, frames: [0], size: size)
+
+        // When
+        let request = TranscodeRequest(input: input, output: output, maximumSide: maximumSide)
+
+        // Then
+        try expectStop(
+            request,
+            facts: [input: media],
+            error: .undersizedVideo(path: output, maximumSide: maximumSide, size: fitted)
+        )
+    }
+
     @Test("an input that is not there stops")
     func stopsOnMissingInput() throws {
         // Given

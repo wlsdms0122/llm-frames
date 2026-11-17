@@ -12,8 +12,8 @@ import Foundation
 // in an .m4a, and a video to H.264 or HEVC in an .mp4, .mov or .m4v with its sound in AAC, or to its sound alone in an
 // .m4a. Pictures are taken as the decoder displays them, turned, and nothing else of the input is carried over.
 // Everything that can stop does before anything is written, in this order: `--max`, the input, the paths, the output
-// extension, `--codec`, a video's sound or frame rate, the decoder on the input, and the encoder on the target and on
-// the sound read for it. An existing output file is removed only then.
+// extension, `--codec`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, and the
+// encoder on the target and on the sound read for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -129,6 +129,7 @@ package struct Transcoder: Sendable {
         }
 
         guard let fps = media.fps, fps > 0 else { throw TranscodeError.noFrameRate(path: request.input) }
+        try checkVideoSize(of: size, for: request)
         let codec = request.codec ?? .h264
         let target = EncodeTarget.compressed(
             path: request.output,
@@ -230,6 +231,20 @@ package struct Transcoder: Sendable {
 
     private func checkNoCodec(in request: TranscodeRequest) throws {
         guard request.codec == nil else { throw TranscodeError.codecWithoutVideo(path: request.output) }
+    }
+
+    // A video's side is at least 2 pixels, the least even number, so a cap that rounds a side below it stops rather
+    // than writing a video larger than the cap.
+    private func checkVideoSize(
+        of size: Size,
+        for request: TranscodeRequest
+    ) throws {
+        guard let maximumSide = request.maximumSide else { return }
+
+        let fitted = outputSize(of: size, maximumSide: maximumSide, isVideo: false)
+        guard fitted.width >= 2, fitted.height >= 2 else {
+            throw TranscodeError.undersizedVideo(path: request.output, maximumSide: maximumSide, size: fitted)
+        }
     }
 
     // `size` with its longer side capped at `maximumSide`, never enlarged, each side rounded to whole pixels. A
