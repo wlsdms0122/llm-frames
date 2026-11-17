@@ -6,8 +6,9 @@
 //
 
 // A storyline clip as written. `media` is nil for a solid, and `solid` its colour as written. Whether media is timed
-// or still is known once it is probed. `crop` and `track` are as written, and a crop's keyframes are on the clip's own
-// clock. `filter` is the filter choice as written.
+// or still is known once it is probed. `crop` and `track` are as written, and keyframes are on the clip's own clock.
+// `filter` is the filter choice as written. `anchor` is the name written, and `position`, `scale`, `rotation`,
+// `opacity`, `blend`, `radius`, `border` and `shadow` are its transform and how its box is drawn, as on a media clip.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -20,6 +21,15 @@ struct StorylineClip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let track: TrackTarget?
     let filter: JSONValue?
+    let anchor: String?
+    let position: PropertyValue<PositionForm>?
+    let scale: PropertyValue<Double>?
+    let rotation: PropertyValue<Double>?
+    let opacity: PropertyValue<Double>?
+    let blend: String?
+    let radius: Double?
+    let border: BorderForm?
+    let shadow: Bool
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -34,6 +44,15 @@ struct StorylineClip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         track: TrackTarget? = nil,
         filter: JSONValue? = nil,
+        anchor: String? = nil,
+        position: PropertyValue<PositionForm>? = nil,
+        scale: PropertyValue<Double>? = nil,
+        rotation: PropertyValue<Double>? = nil,
+        opacity: PropertyValue<Double>? = nil,
+        blend: String? = nil,
+        radius: Double? = nil,
+        border: BorderForm? = nil,
+        shadow: Bool = false,
         connected: [Clip]
     ) {
         self.place = place
@@ -46,6 +65,15 @@ struct StorylineClip: Equatable, Sendable {
         self.crop = crop
         self.track = track
         self.filter = filter
+        self.anchor = anchor
+        self.position = position
+        self.scale = scale
+        self.rotation = rotation
+        self.opacity = opacity
+        self.blend = blend
+        self.radius = radius
+        self.border = border
+        self.shadow = shadow
         self.connected = connected
     }
 

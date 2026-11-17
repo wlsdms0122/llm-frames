@@ -118,8 +118,8 @@ package struct Evaluator: Sendable {
     }
 
     // A storyline picture is two items: the outer one a picture of a nested list the size of the frame, carrying the
-    // clip's transition motion about the centre of the frame, its opacity and reveal, and the matte; the inner one,
-    // the one item of that list, its media or its fill.
+    // clip's blend and its transition motion about the centre of the frame, the motion's opacity and reveal, and the
+    // matte; the inner one, the one item of that list, its media or its fill with its own transform.
     private func storylineItem(
         of index: Int,
         in sequence: ResolvedSequence,
@@ -129,7 +129,7 @@ package struct Evaluator: Sendable {
     ) -> DisplayItem {
         let frame = sequence.format.frame
         let entry = sequence.storyline[index]
-        let items = innerItems(of: entry, filling: frame, at: time, seed: seed)
+        let items = innerItems(of: entry, at: time, seed: seed)
         let list = DisplayList(size: sequence.format.size, background: Self.transparent, seed: seed, items: items)
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
@@ -138,33 +138,47 @@ package struct Evaluator: Sendable {
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
+            blend: entry.blend,
             reveal: sample.reveal.rectangle(wiping: frame, from: sample.revealFrom),
             content: .picture(picture),
             origin: ItemOrigin(entry: entry)
         )
     }
 
-    // A storyline entry's own picture over the whole frame: its media's conformed crop with its filter, or the fill of
-    // a solid.
+    // A storyline entry's own picture in its box: its media's conformed crop with its filter, rounded corners, border
+    // and shadow, or the fill of a solid, carried into the frame by its own transform and opacity, blended normally.
     private func innerItems(
         of entry: ResolvedStorylineClip,
-        filling frame: Rectangle,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
         let origin = ItemOrigin(entry: entry)
-        guard let media = entry.media else {
-            return entry.solid.map { [DisplayItem(content: .fill(FillItem(rectangle: frame, color: $0)), origin: origin)] }
-                ?? []
+        let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
+        let presentation = entry.presentation(at: time)
+        let content: DisplayContent
+        if let media = entry.media {
+            content = .picture(PictureItem(
+                source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
+                rectangle: entry.crop(at: time),
+                destination: box,
+                filter: entry.filter,
+                radius: entry.radius,
+                border: entry.border,
+                shadow: entry.shadow
+            ))
+        } else if let solid = entry.solid {
+            content = .fill(FillItem(rectangle: box, color: solid))
+        } else {
+            return []
         }
 
-        let picture = PictureItem(
-            source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
-            rectangle: entry.crop(at: time),
-            destination: frame,
-            filter: entry.filter
+        let item = DisplayItem(
+            transform: presentation.transform,
+            opacity: presentation.opacity,
+            content: content,
+            origin: origin
         )
-        return [DisplayItem(content: .picture(picture), origin: origin)]
+        return [item]
     }
 
     private func source(

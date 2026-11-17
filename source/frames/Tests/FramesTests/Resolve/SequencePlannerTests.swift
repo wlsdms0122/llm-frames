@@ -180,7 +180,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description == #"\#(place) (\#(kind)): a text area is searched in the picture of the clip's parent, so it needs "parent""#)
+        #expect(error?.description == #"\#(place) (\#(kind)): a text area is searched in the picture of the clip's parent, and an unparented clip's coordinates are output pixels"#)
     }
 
     @Test("a sequence clip without a parent takes a position given by the point of a numeric area, in output pixels")
@@ -469,6 +469,82 @@ struct SequencePlannerTests {
             color: MergedTheme.base.shapeColor(of: .box)
         ))
         #expect(plan.clips[2].appearance.filter == graded)
+    }
+
+    @Test("a storyline clip that writes none of its transform has the frame as its box and fills it exactly")
+    func fillsFrameByDefault() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            """#)
+
+        // Then
+        #expect(plan.storyline[0].appearance == StorylineAppearance(
+            box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 0, y: 0)), anchor: Point(x: 540, y: 960)),
+            opacity: .value(1),
+            scale: .value(1),
+            rotation: .value(0),
+            blend: "normal",
+            radius: 0,
+            border: nil,
+            shadow: nil
+        ))
+    }
+
+    @Test("a storyline clip's anchor is named on the frame, its keyframes move to sequence time, and its border and shadow are the theme's")
+    func plansStorylineTransform() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "anchor": "top-left", "rotation": 90, "blend": "screen",
+                               "radius": 12, "border": true, "shadow": true,
+                               "keyframes": [ { "at": 3, "position": [0, 0], "scale": 1 }, { "at": 5, "position": [540, 960], "scale": 0.5 } ] } ] }
+            """#
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        let theme = MergedTheme.base
+        let scale = theme.lengthScale(at: 1080)
+        let appearance = plan.storyline[0].appearance
+        #expect(appearance.box == ClipBox(
+            size: Size(width: 1080, height: 1920),
+            position: .keyframes([
+                TimedValue(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
+                TimedValue(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
+            ]),
+            anchor: Point(x: 0, y: 0)
+        ))
+        #expect(appearance.scale == .keyframes([
+            TimedValue(index: 0, at: 1, value: 1, ease: .linear),
+            TimedValue(index: 1, at: 3, value: 0.5, ease: .linear)
+        ]))
+        #expect(appearance.rotation == .value(90))
+        #expect(appearance.opacity == .value(1))
+        #expect(appearance.blend == "screen")
+        #expect(appearance.radius == 12)
+        #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
+        #expect(appearance.shadow == MediaShadow(
+            radius: theme.shadowRadius * scale,
+            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
+            color: theme.shadowColor
+        ))
+    }
+
+    @Test("a storyline clip has no parent, so a position written with text stops")
+    func refusesStorylineTextPosition() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "position": { "area": "Total", "point": "center" } } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error == .textAreaWithoutParent(
+            place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "position"),
+            kind: .clip(.media(.video))
+        ))
     }
 
     @Test("a filter naming a preset that is not there stops where it is written")

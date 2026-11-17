@@ -41,9 +41,9 @@ struct ParentEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // A storyline entry's map from its media pixels to output pixels: its conformed crop scaled to its box, the frame,
-    // then its transition motion. A solid's space is output pixels, carried by its motion alone. Its keyframes hold their
-    // edge values outside its drawn range, and so does its motion.
+    // A storyline entry's map from its media pixels to output pixels: its conformed crop scaled to its box, its own
+    // transform, then its transition motion. A solid's space is output pixels, carried by its transform and motion.
+    // Its keyframes hold their edge values outside its drawn range, and so does its motion.
     private func transform(
         of index: Int,
         at time: Double
@@ -52,11 +52,13 @@ struct ParentEvaluator: Sendable {
         let frame = sequence.format.frame
         let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
         let motion = ItemPresentation(area: frame, opacity: 1, motion: sample.motion).transform
-        guard entry.media != nil else { return motion }
+        let own = entry.presentation(at: time).transform.concatenating(motion)
+        guard entry.media != nil else { return own }
 
         let crop = entry.crop(at: time)
+        let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
         return AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
-            .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: frame))
-            .concatenating(motion)
+            .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
+            .concatenating(own)
     }
 }

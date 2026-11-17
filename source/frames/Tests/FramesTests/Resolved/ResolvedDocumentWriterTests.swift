@@ -29,7 +29,9 @@ struct ResolvedDocumentWriterTests {
           "theme": { "styles": { "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
                                             "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 } } },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
-                           "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
+                           "anchor": "top-left", "position": [0, 0], "blend": "screen", "border": true,
+                           "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920], "scale": 1 },
+                                          { "at": 8, "crop": [45, 97, 990, 1760], "scale": 0.5 } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
@@ -60,6 +62,15 @@ struct ResolvedDocumentWriterTests {
               "speed": 2,
               "start": 0,
               "end": 3,
+              "size": [1080, 1920],
+              "position": [
+                {
+                  "at": 0,
+                  "value": [0, 0],
+                  "ease": "linear"
+                }
+              ],
+              "anchor": [0, 0],
               "crop": [
                 {
                   "at": 0,
@@ -73,6 +84,33 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "track": null,
+              "opacity": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                }
+              ],
+              "scale": [
+                {
+                  "at": 0,
+                  "value": 1,
+                  "ease": "linear"
+                },
+                {
+                  "at": 3,
+                  "value": 0.5,
+                  "ease": "linear"
+                }
+              ],
+              "rotation": [
+                {
+                  "at": 0,
+                  "value": 0,
+                  "ease": "linear"
+                }
+              ],
+              "blend": "screen",
               "filter": [
                 {
                   "op": "saturation",
@@ -83,6 +121,12 @@ struct ResolvedDocumentWriterTests {
                   "radius": 2.25
                 }
               ],
+              "radius": 0,
+              "border": {
+                "width": 2.25,
+                "color": "#FFFFFFFF"
+              },
+              "shadow": null,
               "transition": null
             }
           ],

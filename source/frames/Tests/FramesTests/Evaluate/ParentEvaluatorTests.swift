@@ -248,7 +248,8 @@ struct ParentEvaluatorTests {
                     crop: crop ?? [Keyframe(at: 0, value: Crop(whole))],
                     track: nil,
                     filter: [],
-                    transition: nil
+                    transition: nil,
+                    filling: size
                 ),
                 ResolvedStorylineClip(
                     place: "storyline[1]",
@@ -271,7 +272,8 @@ struct ParentEvaluatorTests {
                         outgoing: nil,
                         cover: nil,
                         matte: nil
-                    )
+                    ),
+                    filling: size
                 )
             ],
             clips: clips,

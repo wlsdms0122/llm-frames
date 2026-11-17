@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans where a connected or sequence clip is placed and how it is drawn: a title's or a media clip's box and where
-// its placement or position puts it, how a media clip's picture fills that box, how a shape is drawn, and the filter a
-// clip applies, the theme's default included.
+// Plans where a clip is placed and how it is drawn: a title's or a media clip's box and where its placement or
+// position puts it, how a media clip's picture fills that box, a storyline clip's box and transform, how a shape is
+// drawn, and the filter a clip applies, the theme's default included.
 struct ClipAppearancePlanner: Sendable {
     // MARK: - Property
     private let filters: FilterResolver
@@ -77,25 +77,13 @@ struct ClipAppearancePlanner: Sendable {
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         let placement = named ?? "center"
         let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
-        let topLeft = { (point: Point) in Point(x: point.x - anchor.x, y: point.y - anchor.y) }
-        let placed: PropertyValue<Point> = switch position {
-        case let .value(point):
-            .value(topLeft(point))
-
-        case let .keyframes(keyframes):
-            .keyframes(keyframes.map { keyframe in
-                TimedValue(index: keyframe.index, at: keyframe.at, value: topLeft(keyframe.value), ease: keyframe.ease)
-            })
-
-        case .none:
-            .value(self.placed(
-                bounds,
-                at: placement,
-                offset: style.flatMap(theme.offset(ofStyle:)),
-                format: format,
-                theme: theme
-            ))
-        }
+        let placed = position.map { topLeft(of: $0, anchor: anchor) } ?? .value(self.placed(
+            bounds,
+            at: placement,
+            offset: style.flatMap(theme.offset(ofStyle:)),
+            format: format,
+            theme: theme
+        ))
 
         return ClipBox(size: size, position: placed, anchor: anchor)
     }
@@ -113,25 +101,6 @@ struct ClipAppearancePlanner: Sendable {
         theme: MergedTheme,
         defaults: ThemeDefaults
     ) throws -> ClipAppearance {
-        let property = { (value: PropertyValue<Double>?, plain: Double) -> PropertyValue<Double> in
-            switch value {
-            case .none:
-                .value(plain)
-
-            case let .value(value):
-                .value(value)
-
-            case let .keyframes(keyframes):
-                .keyframes(keyframes.map { keyframe in
-                    TimedValue(
-                        index: keyframe.index,
-                        at: plan.clock.sequenceTime(ofClipTime: keyframe.at),
-                        value: keyframe.value,
-                        ease: keyframe.ease
-                    )
-                })
-            }
-        }
         let shape: ShapeDrawing? = switch written.content {
         case let .shape(shape):
             drawer.drawing(
@@ -146,9 +115,9 @@ struct ClipAppearancePlanner: Sendable {
         }
 
         return ClipAppearance(
-            opacity: property(written.opacity, 1),
-            scale: property(written.scale, 1),
-            rotation: property(written.rotation, 0),
+            opacity: property(written.opacity, plain: 1, clock: plan.clock),
+            scale: property(written.scale, plain: 1, clock: plan.clock),
+            rotation: property(written.rotation, plain: 0, clock: plan.clock),
             blend: written.blend ?? "normal",
             shape: shape,
             filter: try filter(
@@ -168,6 +137,33 @@ struct ClipAppearancePlanner: Sendable {
                 scale: scale,
                 theme: theme
             )
+        )
+    }
+
+    // A storyline clip's box is the frame, which its conformed crop fills, and its anchor point, `center` unless
+    // written, goes to its position, the centre of the frame unless written, so a clip that writes none of its
+    // transform fills the frame exactly. Its border and shadow are drawn as a media clip's.
+    func appearance(
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        position: PropertyValue<Point>?,
+        format: FormatPlan,
+        scale: Double,
+        theme: MergedTheme
+    ) -> StorylineAppearance {
+        let bounds = Rectangle(x: 0, y: 0, width: format.size.width, height: format.size.height)
+        let anchor = bounds.point(named: written.anchor ?? "center")
+        let placed = topLeft(of: position ?? .value(bounds.center), anchor: anchor)
+
+        return StorylineAppearance(
+            box: ClipBox(size: format.size, position: placed, anchor: anchor),
+            opacity: property(written.opacity, plain: 1, clock: plan.map),
+            scale: property(written.scale, plain: 1, clock: plan.map),
+            rotation: property(written.rotation, plain: 0, clock: plan.map),
+            blend: written.blend ?? "normal",
+            radius: written.radius ?? 0,
+            border: border(written.border, scale: scale, theme: theme),
+            shadow: shadow(isDrawn: written.shadow, scale: scale, theme: theme)
         )
     }
 
@@ -266,8 +262,7 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
-    // picture does, so the box holds still while the crop moves. A border takes the theme's width, and its colour unless
-    // the clip writes one, and a shadow is the theme's, their lengths scaled.
+    // picture does, so the box holds still while the crop moves.
     private func mediaAppearance(
         of written: Clip,
         box: ClipBox?,
@@ -299,20 +294,82 @@ struct ClipAppearancePlanner: Sendable {
         case .none:
             crops = .value(conformed(picture.bounds))
         }
-        let shadow = MediaShadow(
-            radius: theme.shadowRadius * scale,
-            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
-            color: theme.shadowColor
-        )
 
         return MediaAppearance(
             conform: conform,
             crop: crops,
             radius: written.radius ?? 0,
-            border: written.border.map { border in
-                MediaBorder(width: theme.borderWidth * scale, color: borderColor(of: border, theme: theme))
-            },
-            shadow: written.shadow ? shadow : nil
+            border: border(written.border, scale: scale, theme: theme),
+            shadow: shadow(isDrawn: written.shadow, scale: scale, theme: theme)
+        )
+    }
+
+    // Where a box's top left goes when its anchor point goes to each position.
+    private func topLeft(
+        of position: PropertyValue<Point>,
+        anchor: Point
+    ) -> PropertyValue<Point> {
+        let topLeft = { (point: Point) in Point(x: point.x - anchor.x, y: point.y - anchor.y) }
+
+        switch position {
+        case let .value(point):
+            return .value(topLeft(point))
+
+        case let .keyframes(keyframes):
+            return .keyframes(keyframes.map { keyframe in
+                TimedValue(index: keyframe.index, at: keyframe.at, value: topLeft(keyframe.value), ease: keyframe.ease)
+            })
+        }
+    }
+
+    // A property not written takes its plain value, and keyframes move from the clip's clock to sequence time.
+    private func property(
+        _ value: PropertyValue<Double>?,
+        plain: Double,
+        clock: TimeMap
+    ) -> PropertyValue<Double> {
+        switch value {
+        case .none:
+            .value(plain)
+
+        case let .value(value):
+            .value(value)
+
+        case let .keyframes(keyframes):
+            .keyframes(keyframes.map { keyframe in
+                TimedValue(
+                    index: keyframe.index,
+                    at: clock.sequenceTime(ofClipTime: keyframe.at),
+                    value: keyframe.value,
+                    ease: keyframe.ease
+                )
+            })
+        }
+    }
+
+    // A border takes the theme's width, and its colour unless the clip writes one, and a shadow is the theme's, their
+    // lengths scaled.
+    private func border(
+        _ border: BorderForm?,
+        scale: Double,
+        theme: MergedTheme
+    ) -> MediaBorder? {
+        border.map { border in
+            MediaBorder(width: theme.borderWidth * scale, color: borderColor(of: border, theme: theme))
+        }
+    }
+
+    private func shadow(
+        isDrawn: Bool,
+        scale: Double,
+        theme: MergedTheme
+    ) -> MediaShadow? {
+        guard isDrawn else { return nil }
+
+        return MediaShadow(
+            radius: theme.shadowRadius * scale,
+            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
+            color: theme.shadowColor
         )
     }
 

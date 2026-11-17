@@ -144,7 +144,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .textAreaWithoutParent(place, kind):
             "\(place) (\(kind.label)): a text area is searched in the picture of the clip's parent, "
-                + "so it needs \"parent\""
+                + "and an unparented clip's coordinates are output pixels"
 
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"

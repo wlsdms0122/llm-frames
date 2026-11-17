@@ -132,7 +132,7 @@ struct ResolvedDocumentReaderTests {
         arguments: [
             (#""in": 2,"#, "", #"storyline[0] (storyline clip): missing key "in""#),
             (#""speed": 2,"#, #""speed": "2","#, #"storyline[0].speed (storyline clip): expected a number, found "2""#),
-            (#""at": 0,"#, #""at": [0],"#, #"storyline[0].crop[0].at (storyline clip): expected a number, found a list of 1"#),
+            (#""at": 0,"#, #""at": [0],"#, #"storyline[0].position[0].at (storyline clip): expected a number, found a list of 1"#),
             (#""size": [1080, 1920],"#, #""size": [1080],"#, #"format.size (format): expected a list of 2 numbers, found a list of 1"#),
             (
                 #""duration": 3,"#,

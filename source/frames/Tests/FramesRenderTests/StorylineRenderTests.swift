@@ -31,6 +31,10 @@ struct StorylineRenderTests {
             { "description": "the outgoing clip at half size over the incoming one", "seconds": 1, "over": "outgoing",
               "outgoing": { "keys": [ { "t": 0, "scale": 0.5 }, { "t": 1, "scale": 0.5 } ] } }
             """#,
+        "transition/over": #"""
+            { "description": "the incoming clip over the outgoing one, as it is", "seconds": 1,
+              "incoming": { "keys": [ { "t": 0, "scale": 1 }, { "t": 1, "scale": 1 } ] } }
+            """#,
         "transition/grow": #"""
             { "description": "the incoming clip grows in from the right as the outgoing one leaves left", "seconds": 1,
               "ease": "linear",
@@ -46,14 +50,16 @@ struct StorylineRenderTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "during a transition both storyline pictures show, the incoming one above unless the preset puts it below",
+        "during a transition both storyline pictures show, the incoming one above unless the preset puts it below, at half size by the motion or its own scale",
         arguments: [
-            ("half-in", [0.0, 255, 0], [255.0, 0, 0]),
-            ("half-out", [255.0, 0, 0], [0.0, 255, 0])
+            ("half-in", "", [0.0, 255, 0], [255.0, 0, 0]),
+            ("half-out", "", [255.0, 0, 0], [0.0, 255, 0]),
+            ("over", #", "scale": 0.5"#, [0.0, 255, 0], [255.0, 0, 0])
         ]
     )
     func stacksTransitionPictures(
         transition: String,
+        transform: String,
         middle: [Double],
         rim: [Double]
     ) throws {
@@ -64,7 +70,7 @@ struct StorylineRenderTests {
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
-                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)" } ] }
+                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)"\#(transform) } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

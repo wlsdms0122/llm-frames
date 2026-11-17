@@ -31,10 +31,10 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "volume"]
+            ["crop", "position", "scale", "rotation", "opacity", "volume"]
 
         case (.storyline, _):
-            ["crop"]
+            ["crop", "position", "scale", "rotation", "opacity"]
 
         case (_, .media(.audio)):
             ["volume"]
@@ -72,6 +72,12 @@ enum ClipKeyTable {
 
     private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
 
+    // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
+    // parent.
+    private static let storylineTransform = [
+        "anchor", "position", "scale", "rotation", "opacity", "blend", "radius", "border", "shadow"
+    ]
+
     private static func keys(
         for kind: ClipKind,
         in place: ClipPlace
@@ -79,15 +85,15 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
-                "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition",
-                "volume", "fadeIn", "fadeOut", "keyframes", "connected"
-            ]
+                "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition"
+            ] + storylineTransform + ["volume", "fadeIn", "fadeOut", "keyframes", "connected"]
 
         case (.storyline, .solid):
             return ["id", "metadata", "solid", "duration", "transition", "connected"]
 
         case (.storyline, _):
-            return ["id", "metadata", "media", "duration", "crop", "filter", "transition", "keyframes", "connected"]
+            return ["id", "metadata", "media", "duration", "crop", "filter", "transition"] + storylineTransform
+                + ["keyframes", "connected"]
 
         case (_, .media(.audio)):
             return ["id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut", "keyframes"]

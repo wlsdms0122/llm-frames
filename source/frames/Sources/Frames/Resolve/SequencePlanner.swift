@@ -66,6 +66,15 @@ struct SequencePlanner: Sendable {
             )
         }
 
+        let storylinePositions = try time.storyline.indices.map { index in
+            try position(
+                of: time.storyline[index],
+                written: time.sequence.storyline[index],
+                format: format,
+                theme: time.theme
+            )
+        }
+
         let tracked = try tracker.plan(time, crops: crops, areas: found.map(\.area))
         try checkKeyframes(of: tracked.time)
 
@@ -84,7 +93,15 @@ struct SequencePlanner: Sendable {
                     defaults: time.defaults,
                     place: time.storyline[index].place.appending(key: "filter")
                 ),
-                color: time.sequence.storyline[index].solid.map(time.theme.color)
+                color: time.sequence.storyline[index].solid.map(time.theme.color),
+                appearance: appearances.appearance(
+                    of: time.storyline[index],
+                    written: time.sequence.storyline[index],
+                    position: storylinePositions[index],
+                    format: format,
+                    scale: lengthScale,
+                    theme: time.theme
+                )
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
@@ -250,6 +267,31 @@ struct SequencePlanner: Sendable {
             clock: plan.map,
             instant: plan.instant,
             padding: theme.cropPadding * theme.lengthScale(at: picture.size.width),
+            place: written.place,
+            kind: plan.source.kind.label
+        )
+    }
+
+    // A storyline clip has no parent, so its position is in output pixels and a text form stops.
+    private func position(
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        format: FormatPlan,
+        theme: MergedTheme
+    ) throws -> PropertyValue<Point>? {
+        guard let position = written.position else { return nil }
+
+        if let text = byText(position, place: written.place) {
+            throw ResolveError.textAreaWithoutParent(place: text, kind: .clip(plan.source.kind))
+        }
+        let space = output(of: format)
+        return try finder.positions(
+            position,
+            in: space,
+            pictureClock: .still,
+            clock: plan.map,
+            instant: plan.instant,
+            padding: theme.areaPadding * theme.lengthScale(at: space.size.width),
             place: written.place,
             kind: plan.source.kind.label
         )

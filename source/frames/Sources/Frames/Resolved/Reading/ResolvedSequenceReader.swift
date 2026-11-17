@@ -111,8 +111,8 @@ struct ResolvedSequenceReader: Sendable {
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
-            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "crop", "track", "filter",
-            "transition"
+            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "size", "position", "anchor", "crop",
+            "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border", "shadow", "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -128,6 +128,18 @@ struct ResolvedSequenceReader: Sendable {
             crop: try values.crops(entry.member("crop")),
             track: try entry.member("track").optional(track),
             filter: try values.filter(entry.member("filter")),
+            box: ResolvedBox(
+                size: try values.size(entry.member("size")),
+                position: try values.keyframes(entry.member("position"), read: values.point),
+                anchor: try values.point(entry.member("anchor"))
+            ),
+            opacity: try values.numbers(entry.member("opacity")),
+            scale: try values.numbers(entry.member("scale")),
+            rotation: try values.numbers(entry.member("rotation")),
+            blend: try entry.member("blend").string(),
+            radius: try entry.member("radius").number(),
+            border: try entry.member("border").optional(border),
+            shadow: try entry.member("shadow").optional(shadow),
             transition: try entry.member("transition").optional(transition)
         )
     }
@@ -240,25 +252,29 @@ struct ResolvedSequenceReader: Sendable {
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try clip.member("radius").number(),
-                border: try clip.member("border").optional { value in
-                    let border = try value.object(keys: ["width", "color"])
-
-                    return MediaBorder(
-                        width: try border.member("width").number(),
-                        color: try values.color(border.member("color"))
-                    )
-                },
-                shadow: try clip.member("shadow").optional { value in
-                    let shadow = try value.object(keys: ["radius", "offset", "color"])
-
-                    return MediaShadow(
-                        radius: try shadow.member("radius").number(),
-                        offset: try values.point(shadow.member("offset")),
-                        color: try values.color(shadow.member("color"))
-                    )
-                }
+                border: try clip.member("border").optional(border),
+                shadow: try clip.member("shadow").optional(shadow)
             )
         ))
+    }
+
+    private func border(_ value: PlacedJSONValue) throws -> MediaBorder {
+        let border = try value.object(keys: ["width", "color"])
+
+        return MediaBorder(
+            width: try border.member("width").number(),
+            color: try values.color(border.member("color"))
+        )
+    }
+
+    private func shadow(_ value: PlacedJSONValue) throws -> MediaShadow {
+        let shadow = try value.object(keys: ["radius", "offset", "color"])
+
+        return MediaShadow(
+            radius: try shadow.member("radius").number(),
+            offset: try values.point(shadow.member("offset")),
+            color: try values.color(shadow.member("color"))
+        )
     }
 
     private func shape(_ clip: PlacedJSONObject) throws -> ShapeDrawing {

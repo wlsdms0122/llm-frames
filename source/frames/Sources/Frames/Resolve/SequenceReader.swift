@@ -78,6 +78,15 @@ struct SequenceReader: Sendable {
             crop: property("crop", of: object, read: CropForm.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
             filter: object["filter"],
+            anchor: object["anchor"]?.stringValue,
+            position: property("position", of: object, read: PositionForm.init(value:)),
+            scale: property("scale", of: object, read: \.numberValue),
+            rotation: property("rotation", of: object, read: \.numberValue),
+            opacity: property("opacity", of: object, read: \.numberValue),
+            blend: object["blend"]?.stringValue,
+            radius: object["radius"]?.numberValue,
+            border: object["border"].flatMap(BorderForm.init(value:)),
+            shadow: object["shadow"]?.boolValue ?? false,
             connected: connected
         )
     }

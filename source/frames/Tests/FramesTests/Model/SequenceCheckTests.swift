@@ -280,6 +280,54 @@ struct SequenceCheckTests {
         try sut.check(document: video)
     }
 
+    @Test("a storyline clip with media takes a transform and draws its box, keyframing its position, scale, rotation and opacity")
+    func acceptsStorylineTransform() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [
+              { "media": "/abs/card.png", "duration": 2, "anchor": "top-left", "blend": "screen", "radius": 12, "border": true, "shadow": true,
+                "keyframes": [ { "at": 0, "position": [0, 0], "scale": 1, "rotation": 0, "opacity": 1 }, { "at": 2, "position": [10, 0], "scale": 0.5, "rotation": 90, "opacity": 0 } ] },
+              { "media": "/abs/run.mp4", "position": [540, 960], "scale": 0.5, "rotation": 10, "opacity": 0.8 }
+            ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a storyline clip takes no placement and no parent, a solid takes a transition only, and masks and track mattes are not taken yet",
+        arguments: [
+            (
+                #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
+            ),
+            (
+                #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#
+            ),
+            (
+                ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
+                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, connected"#
+            ),
+            (
+                #"{ "media": "/abs/card.png", "duration": 2, "trackMatte": { "clip": "matte" } }"#,
+                #"storyline[0] (image): unknown key "trackMatte". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#
+            )
+        ]
+    )
+    func refusesStorylineKey(
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
     @Test("an id is a string unique within its document, and a nested document has its own")
     func checksIdentifiers() throws {
         // Given
