@@ -179,7 +179,7 @@ frames keeps no state between commands, so an edit (a blade, a trim, a ripple de
 
 - **Split.** The first part keeps the clip's `id`, and the others take new ones. Its incoming `transition` and `fadeIn` stay on the first part and its `fadeOut` goes to the last. Every later part takes `"transition": "cut"`, so a theme's default transition does not play at the split.
 - **Unparented connected clips** (titles, media without `parent`) go with the part that holds their start. Their `at` does not change, since on a video clip time is media time. One without `at` spans its storyline clip's edit range, so write its `at` before splitting, or it shrinks to one part.
-- **Parented clips** (shapes and adjustments placed by an area, and clips with `parent: true`) that cross the cut are copied onto each part, keeping their `at`. The copy before the cut has its exit turned off and the copy after it has its entrance turned off: `{ "entrance": "fade", "exit": "none" }` and `{ "entrance": "none", "exit": "fade" }`. A loop starts again on the second part.
+- **Parented clips** (shapes and adjustments placed by an area, and clips with `parent: true`) that cross the cut are copied onto each part, keeping their `at`. The copy before the cut has its exit turned off and the copy after it has its entrance turned off: `{ "entrance": "frames/fade", "exit": "none" }` and `{ "entrance": "none", "exit": "frames/fade" }`. A loop starts again on the second part.
 - **Still and solid clips** count clip time from their own start, so on every part after the first, connected `at` and keyframes move back by where that part starts.
 - **Ripple** (a trim or delete that closes the gap). Later storyline clips and what is connected to them move by themselves. Every later sequence clip in `clips`, which is on the sequence clock, moves its `at` and its keyframes by the same amount.
 
@@ -192,9 +192,9 @@ Before: a recording after a title card, with a box that fades in and out around 
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
     { "id": "intro", "solid": "#111827", "duration": 1 },
-    { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 3, "transition": "fade", "fadeOut": 0.5,
+    { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 3, "transition": "frames/fade", "fadeOut": 0.5,
       "connected": [
-        { "id": "ring", "at": [0.5, 1.4], "shape": "box", "area": "Total", "animation": "fade" },
+        { "id": "ring", "at": [0.5, 1.4], "shape": "box", "area": "Total", "animation": "frames/fade" },
         { "id": "note", "at": [1.2, 2.4], "title": "Shipping is added here", "style": "subtitle" } ] }
   ] }
 ```
@@ -206,19 +206,19 @@ After a blade at media second 1 of `demo`:
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
     { "id": "intro", "solid": "#111827", "duration": 1 },
-    { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 1, "transition": "fade",
+    { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 1, "transition": "frames/fade",
       "connected": [
         { "id": "ring", "at": [0.5, 1.4], "shape": "box", "area": "Total",
-          "animation": { "entrance": "fade", "exit": "none" } } ] },
+          "animation": { "entrance": "frames/fade", "exit": "none" } } ] },
     { "id": "demo-2", "media": "/path/to/recording.mp4", "in": 1, "out": 3, "transition": "cut", "fadeOut": 0.5,
       "connected": [
         { "id": "ring-2", "at": [0.5, 1.4], "shape": "box", "area": "Total",
-          "animation": { "entrance": "none", "exit": "fade" } },
+          "animation": { "entrance": "none", "exit": "frames/fade" } },
         { "id": "note", "at": [1.2, 2.4], "title": "Shipping is added here", "style": "subtitle" } ] }
   ] }
 ```
 
-- `demo` keeps its id, the `fade` in and the start of the media. `demo-2` takes the rest, the `fadeOut`, and a `cut` in.
+- `demo` keeps its id, the `frames/fade` in and the start of the media. `demo-2` takes the rest, the `fadeOut`, and a `cut` in.
 - The box crosses the cut, so both parts get a copy with the same `at`. Each copy is drawn only where its window meets its part: `ring` from 1.5 to 2, `ring-2` from 2 to 2.4 on the sequence clock. Its fade in stays on the first and its fade out on the second.
 - The subtitle starts at media second 1.2, inside `demo-2`, so it moves there unchanged.
 

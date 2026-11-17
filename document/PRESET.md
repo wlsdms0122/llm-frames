@@ -6,19 +6,19 @@ A preset is one JSON file. It is a transition, an animation or a filter, and fra
 
 | Name in a document | File |
 | --- | --- |
-| `pop` | a preset frames ships ([FRAMES-16](../spec/FRAMES-16/SPEC.md)) |
+| `frames/pop` | a preset of the `frames` pack, which ships with frames ([FRAMES-16](../spec/FRAMES-16/SPEC.md)) |
 | `mine/drop-in` | `$FRAMES_HOME/packs/mine/presets/transition/drop-in.json` |
 | `/path/to/drop-in.json` | that file |
 
-The folder under `presets/` is the kind (`transition`, `animation` or `filter`), and the place a name is written says which kind is meant, so a transition and an animation may share a name. While you write a preset, an absolute path is the quickest way to try it. Once it works, put it in a pack ([PACK.md](PACK.md)) so documents name it as `<pack>/<name>`.
+The folder under `presets/` is the kind (`transition`, `animation` or `filter`), and the place a name is written says which kind is meant, so a transition and an animation may share a name. Every preset is named `<pack>/<name>`, the ones frames ships too. While you write a preset, an absolute path is the quickest way to try it. Once it works, put it in a pack ([PACK.md](PACK.md)) so documents name it as `<pack>/<name>`.
 
 Every preset has a `description`: one line on how it looks and when to use it. `frames presets` prints it, and it is what an agent reads to choose, so write it for that reader.
 
 ```sh
-frames presets                      # every shipped preset, by kind, with its description
-frames presets transition           # the shipped transitions
-frames presets transition fade      # the JSON of one preset
-frames presets transition mine/drop-in   # the JSON of a preset in an installed pack
+frames presets                             # every preset of every pack, by kind, with its description
+frames presets transition                  # the transitions
+frames presets transition frames/fade      # the JSON of one preset
+frames presets transition mine/drop-in     # the JSON of a preset in an installed pack
 ```
 
 ## Spans
@@ -136,7 +136,7 @@ What happens on a clip:
 - Every span is optional. A preset with only an entrance appears with it and then simply stays.
 - The visible window is what counts. A title at `[2, 5]` with `lift` enters from 2 to 2.4, breathes from 2.4 to 4.8, and fades from 4.8 to 5.
 - On a clip shorter than both, the entrance runs first and the exit gets what is left.
-- The animation is applied over the clip's own keyframes about the same anchor point: scale and opacity multiply, and x, y and rotation add. A title keyframed to `scale: 1.5` with a `pop` still pops, to 1.5.
+- The animation is applied over the clip's own keyframes about the same anchor point: scale and opacity multiply, and x, y and rotation add. A title keyframed to `scale: 1.5` with a `frames/pop` still pops, to 1.5.
 - A loop that should end where it started gives its first and last keys the same values, or the clip jumps at each period.
 - A document can take the entrance of one preset and the exit of another: `{ "entrance": "mine/lift", "exit": "none" }`. Both sides are written.
 - A label on a shape animates on top of its shape with `labelAnimation`, or the theme's `label` default.
@@ -177,7 +177,7 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 - An unknown op or a value out of range stops when the preset is read, so a typo never renders as no effect.
 - A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/` and name it `<pack>/<name>`.
 
-A filter goes on a storyline or media clip as `filter`, on everything below an adjustment clip as `adjust`, and in an image document as an `adjust` operation. A list of filters runs one after another: `"filter": ["mine/warm-screen", "vignette"]`.
+A filter goes on a storyline or media clip as `filter`, on everything below an adjustment clip as `adjust`, and in an image document as an `adjust` operation. A list of filters runs one after another: `"filter": ["mine/warm-screen", "frames/vignette"]`.
 
 ## Trying a preset
 

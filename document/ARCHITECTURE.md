@@ -73,15 +73,16 @@ frames/
     howto/<name>.md
   packs/                   the first forms and the film looks, installed by copying, not part of the tool
     pr-evidence/  shorts/  demo/  film/
-  source/install.sh        builds the tool and installs it with its presets
+  source/install.sh        builds the tool and installs it with the pack it ships
   source/film-luts.py      writes the LUTs of packs/film
   source/frames/           the Swift package and the built tool
     Sources/FramesCommand/ the commands, their arguments and the role table
       Resources/
-        presets/           built in, laid out as in a pack
-          transition/*.json
-          animation/*.json
-          filter/*.json
+        packs/frames/      the pack that ships with frames, its presets named frames/<name>
+          pack.json
+          presets/transition/*.json
+          presets/animation/*.json
+          presets/filter/*.json
     Sources/FramesTool/    the `frames` executable
 ```
 

@@ -64,7 +64,7 @@ The base theme is the floor every theme merges over, not the look of a form. Its
   "image":     { "bannerPadding": 40 },
   "layout":    { "gap": 40, "padding": 40 },
   "defaults":  { "transition": "cut", "filter": "none",
-                 "animation": { "title": { "label": "pop" }, "shape": "none", "media": "none", "adjust": "none" } }
+                 "animation": { "title": { "label": "frames/pop" }, "shape": "none", "media": "none", "adjust": "none" } }
 }
 ```
 
@@ -102,8 +102,8 @@ A form's theme lives in its pack ([FRAMES-25](../FRAMES-25/SPEC.md)) and holds o
     "headline": { "size": 84, "offset": 110 },
     "label":    { "size": 40 } },
   "shapes": { "box": { "width": 10 } },
-  "defaults": { "transition": { "preset": "push-up", "seconds": 0.3 },
-                "animation": { "title": { "subtitle": "pop", "headline": "none", "label": "pop" }, "shape": "draw", "media": "pop" } } }
+  "defaults": { "transition": { "preset": "frames/push-up", "seconds": 0.3 },
+                "animation": { "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }, "shape": "frames/draw", "media": "frames/pop" } } }
 ```
 
 ## Interactions

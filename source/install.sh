@@ -4,7 +4,7 @@
 #   sh source/install.sh
 #   sh source/install.sh --prefix "$HOME/.local/bin"
 #
-# The tool reads its built in presets from `Frames_FramesCommand.bundle` in its own directory, so both go to the
+# The tool reads the pack it ships from `Frames_FramesCommand.bundle` in its own directory, so both go to the
 # prefix together.
 set -eu
 

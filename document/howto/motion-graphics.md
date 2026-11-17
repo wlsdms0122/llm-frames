@@ -103,7 +103,7 @@ frames still /path/to/work/lower-third.json --at 0.6,0.9,1.4,2.5 -o /path/to/out
 
 The bar slides in from 0.5 seconds, the second line fades in after it, and from 1.5 seconds the last frame holds until 3. On a lane above the storyline the graphic covers every storyline clip it spans. To have it ride on one storyline clip instead, put it in that clip's `connected` with `at` in the clip's own seconds.
 
-To take it away, either render the exit in the page as well and let the frames run out at the end of `at`, or give the clip an exit animation: `"animation": { "entrance": "none", "exit": "fade" }`.
+To take it away, either render the exit in the page as well and let the frames run out at the end of `at`, or give the clip an exit animation: `"animation": { "entrance": "none", "exit": "frames/fade" }`.
 
 ## Notes
 
