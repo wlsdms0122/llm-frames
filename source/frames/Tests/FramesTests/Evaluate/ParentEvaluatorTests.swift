@@ -174,6 +174,46 @@ struct ParentEvaluatorTests {
     }
 
     @Test(
+        "a title parented to a shape that tracks its storyline parent's media follows the tracked motion on each frame",
+        arguments: [
+            (0.0, Point(x: -25, y: -20)),
+            (0.5, Point(x: -15, y: -20)),
+            (1.0, Point(x: 7.5, y: -2.5))
+        ]
+    )
+    func followsTrackedShape(
+        time: Double,
+        position: Point
+    ) throws {
+        // Given
+        // The target moves 20 right at 0.5, and at 1 its centre moves from (5, 5) to (25, 5) and it doubles. The
+        // title's anchor point (50, 40) in the picture is carried by that motion and then at half size.
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 0, isBand: false, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 0.5, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 15, y: -5, width: 20, height: 20))
+        ])
+        let box = clip(
+            id: "box",
+            content: .shape(.box(width: 2, radius: 0, color: red)),
+            parent: "shot",
+            area: [Keyframe(at: 0, value: target)],
+            track: track
+        )
+        let label = title(id: "label", parent: "box", position: Point(x: 0, y: 0), scale: 1)
+        let parents = ParentEvaluator(sequence: sequence(clips: [box, label]))
+        let sut = ClipEvaluator()
+
+        // When
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, at: time)
+
+        // Then
+        let item = try #require(items.first)
+        #expect(isClose(item.transform, AffineTransform(translation: position)))
+    }
+
+    @Test(
         "a parent is evaluated whether visible or not, holding the values at its window's edges outside it",
         arguments: [
             (0.0, 0.0),
@@ -319,6 +359,7 @@ struct ParentEvaluatorTests {
         area: [Keyframe<Rectangle>]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
+        track: ResolvedTrack? = nil,
         scale: Double = 1
     ) -> ResolvedClip {
         let isAdjustment = if case .adjustment = content { true } else { false }
@@ -335,7 +376,7 @@ struct ParentEvaluatorTests {
             area: area,
             box: box,
             crop: crop,
-            track: nil,
+            track: track,
             opacity: [Keyframe(at: 0, value: 1)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],

@@ -561,9 +561,9 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        // (120, 60, 40, 20) in the picture, carried at half size.
-        let half = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
-        #expect(list.items.last == fillItem(Rectangle(x: 120, y: 60, width: 40, height: 20), transform: half))
+        // (120, 100, 40, 20) at the instant, carried up 40 by the motion and then at half size.
+        let carried = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: -20)
+        #expect(list.items.last == fillItem(Rectangle(x: 120, y: 100, width: 40, height: 20), transform: carried))
     }
 
     @Test("a tracked band keeps the full width of its picture and takes the vertical move and scale of its height")
@@ -593,9 +593,10 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        // The band is (0, 40, 400, 30) in the picture, carried at half size.
-        let half = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
-        #expect(list.items.last == fillItem(Rectangle(x: 0, y: 40, width: 400, height: 30), transform: half))
+        // The band is drawn where it is at the instant, and the motion takes it to (0, 40, 400, 30) in the picture,
+        // carried at half size.
+        let carried = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.75, tx: 0, ty: -55)
+        #expect(list.items.last == fillItem(band, transform: carried))
     }
 
     @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")

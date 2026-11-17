@@ -6,11 +6,11 @@
 //
 
 // Evaluates a shape clip at an instant into its item in output pixels of its list. A shape on an area is drawn in its
-// space's coordinates and carried by P(t) whole, its lengths divided by P(t)'s scale so they stay; one without an area
-// is drawn on the frame in output pixels. `reveal` acts by what receives it: a box's border is drawn around as its
-// `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in from the whole frame to the area, and an
-// arrow is nudged and grows from its tail. Scale, rotation and the offset act about the centre of the shape's box: its
-// area, or for an arrow the box it fills from tail to head.
+// space's coordinates and carried whole by its tracked motion and P(t), its lengths divided by their scale so they
+// stay; one without an area is drawn on the frame in output pixels. `reveal` acts by what receives it: a box's border
+// is drawn around as its `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in from the whole
+// frame to the area, and an arrow is nudged and grows from its tail. Scale, rotation and the offset act about the
+// centre of the shape's box: its area, or for an arrow the box it fills from tail to head.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     private let drawer = ShapeDrawer()
@@ -27,7 +27,7 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> [DisplayItem] {
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let laid = laid(drawing, on: area, sample: sample, in: space)
+        let laid = laid(drawing, on: area, sample: sample, in: space.tracked(by: clip.track, at: time))
         let frame = frame(of: laid.presentation.transform, covering: space.frame)
 
         return [item(of: laid.content, area: area, frame: frame, sample: sample, presentation: laid.presentation)]
@@ -41,10 +41,11 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> AffineTransform {
+        let tracked = space.tracked(by: clip.track, at: time)
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let transform = laid(drawing, on: area, sample: sample, in: space).presentation.transform
+        let transform = laid(drawing, on: area, sample: sample, in: tracked).presentation.transform
 
-        return area == nil ? space.transform.concatenating(transform) : transform
+        return area == nil ? tracked.transform.concatenating(transform) : transform
     }
 
     // MARK: - Private
