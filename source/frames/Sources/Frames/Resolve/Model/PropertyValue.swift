@@ -24,15 +24,14 @@ enum PropertyValue<Value: Equatable & Sendable>: Equatable, Sendable {
     }
 
     // The value the property takes first: its static value, or its earliest keyframe's. A property read with keyframes
-    // has at least one.
+    // has at least one, so `first` is there.
     var firstValue: Value {
         switch self {
         case let .value(value):
             value
 
         case let .keyframes(keyframes):
-            keyframes.dropFirst().reduce(keyframes[0]) { first, keyframe in keyframe.at < first.at ? keyframe : first }
-                .value
+            (first ?? keyframes[0]).value
         }
     }
 

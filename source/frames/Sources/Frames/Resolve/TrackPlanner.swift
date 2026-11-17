@@ -96,7 +96,7 @@ struct TrackPlanner: Sendable {
         if target == .own, isNaming(plan.kind) {
             throw ResolveError.trackOwnOnNamingClip(place: place, kind: kind)
         }
-        if target == .own, first(of: area) == nil {
+        if target == .own, area == nil {
             throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
         }
         if case let .clip(_, id) = plan.parent {
@@ -138,7 +138,7 @@ struct TrackPlanner: Sendable {
     ) throws -> FoundArea {
         switch target {
         case .own:
-            guard let found = first(of: own) else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
+            guard let found = own?.firstValue else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
 
             return found
 
@@ -193,32 +193,9 @@ struct TrackPlanner: Sendable {
         return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file)
     }
 
-    // The value `true` follows: the first keyframe's when the property is keyframed, else the static one.
-    private func first(of property: PropertyValue<FoundArea>?) -> FoundArea? {
-        switch property {
-        case let .value(found):
-            found
-
-        case .keyframes:
-            property?.first?.value
-
-        case nil:
-            nil
-        }
-    }
-
     // A crop `true` follows is an area where it starts, not a `{scale}`.
     private func isArea(_ crop: PropertyValue<CropForm>?) -> Bool {
-        switch crop {
-        case .value(.area):
-            true
-
-        case .keyframes:
-            if case .area = crop?.first?.value { true } else { false }
-
-        default:
-            false
-        }
+        if case .area = crop?.firstValue { true } else { false }
     }
 
     private func isNaming(_ kind: ClipKind) -> Bool {
