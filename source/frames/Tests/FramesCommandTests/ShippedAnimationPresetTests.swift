@@ -13,7 +13,7 @@ import Testing
 @testable import FramesCommand
 
 // The animation presets frames ships, read from the tool's own resource bundle as the tool reads them, with no pack
-// installed or shipped beside them.
+// installed beside them.
 @Suite("ShippedAnimationPreset Tests")
 struct ShippedAnimationPresetTests {
     // MARK: - Property
@@ -32,10 +32,7 @@ struct ShippedAnimationPresetTests {
         directory = try TemporaryDirectory()
         sut = PresetLibrary(
             builtIn: builtIn,
-            packs: PackLibrary(
-                installed: URL(fileURLWithPath: directory.file("installed"), isDirectory: true),
-                shipped: URL(fileURLWithPath: directory.file("shipped"), isDirectory: true)
-            )
+            packs: PackLibrary(installed: URL(fileURLWithPath: directory.file("installed"), isDirectory: true))
         )
     }
 
@@ -149,7 +146,6 @@ struct ShippedAnimationPresetTests {
         let environment = CommandEnvironment(
             variables: ["FRAMES_HOME": directory.file("home"), "PATH": "/usr/bin:/bin"],
             builtInPresets: builtIn,
-            shippedPacks: URL(fileURLWithPath: directory.file("shipped"), isDirectory: true),
             standardInput: { Data() }
         )
 
