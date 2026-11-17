@@ -73,9 +73,6 @@ struct AreaFinder: Sendable {
         case .document:
             throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)
 
-        case .solid:
-            throw AreaError.textInSolid(place: place, kind: kind)
-
         case .space:
             throw AreaError.textInSpace(place: place, kind: kind, parent: picture.name)
         }

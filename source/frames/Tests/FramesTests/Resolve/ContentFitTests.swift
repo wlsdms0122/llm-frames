@@ -186,6 +186,20 @@ struct ContentFitTests {
         ))
     }
 
+    @Test("a solid's children are in the measuring space, which has no edges, so an area outside the first box grows the frame")
+    func measuresSolidChildOutsideFirstBox() throws {
+        // When
+        let plan = try plan(##"""
+            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
+              { "id": "back", "solid": "#FF0000", "duration": 1,
+                "connected": [ { "shape": "fill", "parent": "back", "area": [400, 0, 50, 50] } ] } ] }
+            """##)
+
+        // Then
+        #expect(plan.format.size == Size(width: 450, height: 200))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 400, y: 0, width: 50, height: 50))
+    }
+
     @Test("theme lengths take the length scale of the first storyline picture's box")
     func scalesByFirstStorylinePicture() throws {
         // When

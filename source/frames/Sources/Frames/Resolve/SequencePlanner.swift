@@ -266,23 +266,6 @@ struct SequencePlanner: Sendable {
         return Size(width: (size.width / 2).rounded() * 2, height: (size.height / 2).rounded() * 2)
     }
 
-    // A solid fills the frame, so its picture is the frame's size.
-    private func picture(
-        of plan: StorylinePlan,
-        nested: SequencePlan?,
-        format: FormatPlan
-    ) throws -> Picture {
-        guard let media = plan.source.media else {
-            return Picture(
-                name: ClipKind.solid.label,
-                source: .solid,
-                size: format.size
-            )
-        }
-
-        return try picture(of: media, kind: plan.source.kind, nested: nested, place: plan.place.appending(key: "media"))
-    }
-
     // A media file's picture is its probed size. A compound clip's is the output frame of its nested sequence, which is
     // drawn, not read.
     private func picture(
@@ -315,8 +298,8 @@ struct SequencePlanner: Sendable {
         return try picture(of: media, kind: plan.kind, nested: nested, place: place)
     }
 
-    // What an unparented clip's area and position are in: the output frame, or under content fit the measuring space,
-    // which has no edges until it is measured.
+    // What the areas and positions written in output pixels are in, an unparented clip's and a solid's children's: the
+    // output frame, or under content fit the measuring space, which has no edges until it is measured.
     private func output(of format: FormatPlan) -> Picture {
         Picture(name: "output", source: format.margin == nil ? .document : .space, size: format.size)
     }
@@ -370,10 +353,11 @@ struct SequencePlanner: Sendable {
     }
 
     // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels, as are
-    // those of a clip under a chain of shapes and adjustments that reaches no other parent. A text form is searched in
-    // the parent's picture, the media of a storyline or media clip, at the media time the parent's clock gives, and
-    // under a shape or adjustment what it finds is where it lies in that media until `ParentSpacePlanner` brings it into
-    // the parent's space. A media clip's crop is in its own picture.
+    // those of a clip parented to a solid or under a chain of shapes and adjustments that reaches neither a storyline
+    // picture nor a clip with a box. A text form is searched in the parent's picture, the media of a storyline or media
+    // clip, at the media time the parent's clock gives, and under a shape or adjustment what it finds is where it lies
+    // in that media until `ParentSpacePlanner` brings it into the parent's space. A media clip's crop is in its own
+    // picture.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
@@ -382,23 +366,30 @@ struct SequencePlanner: Sendable {
         storylineNested: [SequencePlan?],
         clipPictures: [Picture?],
         format: FormatPlan
-    ) throws -> (area: PropertyValue<FoundArea>?, position: PropertyValue<Point>?, crop: PropertyValue<FoundArea>?) {
-        let parent = try plan.parent.flatMap { parent in
-            try space(of: parent, time: time, storylineNested: storylineNested, clipPictures: clipPictures, format: format)
-        }
-        let space = parent?.picture ?? output(of: format)
-        let spaceClock = parent?.clock ?? .still
+    ) throws -> (
+        area: PropertyValue<FoundArea>?,
+        position: PropertyValue<Point>?,
+        crop: PropertyValue<FoundArea>?,
+        isInOutputPixels: Bool
+    ) {
+        let space = try self.space(
+            of: plan.parent,
+            time: time,
+            storylineNested: storylineNested,
+            clipPictures: clipPictures,
+            format: format
+        )
 
         let area = try written.area.map { area in
-            if parent == nil, let text = byText(area, place: written.place) {
+            if space.isOutputPixels, let text = byText(area, place: written.place) {
                 throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.areas(
                 area,
                 key: "area",
-                in: space,
-                pictureClock: spaceClock,
+                in: space.picture,
+                pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
                 place: written.place,
@@ -406,14 +397,14 @@ struct SequencePlanner: Sendable {
             )
         }
         let position = try written.position.map { position in
-            if parent == nil, let text = byText(position, place: written.place) {
+            if space.isOutputPixels, let text = byText(position, place: written.place) {
                 throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.positions(
                 position,
-                in: space,
-                pictureClock: spaceClock,
+                in: space.picture,
+                pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
                 place: written.place,
@@ -434,46 +425,51 @@ struct SequencePlanner: Sendable {
             }
         }
 
-        return (area, position, crop)
+        return (area, position, crop, space.isOutputPixels)
     }
 
-    // The picture a parent's space is searched in, and how sequence time becomes its media time: a storyline clip's
-    // media or a solid's frame, a media clip's media, a title's text box as a space with no picture, and for a shape
-    // or adjustment the space its geometry is written in, its own parent's. Nil is output pixels, the space of a shape
-    // or adjustment without a parent.
+    // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
+    // output pixels (FRAMES-10): a storyline clip's media, a media clip's media, a title's text box as a space with no
+    // picture, and for a shape or adjustment the space its geometry is written in, its own parent's. An unparented
+    // clip's space and a solid's are output pixels.
     private func space(
-        of parent: ClipParent,
+        of parent: ClipParent?,
         time: TimePlan,
         storylineNested: [SequencePlan?],
         clipPictures: [Picture?],
         format: FormatPlan
-    ) throws -> (picture: Picture, clock: PictureClock)? {
+    ) throws -> (picture: Picture, clock: PictureClock, isOutputPixels: Bool) {
         switch parent {
+        case .none:
+            return (output(of: format), .still, true)
+
         case let .storyline(index, _):
             let plan = time.storyline[index]
-            return (try picture(of: plan, nested: storylineNested[index], format: format), .storyline(plan))
+            guard let media = plan.source.media else { return (output(of: format), .storyline(plan), true) }
+
+            let place = plan.place.appending(key: "media")
+            let picture = try picture(of: media, kind: plan.source.kind, nested: storylineNested[index], place: place)
+            return (picture, .storyline(plan), false)
 
         case let .clip(index, id):
             let plan = time.clips[index]
             if let picture = clipPictures[index] {
-                return (picture, plan.timing.map { .media($0) } ?? .still)
+                return (picture, plan.timing.map { .media($0) } ?? .still, false)
             }
 
             switch plan.kind {
             case .shape, .adjust:
                 // ParentFinder has ruled out a cycle, so the chain ends.
-                return try plan.parent.flatMap { parent in
-                    try space(
-                        of: parent,
-                        time: time,
-                        storylineNested: storylineNested,
-                        clipPictures: clipPictures,
-                        format: format
-                    )
-                }
+                return try space(
+                    of: plan.parent,
+                    time: time,
+                    storylineNested: storylineNested,
+                    clipPictures: clipPictures,
+                    format: format
+                )
 
             default:
-                return (Picture(name: id, source: .space, size: format.size), .still)
+                return (Picture(name: id, source: .space, size: format.size), .still, false)
             }
         }
     }

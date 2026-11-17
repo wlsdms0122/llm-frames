@@ -243,7 +243,7 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a text form on or under a picture that is drawn, not read, stops: a compound clip, a solid, and a shape under a compound clip",
+        "a text form on or under a picture that is drawn, not read, stops: a compound clip and a shape under a compound clip",
         arguments: [
             #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
@@ -252,10 +252,6 @@ struct SequencePlannerTests {
             #"""
             { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
               "crop": { "text": "Total" } } ] }
-            """#,
-            #"""
-            { "kind": "sequence", "format": { "size": [100, 100] }, "storyline": [ { "id": "black", "solid": "#000000", "duration": 1,
-              "connected": [ { "shape": "box", "parent": "black", "area": { "text": "Total" } } ] } ] }
             """#,
             #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
@@ -302,6 +298,23 @@ struct SequencePlannerTests {
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "clips").appending(index: 1).appending(key: "area"),
+            kind: .clip(.shape("box"))
+        ))
+    }
+
+    @Test("a text area under a solid stops, since a solid's space is output pixels")
+    func refusesTextAreaUnderSolid() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "id": "back", "solid": "#000000", "duration": 1,
+              "connected": [ { "shape": "box", "parent": "back", "area": { "text": "Total" } } ] } ] }
+            """##
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error == .textAreaInOutputPixels(
+            place: Place.root.appending(key: "storyline").appending(index: 0, id: "back").appending(key: "connected")
+                .appending(index: 0).appending(key: "area"),
             kind: .clip(.shape("box"))
         ))
     }

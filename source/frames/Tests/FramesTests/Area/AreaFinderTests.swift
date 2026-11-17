@@ -214,28 +214,13 @@ struct AreaFinderTests {
         #expect(late.mediaTime == 2)
     }
 
-    @Test(
-        "a picture that is drawn, not read, takes no text area",
-        arguments: [
-            (
-                PictureSource.document,
-                #"area (box): "pack/intro" is drawn, not read, so it takes no text area. "#
-                    + "Point at text inside it from the document that draws it"
-            ),
-            (
-                PictureSource.solid,
-                "area (box): the clip's picture is a solid, not a media file, so it is drawn, not read, and takes no "
-                    + "text area"
-            )
-        ]
-    )
-    func refusesTextInDrawnPicture(
-        source: PictureSource,
-        message: String
-    ) throws {
+    @Test("a document's picture is drawn, not read, so it takes no text area")
+    func refusesTextInDrawnPicture() throws {
         // Given
         let sut = AreaFinder(ocr: OCRTable([:]))
-        let picture = Picture(name: "pack/intro", source: source, size: Size(width: 1080, height: 1920))
+        let picture = Picture(name: "pack/intro", source: .document, size: Size(width: 1080, height: 1920))
+        let message = #"area (box): "pack/intro" is drawn, not read, so it takes no text area. "#
+            + "Point at text inside it from the document that draws it"
 
         // When
         let rectangle = try sut.area(.rectangle(rectangle(0, 0, 10, 10)), in: picture, atMediaTime: 0, place: place, kind: "box")
