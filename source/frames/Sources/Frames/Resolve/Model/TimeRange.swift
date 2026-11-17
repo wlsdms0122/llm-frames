@@ -34,5 +34,11 @@ struct TimeRange: Equatable, Sendable {
         return range
     }
 
+    // The instant of the range nearest to `time`, so what is evaluated on the range holds its edge values outside it.
+    // The end is not in the range, so its last instant is one time resolution before it.
+    func held(_ time: Double) -> Double {
+        min(max(time, start), end - .timeResolution)
+    }
+
     // MARK: - Private
 }

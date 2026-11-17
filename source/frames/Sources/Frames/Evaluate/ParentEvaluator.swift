@@ -35,7 +35,7 @@ struct ParentEvaluator: Sendable {
         // Resolve has checked that the id names a clip of the sequence.
         guard let parent = sequence.clips.first(where: { $0.id == id }) else { return ClipSpace(frame: frame) }
 
-        let held = min(max(time, parent.start), parent.end - .timeResolution)
+        let held = TimeRange(start: parent.start, end: parent.end).held(time)
         let transform = clipEvaluator.childTransform(of: parent, in: space(of: parent, at: time), at: held)
         return ClipSpace(frame: frame, transform: transform)
     }

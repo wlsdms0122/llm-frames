@@ -63,6 +63,49 @@ struct ParentSpacePlannerTests {
         }
     }
 
+    @Test(
+        "a title whose instant or keyframe lies outside its tracked box's window lands where the same title under the screen does",
+        arguments: [
+            (
+                #""at": [2, 4], "position": \#(Self.beside)"#,
+                [2.0, 3.0, 3.5]
+            ),
+            (
+                #""at": [0, 4], "keyframes": [ { "at": 1, "position": \#(Self.beside) }, { "at": 3, "position": \#(Self.beside) } ]"#,
+                [1.0, 3.0, 3.5]
+            )
+        ]
+    )
+    func placesTextOutsideTrackedBoxWindow(
+        title: String,
+        times: [Double]
+    ) throws {
+        // Given
+        let sut = planner(growth: 0.25)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "box", "shape": "box", "parent": "screen", "at": [0, 2], "area": "Total", "track": true },
+                { "title": "a", "style": "title", "parent": "box", "anchor": "left", \#(title) },
+                { "title": "a", "style": "title", "parent": "screen", "anchor": "left", \#(title) } ] } ] }
+            """#)
+
+        // When
+        let resolved = try ResolvedSequence(
+            plan: sut.plan(Fixture.planner.plan(document: document)),
+            hashes: FileHashTable()
+        )
+
+        // Then
+        let underBox = resolved.clips[1]
+        let underScreen = resolved.clips[2]
+        let parents = ParentEvaluator(sequence: resolved)
+        for time in times {
+            let anchor = Self.anchor(of: underBox, by: parents, at: time)
+            let expected = Self.anchor(of: underScreen, by: parents, at: time)
+            #expect(isClose(anchor, expected), "at \(time) the title is at \(anchor), the screen's title at \(expected)")
+        }
+    }
+
     @Test("numbers under a tracked box are kept as written, and a text keyframe beside them is brought into its space")
     func keepsNumbersUnderTrackedBox() throws {
         // Given
@@ -98,6 +141,19 @@ struct ParentSpacePlannerTests {
     }
 
     // MARK: - Private
+    private static let beside = #"{ "area": "Total", "point": "right" }"#
+
+    private static func anchor(
+        of clip: ResolvedClip,
+        by parents: ParentEvaluator,
+        at time: Double
+    ) -> Point {
+        guard let box = clip.box else { return Point(x: 0, y: 0) }
+
+        let space = parents.space(of: clip, at: time)
+        return space.transform.apply(to: space.anchor(of: box, track: nil, at: time))
+    }
+
     // "Total" on the frame shown at a media time.
     private static func text(
         at time: Double,
