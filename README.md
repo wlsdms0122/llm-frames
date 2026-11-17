@@ -69,6 +69,8 @@ Global options go before the command. `--theme` merges a theme under every docum
 
 Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1. Messages name the place in the document: `storyline[1].connected[0] (box): ...`.
 
+In the examples below, `total.json` is the [first edit](#a-first-edit) above and `short.json` is the [sequence example](#sequence) under Documents.
+
 ### Making results
 
 | Command | What it does |
