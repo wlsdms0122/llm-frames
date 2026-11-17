@@ -38,7 +38,7 @@ struct ShippedFilterPresetTests {
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
         sut = PresetLibrary(
             builtIn: CommandEnvironment.current.builtInPresets,
-            packs: PackLibrary(installed: empty, shipped: empty)
+            packs: PackLibrary(installed: empty)
         )
         try FileManager.default.copyItem(
             at: CommandEnvironment.current.builtInPresets.appendingPathComponent("filter", isDirectory: true),

@@ -71,6 +71,8 @@ frames/
     PRESET.md              how to write a preset
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
+  packs/                   the first forms, installed by copying, not part of the tool
+    pr-evidence/  shorts/  demo/
   source/frames/           the Swift package and the built tool
     Sources/FramesCommand/ the commands, their arguments and the role table
       Resources/
@@ -78,8 +80,6 @@ frames/
           transition/*.json
           animation/*.json
           filter/*.json
-        packs/             the forms that ship with frames
-          pr-evidence/  shorts/  demo/
     Sources/FramesTool/    the `frames` executable
 ```
 
@@ -90,4 +90,4 @@ frames/
 3. Evaluate: display lists at a time and the mix plan, tested as data without drawing.
 4. The first roles, `avfoundation` and `quartz`: the decoder, the renderer (pictures, fills, strokes, arrows, glyphs, adjustments, filters, LUTs, blend modes, mattes), the mixer, and the encoder for ProRes and H.264. Checked against [FRAMES-24](../spec/FRAMES-24/SPEC.md) with `still` and `sheet`.
 5. `transcode`, `probe`, `extract`, `sheet`, `ocr`, `track`, `evaluate`, `locate`, `packs`, and the machine output of [FRAMES-23](../spec/FRAMES-23/SPEC.md).
-6. The 42 presets, the base theme, the form packs (themes, guides, examples) and the first how-tos.
+6. The 42 presets, the base theme, the form packs in `packs/` (themes, guides, examples) and the first how-tos.

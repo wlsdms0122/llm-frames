@@ -110,9 +110,9 @@ enum Fixture {
         ]
     )
 
-    // No pack is installed or shipped, so only absolute paths name anything.
+    // No pack is installed, so only absolute paths name anything.
     static let library = ReferenceLibrary(
-        packs: PackLibrary(installed: emptyDirectory, shipped: emptyDirectory),
+        packs: PackLibrary(installed: emptyDirectory),
         mediaFacts: mediaFacts
     )
 

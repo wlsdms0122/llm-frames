@@ -8,7 +8,7 @@ This describes **frames 1.0.0**.
 
 frames is an image and video editing tool that an agent drives. The agent writes a document in JSON, frames resolves and evaluates it, and a decoder, a renderer, a mixer and an encoder turn the result into a PNG, a master file or a delivery file.
 
-frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere Pro, with a sequence, a primary storyline of clips, clips connected to them, lanes, transitions, keyframes and filters. The same model edits a still and a video: a screenshot with boxes and a band of text is a document of it, and so is a vertical short or a demo with titles and transitions. What a kind of result needs beyond the tools is a form, shipped as a pack ([FRAMES-25](FRAMES-25/SPEC.md)).
+frames is built like a non-linear editor (NLE) such as Final Cut Pro or Premiere Pro, with a sequence, a primary storyline of clips, clips connected to them, lanes, transitions, keyframes and filters. The same model edits a still and a video: a screenshot with boxes and a band of text is a document of it, and so is a vertical short or a demo with titles and transitions. What a kind of result needs beyond the tools is a form, a pack installed beside frames and not part of it ([FRAMES-25](FRAMES-25/SPEC.md)).
 
 - A resolved document and the files it pins are enough to make the result again.
 - Places in a picture are named by the text on screen, found by text recognition (OCR), instead of measured by hand.
