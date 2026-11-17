@@ -22,15 +22,22 @@ struct ThemeTypesetter: Sendable {
     }
 
     // MARK: - Public
+    // `stylePlace` is where the style is named, or the text's place when it takes a style frames names itself.
     func layout(
         _ text: String,
         style name: String,
+        stylePlace: Place,
         width: Double?,
         theme: MergedTheme,
         scale: Double,
         place: Place,
         kind: String
     ) throws -> TextLayout {
+        let styles = theme.styleNames
+        guard styles.contains(name) else {
+            throw ThemeError.unknownStyle(place: stylePlace, kind: kind, name: name, styles: styles)
+        }
+
         let style = theme.style(named: name, scale: scale)
         let face = try fonts.face(for: style, place: theme.fontPlace)
 

@@ -143,9 +143,9 @@ struct PictureReader: Sendable {
 
     private func lines(of value: JSONValue?) -> [BannerLine] {
         (value?.arrayValue ?? []).map { line in
-            guard let object = line.objectValue else { return BannerLine(text: line.stringValue ?? "", style: "banner") }
+            guard let object = line.objectValue else { return BannerLine(text: line.stringValue ?? "", style: nil) }
 
-            return BannerLine(text: object["text"]?.stringValue ?? "", style: object["style"]?.stringValue ?? "banner")
+            return BannerLine(text: object["text"]?.stringValue ?? "", style: object["style"]?.stringValue)
         }
     }
 

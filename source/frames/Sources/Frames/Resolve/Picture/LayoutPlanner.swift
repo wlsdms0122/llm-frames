@@ -55,6 +55,7 @@ struct LayoutPlanner: Sendable {
                 try text.layout(
                     heading,
                     style: "heading",
+                    stylePlace: document.items[index].place.appending(key: "heading"),
                     width: widths[index % columns],
                     theme: theme,
                     scale: scale,

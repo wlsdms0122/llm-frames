@@ -157,6 +157,7 @@ struct ImagePlanner: Sendable {
             let layout = try text.layout(
                 title,
                 style: style,
+                stylePlace: place.appending(key: "style"),
                 width: width.map(canvas.transform.length) ?? canvas.size.width - theme.placementPadding * scale * 2,
                 theme: theme,
                 scale: scale,
@@ -287,6 +288,7 @@ struct ImagePlanner: Sendable {
         let layout = try text.layout(
             label,
             style: "label",
+            stylePlace: place,
             width: nil,
             theme: theme,
             scale: scale,

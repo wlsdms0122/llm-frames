@@ -387,6 +387,7 @@ struct SequencePlanner: Sendable {
         return try self.text.layout(
             text,
             style: style,
+            stylePlace: written.place.appending(key: "style"),
             width: written.width ?? format.size.width - theme.placementPadding * scale * 2,
             theme: theme,
             scale: scale,
@@ -411,6 +412,7 @@ struct SequencePlanner: Sendable {
         let text = try self.text.layout(
             label,
             style: "label",
+            stylePlace: written.place.appending(key: "label"),
             width: nil,
             theme: time.theme,
             scale: time.theme.lengthScale(at: format.size.width),
