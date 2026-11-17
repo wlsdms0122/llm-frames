@@ -1,0 +1,24 @@
+{
+  "kind": "sequence",
+  "theme": "shorts/shorts",
+  "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "inset": [420, 40, 120, 40], "conform": "fit" },
+  "storyline": [
+    { "media": "/path/to/checkout.png", "duration": 3.5,
+      "keyframes": [
+        { "at": 1, "crop": { "scale": 1 }, "ease": "ease-in-out" },
+        { "at": 1.8, "crop": { "from": "Item total", "to": "Total" } }
+      ],
+      "connected": [
+        { "at": [0, 1.6], "title": "주문 요약을 열면", "style": "subtitle" },
+        { "at": [1.6, 3.5], "title": "**합계**에 배송비가 들어가요", "style": "subtitle" },
+        { "at": [2, 3.5], "shape": "box", "area": "Total", "label": "배송비 포함" }
+      ] },
+    { "media": "/path/to/result.png", "duration": 2.5,
+      "connected": [
+        { "at": [0, 2.5], "title": "이제 **42,000원** 그대로 결제돼요", "style": "subtitle" }
+      ] }
+  ],
+  "clips": [
+    { "title": "결제 금액이\n**한눈에** 보여요", "style": "headline" }
+  ]
+}
