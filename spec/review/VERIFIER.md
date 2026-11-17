@@ -29,7 +29,7 @@ Read a spec at the sentence a finding cites, and further only as far as you need
 - **owner**: two designs both meet every criterion, and the specification does not choose. Give a concrete example and what each design answers for it.
 
 - Titles and shapes are built in as NLE basics, and everything else arrives as media (README, What frames is).
-- Forms are packs that ship with frames, and adding one does not change frames ([FRAMES-25](../FRAMES-25/SPEC.md)).
+- Forms are packs installed beside frames, frames ships none, and adding one does not change frames ([FRAMES-25](../FRAMES-25/SPEC.md)).
 - Extensions are programs that take a document and give a document, with no API or render hooks ([FRAMES-25](../FRAMES-25/SPEC.md)).
 - frames is versioned major.minor.patch, starting at 1.0.0 ([FRAMES-18](../FRAMES-18/SPEC.md)).
 

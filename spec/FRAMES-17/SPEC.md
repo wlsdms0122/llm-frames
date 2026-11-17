@@ -26,7 +26,7 @@ A pack is a set of looks and edits that someone made to share or sell. It is a d
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
 | `guide.md`, `examples/` | the guide and example documents of the form a pack is for ([FRAMES-25](../FRAMES-25/SPEC.md)) | read by people and agents, not by frames |
 
-- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. The packs that ship with frames ([FRAMES-25](../FRAMES-25/SPEC.md)) are found as if installed, and an installed pack of the same name stops. Installing a pack is copying its directory there. frames has no network command.
+- Installed packs live at `$FRAMES_HOME/packs/<pack>/`, and `FRAMES_HOME` defaults to `~/.config/frames`. Installing a pack is copying its directory there. frames ships presets ([FRAMES-16](../FRAMES-16/SPEC.md)) and no pack, so every pack, a form's too, is one that was installed. frames has no network command.
 - A name is an absolute path, `<pack>/<name>` with one `/` and no empty, `.` or `..` part, or a bare name, which is built in. Any other spelling names nothing. An unknown pack, or a name a pack does not hold, stops.
 - A pack directory without a `pack.json` stops, and so does one whose `pack.json` misses `engine`, writes a key as another type than a string, or holds another key.
 - A theme written in a pack (a theme file, or a theme inside a pack's template) looks for its `font` families in the pack's `fonts/` before the machine's fonts, so a template that must keep its look carries its fonts.
