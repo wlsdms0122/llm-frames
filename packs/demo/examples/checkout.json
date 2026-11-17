@@ -1,0 +1,24 @@
+{
+  "kind": "sequence",
+  "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
+  "storyline": [
+    { "id": "title-card", "solid": "#000000", "duration": 1.5,
+      "connected": [
+        { "title": "Checkout\n**Totals now include shipping**", "style": "headline", "placement": "center" }
+      ] },
+    { "id": "open", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "transition": "fade",
+      "connected": [
+        { "at": [0.2, 1.4], "title": "Open the order summary", "style": "subtitle" }
+      ] },
+    { "id": "total", "media": "/path/to/checkout.png", "duration": 4,
+      "connected": [
+        { "at": [0, 1.5], "title": "Item total and shipping are listed", "style": "subtitle" },
+        { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" },
+        { "at": [1.8, 4], "shape": "box", "area": "Total", "label": "38,000 + 4,000" }
+      ] },
+    { "id": "end-card", "solid": "#000000", "duration": 1.5, "transition": "fade",
+      "connected": [
+        { "title": "Available in version 2.4", "style": "headline", "placement": "center" }
+      ] }
+  ]
+}
