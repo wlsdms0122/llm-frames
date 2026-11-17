@@ -43,16 +43,16 @@ struct ThemeMergerTests {
         let animation = defaults?["animation"]?.objectValue
         #expect(theme["baseWidth"] == .number(1080))
         #expect(colors?["accent"] == .string("#FF3B30"))
-        #expect(colors?["onAccent"] == .string("#FFFFFF"))
+        #expect(colors?["text"] == .string("#FFFFFF"))
         #expect(subtitle?["size"] == .number(66))
-        #expect(subtitle?["weight"] == .string("bold"))
+        #expect(subtitle?["weight"] == .string("regular"))
         #expect(subtitle?["background"] == .bool(false))
         #expect(subtitle?["placement"] == .string("bottom"))
         #expect(box?["width"] == .number(10))
         #expect(box?["radius"] == .number(18))
         #expect(defaults?["filter"] == .string("none"))
         #expect(defaults?["transition"] == (try Fixture.json(#"{ "preset": "frames/push-up", "seconds": 0.3 }"#)))
-        #expect(animation?["title"] == (try Fixture.json(#"{ "label": "frames/pop", "subtitle": "frames/pop", "headline": "none" }"#)))
+        #expect(animation?["title"] == (try Fixture.json(#"{ "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }"#)))
         #expect(animation?["adjust"] == .string("none"))
     }
 
@@ -84,7 +84,7 @@ struct ThemeMergerTests {
         let colors = documentTheme.value.objectValue?["colors"]?.objectValue
         #expect(colors?["accent"] == .string("#333333"))
         #expect(colors?["text"] == .string("#222222"))
-        #expect(colors?["border"] == .string("#D9D9D9"))
+        #expect(colors?["background"] == .string("#000000"))
         #expect(documentTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("text"))
         #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("#444444"))
         #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["width"] == .number(8))
@@ -122,7 +122,7 @@ struct ThemeMergerTests {
         let styleError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: style, place: .root)]) }
         #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors"#)
         #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles, "#
-            + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
+            + #"which hold "label", "subtitle", "title""#)
         _ = try sut.merge([ThemeLayer(value: defined, place: .root)])
     }
 

@@ -107,7 +107,7 @@ struct PresetValueResolverTests {
             over: .incoming,
             incoming: nil,
             outgoing: nil,
-            cover: Cover(source: .color("accent"), span: Span(ease: .linear, keys: [])),
+            cover: Cover(source: .color("shadow"), span: Span(ease: .linear, keys: [])),
             matte: nil
         )
 
@@ -115,12 +115,12 @@ struct PresetValueResolverTests {
         let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
 
         // Then
-        #expect(resolved.cover?.source == .color("#ED2929FF"))
+        #expect(resolved.cover?.source == .color("#00000080"))
     }
 
     @Test(
         "a bloom colour is written as #RRGGBBAA, a theme colour by its value",
-        arguments: [("emphasis", "#FFD43BFF"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
+        arguments: [("shadow", "#00000080"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
     )
     func resolvesBloomColor(
         written: String,

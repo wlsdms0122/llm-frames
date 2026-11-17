@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The keys on a clip or op that stand in for theme values, written as the strongest theme layer.
+// The keys on a clip that stand in for theme values, written as the strongest theme layer.
 enum ClipThemeLayer {
     static func layer(
         forClip clip: JSONObject,

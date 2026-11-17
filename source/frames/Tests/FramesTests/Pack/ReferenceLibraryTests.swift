@@ -47,7 +47,7 @@ struct ReferenceLibraryTests {
         try directory.write(
             #"""
             { "kind": "sequence", "params": { "clip": { "type": "video" }, "title": { "type": "text", "default": "New" } },
-              "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "headline" } ] } ] }
+              "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "title" } ] } ] }
             """#,
             in: "shorts",
             at: "templates/leak.json"

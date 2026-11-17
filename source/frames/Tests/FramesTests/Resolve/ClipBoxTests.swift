@@ -15,21 +15,23 @@ import Testing
 struct ClipBoxTests {
     // MARK: - Property
     private let sut = Fixture.sequencePlanner
+    // The placement padding of the base theme on the 1206 wide frame of the fixture's screen.
+    private static let padding = 96 * (1206 / 1920.0)
 
     // MARK: - Initializer
     // MARK: - Test
     @Test(
         "a placement sets the box inside the output frame inset by the padding, anchored at the point it names",
         arguments: [
-            ("top-left", Point(x: 40, y: 40), Point(x: 0, y: 0)),
-            ("top", Point(x: 453, y: 40), Point(x: 150, y: 0)),
-            ("top-right", Point(x: 866, y: 40), Point(x: 300, y: 0)),
-            ("left", Point(x: 40, y: 1123.5), Point(x: 0, y: 187.5)),
+            ("top-left", Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding), Point(x: 0, y: 0)),
+            ("top", Point(x: 453, y: ClipBoxTests.padding), Point(x: 150, y: 0)),
+            ("top-right", Point(x: 1206 - ClipBoxTests.padding - 300, y: ClipBoxTests.padding), Point(x: 300, y: 0)),
+            ("left", Point(x: ClipBoxTests.padding, y: 1123.5), Point(x: 0, y: 187.5)),
             ("center", Point(x: 453, y: 1123.5), Point(x: 150, y: 187.5)),
-            ("right", Point(x: 866, y: 1123.5), Point(x: 300, y: 187.5)),
-            ("bottom-left", Point(x: 40, y: 2207), Point(x: 0, y: 375)),
-            ("bottom", Point(x: 453, y: 2207), Point(x: 150, y: 375)),
-            ("bottom-right", Point(x: 866, y: 2207), Point(x: 300, y: 375))
+            ("right", Point(x: 1206 - ClipBoxTests.padding - 300, y: 1123.5), Point(x: 300, y: 187.5)),
+            ("bottom-left", Point(x: ClipBoxTests.padding, y: 2622 - ClipBoxTests.padding - 375), Point(x: 0, y: 375)),
+            ("bottom", Point(x: 453, y: 2622 - ClipBoxTests.padding - 375), Point(x: 150, y: 375)),
+            ("bottom-right", Point(x: 1206 - ClipBoxTests.padding - 300, y: 2622 - ClipBoxTests.padding - 375), Point(x: 300, y: 375))
         ]
     )
     func placesByName(
@@ -65,7 +67,7 @@ struct ClipBoxTests {
         // Then
         let size = try #require(geometry.title?.size)
         #expect(geometry.box?.size == size)
-        #expect(geometry.box?.position == .value(Point(x: (1206 - size.width) / 2, y: 2622 - 160 - size.height)))
+        #expect(geometry.box?.position == .value(Point(x: (1206 - size.width) / 2, y: 2622 - 108 * (1206 / 1920.0) - size.height)))
         #expect(geometry.box?.anchor == Point(x: size.width / 2, y: size.height))
     }
 
@@ -269,7 +271,7 @@ struct ClipBoxTests {
         let positioned = try box(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
 
         // Then
-        #expect(placed?.position == .value(Point(x: 40, y: 40)))
+        #expect(placed?.position == .value(Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding)))
         #expect(positioned != nil)
     }
 

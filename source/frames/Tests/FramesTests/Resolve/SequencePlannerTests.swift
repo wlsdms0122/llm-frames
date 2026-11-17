@@ -30,7 +30,7 @@ struct SequencePlannerTests {
         #expect(plan.format == FormatPlan(
             size: Size(width: 1080, height: 1920),
             conform: .fit,
-            background: Color(written: "#FFFFFF"),
+            background: Color(written: "#000000"),
             fps: 25,
             duration: 5
         ))
@@ -67,7 +67,7 @@ struct SequencePlannerTests {
         #expect(plan.format == FormatPlan(
             size: Size(width: 1081, height: 1920),
             conform: .fill,
-            background: Color(written: "#ED2929"),
+            background: Color(written: "#FFFFFF"),
             fps: 60,
             duration: 30
         ))
@@ -97,7 +97,7 @@ struct SequencePlannerTests {
             Issue.record("the crop was not found")
             return
         }
-        #expect(crop.rectangle == Fixture.total.grown(by: 40))
+        #expect(crop.rectangle == Fixture.total.grown(by: 40 * (1206 / 1920.0)))
         #expect(crop.target == Fixture.total)
         #expect(plan.storyline[1].crop == .value(FoundArea(
             rectangle: Rectangle(x: 0, y: 0, width: 540, height: 960),
@@ -120,7 +120,7 @@ struct SequencePlannerTests {
             Issue.record("the area was not found")
             return
         }
-        let padding = 14 * 1080 / 1206.0
+        let padding = 14 * (1080 / 1920.0)
         #expect(abs(area.rectangle.x - (Fixture.send.x - padding)) < 1e-9)
         #expect(abs(area.rectangle.width - (Fixture.send.width + padding * 2)) < 1e-9)
         #expect(area.lines.map(\.text) == ["Send"])
@@ -154,7 +154,8 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].position == .value(Point(x: 86, y: 120)))
+        let padding = 14 * (1206 / 1920.0)
+        #expect(plan.clips[0].position == .value(Point(x: 100 - padding, y: 100 - padding + (40 + padding * 2) / 2)))
         #expect(plan.clips[1].position == .value(Point(x: 10, y: 20)))
     }
 
@@ -191,7 +192,7 @@ struct SequencePlannerTests {
             Issue.record("the crop was not found")
             return
         }
-        #expect(crop.rectangle == Fixture.total.grown(by: 40))
+        #expect(crop.rectangle == Fixture.total.grown(by: 40 * (1206 / 1920.0)))
         #expect(crop.mediaTime == 1.5)
     }
 
@@ -263,8 +264,8 @@ struct SequencePlannerTests {
 
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "\#(word) \#(word)", "style": "banner", "placement": "top", "at": [0, 1]\#(width) } ] }
+            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "\#(word) \#(word)", "style": "caption", "placement": "top", "at": [0, 1]\#(width) } ] }
             """#)
 
         // Then
@@ -275,8 +276,9 @@ struct SequencePlannerTests {
     func scalesTitle() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "format": { "size": [2412, 5244] }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "a", "style": "banner", "placement": "top", "at": [0, 1] } ] }
+            { "kind": "sequence", "format": { "size": [3840, 5244] }, "theme": { "styles": { "caption": { "size": 38, "lineHeight": 64 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "a", "style": "caption", "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -295,7 +297,24 @@ struct SequencePlannerTests {
         // When, Then
         let error = #expect(throws: ThemeError.self) { try plan(document) }
         #expect(error?.description == #"clips[0].style (title): style "nope" is not in styles, "#
-            + #"which hold "banner", "bannerHead", "heading", "headline", "label", "subtitle""#)
+            + #"which hold "label", "subtitle", "title""#)
+    }
+
+    @Test(
+        "a title naming a style the base theme no longer holds stops",
+        arguments: ["banner", "bannerHead", "heading", "headline"]
+    )
+    func refusesRemovedTitleStyle(_ style: String) throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "\#(style)", "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try plan(document) }
+        #expect(error?.description == #"clips[0].style (title): style "\#(style)" is not in styles, "#
+            + #"which hold "label", "subtitle", "title""#)
     }
 
     @Test("a title takes a style its document's theme adds")
@@ -308,7 +327,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.runs.first?.size == 40)
+        #expect(plan.clips[0].title?.runs.first?.size == 40 * (1206 / 1920.0))
     }
 
     @Test("a label is set on one line in the label style and goes on the side that fits")
@@ -323,7 +342,9 @@ struct SequencePlannerTests {
         #expect(label.side == .right)
         #expect(label.instant == 0)
         #expect(label.text.lineCount == 1)
-        #expect(label.text.size == Size(width: 5 * 18 + 32, height: 36 * 1.25 + 16))
+        let scale = 1206 / 1920.0
+        #expect(abs(label.text.size.width - (5 * 18 + 32) * scale) < 1e-9)
+        #expect(abs(label.text.size.height - (36 * 1.25 + 16) * scale) < 1e-9)
     }
 
     @Test("a label is measured at the first instant of the window tracking leaves")

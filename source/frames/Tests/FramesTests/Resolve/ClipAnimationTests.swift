@@ -67,7 +67,8 @@ struct ClipAnimationTests {
     func choosesLabelAnimation() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+            { "kind": "sequence", "theme": { "defaults": { "animation": { "title": { "label": "frames/pop" } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
               { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "frames/fade" },
               { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a" },
               { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "none" },

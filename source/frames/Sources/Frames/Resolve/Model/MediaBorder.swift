@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The border around a media clip's box: the theme `shapes.border.width` scaled, and its colour.
+// The border around a media clip's box: the theme `border.width` scaled, and its colour.
 package struct MediaBorder: Equatable, Sendable {
     // MARK: - Property
     package let width: Double

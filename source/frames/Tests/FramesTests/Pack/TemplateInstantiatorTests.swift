@@ -24,7 +24,7 @@ struct TemplateInstantiatorTests {
             "size":  { "type": "number", "default": 1 }
           },
           "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
-                           "connected": [ { "title": { "param": "title" }, "style": "headline" },
+                           "connected": [ { "title": { "param": "title" }, "style": "title" },
                                           { "shape": "box", "area": "Send", "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
         """##
 
@@ -43,7 +43,7 @@ struct TemplateInstantiatorTests {
         let expected = try Fixture.json(##"""
             { "kind": "sequence",
               "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
-                               "connected": [ { "title": "New feature", "style": "headline" },
+                               "connected": [ { "title": "New feature", "style": "title" },
                                               { "shape": "box", "area": "Send", "color": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)

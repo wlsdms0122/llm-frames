@@ -196,28 +196,47 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["conform"] == .string("fill"))
         #expect(clip["radius"] == .number(12))
         #expect(clip["border"] == .object(JSONObject(members: [
-            JSONMember(key: "width", value: .number(2.6865671641791047)),
-            JSONMember(key: "color", value: .string("#D9D9D9FF"))
+            JSONMember(key: "width", value: .number(2.25)),
+            JSONMember(key: "color", value: .string("#FFFFFFFF"))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
-            JSONMember(key: "radius", value: .number(21.492537313432837)),
-            JSONMember(key: "offset", value: .array([.number(0), .number(7.164179104477612)])),
-            JSONMember(key: "color", value: .string("#00000059"))
+            JSONMember(key: "radius", value: .number(18)),
+            JSONMember(key: "offset", value: .array([.number(0), .number(6.75)])),
+            JSONMember(key: "color", value: .string("#00000080"))
         ])))
+    }
+
+    @Test("a border of true takes the theme border colour, never a theme colour named border, and a written colour replaces it")
+    func writesBorderColor() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence",
+              "theme": { "colors": { "ink": "#101418", "border": "#00FF00" }, "border": { "color": "ink" } },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "media": "/abs/card.png", "at": [0, 3], "border": true },
+                         { "media": "/abs/card.png", "at": [0, 3], "border": "#FF0000" } ] }
+            """##
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        let colors = clips.map { $0.objectValue?["border"]?.objectValue?["color"] }
+        #expect(colors == [.string("#101418FF"), .string("#FF0000FF")])
     }
 
     @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")
     func writesSolidColor() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "accent", "duration": 1 } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "shadow", "duration": 1 } ] }
             """#
 
         // When
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == .string("#ED2929FF"))
+        #expect(storyline.first?.objectValue?["solid"] == .string("#00000080"))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 

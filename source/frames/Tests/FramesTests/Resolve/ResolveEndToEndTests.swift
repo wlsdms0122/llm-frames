@@ -58,7 +58,7 @@ struct ResolveEndToEndTests {
         }
 
         let title = try #require(plan.clips[1].title)
-        #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold"])
+        #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold", "HelveticaNeue-Bold", "AppleSDGothicNeo-Bold"])
         #expect(title.runs.allSatisfy { FileManager.default.fileExists(atPath: $0.face.file) })
         #expect(title.runs.flatMap(\.glyphs).count == "결제 완료".unicodeScalars.count)
     }
@@ -97,7 +97,7 @@ struct ResolveEndToEndTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [ { "media": "\#(file)", "connected": [ { "shape": "box", "area": "Total", "track": true } ] } ],
-              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "headline" } ] }
+              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 
         return (document, drawn)

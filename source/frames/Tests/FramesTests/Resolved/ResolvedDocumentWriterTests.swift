@@ -40,7 +40,7 @@ struct ResolvedDocumentWriterTests {
             "size": [1080, 1920],
             "fps": 30,
             "duration": 3,
-            "background": "#FFFFFFFF",
+            "background": "#000000FF",
             "conform": "fit"
           },
           "storyline": [
@@ -77,7 +77,7 @@ struct ResolvedDocumentWriterTests {
                 },
                 {
                   "op": "blur",
-                  "radius": 3.582089552238806
+                  "radius": 2.25
                 }
               ],
               "transition": null
@@ -88,12 +88,12 @@ struct ResolvedDocumentWriterTests {
               "place": "clips[0]",
               "id": null,
               "title": {
-                "size": [60.8955223880597, 54.62686567164179],
+                "size": [38.25, 34.3125],
                 "lines": 1,
                 "background": {
                   "color": "#ED2929FF",
-                  "padding": [14.328358208955224, 7.164179104477612],
-                  "radius": 10.746268656716419
+                  "padding": [9, 4.5],
+                  "radius": 6.75
                 },
                 "stroke": null,
                 "runs": [
@@ -101,11 +101,11 @@ struct ResolvedDocumentWriterTests {
                     "file": "/System/Apple SD Gothic Neo.ttc",
                     "sha256": "41aa0c9e5d17",
                     "face": "Apple SD Gothic Neo-bold",
-                    "size": 32.23880597014926,
+                    "size": 20.25,
                     "color": "#FFFFFFFF",
                     "glyphs": [
-                      [72, 14.328358208955224, 36.985074626865675],
-                      [105, 30.44776119402985, 36.985074626865675]
+                      [72, 9, 23.23125],
+                      [105, 19.125, 23.23125]
                     ]
                   }
                 ]
@@ -116,15 +116,15 @@ struct ResolvedDocumentWriterTests {
               "storyline": null,
               "parented": false,
               "area": null,
-              "size": [60.8955223880597, 54.62686567164179],
+              "size": [38.25, 34.3125],
               "position": [
                 {
                   "at": 0,
-                  "value": [44.952238805970154, 1682.486567164179],
+                  "value": [56.275000000000006, 1692.64375],
                   "ease": "linear"
                 }
               ],
-              "anchor": [30.44776119402985, 27.313432835820894],
+              "anchor": [19.125, 17.15625],
               "crop": null,
               "track": null,
               "label": null,
@@ -172,8 +172,8 @@ struct ResolvedDocumentWriterTests {
               "conform": "fit",
               "radius": 0,
               "border": {
-                "width": 2.6865671641791047,
-                "color": "#D9D9D9FF"
+                "width": 2.25,
+                "color": "#FFFFFFFF"
               },
               "shadow": null,
               "start": 0,

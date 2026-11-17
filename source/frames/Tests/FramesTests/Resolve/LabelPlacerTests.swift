@@ -124,8 +124,8 @@ struct LabelPlacerTests {
         clip: String,
         side: Side
     ) throws {
-        // Given
-        let document = connected(clip)
+        // Given, at a length scale of 1, so the arrow is 160 long
+        let document = connected(clip, theme: #"{ "baseWidth": 1206 }"#)
 
         // When
         let label = try place(.value(found(Rectangle(x: 700, y: 300, width: 200, height: 40), at: 1)), document: document)

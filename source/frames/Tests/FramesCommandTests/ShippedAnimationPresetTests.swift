@@ -137,7 +137,7 @@ struct ShippedAnimationPresetTests {
         #expect(nudges.min() == 0)
     }
 
-    @Test("a sequence with a box label resolves on the base theme alone, and the label pops in with the shipped pop")
+    @Test("a sequence with a box label resolves on the base theme alone, and the label pops in with the shipped pop it names")
     func resolvesLabelOnBaseTheme() throws {
         // Given
         let document = directory.file("label.json")
@@ -171,7 +171,8 @@ struct ShippedAnimationPresetTests {
         { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
           "storyline": [
             { "solid": "#FFFFFF", "duration": 2,
-              "connected": [ { "at": [0.5, 1.5], "shape": "box", "area": [100, 120, 200, 80], "label": "here" } ] }
+              "connected": [ { "at": [0.5, 1.5], "shape": "box", "area": [100, 120, 200, 80], "label": "here",
+                               "labelAnimation": "frames/pop" } ] }
           ] }
         """#
     }

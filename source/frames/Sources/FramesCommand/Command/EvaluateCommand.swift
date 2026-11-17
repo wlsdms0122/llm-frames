@@ -7,8 +7,7 @@
 
 import Frames
 
-// Prints, as machine output, the display list of a document at a sequence time, with the clip or op that drew each
-// item.
+// Prints, as machine output, the display list of a document at a sequence time, with the clip that drew each item.
 struct EvaluateCommand: Command {
     // MARK: - Property
     let name = "evaluate"

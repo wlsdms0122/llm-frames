@@ -10,11 +10,11 @@ import Testing
 @testable import Frames
 
 // The document's theme names `grade` as the default filter. The output is 1080 wide, so the blur's theme length is
-// scaled by 1080 / 1206. `film` is a preset whose LUT names no file.
+// scaled by 1080 / 1920. `film` is a preset whose LUT names no file.
 @Suite("DefaultFilter Tests")
 struct DefaultFilterTests {
     // MARK: - Property
-    private let grade: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * (1080.0 / 1206))]
+    private let grade: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * (1080.0 / 1920))]
     private let presets = PresetTable(
         transitions: Fixture.presets.transitions,
         animations: Fixture.presets.animations,

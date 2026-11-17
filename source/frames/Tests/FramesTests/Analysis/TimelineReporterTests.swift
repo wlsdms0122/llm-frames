@@ -21,7 +21,7 @@ struct TimelineReporterTests {
             { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
-            { "at": [0, 4], "title": "Top", "style": "headline", "lane": 2, "animation": "frames/pop" },
+            { "at": [0, 4], "title": "Top", "style": "title", "lane": 2, "animation": "frames/pop" },
             { "at": 1, "media": "/abs/ding.wav" }
           ] }
         """##
@@ -92,7 +92,7 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
               { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
-                           "clips": [ { "title": "a", "style": "headline" } ] } }
+                           "clips": [ { "title": "a", "style": "title" } ] } }
             ] }
             """##)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
@@ -129,7 +129,7 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
               { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
-                           "clips": [ { "title": "a", "style": "headline" } ] } }
+                           "clips": [ { "title": "a", "style": "title" } ] } }
             ] }
             """##)
 
@@ -355,10 +355,10 @@ struct TimelineReporterTests {
     // A box on the text "Total", tracked, with a label tried on `sides`, and a title over the whole sequence.
     private func tracked(sides: String) -> String {
         #"""
-        { "kind": "sequence", "theme": { "shapes": { "label": { "sides": \#(sides) } } },
+        { "kind": "sequence", "theme": { "baseWidth": 1206, "shapes": { "label": { "sides": \#(sides) } } },
           "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
             "connected": [ { "shape": "box", "area": "Total", "at": [1.5, 3], "track": "Total", "label": "Total" } ] } ],
-          "clips": [ { "at": [0, 2], "title": "Pay now", "style": "headline" } ] }
+          "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
         """#
     }
 }

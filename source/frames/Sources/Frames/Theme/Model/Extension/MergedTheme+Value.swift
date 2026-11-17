@@ -47,33 +47,25 @@ extension MergedTheme {
     }
 
     var borderWidth: Double {
-        number(at: ["shapes", "border", "width"])
+        number(at: ["border", "width"])
+    }
+
+    var borderColor: Color {
+        color(value(at: ["border", "color"])?.stringValue ?? "accent")
     }
 
     var shadowRadius: Double {
-        number(at: ["shapes", "shadow", "radius"])
+        number(at: ["shadow", "radius"])
     }
 
     var shadowOffset: Point {
-        let offset = value(at: ["shapes", "shadow", "offset"])?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
+        let offset = value(at: ["shadow", "offset"])?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
 
         return Point(x: offset[0], y: offset[1])
     }
 
     var shadowColor: Color {
-        color(value(at: ["shapes", "shadow", "color"])?.stringValue ?? "shadow")
-    }
-
-    var bannerPadding: Double {
-        number(at: ["image", "bannerPadding"])
-    }
-
-    var layoutGap: Double {
-        number(at: ["layout", "gap"])
-    }
-
-    var layoutPadding: Double {
-        number(at: ["layout", "padding"])
+        color(value(at: ["shadow", "color"])?.stringValue ?? "shadow")
     }
 
     var labelSides: [Side] {
@@ -124,7 +116,7 @@ extension MergedTheme {
     }
 
     // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the
-    // `text` and `emphasis` colours, a line height of 1.25 times its size, left, no stroke, no background and no limit
+    // `text` colour, the `accent` colour for emphasis, a line height of 1.25 times its size, left, no stroke, no background and no limit
     // on lines. A background leaves out the `background` colour, no padding and no radius, and a stroke the `text`
     // colour. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a name
     // the theme does not hold.
@@ -142,7 +134,7 @@ extension MergedTheme {
             size: size * scale,
             weight: style["weight"]?.stringValue.flatMap(FontWeight.init) ?? .regular,
             color: color(style["color"]?.stringValue ?? "text"),
-            emphasis: color(style["emphasis"]?.stringValue ?? "emphasis"),
+            emphasis: color(style["emphasis"]?.stringValue ?? "accent"),
             lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
             stroke: style["stroke"]?.objectValue.map { stroke in
                 TextStroke(

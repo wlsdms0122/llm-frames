@@ -263,8 +263,8 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
-    // picture does, so the box holds still while the crop moves. A border takes the theme's width, and a shadow is the
-    // theme's, their lengths scaled.
+    // picture does, so the box holds still while the crop moves. A border takes the theme's width, and its colour unless
+    // the clip writes one, and a shadow is the theme's, their lengths scaled.
     private func mediaAppearance(
         of written: Clip,
         box: ClipBox?,
@@ -306,9 +306,24 @@ struct ClipAppearancePlanner: Sendable {
             conform: conform,
             crop: crops,
             radius: written.radius ?? 0,
-            border: written.border.map { MediaBorder(width: theme.borderWidth * scale, color: theme.color($0)) },
+            border: written.border.map { border in
+                MediaBorder(width: theme.borderWidth * scale, color: borderColor(of: border, theme: theme))
+            },
             shadow: written.shadow ? shadow : nil
         )
+    }
+
+    private func borderColor(
+        of border: BorderForm,
+        theme: MergedTheme
+    ) -> Color {
+        switch border {
+        case .theme:
+            theme.borderColor
+
+        case let .color(written):
+            theme.color(written)
+        }
     }
 
     // Drawn media takes the theme's filter when it writes none, except a compound clip or a template instance, whose
