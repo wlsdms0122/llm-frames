@@ -8,7 +8,8 @@
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
 // tracking leaves, what was found under a shape or adjustment brought into its space, its titles set, where each clip
-// is placed and how it is drawn, and its sound.
+// is placed and how it is drawn, and its sound. A content-fit sequence is planned in its measuring space on a frame the
+// size of its first storyline picture's box, which gives its length scale, and then measured.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -16,6 +17,7 @@ struct SequencePlanner: Sendable {
     private let text: ThemeTypesetter
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
+    private let contentFit = ContentFitPlanner()
 
     // MARK: - Initializer
     init(
@@ -36,22 +38,16 @@ struct SequencePlanner: Sendable {
         // A compound clip's or a document's picture is its nested document's output, so the nested plans come first.
         let storylineNested = try time.storyline.map { plan in try plan.source.media.flatMap(nested) }
         let clipNested = try time.clips.map { plan in try plan.media.flatMap(nested) }
-        let format = try self.format(of: time, nested: storylineNested)
+        let crops = try time.storyline.indices.map { index in
+            try crop(of: time.storyline[index], written: time.sequence.storyline[index], nested: storylineNested[index])
+        }
+        let format = try self.format(of: time, nested: storylineNested, crops: crops)
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
         let clipPictures = try time.clips.indices.map { index in
             try picture(
                 of: time.clips[index],
                 nested: clipNested[index],
                 place: written[index].place.appending(key: "media")
-            )
-        }
-
-        let crops = try time.storyline.indices.map { index in
-            try crop(
-                of: time.storyline[index],
-                written: time.sequence.storyline[index],
-                nested: storylineNested[index],
-                format: format
             )
         }
         let found = try time.clips.indices.map { index in
@@ -108,6 +104,12 @@ struct SequencePlanner: Sendable {
                     of: time.storyline[index],
                     written: time.sequence.storyline[index],
                     position: storylinePositions[index],
+                    box: try box(
+                        of: time.storyline[index],
+                        crop: crops[index],
+                        nested: storylineNested[index],
+                        format: format
+                    ),
                     format: format,
                     scale: lengthScale,
                     theme: time.theme
@@ -154,7 +156,10 @@ struct SequencePlanner: Sendable {
             clipNested: clipNested
         )
 
-        return SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
+        let plan = SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
+        guard let margin = format.margin else { return plan }
+
+        return try contentFit.fitted(plan, margin: margin)
     }
 
     // MARK: - Private
@@ -168,21 +173,76 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The background is the theme `background` unless the format gives one.
+    // The background is the theme `background` unless the format gives one. A content-fit frame is the size of its
+    // first storyline picture's box until it is measured.
     private func format(
         of time: TimePlan,
-        nested: [SequencePlan?]
+        nested: [SequencePlan?],
+        crops: [PropertyValue<FoundArea>?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
-        let size = try format.size ?? defaultSize(of: time, nested: nested)
+        let size: Size
+        let margin: Margin?
+        switch format.size {
+        case let .fixed(written):
+            size = written
+            margin = nil
+
+        case .none:
+            size = try defaultSize(of: time, nested: nested)
+            margin = nil
+
+        case let .content(written):
+            let boxes = try time.storyline.indices.compactMap { index in
+                try pictureBox(of: time.storyline[index], crop: crops[index], nested: nested[index])
+            }
+            guard let first = boxes.first else {
+                throw ResolveError.contentFitWithoutPicture(
+                    place: time.sequence.place.appending(key: "format").appending(key: "size"),
+                    kind: .sequence
+                )
+            }
+
+            size = first
+            margin = written
+        }
 
         return FormatPlan(
             size: size,
             conform: format.conform ?? .fit,
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
-            duration: time.duration
+            duration: time.duration,
+            margin: margin
         )
+    }
+
+    // A storyline clip's box is the frame, and under content fit the pixel size of its picture's crop at scale 1: its
+    // first crop's, or its whole picture's without one. A solid fills the frame.
+    private func box(
+        of plan: StorylinePlan,
+        crop: PropertyValue<FoundArea>?,
+        nested: SequencePlan?,
+        format: FormatPlan
+    ) throws -> Size {
+        guard format.margin != nil else { return format.size }
+
+        return try pictureBox(of: plan, crop: crop, nested: nested) ?? format.size
+    }
+
+    // The pixel size of a storyline clip's crop at scale 1, nil for a solid, which has no picture of its own.
+    private func pictureBox(
+        of plan: StorylinePlan,
+        crop: PropertyValue<FoundArea>?,
+        nested: SequencePlan?
+    ) throws -> Size? {
+        guard let media = plan.source.media else { return nil }
+
+        if let first = crop?.firstValue.rectangle {
+            return Size(width: first.width, height: first.height)
+        }
+        let place = plan.place.appending(key: "media")
+        return try picture(of: media, kind: plan.source.kind, nested: nested, place: place).size
     }
 
     // The size of the first video on the storyline, or of the first storyline clip when there is no video, rounded to
@@ -255,20 +315,26 @@ struct SequencePlanner: Sendable {
         return try picture(of: media, kind: plan.kind, nested: nested, place: place)
     }
 
-    // What an unparented clip's area and position are in.
+    // What an unparented clip's area and position are in: the output frame, or under content fit the measuring space,
+    // which has no edges until it is measured.
     private func output(of format: FormatPlan) -> Picture {
-        Picture(name: "output", source: .document, size: format.size)
+        Picture(name: "output", source: format.margin == nil ? .document : .space, size: format.size)
     }
 
+    // A solid takes no crop.
     private func crop(
         of plan: StorylinePlan,
         written: StorylineClip,
-        nested: SequencePlan?,
-        format: FormatPlan
+        nested: SequencePlan?
     ) throws -> PropertyValue<FoundArea>? {
-        guard let crop = written.crop else { return nil }
+        guard let crop = written.crop, let media = plan.source.media else { return nil }
 
-        let picture = try self.picture(of: plan, nested: nested, format: format)
+        let picture = try self.picture(
+            of: media,
+            kind: plan.source.kind,
+            nested: nested,
+            place: plan.place.appending(key: "media")
+        )
         return try finder.crops(
             crop,
             in: picture,
@@ -444,13 +510,17 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // A title wraps at its `width`, by default the output width less the placement padding on each side.
+    // A title wraps at its `width`, by default the output width less the placement padding on each side, which a
+    // content-fit frame does not have yet.
     private func title(
         of written: Clip,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
         guard case let .title(text, style) = written.content else { return nil }
+        guard written.width != nil || format.margin == nil else {
+            throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
+        }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(

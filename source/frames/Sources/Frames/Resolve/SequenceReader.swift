@@ -183,14 +183,22 @@ struct SequenceReader: Sendable {
     }
 
     private func format(_ object: JSONObject) -> SequenceFormat {
-        let size = object["size"]?.arrayValue?.compactMap(\.numberValue) ?? []
-
-        return SequenceFormat(
+        SequenceFormat(
             fps: object["fps"]?.numberValue,
-            size: size.count == 2 ? Size(width: size[0], height: size[1]) : nil,
+            size: object["size"].flatMap(formatSize),
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
             background: object["background"]?.stringValue
         )
+    }
+
+    // `[w, h]`, or `{"fit": "content", "margin": m}` with a margin of 0 when it writes none.
+    private func formatSize(_ value: JSONValue) -> FormatSize? {
+        if let object = value.objectValue {
+            return .content(margin: object["margin"].map(Margin.init(value:)) ?? .zero)
+        }
+
+        let size = value.arrayValue?.compactMap(\.numberValue) ?? []
+        return size.count == 2 ? .fixed(Size(width: size[0], height: size[1])) : nil
     }
 
     // A property no keyframe names is its static value, or nil when it has none.

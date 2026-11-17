@@ -192,6 +192,9 @@ struct KeyChecker: Sendable {
                 try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
             }
 
+        case .margin:
+            try checkMargin(value, place: place, kind: kind, scope: &scope)
+
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -368,6 +371,30 @@ struct KeyChecker: Sendable {
 
         default:
             throw wrongType(value, type, place, kind)
+        }
+    }
+
+    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
+    private func checkMargin(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        switch value {
+        case .number:
+            try check(value, as: .nonNegativeInteger, place: place, kind: kind, scope: &scope)
+
+        case let .array(elements):
+            guard elements.count == 2 || elements.count == 4 else { throw wrongType(value, .margin, place, kind) }
+
+            for (index, element) in elements.enumerated() {
+                let side = place.appending(index: index)
+                try check(element, as: .nonNegativeInteger, place: side, kind: kind, scope: &scope)
+            }
+
+        default:
+            throw wrongType(value, .margin, place, kind)
         }
     }
 
@@ -840,7 +867,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .integer, .nonNegativeInteger, .positiveInteger:
+        case .number, .positiveNumber, .nonNegativeNumber, .integer, .nonNegativeInteger, .positiveInteger, .margin:
             parameterType == "number"
 
         default:
@@ -895,7 +922,7 @@ struct KeyChecker: Sendable {
              (.filterOperation, .object), (.document, .object):
             true
 
-        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object):
+        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
             true
 
         case (.media, .string), (.media, .object):
@@ -976,6 +1003,9 @@ struct KeyChecker: Sendable {
 
         case .crop:
             "an area or {scale}"
+
+        case .margin:
+            "a whole number, 0 or more, or a list of 2 or 4 of them"
 
         case .media:
             "a media reference"

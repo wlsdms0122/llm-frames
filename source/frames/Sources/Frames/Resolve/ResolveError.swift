@@ -32,6 +32,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
+    case contentFitWithoutPicture(place: Place, kind: PlaceKind)
+    case placementUnderContentFit(place: Place, kind: PlaceKind)
+    case titleWidthUnderContentFit(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
@@ -138,6 +141,18 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .missingFormatSize(place, kind):
             "\(place) (\(kind.label)): the storyline has no video and its first clip is a solid, which has no size, "
                 + "so the format needs \"size\""
+
+        case let .contentFitWithoutPicture(place, kind):
+            "\(place) (\(kind.label)): every storyline clip is a solid, so a frame measured from the content has "
+                + "nothing to measure and no length scale, and the format needs \"size\""
+
+        case let .placementUnderContentFit(place, kind):
+            "\(place) (\(kind.label)): \"placement\" names the frame, which is measured from the content, "
+                + "so the clip needs \"position\""
+
+        case let .titleWidthUnderContentFit(place, kind):
+            "\(place) (\(kind.label)): a title wraps at the frame's width by default, "
+                + "which is measured from the content, so the title needs \"width\""
 
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"

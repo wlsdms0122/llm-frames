@@ -234,6 +234,29 @@ struct RenderOutputTests {
         #expect(picture.isPixel(x: 80, y: 45, color, tolerance: 1.0 / 255))
     }
 
+    @Test("a frame that fits its content renders to a PNG at the measured size, the margin showing the background")
+    func rendersContentFitToPNG() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "size": { "fit": "content", "margin": [10, 20] } },
+              "storyline": [ { "media": "\#(file)", "duration": 1 } ] }
+            """#)
+        let sut = pipeline()
+
+        // When
+        try sut.render(document, to: output.file("out.png"), at: 0, delivery: nil)
+
+        // Then
+        let picture = try AVFoundationDecoder().picture(of: MediaFile(path: output.file("out.png")), atFrame: 0)
+        #expect(picture.width == 200 && picture.height == 110)
+        #expect(picture.isPixel(x: 100, y: 55, [128, 128, 128], tolerance: 1.0 / 255))
+        #expect(picture.isPixel(x: 10, y: 55, [0, 0, 0], tolerance: 1.0 / 255))
+        #expect(picture.isPixel(x: 100, y: 5, [0, 0, 0], tolerance: 1.0 / 255))
+    }
+
     // MARK: - Private
     private func pipeline(failingAtFrame failure: Int? = nil) -> RenderPipeline {
         let decoder = AVFoundationDecoder()

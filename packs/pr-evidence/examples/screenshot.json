@@ -1,9 +1,10 @@
 {
   "kind": "sequence",
   "theme": "pr-evidence/pr-evidence",
-  "format": { "size": [1206, 900], "fps": 30, "background": "#FFFFFF", "conform": "fit" },
+  "format": { "size": { "fit": "content", "margin": 40 }, "fps": 30, "background": "#FFFFFF", "conform": "fit" },
   "storyline": [
     { "id": "checkout", "media": "/path/to/checkout.png", "duration": 1, "crop": { "from": "Order summary", "to": "Total", "padding": 40 },
+      "anchor": "top-left", "position": [0, 168],
       "connected": [
         { "shape": "fill", "id": "address", "parent": "checkout", "area": { "text": "Ship to", "padding": 14 }, "color": "#000000" },
         { "shape": "box", "parent": "checkout", "area": { "text": "Item total", "padding": 14 } },
@@ -14,7 +15,7 @@
       ] }
   ],
   "clips": [
-    { "id": "conclusion", "title": "Total includes shipping", "style": "lead", "position": [40, 40], "anchor": "top-left" },
-    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "body", "position": [40, 104], "anchor": "top-left" }
+    { "id": "conclusion", "title": "Total includes shipping", "style": "lead", "width": 1126, "position": [0, 0], "anchor": "top-left" },
+    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "body", "width": 1126, "position": [0, 64], "anchor": "top-left" }
   ]
 }

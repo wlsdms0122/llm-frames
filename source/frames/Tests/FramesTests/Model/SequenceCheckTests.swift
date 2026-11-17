@@ -435,6 +435,33 @@ struct SequenceCheckTests {
     }
 
     @Test(
+        "a content fit size takes only `fit` as \"content\" and a margin of whole pixels 0 or more in one of its forms",
+        arguments: [
+            (#"{ "fit": "page" }"#, #"format.size.fit (content fit): unknown value "page". Allowed: content"#),
+            (#"{ "margin": 4 }"#, #"format.size (content fit): missing key "fit""#),
+            (#"{ "fit": "content", "padding": 4 }"#, #"format.size (content fit): unknown key "padding". Allowed: fit, margin"#),
+            (#"{ "fit": "content", "margin": -1 }"#, "format.size.margin (content fit): expected a whole number, 0 or more, found -1"),
+            (#"{ "fit": "content", "margin": 1.5 }"#, "format.size.margin (content fit): expected a whole number, 0 or more, found 1.5"),
+            (#"{ "fit": "content", "margin": [1, 2, 3] }"#, "format.size.margin (content fit): expected a whole number, 0 or more, or a list of 2 or 4 of them, found a list of 3"),
+            (#"{ "fit": "content", "margin": [1, -2] }"#, "format.size.margin[1] (content fit): expected a whole number, 0 or more, found -2"),
+            (#"{ "fit": "content", "margin": "4" }"#, #"format.size.margin (content fit): expected a whole number, 0 or more, or a list of 2 or 4 of them, found "4""#)
+        ]
+    )
+    func refusesContentFitForms(
+        size: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": \#(size) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
         "every form the specification gives a value is taken",
         arguments: [
             #"{ "clips": [ { "media": "/abs/run.mp4", "at": 2 } ] }"#,
@@ -446,7 +473,11 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
-            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#
+            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
+            #"{ "format": { "size": { "fit": "content" } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+            #"{ "format": { "size": { "fit": "content", "margin": 0 } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+            #"{ "format": { "size": { "fit": "content", "margin": [8, 16] } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+            #"{ "format": { "size": { "fit": "content", "margin": [1, 2, 3, 4] } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#
         ]
     )
     func acceptsEveryForm(body: String) throws {

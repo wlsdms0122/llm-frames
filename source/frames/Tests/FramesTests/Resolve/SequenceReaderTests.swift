@@ -122,7 +122,7 @@ struct SequenceReaderTests {
         // Then
         let arrow = sequence.storyline[0].connected[0]
         let title = sequence.storyline[0].connected[1]
-        #expect(sequence.format.size == Size(width: 1080, height: 1920))
+        #expect(sequence.format.size == .fixed(Size(width: 1080, height: 1920)))
         #expect(sequence.format.conform == .fill)
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
@@ -131,5 +131,30 @@ struct SequenceReaderTests {
         #expect(arrow.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
+    }
+
+    @Test(
+        "a content fit size reads its margin in each form, in the order CSS writes them, and 0 without one",
+        arguments: [
+            (#"{ "fit": "content" }"#, Margin.zero),
+            (#"{ "fit": "content", "margin": 8 }"#, Margin(top: 8, right: 8, bottom: 8, left: 8)),
+            (#"{ "fit": "content", "margin": [8, 16] }"#, Margin(top: 8, right: 16, bottom: 8, left: 16)),
+            (#"{ "fit": "content", "margin": [1, 2, 3, 4] }"#, Margin(top: 1, right: 2, bottom: 3, left: 4))
+        ]
+    )
+    func readsContentFitSize(
+        size: String,
+        margin: Margin
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": \#(size) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            """#)
+
+        // When
+        let sequence = sut.sequence(from: document)
+
+        // Then
+        #expect(sequence.format.size == .content(margin: margin))
     }
 }

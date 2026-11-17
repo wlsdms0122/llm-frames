@@ -12,14 +12,14 @@ struct SequenceFormat: Equatable, Sendable {
     private static let defaultFrameRate: Double = 30
 
     let fps: Double?
-    let size: Size?
+    let size: FormatSize?
     let conform: Conform?
     let background: String?
 
     // MARK: - Initializer
     init(
         fps: Double? = nil,
-        size: Size? = nil,
+        size: FormatSize? = nil,
         conform: Conform? = nil,
         background: String? = nil
     ) {

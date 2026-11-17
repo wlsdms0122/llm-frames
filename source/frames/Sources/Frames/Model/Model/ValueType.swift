@@ -30,6 +30,7 @@ indirect enum ValueType: Equatable, Sendable {
     case oneOf([ValueType])
     case area
     case crop
+    case margin
     case media
     case document
     case clips(ClipPlace)
