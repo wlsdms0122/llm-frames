@@ -116,4 +116,32 @@ struct ThemeValidatorTests {
         let error = #expect(throws: ThemeError.self) { try ThemeMerger().merge([layer]) }
         #expect(error?.description == #"styles.note.color (style): colour "\#(name)" is not in colors"#)
     }
+
+    @Test(
+        "a style's lines that is not a whole number of 1 or more stops where it is written",
+        arguments: ["0", "-1", "1.5"]
+    )
+    func refusesBadLines(_ lines: String) throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "lines": \#(lines) } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == "styles.note.lines (style): expected a whole number, 1 or more, found \(lines)")
+    }
+
+    @Test("a style's lines of 1 passes the key check")
+    func acceptsOneLine() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "lines": 1 } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        try sut.checkKeys(of: layer)
+    }
 }
