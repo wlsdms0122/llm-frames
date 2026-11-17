@@ -53,7 +53,7 @@ struct ClipAppearancePlanner: Sendable {
                 height: written.height,
                 crop: crop,
                 picture: picture.size,
-                frame: format.margin == nil ? format.size : nil
+                frame: format.isMeasured ? nil : format.size
             )
             style = nil
 
@@ -70,7 +70,7 @@ struct ClipAppearancePlanner: Sendable {
             throw ResolveError.parentWithoutPosition(place: written.place, kind: .clip(plan.kind))
         }
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
-        if format.margin != nil {
+        if format.isMeasured {
             guard written.placement == nil else {
                 throw ResolveError.placementUnderContentFit(place: written.place, kind: .clip(plan.kind))
             }
@@ -181,7 +181,7 @@ struct ClipAppearancePlanner: Sendable {
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { topLeft(of: $0, anchor: anchor) }
-            ?? .value(format.margin == nil ? topLeft(of: format.frame.center, anchor: anchor) : Point(x: 0, y: 0))
+            ?? .value(format.isMeasured ? Point(x: 0, y: 0) : topLeft(of: format.frame.center, anchor: anchor))
 
         return StorylineAppearance(
             box: ClipBox(size: box, position: placed, anchor: anchor),

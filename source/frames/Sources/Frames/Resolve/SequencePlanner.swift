@@ -159,7 +159,7 @@ struct SequencePlanner: Sendable {
         let plan = SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
         guard let margin = format.margin else { return plan }
 
-        return try contentFit.fitted(plan, margin: margin)
+        return try contentFit.fitted(plan, margin: margin, inOutputPixels: found.map(\.isInOutputPixels))
     }
 
     // MARK: - Private
@@ -226,7 +226,7 @@ struct SequencePlanner: Sendable {
         format: FormatPlan
     ) throws -> Size? {
         guard plan.source.media != nil else { return nil }
-        guard format.margin != nil else { return format.size }
+        guard format.isMeasured else { return format.size }
 
         return try pictureBox(of: plan, crop: crop, nested: nested)
     }
@@ -302,7 +302,7 @@ struct SequencePlanner: Sendable {
     // What the areas and positions written in output pixels are in, an unparented clip's and a solid's children's: the
     // output frame, or under content fit the measuring space, which has no edges until it is measured.
     private func output(of format: FormatPlan) -> Picture {
-        Picture(name: "output", source: format.margin == nil ? .document : .space, size: format.size)
+        Picture(name: "output", source: format.isMeasured ? .space : .document, size: format.size)
     }
 
     // A solid takes no crop.
@@ -515,7 +515,7 @@ struct SequencePlanner: Sendable {
         theme: MergedTheme
     ) throws -> TextLayout? {
         guard case let .title(text, style) = written.content else { return nil }
-        guard written.width != nil || format.margin == nil else {
+        guard written.width != nil || !format.isMeasured else {
             throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
         }
 

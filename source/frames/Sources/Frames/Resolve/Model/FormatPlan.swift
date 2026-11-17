@@ -21,6 +21,11 @@ struct FormatPlan: Equatable, Sendable {
         Rectangle(x: 0, y: 0, width: size.width, height: size.height)
     }
 
+    // A content-fit frame is measured from what its sequence draws, which is planned in the measuring space first.
+    var isMeasured: Bool {
+        margin != nil
+    }
+
     // MARK: - Initializer
     init(
         size: Size,

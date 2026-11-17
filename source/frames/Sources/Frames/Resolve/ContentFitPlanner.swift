@@ -24,9 +24,12 @@ struct ContentFitPlanner: Sendable {
 
     // MARK: - Public
     // `plan` is planned on a frame the size of its first storyline picture's box, and its storyline has a picture.
+    // `inOutputPixels` says for each clip whether its coordinates are output pixels, which under content fit are the
+    // measuring space, so the clip moves with the content.
     func fitted(
         _ plan: SequencePlan,
-        margin: Margin
+        margin: Margin,
+        inOutputPixels: [Bool]
     ) throws -> SequencePlan {
         let still = try self.still(ResolvedSequence(plan: plan, hashes: PlaceholderHasher()))
         guard let union = extents(of: still).reduce(nil, { union, extent in union?.union(extent) ?? extent }) else {
@@ -50,16 +53,13 @@ struct ContentFitPlanner: Sendable {
             duration: plan.format.duration,
             margin: margin
         )
-        let time = plan.time
 
         return SequencePlan(
-            time: time,
+            time: plan.time,
             format: format,
             storyline: plan.storyline.map { moved($0, by: offset) },
-            clips: time.clips.indices.map { index in
-                isInMeasuringSpace(time.clips[index].parent, time: time)
-                    ? moved(plan.clips[index], by: offset)
-                    : plan.clips[index]
+            clips: plan.clips.indices.map { index in
+                inOutputPixels[index] ? moved(plan.clips[index], by: offset) : plan.clips[index]
             },
             sound: plan.sound
         )
@@ -210,32 +210,6 @@ struct ContentFitPlanner: Sendable {
             width: (xs.max() ?? rectangle.maxX) - minX,
             height: (ys.max() ?? rectangle.maxY) - minY
         )
-    }
-
-    // An unparented clip, one parented to a solid, whose space is the frame's output pixels, and one under a chain of
-    // shapes and adjustments that reaches neither a storyline picture nor a box clip are written in measuring space.
-    private func isInMeasuringSpace(
-        _ parent: ClipParent?,
-        time: TimePlan
-    ) -> Bool {
-        switch parent {
-        case .none:
-            return true
-
-        case let .storyline(index, _):
-            return time.storyline[index].source.media == nil
-
-        case let .clip(index, _):
-            let plan = time.clips[index]
-            switch plan.kind {
-            case .shape, .adjust:
-                // ParentFinder has ruled out a cycle, so the chain ends.
-                return isInMeasuringSpace(plan.parent, time: time)
-
-            default:
-                return false
-            }
-        }
     }
 
     // A storyline picture's box moves with the content. A solid has none, and fills the measured frame.
