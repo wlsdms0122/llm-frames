@@ -71,9 +71,10 @@ frames/
     PRESET.md              how to write a preset
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
-  packs/                   the first forms, installed by copying, not part of the tool
-    pr-evidence/  shorts/  demo/
+  packs/                   the first forms and the film looks, installed by copying, not part of the tool
+    pr-evidence/  shorts/  demo/  film/
   source/install.sh        builds the tool and installs it with its presets
+  source/film-luts.py      writes the LUTs of packs/film
   source/frames/           the Swift package and the built tool
     Sources/FramesCommand/ the commands, their arguments and the role table
       Resources/

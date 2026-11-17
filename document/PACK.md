@@ -69,6 +69,8 @@ FRAMES_HOME=/path/to/try frames packs mine
 
 Presets are covered in [PRESET.md](PRESET.md). LUTs are `.cube` files named in a filter's `lut` op as `mine/film`. Media in `media/` is named with its extension (`mine/grain.mov`), and an image sequence is a folder named without one (`{ "imageSequence": "mine/confetti", "fps": 30 }`).
 
+[packs/film](../packs/film/) is a pack of looks: five filters, each a LUT from its `luts/` followed by grain and a vignette or halation, used as `"filter": "film/warm-negative"`. `source/film-luts.py` writes its LUTs, so a look is tuned there and the script run again.
+
 ## A theme
 
 A pack theme holds only the keys it changes from the base theme. `frames theme` prints the base theme, which is also the list of every key.

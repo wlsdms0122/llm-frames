@@ -1,0 +1,8 @@
+{
+  "description": "An old slide: rich mid colour over lifted blacks, cyan shadows and warm highlights",
+  "ops": [
+    { "op": "lut", "file": "film/faded-slide", "amount": 1 },
+    { "op": "grain", "amount": 0.015, "size": 2 },
+    { "op": "vignette", "amount": 0.2, "radius": 0.5 }
+  ]
+}
