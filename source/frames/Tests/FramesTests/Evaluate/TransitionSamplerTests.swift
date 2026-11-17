@@ -34,7 +34,7 @@ struct TransitionSamplerTests {
     }
 
     @Test(
-        "a unit's offset is in multiples of the frame, so x 1 moves it by one frame width",
+        "a storyline picture's offset is in multiples of the frame, so x 1 moves it by one frame width",
         arguments: [
             (MotionProperty.x, 1.0, Point(x: 1080, y: 0)),
             (MotionProperty.x, -0.5, Point(x: -540, y: 0)),
@@ -51,68 +51,97 @@ struct TransitionSamplerTests {
             SpanKey(t: 0, values: [property: value]),
             SpanKey(t: 1, values: [property: value])
         ])
+        let storyline = storyline(incoming: span)
 
         // When
-        let unit = sut.unit(moving: span, in: frame, at: 0.25)
+        let sample = sut.motion(of: 1, in: storyline, at: 1.75)
 
         // Then
-        #expect(unit.transform == AffineTransform(translation: translation))
-        #expect(unit.opacity == 1)
-        #expect(unit.reveal == nil)
+        let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
+        #expect(presentation.transform == AffineTransform(translation: translation))
+        #expect(presentation.opacity == 1)
+        #expect(sample.reveal.rectangle(wiping: frame, from: sample.revealFrom) == nil)
     }
 
-    @Test("a unit scales about the centre of the frame")
+    @Test("a storyline picture scales about the centre of the frame")
     func scalesAboutFrameCenter() {
         // Given
         let span = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.5]), SpanKey(t: 1, values: [.scale: 1])])
+        let storyline = storyline(incoming: span)
 
         // When
-        let unit = sut.unit(moving: span, in: frame, at: 0)
+        let sample = sut.motion(of: 1, in: storyline, at: 1.5)
 
         // Then
-        #expect(unit.transform.apply(to: Point(x: 540, y: 960)) == Point(x: 540, y: 960))
-        #expect(unit.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 270, y: 480))
+        let transform = ItemPresentation(area: frame, opacity: 1, motion: sample.motion).transform
+        #expect(transform.apply(to: Point(x: 540, y: 960)) == Point(x: 540, y: 960))
+        #expect(transform.apply(to: Point(x: 0, y: 0)) == Point(x: 270, y: 480))
     }
 
-    @Test("a unit's reveal shows the frame from its span's side")
+    @Test("a storyline picture's reveal shows the frame from its span's side")
     func revealsFrame() {
         // Given
         let span = Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
         ])
+        let storyline = storyline(incoming: span)
 
         // When
-        let unit = sut.unit(moving: span, in: frame, at: 0.25)
+        let sample = sut.motion(of: 1, in: storyline, at: 1.75)
 
         // Then
-        #expect(unit.reveal == Rectangle(x: 810, y: 0, width: 270, height: 1920))
+        #expect(sample.reveal.rectangle(wiping: frame, from: sample.revealFrom) == Rectangle(
+            x: 810,
+            y: 0,
+            width: 270,
+            height: 1920
+        ))
     }
 
     @Test("each span bends the transition's progress by its own ease")
     func easesEachSpan() {
         // Given
         let span = Span(ease: .easeIn, keys: [SpanKey(t: 0, values: [.opacity: 0]), SpanKey(t: 1, values: [.opacity: 1])])
+        let storyline = storyline(incoming: span)
 
         // When
-        let unit = sut.unit(moving: span, in: frame, at: 0.5)
+        let sample = sut.motion(of: 1, in: storyline, at: 2)
 
         // Then
-        #expect(unit.opacity == 0.125)
+        #expect(sample.motion.value(of: .opacity) == 0.125)
     }
 
-    @Test("a unit the transition gives no motion stays still and whole")
-    func unitWithoutSpanStays() {
+    @Test("a storyline picture the transition gives no motion stays still and whole")
+    func pictureWithoutSpanStays() {
         // Given
-        let span: Span? = nil
+        let storyline = storyline(incoming: nil)
 
         // When
-        let unit = sut.unit(moving: span, in: frame, at: 0.5)
+        let sample = sut.motion(of: 1, in: storyline, at: 2)
 
         // Then
-        #expect(unit.transform.apply(toCornersOf: frame) == AffineTransform.identity.apply(toCornersOf: frame))
-        #expect(unit.opacity == 1)
-        #expect(unit.reveal == nil)
+        #expect(sample == .none)
+    }
+
+    @Test(
+        "an entry moves by its incoming span, then by none, then by its outgoing span, held beyond its drawn range",
+        arguments: [(1.0, 1.0), (2.0, 0.5), (3.0, 0.0), (4.0, -0.5), (5.0, -1.0)]
+    )
+    func samplesEntryMotion(time: Double, x: Double) {
+        // Given
+        // The middle entry is drawn from 1.5 to 4.5, coming in from the right and leaving to the left.
+        let incoming = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.x: 1]), SpanKey(t: 1, values: [.x: 0])])
+        let outgoing = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.x: 0]), SpanKey(t: 1, values: [.x: -1])])
+        let storyline = storyline(incoming: incoming) + [
+            entry(start: 4, end: 6, transition: transition(start: 3.5, end: 4.5, incoming: nil, outgoing: outgoing))
+        ]
+
+        // When
+        let sample = sut.motion(of: 1, in: storyline, at: time)
+
+        // Then
+        #expect(sample.motion.value(of: .x) == x)
     }
 
     @Test("a cover's opacity follows its keys", arguments: [(0.2, 0.5), (0.4, 1.0), (0.7, 0.5)])
@@ -143,7 +172,7 @@ struct TransitionSamplerTests {
         #expect(value == 0.125)
     }
 
-    @Test("the unit over names is on top", arguments: [
+    @Test("the storyline picture over names is on top", arguments: [
         (TransitionOrder.incoming, [TransitionOrder.outgoing, .incoming]),
         (TransitionOrder.outgoing, [TransitionOrder.incoming, .outgoing])
     ])
@@ -153,5 +182,54 @@ struct TransitionSamplerTests {
 
         // Then
         #expect(order == bottomFirst)
+    }
+
+    // MARK: - Private
+    // Two entries joined at 2 by a transition from 1.5 to 2.5 that moves the incoming one by `incoming`.
+    private func storyline(incoming: Span?) -> [ResolvedStorylineClip] {
+        [
+            entry(start: 0, end: 2, transition: nil),
+            entry(start: 2, end: 4, transition: transition(start: 1.5, end: 2.5, incoming: incoming, outgoing: nil))
+        ]
+    }
+
+    private func transition(
+        start: Double,
+        end: Double,
+        incoming: Span?,
+        outgoing: Span?
+    ) -> ResolvedTransition {
+        ResolvedTransition(
+            start: start,
+            end: end,
+            over: .incoming,
+            incoming: incoming,
+            outgoing: outgoing,
+            cover: nil,
+            matte: nil
+        )
+    }
+
+    // A solid, which has no media to play.
+    private func entry(
+        start: Double,
+        end: Double,
+        transition: ResolvedTransition?
+    ) -> ResolvedStorylineClip {
+        ResolvedStorylineClip(
+            place: "storyline",
+            id: nil,
+            media: nil,
+            solid: Color(written: "#000000"),
+            in: 0,
+            out: end - start,
+            speed: 1,
+            start: start,
+            end: end,
+            crop: [Keyframe(at: start, value: Crop(frame))],
+            track: nil,
+            filter: [],
+            transition: transition
+        )
     }
 }

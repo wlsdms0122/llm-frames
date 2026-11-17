@@ -33,18 +33,21 @@ struct ItemPresentation: Equatable, Sendable {
         self.opacity = values.opacity * motion.value(of: .opacity)
     }
 
-    // A clip placed by an area, its item drawn in output pixels: scale and rotation act about the centre of `area`,
-    // the clip's own box in output pixels, and the offset is in multiples of its size.
+    // A clip placed by an area, its item drawn in the coordinates the area is written in: scale and rotation act about
+    // the centre of `area`, the clip's own box, and the offset is in multiples of its size. `parent` then carries those
+    // coordinates to output pixels.
     init(
         area: Rectangle,
         opacity: Double,
-        motion: Motion
+        motion: Motion,
+        carriedBy parent: AffineTransform = .identity
     ) {
         let offset = Point(x: motion.value(of: .x) * area.width, y: motion.value(of: .y) * area.height)
 
         self.transform = AffineTransform(scale: motion.value(of: .scale), about: area.center)
             .concatenating(AffineTransform(rotation: motion.value(of: .rotation), about: area.center))
             .concatenating(AffineTransform(translation: offset))
+            .concatenating(parent)
         self.opacity = opacity * motion.value(of: .opacity)
     }
 

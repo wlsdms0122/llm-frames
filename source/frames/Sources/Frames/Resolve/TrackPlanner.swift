@@ -82,7 +82,7 @@ struct TrackPlanner: Sendable {
     }
 
     // `true` belongs to a shape or an adjustment with an area, and a title or media clip names what it follows. A
-    // connected clip follows its storyline clip's media, so it must be parented on a video or image sequence.
+    // parented clip follows its parent's media, which must be a storyline clip's video or image sequence.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
@@ -96,27 +96,29 @@ struct TrackPlanner: Sendable {
         if target == .own, isNaming(plan.kind) {
             throw ResolveError.trackOwnOnNamingClip(place: place, kind: kind)
         }
-        // A shape without an area is not parented, and what it lacks is the area.
         if target == .own, first(of: area) == nil {
             throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
         }
+        if case let .clip(_, id) = plan.parent {
+            throw ResolveError.trackInClipParent(place: place, kind: kind, id: id)
+        }
         guard
-            plan.isParented,
-            let owner = plan.storyline.map({ storyline[$0] }),
-            let picture = picture(of: owner)
+            case let .storyline(index, _) = plan.parent,
+            let picture = picture(of: storyline[index])
         else {
             throw ResolveError.trackWithoutVideo(place: place, kind: kind)
         }
 
+        let parent = storyline[index]
         let start = try self.target(
             target,
             own: area,
             in: picture.picture,
-            atMediaTime: owner.mediaTime(atSequenceTime: plan.instant),
+            atMediaTime: parent.mediaTime(atSequenceTime: plan.instant),
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: owner, file: picture.file)
+        let followed = try follow(start, on: parent, file: picture.file)
         guard let visible = plan.visible.intersection(followed.range) else {
             throw ResolveError.neverFollowed(place: written.place, kind: kind, visible: plan.visible)
         }

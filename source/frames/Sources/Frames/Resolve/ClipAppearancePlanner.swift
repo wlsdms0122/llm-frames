@@ -61,7 +61,10 @@ struct ClipAppearancePlanner: Sendable {
         guard written.placement == nil || written.position == nil else {
             throw ResolveError.placementWithPosition(place: written.place, kind: .clip(plan.kind))
         }
-        guard !plan.isParented || position != nil else {
+        guard plan.parent == nil || written.placement == nil else {
+            throw ResolveError.parentWithPlacement(place: written.place, kind: .clip(plan.kind))
+        }
+        guard plan.parent == nil || position != nil else {
             throw ResolveError.parentWithoutPosition(place: written.place, kind: .clip(plan.kind))
         }
 

@@ -77,11 +77,11 @@ struct ShippedTransitionPresetTests {
         let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
-        let incoming = sampler.unit(moving: preset.incoming, in: frame, at: 1)
-        let outgoing = sampler.unit(moving: preset.outgoing, in: frame, at: 1)
+        let incoming = picture(moving: preset.incoming, at: 1)
+        let outgoing = picture(moving: preset.outgoing, at: 1)
 
         // Then
-        #expect(incoming == UnitPresentation(sample: .none, frame: frame))
+        #expect(isStill(incoming))
         #expect(coverOpacity(of: preset, at: 1) == 0)
         if preset.over == .outgoing {
             #expect(!covers(outgoing))
@@ -94,11 +94,11 @@ struct ShippedTransitionPresetTests {
         let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
-        let incoming = sampler.unit(moving: preset.incoming, in: frame, at: 0)
-        let outgoing = sampler.unit(moving: preset.outgoing, in: frame, at: 0)
+        let incoming = picture(moving: preset.incoming, at: 0)
+        let outgoing = picture(moving: preset.outgoing, at: 0)
 
         // Then
-        #expect(outgoing == UnitPresentation(sample: .none, frame: frame))
+        #expect(isStill(outgoing))
         #expect(coverOpacity(of: preset, at: 0) == 0)
         if preset.over == .incoming {
             #expect(!covers(incoming))
@@ -112,8 +112,8 @@ struct ShippedTransitionPresetTests {
 
         // When
         let changes = zip(Self.progresses, Self.progresses.dropFirst()).filter { before, after in
-            sampler.unit(moving: preset.incoming, in: frame, at: before).opacity
-                != sampler.unit(moving: preset.incoming, in: frame, at: after).opacity
+            picture(moving: preset.incoming, at: before).opacity
+                != picture(moving: preset.incoming, at: after).opacity
         }
 
         // Then
@@ -203,14 +203,34 @@ struct ShippedTransitionPresetTests {
         preset.cover.map { sampler.coverOpacity(of: $0.span, at: progress) } ?? 0
     }
 
-    // Whether a unit shows anything over the frame: some opacity, some reveal, and its moved rect overlapping.
-    private func covers(_ unit: UnitPresentation) -> Bool {
-        guard unit.opacity > 0 else { return false }
-        if let reveal = unit.reveal, reveal.width <= 0 || reveal.height <= 0 {
+    // What a storyline picture's outer item takes from a span at a progress: its transform about the centre of the
+    // frame, its opacity and its reveal of the frame. A side the preset gives no span stays still and whole.
+    private func picture(
+        moving span: Span?,
+        at progress: Double
+    ) -> (transform: Frames.AffineTransform, opacity: Double, reveal: Rectangle?) {
+        let sample = span.map { span in
+            MotionSample(motion: SpanEvaluator().motion(of: span, at: progress), revealFrom: span.revealFrom)
+        } ?? .none
+        let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
+        let reveal = sample.reveal.rectangle(wiping: frame, from: sample.revealFrom)
+
+        return (presentation.transform, presentation.opacity, reveal)
+    }
+
+    private func isStill(_ picture: (transform: Frames.AffineTransform, opacity: Double, reveal: Rectangle?)) -> Bool {
+        picture.transform == .identity && picture.opacity == 1 && picture.reveal == nil
+    }
+
+    // Whether a storyline picture shows anything over the frame: some opacity, some reveal, and its moved rect
+    // overlapping.
+    private func covers(_ picture: (transform: Frames.AffineTransform, opacity: Double, reveal: Rectangle?)) -> Bool {
+        guard picture.opacity > 0 else { return false }
+        if let reveal = picture.reveal, reveal.width <= 0 || reveal.height <= 0 {
             return false
         }
 
-        let corners = unit.transform.apply(toCornersOf: frame)
+        let corners = picture.transform.apply(toCornersOf: frame)
         let xs = corners.map(\.x)
         let ys = corners.map(\.y)
         let overlapsWidth = min(xs.max() ?? 0, frame.x + frame.width) - max(xs.min() ?? 0, frame.x)

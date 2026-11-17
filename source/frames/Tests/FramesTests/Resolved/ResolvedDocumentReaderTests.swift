@@ -66,16 +66,18 @@ struct ResolvedDocumentReaderTests {
             { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
-        // Shapes, a tracked area and a band, an adjustment, a timed media clip and sound with fades.
+        // Shapes, a tracked area and a band, an adjustment, a timed media clip, a title parented to a shape and sound
+        // with fades.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": "Total", "track": "Total" },
-            { "shape": "fill", "area": { "band": "Total" }, "track": true },
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
+            { "shape": "box", "area": "Total", "parent": "screen", "track": "Total" },
+            { "shape": "fill", "area": { "band": "Total" }, "parent": "screen", "track": true },
             { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "lane": -1 },
             { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
+            { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
         """#
     ]
@@ -169,6 +171,39 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description.hasPrefix(#"clips[3] (clip): unknown key "scale""#) == true)
+    }
+
+    @Test(
+        "a parent that names no clip with a picture, or a parent chain that comes back to itself, stops",
+        arguments: [
+            (#""parent": "a""#, #""parent": "ghost""#, #"clips[1].parent (clip): no clip in the document has the id "ghost""#),
+            (#""parent": "a""#, #""parent": "sound""#, #"clips[1].parent (clip): no clip in the document has the id "sound""#),
+            (
+                #""parent": "screen""#,
+                #""parent": "b""#,
+                #"clips[0].parent (clip): the parent chain comes back to itself: "a" > "b" > "a""#
+            )
+        ]
+    )
+    func refusesParent(
+        written: String,
+        replacement: String,
+        message: String
+    ) throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "id": "a", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
+                         { "id": "b", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
+                         { "id": "sound", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
+            """#
+        let text = try replacingFirst(written, with: replacement, in: self.written(document))
+
+        // When
+        let error = #expect(throws: ResolveError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     @Test("a root that is not an object stops")

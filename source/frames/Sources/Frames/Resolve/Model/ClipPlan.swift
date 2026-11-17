@@ -6,16 +6,17 @@
 //
 
 // A connected or sequence clip on the sequence clock. `window` is where its `at` puts it, and `visible` is the part of
-// the window it is seen or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and
-// `clock` maps its instants to sequence time. `instant` is where its areas take effect: the start of its window, or its
-// storyline clip's `in` when it has no `at`. `keyframes` are in sequence time.
+// the window it is seen or heard in. `storyline` is the index of the storyline clip a connected clip belongs to,
+// `parent` the clip it names as its parent, and `clock` maps its instants to sequence time. `instant` is where its
+// areas take effect: the start of its window, its storyline clip's `in` when it has no `at`. `keyframes` are in sequence
+// time.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
     let id: String?
     let kind: ClipKind
     let storyline: Int?
-    let isParented: Bool
+    let parent: ClipParent?
     let lane: Int?
     let clock: TimeMap
     let window: TimeRange
@@ -32,7 +33,7 @@ struct ClipPlan: Equatable, Sendable {
         id: String?,
         kind: ClipKind,
         storyline: Int?,
-        isParented: Bool,
+        parent: ClipParent? = nil,
         lane: Int?,
         clock: TimeMap,
         window: TimeRange,
@@ -47,7 +48,7 @@ struct ClipPlan: Equatable, Sendable {
         self.id = id
         self.kind = kind
         self.storyline = storyline
-        self.isParented = isParented
+        self.parent = parent
         self.lane = lane
         self.clock = clock
         self.window = window
@@ -66,7 +67,26 @@ struct ClipPlan: Equatable, Sendable {
             id: id,
             kind: kind,
             storyline: storyline,
-            isParented: isParented,
+            parent: parent,
+            lane: lane,
+            clock: clock,
+            window: window,
+            visible: visible,
+            instant: instant,
+            animation: animation,
+            media: media,
+            timing: timing,
+            keyframes: keyframes
+        )
+    }
+
+    func parented(by parent: ClipParent?) -> ClipPlan {
+        ClipPlan(
+            place: place,
+            id: id,
+            kind: kind,
+            storyline: storyline,
+            parent: parent,
             lane: lane,
             clock: clock,
             window: window,

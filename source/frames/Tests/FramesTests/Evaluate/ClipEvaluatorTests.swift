@@ -14,7 +14,7 @@ struct ClipEvaluatorTests {
     // MARK: - Property
     private let sut = ClipEvaluator()
 
-    private let frame = ClipSpace.output(frame: Rectangle(x: 0, y: 0, width: 200, height: 200))
+    private let frame = ClipSpace(frame: Rectangle(x: 0, y: 0, width: 200, height: 200))
     private let white = Color(written: "#FFFFFF")
 
     // MARK: - Initializer
@@ -73,6 +73,26 @@ struct ClipEvaluatorTests {
         )))
     }
 
+    @Test("a box clip under a scaled and turned parent keeps its size, its anchor point carried and its turn added")
+    func keepsBoxSizeUnderParent() throws {
+        // Given
+        // P doubles, turns a quarter clockwise and moves by (300, 0), so the anchor point (100, 200) lands at
+        // (-100, 200). The box keeps its 100 x 40 size and turns a quarter about its bottom centre (50, 40).
+        let text = ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        let clip = title(text, animation: .none, opacity: 1)
+        let transform = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0)
+            .concatenating(AffineTransform(rotation: 90, about: Point(x: 0, y: 0)))
+            .concatenating(AffineTransform(translation: Point(x: 300, y: 0)))
+        let space = ClipSpace(frame: Rectangle(x: 0, y: 0, width: 200, height: 200), transform: transform)
+
+        // When
+        let items = sut.items(of: clip, in: space, picture: nil, at: 1)
+
+        // Then
+        let item = try #require(items.first)
+        #expect(isClose(item.transform, AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: -60, ty: 150)))
+    }
+
     // MARK: - Private
     // A title whose 100 x 40 box sits at (50, 160), anchored at its bottom centre, visible from 0 to 4.
     private func title(
@@ -90,7 +110,7 @@ struct ClipEvaluatorTests {
             end: 4,
             lane: 1,
             storyline: nil,
-            isParented: false,
+            parent: nil,
             area: nil,
             box: ResolvedBox(
                 size: text.size,

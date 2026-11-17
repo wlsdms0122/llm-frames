@@ -14,7 +14,7 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parented", "area", "size", "position", "anchor", "crop",
+        "place", "id", "start", "end", "lane", "storyline", "parent", "area", "size", "position", "anchor", "crop",
         "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
@@ -43,15 +43,57 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     func sequence(_ object: PlacedJSONObject) throws -> ResolvedSequence {
-        ResolvedSequence(
-            format: try format(object.member("format")),
-            storyline: try object.member("storyline").elements().map(storyline),
-            clips: try object.member("clips").elements().map(clip),
+        let format = try format(object.member("format"))
+        let storyline = try object.member("storyline").elements().map(storyline)
+        let written = try object.member("clips").elements()
+        let clips = try written.map(clip)
+        try checkParents(of: clips, places: written.map(\.place), storyline: storyline)
+
+        return ResolvedSequence(
+            format: format,
+            storyline: storyline,
+            clips: clips,
             audio: try object.member("audio").elements().map(sound)
         )
     }
 
     // MARK: - Private
+    // Evaluation follows each parent chain to its end, so a parent that names no clip with a picture of the sequence,
+    // or a chain that comes back to itself, stops here as it does in resolve. Audio clips are not among the clips.
+    private func checkParents(
+        of clips: [ResolvedClip],
+        places: [Place],
+        storyline: [ResolvedStorylineClip]
+    ) throws {
+        let parents = try clips.indices.map { index -> Int? in
+            guard let id = clips[index].parent, !storyline.contains(where: { $0.id == id }) else { return nil }
+            guard let parent = clips.firstIndex(where: { $0.id == id }) else {
+                throw ResolveError.unknownParent(
+                    place: places[index].appending(key: "parent"),
+                    kind: kind(of: clips[index]),
+                    id: id
+                )
+            }
+
+            return parent
+        }
+
+        let finder = ParentFinder()
+        for index in clips.indices {
+            guard let cycle = finder.cycle(from: index, parents: parents) else { continue }
+
+            throw ResolveError.parentCycle(
+                place: places[cycle[0]].appending(key: "parent"),
+                kind: kind(of: clips[cycle[0]]),
+                ids: cycle.map { clips[$0].id ?? clips[$0].place }
+            )
+        }
+    }
+
+    private func kind(of clip: ResolvedClip) -> PlaceKind {
+        .genericClip(clip.storyline == nil ? .sequence : .connected)
+    }
+
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
@@ -124,7 +166,7 @@ struct ResolvedSequenceReader: Sendable {
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
-            isParented: try clip.member("parented").bool(),
+            parent: try clip.member("parent").optional { try $0.string() },
             area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
             box: box,
             crop: try clip.member("crop").optional(values.crops),

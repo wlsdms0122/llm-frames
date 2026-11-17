@@ -6,8 +6,8 @@
 //
 
 // What resolve found and set for a connected or sequence clip, with keyframes in sequence time. `area` and `position`
-// are in the media pixels of the picture a parented clip is on, and a sequence clip's area in output pixels. `crop` is
-// in the clip's own media. `box` is where a title or media clip is drawn, and `position` the anchor point it was found
+// are in the space a parented clip's parent gives, and an unparented clip's in output pixels. `crop` is in the clip's
+// own media. `box` is where a title or media clip is drawn, and `position` the anchor point it was found
 // from. `title` is the text set for a title, `nested` the plan of a nested sequence the clip shows, and `appearance`
 // how it is drawn.
 struct ClipGeometry: Equatable, Sendable {

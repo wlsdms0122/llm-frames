@@ -19,6 +19,7 @@ enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
     case outsidePicture(place: Place, kind: String, rectangle: Rectangle, size: Size)
     case textInDocument(place: Place, kind: String, picture: String)
     case textInSolid(place: Place, kind: String)
+    case textInSpace(place: Place, kind: String, parent: String)
 
     // MARK: - Property
     var description: String {
@@ -48,6 +49,10 @@ enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .textInSolid(place, kind):
             "\(place) (\(kind)): the clip's picture is a solid, not a media file, so it is drawn, not read, and "
                 + "takes no text area"
+
+        case let .textInSpace(place, kind, parent):
+            "\(place) (\(kind)): the parent \(quoted(parent)) is a title, shape or adjustment, whose space has no "
+                + "picture to read, so it takes no text area"
         }
     }
 

@@ -65,7 +65,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, opacity, animation, keyframes, shape, area, track, color, blend, side"#)
+        #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, shape, area, track, color, blend, side"#)
     }
 
     @Test(
@@ -137,7 +137,11 @@ struct SequenceCheckTests {
             (#"{ "title": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
             (#"{ "shape": "box", "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (box): unknown key "side""#),
             (#"{ "shape": "box", "area": [0, 0, 1, 1], "label": "x" }"#, "clips", #"clips[0] (box): unknown key "label""#),
-            (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#)
+            (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#),
+            (#"{ "id": "a", "media": "/abs/run.mp4", "parent": "b" }"#, "storyline", #"storyline[0]#a (video): unknown key "parent""#),
+            (##"{ "solid": "#000000", "duration": 2, "parent": "b" }"##, "storyline", #"storyline[0] (solid): unknown key "parent""#),
+            (#"{ "media": "/abs/run.mp4", "placement": "top" }"#, "storyline", #"storyline[0] (video): unknown key "placement""#),
+            (#"{ "media": "/abs/bgm.m4a", "parent": "b" }"#, "clips", #"clips[0] (audio): unknown key "parent""#)
         ]
     )
     func picksRowByMedia(
@@ -307,8 +311,8 @@ struct SequenceCheckTests {
         "values of the wrong form stop",
         arguments: [
             #"{ "clips": [ { "title": "a", "style": "s", "at": 2 } ] }"#,
-            #"{ "clips": [ { "shape": "box", "area": "Send" } ] }"#,
-            #"{ "clips": [ { "title": "a", "style": "s", "position": { "area": "Send", "point": "left" } } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "parent": true, "position": [0, 0] } ] }"#,
+            #"{ "clips": [ { "shape": "box", "parent": 1 } ] }"#,
             #"{ "clips": [ { "shape": "box", "lane": 1.5 } ] }"#,
             ##"{ "clips": [ { "shape": "box", "color": "#12345" } ] }"##,
             #"{ "clips": [ { "shape": "box", "blend": "add" } ] }"#,
@@ -342,7 +346,8 @@ struct SequenceCheckTests {
         arguments: [
             #"{ "clips": [ { "media": "/abs/run.mp4", "at": 2 } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": "accent", "conform": "fill", "anchor": "top-left" } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": true, "position": { "area": "Send", "point": "left" }, "anchor": "right" } ] } ] }"#,
+            #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": "Send", "point": "left" }, "anchor": "right" } ] } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": "Send", "point": "left" } }, { "shape": "box", "parent": "run", "area": "Send" } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "a", "nth": 1 } }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,

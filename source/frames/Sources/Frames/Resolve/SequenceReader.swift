@@ -88,7 +88,6 @@ struct SequenceReader: Sendable {
         in clipPlace: ClipPlace
     ) -> Clip {
         let keyframes = keyframes(object["keyframes"])
-        let hasKeyframedArea = keyframes.contains { $0.properties.contains("area") }
 
         return Clip(
             place: place,
@@ -97,9 +96,7 @@ struct SequenceReader: Sendable {
             content: content(of: object, place: place),
             at: object["at"].flatMap(window),
             lane: object["lane"]?.numberValue.flatMap { Int(exactly: $0) },
-            hasParent: object["parent"]?.boolValue ?? false,
-            hasPlacement: object.contains("placement"),
-            hasArea: object.contains("area") || hasKeyframedArea,
+            parent: object["parent"]?.stringValue,
             placement: object["placement"]?.stringValue,
             anchor: object["anchor"]?.stringValue,
             animation: object["animation"].flatMap(AnimationChoice.init(value:)),

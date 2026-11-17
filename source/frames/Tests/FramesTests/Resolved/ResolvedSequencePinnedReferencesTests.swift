@@ -161,7 +161,7 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 2,
             lane: 1,
             storyline: nil,
-            isParented: false,
+            parent: nil,
             area: nil,
             box: nil,
             crop: nil,

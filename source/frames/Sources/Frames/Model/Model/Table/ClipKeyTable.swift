@@ -70,7 +70,7 @@ enum ClipKeyTable {
         )
     }
 
-    private static let everyClip = ["id", "metadata", "at", "lane", "opacity", "animation", "keyframes"]
+    private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
 
     private static func keys(
         for kind: ClipKind,
@@ -95,19 +95,19 @@ enum ClipKeyTable {
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
                 "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut",
-                "placement", "position", "parent", "scale", "rotation", "crop", "conform", "filter", "blend",
+                "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend",
                 "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
-                "track", "anchor", "media", "placement", "position", "parent", "scale", "rotation", "crop",
+                "track", "anchor", "media", "placement", "position", "scale", "rotation", "crop",
                 "conform", "filter", "blend", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
             return everyClip + [
-                "track", "anchor", "title", "style", "width", "placement", "position", "parent", "scale",
+                "track", "anchor", "title", "style", "width", "placement", "position", "scale",
                 "rotation", "blend"
             ]
 
@@ -165,18 +165,17 @@ enum ClipKeyTable {
         case "solid", "color":
             .color
 
-        case "loop", "parent", "shadow":
+        case "loop", "shadow":
             .bool
 
         case "anchor", "placement":
             .literal(VocabularyTable.placementNames)
 
         case "position":
-            // A sequence clip has no parent, so its position is only output pixels.
-            place == .sequence ? .numbers(2) : .oneOf([.numbers(2), .object(AreaKeyTable.point)])
+            .oneOf([.numbers(2), .object(AreaKeyTable.point)])
 
         case "area":
-            place == .sequence ? .numbers(4) : .area
+            .area
 
         case "conform":
             .literal(VocabularyTable.conforms)
@@ -190,7 +189,7 @@ enum ClipKeyTable {
         case "title":
             .text
 
-        case "style":
+        case "style", "parent":
             .name
 
         case "shape":

@@ -6,7 +6,7 @@
 //
 
 // Where a picture item's pixels come from: one frame of pinned media, or a nested display list drawn at its own size
-// (a compound clip at its mapped time, or a storyline unit).
+// (a compound clip at its mapped time, or the list holding a storyline picture's inner item).
 package enum PictureItemSource: Equatable, Sendable {
     case media(MediaFrame)
     case displayList(DisplayList)

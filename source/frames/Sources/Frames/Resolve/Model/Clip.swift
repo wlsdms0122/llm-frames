@@ -6,7 +6,8 @@
 //
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
-// and `crop` are as written, their keyframes on the clip's clock. `placement` and `anchor` are the names written.
+// and `crop` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
+// parent. `placement` and `anchor` are the names written.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
 // theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
 // written, their keyframes on the clip's clock, `color` is a shape's as written, and `filter` the filter choice: a
@@ -19,9 +20,7 @@ struct Clip: Equatable, Sendable {
     let content: ClipContent
     let at: ClipWindow?
     let lane: Int?
-    let hasParent: Bool
-    let hasPlacement: Bool
-    let hasArea: Bool
+    let parent: String?
     let placement: String?
     let anchor: String?
     let animation: AnimationChoice?
@@ -51,9 +50,7 @@ struct Clip: Equatable, Sendable {
         content: ClipContent,
         at: ClipWindow?,
         lane: Int?,
-        hasParent: Bool,
-        hasPlacement: Bool,
-        hasArea: Bool,
+        parent: String? = nil,
         placement: String? = nil,
         anchor: String? = nil,
         animation: AnimationChoice?,
@@ -81,9 +78,7 @@ struct Clip: Equatable, Sendable {
         self.content = content
         self.at = at
         self.lane = lane
-        self.hasParent = hasParent
-        self.hasPlacement = hasPlacement
-        self.hasArea = hasArea
+        self.parent = parent
         self.placement = placement
         self.anchor = anchor
         self.animation = animation

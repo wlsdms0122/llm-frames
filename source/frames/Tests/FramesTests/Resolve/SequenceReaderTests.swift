@@ -25,13 +25,13 @@ struct SequenceReaderTests {
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "box", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
+                                 { "shape": "box", "parent": "run", "keyframes": [ { "at": 1.2, "area": "First line" } ] } ] },
                 { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
                 { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-                { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": true, "placement": "top" },
+                { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
                 { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } }
               ] }
             """##)
@@ -48,7 +48,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
         #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
-        #expect(sequence.storyline[0].connected[1].hasArea)
+        #expect(sequence.storyline[0].connected[1].parent == "run")
         #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
@@ -57,7 +57,7 @@ struct SequenceReaderTests {
         #expect(sequence.clips[0].clipPlace == .sequence)
         #expect(sequence.clips[1].content == .media(ClipMedia(source: .imageSequence(directory: "/abs/frames", fps: 30), loop: true)))
         #expect(sequence.clips[1].lane == -1)
-        #expect(sequence.clips[1].hasParent && sequence.clips[1].hasPlacement)
+        #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
         #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
     }
@@ -112,7 +112,7 @@ struct SequenceReaderTests {
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
                 { "shape": "arrow", "area": { "band": { "from": "a", "to": "b", "toNth": 1 } }, "side": "left",
                   "track": { "text": "c", "nth": 2 } },
-                { "title": "t", "style": "title", "width": 300, "parent": true,
+                { "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
 

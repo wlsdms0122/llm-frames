@@ -12,6 +12,7 @@ struct TimePlanner: Sendable {
     private let presets: any PresetProvider
     private let resolver: MediaResolver
     private let reader = SequenceReader()
+    private let parentFinder = ParentFinder()
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
@@ -66,12 +67,18 @@ struct TimePlanner: Sendable {
         let clips = try sequence.clips.map { clip in
             try plan(clip, owner: nil, storyline: storyline, duration: duration, defaults: defaults, theme: merged)
         }
+        let planned = connected + clips
+        let parents = try parentFinder.parents(
+            of: planned,
+            written: sequence.storyline.flatMap(\.connected) + sequence.clips,
+            storyline: storyline
+        )
 
         return TimePlan(
             duration: duration,
             fps: sequence.format.frameRate(of: sources.compactMap(\.media)),
             storyline: storyline,
-            clips: connected + clips,
+            clips: zip(planned, parents).map { plan, parent in plan.parented(by: parent) },
             sequence: sequence,
             theme: merged,
             defaults: defaults
@@ -332,7 +339,6 @@ struct TimePlanner: Sendable {
     ) throws -> ClipPlan {
         let source = try source(of: clip, theme: theme)
         let kind = source.kind
-        let isParented = try parented(clip, kind: kind)
         let ownerPlan = owner.map { storyline[$0] }
         let clock = ownerPlan?.map ?? .sequence
 
@@ -341,7 +347,6 @@ struct TimePlanner: Sendable {
             clock: clock,
             naturalLength: source.timing?.naturalLength,
             owner: ownerPlan,
-            isParented: isParented,
             duration: duration,
             kind: kind
         )
@@ -349,7 +354,6 @@ struct TimePlanner: Sendable {
             clip,
             window: window,
             owner: ownerPlan,
-            isParented: isParented,
             duration: duration,
             kind: kind
         )
@@ -362,13 +366,12 @@ struct TimePlanner: Sendable {
             id: clip.id,
             kind: kind,
             storyline: owner,
-            isParented: isParented,
             lane: try lane(of: clip, kind: kind),
             clock: clock,
             window: window,
             visible: visible,
-            instant: clip.at == nil ? ownerPlan?.edit.start ?? window.start : window.start,
-            animation: try animation(of: clip, kind: kind, isParented: isParented, defaults: defaults),
+            instant: window.start,
+            animation: try animation(of: clip, kind: kind, defaults: defaults),
             media: source.media,
             timing: source.timing.map { timing in
                 MediaTiming(
@@ -430,35 +433,11 @@ struct TimePlanner: Sendable {
         )
     }
 
-    // Shapes and adjustments placed by an area are parented, and a title or media clip is when it says so.
-    private func parented(
-        _ clip: Clip,
-        kind: ClipKind
-    ) throws -> Bool {
-        guard clip.clipPlace == .connected else {
-            guard !clip.hasParent else { throw ResolveError.parentOnSequenceClip(place: clip.place, kind: .clip(kind)) }
-
-            return false
-        }
-        guard !clip.hasParent || !clip.hasPlacement else {
-            throw ResolveError.parentWithPlacement(place: clip.place, kind: .clip(kind))
-        }
-
-        switch clip.content {
-        case .shape, .adjust:
-            return clip.hasArea
-
-        case .title, .media:
-            return clip.hasParent
-        }
-    }
-
     private func window(
         of clip: Clip,
         clock: TimeMap,
         naturalLength: Double?,
         owner: StorylinePlan?,
-        isParented: Bool,
         duration: Double,
         kind: ClipKind
     ) throws -> TimeRange {
@@ -482,7 +461,7 @@ struct TimePlanner: Sendable {
         case nil:
             guard let owner else { return TimeRange(start: 0, end: duration) }
 
-            return isParented ? owner.drawn : owner.edit
+            return owner.edit
         }
     }
 
@@ -490,7 +469,6 @@ struct TimePlanner: Sendable {
         _ clip: Clip,
         window: TimeRange,
         owner: StorylinePlan?,
-        isParented: Bool,
         duration: Double,
         kind: ClipKind
     ) throws -> TimeRange {
@@ -528,10 +506,8 @@ struct TimePlanner: Sendable {
             return visible
         }
 
-        // A parented clip is composited with its picture, and an unparented one plays over whatever is below it.
-        let range = isParented ? owner.drawn : sequence
-        guard let visible = window.intersection(range) else {
-            throw ResolveError.neverVisible(place: clip.place, kind: .clip(kind), window: window, range: range)
+        guard let visible = window.intersection(sequence) else {
+            throw ResolveError.neverVisible(place: clip.place, kind: .clip(kind), window: window, range: sequence)
         }
 
         return visible
@@ -551,19 +527,14 @@ struct TimePlanner: Sendable {
         return lane
     }
 
-    // A parented clip without `at` comes and goes with its picture, so it takes no entrance and no exit.
     private func animation(
         of clip: Clip,
         kind: ClipKind,
-        isParented: Bool,
         defaults: ThemeDefaults
     ) throws -> AnimationPlan {
         guard kind != .media(.audio) else { return .none }
 
-        let plan = try animationPlan(of: clip, kind: kind, defaults: defaults)
-        guard isParented, clip.at == nil else { return plan }
-
-        return plan.withoutEntranceAndExit()
+        return try animationPlan(of: clip, kind: kind, defaults: defaults)
     }
 
     // A clip that names no animation takes the theme's default for its kind, or for a title its style's.

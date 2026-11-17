@@ -19,7 +19,7 @@ struct ShapeEvaluatorTests {
 
     private let sut = ShapeEvaluator()
 
-    private let space = ClipSpace.output(frame: Self.frame)
+    private let space = ClipSpace(frame: Self.frame)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -116,6 +116,47 @@ struct ShapeEvaluatorTests {
         #expect(items == [DisplayItem(content: .fill(FillItem(rectangle: Self.frame, color: Self.red)))])
     }
 
+    @Test(
+        "a shape on an area under a parent is carried whole by P, its lengths divided by P's scale so they stay",
+        arguments: [
+            (
+                ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
+                DisplayContent.stroke(StrokeItem(
+                    rectangle: ShapeEvaluatorTests.area,
+                    radius: 1,
+                    width: 2,
+                    color: ShapeEvaluatorTests.red,
+                    trim: 1
+                ))
+            ),
+            (
+                ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red),
+                DisplayContent.arrow(ArrowItem(
+                    tail: Point(x: 25, y: 30),
+                    head: Point(x: 40, y: 30),
+                    width: 1,
+                    headSize: 4,
+                    color: ShapeEvaluatorTests.red
+                ))
+            )
+        ]
+    )
+    func keepsLengthsUnderParent(
+        drawing: ShapeDrawing,
+        content: DisplayContent
+    ) {
+        // Given
+        let transform = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 0)
+        let space = ClipSpace(frame: Self.frame, transform: transform)
+        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)])
+
+        // When
+        let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+
+        // Then
+        #expect(items == [DisplayItem(transform: transform, content: content)])
+    }
+
     // MARK: - Private
     private func shape(
         _ drawing: ShapeDrawing,
@@ -131,7 +172,7 @@ struct ShapeEvaluatorTests {
             end: 4,
             lane: 1,
             storyline: nil,
-            isParented: false,
+            parent: nil,
             area: area,
             box: nil,
             crop: nil,

@@ -16,14 +16,14 @@ struct ClipAnimationTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a parented clip without at takes no entrance and no exit, since it comes and goes with its picture")
-    func dropsEntranceAndExitOfParentedClip() throws {
+    @Test("a connected clip without at keeps its animation's entrance and exit, whether it has a parent or not")
+    func keepsEntranceAndExitWithoutAt() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
-              { "shape": "box", "area": "Send", "animation": "frames/pulse" },
-              { "at": [1, 2], "shape": "box", "area": "Send", "animation": "frames/pulse" },
-              { "title": "a", "style": "subtitle", "animation": "frames/pulse" }
+            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [
+              { "shape": "box", "area": [0, 0, 10, 10], "parent": "run", "animation": "frames/pulse" },
+              { "shape": "box", "area": [0, 0, 10, 10], "animation": "frames/pulse" },
+              { "title": "a", "style": "subtitle", "parent": "run", "position": [0, 0], "animation": "frames/pulse" }
             ] } ] }
             """#)
 
@@ -31,11 +31,9 @@ struct ClipAnimationTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        #expect(plan.clips[0].animation.entrance == nil)
-        #expect(plan.clips[0].animation.loop?.preset == "frames/pulse")
-        #expect(plan.clips[0].animation.exit == nil)
-        #expect(plan.clips[1].animation.entrance?.preset == "frames/pulse")
-        #expect(plan.clips[2].animation.exit?.preset == "frames/pulse")
+        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["frames/pulse", "frames/pulse", "frames/pulse"])
+        #expect(plan.clips.map { $0.animation.loop?.preset } == ["frames/pulse", "frames/pulse", "frames/pulse"])
+        #expect(plan.clips.map { $0.animation.exit?.preset } == ["frames/pulse", "frames/pulse", "frames/pulse"])
     }
 
     @Test("a clip that names no animation takes the theme's default for its kind, and a title the one for its style")

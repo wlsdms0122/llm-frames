@@ -117,7 +117,7 @@ struct ResolvedDocumentWriterTests {
               "end": 3,
               "lane": 1,
               "storyline": null,
-              "parented": false,
+              "parent": null,
               "area": null,
               "size": [38.25, 34.3125],
               "position": [
@@ -182,7 +182,7 @@ struct ResolvedDocumentWriterTests {
               "end": 3,
               "lane": 1,
               "storyline": null,
-              "parented": false,
+              "parent": null,
               "area": null,
               "size": [200, 160],
               "position": [

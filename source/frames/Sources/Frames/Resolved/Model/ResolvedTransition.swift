@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A transition by its range in sequence time, the unit on top, and its spans inline, with its cover and matte media
+// A transition by its range in sequence time, the storyline picture on top, and its spans inline, with its cover and matte media
 // pinned.
 struct ResolvedTransition: Equatable, Sendable {
     // MARK: - Property

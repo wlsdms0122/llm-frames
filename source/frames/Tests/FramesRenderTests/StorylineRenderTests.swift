@@ -46,13 +46,13 @@ struct StorylineRenderTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "during a transition both units show, the incoming one above unless the preset puts the outgoing one there",
+        "during a transition both storyline pictures show, the incoming one above unless the preset puts it below",
         arguments: [
             ("half-in", [0.0, 255, 0], [255.0, 0, 0]),
             ("half-out", [255.0, 0, 0], [0.0, 255, 0])
         ]
     )
-    func stacksTransitionUnits(
+    func stacksTransitionPictures(
         transition: String,
         middle: [Double],
         rim: [Double]
@@ -72,7 +72,7 @@ struct StorylineRenderTests {
         let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 1))
 
         // Then
-        // The unit at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
+        // The picture at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
         #expect(frame.isPixel(x: 80, y: 45, middle, tolerance: tolerance), "\(frame.pixel(x: 80, y: 45))")
         #expect(frame.isPixel(x: 50, y: 30, middle, tolerance: tolerance), "\(frame.pixel(x: 50, y: 30))")
         #expect(frame.isPixel(x: 10, y: 45, rim, tolerance: tolerance), "\(frame.pixel(x: 10, y: 45))")

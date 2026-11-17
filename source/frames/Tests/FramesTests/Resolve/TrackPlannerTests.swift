@@ -17,31 +17,35 @@ struct TrackPlannerTests {
     private static let untrackable: [(String, String)] = [
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "track": "Total" } ] }"#,
-            "clips[0].track (box): track follows the video or image sequence of a storyline clip, and there is none to follow here"
+            "clips[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": "Total" } ] } ] }"#,
-            "storyline[0].connected[0].track (title): track follows the video or image sequence of a storyline clip, and there is none to follow here"
+            "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "box", "area": "Total", "track": "Total" } ] } ] }"#,
-            "storyline[0].connected[0].track (box): track follows the video or image sequence of a storyline clip, and there is none to follow here"
+            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "box", "area": "Total", "parent": "page", "track": "Total" } ] } ] }"#,
+            "storyline[0]#page.connected[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
             ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": "Total" } ] }"##,
-            "storyline[0].track (compound): track follows the video or image sequence of a storyline clip, and there is none to follow here"
+            "storyline[0].track (compound): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": true, "position": [0, 0], "track": true } ] } ] }"#,
-            #"storyline[0].connected[0].track (title): a title or media clip names the area it tracks, so it cannot take "track": true"#
+            #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": "screen", "position": [0, 0], "track": true } ] } ] }"#,
+            #"storyline[0]#screen.connected[0].track (title): a title or media clip names the area it tracks, so it cannot take "track": true"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "media": "/abs/page.png", "parent": true, "position": [0, 0], "track": true } ] } ] }"#,
-            #"storyline[0].connected[0].track (image): a title or media clip names the area it tracks, so it cannot take "track": true"#
+            #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "media": "/abs/page.png", "parent": "screen", "position": [0, 0], "track": true } ] } ] }"#,
+            #"storyline[0]#screen.connected[0].track (image): a title or media clip names the area it tracks, so it cannot take "track": true"#
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "shape": "box", "at": [0, 1], "track": true } ] } ] }"#,
             #"storyline[0].connected[0].track (box): "track": true follows the clip's own area or crop, and it has none given as an area"#
+        ),
+        (
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": "Total" } ] }"#,
+            #"clips[1].track (box): track follows the media of a storyline parent, and the parent "card" is a connected or sequence clip, whose media is not followed"#
         )
     ]
 
@@ -80,7 +84,7 @@ struct TrackPlannerTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, crops: [nil], areas: []) }
         #expect(error?.description == #"""
-            storyline[0].track (video): the tracker follows its target only over [0, 1.5) and loses it inside the \#
+            storyline[0]#screen.track (video): the tracker follows its target only over [0, 1.5) and loses it inside the \#
             edit range [0, 2)
             """#)
     }
@@ -151,16 +155,16 @@ struct TrackPlannerTests {
             try sut.plan(time, crops: [.value(found(total, at: 1))], areas: [])
         }
         #expect(error?.description == #"""
-            storyline[0].track (video): "track": true follows the clip's own area or crop, and it has none given as \#
+            storyline[0]#screen.track (video): "track": true follows the clip's own area or crop, and it has none given as \#
             an area
             """#)
     }
 
-    @Test("a parented connected clip follows its storyline clip's media from its instant, and is visible only where followed")
+    @Test("a clip parented to its storyline clip follows that clip's media from its instant, and is visible only where followed")
     func narrowsConnectedWindow() throws {
         // Given
         let sut = planner(followed: 0...1.9)
-        let time = try plan(connected: #"{ "shape": "box", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -174,11 +178,11 @@ struct TrackPlannerTests {
         #expect(plan.time.clips[0].window == time.clips[0].window)
     }
 
-    @Test("a parented clip without at finds its target at its storyline clip's in")
+    @Test("a clip parented to its storyline clip without at finds its target at that clip's in")
     func findsTargetAtStorylineIn() throws {
         // Given
         let sut = planner()
-        let time = try plan(connected: #"{ "shape": "box", "area": "Total", "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "track": "Total" }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -193,7 +197,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let time = try plan(connected: #"""
-            { "shape": "box", "track": true, "keyframes": [ { "at": 1.8, "area": "Total" }, { "at": 2.2, "area": "Total" } ] }
+            { "shape": "box", "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": "Total" }, { "at": 2.2, "area": "Total" } ] }
             """#)
         let first = Rectangle(x: 10, y: 20, width: 30, height: 40)
 
@@ -216,12 +220,12 @@ struct TrackPlannerTests {
     func refusesNeverFollowed() throws {
         // Given
         let sut = planner(followed: 3...3.9)
-        let time = try plan(connected: #"{ "shape": "box", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
+        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": "Total", "at": [1.5, 2.5], "track": "Total" }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, crops: [nil], areas: [nil]) }
         #expect(error?.description == #"""
-            storyline[0].connected[0] (box): never visible, since the tracker follows its target on none of the \#
+            storyline[0]#screen.connected[0] (box): never visible, since the tracker follows its target on none of the \#
             frames of its visible range [0.5, 1.5)
             """#)
     }
@@ -265,7 +269,7 @@ struct TrackPlannerTests {
         let separator = keys.isEmpty ? "" : ", "
         return try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/screen.mp4", "in": 1, "out": 3\#(separator)\#(keys)\#(clips) } ] }
+                { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3\#(separator)\#(keys)\#(clips) } ] }
             """#))
     }
 

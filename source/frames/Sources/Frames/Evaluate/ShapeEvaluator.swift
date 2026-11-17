@@ -5,11 +5,12 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Evaluates a shape clip at an instant into its item, in the coordinates of the space it is composited
-// in. The shape is drawn on its area at the instant, or on the frame without one, and `reveal` acts by what receives
-// it: a box's border is drawn around as its `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in
-// from the whole frame to the area, and an arrow is nudged and grows from its tail. Scale, rotation and the offset act
-// about the centre of the shape's box: its area, or for an arrow the box it fills from tail to head.
+// Evaluates a shape clip at an instant into its item in output pixels of its list. A shape on an area is drawn in its
+// space's coordinates and carried by P(t) whole, its lengths divided by P(t)'s scale so they stay; one without an area
+// is drawn on the frame in output pixels. `reveal` acts by what receives it: a box's border is drawn around as its
+// `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in from the whole frame to the area, and an
+// arrow is nudged and grows from its tail. Scale, rotation and the offset act about the centre of the shape's box: its
+// area, or for an arrow the box it fills from tail to head.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     private let drawer = ShapeDrawer()
@@ -26,18 +27,71 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> [DisplayItem] {
         let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
-        let drawn = drawer.content(of: drawing, on: area ?? space.frame)
-        let presentation = ItemPresentation(area: drawn.box, opacity: sample.opacity, motion: sample.animation.motion)
-        return [item(of: drawn.content, area: area, in: space, sample: sample, presentation: presentation)]
+        let laid = laid(drawing, on: area, sample: sample, in: space)
+        let frame = frame(of: laid.presentation.transform, covering: space.frame)
+
+        return [item(of: laid.content, area: area, frame: frame, sample: sample, presentation: laid.presentation)]
+    }
+
+    // The map from the space the shape's area is written in to output pixels, which its children are carried by.
+    func transform(
+        of drawing: ShapeDrawing,
+        clip: ResolvedClip,
+        sample: ClipSample,
+        in space: ClipSpace,
+        at time: Double
+    ) -> AffineTransform {
+        let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
+        let transform = laid(drawing, on: area, sample: sample, in: space).presentation.transform
+
+        return area == nil ? space.transform.concatenating(transform) : transform
     }
 
     // MARK: - Private
+    private func laid(
+        _ drawing: ShapeDrawing,
+        on area: Rectangle?,
+        sample: ClipSample,
+        in space: ClipSpace
+    ) -> (content: ShapeContent, presentation: ItemPresentation) {
+        guard let area else {
+            let drawn = drawer.content(of: drawing, on: space.frame, scale: 1)
+            let presentation = ItemPresentation(area: drawn.box, opacity: sample.opacity, motion: sample.animation.motion)
+            return (drawn.content, presentation)
+        }
+
+        let drawn = drawer.content(of: drawing, on: area, scale: space.scale)
+        let presentation = ItemPresentation(
+            area: drawn.box,
+            opacity: sample.opacity,
+            motion: sample.animation.motion,
+            carriedBy: space.transform
+        )
+        return (drawn.content, presentation)
+    }
+
+    // The list's frame in the item's own coordinates, as the rectangle around its corners carried back, which is what
+    // a dim darkens. A transform that flattens the plane draws nothing, so the frame itself serves.
+    private func frame(
+        of transform: AffineTransform,
+        covering frame: Rectangle
+    ) -> Rectangle {
+        guard let inverse = transform.inverse else { return frame }
+
+        let corners = inverse.apply(toCornersOf: frame)
+        let xs = corners.map(\.x)
+        let ys = corners.map(\.y)
+        let minX = xs.min() ?? frame.x
+        let minY = ys.min() ?? frame.y
+        return Rectangle(x: minX, y: minY, width: (xs.max() ?? frame.maxX) - minX, height: (ys.max() ?? frame.maxY) - minY)
+    }
+
     // The item of what the drawer laid the shape as, on the shape's area or the frame. `area` is the shape's own area,
-    // nil without one.
+    // nil without one, and `frame` the list's frame in the item's coordinates.
     private func item(
         of content: ShapeContent,
         area: Rectangle?,
-        in space: ClipSpace,
+        frame: Rectangle,
         sample: ClipSample,
         presentation: ItemPresentation
     ) -> DisplayItem {
@@ -71,9 +125,9 @@ struct ShapeEvaluator: Sendable {
         case let .dim(_, color):
             // Without an area a dim darkens the whole frame.
             let hole = area.map { area in
-                RoundedRectangle(rectangle: reveal.hole(closingFrom: space.frame, to: area), radius: 0)
+                RoundedRectangle(rectangle: reveal.hole(closingFrom: frame, to: area), radius: 0)
             }
-            let fill = FillItem(rectangle: space.frame, color: color, hole: hole)
+            let fill = FillItem(rectangle: frame, color: color, hole: hole)
             return DisplayItem(
                 transform: presentation.transform,
                 opacity: presentation.opacity,

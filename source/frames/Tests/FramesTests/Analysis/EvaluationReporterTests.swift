@@ -185,7 +185,7 @@ struct EvaluationReporterTests {
         let report = try sut.report(of: document, at: 1.5)
 
         // Then
-        // The connected fill is parented, so it is drawn inside its unit.
+        // The connected fill has no parent, so its area is in output pixels.
         let frame = Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         #expect(report.time == 1.5)
         #expect(report.size == Size(width: 1080, height: 1920))

@@ -38,6 +38,7 @@ struct EvaluatorTests {
     )
     // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
     private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
+    private let shotEntry = ItemOrigin(place: "storyline", id: "shot", kind: "video")
     private let fillOrigin = ItemOrigin(place: "clips[0]", id: nil, kind: "fill")
 
     // MARK: - Initializer
@@ -62,15 +63,15 @@ struct EvaluatorTests {
             size: size,
             background: background,
             seed: seed,
-            items: [unitItem([mediaItem(media, frame: frame)], seed: seed)]
+            items: [storylineItem([mediaItem(media, frame: frame)], seed: seed)]
         ))
     }
 
     @Test(
-        "during a transition the incoming unit moves and fades by its span, above the outgoing one unless `over` says",
+        "during a transition the incoming storyline picture moves and fades by its span, above the outgoing one unless `over` says",
         arguments: [TransitionOrder.incoming, .outgoing]
     )
-    func stacksTransitionUnits(over: TransitionOrder) {
+    func stacksTransitionPictures(over: TransitionOrder) {
         // Given
         let incoming = Span(ease: .linear, keys: [
             SpanKey(t: 0, values: [.opacity: 0, .x: 1]),
@@ -92,18 +93,18 @@ struct EvaluatorTests {
         // Then
         // Progress 0.25: opacity 0.25 and x 0.75 of the frame's 200 wide. The outgoing clip plays its media
         // from 1 at 0, so 2.75, and the incoming one starts 0.25 before its `in` of 1, so 0.75.
-        let outgoingUnit = unitItem([mediaItem(first, frame: 11)], seed: 17)
-        let incomingUnit = unitItem(
+        let outgoingPicture = storylineItem([mediaItem(first, frame: 11)], seed: 17)
+        let incomingPicture = storylineItem(
             [mediaItem(second, frame: 3)],
             seed: 17,
             transform: AffineTransform(translation: Point(x: 150, y: 0)),
             opacity: 0.25
         )
-        let units = over == .incoming ? [outgoingUnit, incomingUnit] : [incomingUnit, outgoingUnit]
-        #expect(list.items == units)
+        let pictures = over == .incoming ? [outgoingPicture, incomingPicture] : [incomingPicture, outgoingPicture]
+        #expect(list.items == pictures)
     }
 
-    @Test("a colour cover fills the frame over both units at the opacity its keys give")
+    @Test("a colour cover fills the frame over both storyline pictures at the opacity its keys give")
     func coversWithColor() {
         // Given
         let span = Span(ease: .linear, keys: [
@@ -126,8 +127,8 @@ struct EvaluatorTests {
 
         // Then
         #expect(list.items == [
-            unitItem([mediaItem(first, frame: 11)], seed: 17),
-            unitItem([mediaItem(second, frame: 3)], seed: 17),
+            storylineItem([mediaItem(first, frame: 11)], seed: 17),
+            storylineItem([mediaItem(second, frame: 3)], seed: 17),
             DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: frame, color: white)))
         ])
     }
@@ -210,8 +211,8 @@ struct EvaluatorTests {
             destination: frame
         )
         #expect(list.items == [
-            unitItem([mediaItem(first, frame: 11)], seed: 17),
-            unitItem([mediaItem(second, frame: 3)], seed: 17, matte: pictureMatte),
+            storylineItem([mediaItem(first, frame: 11)], seed: 17),
+            storylineItem([mediaItem(second, frame: 3)], seed: 17, matte: pictureMatte),
             DisplayItem(content: .picture(coverPicture))
         ])
     }
@@ -238,8 +239,8 @@ struct EvaluatorTests {
         // Then
         // The outgoing clip would show media time 5, past its last frame at 4.75.
         #expect(list.items == [
-            unitItem([mediaItem(first, frame: 19)], seed: 20),
-            unitItem([mediaItem(second, frame: 1)], seed: 20)
+            storylineItem([mediaItem(first, frame: 19)], seed: 20),
+            storylineItem([mediaItem(second, frame: 1)], seed: 20)
         ])
     }
 
@@ -255,7 +256,7 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
-        #expect(list.items == [unitItem([mediaItem(first, frame: 8, filter: filter)], seed: 5)])
+        #expect(list.items == [storylineItem([mediaItem(first, frame: 8, filter: filter)], seed: 5)])
     }
 
     @Test("a still shows its one frame at any time")
@@ -271,7 +272,7 @@ struct EvaluatorTests {
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "image")
         #expect(list.items == [
-            unitItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry)
+            storylineItem([mediaItem(still, frame: 0, origin: entry)], seed: 13, origin: entry)
         ])
     }
 
@@ -286,7 +287,7 @@ struct EvaluatorTests {
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
         let fill = DisplayItem(content: .fill(FillItem(rectangle: frame, color: red)), origin: entry)
-        #expect(list.items == [unitItem([fill], seed: 10, origin: entry)])
+        #expect(list.items == [storylineItem([fill], seed: 10, origin: entry)])
     }
 
     @Test("a compound clip is its nested sequence evaluated at the clip's media time, with the outer seed")
@@ -306,12 +307,12 @@ struct EvaluatorTests {
             size: Size(width: 100, height: 50),
             background: red,
             seed: 5,
-            items: [unitItem([mediaItem(first, frame: 6, in: nestedFrame)], seed: 5, frame: nestedFrame)]
+            items: [storylineItem([mediaItem(first, frame: 6, in: nestedFrame)], seed: 5, frame: nestedFrame)]
         )
         let picture = PictureItem(source: .displayList(nestedList), rectangle: crop, destination: frame)
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "compound")
         #expect(list.items == [
-            unitItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry)
+            storylineItem([DisplayItem(content: .picture(picture), origin: entry)], seed: 5, origin: entry)
         ])
     }
 
@@ -421,25 +422,27 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 7.0 / 25)
 
         // Then
-        let unit = try #require(displayList(of: list.items.first))
-        let nested = try #require(displayList(of: unit.items.first))
-        let nestedUnit = try #require(displayList(of: nested.items.first))
-        #expect([list.seed, unit.seed, nested.seed, nestedUnit.seed] == [7, 7, 7, 7])
+        let picture = try #require(displayList(of: list.items.first))
+        let nested = try #require(displayList(of: picture.items.first))
+        let nestedPicture = try #require(displayList(of: nested.items.first))
+        #expect([list.seed, picture.seed, nested.seed, nestedPicture.seed] == [7, 7, 7, 7])
     }
 
-    @Test("clips stack by lane and then document order: unparented below and above the units, parented inside theirs")
+    @Test(
+        "every clip is an item of the list, by lane and then document order, the storyline between negative and positive lanes"
+    )
     func stacksClipsByLane() {
         // Given
-        // Each fill is told apart by its area. Parented areas are in the 400 x 200 picture, shown at half size.
+        // Each fill is told apart by its area. Parented areas are in the 400 x 200 picture, carried at half size.
         let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4)],
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
             clips: [
                 fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 2),
                 fillClip(Rectangle(x: 10, y: 0, width: 10, height: 10), lane: -1),
                 fillClip(Rectangle(x: 20, y: 0, width: 10, height: 10), lane: 1),
-                fillClip(Rectangle(x: 0, y: 0, width: 20, height: 20), lane: 1, storyline: 0, isParented: true),
-                fillClip(Rectangle(x: 20, y: 0, width: 20, height: 20), lane: -1, storyline: 0, isParented: true),
-                fillClip(Rectangle(x: 40, y: 0, width: 20, height: 20), lane: -2, storyline: 0, isParented: true),
+                fillClip(Rectangle(x: 0, y: 0, width: 20, height: 20), lane: 1, storyline: 0, parent: "shot"),
+                fillClip(Rectangle(x: 20, y: 0, width: 20, height: 20), lane: -1, storyline: 0, parent: "shot"),
+                fillClip(Rectangle(x: 40, y: 0, width: 20, height: 20), lane: -2, storyline: 0, parent: "shot"),
                 fillClip(Rectangle(x: 30, y: 0, width: 10, height: 10), lane: 1, start: 3),
                 fillClip(Rectangle(x: 40, y: 0, width: 10, height: 10), lane: 2)
             ]
@@ -449,25 +452,21 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
+        let half = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
         #expect(list.items == [
+            fillItem(Rectangle(x: 40, y: 0, width: 20, height: 20), transform: half),
             fillItem(Rectangle(x: 10, y: 0, width: 10, height: 10)),
-            unitItem(
-                [
-                    fillItem(Rectangle(x: 20, y: 0, width: 10, height: 10)),
-                    fillItem(Rectangle(x: 10, y: 0, width: 10, height: 10)),
-                    mediaItem(first, frame: 4),
-                    fillItem(Rectangle(x: 0, y: 0, width: 10, height: 10))
-                ],
-                seed: 10
-            ),
+            fillItem(Rectangle(x: 20, y: 0, width: 20, height: 20), transform: half),
+            storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry),
             fillItem(Rectangle(x: 20, y: 0, width: 10, height: 10)),
+            fillItem(Rectangle(x: 0, y: 0, width: 20, height: 20), transform: half),
             fillItem(Rectangle(x: 0, y: 0, width: 10, height: 10)),
             fillItem(Rectangle(x: 40, y: 0, width: 10, height: 10))
         ])
     }
 
     @Test(
-        "a parented box follows its picture's zooming crop, and its stroke keeps its width in output pixels",
+        "a box parented to a storyline clip follows its zooming crop, and its stroke keeps its width in output pixels",
         arguments: [
             (0.0, Rectangle(x: 75, y: 37.5, width: 20, height: 10)),
             (2.0, Rectangle(x: 50, y: 25, width: 40, height: 20))
@@ -479,12 +478,12 @@ struct EvaluatorTests {
     ) throws {
         // Given
         let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4, crop: zoom)],
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4, crop: zoom)],
             clips: [
                 clip(
                     .shape(.box(width: 4, radius: 2, color: red)),
                     storyline: 0,
-                    isParented: true,
+                    parent: "shot",
                     area: [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))]
                 )
             ]
@@ -495,18 +494,19 @@ struct EvaluatorTests {
 
         // Then
         // The crop is the whole picture at 0, shown at half size, and 200 x 100 from (100, 50) at 2, at full size.
-        let unit = try #require(displayList(of: list.items.first))
-        guard case let .stroke(stroke) = unit.items.last?.content else {
+        let item = try #require(list.items.last)
+        guard case let .stroke(stroke) = item.content else {
             Issue.record("a box is a stroke")
             return
         }
-        #expect(isClose(stroke.rectangle, area))
-        #expect(stroke.width == 4)
-        #expect(stroke.radius == 2)
+        let corners = item.transform.apply(toCornersOf: stroke.rectangle)
+        #expect(isClose(corners, area))
+        #expect(abs(stroke.width * item.transform.a - 4) < 1e-9)
+        #expect(abs(stroke.radius * item.transform.a - 2) < 1e-9)
     }
 
     @Test(
-        "a parented title keeps its size under a zoom, its anchor point staying on its place in the picture",
+        "a title parented to a storyline clip keeps its size under a zoom, its anchor point staying on its place",
         arguments: [(0.0, Point(x: 50, y: 27.5)), (2.0, Point(x: 30, y: 15))]
     )
     func keepsParentedTitleSize(
@@ -514,7 +514,7 @@ struct EvaluatorTests {
         position: Point
     ) throws {
         // Given
-        // The anchor point is (160, 75) in the picture: (80, 37.5) in the unit at half size, (60, 25) at full size.
+        // The anchor point is (160, 75) in the picture: (80, 37.5) in the output at half size, (60, 25) at full size.
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
@@ -522,16 +522,15 @@ struct EvaluatorTests {
             anchor: Point(x: 30, y: 10)
         )
         let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4, crop: zoom)],
-            clips: [clip(.title(text), storyline: 0, isParented: true, box: box)]
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4, crop: zoom)],
+            clips: [clip(.title(text), storyline: 0, parent: "shot", box: box)]
         )
 
         // When
         let list = sut.displayList(of: sequence, at: time)
 
         // Then
-        let unit = try #require(displayList(of: list.items.first))
-        let item = try #require(unit.items.last)
+        let item = try #require(list.items.last)
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
@@ -554,16 +553,17 @@ struct EvaluatorTests {
             Keyframe(at: 2, value: Rectangle(x: 140, y: 20, width: 40, height: 20))
         ]
         let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4)],
-            clips: [clip(.shape(.fill(color: red)), storyline: 0, isParented: true, area: area, track: track)]
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
+            clips: [clip(.shape(.fill(color: red)), storyline: 0, parent: "shot", area: area, track: track)]
         )
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        let unit = try #require(displayList(of: list.items.first))
-        #expect(unit.items.last == fillItem(Rectangle(x: 60, y: 30, width: 20, height: 10)))
+        // (120, 60, 40, 20) in the picture, carried at half size.
+        let half = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
+        #expect(list.items.last == fillItem(Rectangle(x: 120, y: 60, width: 40, height: 20), transform: half))
     }
 
     @Test("a tracked band keeps the full width of its picture and takes the vertical move and scale of its height")
@@ -577,12 +577,12 @@ struct EvaluatorTests {
         ])
         let band = Rectangle(x: 0, y: 100, width: 400, height: 20)
         let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4)],
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
             clips: [
                 clip(
                     .shape(.fill(color: red)),
                     storyline: 0,
-                    isParented: true,
+                    parent: "shot",
                     area: [Keyframe(at: 0, value: band)],
                     track: track
                 )
@@ -593,9 +593,9 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        // The band is (0, 40, 400, 30) in the picture, half that in the unit.
-        let unit = try #require(displayList(of: list.items.first))
-        #expect(unit.items.last == fillItem(Rectangle(x: 0, y: 20, width: 200, height: 15)))
+        // The band is (0, 40, 400, 30) in the picture, carried at half size.
+        let half = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
+        #expect(list.items.last == fillItem(Rectangle(x: 0, y: 40, width: 400, height: 30), transform: half))
     }
 
     @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")
@@ -669,28 +669,86 @@ struct EvaluatorTests {
         ))
     }
 
-    @Test("a parented adjustment is drawn inside its unit over its mapped area, so it reaches only that unit")
-    func keepsParentedAdjustmentInUnit() throws {
+    @Test("a child of an incoming storyline clip moves with its transition, but takes none of its opacity or reveal")
+    func movesChildWithTransition() {
+        // Given
+        let incoming = Span(ease: .linear, revealFrom: .left, keys: [
+            SpanKey(t: 0, values: [.opacity: 0, .reveal: 0, .x: 1]),
+            SpanKey(t: 1, values: [.opacity: 1, .reveal: 1, .x: 0])
+        ])
+        let area = Rectangle(x: 0, y: 0, width: 20, height: 20)
+        let sequence = sequence(
+            [
+                storylineClip(.pinned(first), in: 1, start: 0, end: 2),
+                storylineClip(
+                    .pinned(second),
+                    id: "next",
+                    in: 1,
+                    start: 2,
+                    end: 4,
+                    transition: ResolvedTransition(
+                        start: 1.5,
+                        end: 2.5,
+                        over: .incoming,
+                        incoming: incoming,
+                        outgoing: nil,
+                        cover: nil,
+                        matte: nil
+                    )
+                )
+            ],
+            clips: [fillClip(area, lane: 1, storyline: 1, parent: "next")]
+        )
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.75)
+
+        // Then
+        // Progress 0.25: the picture moves 0.75 of the frame's 200 wide, and the fill, at half size in the 400 x 200
+        // picture, with it.
+        let moved = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 150, ty: 0)
+        #expect(list.items.last == fillItem(area, transform: moved))
+    }
+
+    @Test("a parent's opacity does not reach its child")
+    func keepsChildOpacity() {
+        // Given
+        let area = Rectangle(x: 0, y: 0, width: 20, height: 20)
+        let parent = clip(.shape(.fill(color: red)), id: "bar", area: [Keyframe(at: 0, value: area)], opacity: 0.2)
+        let child = clip(.shape(.fill(color: red)), parent: "bar", area: [Keyframe(at: 0, value: area)])
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [parent, child])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        #expect(list.items.map(\.opacity) == [1, 0.2, 1])
+    }
+
+    @Test("a parented adjustment is an item above the storyline picture, its area carried by its parent's map")
+    func carriesParentedAdjustment() throws {
         // Given
         let adjustment = clip(
             .adjustment([.blur(radius: 3)]),
             storyline: 0,
-            isParented: true,
+            parent: "shot",
             area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 200, height: 100))],
             opacity: 0.5
         )
-        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
+        let sequence = sequence([storylineClip(.pinned(first), id: "shot", start: 0, end: 4)], clips: [adjustment])
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
         let adjust = DisplayItem(
+            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50), filter: [.blur(radius: 3)])),
+            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100), filter: [.blur(radius: 3)])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
-        #expect(list.items == [unitItem([mediaItem(first, frame: 4), adjust], seed: 10)])
+        let picture = storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry)
+        #expect(list.items == [picture, adjust])
     }
 
     @Test("a dim without an area darkens the frame, for a connected clip as for a sequence clip")
@@ -744,6 +802,7 @@ struct EvaluatorTests {
     // MARK: - Private
     private func storylineClip(
         _ media: ResolvedMediaContent?,
+        id: String? = nil,
         solid: Color? = nil,
         in: Double = 0,
         speed: Double = 1,
@@ -756,6 +815,7 @@ struct EvaluatorTests {
     ) -> ResolvedStorylineClip {
         storylineClip(
             media,
+            id: id,
             solid: solid,
             in: `in`,
             speed: speed,
@@ -770,6 +830,7 @@ struct EvaluatorTests {
 
     private func storylineClip(
         _ media: ResolvedMediaContent?,
+        id: String? = nil,
         solid: Color? = nil,
         in: Double = 0,
         speed: Double = 1,
@@ -782,7 +843,7 @@ struct EvaluatorTests {
     ) -> ResolvedStorylineClip {
         ResolvedStorylineClip(
             place: "storyline",
-            id: nil,
+            id: id,
             media: media,
             solid: solid,
             in: `in`,
@@ -821,7 +882,7 @@ struct EvaluatorTests {
         _ area: Rectangle,
         lane: Int,
         storyline: Int? = nil,
-        isParented: Bool = false,
+        parent: String? = nil,
         start: Double = 0
     ) -> ResolvedClip {
         clip(
@@ -829,18 +890,19 @@ struct EvaluatorTests {
             start: start,
             lane: lane,
             storyline: storyline,
-            isParented: isParented,
+            parent: parent,
             area: [Keyframe(at: 0, value: area)]
         )
     }
 
     private func clip(
         _ content: ResolvedClipContent,
+        id: String? = nil,
         start: Double = 0,
         end: Double = 4,
         lane: Int = 1,
         storyline: Int? = nil,
-        isParented: Bool = false,
+        parent: String? = nil,
         area: [Keyframe<Rectangle>]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
@@ -853,13 +915,13 @@ struct EvaluatorTests {
 
         return ResolvedClip(
             place: "clips[0]",
-            id: nil,
+            id: id,
             content: content,
             start: start,
             end: end,
             lane: lane,
             storyline: storyline,
-            isParented: isParented,
+            parent: parent,
             area: area,
             box: box,
             crop: crop,
@@ -890,8 +952,11 @@ struct EvaluatorTests {
         return clip(.media(media), start: start, box: box, crop: [Keyframe(at: 0, value: Crop(whole))], blend: blend)
     }
 
-    private func fillItem(_ rectangle: Rectangle) -> DisplayItem {
-        DisplayItem(content: .fill(FillItem(rectangle: rectangle, color: red)), origin: fillOrigin)
+    private func fillItem(
+        _ rectangle: Rectangle,
+        transform: AffineTransform = .identity
+    ) -> DisplayItem {
+        DisplayItem(transform: transform, content: .fill(FillItem(rectangle: rectangle, color: red)), origin: fillOrigin)
     }
 
     private func text(_ size: Size) -> ResolvedText {
@@ -929,7 +994,8 @@ struct EvaluatorTests {
         )
     }
 
-    private func unitItem(
+    // A storyline picture: the outer item over the nested list of the frame's size that holds its one inner item.
+    private func storylineItem(
         _ items: [DisplayItem],
         seed: Int,
         frame: Rectangle? = nil,
@@ -960,13 +1026,13 @@ struct EvaluatorTests {
         _ media: PinnedMedia,
         frame: Int,
         filter: [ResolvedFilterOperation] = [],
-        in unit: Rectangle? = nil,
+        in destination: Rectangle? = nil,
         origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let picture = PictureItem(
             source: .media(MediaFrame(media: media, index: frame)),
             rectangle: whole,
-            destination: unit ?? self.frame,
+            destination: destination ?? self.frame,
             filter: filter
         )
 
@@ -992,11 +1058,19 @@ struct EvaluatorTests {
         return list
     }
 
-    // The media picture of the list's first unit.
+    // The media picture of the list's first storyline picture.
     private func mediaPicture(of list: DisplayList) -> PictureItem? {
         guard case let .picture(picture) = displayList(of: list.items.first)?.items.first?.content else { return nil }
 
         return picture
+    }
+
+    private func isClose(
+        _ corners: [Point],
+        _ rectangle: Rectangle
+    ) -> Bool {
+        zip(corners, AffineTransform.identity.apply(toCornersOf: rectangle))
+            .allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 }
     }
 
     private func isClose(

@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A position as written: a point, or on a parented clip `{area, point}`, the named point of an area.
+// A position as written: a point, or `{area, point}`, the named point of an area.
 enum PositionForm: Equatable, Sendable {
     case point(Point)
     case area(AreaForm, point: String)
