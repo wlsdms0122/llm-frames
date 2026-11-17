@@ -22,7 +22,7 @@ struct DocumentCommandTests {
     // MARK: - Initializer
     init() throws {
         sut = try TestShell()
-        try sut.write(#"{ "description": "fades", "seconds": 0.5 }"#, to: sut.builtIn.appendingPathComponent("transition/fade.json"))
+        try sut.write(#"{ "description": "fades", "seconds": 0.5 }"#, to: sut.framesPresets.appendingPathComponent("transition/fade.json"))
     }
 
     // MARK: - Test
@@ -91,7 +91,7 @@ struct DocumentCommandTests {
         #expect(sut.standardOutput == """
             duration 1.5
             storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  speed 1  transition none
-            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  speed 1  transition fade 0.5
+            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  speed 1  transition frames/fade 0.5
 
             """)
     }
@@ -108,8 +108,8 @@ struct DocumentCommandTests {
         let resolvedOutput = timelineOutput(of: resolved)
 
         // Then
-        #expect(documentOutput.contains(#""preset": "fade""#))
-        #expect(resolvedOutput == documentOutput.replacingOccurrences(of: #""preset": "fade""#, with: #""preset": null"#))
+        #expect(documentOutput.contains(#""preset": "frames/fade""#))
+        #expect(resolvedOutput == documentOutput.replacingOccurrences(of: #""preset": "frames/fade""#, with: #""preset": null"#))
     }
 
     @Test("a document is also read from standard input")
@@ -210,7 +210,7 @@ struct DocumentCommandTests {
         { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
           "storyline": [
             { "solid": "#000000", "duration": 1 },
-            { "id": "end", "solid": "#FFFFFF", "duration": 0.5, "transition": { "preset": "fade", "seconds": 0.5 } }
+            { "id": "end", "solid": "#FFFFFF", "duration": 0.5, "transition": { "preset": "frames/fade", "seconds": 0.5 } }
           ] }
         """#
     }

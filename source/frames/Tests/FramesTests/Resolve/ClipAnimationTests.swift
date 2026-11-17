@@ -21,9 +21,9 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
-              { "shape": "box", "area": "Send", "animation": "pulse" },
-              { "at": [1, 2], "shape": "box", "area": "Send", "animation": "pulse" },
-              { "title": "a", "style": "subtitle", "animation": "pulse" }
+              { "shape": "box", "area": "Send", "animation": "frames/pulse" },
+              { "at": [1, 2], "shape": "box", "area": "Send", "animation": "frames/pulse" },
+              { "title": "a", "style": "subtitle", "animation": "frames/pulse" }
             ] } ] }
             """#)
 
@@ -32,10 +32,10 @@ struct ClipAnimationTests {
 
         // Then
         #expect(plan.clips[0].animation.entrance == nil)
-        #expect(plan.clips[0].animation.loop?.preset == "pulse")
+        #expect(plan.clips[0].animation.loop?.preset == "frames/pulse")
         #expect(plan.clips[0].animation.exit == nil)
-        #expect(plan.clips[1].animation.entrance?.preset == "pulse")
-        #expect(plan.clips[2].animation.exit?.preset == "pulse")
+        #expect(plan.clips[1].animation.entrance?.preset == "frames/pulse")
+        #expect(plan.clips[2].animation.exit?.preset == "frames/pulse")
     }
 
     @Test("a clip that names no animation takes the theme's default for its kind, and a title the one for its style")
@@ -43,7 +43,7 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "theme": { "defaults": { "animation": { "title": { "subtitle": "pop" }, "shape": "draw", "media": "fade" } } },
+              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw", "media": "frames/fade" } } },
               "storyline": [ { "media": "/abs/run.mp4" } ],
               "clips": [
                 { "at": [0, 1], "title": "a", "style": "subtitle" },
@@ -59,7 +59,7 @@ struct ClipAnimationTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["pop", nil, "draw", "fade", nil, nil])
+        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["frames/pop", nil, "frames/draw", "frames/fade", nil, nil])
         #expect(plan.clips[5].animation == .none)
     }
 
@@ -68,14 +68,14 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "fade" },
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "frames/fade" },
               { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a" },
               { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "labelAnimation": "none" },
-              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "animation": "draw" }
+              { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a", "animation": "frames/draw" }
             ] }
             """#)
         let themed = try Fixture.json(#"""
-            { "kind": "sequence", "theme": { "defaults": { "animation": { "title": { "label": "stamp" } } } },
+            { "kind": "sequence", "theme": { "defaults": { "animation": { "title": { "label": "frames/stamp" } } } },
               "storyline": [ { "media": "/abs/run.mp4" } ],
               "clips": [ { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10], "label": "a" } ] }
             """#)
@@ -85,11 +85,11 @@ struct ClipAnimationTests {
         let themedPlan = try sut.plan(document: themed)
 
         // Then
-        #expect(plan.clips.map { $0.labelAnimation.entrance?.preset } == ["fade", "pop", nil, "pop"])
-        #expect(plan.clips[0].labelAnimation.exit?.preset == "fade")
+        #expect(plan.clips.map { $0.labelAnimation.entrance?.preset } == ["frames/fade", "frames/pop", nil, "frames/pop"])
+        #expect(plan.clips[0].labelAnimation.exit?.preset == "frames/fade")
         #expect(plan.clips[2].labelAnimation == .none)
-        #expect(plan.clips[3].animation.entrance?.preset == "draw")
-        #expect(themedPlan.clips[0].labelAnimation.entrance?.preset == "stamp")
+        #expect(plan.clips[3].animation.entrance?.preset == "frames/draw")
+        #expect(themedPlan.clips[0].labelAnimation.entrance?.preset == "frames/stamp")
     }
 
     @Test("a shape without a label takes no label animation")
@@ -113,8 +113,8 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "pop", "exit": "fade" } },
-              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "none", "exit": "pulse" } }
+              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } },
+              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "none", "exit": "frames/pulse" } }
             ] }
             """#)
 
@@ -122,8 +122,8 @@ struct ClipAnimationTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        #expect(plan.clips[0].animation.entrance?.preset == "pop")
-        #expect(plan.clips[0].animation.exit?.preset == "fade")
+        #expect(plan.clips[0].animation.entrance?.preset == "frames/pop")
+        #expect(plan.clips[0].animation.exit?.preset == "frames/fade")
         #expect(plan.clips[1].animation.entrance == nil)
         #expect(plan.clips[1].animation.loop == nil)
         #expect(plan.clips[1].animation.exit?.span.length == 0.25)
@@ -134,25 +134,25 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "pop", "exit": "spin" } }
+              { "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "mine/spin" } }
             ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"clips[0] (title): unknown animation preset "spin""#)
+        #expect(error?.description == #"clips[0] (title): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
     }
 
     @Test(
         "a default animation naming a preset that is not there stops at its place in the theme, even when no clip takes it",
         arguments: [
             (
-                #"{ "animation": { "shape": "spin" } }"#,
-                #"theme.defaults.animation.shape (animation defaults): unknown animation preset "spin""#
+                #"{ "animation": { "shape": "mine/spin" } }"#,
+                #"theme.defaults.animation.shape (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "animation": { "title": { "subtitle": "spin" } } }"#,
-                #"theme.defaults.animation.title.subtitle (title animations): unknown animation preset "spin""#
+                #"{ "animation": { "title": { "subtitle": "mine/spin" } } }"#,
+                #"theme.defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             )
         ]
     )

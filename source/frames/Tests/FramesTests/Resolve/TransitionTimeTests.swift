@@ -19,10 +19,10 @@ struct TransitionTimeTests {
     @Test(
         "a transition lasts min(transition seconds, previous duration, next duration)",
         arguments: [
-            (#""flash""#, 3.0, 2.5, 0.5),
-            (#"{ "preset": "flash", "seconds": 2 }"#, 3.0, 2.5, 2.0),
-            (#""long""#, 3.0, 2.5, 2.5),
-            (#""long""#, 1.0, 2.5, 1.0)
+            (#""frames/flash""#, 3.0, 2.5, 0.5),
+            (#"{ "preset": "frames/flash", "seconds": 2 }"#, 3.0, 2.5, 2.0),
+            (#""mine/long""#, 3.0, 2.5, 2.5),
+            (#""mine/long""#, 1.0, 2.5, 1.0)
         ]
     )
     func clampsTransitionLength(
@@ -52,8 +52,8 @@ struct TransitionTimeTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
               { "solid": "#000000", "duration": 3 },
-              { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "wipe-right", "seconds": 1 } },
-              { "solid": "#FF0000", "duration": 2, "transition": "flash" }
+              { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/wipe-right", "seconds": 1 } },
+              { "solid": "#FF0000", "duration": 2, "transition": "frames/flash" }
             ] }
             """##)
 
@@ -73,7 +73,7 @@ struct TransitionTimeTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
               { "media": "/abs/short.mp4", "in": 1, "out": 2 },
-              { "media": "/abs/short.mp4", "transition": { "preset": "flash", "seconds": 1 } }
+              { "media": "/abs/short.mp4", "transition": { "preset": "frames/flash", "seconds": 1 } }
             ] }
             """#)
         let plan = try sut.plan(document: document)
@@ -96,7 +96,7 @@ struct TransitionTimeTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
               { "media": "/abs/card.png", "duration": 2 },
-              { "solid": "#000000", "duration": 2, "transition": { "preset": "flash", "seconds": 1 } }
+              { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
             ] }
             """##)
         let plan = try sut.plan(document: document)
@@ -173,7 +173,7 @@ struct TransitionTimeTests {
     func appliesDefaultTransition() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "push-up" } }, "storyline": [
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } }, "storyline": [
               { "solid": "#000000", "duration": 2 },
               { "solid": "#FFFFFF", "duration": 2 },
               { "solid": "#FF0000", "duration": 2, "transition": "cut" }
@@ -185,7 +185,7 @@ struct TransitionTimeTests {
 
         // Then
         #expect(plan.storyline[0].transition == nil)
-        #expect(plan.storyline[1].transition?.preset == "push-up")
+        #expect(plan.storyline[1].transition?.preset == "frames/push-up")
         #expect(plan.storyline[1].transition?.seconds == 0.5)
         #expect(plan.storyline[2].transition == nil)
     }
@@ -193,7 +193,7 @@ struct TransitionTimeTests {
     @Test("the theme in effect where the document is written gives the default under the document's own theme")
     func takesThemeInEffect() throws {
         // Given
-        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "flash" } }"#), place: .root)])
+        let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "frames/flash" } }"#), place: .root)])
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
             """##)
@@ -202,14 +202,14 @@ struct TransitionTimeTests {
         let plan = try sut.plan(document: document, theme: theme)
 
         // Then
-        #expect(plan.storyline[1].transition?.preset == "flash")
+        #expect(plan.storyline[1].transition?.preset == "frames/flash")
     }
 
     @Test(
         "a transition that cannot play stops",
         arguments: [
-            (#""dissolve""#, #"storyline[1] (solid): unknown transition preset "dissolve""#),
-            (#"{ "preset": "dissolve", "seconds": 1 }"#, #"storyline[1] (solid): unknown transition preset "dissolve""#)
+            (#""dissolve""#, #"storyline[1] (solid): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (#"{ "preset": "dissolve", "seconds": 1 }"#, #"storyline[1] (solid): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
         ]
     )
     func refusesBrokenTransition(
@@ -239,6 +239,6 @@ struct TransitionTimeTests {
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"theme.defaults.transition (defaults): unknown transition preset "dissolve""#)
+        #expect(error?.description == #"theme.defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
     }
 }

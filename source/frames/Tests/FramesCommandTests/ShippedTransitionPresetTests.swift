@@ -44,8 +44,10 @@ struct ShippedTransitionPresetTests {
         let environment = CommandEnvironment.current
         installed = try TemporaryDirectory()
         sut = PresetLibrary(
-            builtIn: environment.builtInPresets,
-            packs: PackLibrary(installed: URL(fileURLWithPath: installed.path, isDirectory: true))
+            packs: PackLibrary(
+                installed: URL(fileURLWithPath: installed.path, isDirectory: true),
+                shipped: environment.shippedPacks
+            )
         )
     }
 
@@ -53,16 +55,16 @@ struct ShippedTransitionPresetTests {
     @Test("the built in transitions are exactly the fourteen that ship, each read without error")
     func shipsNames() throws {
         // Given, When
-        let names = try sut.presets(of: .transition).map(\.name).filter { !$0.contains("/") }
+        let names = try sut.presets(of: .transition).map(\.name)
 
         // Then
-        #expect(names.sorted() == Self.names)
+        #expect(names.sorted() == Self.names.map { "frames/\($0)" })
     }
 
     @Test("every shipped transition is as long as its table says", arguments: names)
     func lastsSeconds(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // Then
         #expect(preset.seconds == Self.seconds[name])
@@ -72,7 +74,7 @@ struct ShippedTransitionPresetTests {
     @Test("at its end a shipped transition shows the incoming clip whole and in place, with no cover", arguments: names)
     func endsOnIncoming(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
         let incoming = sampler.unit(moving: preset.incoming, in: content, at: 1)
@@ -89,7 +91,7 @@ struct ShippedTransitionPresetTests {
     @Test("at its start a shipped transition shows only the outgoing clip, whole and in place", arguments: names)
     func startsOnOutgoing(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
         let incoming = sampler.unit(moving: preset.incoming, in: content, at: 0)
@@ -106,7 +108,7 @@ struct ShippedTransitionPresetTests {
     @Test("a shipped cover is fully opaque whenever the incoming clip switches on, so the scene change is hidden", arguments: ["dip-black", "flash"])
     func hidesSceneChange(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
         let changes = zip(Self.progresses, Self.progresses.dropFirst()).filter { before, after in
@@ -131,7 +133,7 @@ struct ShippedTransitionPresetTests {
         property: MotionProperty
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
         let incoming = try #require(preset.incoming)
         let outgoing = try #require(preset.outgoing)
         let evaluator = SpanEvaluator()
@@ -161,7 +163,7 @@ struct ShippedTransitionPresetTests {
         offset: Double
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
         let moving = try #require(preset.over == .incoming ? preset.incoming : preset.outgoing)
         let still = preset.over == .incoming ? preset.outgoing : preset.incoming
         let evaluator = SpanEvaluator()
@@ -183,7 +185,7 @@ struct ShippedTransitionPresetTests {
         side: RevealEdge
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: name))
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
 
         // When
         let incoming = try #require(preset.incoming)

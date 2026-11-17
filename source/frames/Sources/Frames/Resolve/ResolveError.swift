@@ -89,6 +89,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPreset(place, kind, presetKind, name):
             "\(place) (\(kind.label)): unknown \(presetKind) preset \(quoted(name))"
+                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
 
         case let .unknownPresetFile(place, kind, name):
             "\(place) (\(kind.label)): the preset names the file \(quoted(name)), which names nothing. "

@@ -21,8 +21,8 @@ struct ThemeMergerTests {
             "headline": { "size": 84, "offset": 110 },
             "label":    { "size": 40 } },
           "shapes": { "box": { "width": 10 } },
-          "defaults": { "transition": { "preset": "push-up", "seconds": 0.3 },
-                        "animation": { "title": { "subtitle": "pop", "headline": "none", "label": "pop" }, "shape": "draw", "media": "pop" } } }
+          "defaults": { "transition": { "preset": "frames/push-up", "seconds": 0.3 },
+                        "animation": { "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }, "shape": "frames/draw", "media": "frames/pop" } } }
         """#
 
     // MARK: - Initializer
@@ -51,8 +51,8 @@ struct ThemeMergerTests {
         #expect(box?["width"] == .number(10))
         #expect(box?["radius"] == .number(18))
         #expect(defaults?["filter"] == .string("none"))
-        #expect(defaults?["transition"] == (try Fixture.json(#"{ "preset": "push-up", "seconds": 0.3 }"#)))
-        #expect(animation?["title"] == (try Fixture.json(#"{ "label": "pop", "subtitle": "pop", "headline": "none" }"#)))
+        #expect(defaults?["transition"] == (try Fixture.json(#"{ "preset": "frames/push-up", "seconds": 0.3 }"#)))
+        #expect(animation?["title"] == (try Fixture.json(#"{ "label": "frames/pop", "subtitle": "frames/pop", "headline": "none" }"#)))
         #expect(animation?["adjust"] == .string("none"))
     }
 
@@ -114,8 +114,8 @@ struct ThemeMergerTests {
     func refusesMissingReference() throws {
         // Given
         let colour = try Fixture.json(#"{ "styles": { "caption": { "size": 30, "color": "brand" } } }"#)
-        let style = try Fixture.json(#"{ "defaults": { "animation": { "title": { "caption": "pop" } } } }"#)
-        let defined = try Fixture.json(##"{ "colors": { "brand": "#123456" }, "styles": { "caption": { "size": 30, "color": "brand" } }, "defaults": { "animation": { "title": { "caption": "pop" } } } }"##)
+        let style = try Fixture.json(#"{ "defaults": { "animation": { "title": { "caption": "frames/pop" } } } }"#)
+        let defined = try Fixture.json(##"{ "colors": { "brand": "#123456" }, "styles": { "caption": { "size": 30, "color": "brand" } }, "defaults": { "animation": { "title": { "caption": "frames/pop" } } } }"##)
 
         // When, Then
         let colourError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: colour, place: .root)]) }
@@ -149,7 +149,7 @@ struct ThemeMergerTests {
     @Test("a default transition of 0 seconds or less stops at its place in the theme")
     func refusesNonPositiveDefaultTransition() throws {
         // Given
-        let file = try Fixture.json(#"{ "defaults": { "transition": { "preset": "flash", "seconds": 0 } } }"#)
+        let file = try Fixture.json(#"{ "defaults": { "transition": { "preset": "frames/flash", "seconds": 0 } } }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }

@@ -19,8 +19,8 @@ struct PresetsCommandTests {
     // MARK: - Initializer
     init() throws {
         sut = try TestShell()
-        try sut.write(flash, to: sut.builtIn.appendingPathComponent("transition/flash.json"))
-        try sut.write("", to: sut.builtIn.appendingPathComponent("transition/.gitkeep"))
+        try sut.write(flash, to: sut.framesPresets.appendingPathComponent("transition/flash.json"))
+        try sut.write("", to: sut.framesPresets.appendingPathComponent("transition/.gitkeep"))
         try sut.addPack("shorts")
         try sut.write(
             #"{ "description": "pushes up", "seconds": 0.3 }"#,
@@ -34,7 +34,7 @@ struct PresetsCommandTests {
     }
 
     // MARK: - Test
-    @Test("presets lists every kind, the built in presets first and then each pack's as <pack>/<name>, with descriptions")
+    @Test("presets lists every kind under its name, each pack's presets in pack name order by the name a document gives them, with descriptions")
     func listsPresets() {
         // Given, When
         let code = sut.run(["presets"])
@@ -42,10 +42,13 @@ struct PresetsCommandTests {
         // Then
         #expect(code == 0)
         #expect(sut.standardOutput == """
-            transition/flash  a white flash
-            transition/shorts/push-up  pushes up
-            animation/pop  pops in
-            filter/demo/warm  warms the picture
+            transition
+              frames/flash  a white flash
+              shorts/push-up  pushes up
+            animation
+              frames/pop  pops in
+            filter
+              demo/warm  warms the picture
 
             """)
     }
@@ -57,13 +60,13 @@ struct PresetsCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardOutput == "filter/demo/warm  warms the picture\n")
+        #expect(sut.standardOutput == "filter\n  demo/warm  warms the picture\n")
     }
 
-    @Test("presets <kind> <name> prints the preset's JSON as its file is written, by any name a document gives it", arguments: ["flash", "shorts/push-up"])
+    @Test("presets <kind> <name> prints the preset's JSON as its file is written, by any name a document gives it", arguments: ["frames/flash", "shorts/push-up"])
     func printsPreset(name: String) throws {
         // Given
-        let expected = name == "flash"
+        let expected = name == "frames/flash"
             ? flash
             : #"{ "description": "pushes up", "seconds": 0.3 }"# + "\n"
 
@@ -79,9 +82,10 @@ struct PresetsCommandTests {
         "an unknown kind or preset stops",
         arguments: [
             (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter"#),
-            (["presets", "transition", "dissolve"], #"presets: unknown transition preset "dissolve""#),
-            (["presets", "animation", "flash"], #"presets: unknown animation preset "flash""#),
-            (["presets", "transition", "flash", "more"], #"presets: unexpected argument "more""#)
+            (["presets", "transition", "frames/dissolve"], #"presets: unknown transition preset "frames/dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (["presets", "transition", "flash"], #"presets: unknown transition preset "flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (["presets", "animation", "frames/flash"], #"presets: unknown animation preset "frames/flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (["presets", "transition", "frames/flash", "more"], #"presets: unexpected argument "more""#)
         ]
     )
     func stopsOnUnknown(

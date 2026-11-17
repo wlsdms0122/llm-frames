@@ -52,9 +52,9 @@ struct ResolvedDocumentReaderTests {
         // A cropped, filtered storyline clip at speed 2, a title that pops in, a picture with a border and music.
         #"""
         { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
-          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "grade",
+          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
-          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "pop", "position": [75.4, 1709.8] },
+          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
@@ -69,11 +69,11 @@ struct ResolvedDocumentReaderTests {
         // Shapes with labels, a tracked area and a band, an adjustment, a timed media clip and sound with fades.
         #"""
         { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": "Total", "track": "Total", "label": "a", "labelAnimation": "fade" },
+            { "shape": "box", "area": "Total", "track": "Total", "label": "a", "labelAnimation": "frames/fade" },
             { "shape": "fill", "area": { "band": "Total" }, "track": true },
             { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "label": "b", "lane": -1 },
             { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
-            { "adjust": "grade", "area": [0, 0, 10, 10], "at": [1, 2] },
+            { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
@@ -85,7 +85,7 @@ struct ResolvedDocumentReaderTests {
                    { "shape": "box", "area": [150, 150, 100, 50] }, { "shape": "dim", "area": [120, 120, 50, 50] },
                    { "shape": "arrow", "side": "left", "area": [300, 150, 50, 50] },
                    { "title": "Hi", "style": "label", "position": [200, 150] },
-                   { "adjust": "grade" }, { "adjust": "grade", "area": [110, 110, 10, 10] }, { "border": true } ] }
+                   { "adjust": "mine/grade" }, { "adjust": "mine/grade", "area": [110, 110, 10, 10] }, { "border": true } ] }
         """#,
         // A layout with a heading and a nested image.
         #"""

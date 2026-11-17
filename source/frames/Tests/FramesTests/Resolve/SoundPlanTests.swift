@@ -116,7 +116,7 @@ struct SoundPlanTests {
             { "kind": "sequence",
               "storyline": [
                 { "media": "/abs/run.mp4", "out": 4, "fadeIn": 0.5 },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "flash", "fadeOut": 1,
+                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/flash", "fadeOut": 1,
                   "connected": [ { "media": "/abs/ding.wav", "at": 11, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ],
               "clips": [ { "media": "/abs/bgm.m4a", "at": 6, "fadeOut": 2 } ] }
             """#)
@@ -163,7 +163,7 @@ struct SoundPlanTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 6 },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "wipe-right" } ] }
+                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
             """#)
 
         // Then
@@ -184,7 +184,7 @@ struct SoundPlanTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
                 { "media": "/abs/run.mp4", "in": 26, "out": 30 },
-                { "media": "/abs/run.mp4", "in": 0, "out": 4, "transition": "wipe-right" } ] }
+                { "media": "/abs/run.mp4", "in": 0, "out": 4, "transition": "frames/wipe-right" } ] }
             """#)
 
         // Then

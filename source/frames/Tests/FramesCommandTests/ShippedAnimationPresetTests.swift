@@ -23,7 +23,7 @@ struct ShippedAnimationPresetTests {
     ]
 
     private let directory: TemporaryDirectory
-    private let builtIn = CommandEnvironment.current.builtInPresets
+    private let shipped = CommandEnvironment.current.shippedPacks
     private let sut: PresetLibrary
     private let evaluator = SpanEvaluator()
 
@@ -31,8 +31,10 @@ struct ShippedAnimationPresetTests {
     init() throws {
         directory = try TemporaryDirectory()
         sut = PresetLibrary(
-            builtIn: builtIn,
-            packs: PackLibrary(installed: URL(fileURLWithPath: directory.file("installed"), isDirectory: true))
+            packs: PackLibrary(
+                installed: URL(fileURLWithPath: directory.file("installed"), isDirectory: true),
+                shipped: shipped
+            )
         )
     }
 
@@ -43,13 +45,13 @@ struct ShippedAnimationPresetTests {
         let names = try sut.presets(of: .animation).map(\.name)
 
         // Then
-        #expect(names.sorted() == Self.names.sorted())
+        #expect(names.sorted() == Self.names.map { "frames/\($0)" }.sorted())
     }
 
     @Test("every shipped animation reads and says in one line how it looks", arguments: names)
     func readsAnimation(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.animation(named: name))
+        let preset = try #require(try sut.animation(named: "frames/\(name)"))
 
         // Then
         #expect(!preset.description.isEmpty)
@@ -59,7 +61,7 @@ struct ShippedAnimationPresetTests {
     @Test("none has no span, so a clip simply shows")
     func noneChangesNothing() throws {
         // Given, When
-        let preset = try #require(try sut.animation(named: "none"))
+        let preset = try #require(try sut.animation(named: "frames/none"))
 
         // Then
         #expect(preset.entrance == nil)
@@ -70,7 +72,7 @@ struct ShippedAnimationPresetTests {
     @Test("only pulse, blink and shake loop, until the clip ends")
     func loopsOnlyWhereTheLookRepeats() throws {
         // Given, When
-        let looping = try Self.names.filter { try sut.animation(named: $0)?.loop != nil }
+        let looping = try Self.names.filter { try sut.animation(named: "frames/\($0)")?.loop != nil }
 
         // Then
         #expect(looping == ["pulse", "blink", "shake"])
@@ -79,7 +81,7 @@ struct ShippedAnimationPresetTests {
     @Test("an entrance starts hidden and ends at the clip's own geometry", arguments: names)
     func entranceEndsInPlace(name: String) throws {
         // Given
-        let preset = try #require(try sut.animation(named: name))
+        let preset = try #require(try sut.animation(named: "frames/\(name)"))
         guard let entrance = preset.entrance else { return }
 
         // When
@@ -94,7 +96,7 @@ struct ShippedAnimationPresetTests {
     @Test("an exit starts at the clip's own geometry and ends hidden", arguments: names)
     func exitEndsHidden(name: String) throws {
         // Given
-        let preset = try #require(try sut.animation(named: name))
+        let preset = try #require(try sut.animation(named: "frames/\(name)"))
         guard let exit = preset.exit else { return }
 
         // When
@@ -109,7 +111,7 @@ struct ShippedAnimationPresetTests {
     @Test("a loop starts and ends at the clip's own geometry, so it joins the entrance and itself with no jump", arguments: names)
     func loopJoinsWithoutJump(name: String) throws {
         // Given
-        let preset = try #require(try sut.animation(named: name))
+        let preset = try #require(try sut.animation(named: "frames/\(name)"))
         guard let loop = preset.loop else { return }
 
         // When
@@ -124,7 +126,7 @@ struct ShippedAnimationPresetTests {
     @Test("pulse jabs an arrow forward with nudge and back while it pulses")
     func pulseJabsArrow() throws {
         // Given
-        let preset = try #require(try sut.animation(named: "pulse"))
+        let preset = try #require(try sut.animation(named: "frames/pulse"))
         let loop = try #require(preset.loop)
 
         // When
@@ -141,11 +143,11 @@ struct ShippedAnimationPresetTests {
         let document = directory.file("label.json")
         let resolved = directory.file("label.resolved.json")
         try Data(labelSequence.utf8).write(to: URL(fileURLWithPath: document))
-        let pop = try #require(try sut.animation(named: "pop")?.entrance)
+        let pop = try #require(try sut.animation(named: "frames/pop")?.entrance)
         let recorder = OutputRecorder()
         let environment = CommandEnvironment(
             variables: ["FRAMES_HOME": directory.file("home"), "PATH": "/usr/bin:/bin"],
-            builtInPresets: builtIn,
+            shippedPacks: shipped,
             standardInput: { Data() }
         )
 

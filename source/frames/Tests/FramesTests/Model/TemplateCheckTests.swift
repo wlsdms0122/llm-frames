@@ -26,7 +26,7 @@ struct TemplateCheckTests {
                 "name":  { "type": "text", "default": "Ada" },
                 "tint":  { "type": "color", "default": "#FF0000" },
                 "size":  { "type": "number", "default": 2 },
-                "tone":  { "type": "choice", "options": ["warm", "cool"], "default": "warm", "description": "colour of the whole clip" }
+                "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
                                "connected": [ { "shape": "box", "area": { "param": "name" }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]

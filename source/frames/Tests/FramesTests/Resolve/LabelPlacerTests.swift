@@ -18,7 +18,7 @@ struct LabelPlacerTests {
         { "kind": "sequence", "storyline": [
             { "media": "/abs/screen.mp4", "in": 1, "out": 3,
               "connected": [ { "shape": "box", "area": [0, 0, 1, 1], "at": [2.6, 3], "label": "a" } ] },
-            { "solid": "#000000", "duration": 2, "transition": { "preset": "flash", "seconds": 1 },
+            { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 },
               "connected": [ { "shape": "box", "area": [0, 0, 1, 1], "label": "a" } ] } ],
           "clips": [ { "shape": "box", "area": [0, 0, 1, 1], "at": [1.6, 3], "label": "a" } ] }
         """##

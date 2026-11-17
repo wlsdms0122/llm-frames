@@ -19,7 +19,7 @@ struct TemplateInstantiatorTests {
           "params": {
             "clip":  { "type": "video" },
             "title": { "type": "text", "default": "New feature" },
-            "tone":  { "type": "choice", "options": ["warm", "cool"], "default": "warm" },
+            "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm" },
             "tint":  { "type": "color", "default": "#FF0000" },
             "size":  { "type": "number", "default": 1 }
           },
@@ -34,7 +34,7 @@ struct TemplateInstantiatorTests {
     func fillsArguments() throws {
         // Given
         let template = try template(template)
-        let arguments = try Fixture.object(#"{ "clip": "/abs/run.mp4", "tone": "cool", "size": 0.5 }"#)
+        let arguments = try Fixture.object(#"{ "clip": "/abs/run.mp4", "tone": "frames/cool", "size": 0.5 }"#)
 
         // When
         let instance = try sut.instance(of: template, arguments: arguments, place: place)
@@ -42,7 +42,7 @@ struct TemplateInstantiatorTests {
         // Then
         let expected = try Fixture.json(##"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/run.mp4", "filter": "cool",
+              "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
                                "connected": [ { "title": "New feature", "style": "headline" },
                                               { "shape": "box", "area": "Send", "color": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
@@ -79,7 +79,7 @@ struct TemplateInstantiatorTests {
             (#"{ "clip": "/abs/run.mp4", "title": 3 }"#, "args.title (template arguments): expected a string, found 3"),
             (#"{ "clip": "/abs/run.mp4", "size": "big" }"#, #"args.size (template arguments): expected a number, found "big""#),
             (#"{ "clip": "/abs/run.mp4", "tint": 5 }"#, "args.tint (template arguments): expected a colour, found 5"),
-            (#"{ "clip": "/abs/run.mp4", "tone": "hot" }"#, #"args.tone (template arguments): unknown value "hot". Allowed: warm, cool"#),
+            (#"{ "clip": "/abs/run.mp4", "tone": "hot" }"#, #"args.tone (template arguments): unknown value "hot". Allowed: frames/warm, frames/cool"#),
             (#"{ "clip": 4 }"#, "args.clip (template arguments): expected a media reference, found 4"),
             (#"{ "clip": "/abs/card.png" }"#, #"args.clip (template arguments): parameter "clip" takes video media, found image"#),
             (#"{ "clip": "/abs/bgm.m4a" }"#, #"args.clip (template arguments): parameter "clip" takes video media, found audio"#),

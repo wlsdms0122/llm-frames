@@ -25,9 +25,9 @@ struct ResolvedDocumentWriterTests {
     // title that pops in, a picture with a border in the centre, and looping music that fades out.
     private let sequence = #"""
         { "kind": "sequence", "format": { "size": [1080, 1920], "inset": [40, 40, 500, 40] },
-          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "grade",
+          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
-          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "pop", "position": [75.4, 1709.8] },
+          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }

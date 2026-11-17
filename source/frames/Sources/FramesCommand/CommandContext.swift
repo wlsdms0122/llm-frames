@@ -18,11 +18,11 @@ struct CommandContext: Sendable {
     private let environment: CommandEnvironment
 
     var packs: PackLibrary {
-        PackLibrary(environment: environment.variables)
+        PackLibrary(environment: environment.variables, shipped: environment.shippedPacks)
     }
 
     var presets: PresetLibrary {
-        PresetLibrary(builtIn: environment.builtInPresets, packs: packs)
+        PresetLibrary(packs: packs)
     }
 
     // Labels are set in the base theme, read through the packs.

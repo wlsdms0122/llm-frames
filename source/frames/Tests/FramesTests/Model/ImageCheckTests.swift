@@ -81,7 +81,7 @@ struct ImageCheckTests {
             (#"{ "border": false }"#, "ops[0].border (border): expected true or a colour, found false"),
             (#"{ "banner": ["a"], "edge": "left" }"#, #"ops[0].edge (banner): unknown value "left". Allowed: top, bottom"#),
             (#"{ "banner": [ { "style": "banner" } ] }"#, #"ops[0].banner[0] (banner line): missing key "text""#),
-            (#"{ "adjust": "pixelate", "area": "Name", "anim": 1 }"#, #"ops[0] (adjust): unknown key "anim". Allowed: id, metadata, adjust, area"#)
+            (#"{ "adjust": "frames/pixelate", "area": "Name", "anim": 1 }"#, #"ops[0] (adjust): unknown key "anim". Allowed: id, metadata, adjust, area"#)
         ]
     )
     func checksOperationKeys(

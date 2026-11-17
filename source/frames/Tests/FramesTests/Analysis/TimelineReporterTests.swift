@@ -17,11 +17,11 @@ struct TimelineReporterTests {
         { "kind": "sequence",
           "storyline": [
             { "id": "intro", "media": "/abs/short.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "area": "Send", "animation": "pulse" } ] },
-            { "solid": "#000000", "duration": 2, "transition": { "preset": "flash", "seconds": 1 } }
+              "connected": [ { "shape": "box", "area": "Send", "animation": "frames/pulse" } ] },
+            { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
-            { "at": [0, 4], "title": "Top", "style": "headline", "lane": 2, "animation": "pop" },
+            { "at": [0, 4], "title": "Top", "style": "headline", "lane": 2, "animation": "frames/pop" },
             { "at": 1, "media": "/abs/ding.wav" }
           ] }
         """##
@@ -56,10 +56,10 @@ struct TimelineReporterTests {
         let expected = #"""
             {"timeline": "1.0.0", "duration": 4, "storyline": [\#
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "speed": 1, "transition": null}, \#
-            {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "transition": {"preset": "flash", "seconds": 1}}], \#
+            {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "transition": {"preset": "frames/flash", "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "box", "visible": [0, 2.5], "lane": 1, "parent": "storyline[0]#intro", "animation": {"entrance": null, "loop": {"preset": "pulse", "period": 1}, "exit": null}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "parent": null, "animation": {"entrance": {"preset": "pop", "seconds": 0.25}, "loop": null, "exit": null}}, \#
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "box", "visible": [0, 2.5], "lane": 1, "parent": "storyline[0]#intro", "animation": {"entrance": null, "loop": {"preset": "frames/pulse", "period": 1}, "exit": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null}}, \#
             {"place": "clips[1]", "id": null, "kind": "audio", "visible": [1, 2.5], "lane": null, "parent": null, "animation": null}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -199,7 +199,7 @@ struct TimelineReporterTests {
         try directory.addPack("shorts")
         try directory.write(
             #"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "push-up" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
               "params": { "body": { "type": "sequence" } },
               "storyline": [ { "media": { "template": "shorts/inner", "args": { "body": { "param": "body" } } } } ] }
             """#,
@@ -222,7 +222,7 @@ struct TimelineReporterTests {
             )
         )
         let value = try Fixture.json(##"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
                 { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
@@ -237,7 +237,7 @@ struct TimelineReporterTests {
         let body = inner?["storyline"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue
         let entry = try #require(body?["storyline"]?.arrayValue?.last?.objectValue)
         #expect(entry["place"] == .string("storyline[0].media.storyline[0].media.storyline[0].media.storyline[1]"))
-        #expect(entry["transition"]?.objectValue?["preset"] == .string("flash"))
+        #expect(entry["transition"]?.objectValue?["preset"] == .string("frames/flash"))
     }
 
     @Test("a document a template wraps in its own before passing it on keeps the theme of the document that wrote it")
@@ -247,7 +247,7 @@ struct TimelineReporterTests {
         try directory.addPack("shorts")
         try directory.write(
             ##"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "push-up" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
               "params": { "body": { "type": "sequence" } },
               "storyline": [ { "media": { "template": "shorts/inner", "args": { "body":
                 { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
@@ -272,7 +272,7 @@ struct TimelineReporterTests {
             )
         )
         let value = try Fixture.json(##"""
-            { "kind": "sequence", "theme": { "defaults": { "transition": "flash" } },
+            { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
                 { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
@@ -288,9 +288,9 @@ struct TimelineReporterTests {
         let wrapperEntry = try #require(wrapper?["storyline"]?.arrayValue?.last?.objectValue)
         let body = wrapperEntry["nested"]?.objectValue
         let bodyEntry = try #require(body?["storyline"]?.arrayValue?.last?.objectValue)
-        #expect(wrapperEntry["transition"]?.objectValue?["preset"] == .string("push-up"))
+        #expect(wrapperEntry["transition"]?.objectValue?["preset"] == .string("frames/push-up"))
         #expect(bodyEntry["place"] == .string("storyline[0].media.storyline[0].media.storyline[0].media.storyline[1].media.storyline[1]"))
-        #expect(bodyEntry["transition"]?.objectValue?["preset"] == .string("flash"))
+        #expect(bodyEntry["transition"]?.objectValue?["preset"] == .string("frames/flash"))
     }
 
     @Test("the text output gives one line per clip, for people")
@@ -305,9 +305,9 @@ struct TimelineReporterTests {
         #expect(report.text.split(separator: "\n") == [
             "duration 4",
             "storyline[0]#intro  /abs/short.mp4  edit [0, 2)  drawn [0, 2.5)  clip [1, 3)  speed 1  transition none",
-            "storyline[1]  -  edit [2, 4)  drawn [1.5, 4)  clip [0, 2)  speed 1  transition flash 1",
-            "storyline[0]#intro.connected[0]  box  visible [0, 2.5)  animation - / pulse / -",
-            "clips[0]  title  visible [0, 4)  animation pop / - / -",
+            "storyline[1]  -  edit [2, 4)  drawn [1.5, 4)  clip [0, 2)  speed 1  transition frames/flash 1",
+            "storyline[0]#intro.connected[0]  box  visible [0, 2.5)  animation - / frames/pulse / -",
+            "clips[0]  title  visible [0, 4)  animation frames/pop / - / -",
             "clips[1]  audio  visible [1, 2.5)  animation none"
         ])
     }
@@ -344,7 +344,7 @@ struct TimelineReporterTests {
     @Test("timeline stops wherever resolve stops, with the same message")
     func stopsWithPlan() throws {
         // Given
-        let value = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "transition": "flash" } ] }"#)
+        let value = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "transition": "frames/flash" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.report(of: value) }
