@@ -55,12 +55,4 @@ extension ResolvedTrack {
     }
 
     // MARK: - Private
-    private func bringBack(
-        point: Point,
-        fromMediaTime time: Double
-    ) -> Point {
-        let brought = track.motion(atMediaTime: time).bringBack(point)
-
-        return isBand ? Point(x: point.x, y: brought.y) : brought
-    }
 }

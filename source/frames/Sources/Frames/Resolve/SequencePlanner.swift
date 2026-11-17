@@ -7,7 +7,8 @@
 
 // Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
 // format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, its titles set, where each clip is placed and how it is drawn, and its sound.
+// tracking leaves, what was found under a shape or adjustment brought into its space, its titles set, where each clip
+// is placed and how it is drawn, and its sound.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -77,6 +78,17 @@ struct SequencePlanner: Sendable {
 
         let tracked = try tracker.plan(time, crops: crops, areas: found.map(\.area))
         try checkKeyframes(of: tracked.time)
+        // A tracked clip is parented to a storyline clip, so no text it finds needs a track, and what was found under a
+        // shape or adjustment is brought into its space once every track is planned.
+        let parentSpace = ParentSpacePlanner(tracked: tracked, areas: found.map(\.area))
+        let placed = time.clips.indices.map { index in
+            let plan = time.clips[index]
+            return (
+                area: parentSpace.area(found[index].area, written: written[index].area, of: plan),
+                position: parentSpace.position(found[index].position, written: written[index].position, of: plan),
+                crop: found[index].crop
+            )
+        }
 
         let lengthScale = time.theme.lengthScale(at: format.size.width)
         let storyline = try time.storyline.indices.map { index in
@@ -109,18 +121,18 @@ struct SequencePlanner: Sendable {
             let box = try appearances.box(
                 of: tracked.time.clips[index],
                 written: written[index],
-                position: found[index].position,
-                crop: found[index].crop,
+                position: placed[index].position,
+                crop: placed[index].crop,
                 title: title,
                 picture: clipPictures[index],
                 format: format,
                 theme: time.theme
             )
             return ClipGeometry(
-                area: found[index].area,
-                position: found[index].position,
+                area: placed[index].area,
+                position: placed[index].position,
                 box: box,
-                crop: found[index].crop,
+                crop: placed[index].crop,
                 track: tracked.clips[index],
                 title: title,
                 nested: clipNested[index],
@@ -128,7 +140,7 @@ struct SequencePlanner: Sendable {
                     of: tracked.time.clips[index],
                     written: written[index],
                     box: box,
-                    crop: found[index].crop,
+                    crop: placed[index].crop,
                     picture: clipPictures[index],
                     scale: lengthScale,
                     theme: time.theme,
@@ -299,8 +311,9 @@ struct SequencePlanner: Sendable {
 
     // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels, as are
     // those of a clip under a chain of shapes and adjustments that reaches no other parent. A text form is searched in
-    // the parent's picture, the media of a storyline or media clip, at the media time the parent's clock gives. A media
-    // clip's crop is in its own picture.
+    // the parent's picture, the media of a storyline or media clip, at the media time the parent's clock gives, and
+    // under a shape or adjustment what it finds is where it lies in that media until `ParentSpacePlanner` brings it into
+    // the parent's space. A media clip's crop is in its own picture.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
@@ -432,17 +445,13 @@ struct SequencePlanner: Sendable {
     ) -> Place? {
         switch position {
         case let .value(form):
-            return isFoundByText(form) ? place.appending(key: "position") : nil
+            return form.isFoundByText ? place.appending(key: "position") : nil
 
         case let .keyframes(keyframes):
-            return keyframes.first { isFoundByText($0.value) }.map { keyframe in
+            return keyframes.first { $0.value.isFoundByText }.map { keyframe in
                 place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "position")
             }
         }
-    }
-
-    private func isFoundByText(_ form: PositionForm) -> Bool {
-        if case let .area(area, _) = form { area.isFoundByText } else { false }
     }
 
     // A title wraps at its `width`, by default the output width less the placement padding on each side.
