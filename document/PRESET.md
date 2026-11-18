@@ -215,7 +215,7 @@ A filter goes on a storyline clip or a media clip as `filter`, and on everything
 
 ## Parameters
 
-A preset may publish parameters, as an NLE effect publishes its controls, so one dip gives a dip to black in one edit and to a brand blue in another. `params` maps a name to a parameter: its `type`, its `default` and a one-line `description` of what it changes, with `options` for a choice. The parameter object and its keys are the same for templates and presets, and [PACK.md](PACK.md) has the table. A preset adds these limits:
+A preset may publish parameters, as an NLE effect publishes its controls, so one dip gives a dip to black in one edit and to a brand blue in another. `params` maps a name to a parameter: its `type`, its `default` and a one-line `description` of what it changes, with `options` for a choice. The parameter object and its keys are the same for templates and presets, and [PACK.md](PACK.md#parameters) has the table. A preset adds these limits:
 
 - `type` is `number`, `color` or `choice`. A preset holds no text and no media.
 - `default` is required, so a preset named without arguments always works.
