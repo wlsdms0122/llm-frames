@@ -409,7 +409,7 @@ struct ClipEvaluatorTests {
             opacity: [Keyframe(at: 0, value: 1)],
             scale: isAdjustment ? nil : [Keyframe(at: 0, value: scale ?? 1)],
             rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
-            blend: isAdjustment ? nil : "normal",
+            blend: "normal",
             animation: animation
         )
     }

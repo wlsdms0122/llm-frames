@@ -180,7 +180,8 @@ struct ClipEvaluator: Sendable {
     }
 
     // An adjustment over the whole list's frame, its reveal wiping across its masks' bounding box (FRAMES-14), or
-    // across the frame without a mask. Its opacity blends the filtered result with what is below.
+    // across the frame without a mask. Its opacity mixes the filtered result with what is below, and its blend
+    // composites the filtered result onto the unfiltered one.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: [ResolvedFilterOperation],
@@ -194,6 +195,7 @@ struct ClipEvaluator: Sendable {
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
+            blend: sample.blend,
             reveal: sample.animation.reveal.rectangle(wiping: bounds ?? space.frame, from: sample.animation.revealFrom),
             content: .adjust(AdjustItem(filter: filter))
         )
