@@ -33,7 +33,7 @@ enum ClipKeyTable {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "pan", "timeRemap"]
 
-        case (.storyline, _):
+        case (.storyline, .media):
             ["crop", "position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .media(.audio)):
@@ -52,8 +52,11 @@ enum ClipKeyTable {
             ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "mask"]
                 .filter(keys(for: kind, in: place).contains)
 
-        case (_, .adjust), (_, .solid):
+        case (_, .adjust):
             ["opacity", "mask"]
+
+        case (_, .solid):
+            []
         }
     }
 
@@ -111,10 +114,10 @@ enum ClipKeyTable {
                 "volume", "pan", "fadeIn", "fadeOut", "keyframes", "connected"
             ]
 
-        case (.storyline, .solid):
+        case (_, .solid):
             return ["id", "metadata", "solid", "duration", "transition", "connected"]
 
-        case (.storyline, _):
+        case (.storyline, .media):
             return [
                 "id", "metadata", "media", "duration", "crop", "filter", "transition", "anchor", "position", "scale",
                 "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border", "shadow", "keyframes",
@@ -146,8 +149,7 @@ enum ClipKeyTable {
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
 
-        // A solid is a storyline clip only, so this is an adjustment clip.
-        case (_, .adjust), (_, .solid):
+        case (_, .adjust):
             return everyClip + ["adjust"]
         }
     }

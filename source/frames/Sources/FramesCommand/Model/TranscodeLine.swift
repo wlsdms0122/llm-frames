@@ -18,9 +18,7 @@ struct TranscodeLine: Equatable, CustomStringConvertible, Sendable {
         let size = FileSize(bytes: Int64(result.byteCount))
         let source = FileSize(bytes: Int64(result.sourceByteCount))
         let percentage = String(format: "%.1f%%", result.ratio * 100)
-        let line = "\(result.path)  \(size)  \(result.format.name)  \(percentage) of \(source)"
-
-        return result.isSmaller ? line : line + ", not smaller than the source"
+        return "\(result.path)  \(size)  \(result.format.name)  \(percentage) of \(source)"
     }
 
     // MARK: - Initializer

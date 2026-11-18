@@ -13,6 +13,7 @@ struct MediaResolver: Sendable {
     private let mediaFacts: any MediaFactProvider
     private let presets: any PresetProvider
     private let library: ReferenceLibrary
+    private let optionChecker: ChoiceOptionChecker
     private let instantiator: TemplateInstantiator
 
     // MARK: - Initializer
@@ -24,6 +25,7 @@ struct MediaResolver: Sendable {
         self.mediaFacts = mediaFacts
         self.presets = presets
         self.library = library
+        self.optionChecker = ChoiceOptionChecker(presets: presets, library: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
     }
 
@@ -153,6 +155,7 @@ struct MediaResolver: Sendable {
             throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind.label, name: name)
         }
 
+        try optionChecker.check(template)
         let instance = try instantiator.instance(
             of: template,
             arguments: arguments,
