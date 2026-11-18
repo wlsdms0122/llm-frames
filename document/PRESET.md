@@ -1,159 +1,192 @@
 # Writing a preset
 
-A preset is one JSON file. It is a transition, an animation or a filter, and frames reads it as data, so a new one needs no rebuild. The format is [FRAMES-14](../spec/FRAMES-14/SPEC.md) (transitions and animations) and [FRAMES-15](../spec/FRAMES-15/SPEC.md) (filters). This page shows how to write one of each and how to try it.
+A preset is one JSON file: a transition, an animation or a filter. frames reads it as data, so a new one needs no rebuild. The format is [FRAMES-14](../spec/FRAMES-14/SPEC.md) for transitions and animations and [FRAMES-15](../spec/FRAMES-15/SPEC.md) for filters. This page shows how to write each kind, how to publish parameters, how a document passes arguments, and how to look at the result.
 
 ## Where a preset lives
 
-| Name in a document | File |
-| --- | --- |
-| `frames/pop` | a preset of the `frames` pack, which ships with frames ([FRAMES-16](../spec/FRAMES-16/SPEC.md)) |
-| `mine/drop-in` | `$FRAMES_HOME/packs/mine/presets/transition/drop-in.json` |
-| `/path/to/drop-in.json` | that file |
+A preset lives in a pack, in `presets/<kind>/<name>.json`, where the kind is `transition`, `animation` or `filter`. A document names it `<pack>/<name>`. The examples on this page are the presets of a pack called `studio`:
 
-The folder under `presets/` is the kind (`transition`, `animation` or `filter`), and the place a name is written says which kind is meant, so a transition and an animation may share a name. Every preset is named `<pack>/<name>`, the ones frames ships too. While you write a preset, an absolute path is the quickest way to try it. Once it works, put it in a pack ([PACK.md](PACK.md)) so documents name it as `<pack>/<name>`.
-
-Every preset has a `description`: one line on how it looks and when to use it. `frames presets` prints it, and it is what an agent reads to choose, so write it for that reader.
-
-```sh
-frames presets                             # every preset of every pack, by kind, with its description
-frames presets transition                  # the transitions
-frames presets transition frames/fade      # the JSON of one preset
-frames presets transition mine/drop-in     # the JSON of a preset in an installed pack
+```
+$FRAMES_HOME/packs/studio/
+  pack.json
+  presets/
+    transition/dip.json             studio/dip
+    transition/drop-in.json         studio/drop-in
+    transition/uncover-down.json    studio/uncover-down
+    transition/iris.json            studio/iris
+    animation/lift.json             studio/lift
+    animation/type-on.json          studio/type-on
+    filter/film.json                studio/film
+  media/iris.png                    studio/iris.png
 ```
 
-## Spans
+| Name in a document | File |
+| --- | --- |
+| `frames/pop` | a preset of the pack `frames`, which ships with frames ([FRAMES-16](../spec/FRAMES-16/SPEC.md)) |
+| `studio/dip` | `$FRAMES_HOME/packs/studio/presets/transition/dip.json` |
+| `/path/to/dip.json` | that file |
+
+The place a name is written says which kind is meant, so a transition and an animation may share a name, as `frames/fade` does. While you write a preset, an absolute path is the quickest way to try it. Once it works, put it in a pack so documents name it as `<pack>/<name>`. Installing a pack and writing `pack.json` are in [PACK.md](PACK.md).
+
+Every preset has a `description`: one sentence on how it looks and moves, which `frames presets` prints. It says what the viewer sees ("The next clip drops in from the top and covers the previous one"), never what the preset is for, since that differs from one edit to the next. Unknown keys and broken rules stop when the preset is read.
+
+## Spans and keys
 
 Transitions and animations are made of spans. A span runs from progress 0 to progress 1, and its keys say what each motion property is at a point of that progress.
 
 ```json
-{ "ease": "back-out", "revealFrom": "left",
+{ "seconds": 0.35, "ease": "back-out", "revealFrom": "left",
   "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "scale": 1 } ] }
 ```
 
 | Property | Default | What it moves |
 | --- | --- | --- |
-| `opacity` | 1 | opacity |
-| `scale` | 1 | scale around the anchor point (a box placed by an area scales around its centre) |
-| `x`, `y` | 0 | offset in multiples of the thing's own size, or of the content rect in a transition. Down is positive |
-| `rotation` | 0 | degrees, clockwise |
-| `reveal` | 1 | how much is shown, 0 to 1 |
-| `nudge` | 0 | moves an arrow towards its target by multiples of its length |
+| `opacity` | 1 | opacity, multiplied with the clip's own, 0 to 1 |
+| `scale` | 1 | scale around the clip's anchor point |
+| `x`, `y` | 0 | offset in multiples of the clip's own size, its box before any scale. In a transition, multiples of the frame. Right and down are positive |
+| `rotation` | 0 | degrees, clockwise, around the anchor point |
+| `reveal` | 1 | how much of the clip shows, 0 to 1, wiped with a hard edge from the `revealFrom` side (`left`, `right`, `top` or `bottom`, default `left`) |
 
 How the rules play out when you write keys:
 
-- **Each property joins only the keys that name it.** In the span above, opacity goes from 0 to 1 over the first 30 percent and then stays at 1, while scale runs from 0.6 to 1 over the whole span. You do not repeat `opacity: 1` on the last key.
-- **A property no key names stays at its default.** A span that only names `y` never fades.
+- **Each property joins only the keys that name it, in straight lines.** In the span above, opacity goes from 0 to 1 over the first 30 percent and then holds, while scale runs from 0.6 to 1 over the whole span. You do not repeat `"opacity": 1` on the last key.
+- **A property no key names stays at its default.** A span that names only `y` never fades.
 - **A property named once holds that value for the whole span.** `{ "t": 0, "opacity": 0.5 }` alone keeps it at half opacity.
-- **The ease bends progress before any key is read**, so one ease drives every property. With `back-out`, progress runs past 1 near the end and comes back. A property whose keys reach `t: 1` follows its last line past the end and overshoots (scale goes a little above 1 and settles). A property whose keys stop before `t: 1`, like opacity above, just holds. That is how a pop overshoots in size without flashing above full opacity.
-- **`x` and `y` are relative to the thing itself.** `"y": 0.5` on a subtitle moves it down by half its own text box, whatever its size. In a transition they are relative to the content rect, so `"x": -1` moves a picture exactly out to the left.
-- **`reveal` depends on what receives it.** A box draws its border around, a fill paints from `revealFrom`, a dim closes in from everything it darkens to the area, an arrow grows from tail to head, and a title, media clip, adjustment or storyline picture is wiped from `revealFrom` (default `left`).
+- **Two keys of a property at the same `t` make a cut.** Before that point the first value holds, from it the second.
+- **The ease bends progress before any key is read**, so one ease drives every property. With `back-out`, bent progress runs past 1 near the end and comes back. A property whose keys reach `t: 1` follows its last line past the end and overshoots, so scale goes a little above 1 and settles. A property whose keys stop before `t: 1`, like opacity above, holds. That is how a pop overshoots in size without passing full opacity.
+- **`x` and `y` are relative to the clip itself.** `"y": 0.5` on a title moves it down by half its own text box, whatever its size.
+- **`reveal` wipes every clip the same way**: the bounds of what the clip draws, cut with a straight edge that turns and moves with the clip. To draw a stroke on, keyframe a shape's `trim` instead ([FRAMES-11](../spec/FRAMES-11/SPEC.md)).
+- `opacity` and `reveal` keys outside 0 to 1 stop, and so does a `t` outside 0 to 1.
 
-| ease | Use it for |
+## Eases
+
+An ease is a name, a cubic Bézier or a spring. The formulas are [FRAMES-4](../spec/FRAMES-4/SPEC.md).
+
+| ease | Shape |
 | --- | --- |
-| `linear` | opacity ramps and anything that should not accelerate |
-| `ease-out` | things arriving: fast, then settling (the entrance default) |
-| `ease-in` | things leaving: slow, then gone (the exit default) |
-| `ease-in-out` | motion between two places (the loop default) |
-| `back-out` | arrivals that overshoot and settle |
-| `bounce-out` | arrivals that bounce |
+| `linear` | an even rate |
+| `ease-in` | starts slow and speeds up (cubic) |
+| `ease-out` | starts fast and slows into place (cubic) |
+| `ease-in-out` | slow at both ends |
+| `back-out` | fast, past the end, and back |
+| `bounce-out` | lands and bounces three times |
 | `step` | holds the start until the end of the span |
-| `[x1, y1, x2, y2]` | a cubic Bezier, as CSS `cubic-bezier()` writes it |
+| `[x1, y1, x2, y2]` | a cubic Bézier, as CSS `cubic-bezier()` writes it. `x1` and `x2` lie in 0 to 1 |
+| `{ "spring": { "bounce": b } }` | a damped spring that lands exactly at the end of the span |
+
+A spring's `bounce` lies between -1 and 1, both ends excluded. At 0 it settles with no overshoot. Above about 0.134 it swings past the end and back before it settles, more the higher it is. Below 0 it approaches more slowly. The span's length sets the spring's speed, so the same bounce over 0.3 seconds is a snap and over 1 second a slow settle. A spring above 0 overshoots like `back-out`: a property whose keys reach `t: 1` swings past its last value.
 
 ## A transition
 
-A transition plays across the edit point between two storyline clips. It moves the incoming clip, the outgoing clip, or both, and may lay a cover or a matte over them.
+A transition plays across the edit point between two storyline clips. It moves the incoming picture, the outgoing picture or both, and may lay a cover or a matte over them. It moves nothing else. A connected clip keeps its place, except one parented to a storyline picture, which follows the picture's scale, rotation, x and y but not its opacity or reveal ([FRAMES-10](../spec/FRAMES-10/SPEC.md)). To have a title leave with its picture in a dissolve or a wipe, put both in a compound clip and give the transition to that clip.
 
-`drop-in.json`, the next clip comes down from the top and covers the previous one, which darkens a little under it:
+`studio/drop-in`, the next clip comes down from the top and covers the previous one, which darkens under it:
 
 ```json
-{ "description": "The next clip drops in from the top and covers the previous one, which dims under it. For a change of topic in a vertical video",
-  "seconds": 0.4, "ease": "ease-out",
+{ "description": "The next clip drops in from the top and covers the previous one, which darkens under it.",
+  "seconds": 0.5, "ease": "ease-out",
   "incoming": { "keys": [ { "t": 0, "y": -1 }, { "t": 1, "y": 0 } ] },
   "outgoing": { "keys": [ { "t": 0, "opacity": 1 }, { "t": 1, "opacity": 0.4 } ] } }
 ```
 
 | Key | What it does |
 | --- | --- |
-| `seconds` | the default length, required. A document can write `{ "preset": "mine/drop-in", "seconds": 0.6 }` instead |
-| `ease` | the default ease of every span in the preset |
-| `over` | which clip is on top: `incoming` (default) or `outgoing`. An uncover moves the outgoing clip off with `outgoing` on top |
-| `audio` | the curve of the sound crossfade: `constant-power` (default), for two different sounds, or `constant-gain`, for a cut inside one take. It runs at an even pace, and `ease` does not bend it |
-| `incoming`, `outgoing` | spans of the two clips. A picture reads opacity, scale, x, y, rotation and reveal, all about the centre of the content rect |
-| `cover` | `{color, keys}` or `{media, keys}` over both clips: a dip to a colour, or a stinger. Its keys take only `t` and `opacity` |
+| `seconds` | the default length, required. A document's transition choice may give its own |
+| `ease` | the ease of every span in the preset that gives none. Without one it is `linear` |
+| `over` | which picture is on top: `incoming` (default) or `outgoing` |
+| `audio` | the curve of the sound crossfade: `constant-power` (default) or `constant-gain`. It runs at an even pace, and `ease` does not bend it |
+| `incoming`, `outgoing` | spans of the two storyline pictures. Each reads opacity, scale, x, y, rotation and reveal |
+| `cover` | `{color, keys}` or `{media, keys}`: a colour or an image or video with alpha over both pictures, stretched over the frame. Its keys take `t` and `opacity` only |
 | `matte` | `{media, softness, invert}`: a luma wipe from a greyscale image or video |
 
-What happens in a sequence:
+- The motion acts after the picture's own transform: scale and rotation about the centre of the frame, x and y in multiples of the frame, so `"x": -1` moves a picture exactly out to the left.
+- Spans in a transition take no `seconds` or `period`, since a transition's time is its length.
+- In a sequence the transition belongs to the clip it brings in and is centred on the edit point. It lasts the shorter of its seconds and the two clips' durations, and it does not change the sequence's length. During it the outgoing clip plays on past its `out` and the incoming one starts before its `in`, so trim with media to spare on both sides ([FRAMES-8](../spec/FRAMES-8/SPEC.md)).
 
-- The transition belongs to the clip it brings in and is centred on the edit point. Its length is `min(seconds, previous clip's duration, next clip's duration)`, and it does not change the sequence's length.
-- During it the outgoing clip plays on past its `out` and the incoming clip starts before its `in`, on media beyond them (the handles). Trim with a little media to spare on both sides, or the edge frame holds.
-- Spans inside a transition take no `seconds` or `period`. Writing one stops, since a transition's time is its length.
-- The first storyline clip takes no transition. To open from black, start with a solid clip and give the next one the transition.
-
-A dip to a colour hides the change behind a cover. Keep the incoming clip invisible until the cover is at full opacity, then cut it in:
+**A dip.** A cover hides the change. Keep the incoming picture invisible until the cover is opaque, then cut it in with two keys at the same `t`. `studio/dip` publishes the colour and the pace as parameters ([Parameters](#parameters)):
 
 ```json
-{ "description": "Dips to the accent red and comes up on the next clip. For a reveal of a result",
-  "seconds": 0.6, "ease": "linear",
-  "cover": { "color": "accent", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] },
-  "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] } }
+{ "description": "Dips to a colour and holds a beat, then the next clip comes up out of it.",
+  "params": {
+    "color": { "type": "color", "default": "#000000", "description": "colour of the dip" },
+    "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" } },
+  "seconds": 0.7, "ease": { "param": "curve" },
+  "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
+  "cover": { "color": { "param": "color" },
+             "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 ```
 
-Two keys at the same `t` make a cut: before it the first holds, from it the second. Here the incoming clip appears at once at the middle, behind a full cover.
-
-A wipe of any shape is a matte: a greyscale image where the incoming clip shows first in the dark parts and last in the light ones. A horizontal gradient from black on the left to white on the right gives a left to right wipe, and a radial gradient, black at the centre and white at the corners, gives an iris. Make it at the output's aspect ratio, since it is stretched over the content rect. Any size will do for a smooth gradient. `softness` is the width of the edge, from 0 (hard) to 1, and `invert` swaps dark and light. A matte only reveals the incoming clip, so `"over": "outgoing"` with a matte stops.
+**An uncover.** With `"over": "outgoing"` the previous picture stays on top and moves away. `studio/uncover-down` also crossfades the sound at constant gain, which keeps the level of two sounds that are the same signal, such as a cut inside one take ([FRAMES-13](../spec/FRAMES-13/SPEC.md)):
 
 ```json
-{ "description": "The next clip opens from the centre in a soft circle. For a calm reveal",
+{ "description": "The previous clip falls away downwards and uncovers the next one, which waits still beneath.",
+  "seconds": 0.5, "ease": "ease-in", "over": "outgoing", "audio": "constant-gain",
+  "outgoing": { "keys": [ { "t": 0, "y": 0 }, { "t": 1, "y": 1 } ] } }
+```
+
+**A wipe of any shape** is a matte: a greyscale image stretched over the frame, where the incoming picture shows first in the dark parts and last in the light ones. A horizontal gradient from black on the left to white on the right wipes left to right, and a radial gradient, black at the centre and white at the corners, opens an iris. Make it at the output's aspect ratio. `softness` is the width of the edge, from 0 (hard) to 1, and `invert` swaps dark and light. A matte reveals the incoming picture, so a matte with `"over": "outgoing"` stops. A video in a cover or a matte is stretched over the transition, so a longer transition plays it slower.
+
+```json
+{ "description": "The next clip opens from the centre of the frame in a soft-edged circle.",
+  "params": { "softness": { "type": "number", "default": 0.15, "description": "width of the circle's edge" } },
   "seconds": 0.6, "ease": "ease-in-out",
-  "matte": { "media": "/path/to/iris.png", "softness": 0.15 } }
+  "matte": { "media": "studio/iris.png", "softness": { "param": "softness" } } }
 ```
-
-A video in a cover or a matte is stretched over the transition, so a longer transition plays it slower rather than cutting it.
 
 ## An animation
 
-An animation moves a clip as it comes in, while it stays, and as it goes. A clip takes it through `animation`, or from the theme `defaults.animation` when it names none.
+An animation moves a clip as it comes in, while it stays, and as it goes. Titles, media clips with a picture, shapes and adjustment clips take one through `animation`, or from the theme's `defaults.animation` when they name none ([FRAMES-22](../spec/FRAMES-22/SPEC.md)). A storyline clip takes none.
 
-`lift.json`, rises a little as it fades in, breathes while it stays, and fades out:
+`studio/lift` springs up a little as it fades in, breathes while it stays, and fades out:
 
 ```json
-{ "description": "Rises a little while it fades in, breathes while it stays, then fades out. For a caption that stays on screen for a while",
-  "entrance": { "seconds": 0.4, "ease": "back-out",
-                "keys": [ { "t": 0, "y": 0.3, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "y": 0 } ] },
+{ "description": "Springs up a little from below as it fades in, breathes while it stays, and fades out.",
+  "params": { "bounce": { "type": "number", "default": 0.3, "description": "how far it springs past its place" } },
+  "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+                "keys": [ { "t": 0, "y": 0.3, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "y": 0 } ] },
   "loop":     { "period": 1.2,
                 "keys": [ { "t": 0, "scale": 1 }, { "t": 0.5, "scale": 1.04 }, { "t": 1, "scale": 1 } ] },
   "exit":     { "seconds": 0.2,
                 "keys": [ { "t": 0, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 ```
 
+`studio/type-on` wipes a clip in and out with `reveal`, and publishes the length of its entrance:
+
+```json
+{ "description": "Wiped in from the left at an even pace and wiped away from the right.",
+  "params": { "seconds": { "type": "number", "default": 0.8, "description": "how long the wipe in takes" } },
+  "entrance": { "seconds": { "param": "seconds" }, "ease": "linear", "revealFrom": "left",
+                "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] },
+  "exit":     { "seconds": 0.3, "revealFrom": "left",
+                "keys": [ { "t": 0, "reveal": 1 }, { "t": 1, "reveal": 0 } ] } }
+```
+
 | Span | Runs | Needs | Default ease |
 | --- | --- | --- | --- |
 | `entrance` | for `seconds` from the start of the clip's visible window | `seconds` | `ease-out` |
-| `loop` | every `period` seconds between the entrance and the exit | `period` | `ease-in-out` |
+| `loop` | every `period` seconds from the end of the entrance to the start of the exit | `period` | `ease-in-out` |
 | `exit` | for the last `seconds` of the visible window | `seconds` | `ease-in` |
 
-What happens on a clip:
-
-- Every span is optional. A preset with only an entrance appears with it and then simply stays.
-- The visible window is what counts. A title at `[2, 5]` with `lift` enters from 2 to 2.4, breathes from 2.4 to 4.8, and fades from 4.8 to 5.
-- On a clip shorter than both, the entrance runs first and the exit gets what is left.
-- The animation is applied over the clip's own keyframes about the same anchor point: scale and opacity multiply, and x, y and rotation add. A title keyframed to `scale: 1.5` with a `frames/pop` still pops, to 1.5.
-- A loop that should end where it started gives its first and last keys the same values, or the clip jumps at each period.
-- A document can take the entrance of one preset and the exit of another: `{ "entrance": "mine/lift", "exit": "none" }`. Both sides are written.
-- A label on a shape animates on top of its shape with `labelAnimation`, or the theme's `label` default.
+- Every span is optional. A preset with only an entrance appears with it and then stays. A preset with no span shows the clip as it is.
+- The visible window is what counts. A title at `[2, 5]` with `studio/lift` enters from 2 to 2.5, breathes from 2.5 to 4.8, and fades from 4.8 to 5. On a clip too short for both, the entrance runs first and the exit takes what is left.
+- The animation acts over the clip's own keyframes about the same anchor point: scale and opacity multiply, and x, y and rotation add. A title keyframed to `"scale": 1.5` with `frames/pop` still pops, to 1.5.
+- An entrance starts hidden and ends with every property at its default, an exit does the opposite, and a loop starts and ends at the defaults, or the clip jumps where one span hands over to the next.
+- Clips parented to an animated clip follow its scale, rotation, x and y, but not its opacity or reveal ([FRAMES-10](../spec/FRAMES-10/SPEC.md)).
 
 ## A filter
 
-A filter is a chain of operations from a fixed table, applied in order. Each operation has a formula, so a filter looks the same on every renderer ([FRAMES-15](../spec/FRAMES-15/SPEC.md) has the formulas).
+A filter is a chain of operations from a fixed table, applied in order. Each operation has a formula, so a filter looks the same on every renderer. The formulas and ranges are [FRAMES-15](../spec/FRAMES-15/SPEC.md).
 
-`warm-screen.json`, a warm, slightly lifted look for screen recordings that keeps text crisp:
+`studio/film`, lifted blacks, muted colour and a fine grain:
 
 ```json
-{ "description": "Warmer and a little lifted, with crisp text. For screen recordings that look cold",
-  "ops": [ { "op": "temperature", "kelvin": 900 },
-           { "op": "saturation", "amount": 0.9 },
-           { "op": "levels", "input": [0, 1], "output": [0.04, 0.97] },
-           { "op": "sharpen", "amount": 0.4, "radius": 1.5 } ] }
+{ "description": "Lifted blacks, muted colour and a fine grain, like a print film stock.",
+  "params": {
+    "lift":  { "type": "number", "default": 0.08, "description": "how far the blacks are lifted" },
+    "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
+  "ops": [ { "op": "saturation", "amount": 0.8 },
+           { "op": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
+           { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
 ```
 
 | op | Parameters |
@@ -173,50 +206,94 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 | `pixelate` | `size` |
 | `grain` | `amount` (0 to 1), `size` |
 
-- Order matters. Sharpen after a blur gives crisp blur; blur after a sharpen undoes it.
-- `radius` and `size` are theme lengths: points at the theme `baseWidth`, scaled to the output. A `blur` radius of 8 looks the same on a 1080 and a 2160 wide output.
-- An unknown op or a value out of range stops when the preset is read, so a typo never renders as no effect.
-- A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/` and name it `<pack>/<name>`.
+- Order matters: a sharpen after a blur sharpens the blurred picture, and a blur after a sharpen softens the sharpened one.
+- `radius` and `size` are theme lengths, so a blur of 8 looks the same on a 1080 and a 2160 wide output.
+- An unknown op or a value out of range stops when the preset is read.
+- A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/`.
 
-A filter goes on a storyline or media clip as `filter`, on everything below an adjustment clip as `adjust`, and in an image document as an `adjust` operation. A list of filters runs one after another: `"filter": ["mine/warm-screen", "frames/vignette"]`.
+A filter goes on a storyline clip or a media clip as `filter`, and on everything below an adjustment clip as `adjust`.
+
+## Parameters
+
+A preset may publish parameters, as an NLE effect publishes its controls, so one dip gives a dip to black in one edit and to a brand blue in another. `params` maps a name to a parameter: its `type`, its `default` and a one-line `description` of what it changes, with `options` for a choice. The parameter object and its keys are the same for templates and presets, and [PACK.md](PACK.md) has the table. A preset adds these limits:
+
+- `type` is `number`, `color` or `choice`. A preset holds no text and no media.
+- `default` is required, so a preset named without arguments always works.
+- A `choice`'s `options` are eases. A filter has no ease, so its parameters are `number` or `color`.
+
+Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's type where one is written:
+
+| Type | Where `{"param"}` may stand |
+| --- | --- |
+| `number` | a key's property value or `t`, a span's `seconds` or `period`, a transition's `seconds`, `matte.softness`, a spring's `bounce`, a filter op's number, an element of `levels` `input` and `output` |
+| `color` | a cover `color`, a `bloom` `color` |
+| `choice` | a span's or a transition's `ease` |
+
+It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`) or for a file (`media`, a `lut` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
+
+## Passing arguments
+
+A document passes arguments in its preset choices. The same choice may be written on a clip, in a theme's `defaults`, or as a template's argument.
+
+| Choice | Forms |
+| --- | --- |
+| transition | `"cut"`, a preset name, or `{preset, seconds, args}` |
+| animation | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}` |
+| each side of `{entrance, exit}` | `"none"`, a preset name, or `{preset, args}` |
+| filter | `"none"`, a preset name, `{preset, args}`, or a list of names and `{preset, args}` applied in turn |
+
+```json
+"transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B", "curve": "ease-in-out" } },
+"animation": { "preset": "studio/lift", "args": { "bounce": 0.5 } },
+"animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" },
+"adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
+```
+
+- In an object choice `preset` is required, and so is at least one other key, since the name alone is the plain form.
+- `seconds` in a transition choice replaces the preset's own and is above 0.
+- `args` maps parameter names to values. An unknown name, or a value of the wrong type (for a choice, one that is not among its options), stops. A parameter without an argument takes its default.
+- `{entrance, exit}` takes the entrance of one preset and the exit of another, each with its own arguments, and no loop. Both sides are written, and a side with no span is `"none"`.
+- The presets of the pack `frames` publish no parameters, so they are named bare, and an argument given to one stops as unknown.
 
 ## Trying a preset
 
-Try it in a document small enough to read at a glance, then check frames with `still` or `sheet`. Neither encodes a video.
+List what frames finds, with each preset's description and parameters:
 
-**As a document choice.** Name the file in the place that takes it:
+```sh
+frames presets                              # every preset of every pack, by kind
+frames presets transition                   # the transitions
+frames presets transition studio/dip        # the JSON of one preset
+frames packs studio                         # what the pack holds, with each preset's parameters
+```
+
+Then try the preset in a document small enough to read at a glance:
 
 ```json
 { "kind": "sequence",
-  "format": { "size": [1080, 1920], "fps": 30 },
+  "format": { "size": [1920, 1080], "fps": 30 },
   "storyline": [
-    { "solid": "#1F2937", "duration": 2,
-      "connected": [ { "at": [0.2, 2], "title": "Before", "style": "headline", "animation": "/path/to/lift.json" } ] },
-    { "solid": "#F59E0B", "duration": 2, "transition": "/path/to/drop-in.json",
-      "connected": [ { "title": "After", "style": "headline" } ] }
+    { "solid": "#1F2937", "duration": 3,
+      "connected": [ { "at": [0.5, 3], "title": "Before", "style": "title",
+                       "animation": { "preset": "studio/lift", "args": { "bounce": 0.5 } } } ] },
+    { "solid": "#F59E0B", "duration": 3,
+      "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B", "curve": "ease-in-out" } },
+      "connected": [ { "title": "After", "style": "title",
+                       "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" } } ] },
+    { "solid": "#0F766E", "duration": 3, "transition": "studio/iris",
+      "connected": [ { "adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
   ] }
 ```
 
-**As a theme default.** A theme file sets it for every clip that names none, without touching the document:
-
-```json
-{ "defaults": { "transition": "/path/to/drop-in.json", "animation": { "title": { "headline": "/path/to/lift.json" } } } }
-```
-
 ```sh
-frames --theme /path/to/try.json still /path/to/try-document.json --at 1.8,2,2.2 -o /path/to/out/try.png
+frames timeline /path/to/try.json
+frames still /path/to/try.json --at 2.6,2.8,3,3.2,3.4 -o /path/to/out/dip.png
+frames sheet /path/to/try.json -o /path/to/out/lift.png --from 0.5 --to 1 --step 0.05 --cols 11
+frames evaluate /path/to/try.json --at 0.5
 ```
 
-Then look at it:
+- `timeline` shows each transition with the length it really gets, which is shorter than `seconds` when a clip is short, and each clip's animation.
+- `still` with several times lays the frames side by side, each labelled with its time. Five frames across an edit point show the shape of a transition.
+- `sheet` lays out every frame of a range. A small `--step` over an entrance shows each step of its motion.
+- `evaluate` prints each clip's `bounds` and `opacity` at one instant, to check that a key lands where you meant: at the start of `studio/lift` the title's opacity is 0 and its bounds sit 30 percent of its height lower.
 
-```sh
-frames timeline /path/to/try-document.json                                   # the transition and its real length
-frames still /path/to/try-document.json --at 1.8,1.9,2,2.1,2.2 -o /path/to/out/edit.png
-frames sheet /path/to/try-document.json -o /path/to/out/entrance.png --from 0.2 --to 0.7 --step 0.05 --cols 5
-frames evaluate /path/to/try-document.json --at 0.3                          # bounds and opacity as numbers
-```
-
-- `timeline` shows the transition with the length it really gets, which is shorter than `seconds` when a clip is short.
-- `still` with several times puts them side by side, each labelled with its time. Five frames across an edit point show a transition's shape.
-- `sheet` with a small `--step` lays out every frame of an entrance.
-- `evaluate` prints each item's `bounds` and `opacity` at one instant. Use it to check that a key lands where you meant: at `t = 0` of `lift` the title's opacity is 0 and its bounds sit 30 percent of its height lower.
+Every path given to frames is absolute. Neither `still` nor `sheet` encodes a video. Render one only to judge motion at speed or to hear a crossfade.
