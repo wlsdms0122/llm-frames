@@ -310,6 +310,18 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test("a format duration that is not above 0 stops", arguments: ["0", "-1"])
+    func refusesDurationNotAboveZero(duration: String) throws {
+        // Given
+        let text = try replacingFirst(#""duration": 3,"#, with: #""duration": \#(duration),"#, in: written(Self.documents[0]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "format.duration (format): a sequence's duration is above 0, found \(duration)")
+    }
+
     @Test("a root that is not an object stops")
     func refusesNonObjectRoot() throws {
         // Given
