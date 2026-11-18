@@ -61,7 +61,7 @@ struct ClipWindowTests {
 
         // Then
         #expect(plan.clips[0].window == TimeRange(start: 2, end: 3.5))
-        #expect(plan.clips[0].timing?.mediaTime(atSequenceTime: 3) == 1)
+        #expect(plan.clips[0].mediaClock?.mediaTime(atSequenceTime: 3) == 1)
         #expect(plan.clips[0].lane == nil)
     }
 

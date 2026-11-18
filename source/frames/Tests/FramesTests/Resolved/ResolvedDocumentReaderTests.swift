@@ -129,6 +129,14 @@ struct ResolvedDocumentReaderTests {
             { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
               "trackMatte": { "clip": "word", "mode": "alpha" } },
             { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
+        """#,
+        // Time remapping: a storyline clip held, reversed and eased past the end of its media, and a connected media
+        // clip remapped over its window, which writes no `in`, `out` or `loop`.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 6, "keyframes": [
+            { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
+            "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
+              { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
         """#
     ]
 

@@ -368,11 +368,11 @@ struct RenderPipelineTests {
             place: place,
             media: media,
             nested: [],
-            in: 0,
-            origin: 0,
-            out: 1,
-            speed: 1,
-            loop: false,
+            played: PlayedRange(
+                map: TimeMap(origin: 0, in: 0, speed: 1),
+                out: 1,
+                loop: false
+            ),
             start: 0,
             end: 1,
             audible: TimeRange(start: 0, end: 1),

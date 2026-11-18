@@ -289,11 +289,11 @@ struct MixPlannerTests {
             place: "sound",
             media: media,
             nested: nested,
-            in: `in`,
-            origin: origin ?? start,
-            out: out,
-            speed: speed,
-            loop: loop,
+            played: PlayedRange(
+                map: TimeMap(origin: origin ?? start, in: `in`, speed: speed),
+                out: out,
+                loop: loop
+            ),
             start: start,
             end: end,
             audible: audible ?? TimeRange(start: start, end: end),

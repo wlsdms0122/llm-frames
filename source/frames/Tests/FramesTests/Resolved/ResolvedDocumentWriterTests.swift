@@ -60,6 +60,7 @@ struct ResolvedDocumentWriterTests {
               "in": 2,
               "out": 8,
               "speed": 2,
+              "timeRemap": null,
               "start": 0,
               "end": 3,
               "size": [1080, 1920],

@@ -531,7 +531,8 @@ struct EvaluatorTests {
     @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")
     func playsNarrowedMediaFromOrigin() throws {
         // Given
-        let media = mediaClip(timing: ResolvedMediaTiming(in: 0, origin: 1, out: 4, speed: 1, loop: false), start: 1.5)
+        let played = PlayedRange(map: TimeMap(origin: 1, in: 0, speed: 1), out: 4, loop: false)
+        let media = mediaClip(timing: .played(played), start: 1.5)
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
@@ -555,7 +556,8 @@ struct EvaluatorTests {
         // Given
         // At 1 the clip at speed 2 reaches media time 2.5, a second past `out` 1.5, and one loop of 1 brings it back
         // to `in` 0.5.
-        let media = mediaClip(timing: ResolvedMediaTiming(in: 0.5, origin: 0, out: 1.5, speed: 2, loop: loop))
+        let played = PlayedRange(map: TimeMap(origin: 0, in: 0.5, speed: 2), out: 1.5, loop: loop)
+        let media = mediaClip(timing: .played(played))
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
@@ -1066,6 +1068,7 @@ struct EvaluatorTests {
             in: entry.in,
             out: entry.out,
             speed: entry.speed,
+            timeRemap: entry.timeRemap,
             start: entry.start,
             end: entry.end,
             crop: entry.crop,
@@ -1163,7 +1166,7 @@ struct EvaluatorTests {
 
     // A media clip of the second media, its 80 x 40 box at (10, 20) showing the whole of its 400 x 200 picture.
     private func mediaClip(
-        timing: ResolvedMediaTiming?,
+        timing: MediaTiming?,
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
         appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
