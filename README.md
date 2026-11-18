@@ -192,10 +192,12 @@ A sequence plays clips over time. The storyline plays one clip after another, co
 ```json
 { "kind": "sequence",
   "format": { "size": [1080, 1920], "fps": 30, "inset": [420, 0, 120, 0] },
+  "theme": { "styles": { "emphasis": { "size": 48, "weight": "bold", "color": "#FFE14D" } } },
   "storyline": [
     { "media": "/path/to/recording.mp4", "in": 0.2, "out": 1.5,
       "connected": [
-        { "at": [0.4, 1.5], "title": "The total **includes shipping**", "style": "subtitle" },
+        { "at": [0.4, 1.5], "title": [ { "text": "The total " }, { "text": "includes shipping", "style": "emphasis" } ],
+          "style": "subtitle" },
         { "at": [0.6, 1.5], "shape": "box", "area": "Total", "label": "fixed" } ] },
     { "media": "/path/to/shot.png", "duration": 2.5, "transition": "frames/fade",
       "keyframes": [ { "at": 0, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 2.5, "crop": { "scale": 1.2 } } ] }
@@ -352,7 +354,7 @@ Durations (`duration`, transition and animation seconds, fades) are sequence sec
 | `dim` | darkens everything but the area |
 | `arrow` | points at the area from `side` (`left`, `right`, `top`, `bottom`) |
 
-A `label` goes on the first side in the theme `shapes.label.sides` where it fits, and stops when none does. A title needs a `style`. `blend` takes the W3C modes: `normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter`. [FRAMES-11](spec/FRAMES-11/SPEC.md)
+A `label` goes on the first side in the theme `shapes.label.sides` where it fits, and stops when none does. A title needs a `style`. Its `title` is a string or a list of runs `{text, style}`: a run's style gives it its size, weight, colour and stroke, and the clip's style gives the paragraph its placement, alignment, line height, line limit and background ([FRAMES-5](spec/FRAMES-5/SPEC.md)). `blend` takes the W3C modes: `normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter`. [FRAMES-11](spec/FRAMES-11/SPEC.md)
 
 ### Theme
 
@@ -362,7 +364,7 @@ A `label` goes on the first side in the theme `shapes.label.sides` where it fits
 | --- | --- |
 | `baseWidth`, `font` | the width theme lengths are written for, and the font families in order |
 | `colors` | named colours (`accent`, `background`, `text`, ...), an open map |
-| `styles` | text styles by name: `size, weight, color, emphasis, lineHeight, stroke, background, placement, offset, align, lines`, an open map |
+| `styles` | text styles by name: `size, weight, color, lineHeight, stroke, background, placement, offset, align, lines`, an open map |
 | `shapes` | `box, fill, dim, arrow, border, shadow, label` |
 | `area`, `placement`, `image`, `layout` | paddings and gaps |
 | `defaults` | the transition, filter and animations a clip takes when it names none |

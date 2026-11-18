@@ -39,7 +39,7 @@ Its size is the source's. Leave out `resize`: the code host scales the picture t
 
 - The conclusion comes first, in `bannerHead`, as one sentence of what is now true ("Total includes shipping"). A reviewer reads the first line and may stop there.
 - The reason follows in one or two `banner` lines and says what in the picture proves the conclusion. A conclusion without its proof is a claim, not evidence.
-- No `**` in the banner or in labels. The emphasis colour is yellow, which cannot be read on the white band.
+- No run in another style in the banner or in labels. An emphasis colour such as yellow cannot be read on the white band.
 - A label is one to four words and names the fact its box shows ("42,000 = 38,000 + 4,000", "now 4,000"). A label is one line, and one that does not fit stops.
 - Write in the language of the pull request. A reviewer reads the evidence beside its description.
 

@@ -15,7 +15,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 - `"size": [1920, 1080]`, `"fps": 30`, `"background": "#000000"`. A recording of another 16:9 size is fitted to it, and one of another shape is shown whole with black around it.
 - `conform` stays `fit`: the recording fills the frame and is never cut.
 - A demo has no band and no banner. Its words are built from titles in two places:
-  - The title card and the end card are `solid` storyline clips of `#000000`, each with a connected title in the `headline` style placed at `center`. The title card names the product area on its first line and what the feature does on its second, in `**` emphasis. The end card says where to get the feature.
+  - The title card and the end card are `solid` storyline clips of `#000000`, each with a connected title in the `headline` style placed at `center`. The title card names the product area on its first line and what the feature does on its second, a run in the `feature` style the example's theme adds, bold yellow at the title's size. The end card says where to get the feature.
   - Each step is captioned by a connected title in the `subtitle` style, with no placement, so the style puts it at the bottom, centred, on its dark box. It moves to the top only when it would cover what its step points at.
 - Boxes, arrows and labels are connected to their scene by `area`, so they stay on the control they point at while the scene zooms.
 
@@ -23,7 +23,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 ### Text
 
-- The title card names the feature in at most two lines, the second line in `**`. Viewers check in the first second that this is the demo they want.
+- The title card names the feature in at most two lines, the second line a run in the `feature` style. Viewers check in the first second that this is the demo they want.
 - A subtitle names one step as an instruction or what the step shows ("Open the order summary"), in one line of at most about 40 characters. It is read while the hand moves, so it says what to watch, not why.
 - One subtitle per step, back to back, each with its own `at` in its scene's seconds. A step without words is one the viewer has to guess.
 - The end card says where the feature is: a version, a menu, a plan. It is what a viewer looks for after the demo.
@@ -35,7 +35,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 - One box at a time. Two boxes split the eye, and a demo has a single path.
 - A subtitle and its box cover about the bottom quarter of the frame (its bottom edge is 255 pixels above the bottom on a 1920 wide demo). When what a step points at sits there, give that step's subtitle `"placement": "top"`. A subtitle over the thing it names hides the step.
 - Zoom in with crop keyframes when what a step uses is small: `{"scale": 1}` first, so the viewer sees where it is, then an area around it that keeps it out of the bottom quarter. Zoom back out before a step elsewhere on the screen.
-- `**` emphasis only on the title card. Subtitles sit on a dark box where the yellow is loud, and a demo's steps are all equally important.
+- A run in another style only on the title card. Subtitles sit on a dark box where the yellow is loud, and a demo's steps are all equally important.
 
 ### Cuts
 
@@ -68,7 +68,7 @@ The base theme. A demo writes no `theme`, so it looks like what frames draws by 
 
 It shows the format and the rules together:
 
-- The title card and the end card are black solids with a centred headline, and only the title card has `**` emphasis.
+- The title card and the end card are black solids with a centred headline, and only the title card has a run in the `feature` style.
 - The recording plays from `in` 0 to `out` 1.4 with its sound off, brought in with a `frames/fade` since it follows the title card. The screenshot after it is a cut: the same screen goes on.
 - Each step has one subtitle. The `Total` line sits in the bottom quarter, so the subtitle of the step that boxes it moves to the top:
 

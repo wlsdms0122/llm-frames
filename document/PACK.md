@@ -77,7 +77,7 @@ A pack theme holds only the keys it changes from the base theme. `frames theme` 
 
 ```json
 { "colors": { "background": "#111827", "text": "#F9FAFB", "accent": "#F59E0B", "onAccent": "#111827" },
-  "styles": { "headline": { "size": 88, "emphasis": "accent" } } }
+  "styles": { "headline": { "size": 88, "color": "accent" } } }
 ```
 
 A document takes it with `"theme": "mine/dark"`, and any command with `--theme mine/dark`. A theme in a pack looks for its `font` families in the pack's `fonts/` before the machine's, so a pack that must keep its look carries its fonts.
@@ -158,7 +158,7 @@ As media in a document, where it plays as a compound clip, or draws as a picture
 { "kind": "sequence",
   "format": { "size": [1080, 1920], "fps": 30 },
   "storyline": [
-    { "media": { "template": "mine/intro", "args": { "title": "Checkout, **fixed**" } } },
+    { "media": { "template": "mine/intro", "args": { "title": "Checkout, fixed" } } },
     { "media": { "template": "mine/callout", "args": { "screen": "/path/to/shot.png", "line": "Total", "note": "includes shipping" } },
       "duration": 3 }
   ] }
