@@ -6,7 +6,7 @@
 //
 
 // The media of a clip, its edit points as written, in media time, and how its sound plays. Each is nil when left to its
-// default. `volume` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
+// default. `volume` and `pan` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
 struct ClipMedia: Equatable, Sendable {
     // MARK: - Property
     let source: MediaSource
@@ -15,6 +15,7 @@ struct ClipMedia: Equatable, Sendable {
     let speed: Double?
     let loop: Bool
     let volume: PropertyValue<Double>?
+    let pan: PropertyValue<Double>?
     let fadeIn: Double?
     let fadeOut: Double?
 
@@ -26,6 +27,7 @@ struct ClipMedia: Equatable, Sendable {
         speed: Double? = nil,
         loop: Bool = false,
         volume: PropertyValue<Double>? = nil,
+        pan: PropertyValue<Double>? = nil,
         fadeIn: Double? = nil,
         fadeOut: Double? = nil
     ) {
@@ -35,6 +37,7 @@ struct ClipMedia: Equatable, Sendable {
         self.speed = speed
         self.loop = loop
         self.volume = volume
+        self.pan = pan
         self.fadeIn = fadeIn
         self.fadeOut = fadeOut
     }
