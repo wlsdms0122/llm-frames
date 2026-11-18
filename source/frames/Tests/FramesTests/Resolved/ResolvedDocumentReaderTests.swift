@@ -100,7 +100,23 @@ struct ResolvedDocumentReaderTests {
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
               "shadow": true, "at": [0, 4] } ] }
-        """##
+        """##,
+        // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
+        // box, an area and a path, inverted, feathered, in each mode, static and keyframed.
+        #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3,
+            "mask": { "shape": "rect", "area": { "text": "Total", "padding": 4 }, "radius": 6, "feather": 2, "invert": true },
+            "connected": [
+              { "adjust": "mine/grade", "parent": "screen", "mask": [
+                  { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
+                  { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
+              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "keyframes": [
+                  { "at": 0, "ease": "ease-out", "mask": { "shape": "ellipse", "area": { "text": "Total" }, "feather": 1 } },
+                  { "at": 2, "mask": { "shape": "ellipse", "area": [0, 0, 50, 50], "feather": 3 } } ] },
+              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "keyframes": [
+                  { "at": 0, "mask": { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } },
+                  { "at": 1, "mask": { "shape": "path", "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
+        """#
     ]
 
     // MARK: - Initializer
@@ -263,6 +279,62 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "top level (resolved document): expected an object, found a list of 0")
     }
 
+    @Test(
+        "a mask that is not a closed polyline through three points, has a negative feather or has an unknown mode stops",
+        arguments: [
+            (
+                #"{ "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": false } }"#, "0", #""add""#,
+                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"{ "polyline": { "points": [[0, 0], [10, 0]], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }"#, "-1", #""add""#,
+                "clips[0].mask[0].value[0].feather (mask): a feather is 0 or more, found -1"
+            ),
+            (
+                #"{ "ellipse": { "rect": [0, 0, 10, 10] } }"#, "0", #""multiply""#,
+                #"clips[0].mask[0].value[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+            )
+        ]
+    )
+    func refusesMask(
+        geometry: String,
+        feather: String,
+        mode: String,
+        message: String
+    ) throws {
+        // Given
+        let mask = #"""
+            [ { "at": 0, "value": [ { "geometry": \#(geometry), "feather": \#(feather), "invert": false, "mode": \#(mode) } ], "ease": "linear" } ]
+            """#
+        let text = try replacingMask(ofClip: 0, with: mask, in: written(Self.documents[4]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a mask list with no mask stops, since a clip without masks has null")
+    func refusesEmptyMaskList() throws {
+        // Given
+        let text = try replacingMask(
+            ofClip: 0,
+            with: #"[ { "at": 0, "value": [], "ease": "linear" } ]"#,
+            in: written(Self.documents[4])
+        )
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "clips[0].mask[0].value (clip): a mask list holds at least one mask, and a clip without one has null")
+    }
+
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
@@ -279,6 +351,19 @@ struct ResolvedDocumentReaderTests {
 
     private func written(_ document: String) throws -> String {
         writer.write(try resolved(document))
+    }
+
+    private func replacingMask(
+        ofClip index: Int,
+        with mask: String,
+        in text: String
+    ) throws -> String {
+        let root = try #require(try JSONReader().read(text).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[index].objectValue)
+        clips[index] = .object(clip.setting("mask", to: try Fixture.json(mask)))
+
+        return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }
 
     private func replacingFirst(

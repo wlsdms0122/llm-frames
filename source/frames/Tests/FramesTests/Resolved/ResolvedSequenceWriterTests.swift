@@ -421,6 +421,51 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
     }
 
+    @Test("masks are written after the crop as a keyframe list of {geometry, feather, invert, mode} lists, a box as its rect, and null for none")
+    func writesMasks() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [3840, 2160] },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "shape": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
+              "clips": [
+                { "media": "/abs/card.png", "at": [0, 4], "width": 160,
+                  "mask": [ { "shape": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
+                            { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
+                { "adjust": "frames/warm", "at": [0, 4], "keyframes": [
+                    { "at": 1, "ease": "ease-out", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } },
+                    { "at": 3, "mask": { "shape": "rect", "area": [0, 0, 20, 20], "feather": 1 } } ] },
+                { "title": "a", "style": "title", "at": [0, 4] } ] }
+            """#
+
+        // When
+        let resolved = try write(document)
+        let storyline = try #require(resolved["storyline"]?.arrayValue?.first?.objectValue)
+        let clips = try #require(resolved["clips"]?.arrayValue).compactMap(\.objectValue)
+
+        // Then
+        for entry in [storyline] + clips {
+            let crop = try #require(entry.keys.firstIndex(of: "crop"))
+            #expect(Array(entry.keys[crop...].prefix(3)) == ["crop", "mask", "track"])
+        }
+        #expect(storyline["mask"] == (try Fixture.json(#"""
+            [ { "at": 0, "value": [ { "geometry": { "ellipse": { "rect": [16, 16, 480, 480] } }, "feather": 6, "invert": false, "mode": "add" } ],
+                "ease": "linear" } ]
+            """#)))
+        #expect(clips[0]["mask"] == (try Fixture.json(#"""
+            [ { "at": 0, "value": [
+                { "geometry": { "rect": { "rect": [150, 280, 100, 40], "radius": 4 } }, "feather": 0, "invert": true, "mode": "intersect" },
+                { "geometry": { "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": true } }, "feather": 0, "invert": false, "mode": "add" } ],
+                "ease": "linear" } ]
+            """#)))
+        #expect(clips[1]["mask"] == (try Fixture.json(#"""
+            [ { "at": 1, "value": [ { "geometry": { "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }, "feather": 0, "invert": false, "mode": "add" } ],
+                "ease": "ease-out" },
+              { "at": 3, "value": [ { "geometry": { "rect": { "rect": [0, 0, 20, 20], "radius": 0 } }, "feather": 2, "invert": false, "mode": "add" } ],
+                "ease": "linear" } ]
+            """#)))
+        #expect(clips[2]["mask"] == .null)
+    }
+
     // MARK: - Private
     private func write(
         _ document: String,
