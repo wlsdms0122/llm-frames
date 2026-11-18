@@ -1,5 +1,5 @@
 //
-//  MixSegment+Gain.swift
+//  MixSegment+Envelope.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
