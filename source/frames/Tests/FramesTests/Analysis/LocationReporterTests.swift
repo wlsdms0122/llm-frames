@@ -203,6 +203,27 @@ struct LocationReporterTests {
         #expect(hits == [1, 1, 0])
     }
 
+    @Test("a trimmed rect's arrowhead past its outline is under the point, and nothing beside the head is")
+    func hitsTrimmedRectArrowhead() {
+        // Given
+        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, where the head points down with
+        // its tip at (80, 41) and its base 16 above it, from x = 72 to 88 at y = 25, above the stroked rect's top at 38.
+        let arrow = DisplayItem(content: .path(PathItem(
+            geometry: .rect(Rectangle(x: 20, y: 40, width: 60, height: 40), radius: 0),
+            fill: nil,
+            stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 61.0 / 200)
+        )))
+
+        // When
+        let hits = [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
+            sut.report(of: list([arrow]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 0])
+    }
+
     @Test("a resolved document is located at the time, its storyline media mapped back into the frame it draws")
     func locatesResolvedSequence() throws {
         // Given

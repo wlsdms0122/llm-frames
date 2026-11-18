@@ -10,9 +10,9 @@ import Foundation
 // Measures a content-fit frame from a sequence planned in its measuring space, and moves what is written in that
 // space onto the measured frame. Each clip's extent is its geometry at sequence time 0 without animation or transition
 // motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's text
-// box, and a shape's outline grown by half its stroke width, with its arrowheads. A solid fills the frame and an
-// adjustment applies to it, so neither is measured. The union is rounded outward to whole pixels, the margin is added,
-// and each side is rounded up to an even number.
+// box, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills the frame and an adjustment
+// applies to it, so neither is measured. The union is rounded outward to whole pixels, the margin is added, and each
+// side is rounded up to an even number.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -161,8 +161,8 @@ struct ContentFitPlanner: Sendable {
         }
     }
 
-    // A shape's outline grown by half its stroke width after its transform, united with its arrowheads as drawn. A
-    // shape at scale 0 draws nothing, so it is not measured.
+    // What a shape draws after its transform, without its shadow. A shape at scale 0 draws nothing, so it is not
+    // measured.
     private func extent(
         of shape: ResolvedShape,
         clip: ResolvedClip,
@@ -172,19 +172,7 @@ struct ContentFitPlanner: Sendable {
         let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: 0)
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
-        let transform = item.transform
-        let half = (path.stroke?.width ?? 0) / 2
-        let outline = switch path.geometry {
-        case let .rect(rectangle, _), let .ellipse(rectangle):
-            bounds(of: rectangle.grown(by: half), by: transform)
-
-        case let .polyline(points, _):
-            Rectangle(bounding: points.map(transform.apply(to:)))
-                .grown(by: half * (transform.a * transform.a + transform.b * transform.b).squareRoot())
-        }
-        let heads = path.arrowheads.flatMap(\.corners).map(transform.apply(to:))
-
-        return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
+        return path.drawnBounds(under: item.transform)
     }
 
     private func bounds(

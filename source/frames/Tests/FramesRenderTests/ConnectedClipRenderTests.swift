@@ -285,6 +285,42 @@ struct ConnectedClipRenderTests {
         #expect(far.isEmpty, "the stroke reaches past a round join at \(far.prefix(4))")
     }
 
+    // The picture is 40 wide, as the theme's base width, so the stroke is 10 output pixels. Each shape reaches past
+    // the outline grown by half its width further right and down than anything else measured: the polyline's miter,
+    // 3.16 widths long under the limit of 4, to x = 135.8, and the diagonal's square cap to (107.07, 100) and
+    // (100, 107.07). The frame is the content with a margin of 4 round it.
+    @Test(
+        "a frame that fits its content holds a sharp miter join and a square cap on a diagonal end whole, its margin left clear",
+        arguments: [
+            ##"{ "shape": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "color": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
+            ##"{ "shape": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "color": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
+        ]
+    )
+    func fitsJoinAndCap(shape: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = try image(in: directory, named: "grey.png", width: 40, height: 40, color: [128, 128, 128])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 4 }, "fps": 10 },
+              "theme": { "baseWidth": 40 },
+              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
+              "clips": [ \#(shape) ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        let isBlank = { (x: Int, y: Int) in frame.isPixel(x: x, y: y, [0, 0, 0], tolerance: self.tolerance) }
+        let pixels = (0..<frame.height).flatMap { y in (0..<frame.width).map { x in (x, y) } }
+        let margin = pixels.filter { x, y in x < 4 || y < 4 || x >= frame.width - 4 || y >= frame.height - 4 }
+        let drawn = margin.filter { x, y in !isBlank(x, y) }
+        #expect(drawn.isEmpty, "\(drawn.count) pixels of the margin are drawn, first \(drawn.prefix(4))")
+        let edge = (4..<frame.height - 4).filter { y in !isBlank(frame.width - 5, y) || !isBlank(frame.width - 6, y) }
+        #expect(!edge.isEmpty, "the shape reaches the frame's right edge inside the margin")
+    }
+
     // MARK: - Private
     private func image(
         in directory: TemporaryDirectory,

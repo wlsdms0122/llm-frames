@@ -55,25 +55,39 @@ package struct PathItem: Equatable, Sendable {
         stroke.map { stroke in DrawnStroke(stroke: stroke, trim: trim, isClosed: isClosed) }
     }
 
-    // The stroke's arrowheads where they lie on the outline, the start's first.
-    package var arrowheads: [Arrowhead] {
-        drawnStroke.map { drawn in PathOutline(geometry).arrowheads(of: drawn) } ?? []
+    // The convex parts of what the stroke draws past its outline grown by half its width, each by its corners in
+    // order: its arrowheads, the points of its miter joins and the ends of its square caps (`PathOutline.overhangs`).
+    package var overhangs: [[Point]] {
+        guard let stroke, let drawn = drawnStroke else { return [] }
+
+        return PathOutline(geometry).overhangs(of: stroke, drawn: drawn)
     }
 
-    // The box of what the item draws without its shadow, in its own coordinates: its outline's box grown by half its
-    // stroke width, united with the box of its arrowheads.
-    package var drawnBounds: Rectangle {
-        let outline = switch geometry {
+    // The axis-aligned box of what the item draws without its shadow, after `transform`: its outline grown by half its
+    // stroke width, united with its overhangs. The outline lies within the hull of its rectangle's corners or its
+    // points, and the stroke within a disc half its width about every point of it.
+    package func drawnBounds(under transform: AffineTransform = .identity) -> Rectangle {
+        let hull = switch geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            rectangle
+            transform.apply(toCornersOf: rectangle)
 
         case let .polyline(points, _):
-            Rectangle(bounding: points)
+            points.map(transform.apply(to:))
         }
-        let stroked = outline.grown(by: (stroke?.width ?? 0) / 2)
-        let heads = arrowheads.flatMap(\.corners)
+        let half = (stroke?.width ?? 0) / 2
+        // A disc of that radius is carried onto an ellipse reaching this far each way along each axis.
+        let across = half * (transform.a * transform.a + transform.c * transform.c).squareRoot()
+        let down = half * (transform.b * transform.b + transform.d * transform.d).squareRoot()
+        let outline = Rectangle(bounding: hull)
+        let stroked = Rectangle(
+            x: outline.x - across,
+            y: outline.y - down,
+            width: outline.width + 2 * across,
+            height: outline.height + 2 * down
+        )
+        let overhangs = overhangs.flatMap { $0 }.map(transform.apply(to:))
 
-        return heads.isEmpty ? stroked : stroked.union(Rectangle(bounding: heads))
+        return overhangs.isEmpty ? stroked : stroked.union(Rectangle(bounding: overhangs))
     }
 
     // MARK: - Private

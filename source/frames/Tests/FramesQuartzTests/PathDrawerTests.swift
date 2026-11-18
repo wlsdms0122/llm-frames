@@ -346,37 +346,56 @@ struct PathDrawerTests {
         // Given
         let geometry: PathGeometry = isRect ? .rect(outline, radius: 0) : .ellipse(outline)
         let path = stroked(geometry, width: width, end: .arrow, trim: trim)
-        let revealed = DisplayList(
-            size: Size(width: 100, height: 100),
-            background: Color(written: "#00000000"),
-            seed: 0,
-            items: [DisplayItem(reveal: path.drawnBounds, content: .path(path))]
-        )
 
         // When
         let whole = try sut.frame(of: list([path]))
-        let clipped = try sut.frame(of: revealed)
 
         // Then
-        // A pixel the box's edge crosses is left out: the clip's smoothed edge scales its part of the pixel.
-        let box = path.drawnBounds
-        let (maxX, maxY) = (box.x + box.width, box.y + box.height)
-        let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
-        let inside = pixels.filter { x, y in
-            Double(x) >= box.x && Double(x + 1) <= maxX && Double(y) >= box.y && Double(y + 1) <= maxY
-        }
-        let outside = pixels.filter { x, y in
-            Double(x + 1) <= box.x || Double(x) >= maxX || Double(y + 1) <= box.y || Double(y) >= maxY
-        }
         let above = Int(outline.y - 2 * width)
+        let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
         #expect(pixels.contains { x, y in y < above && alpha(whole, x, y) > 0.99 }, "the head is drawn above \(above)")
-        let drawnOutside = outside.filter { x, y in alpha(whole, x, y) > 1e-6 }
-        #expect(
-            drawnOutside.isEmpty,
-            "\(drawnOutside.count) pixels are drawn outside the box, first \(drawnOutside.prefix(4))"
-        )
-        let cut = inside.filter { x, y in abs(alpha(whole, x, y) - alpha(clipped, x, y)) > 1e-6 }
-        #expect(cut.isEmpty, "the box cuts \(cut.count) pixels inside it, first \(cut.prefix(4))")
+        try expectDrawnInsideBounds(of: path)
+    }
+
+    // A polyline turning back by 36.87 degrees at (80, 50) has a miter 3.16 stroke widths long, under the limit of 4,
+    // so its point reaches 15.8 past the corner, where the outline grown by half the width reaches 5. A square cap on
+    // a diagonal end reaches its corner half the width along and half across it, 7.07 out along each axis. Each probe
+    // lies wholly past the outline grown by half the width and wholly inside the join or the cap.
+    @Test(
+        "a sharp miter join and a square cap on a diagonal end are drawn whole inside the box of what the path draws",
+        arguments: [
+            (
+                PathGeometry.polyline([Point(x: 20, y: 30), Point(x: 80, y: 50), Point(x: 20, y: 70)], isClosed: false),
+                StrokeJoin.miter,
+                StrokeCap.butt,
+                87,
+                49
+            ),
+            (
+                PathGeometry.polyline([Point(x: 30, y: 30), Point(x: 70, y: 70)], isClosed: false),
+                StrokeJoin.round,
+                StrokeCap.square,
+                75,
+                70
+            )
+        ]
+    )
+    func keepsJoinAndCapInDrawnBounds(
+        geometry: PathGeometry,
+        join: StrokeJoin,
+        cap: StrokeCap,
+        x: Int,
+        y: Int
+    ) throws {
+        // Given
+        let path = stroked(geometry, width: 10, join: join, cap: cap)
+
+        // When
+        let whole = try sut.frame(of: list([path]))
+
+        // Then
+        #expect(alpha(whole, x, y) > 0.99, "pixel (\(x), \(y)) past the grown outline is drawn")
+        try expectDrawnInsideBounds(of: path)
     }
 
     // MARK: - Private
@@ -403,6 +422,44 @@ struct PathDrawerTests {
             fill: nil,
             stroke: PathStroke(width: width, color: Self.black, join: join, cap: cap, start: start, end: end),
             trim: trim
+        )
+    }
+
+    // Every pixel wholly outside the box of what the path draws is blank, and every pixel wholly inside it is drawn
+    // the same with the box as its reveal as without. A pixel the box's edge crosses is left out: the clip's smoothed
+    // edge scales its part of the pixel.
+    private func expectDrawnInsideBounds(
+        of path: PathItem,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws {
+        let box = path.drawnBounds()
+        let revealed = DisplayList(
+            size: Size(width: 100, height: 100),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(reveal: box, content: .path(path))]
+        )
+        let whole = try sut.frame(of: list([path]))
+        let clipped = try sut.frame(of: revealed)
+        let (maxX, maxY) = (box.x + box.width, box.y + box.height)
+        let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
+        let inside = pixels.filter { x, y in
+            Double(x) >= box.x && Double(x + 1) <= maxX && Double(y) >= box.y && Double(y + 1) <= maxY
+        }
+        let outside = pixels.filter { x, y in
+            Double(x + 1) <= box.x || Double(x) >= maxX || Double(y + 1) <= box.y || Double(y) >= maxY
+        }
+        let drawnOutside = outside.filter { x, y in alpha(whole, x, y) > 1e-6 }
+        #expect(
+            drawnOutside.isEmpty,
+            "\(drawnOutside.count) pixels are drawn outside the box, first \(drawnOutside.prefix(4))",
+            sourceLocation: sourceLocation
+        )
+        let cut = inside.filter { x, y in abs(alpha(whole, x, y) - alpha(clipped, x, y)) > 1e-6 }
+        #expect(
+            cut.isEmpty,
+            "the box cuts \(cut.count) pixels inside it, first \(cut.prefix(4))",
+            sourceLocation: sourceLocation
         )
     }
 

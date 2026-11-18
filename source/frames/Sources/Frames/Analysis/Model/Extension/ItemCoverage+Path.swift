@@ -7,14 +7,16 @@
 
 // What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its
 // stroke, less the rectangle shrunk by half its stroke when it is not filled. A filled polyline covers the convex hull
-// of its points, and its stroke as drawn after `trim` covers a band the stroke wide along each segment, its arrowheads
-// added and the line stopping at their bases. Joins, caps, rounded corners, the curve of an ellipse and the trim of a
-// rect or an ellipse are left out.
+// of its points, and its stroke as drawn after `trim` covers a band the stroke wide along each segment, the line
+// stopping at its arrowheads' bases. Each adds what its stroke draws past its outline grown by half its width
+// (`PathItem.overhangs`): its arrowheads, miter joins and square caps. Bevels, round joins and caps, rounded corners,
+// the curve of an ellipse and the trim of a rect or an ellipse are left out.
 extension ItemCoverage {
     // MARK: - Property
     // MARK: - Initializer
     init(path: PathItem) {
         let stroke = path.drawnStroke?.isDrawn == true ? path.stroke : nil
+        let overhangs = path.overhangs.map(ConvexPolygon.init(corners:))
 
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
@@ -23,14 +25,14 @@ extension ItemCoverage {
             let inner = Self.inset(rectangle, by: half)
             let isHollow = path.fill == nil && inner.width > 0 && inner.height > 0
             self.init(
-                pieces: path.fill == nil && stroke == nil ? [] : [ConvexPolygon(rectangle: outer)],
+                pieces: (path.fill == nil && stroke == nil ? [] : [ConvexPolygon(rectangle: outer)]) + overhangs,
                 holes: isHollow ? [ConvexPolygon(rectangle: inner)] : []
             )
 
         case let .polyline(points, isClosed):
             let fill = path.fill == nil ? [] : [ConvexPolygon(corners: Self.hull(of: points))]
             let line = Self.pieces(of: points, isClosed: isClosed, path: path)
-            self.init(pieces: fill + line)
+            self.init(pieces: fill + line + overhangs)
         }
     }
 
@@ -48,8 +50,7 @@ extension ItemCoverage {
         )
     }
 
-    // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline, and the heads where
-    // the outline lays them.
+    // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline.
     private static func pieces(
         of points: [Point],
         isClosed: Bool,
@@ -62,13 +63,11 @@ extension ItemCoverage {
 
         let lineStart = drawn.lineStart(along: length)
         let lineEnd = drawn.lineEnd(along: length)
-        let line = lineEnd > lineStart
-            ? piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
-                band(from: start, to: end, width: stroke.width)
-            }
-            : []
+        guard lineEnd > lineStart else { return [] }
 
-        return line + path.arrowheads.map { ConvexPolygon(corners: $0.corners) }
+        return piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
+            band(from: start, to: end, width: stroke.width)
+        }
     }
 
     // The parts of the segments between two distances along them.

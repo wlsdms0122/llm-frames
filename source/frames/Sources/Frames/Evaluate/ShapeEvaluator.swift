@@ -178,11 +178,10 @@ struct ShapeEvaluator: Sendable {
         return (geometry, presentation.transform, presentation.opacity, 1)
     }
 
-    // What the shape draws, in its own coordinates (FRAMES-14): its outline's box grown by half its stroke width and
-    // united with its arrowheads' box, united with its shadow's box, moved by the shadow's offset and grown by three
-    // times its radius, where the blur has all but faded.
+    // What the shape draws, in its own coordinates (FRAMES-14): the box of what its path draws, united with that box
+    // moved by the shadow's offset and grown by three times its radius, where the blur has all but faded.
     private func receiverBox(of path: PathItem) -> Rectangle {
-        let drawn = path.drawnBounds
+        let drawn = path.drawnBounds()
         guard let shadow = path.shadow else { return drawn }
 
         let cast = Rectangle(
