@@ -398,7 +398,7 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a storyline clip takes no placement and no parent, a solid takes a transition only, and masks and track mattes are not taken yet",
+        "a storyline clip takes no placement and no parent, a solid takes a transition only, and track mattes are not taken yet",
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
@@ -768,5 +768,115 @@ struct SequenceCheckTests {
 
         // When, Then
         try sut.check(document: document)
+    }
+
+    @Test(
+        "a mask is taken and keyframed by a storyline clip with media, a media clip, a title, every shape kind and an adjustment",
+        arguments: [
+            ("storyline", #""media": "/abs/run.mp4""#),
+            ("storyline", #""media": "/abs/card.png", "duration": 2"#),
+            ("clips", #""media": "/abs/log.png", "at": [0, 2]"#),
+            ("clips", #""title": "a", "style": "headline", "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "width": 100, "height": 50, "at": [0, 2]"#),
+            ("clips", #""shape": "ellipse", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "path", "points": [[0, 0], [100, 100]], "at": [0, 2]"#),
+            ("clips", #""adjust": "frames/vivid", "at": [0, 2]"#)
+        ]
+    )
+    func acceptsMask(
+        list: String,
+        keys: String
+    ) throws {
+        // Given
+        let masks = #"""
+            [ { "shape": "rect", "area": [0, 0, 10, 10], "radius": 2, "feather": 1, "invert": true },
+              { "shape": "ellipse", "width": 10, "height": 10, "position": [5, 5], "mode": "subtract" },
+              { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "mode": "intersect" } ]
+            """#
+        let written = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ { \#(keys), "mask": \#(masks) } ] }"#)
+        let keyframed = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "keyframes": [
+                { "at": 0, "mask": { "shape": "ellipse", "area": [0, 0, 10, 10] } },
+                { "at": 1, "mask": { "shape": "ellipse", "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: written)
+        try sut.check(document: keyframed)
+    }
+
+    @Test(
+        "a mask on a clip with no picture stops as an unknown key, and an adjustment's area is gone",
+        arguments: [
+            (
+                "clips",
+                #"{ "media": "/abs/bgm.m4a", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"#,
+                #"clips[0] (audio): unknown key "mask". Allowed: "#
+            ),
+            (
+                "storyline",
+                ##"{ "solid": "#000000", "duration": 2, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"##,
+                #"storyline[0] (solid): unknown key "mask". Allowed: "#
+            ),
+            (
+                "clips",
+                #"{ "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 10, 10] }"#,
+                #"clips[0] (adjustment): unknown key "area". Allowed: "#
+            )
+        ]
+    )
+    func refusesMaskWithoutPicture(
+        list: String,
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a mask takes only the keys of its shape, and a rect or ellipse exactly one of an area and a whole box",
+        arguments: [
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 0], [5, 10]] }"#, #"clips[0].mask (rect mask): unknown key "points""#),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "radius": 2 }"#, #"clips[0].mask (ellipse mask): unknown key "radius""#),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 0], [5, 10]] }"#, #"clips[0].mask (ellipse mask): unknown key "points""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "area": [0, 0, 10, 10] }"#, #"clips[0].mask (path mask): unknown key "area""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "width": 10 }"#, #"clips[0].mask (path mask): unknown key "width""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "height": 10 }"#, #"clips[0].mask (path mask): unknown key "height""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "position": [5, 5] }"#, #"clips[0].mask (path mask): unknown key "position""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "radius": 2 }"#, #"clips[0].mask (path mask): unknown key "radius""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "outset": 2 }"#, #"clips[0].mask (rect mask): unknown key "outset""#),
+            (#"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "area": [0, 0, 10, 10], "radius": 2 } ]"#, #"clips[0].mask[1] (ellipse mask): unknown key "radius""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "width": 10, "height": 10 }"#, #"clips[0].mask (rect mask): takes only one of "area", "width", "height""#),
+            (#"{ "shape": "ellipse" }"#, "clips[0].mask (ellipse mask): needs one of area, width, height, position"),
+            (#"{ "shape": "rect", "height": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "width""#),
+            (#"{ "shape": "rect", "width": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "height""#),
+            (#"{ "shape": "ellipse", "width": 10, "height": 10 }"#, #"clips[0].mask (ellipse mask): missing key "position""#),
+            (#"{ "shape": "path" }"#, #"clips[0].mask (path mask): missing key "points""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0]] }"#, "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"),
+            (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
+            (#"{ "shape": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 }"#, "clips[0].mask.feather (rect mask): expected a number, 0 or more, found -1"),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
+            (#"{ "shape": "rect", "width": 0, "height": 10, "position": [5, 5] }"#, "clips[0].mask.width (rect mask): expected a number above 0, found 0"),
+            ("[]", "clips[0].mask (adjustment): a mask list holds at least one mask, and a clip without masks writes no mask"),
+            ("true", "clips[0].mask (adjustment): expected a mask or a list of masks, found true")
+        ]
+    )
+    func refusesMaskKeys(
+        mask: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
     }
 }
