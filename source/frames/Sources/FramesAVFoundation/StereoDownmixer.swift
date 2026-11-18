@@ -15,13 +15,13 @@ struct StereoDownmixer {
     // MARK: - Property
     private static let minusThreeDecibels: Float = 0.7071
 
-    private let gains: [(left: Float, right: Float)]
+    private let gains: [StereoGain]
 
     // MARK: - Initializer
     // Nil for a layout with a channel BS.775 names no speaker for.
     init?(layout: ChannelLayout) {
-        guard layout.labels.count != 1 else {
-            gains = [(1, 1)]
+        guard !layout.isMono else {
+            gains = [StereoGain(left: 1, right: 1)]
             return
         }
 
@@ -64,28 +64,28 @@ struct StereoDownmixer {
     }
 
     // MARK: - Private
-    private static func gains(of label: ChannelLabel) -> (left: Float, right: Float)? {
+    private static func gains(of label: ChannelLabel) -> StereoGain? {
         switch label {
         case .left:
-            (1, 0)
+            StereoGain(left: 1, right: 0)
 
         case .right:
-            (0, 1)
+            StereoGain(left: 0, right: 1)
 
         case .mono, .center:
-            (minusThreeDecibels, minusThreeDecibels)
+            StereoGain(left: minusThreeDecibels, right: minusThreeDecibels)
 
         case .lowFrequencyEffects:
-            (0, 0)
+            StereoGain(left: 0, right: 0)
 
         case .leftSurround, .leftRearSurround:
-            (minusThreeDecibels, 0)
+            StereoGain(left: minusThreeDecibels, right: 0)
 
         case .rightSurround, .rightRearSurround:
-            (0, minusThreeDecibels)
+            StereoGain(left: 0, right: minusThreeDecibels)
 
         case .centerSurround:
-            (0.5, 0.5)
+            StereoGain(left: 0.5, right: 0.5)
 
         case .discrete:
             nil
