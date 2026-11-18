@@ -126,7 +126,7 @@ A span is:
 | Key | Meaning |
 | --- | --- |
 | `seconds` | default length, required. A transition choice's `seconds` replaces it |
-| `ease` | default curve of incoming, outgoing, cover and matte |
+| `ease` | default curve of incoming, outgoing, cover and matte, each of which may give its own `ease`. Without one it is `linear` |
 | `over` | which storyline picture is on top during the transition: `incoming` (default) or `outgoing` |
 | `audio` | the curve of the sound crossfade: `constant-power` (default) or `constant-gain` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | `incoming` | motion of the incoming storyline picture |
