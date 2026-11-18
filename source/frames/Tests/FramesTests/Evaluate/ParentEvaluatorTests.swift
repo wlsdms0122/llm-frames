@@ -243,6 +243,57 @@ struct ParentEvaluatorTests {
         #expect(isClose(item.transform, AffineTransform(translation: position)))
     }
 
+    @Test("past its media clip parent's window a tracked shape follows the frame the parent's clock gives, on the parent held at its edge")
+    func followsMediaClipParentPastItsWindow() throws {
+        // Given
+        // The card, visible over [0, 1), shows media time 2 + t at t, its whole 400 x 200 picture in an 80 x 40 box
+        // whose top left moves from (10, 20) at 0 to (50, 20) at 2, so it holds at (30, 20). At 1.5 its clock gives
+        // media time 3.5, where the target has moved 30 right, 6 in output pixels.
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 2, frames: [
+            TrackedFrame(time: 2, rectangle: target),
+            TrackedFrame(time: 3, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
+            TrackedFrame(time: 3.5, rectangle: Rectangle(x: 30, y: 0, width: 10, height: 10))
+        ])
+        let card = clip(
+            id: "card",
+            content: .media(ResolvedMediaClip(
+                media: .pinned(media),
+                timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
+                filter: [],
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+            )),
+            end: 1,
+            box: ResolvedBox(
+                size: Size(width: 80, height: 40),
+                position: [Keyframe(at: 0, value: Point(x: 10, y: 20)), Keyframe(at: 2, value: Point(x: 50, y: 20))],
+                anchor: Point(x: 40, y: 20)
+            ),
+            crop: [Keyframe(at: 0, value: Crop(whole))]
+        )
+        let box = clip(
+            id: "box",
+            content: .shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: target)],
+                fill: nil,
+                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+            )),
+            parent: "card",
+            track: track
+        )
+        let sut = ParentEvaluator(sequence: sequence(clips: [card, box]))
+
+        // When
+        let space = sut.space(of: box, at: 1.5)
+
+        // Then
+        let corner = space.tracked(by: box.parentTrack, at: 1.5).transform.apply(to: Point(x: 0, y: 0))
+        // The hold is a time resolution before the edge, 2e-5 px short of (30, 20) on this move.
+        #expect(space.clock == card.clock)
+        #expect(abs(corner.x - 36) < 1e-4)
+        #expect(abs(corner.y - 20) < 1e-4)
+    }
+
     @Test(
         "a title parented to a shape that tracks its storyline parent's media follows the tracked motion on each frame",
         arguments: [
