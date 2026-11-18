@@ -59,8 +59,8 @@ struct ReferenceLibraryTests {
         // Then
         #expect(template.place.description == "shorts/leak: top level")
         #expect(template.parameters == [
-            TemplateParameter(name: "clip", type: .video),
-            TemplateParameter(name: "title", type: .text, defaultValue: .string("New"))
+            Parameter(name: "clip", type: .video),
+            Parameter(name: "title", type: .text, defaultValue: .string("New"))
         ])
         #expect(template.references.map(\.place.description) == [
             "shorts/leak: storyline[0].media",

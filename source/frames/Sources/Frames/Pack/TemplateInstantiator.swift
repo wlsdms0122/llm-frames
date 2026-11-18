@@ -59,7 +59,7 @@ struct TemplateInstantiator: Sendable {
     // A default was checked against its type with the template, but its media kind is known only once it is probed,
     // and like an argument it meets the places it fills only when it is taken.
     private func value(
-        of parameter: TemplateParameter,
+        of parameter: Parameter,
         in arguments: JSONObject,
         place: Place,
         template: Template
@@ -97,7 +97,7 @@ struct TemplateInstantiator: Sendable {
     // template.
     private func checkPlaces(
         of value: JSONValue,
-        parameter: TemplateParameter,
+        parameter: Parameter,
         template: Template
     ) throws {
         switch parameter.type {
@@ -114,7 +114,7 @@ struct TemplateInstantiator: Sendable {
     // An argument that is an object was checked as media where it is written, so only its type is left.
     private func check(
         _ argument: JSONValue,
-        of parameter: TemplateParameter,
+        of parameter: Parameter,
         place: Place
     ) throws {
         let kind = TemplateKeyTable.argumentsKind
@@ -141,7 +141,7 @@ struct TemplateInstantiator: Sendable {
 
     private func checkKind(
         of media: JSONValue,
-        parameter: TemplateParameter,
+        parameter: Parameter,
         place: Place,
         kind: String
     ) throws {

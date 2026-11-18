@@ -1,12 +1,12 @@
 //
-//  TemplateParameter.swift
+//  Parameter.swift
 //  Frames
 //
 //  Created by JSilver on 11/15/26.
 //
 
 // A published parameter of a template. `options` are a choice's, and empty for any other type.
-struct TemplateParameter: Equatable, Sendable {
+struct Parameter: Equatable, Sendable {
     // MARK: - Property
     let name: String
     let type: ParameterType

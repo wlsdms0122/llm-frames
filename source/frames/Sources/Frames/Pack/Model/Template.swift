@@ -11,7 +11,7 @@ struct Template: Equatable, Sendable {
     // MARK: - Property
     let document: JSONValue
     let place: Place
-    let parameters: [TemplateParameter]
+    let parameters: [Parameter]
     let references: [ParameterReference]
 
     // A document read as a template is one only when it declares `params`, even none, so a plain document is not.
@@ -23,7 +23,7 @@ struct Template: Equatable, Sendable {
     init(
         document: JSONValue,
         place: Place,
-        parameters: [TemplateParameter],
+        parameters: [Parameter],
         references: [ParameterReference]
     ) {
         self.document = document

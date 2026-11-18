@@ -39,10 +39,10 @@ struct TemplateReader: Sendable {
     private func parameter(
         _ name: String,
         _ declaration: JSONObject
-    ) -> TemplateParameter? {
+    ) -> Parameter? {
         guard let type = declaration["type"]?.stringValue.flatMap(ParameterType.init(rawValue:)) else { return nil }
 
-        return TemplateParameter(
+        return Parameter(
             name: name,
             type: type,
             defaultValue: declaration["default"],
