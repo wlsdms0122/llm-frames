@@ -10,8 +10,8 @@ import Testing
 
 @testable import FramesCommand
 
-// The packs kept in the repository under `packs/`, installed by copying them into a temporary `FRAMES_HOME` beside
-// the pack frames ships, as a user installs them.
+// The repository's packs are copied into a temporary `FRAMES_HOME`, and the shipped `frames` pack is the real one,
+// since their themes and examples name its presets.
 @Suite("RepositoryPacks Tests")
 struct RepositoryPacksTests {
     // MARK: - Property
@@ -271,7 +271,6 @@ struct RepositoryPacksTests {
     }
 
     // MARK: - Private
-    // What a directory holds, in name order, without hidden files.
     private static func entries(in directory: URL) -> [String] {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
 
