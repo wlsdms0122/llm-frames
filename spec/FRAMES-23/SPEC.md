@@ -49,7 +49,7 @@ theme
 - Times are seconds written as decimals, several separated by commas, a point is `x,y`, `--cols` and `--max` are whole numbers, and languages are BCP 47 tags separated by commas. A value that is not one, or is not finite, stops naming its option.
 - A command frames does not have, `frames <name> ...`, runs `frames-<name>` from `PATH` with the global options before the name and the arguments after it, unchanged, and with standard input and output passed through ([FRAMES-25](../FRAMES-25/SPEC.md)).
 - `frames --version` prints the version ([FRAMES-18](../FRAMES-18/SPEC.md)). An extension checks it against the versions it is written for, as a pack does with `engine` in its `pack.json`.
-- On success, stdout gets one line with the output path and size.
+- On success, stdout gets one line for each file written, with its path and size.
 - On failure, stderr gets `frames: <reason>` and the exit code is 1. Without arguments, frames prints usage and exits with 64, and so it does with global options and no command.
 - The global options are checked before any command or extension runs, so an unknown role or provider name stops the same way for every command.
 - Messages name the place, for example `format: unknown key "inset". Allowed: size, fps, background, conform`. A place is a path of keys and indexes from the document, and the document itself is `top level`. A clip or op with an `id` is named with it after its index: `clips[1]#logo`.
