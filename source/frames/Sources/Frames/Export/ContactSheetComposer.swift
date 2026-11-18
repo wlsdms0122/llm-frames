@@ -36,7 +36,8 @@ struct ContactSheetComposer: Sendable {
         face: FontFace
     ) throws -> DisplayList {
         let labelSize = max(14, (max(size.width, size.height) / 40).rounded())
-        let style = style(size: labelSize, face: face)
+        let character = characterStyle(size: labelSize)
+        let paragraph = paragraphStyle(size: labelSize, face: face)
         let columnCount = max(min(columns, cells.count), 1)
         let rowCount = (cells.count + columnCount - 1) / columnCount
         let items = try cells.indices.flatMap { index in
@@ -48,9 +49,8 @@ struct ContactSheetComposer: Sendable {
             )
             let item = PictureItem(source: cells[index].picture, rectangle: nil, destination: picture)
             let layout = try typesetter.layout(
-                cells[index].label,
-                style: style,
-                face: face,
+                [TextRun(text: cells[index].label, style: character, face: face)],
+                paragraph: paragraph,
                 width: nil,
                 place: .root,
                 kind: "time label"
@@ -72,21 +72,18 @@ struct ContactSheetComposer: Sendable {
     }
 
     // MARK: - Private
-    // The line box is the face's ascent and descent at the size, and the background lies around it. The face is given,
-    // so the style's families and weight are not read.
-    private func style(
+    // The face is given, so the style's families and weight are not read.
+    private func characterStyle(size: Double) -> CharacterStyle {
+        CharacterStyle(families: [], pack: nil, weight: .regular, size: size, color: Self.textColor, stroke: nil)
+    }
+
+    // The line box is the face's ascent and descent at the size, and the background lies around it.
+    private func paragraphStyle(
         size: Double,
         face: FontFace
-    ) -> TextStyle {
-        TextStyle(
-            families: [],
-            pack: nil,
-            size: size,
-            weight: .regular,
-            color: Self.textColor,
-            emphasis: Self.textColor,
+    ) -> ParagraphStyle {
+        ParagraphStyle(
             lineHeight: (face.ascent + face.descent) * size,
-            stroke: nil,
             background: TextBackground(
                 color: Self.labelBackground,
                 padding: Size(width: size / 2, height: size / 4),

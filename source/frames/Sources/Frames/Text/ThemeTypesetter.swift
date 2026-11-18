@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Sets text in a named theme style, with the style's lengths multiplied by the length scale of the place the text is
-// drawn, in the face its font list finds.
+// Lays a title's runs out in named theme styles, with each style's lengths multiplied by the length scale of the place
+// the text is drawn: each run in its own style's character attributes and the face its font query finds, and the whole
+// title in the paragraph attributes of the clip's style.
 struct ThemeTypesetter: Sendable {
     // MARK: - Property
     private let fonts: FontFinder
@@ -22,9 +23,11 @@ struct ThemeTypesetter: Sendable {
     }
 
     // MARK: - Public
-    // `stylePlace` is where the style is named, or the text's place when it takes a style frames names itself.
+    // `style` is the clip's style and `stylePlace` where it is named. A run without a style is in the clip's, and a
+    // run's style is named at its index in the list `place` names. A style the theme does not hold stops where it is
+    // named.
     func layout(
-        _ text: String,
+        _ runs: [TitleRun],
         style name: String,
         stylePlace: Place,
         width: Double?,
@@ -33,15 +36,29 @@ struct ThemeTypesetter: Sendable {
         place: Place,
         kind: String
     ) throws -> TextLayout {
-        let styles = theme.styleNames
-        guard styles.contains(name) else {
-            throw ThemeError.unknownStyle(place: stylePlace, kind: kind, name: name, styles: styles)
+        try check(name, place: stylePlace, theme: theme, kind: kind)
+
+        var faces: [String: FontFace] = [:]
+        let textRuns = try runs.enumerated().map { index, run in
+            let runStyle = run.style ?? name
+            if let named = run.style {
+                try check(named, place: place.appending(index: index).appending(key: "style"), theme: theme, kind: kind)
+            }
+
+            let style = theme.characterStyle(named: runStyle, scale: scale)
+            let face = try faces[runStyle] ?? fonts.face(for: style, place: theme.fontPlace)
+            faces[runStyle] = face
+
+            return TextRun(text: run.text, style: style, face: face)
         }
 
-        let style = theme.style(named: name, scale: scale)
-        let face = try fonts.face(for: style, place: theme.fontPlace)
-
-        return try typesetter.layout(text, style: style, face: face, width: width, place: place, kind: kind)
+        return try typesetter.layout(
+            textRuns,
+            paragraph: theme.paragraphStyle(named: name, scale: scale),
+            width: width,
+            place: place,
+            kind: kind
+        )
     }
 
     // The box of set text along a line, placed by its style's alignment, its top on the line's.
@@ -51,7 +68,7 @@ struct ThemeTypesetter: Sendable {
         theme: MergedTheme,
         along line: Rectangle
     ) -> Rectangle {
-        let x = switch theme.style(named: name, scale: 1).align {
+        let x = switch theme.paragraphStyle(named: name, scale: 1).align {
         case .left:
             line.x
 
@@ -66,4 +83,15 @@ struct ThemeTypesetter: Sendable {
     }
 
     // MARK: - Private
+    private func check(
+        _ name: String,
+        place: Place,
+        theme: MergedTheme,
+        kind: String
+    ) throws {
+        let styles = theme.styleNames
+        guard styles.contains(name) else {
+            throw ThemeError.unknownStyle(place: place, kind: kind, name: name, styles: styles)
+        }
+    }
 }

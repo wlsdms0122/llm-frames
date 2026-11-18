@@ -4,14 +4,16 @@
   "theme": {
     "styles": {
       "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
-                 "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 }
+                 "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 },
+      "feature": { "size": 96, "weight": "bold", "color": "#FFE14D" }
     },
     "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } }
   },
   "storyline": [
     { "id": "title-card", "solid": "#000000", "duration": 1.5,
       "connected": [
-        { "title": "Checkout\n**Totals now include shipping**", "style": "title", "placement": "center" }
+        { "title": [ { "text": "Checkout\n" }, { "text": "Totals now include shipping", "style": "feature" } ], "style": "title",
+          "placement": "center" }
       ] },
     { "id": "open", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "transition": "frames/fade",
       "connected": [

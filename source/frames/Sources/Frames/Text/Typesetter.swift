@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Sets text in a style: `**text**` in the emphasis colour, runs shaped by the shaping provider, lines broken by UAX #14
-// with words kept whole as `word-break: keep-all` keeps them, at `\n` and at the wrapping width, and placed in a box by
-// the style's line height, alignment and background.
+// Lays a title's runs out as one text: each run shaped on its own by the shaping provider in its character style,
+// lines broken by UAX #14 over the text of all runs together with words kept whole as `word-break: keep-all` keeps
+// them, at `\n` and at the wrapping width, and placed in a box by the paragraph style's line height, alignment and
+// background.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -20,20 +21,20 @@ struct Typesetter: Sendable {
 
     // MARK: - Public
     // `width` is the wrapping width in output pixels, and nil keeps the text on one line. Text that takes more lines
-    // than its style's `lines`, counting every `\n`, stops. A style of one line wraps at no width, and is too wide when
-    // it is wider than `width`.
+    // than its paragraph style's `lines`, counting every `\n`, stops. A style of one line wraps at no width, and is too
+    // wide when it is wider than `width`. Lines lie the line height apart, baseline to baseline: the first baseline is
+    // its line's largest ascent below the top, and the box ends the last line's largest descent below the last.
     func layout(
-        _ text: String,
-        style: TextStyle,
-        face: FontFace,
+        _ runs: [TextRun],
+        paragraph style: ParagraphStyle,
         width: Double?,
         place: Place,
         kind: String
     ) throws -> TextLayout {
         let limit = width == nil ? 1 : style.lines
         let isOneLine = limit == 1
-        let lines = try paragraphs(of: spans(of: text, style: style)).flatMap { paragraph in
-            try self.lines(of: paragraph, face: face, size: style.size, width: isOneLine ? nil : width)
+        let lines = try paragraphs(of: runs).flatMap { paragraph in
+            try self.lines(of: paragraph, width: isOneLine ? nil : width)
         }
         if let limit, lines.count > limit {
             throw TextError.tooManyLines(place: place, kind: kind, count: lines.count, limit: limit)
@@ -45,55 +46,39 @@ struct Typesetter: Sendable {
         }
 
         let padding = style.background?.padding ?? Size(width: 0, height: 0)
-        let runs = lines.enumerated().flatMap { index, line in
+        let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
+        let placedRuns = lines.enumerated().flatMap { index, line in
             placed(
                 line,
                 origin: Point(
                     x: padding.width + alignmentOffset(of: line, in: textWidth, align: style.align),
-                    y: padding.height + baseline(of: index, face: face, style: style)
-                ),
-                size: style.size
+                    y: firstBaseline + Double(index) * style.lineHeight
+                )
             )
         }
+        let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
+            + (lines.first?.ascent ?? 0)
+            + (lines.last?.descent ?? 0)
 
         return TextLayout(
-            size: Size(
-                width: textWidth + padding.width * 2,
-                height: Double(lines.count) * style.lineHeight + padding.height * 2
-            ),
+            size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
             lineCount: lines.count,
-            runs: runs,
-            stroke: style.stroke,
+            runs: placedRuns,
             background: style.background
         )
     }
 
     // MARK: - Private
-    // `**` opens and closes emphasis. A last `**` that nothing closes is text.
-    private func spans(
-        of text: String,
-        style: TextStyle
-    ) -> [TextSpan] {
-        var parts = text.components(separatedBy: "**")
-        if parts.count % 2 == 0 {
-            let last = parts.removeLast()
-            parts[parts.count - 1] += "**" + last
-        }
-
-        return parts.enumerated().map { index, part in
-            TextSpan(text: part, color: index % 2 == 1 ? style.emphasis : style.color)
-        }
-    }
-
-    // `\n` ends a paragraph, whichever span it is in.
-    private func paragraphs(of spans: [TextSpan]) -> [[TextSpan]] {
-        spans.reduce(into: [[TextSpan]()]) { paragraphs, span in
-            for (index, piece) in span.text.components(separatedBy: "\n").enumerated() {
-                if index > 0 {
-                    paragraphs.append([])
-                }
-                if !piece.isEmpty {
-                    paragraphs[paragraphs.count - 1].append(TextSpan(text: piece, color: span.color))
+    // `\n` ends a paragraph, whichever run it is in. Each paragraph begins with a piece of the run its first scalar or
+    // the `\n` before it lies in, empty or not, so a line with no glyphs takes that run's extent.
+    private func paragraphs(of runs: [TextRun]) -> [[TextRun]] {
+        runs.reduce(into: [[TextRun]]()) { paragraphs, run in
+            for (index, piece) in run.text.components(separatedBy: "\n").enumerated() {
+                let text = TextRun(text: piece, style: run.style, face: run.face)
+                if index > 0 || paragraphs.isEmpty {
+                    paragraphs.append([text])
+                } else if !piece.isEmpty {
+                    paragraphs[paragraphs.count - 1].append(text)
                 }
             }
         }
@@ -103,18 +88,16 @@ struct Typesetter: Sendable {
     // wider than the width starts a line of its own and breaks inside where UAX #14 allows, and a piece of it still
     // wider overflows alone. Without a width only a mandatory break ends a line.
     private func lines(
-        of paragraph: [TextSpan],
-        face: FontFace,
-        size: Double,
+        of paragraph: [TextRun],
         width: Double?
     ) throws -> [TextLine] {
         let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
-        let glyphs = try shaped(paragraph, face: face, size: size)
+        let glyphs = try shaped(paragraph)
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
 
-        var lines: [[ColoredGlyph]] = []
-        var current: [ColoredGlyph] = []
+        var lines: [[StyledGlyph]] = []
+        var current: [StyledGlyph] = []
         for (index, start) in starts.enumerated() {
             let end = starts.indices.contains(index + 1) ? starts[index + 1] : scalars.count
             let word = glyphs.filter { (start..<end).contains($0.glyph.offset) }
@@ -142,15 +125,25 @@ struct Typesetter: Sendable {
         }
         lines.append(current)
 
-        return lines.map { glyphs in TextLine(glyphs: glyphs, width: visibleWidth(of: glyphs, scalars: scalars)) }
+        // A line with no glyphs is a paragraph with no text, and takes the extent of the run it begins in.
+        let home = paragraph.first.map { [TextExtent(face: $0.face, size: $0.style.size)] } ?? []
+        return lines.map { glyphs in
+            let extents = glyphs.isEmpty ? home : glyphs.map { TextExtent(face: $0.face, size: $0.style.size) }
+            return TextLine(
+                glyphs: glyphs,
+                width: visibleWidth(of: glyphs, scalars: scalars),
+                ascent: extents.map(\.ascent).reduce(0, max),
+                descent: extents.map(\.descent).reduce(0, max)
+            )
+        }
     }
 
     // A word's glyphs split where a break falls inside it. Glyphs of one scalar stay together.
     private func pieces(
-        of word: [ColoredGlyph],
+        of word: [StyledGlyph],
         breaks: [LineBreak]
-    ) -> [[ColoredGlyph]] {
-        word.reduce(into: [[ColoredGlyph]]()) { pieces, glyph in
+    ) -> [[StyledGlyph]] {
+        word.reduce(into: [[StyledGlyph]]()) { pieces, glyph in
             let offset = glyph.glyph.offset
             if pieces.last?.last.map({ $0.glyph.offset != offset && breaks[offset] == .insideWord }) ?? true {
                 pieces.append([])
@@ -159,33 +152,29 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Each span is shaped on its own, since a colour change is a run boundary, and its glyphs are told by the scalar
+    // Each run is shaped on its own, since a run boundary ends a shaping run, and its glyphs are told by the scalar
     // they start at in the whole paragraph.
-    private func shaped(
-        _ paragraph: [TextSpan],
-        face: FontFace,
-        size: Double
-    ) throws -> [ColoredGlyph] {
+    private func shaped(_ paragraph: [TextRun]) throws -> [StyledGlyph] {
         var start = 0
-        var glyphs: [ColoredGlyph] = []
-        for span in paragraph {
-            for run in try shaper.shape(span.text, face: face, size: size) {
-                glyphs += run.glyphs.map { glyph in
-                    ColoredGlyph(
+        var glyphs: [StyledGlyph] = []
+        for run in paragraph {
+            for shaped in try shaper.shape(run.text, face: run.face, size: run.style.size) {
+                glyphs += shaped.glyphs.map { glyph in
+                    StyledGlyph(
                         glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
-                        face: run.face,
-                        color: span.color
+                        face: shaped.face,
+                        style: run.style
                     )
                 }
             }
-            start += span.text.unicodeScalars.count
+            start += run.text.unicodeScalars.count
         }
 
         return glyphs
     }
 
     private func visibleWidth(
-        of glyphs: [ColoredGlyph],
+        of glyphs: [StyledGlyph],
         scalars: [Unicode.Scalar]
     ) -> Double {
         let hanging = glyphs.reversed().prefix { scalars[$0.glyph.offset].properties.isWhitespace }.count
@@ -209,21 +198,10 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Each line takes the line height, with the face's extent centred in it.
-    private func baseline(
-        of index: Int,
-        face: FontFace,
-        style: TextStyle
-    ) -> Double {
-        let extent = (face.ascent + face.descent) * style.size
-        return Double(index) * style.lineHeight + (style.lineHeight - extent) / 2 + face.ascent * style.size
-    }
-
-    // Glyphs of one line in one face and colour make one run.
+    // Glyphs of one line in one face, size, colour and stroke make one run, and the runs of a line share its baseline.
     private func placed(
         _ line: TextLine,
-        origin: Point,
-        size: Double
+        origin: Point
     ) -> [GlyphRun] {
         var runs: [GlyphRun] = []
         var x = origin.x
@@ -231,15 +209,27 @@ struct Typesetter: Sendable {
             let positioned = PositionedGlyph(id: glyph.glyph.id, x: x, y: origin.y)
             x += glyph.glyph.advance
 
-            if let last = runs.last, last.face == glyph.face, last.color == glyph.color {
+            let style = glyph.style
+            let isSameLook = runs.last.map { last in
+                last.face == glyph.face && last.size == style.size && last.color == style.color
+                    && last.stroke == style.stroke
+            } ?? false
+            if let last = runs.last, isSameLook {
                 runs[runs.count - 1] = GlyphRun(
                     face: last.face,
-                    size: size,
+                    size: last.size,
                     color: last.color,
+                    stroke: last.stroke,
                     glyphs: last.glyphs + [positioned]
                 )
             } else {
-                runs.append(GlyphRun(face: glyph.face, size: size, color: glyph.color, glyphs: [positioned]))
+                runs.append(GlyphRun(
+                    face: glyph.face,
+                    size: style.size,
+                    color: style.color,
+                    stroke: style.stroke,
+                    glyphs: [positioned]
+                ))
             }
         }
 

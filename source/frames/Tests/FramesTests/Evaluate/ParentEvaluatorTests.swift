@@ -28,9 +28,7 @@ struct ParentEvaluatorTests {
     private let red = Color(written: "#FF0000")
     private let text = ResolvedText(
         size: Size(width: 100, height: 40),
-        lineCount: 1,
         background: nil,
-        stroke: nil,
         runs: []
     )
 

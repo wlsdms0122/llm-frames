@@ -223,6 +223,9 @@ struct KeyChecker: Sendable {
         case .masks:
             try checkMasks(value, place: place, kind: kind, scope: &scope)
 
+        case .runs:
+            try checkRuns(value, place: place, kind: kind, scope: &scope)
+
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -424,6 +427,31 @@ struct KeyChecker: Sendable {
 
         for (index, element) in elements.enumerated() {
             try checkMask(element, place: place.appending(index: index), kind: kind, scope: &scope)
+        }
+    }
+
+    // An empty list stops, since it is a title with nothing to show.
+    private func checkRuns(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try check(value, as: .text, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: kind,
+                reason: "a list of runs holds at least one run, since a title without one has nothing to show"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            let place = place.appending(index: index)
+            try check(element, as: .object(ClipKeyTable.run), place: place, kind: kind, scope: &scope)
         }
     }
 
@@ -980,7 +1008,7 @@ struct KeyChecker: Sendable {
         case .media:
             MediaKind(rawValue: parameterType) != nil
 
-        case .text:
+        case .text, .runs:
             parameterType == "text"
 
         case .color:
@@ -1046,7 +1074,8 @@ struct KeyChecker: Sendable {
         case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
             true
 
-        case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array):
+        case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array), (.runs, .string),
+             (.runs, .array):
             true
 
         default:
@@ -1139,6 +1168,9 @@ struct KeyChecker: Sendable {
 
         case .masks:
             "a mask or a list of masks"
+
+        case .runs:
+            "a string or a list of runs"
 
         case .media:
             "a media reference"

@@ -9,8 +9,9 @@ import CoreGraphics
 import CoreText
 import Frames
 
-// Draws a glyphs item in its text's own box: the background, then the outline of every glyph, then every glyph's
-// fill, so no stroke covers a fill. Glyphs are drawn at their written baseline origins and shaped no further.
+// Draws a glyphs item in its text's own box: the background, then the outline of every glyph of every run with a
+// stroke, then every glyph's fill, so no stroke covers a fill. Glyphs are drawn at their written baseline origins and
+// shaped no further.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -34,10 +35,16 @@ struct GlyphDrawer {
         let runs = try item.runs.map { run in
             (run: run, font: try fonts.font(file: run.font.path, face: run.face, size: run.size))
         }
-        if let stroke = item.stroke, stroke.width > 0 {
-            // One path for every outline of the item, so strokes that cross are drawn once.
+        let strokes = item.runs.compactMap(\.stroke).reduce(into: [TextStroke]()) { strokes, stroke in
+            guard stroke.width > 0, !strokes.contains(stroke) else { return }
+
+            strokes.append(stroke)
+        }
+        for stroke in strokes {
+            // One path for every outline of the runs in one stroke, a line's and the next's, so strokes that cross
+            // are drawn once.
             let outlines = CGMutablePath()
-            for (run, font) in runs {
+            for (run, font) in runs where run.stroke == stroke {
                 for glyph in run.glyphs {
                     var placement = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: glyph.x, ty: glyph.y)
                     guard let outline = CTFontCreatePathForGlyph(font, CGGlyph(glyph.id), &placement) else { continue }

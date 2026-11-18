@@ -92,7 +92,15 @@ struct ClipEvaluator: Sendable {
             guard let box = clip.box else { return [] }
 
             let glyphs = GlyphsItem(text: text)
-            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .glyphs(glyphs), at: time)]
+            return [boxItem(
+                of: clip,
+                box: box,
+                receiver: glyphs.drawnBounds(),
+                sample: sample,
+                in: space,
+                content: .glyphs(glyphs),
+                at: time
+            )]
 
         case let .media(media):
             // A media clip carries its box and every crop conformed to it, and its picture is given.
@@ -107,7 +115,15 @@ struct ClipEvaluator: Sendable {
                 border: media.appearance.border,
                 shadow: media.appearance.shadow
             )
-            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .picture(item), at: time)]
+            return [boxItem(
+                of: clip,
+                box: box,
+                receiver: item.destination,
+                sample: sample,
+                in: space,
+                content: .picture(item),
+                at: time
+            )]
 
         case let .shape(shape):
             return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
@@ -117,23 +133,24 @@ struct ClipEvaluator: Sendable {
         }
     }
 
-    // A title or media clip's item in its box's own pixels, wiped across its box from the animation's side.
+    // A title or media clip's item in its box's own pixels, wiped across `receiver`, what it draws there, from the
+    // animation's side.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
+        receiver: Rectangle,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
         at time: Double
     ) -> DisplayItem {
         let presentation = presentation(of: clip, box: box, sample: sample, in: space, at: time)
-        let ownBox = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: ownBox, from: sample.animation.revealFrom),
+            reveal: sample.animation.reveal.rectangle(wiping: receiver, from: sample.animation.revealFrom),
             content: content
         )
     }

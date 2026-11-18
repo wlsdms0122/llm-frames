@@ -95,9 +95,6 @@ package struct DisplayListWriter: Sendable {
             return members(of: path)
 
         case let .glyphs(glyphs):
-            let stroke = glyphs.stroke.map { stroke in
-                JSONValue.object(JSONObject(members: [number("width", stroke.width), color(stroke.color)]))
-            }
             let background = glyphs.background.map { background in
                 JSONValue.object(JSONObject(members: [
                     JSONMember(key: "rect", value: values.rectangle(background.rectangle)),
@@ -108,7 +105,6 @@ package struct DisplayListWriter: Sendable {
             return [
                 JSONMember(key: "size", value: values.size(glyphs.size)),
                 JSONMember(key: "runs", value: values.runs(glyphs.runs)),
-                JSONMember(key: "stroke", value: stroke ?? .null),
                 JSONMember(key: "background", value: background ?? .null)
             ]
 

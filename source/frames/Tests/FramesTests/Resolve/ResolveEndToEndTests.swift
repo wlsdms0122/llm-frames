@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import CoreText
 import Foundation
 import FramesAVFoundation
 import FramesCoreText
@@ -61,6 +62,41 @@ struct ResolveEndToEndTests {
         #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold", "HelveticaNeue-Bold", "AppleSDGothicNeo-Bold"])
         #expect(title.runs.allSatisfy { FileManager.default.fileExists(atPath: $0.face.file) })
         #expect(title.runs.flatMap(\.glyphs).count == "결제 완료".unicodeScalars.count)
+    }
+
+    // The first line holds a bold run at 48 and a regular one at 36, the second only the regular run, and the role
+    // style's lines lie 45 apart, 1.25 times its size.
+    @Test("a title of runs in two faces is set by the real shaper on shared baselines, in a box of first ascent plus last descent")
+    func setsRunsInTwoFaces() throws {
+        // Given
+        let packs = try TemporaryDirectory()
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "name": { "size": 48, "weight": "bold" }, "role": { "size": 36 } } },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "at": [0, 1], "title": [ { "text": "Ana", "style": "name" }, { "text": " Ruiz\nDirector" } ],
+                           "style": "role", "position": [400, 225] } ] }
+            """#)
+        let sut = planner(packs: packs)
+
+        // When
+        let plan = try sut.plan(document)
+
+        // Then
+        let title = try #require(plan.clips[0].title)
+        #expect(title.runs.map(\.face.name) == ["HelveticaNeue-Bold", "HelveticaNeue", "HelveticaNeue"])
+        #expect(title.runs.map(\.size) == [48, 36, 36])
+        #expect(title.runs.map { $0.glyphs.count } == [3, 5, 8])
+
+        let bold = CTFontCreateWithName("HelveticaNeue-Bold" as CFString, 48, nil)
+        let regular = CTFontCreateWithName("HelveticaNeue" as CFString, 36, nil)
+        let baseline = Double(max(CTFontGetAscent(bold), CTFontGetAscent(regular)))
+        let ys = title.runs.map { Set($0.glyphs.map(\.y)) }
+        #expect(ys[0] == ys[1])
+        #expect(ys[0].count == 1 && ys[2].count == 1)
+        #expect(abs((ys[0].first ?? 0) - baseline) < 1e-9)
+        #expect(abs((ys[2].first ?? 0) - (baseline + 45)) < 1e-9)
+        #expect(abs(title.size.height - (baseline + 45 + Double(CTFontGetDescent(regular)))) < 1e-9)
     }
 
     @Test("a resolved sequence reads back as it was written, and its tracked box follows the line on every frame")

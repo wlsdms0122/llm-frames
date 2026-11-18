@@ -69,7 +69,7 @@ struct ContactSheetComposerTests {
                 color: Color(written: "#000000B3")
             )
         )
-        #expect(label.stroke == nil)
+        #expect(run.stroke == nil)
         #expect(label.runs.count == 1)
         #expect(run.face == face.name)
         #expect(run.font.path == face.file)

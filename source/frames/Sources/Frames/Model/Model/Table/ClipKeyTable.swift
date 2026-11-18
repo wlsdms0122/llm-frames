@@ -74,6 +74,15 @@ enum ClipKeyTable {
         )
     }
 
+    // A run of a title's list: its text, and the theme text style it is set in, the clip's when it names none.
+    static let run = ObjectTable(
+        kind: "run",
+        rules: [
+            KeyRule("text", .text, isRequired: true),
+            KeyRule("style", .name)
+        ]
+    )
+
     // Properties written only in keyframes, so a static value stops (FRAMES-4).
     static let keyframedOnly = ["timeRemap"]
 
@@ -240,7 +249,7 @@ enum ClipKeyTable {
             .oneOf([.exactly(.bool(true)), .color])
 
         case "title":
-            .text
+            .runs
 
         case "style", "parent":
             .name

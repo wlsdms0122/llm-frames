@@ -44,7 +44,7 @@ struct ClipEvaluatorTests {
             SpanKey(t: 0, values: [.scale: 0.5, .opacity: 0, .reveal: 0]),
             SpanKey(t: 1, values: [.scale: 1, .opacity: 1, .reveal: 1])
         ]))
-        let text = ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
         let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil), opacity: 0.8)
 
         // When
@@ -66,9 +66,7 @@ struct ClipEvaluatorTests {
         // Given
         let text = ResolvedText(
             size: Size(width: 100, height: 40),
-            lineCount: 1,
             background: TextBackground(color: white, padding: Size(width: 8, height: 4), radius: 6),
-            stroke: nil,
             runs: []
         )
         let clip = title(text, animation: .none, opacity: 1, scale: 2, rotation: 90)
@@ -86,7 +84,6 @@ struct ClipEvaluatorTests {
         #expect(item.content == .glyphs(GlyphsItem(
             size: Size(width: 100, height: 40),
             runs: [],
-            stroke: nil,
             background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 6, color: white)
         )))
     }
@@ -96,7 +93,7 @@ struct ClipEvaluatorTests {
         // Given
         // P doubles, turns a quarter clockwise and moves by (300, 0), so the anchor point (100, 200) lands at
         // (-100, 200). The box keeps its 100 x 40 size and turns a quarter about its bottom centre (50, 40).
-        let text = ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
         let clip = title(text, animation: .none, opacity: 1)
         let transform = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0)
             .concatenating(AffineTransform(rotation: 90, about: Point(x: 0, y: 0)))
@@ -382,7 +379,7 @@ struct ClipEvaluatorTests {
     }
 
     private func text() -> ResolvedText {
-        ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
     }
 
     private func expect(

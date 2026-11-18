@@ -727,14 +727,14 @@ struct SequencePlanner: Sendable {
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
-        guard case let .title(text, style) = written.content else { return nil }
+        guard case let .title(runs, style) = written.content else { return nil }
         guard written.width != nil || !format.isMeasured else {
             throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
         }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(
-            text,
+            runs,
             style: style,
             stylePlace: written.place.appending(key: "style"),
             width: written.width ?? format.size.width - theme.placementPadding * scale * 2,

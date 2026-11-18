@@ -1236,7 +1236,7 @@ struct EvaluatorTests {
     }
 
     private func text(_ size: Size) -> ResolvedText {
-        ResolvedText(size: size, lineCount: 1, background: nil, stroke: nil, runs: [run()])
+        ResolvedText(size: size, background: nil, runs: [run()])
     }
 
     // The picture of the list's topmost item.
@@ -1323,6 +1323,7 @@ struct EvaluatorTests {
             face: "Font-Bold",
             size: 30,
             color: white,
+            stroke: nil,
             glyphs: [PositionedGlyph(id: 1, x: 8, y: 34)]
         )
     }

@@ -240,8 +240,16 @@ struct ConnectedClipRenderTests {
                     reveal: item.reveal,
                     content: .glyphs(GlyphsItem(
                         size: glyphs.size,
-                        runs: glyphs.runs,
-                        stroke: nil,
+                        runs: glyphs.runs.map { run in
+                            ResolvedGlyphRun(
+                                font: run.font,
+                                face: run.face,
+                                size: run.size,
+                                color: run.color,
+                                stroke: nil,
+                                glyphs: run.glyphs
+                            )
+                        },
                         background: glyphs.background
                     )),
                     origin: item.origin

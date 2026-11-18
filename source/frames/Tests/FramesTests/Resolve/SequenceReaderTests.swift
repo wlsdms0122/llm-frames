@@ -32,7 +32,8 @@ struct SequenceReaderTests {
               "clips": [
                 { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
                 { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
-                { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } }
+                { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } },
+                { "title": [ { "text": "Ana\n" }, { "text": "Director", "style": "role" } ], "style": "name" }
               ] }
             """##)
 
@@ -46,7 +47,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].media == ClipMedia(source: .file("/abs/run.mp4"), in: 2, out: 8, speed: 2))
         #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, properties: ["crop"])])
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
-        #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
+        #expect(sequence.storyline[0].connected[0].content == .title(runs: [TitleRun(text: "a", style: nil)], style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].parent == "run")
         #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
@@ -60,6 +61,10 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
         #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
+        #expect(sequence.clips[3].content == .title(
+            runs: [TitleRun(text: "Ana\n", style: nil), TitleRun(text: "Director", style: "role")],
+            style: "name"
+        ))
     }
 
     @Test("a nested sequence reads as a compound clip whose places continue the place of the clip that holds it")

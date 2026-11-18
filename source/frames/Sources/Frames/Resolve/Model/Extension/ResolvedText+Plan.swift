@@ -15,15 +15,14 @@ extension ResolvedText {
     ) throws {
         self.init(
             size: layout.size,
-            lineCount: layout.lineCount,
             background: layout.background,
-            stroke: layout.stroke,
             runs: try layout.runs.map { run in
                 ResolvedGlyphRun(
                     font: try PinnedFile(path: run.face.file, hashes: hashes),
                     face: run.face.name,
                     size: run.size,
                     color: run.color,
+                    stroke: run.stroke,
                     glyphs: run.glyphs
                 )
             }

@@ -477,7 +477,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.size == Size(width: 38, height: 128))
+        #expect(plan.clips[0].title?.size == Size(width: 38, height: 76))
         #expect(plan.clips[0].title?.runs.first?.size == 76)
     }
 
@@ -493,6 +493,42 @@ struct SequencePlannerTests {
         let error = #expect(throws: ThemeError.self) { try plan(document) }
         #expect(error?.description == #"clips[0].style (title): style "nope" is not in styles, "#
             + #"which hold "subtitle", "title""#)
+    }
+
+    @Test("a run naming a style the theme does not hold stops at the run's style")
+    func refusesUnknownRunStyle() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "a" }, { "text": "b", "style": "nope" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try plan(document) }
+        #expect(error?.description == #"clips[0].title[1].style (title): style "nope" is not in styles, "#
+            + #"which hold "caption", "subtitle", "title""#)
+    }
+
+    // The run in `big` is 80 high with an ascent of 64, the run in `caption` 60 high with a descent of 12, and the lines
+    // lie the caption's 100 apart. The big style's line height, line limit and background would each change the box.
+    @Test("a run takes its size from its own style and its paragraph attributes from the clip's style")
+    func readsRunCharacterAttributesOnly() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 60, "lineHeight": 100 },
+                                     "big": { "size": 80, "lineHeight": 400, "lines": 1, "align": "right",
+                                              "background": { "color": "#000000", "padding": [10, 10], "radius": 4 } } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "a\n", "style": "big" }, { "text": "b" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title)
+        #expect(title.size == Size(width: 40, height: 176))
+        #expect(title.background == nil)
+        #expect(title.runs.map(\.size) == [80, 60])
+        #expect(title.runs.map { $0.glyphs.map(\.x) } == [[0], [0]])
     }
 
     @Test(
