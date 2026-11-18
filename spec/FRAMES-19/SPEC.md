@@ -71,9 +71,9 @@ How it is written, so the same plan gives the same bytes:
     { "id": "name", "start": 1.2, "end": 5, "lane": 2, "storyline": 0, "parent": "bar",
       "title": { "size": [512.4, 62.5], "background": null,
                  "runs": [
-                   { "font": "/System/Library/Fonts/HelveticaNeue.ttc", "sha256": "41aa0c9e5d17", "face": "HelveticaNeue-Bold", "size": 48, "color": "#FFFFFFFF", "stroke": null,
+                   { "file": "/System/Library/Fonts/HelveticaNeue.ttc", "sha256": "41aa0c9e5d17", "face": "HelveticaNeue-Bold", "size": 48, "color": "#FFFFFFFF", "stroke": null,
                      "glyphs": [ [43, 0, 46.1], [72, 31.2, 46.1] ] },
-                   { "font": "/System/Library/Fonts/HelveticaNeue.ttc", "sha256": "41aa0c9e5d17", "face": "HelveticaNeue", "size": 36, "color": "#C9D6EAFF", "stroke": null,
+                   { "file": "/System/Library/Fonts/HelveticaNeue.ttc", "sha256": "41aa0c9e5d17", "face": "HelveticaNeue", "size": 36, "color": "#C9D6EAFF", "stroke": null,
                      "glyphs": [ [3, 268.5, 46.1] ] } ] },
       "size": [512.4, 62.5], "anchor": [0, 31.25],
       "position": [ { "at": 1.2, "value": [128, 900], "ease": "linear" } ], "blend": "normal", "mask": null, "trackMatte": null },
