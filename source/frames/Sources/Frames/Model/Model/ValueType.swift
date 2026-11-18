@@ -44,7 +44,8 @@ indirect enum ValueType: Equatable, Sendable {
     case media
     case document
     case clips(ClipPlace)
-    case parameters
+    // A `params` object, each parameter checked by the table of its owner.
+    case parameters(ObjectTable)
     case argument
     case filterOperation
 }

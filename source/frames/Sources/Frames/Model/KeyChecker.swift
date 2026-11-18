@@ -240,10 +240,16 @@ struct KeyChecker: Sendable {
                 try checkClip(element, place: elementPlace(place, index, element), in: clipPlace, scope: &scope)
             }
 
-        case .parameters:
+        case let .parameters(table):
             guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
             for member in object.members {
-                try checkParameter(member.value, place: place.appending(key: member.key), scope: &scope)
+                try checkParameter(
+                    member.value,
+                    named: member.key,
+                    as: table,
+                    place: place.appending(key: member.key),
+                    scope: &scope
+                )
             }
 
         case .filterOperation:
@@ -650,6 +656,16 @@ struct KeyChecker: Sendable {
             return
         }
 
+        try checkPublishing(object, as: table, place: place, scope: &scope)
+    }
+
+    // An object that may publish `params`, a template or a preset, whose references name its own parameters.
+    private func checkPublishing(
+        _ object: JSONObject,
+        as table: ObjectTable,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws {
         // Declarations are checked before anything refers to them, so a broken one is reported where it is written,
         // and a reference written before `params` still finds its declaration.
         if let declarations = object["params"], let rule = table.rule(named: "params") {
@@ -823,16 +839,16 @@ struct KeyChecker: Sendable {
 
     private func checkParameter(
         _ value: JSONValue,
+        named name: String,
+        as table: ObjectTable,
         place: Place,
         scope: inout DocumentScope
     ) throws {
-        let table = TemplateKeyTable.parameter
         guard let object = value.objectValue else { throw wrongType(value, .object(table), place, table.kind) }
 
         try checkObject(object, as: table, place: place, skipping: ["default"], scope: &scope)
 
-        let type = object["type"]?.stringValue ?? ""
-        let isChoice = type == "choice"
+        let isChoice = object["type"]?.stringValue == ParameterType.choice.rawValue
         if isChoice, !object.contains("options") {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: ["options"])
         }
@@ -848,43 +864,20 @@ struct KeyChecker: Sendable {
                 place: place,
                 kind: table.kind,
                 key: "options",
-                allowed: ["type", "default", "description"]
+                allowed: table.keys.filter { $0 != "options" }
             )
         }
 
-        guard let defaultValue = object["default"] else { return }
+        guard let defaultValue = object["default"], let parameter = Parameter(name: name, declaration: object) else { return }
 
-        let options = object["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
         var defaultScope = scope
         try check(
             defaultValue,
-            as: defaultType(of: type, options: options),
+            as: parameter.valueType,
             place: place.appending(key: "default"),
             kind: table.kind,
             scope: &defaultScope
         )
-    }
-
-    private func defaultType(
-        of parameterType: String,
-        options: [String]
-    ) -> ValueType {
-        switch parameterType {
-        case "text":
-            .text
-
-        case "color":
-            .color
-
-        case "number":
-            .number
-
-        case "choice":
-            .literal(options)
-
-        default:
-            .media
-        }
     }
 
     private func checkParameterReference(

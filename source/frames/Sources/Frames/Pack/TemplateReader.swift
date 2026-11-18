@@ -23,30 +23,14 @@ struct TemplateReader: Sendable {
         place: Place
     ) throws -> Template {
         let references = try checker.check(template: document, place: place)
-        let parameters = (document.objectValue?["params"]?.objectValue?.members ?? []).compactMap { member in
-            parameter(member.key, member.value.objectValue ?? JSONObject())
-        }
 
         return Template(
             document: document,
             place: place,
-            parameters: parameters,
+            parameters: Parameter.declared(in: document),
             references: references
         )
     }
 
     // MARK: - Private
-    private func parameter(
-        _ name: String,
-        _ declaration: JSONObject
-    ) -> Parameter? {
-        guard let type = declaration["type"]?.stringValue.flatMap(ParameterType.init(rawValue:)) else { return nil }
-
-        return Parameter(
-            name: name,
-            type: type,
-            defaultValue: declaration["default"],
-            options: declaration["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        )
-    }
 }

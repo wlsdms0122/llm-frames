@@ -16,15 +16,6 @@ enum TemplateKeyTable {
             KeyRule("args", arguments)
         ]
     )
-    static let parameter = ObjectTable(
-        kind: "parameter",
-        rules: [
-            KeyRule("type", .literal(VocabularyTable.parameterTypes), isRequired: true),
-            KeyRule("default", .anyValue),
-            KeyRule("description", .text),
-            KeyRule("options", .list(.text))
-        ]
-    )
     static let imageSequence = ObjectTable(
         kind: "image sequence",
         rules: [

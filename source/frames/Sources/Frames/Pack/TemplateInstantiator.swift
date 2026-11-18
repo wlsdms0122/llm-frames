@@ -11,10 +11,12 @@
 struct TemplateInstantiator: Sendable {
     // MARK: - Property
     private let checker: KeyChecker
+    private let filler: ParameterFiller
 
     // MARK: - Initializer
     init(mediaKinds: any MediaKindProvider) {
         self.checker = KeyChecker(mediaKinds: mediaKinds)
+        self.filler = ParameterFiller(checker: checker)
     }
 
     // MARK: - Public
@@ -25,24 +27,24 @@ struct TemplateInstantiator: Sendable {
         place: Place
     ) throws -> TemplateInstance {
         let kind = TemplateKeyTable.argumentsKind
-        let names = template.parameters.map(\.name)
-        for name in arguments.keys where !names.contains(name) {
-            throw PackError.unknownArgument(place: place, kind: kind, name: name, allowed: names)
+        let values = try filler.values(of: arguments, for: template.parameters, place: place, kind: kind)
+        for parameter in template.parameters {
+            try checkTaken(
+                values[parameter.name] ?? .null,
+                parameter: parameter,
+                in: arguments,
+                place: place,
+                template: template
+            )
         }
 
-        let values = try template.parameters.reduce(into: [String: JSONValue]()) { values, parameter in
-            values[parameter.name] = try value(of: parameter, in: arguments, place: place, template: template)
-        }
-        let document = template.references.reduce(template.document) { document, reference in
-            replacing(at: reference.place.components[...], in: document, with: values[reference.name] ?? .null)
-        }
         let given = template.references.filter { reference in
             arguments.contains(reference.name)
                 && template.parameters.contains { $0.name == reference.name && $0.type.mediaKind != nil }
         }
 
         return TemplateInstance(
-            document: removingParameters(from: document),
+            document: filler.filling(template.document, at: template.references, with: values),
             arguments: given.map { reference in
                 ParameterReference(
                     place: Place(components: reference.place.components),
@@ -58,38 +60,29 @@ struct TemplateInstantiator: Sendable {
     // MARK: - Private
     // A default was checked against its type with the template, but its media kind is known only once it is probed,
     // and like an argument it meets the places it fills only when it is taken.
-    private func value(
-        of parameter: Parameter,
+    private func checkTaken(
+        _ value: JSONValue,
+        parameter: Parameter,
         in arguments: JSONObject,
         place: Place,
         template: Template
-    ) throws -> JSONValue {
-        if let argument = arguments[parameter.name] {
-            let argumentPlace = place.appending(key: parameter.name)
-            try check(argument, of: parameter, place: argumentPlace)
+    ) throws {
+        if arguments.contains(parameter.name) {
             try checkKind(
-                of: argument,
+                of: value,
                 parameter: parameter,
-                place: argumentPlace,
+                place: place.appending(key: parameter.name),
                 kind: TemplateKeyTable.argumentsKind
             )
-            try checkPlaces(of: argument, parameter: parameter, template: template)
-
-            return argument
+        } else {
+            try checkKind(
+                of: value,
+                parameter: parameter,
+                place: template.place.appending(key: "params").appending(key: parameter.name).appending(key: "default"),
+                kind: ParameterKeyTable.kind
+            )
         }
-        guard let defaultValue = parameter.defaultValue else {
-            throw PackError.missingArgument(place: place, kind: TemplateKeyTable.argumentsKind, name: parameter.name)
-        }
-
-        try checkKind(
-            of: defaultValue,
-            parameter: parameter,
-            place: template.place.appending(key: "params").appending(key: parameter.name).appending(key: "default"),
-            kind: TemplateKeyTable.parameter.kind
-        )
-        try checkPlaces(of: defaultValue, parameter: parameter, template: template)
-
-        return defaultValue
+        try checkPlaces(of: value, parameter: parameter, template: template)
     }
 
     // A place can take less than its parameter's type, such as whole pixels for a number, so the value is checked
@@ -111,34 +104,6 @@ struct TemplateInstantiator: Sendable {
         }
     }
 
-    // An argument that is an object was checked as media where it is written, so only its type is left.
-    private func check(
-        _ argument: JSONValue,
-        of parameter: Parameter,
-        place: Place
-    ) throws {
-        let kind = TemplateKeyTable.argumentsKind
-
-        switch parameter.type {
-        case .text:
-            try checker.check(argument, as: .text, place: place, kind: kind)
-
-        case .number:
-            try checker.check(argument, as: .number, place: place, kind: kind)
-
-        case .color:
-            try checker.check(argument, as: .color, place: place, kind: kind)
-
-        case .choice:
-            try checker.check(argument, as: .literal(parameter.options), place: place, kind: kind)
-
-        case .video, .sequence, .image, .audio:
-            guard argument.objectValue == nil else { return }
-
-            try checker.check(argument, as: .media, place: place, kind: kind)
-        }
-    }
-
     private func checkKind(
         of media: JSONValue,
         parameter: Parameter,
@@ -157,33 +122,5 @@ struct TemplateInstantiator: Sendable {
                 found: found
             )
         }
-    }
-
-    private func replacing(
-        at components: ArraySlice<PlaceComponent>,
-        in value: JSONValue,
-        with replacement: JSONValue
-    ) -> JSONValue {
-        guard let component = components.first else { return replacement }
-
-        switch (component, value) {
-        case let (.key(key), .object(object)):
-            let member = replacing(at: components.dropFirst(), in: object[key] ?? .null, with: replacement)
-            return .object(object.setting(key, to: member))
-
-        case let (.index(index, _), .array(elements)) where elements.indices.contains(index):
-            var elements = elements
-            elements[index] = replacing(at: components.dropFirst(), in: elements[index], with: replacement)
-            return .array(elements)
-
-        default:
-            return value
-        }
-    }
-
-    private func removingParameters(from document: JSONValue) -> JSONValue {
-        guard let object = document.objectValue else { return document }
-
-        return .object(JSONObject(members: object.members.filter { $0.key != "params" }))
     }
 }
