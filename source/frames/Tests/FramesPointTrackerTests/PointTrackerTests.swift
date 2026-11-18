@@ -161,6 +161,57 @@ struct PointTrackerTests {
         }
     }
 
+    @Test(
+        "a turning target is followed in its corners and its turn, clockwise positive",
+        arguments: [
+            RotationCase(scene: .line, degreesPerFrame: 3, frameCount: 16, growth: 1.3, cornerTolerance: 1, angleTolerance: 0.15),
+            RotationCase(scene: .line, degreesPerFrame: -3, frameCount: 16, growth: 1, cornerTolerance: 1, angleTolerance: 0.15),
+            RotationCase(scene: .patch, degreesPerFrame: 3, frameCount: 16, growth: 1.3, cornerTolerance: 1, angleTolerance: 0.5),
+            RotationCase(scene: .patch, degreesPerFrame: 8, frameCount: 7, growth: 1, cornerTolerance: 1.5, angleTolerance: 1.2)
+        ]
+    )
+    func followsTurn(rotation: RotationCase) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let (media, target, truth) = try await turningVideo(rotation, in: directory)
+        let sut = PointTracker(decoder: decoder)
+
+        // When
+        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...1)
+
+        // Then
+        #expect(frames.count == rotation.frameCount)
+        for (index, frame) in frames.enumerated() {
+            let motion = TrackMotion(from: target.corners, to: frame.quad.corners)
+            let corner = zip(frame.quad.corners, truth[index].corners).map { distance($0, $1) }.max() ?? 0
+            #expect(corner <= rotation.cornerTolerance, "frame \(index): corner \(corner) px")
+            #expect(
+                abs(motion.rotation - rotation.angle(at: index)) <= rotation.angleTolerance,
+                "frame \(index): rotation \(motion.rotation)"
+            )
+        }
+    }
+
+    @Test("a line turning a quarter turn clockwise ends with its top edge pointing down and a motion of 90 degrees")
+    func followsQuarterTurn() async throws {
+        // Given
+        let rotation = RotationCase(scene: .line, degreesPerFrame: 3, frameCount: 31, growth: 1, cornerTolerance: 1.5, angleTolerance: 0.15)
+        let directory = try TemporaryDirectory()
+        let (media, target, truth) = try await turningVideo(rotation, in: directory)
+        let sut = PointTracker(decoder: decoder)
+
+        // When
+        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...2)
+
+        // Then
+        let last = try #require(frames.last)
+        #expect(frames.count == 31)
+        #expect(zip(last.quad.corners, truth[30].corners).allSatisfy { distance($0, $1) <= rotation.cornerTolerance })
+        #expect(abs(last.quad.topRight.x - last.quad.topLeft.x) < 2)
+        #expect(last.quad.topRight.y > last.quad.topLeft.y)
+        #expect(abs(TrackMotion(from: target.corners, to: last.quad.corners).rotation - 90) <= rotation.angleTolerance)
+    }
+
     // MARK: - Private
     // A box with a pattern that does not repeat, 8 pixels further right on each frame.
     private func box(at index: Int) -> Rectangle {
@@ -191,6 +242,38 @@ struct PointTrackerTests {
             }
         }
         return try mediaFile(file)
+    }
+
+    // A 640 x 360 video whose frame i shows the scene turned `angle(at: i)` degrees clockwise and scaled from 1 to
+    // `growth` about the picture's centre, the target as drawn on frame 0, and where its corners are on each frame.
+    private func turningVideo(
+        _ rotation: RotationCase,
+        in directory: TemporaryDirectory
+    ) async throws -> (media: MediaFile, target: Quad, truth: [Quad]) {
+        let file = directory.file("turning.mov")
+        let centre = Point(x: 320, y: 180)
+        let frameTimes = (0..<rotation.frameCount).map { Double($0) / 30 }
+        var drawn: Rectangle?
+        let writer = MovieWriter(
+            size: Size(width: 640, height: 360),
+            frameTimes: frameTimes,
+            end: Double(rotation.frameCount) / 30
+        )
+        try await writer.write(to: file) { canvas, index in
+            let rectangle = rotation.scene.draw(
+                on: canvas,
+                turned: rotation.angle(at: index),
+                scaled: rotation.scale(at: index),
+                about: centre
+            )
+            if drawn == nil { drawn = rectangle }
+        }
+        let target = Quad(try #require(drawn))
+        let truth = (0..<rotation.frameCount).map { index in
+            target.applying(rotation.similarity(at: index, about: centre))
+        }
+
+        return (try mediaFile(file), target, truth)
     }
 
     private func mediaFile(_ file: String) throws -> MediaFile {
