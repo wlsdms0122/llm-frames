@@ -54,7 +54,8 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind)): the document declares no params, so it takes no arguments"
 
         case let .unknownArgument(place, kind, name, allowed):
-            "\(place) (\(kind)): unknown argument \(quoted(name)). Allowed: \(allowed.joined(separator: ", "))"
+            "\(place) (\(kind)): unknown argument \(quoted(name)). "
+                + (allowed.isEmpty ? "It publishes no parameters" : "Allowed: \(allowed.joined(separator: ", "))")
 
         case let .missingArgument(place, kind, name):
             "\(place) (\(kind)): missing argument \(quoted(name)), which has no default"

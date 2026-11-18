@@ -10,6 +10,7 @@ enum PresetError: Error, Equatable, CustomStringConvertible, Sendable {
     case progressOutOfRange(place: Place, t: Double)
     case nonPositiveLength(place: Place, kind: String, length: Double)
     case parameterOutOfRange(place: Place, kind: String, value: String, range: String)
+    case rejectedArguments(place: Place, kind: String, name: String, reason: String)
 
     // MARK: - Property
     var description: String {
@@ -25,6 +26,9 @@ enum PresetError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .parameterOutOfRange(place, kind, value, range):
             "\(place) (\(kind)): \(value) is not \(range)"
+
+        case let .rejectedArguments(place, kind, name, reason):
+            "\(place) (\(kind)): its arguments give \(JSONValue.string(name).written) a value it does not take: \(reason)"
         }
     }
 

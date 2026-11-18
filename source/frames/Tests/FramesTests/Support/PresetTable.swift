@@ -26,17 +26,29 @@ struct PresetTable: PresetProvider {
     }
 
     // MARK: - Public
-    func transition(named name: String) throws -> TransitionPreset? {
-        transitions[name]
+    // The presets it holds are plain and publish no parameters, so any argument stops as an unknown one.
+    func transition(_ instance: PresetInstance) throws -> TransitionPreset? {
+        try checkArguments(of: instance)
+        return transitions[instance.name]
     }
 
-    func animation(named name: String) throws -> AnimationPreset? {
-        animations[name]
+    func animation(_ instance: PresetInstance) throws -> AnimationPreset? {
+        try checkArguments(of: instance)
+        return animations[instance.name]
     }
 
-    func filter(named name: String) throws -> FilterPreset? {
-        filters[name]
+    func filter(_ instance: PresetInstance) throws -> FilterPreset? {
+        try checkArguments(of: instance)
+        return filters[instance.name]
     }
 
     // MARK: - Private
+    private func checkArguments(of instance: PresetInstance) throws {
+        _ = try ParameterFiller(checker: KeyChecker()).values(
+            of: instance.arguments,
+            for: [],
+            place: instance.place.appending(key: "args"),
+            kind: ChoiceKeyTable.argumentsKind
+        )
+    }
 }

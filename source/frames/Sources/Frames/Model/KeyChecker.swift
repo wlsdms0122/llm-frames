@@ -117,7 +117,7 @@ struct KeyChecker: Sendable {
         }
 
         switch type {
-        case .anyValue:
+        case .anyValue, .presetArgument:
             return
 
         case .argument:
@@ -272,6 +272,9 @@ struct KeyChecker: Sendable {
 
         case .filterOperation:
             try checkFilterOperation(value, place: place, kind: kind, scope: &scope)
+
+        case .filterChoice:
+            try checkFilterChoice(value, place: place, kind: kind, scope: &scope)
         }
     }
 
@@ -326,7 +329,15 @@ struct KeyChecker: Sendable {
         }
 
         // When only one alternative takes this kind of value, its own error says more than a list of every form.
-        let admitting = types.indices.filter { admits(types[$0], value) }
+        // Objects of several forms are told apart by the keys they hold.
+        var admitting = types.indices.filter { admits(types[$0], value) }
+        if admitting.count > 1, let object = value.objectValue {
+            admitting = admitting.filter { index in
+                guard case let .object(table) = types[index] else { return false }
+
+                return object.keys.contains { table.rule(named: $0) != nil }
+            }
+        }
         guard admitting.count == 1 else {
             throw wrongType(value, .oneOf(types), place, kind)
         }
@@ -974,6 +985,39 @@ struct KeyChecker: Sendable {
         return mediaKind
     }
 
+    // `"none"` turns the filter off, so it is written alone, and a list applies at least one preset.
+    private func checkFilterChoice(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: ChoiceKeyTable.filterKind,
+                reason: "a filter list holds at least one preset"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            let elementPlace = place.appending(index: index)
+            guard element != .string("none") else {
+                throw ModelError.invalidValue(
+                    place: elementPlace,
+                    kind: ChoiceKeyTable.filterKind,
+                    reason: "\"none\" turns the filter off, so it is written alone and never in a list"
+                )
+            }
+
+            try check(element, as: ChoiceKeyTable.filterPreset, place: elementPlace, kind: kind, scope: &scope)
+        }
+    }
+
     private func checkFilterOperation(
         _ value: JSONValue,
         place: Place,
@@ -1009,6 +1053,9 @@ struct KeyChecker: Sendable {
 
         case .argument, .anyValue:
             true
+
+        case .presetArgument:
+            parameterType == "number" || parameterType == "color"
 
         case .media:
             MediaKind(rawValue: parameterType) != nil
@@ -1058,7 +1105,7 @@ struct KeyChecker: Sendable {
         _ value: JSONValue
     ) -> Bool {
         switch (type, value) {
-        case (.anyValue, _), (.argument, _), (.oneOf, _):
+        case (.anyValue, _), (.argument, _), (.presetArgument, _), (.oneOf, _):
             true
 
         case let (.exactly(expected), _):
@@ -1088,6 +1135,9 @@ struct KeyChecker: Sendable {
             true
 
         case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array):
+            true
+
+        case (.filterChoice, .string), (.filterChoice, .object), (.filterChoice, .array):
             true
 
         default:
@@ -1198,6 +1248,12 @@ struct KeyChecker: Sendable {
 
         case .filterOperation:
             "a filter operation"
+
+        case .presetArgument:
+            "a number, a colour or an ease"
+
+        case .filterChoice:
+            "a preset name, {preset, args} or a list of them"
         }
     }
 

@@ -49,5 +49,10 @@ indirect enum ValueType: Equatable, Sendable {
     // A `params` object, each parameter checked by the table of its owner.
     case parameters(ObjectTable)
     case argument
+    // An argument a preset choice passes, whose type is the preset's to say. It is a number, a colour or an ease,
+    // and a template's parameter stands for it.
+    case presetArgument
+    // A preset name, `{preset, args}`, or a list of at least one of those without `"none"`.
+    case filterChoice
     case filterOperation
 }

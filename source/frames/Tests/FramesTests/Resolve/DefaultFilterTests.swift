@@ -106,10 +106,10 @@ struct DefaultFilterTests {
     func refusesDefaultAtThemePlace() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "theme": { "defaults": { "filter": ["none", "film"] } },
+            { "kind": "sequence", "theme": { "defaults": { "filter": ["film"] } },
               "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """#
-        let place = Place.root.appending(key: "theme").appending(key: "defaults").appending(key: "filter").appending(index: 1)
+        let place = Place.root.appending(key: "theme").appending(key: "defaults").appending(key: "filter").appending(index: 0)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try filmPlan(document) }

@@ -129,8 +129,7 @@ struct SequencePlanner: Sendable {
                     media: time.sequence.storyline[index].media,
                     scale: lengthScale,
                     theme: time.theme,
-                    defaults: time.defaults,
-                    place: time.storyline[index].place.appending(key: "filter")
+                    defaults: time.defaults
                 ),
                 color: time.sequence.storyline[index].solid.map(time.theme.color),
                 appearance: try appearances.appearance(

@@ -304,7 +304,7 @@ struct TimePlanner: Sendable {
         )
     }
 
-    // A preset named alone lasts its own seconds.
+    // A preset chosen without `seconds` lasts its own.
     private func transitionPlan(
         _ choice: TransitionChoice,
         editPoint: Double,
@@ -313,34 +313,18 @@ struct TimePlanner: Sendable {
         kind: ClipKind,
         theme: MergedTheme
     ) throws -> TransitionPlan? {
-        switch choice {
-        case .cut:
-            return nil
+        guard case let .preset(instance, seconds) = choice else { return nil }
 
-        case let .preset(name):
-            let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
-            return try transitionPlan(
-                name,
-                seconds: definition.seconds,
-                definition: definition,
-                editPoint: editPoint,
-                lengths: lengths,
-                place: place,
-                kind: kind
-            )
-
-        case let .timed(name, seconds):
-            let definition = try transitionPreset(named: name, place: place, kind: kind, theme: theme)
-            return try transitionPlan(
-                name,
-                seconds: seconds,
-                definition: definition,
-                editPoint: editPoint,
-                lengths: lengths,
-                place: place,
-                kind: kind
-            )
-        }
+        let definition = try transitionPreset(instance, place: place, kind: kind, theme: theme)
+        return try transitionPlan(
+            instance.name,
+            seconds: seconds ?? definition.seconds,
+            definition: definition,
+            editPoint: editPoint,
+            lengths: lengths,
+            place: place,
+            kind: kind
+        )
     }
 
     // A transition is cut to the shorter of the two clips it joins, and is centred on their edit point. Its cover and
@@ -377,13 +361,13 @@ struct TimePlanner: Sendable {
     // The presets a theme default names were found when the theme was validated, so only a clip's own choice stops
     // here.
     private func transitionPreset(
-        named name: String,
+        _ instance: PresetInstance,
         place: Place,
         kind: ClipKind,
         theme: MergedTheme
     ) throws -> TransitionPreset {
-        guard let preset = try presets.transition(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: name)
+        guard let preset = try presets.transition(instance) else {
+            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: instance.name)
         }
 
         return try values.transition(preset, theme: theme, place: place, kind: .clip(kind))
@@ -678,35 +662,38 @@ struct TimePlanner: Sendable {
         case .none:
             return .none
 
-        case let .preset(name):
-            let preset = try animationPreset(named: name, place: place, kind: kind)
+        case let .preset(instance):
+            let preset = try animationPreset(instance, place: place, kind: kind)
             return AnimationPlan(
-                entrance: preset?.entrance.map { PresetSpan(preset: name, span: $0) },
-                loop: preset?.loop.map { PresetSpan(preset: name, span: $0) },
-                exit: preset?.exit.map { PresetSpan(preset: name, span: $0) }
+                entrance: preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
+                loop: preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
+                exit: preset.exit.map { PresetSpan(preset: instance.name, span: $0) }
             )
 
         case let .split(entrance, exit):
-            let entrancePreset = try animationPreset(named: entrance, place: place, kind: kind)
-            let exitPreset = try animationPreset(named: exit, place: place, kind: kind)
+            let entrancePreset = try entrance.map { try animationPreset($0, place: place, kind: kind) }
+            let exitPreset = try exit.map { try animationPreset($0, place: place, kind: kind) }
             return AnimationPlan(
-                entrance: entrancePreset?.entrance.map { PresetSpan(preset: entrance, span: $0) },
+                entrance: entrance.flatMap { instance in
+                    entrancePreset?.entrance.map { PresetSpan(preset: instance.name, span: $0) }
+                },
                 loop: nil,
-                exit: exitPreset?.exit.map { PresetSpan(preset: exit, span: $0) }
+                exit: exit.flatMap { instance in
+                    exitPreset?.exit.map { PresetSpan(preset: instance.name, span: $0) }
+                }
             )
         }
     }
 
-    // `none` names no preset, so it is nil without a lookup. The presets a theme default names were found when the
-    // theme was validated, so only a clip's own choice stops here.
+    // The presets a theme default names were found when the theme was validated, so only a clip's own choice stops
+    // here.
     private func animationPreset(
-        named name: String,
+        _ instance: PresetInstance,
         place: Place,
         kind: ClipKind
-    ) throws -> AnimationPreset? {
-        guard name != "none" else { return nil }
-        guard let preset = try presets.animation(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "animation", name: name)
+    ) throws -> AnimationPreset {
+        guard let preset = try presets.animation(instance) else {
+            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "animation", name: instance.name)
         }
 
         return preset

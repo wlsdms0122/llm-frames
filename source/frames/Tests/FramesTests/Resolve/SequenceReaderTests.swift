@@ -49,7 +49,10 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].connected[0].content == .title(text: "a", style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].parent == "run")
-        #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
+        #expect(sequence.storyline[1].transition == .preset(
+            PresetInstance(name: "frames/wipe-right", place: sequence.storyline[1].place.appending(key: "transition")),
+            seconds: 0.5
+        ))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
         #expect(sequence.storyline[2].transition == .cut)
@@ -59,7 +62,10 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].lane == -1)
         #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
-        #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
+        #expect(sequence.clips[2].animation == .split(
+            entrance: PresetInstance(name: "frames/pop", place: sequence.clips[2].place.appending(key: "animation").appending(key: "entrance")),
+            exit: nil
+        ))
     }
 
     @Test("a nested sequence reads as a compound clip whose places continue the place of the clip that holds it")

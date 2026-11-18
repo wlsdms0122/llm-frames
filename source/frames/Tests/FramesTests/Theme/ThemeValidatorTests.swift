@@ -32,7 +32,7 @@ struct ThemeValidatorTests {
                 #"defaults.filter (defaults): unknown filter preset "grain". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "defaults": { "filter": ["none", "grain"] } }"#,
+                #"{ "defaults": { "filter": ["frames/warm", "grain"] } }"#,
                 #"defaults.filter[1] (defaults): unknown filter preset "grain". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
@@ -66,7 +66,7 @@ struct ThemeValidatorTests {
         // Given
         let theme = try ThemeMerger().merge([
             ThemeLayer(value: Fixture.json(#"""
-                { "defaults": { "transition": { "preset": "frames/flash", "seconds": 1 }, "filter": ["frames/warm", "none"],
+                { "defaults": { "transition": { "preset": "frames/flash", "seconds": 1 }, "filter": ["frames/warm"],
                                 "animation": { "title": { "subtitle": "frames/fade" }, "shape": { "entrance": "frames/draw", "exit": "none" } } } }
                 """#), place: .root)
         ])
@@ -75,15 +75,25 @@ struct ThemeValidatorTests {
         let defaults = try sut.defaults(in: theme, presets: Fixture.presets)
 
         // Then
-        #expect(defaults.transition == .timed(preset: "frames/flash", seconds: 1))
+        let place = Place.root.appending(key: "defaults")
+        #expect(defaults.transition == .preset(
+            PresetInstance(name: "frames/flash", place: place.appending(key: "transition")),
+            seconds: 1
+        ))
         #expect(defaults.filter == [
             ThemeFilterPreset(
                 preset: FilterPreset(description: "", operations: []),
-                place: Place.root.appending(key: "defaults").appending(key: "filter").appending(index: 0)
+                place: place.appending(key: "filter").appending(index: 0)
             )
         ])
-        #expect(defaults.titleAnimations == ["subtitle": .preset("frames/fade")])
-        #expect(defaults.shapeAnimation == .split(entrance: "frames/draw", exit: "none"))
+        let animationPlace = place.appending(key: "animation")
+        #expect(defaults.titleAnimations == [
+            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")))
+        ])
+        #expect(defaults.shapeAnimation == .split(
+            entrance: PresetInstance(name: "frames/draw", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
+            exit: nil
+        ))
         #expect(defaults.mediaAnimation == AnimationChoice.none)
     }
 

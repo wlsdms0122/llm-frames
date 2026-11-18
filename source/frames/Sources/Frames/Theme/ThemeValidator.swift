@@ -131,63 +131,40 @@ struct ThemeValidator: Sendable {
             place: place,
             kind: kind,
             theme: theme,
-            reading: TransitionChoice.init(value:)
+            reading: TransitionChoice.init(value:place:)
         )
-
-        switch choice {
-        case .cut:
-            break
-
-        case let .preset(name), let .timed(name, _):
-            guard try presets.transition(named: name) != nil else {
-                throw ThemeError.unknownPreset(
-                    place: theme.place(of: place.appending(key: "transition")),
-                    kind: kind,
-                    presetKind: "transition",
-                    name: name
-                )
-            }
+        guard case let .preset(instance, _) = choice else { return choice }
+        guard try presets.transition(instance) != nil else {
+            throw ThemeError.unknownPreset(place: instance.place, kind: kind, presetKind: "transition", name: instance.name)
         }
 
         return choice
     }
 
-    // A filter default is one name or a list of them, and `none` names no preset.
+    // `none` names no preset.
     private func filterPresets(
         _ value: JSONValue?,
         place: Place,
         theme: MergedTheme,
         presets: any PresetProvider
     ) throws -> [ThemeFilterPreset] {
-        let names: [(name: String, place: Place)] = switch value {
-        case let .string(name):
-            [(name, place)]
+        let choice = value.flatMap { FilterChoice(value: $0, place: theme.place(of: place)) } ?? FilterChoice(presets: [])
 
-        case let .array(elements):
-            elements.enumerated().compactMap { index, element in
-                element.stringValue.map { ($0, place.appending(index: index)) }
-            }
-
-        default:
-            []
-        }
-
-        return try names.filter { $0.name != "none" }.map { name, place in
-            let place = theme.place(of: place)
-            guard let preset = try presets.filter(named: name) else {
+        return try choice.presets.map { instance in
+            guard let preset = try presets.filter(instance) else {
                 throw ThemeError.unknownPreset(
-                    place: place,
+                    place: instance.place,
                     kind: ThemeKeyTable.defaults.kind,
                     presetKind: "filter",
-                    name: name
+                    name: instance.name
                 )
             }
 
-            return ThemeFilterPreset(preset: preset, place: place)
+            return ThemeFilterPreset(preset: preset, place: instance.place)
         }
     }
 
-    // `none` on a side of a split names no preset.
+    // A side of a split that is `none` names no preset.
     private func animationChoice(
         _ key: String,
         in object: JSONObject,
@@ -202,26 +179,26 @@ struct ThemeValidator: Sendable {
             place: place,
             kind: kind,
             theme: theme,
-            reading: AnimationChoice.init(value:)
+            reading: AnimationChoice.init(value:place:)
         )
-        let names: [String] = switch choice {
+        let instances: [PresetInstance] = switch choice {
         case .none:
             []
 
-        case let .preset(name):
-            [name]
+        case let .preset(instance):
+            [instance]
 
         case let .split(entrance, exit):
-            [entrance, exit]
+            [entrance, exit].compactMap(\.self)
         }
 
-        for name in names where name != "none" {
-            guard try presets.animation(named: name) != nil else {
+        for instance in instances {
+            guard try presets.animation(instance) != nil else {
                 throw ThemeError.unknownPreset(
                     place: theme.place(of: place.appending(key: key)),
                     kind: kind,
                     presetKind: "animation",
-                    name: name
+                    name: instance.name
                 )
             }
         }
@@ -229,15 +206,16 @@ struct ThemeValidator: Sendable {
         return choice
     }
 
+    // A choice is read where the layer that wrote it is, which its stops name.
     private func choice<Choice>(
         _ key: String,
         in object: JSONObject,
         place: Place,
         kind: String,
         theme: MergedTheme,
-        reading read: (JSONValue) -> Choice?
+        reading read: (JSONValue, Place) -> Choice?
     ) throws -> Choice {
-        guard let choice = object[key].flatMap(read) else {
+        guard let choice = object[key].flatMap({ read($0, theme.place(of: place.appending(key: key))) }) else {
             throw ModelError.missingKey(place: theme.place(of: place), kind: kind, keys: [key])
         }
 
