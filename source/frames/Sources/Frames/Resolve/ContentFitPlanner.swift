@@ -23,12 +23,9 @@ struct ContentFitPlanner: Sendable {
 
     // MARK: - Public
     // `plan` is planned on a frame the size of its first storyline picture's box, and its storyline has a picture.
-    // `inOutputPixels` says for each clip whether its coordinates are output pixels, which under content fit are the
-    // measuring space, so the clip moves with the content.
     func fitted(
         _ plan: SequencePlan,
-        margin: Margin,
-        inOutputPixels: [Bool]
+        margin: Margin
     ) throws -> SequencePlan {
         let still = try self.still(ResolvedSequence(plan: plan, hashes: PlaceholderHasher()))
         guard let union = extents(of: still).reduce(nil, { union, extent in union?.union(extent) ?? extent }) else {
@@ -58,7 +55,7 @@ struct ContentFitPlanner: Sendable {
             format: format,
             storyline: plan.storyline.map { moved($0, by: offset) },
             clips: plan.clips.indices.map { index in
-                inOutputPixels[index]
+                plan.clips[index].isInOutputPixels
                     ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset)
                     : plan.clips[index]
             },
@@ -251,6 +248,7 @@ struct ContentFitPlanner: Sendable {
                 ? geometry.mask?.map { masks in masks.map { moved($0, by: offset) } }
                 : geometry.mask,
             track: geometry.track,
+            isInOutputPixels: geometry.isInOutputPixels,
             title: geometry.title,
             nested: geometry.nested,
             appearance: geometry.appearance

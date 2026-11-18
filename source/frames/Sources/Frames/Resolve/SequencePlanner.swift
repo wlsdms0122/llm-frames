@@ -171,6 +171,7 @@ struct SequencePlanner: Sendable {
                 crop: placed[index].crop,
                 mask: placed[index].mask,
                 track: StorylineTrack(clip: index, in: tracked),
+                isInOutputPixels: found[index].isInOutputPixels,
                 title: title,
                 nested: clipNested[index],
                 appearance: try appearances.appearance(
@@ -197,7 +198,7 @@ struct SequencePlanner: Sendable {
         let plan = SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
         guard let margin = format.margin else { return plan }
 
-        return try contentFit.fitted(plan, margin: margin, inOutputPixels: found.map(\.isInOutputPixels))
+        return try contentFit.fitted(plan, margin: margin)
     }
 
     // MARK: - Private
@@ -488,14 +489,7 @@ struct SequencePlanner: Sendable {
         clipPictures: [Picture?],
         format: FormatPlan,
         lengthScale: Double
-    ) throws -> (
-        area: PropertyValue<FoundArea>?,
-        points: PropertyValue<[Point]>?,
-        position: PropertyValue<Point>?,
-        crop: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
-        isInOutputPixels: Bool
-    ) {
+    ) throws -> FoundGeometry {
         let space = try self.space(
             of: plan.parent,
             time: time,
@@ -594,7 +588,14 @@ struct SequencePlanner: Sendable {
             )
         }
 
-        return (area, points, position, crop, mask, space.isOutputPixels)
+        return FoundGeometry(
+            area: area,
+            points: points,
+            position: position,
+            crop: crop,
+            mask: mask,
+            isInOutputPixels: space.isOutputPixels
+        )
     }
 
     // The place of the first mask given by text, which only a clip whose mask is in media takes.
