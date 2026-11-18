@@ -9,25 +9,23 @@
 extension TrackMatteLink {
     // MARK: - Property
     // MARK: - Initializer
-    // A storyline clip is never a track matte.
     init(plan: StorylinePlan) {
         self.init(
             place: plan.place,
             kind: .clip(plan.source.kind),
             id: plan.id,
             trackMatte: plan.trackMatte,
-            refusal: "a storyline clip"
+            refusal: .storyline
         )
     }
 
-    // An adjustment draws no picture of its own and an audio clip none at all, so neither is a track matte.
     init(plan: ClipPlan) {
-        let refusal: String? = switch plan.kind {
+        let refusal: TrackMatteRefusal? = switch plan.kind {
         case .adjust:
-            "an adjustment clip"
+            .adjustment
 
         case .media(.audio):
-            "an audio clip"
+            .audio
 
         case .media, .title, .shape, .solid:
             nil

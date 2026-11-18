@@ -6,15 +6,15 @@
 //
 
 // A clip of a document as its track matte chains see it: its place and kind as messages name them, its id, the track
-// matte it names, and `refusal`, what it is in a message's words when it cannot be a track matte (a storyline clip,
-// an adjustment clip or an audio clip), nil for a connected or sequence media clip, title or shape (FRAMES-11).
+// matte it names, and `refusal`, the kind that keeps it from being a track matte, nil for a connected or sequence media
+// clip, title or shape (FRAMES-11).
 struct TrackMatteLink: Equatable, Sendable {
     // MARK: - Property
     let place: Place
     let kind: PlaceKind
     let id: String?
     let trackMatte: TrackMatte?
-    let refusal: String?
+    let refusal: TrackMatteRefusal?
 
     // MARK: - Initializer
     init(
@@ -22,7 +22,7 @@ struct TrackMatteLink: Equatable, Sendable {
         kind: PlaceKind,
         id: String?,
         trackMatte: TrackMatte?,
-        refusal: String?
+        refusal: TrackMatteRefusal?
     ) {
         self.place = place
         self.kind = kind

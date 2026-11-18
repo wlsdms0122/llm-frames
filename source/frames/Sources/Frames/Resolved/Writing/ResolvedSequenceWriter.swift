@@ -249,7 +249,6 @@ struct ResolvedSequenceWriter: Sendable {
         values.keyframes(keyframes) { values.rectangle($0.rectangle) }
     }
 
-    // Track frames are media frames, so they keep the media time of each frame, as `frames` does.
     // `clip` is the id of the matte clip, which keeps its own entry.
     private func trackMatte(_ matte: TrackMatte) -> JSONValue {
         .object(JSONObject(members: [
@@ -259,6 +258,7 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
+    // Track frames are media frames, so they keep the media time of each frame, as `frames` does.
     private func track(_ track: ResolvedTrack) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "target", value: values.rectangle(track.target)),

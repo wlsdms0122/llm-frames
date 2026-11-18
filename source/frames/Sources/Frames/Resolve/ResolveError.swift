@@ -49,7 +49,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
     case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
-    case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: String)
+    case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
     case trackInClipParent(place: Place, kind: PlaceKind, id: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
@@ -219,7 +219,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and a track matte is a clip of the same document"
 
         case let .trackMatteKind(place, kind, id, matte):
-            "\(place) (\(kind.label)): \(quoted(id)) is \(matte), "
+            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: matte)), "
                 + "and a track matte is a connected or sequence media clip, title or shape"
 
         case let .trackMatteCycle(place, kind, ids):
@@ -270,6 +270,19 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    private func words(of refusal: TrackMatteRefusal) -> String {
+        switch refusal {
+        case .storyline:
+            "a storyline clip"
+
+        case .adjustment:
+            "an adjustment clip"
+
+        case .audio:
+            "an audio clip"
+        }
+    }
+
     private func quoted(_ string: String) -> String {
         JSONValue.string(string).written
     }

@@ -10,7 +10,6 @@
 extension TrackMatteLink {
     // MARK: - Property
     // MARK: - Initializer
-    // A storyline clip is never a track matte.
     init(
         entry: ResolvedStorylineClip,
         place: Place
@@ -20,17 +19,16 @@ extension TrackMatteLink {
             kind: .genericClip(.storyline),
             id: entry.id,
             trackMatte: entry.trackMatte,
-            refusal: "a storyline clip"
+            refusal: .storyline
         )
     }
 
-    // An adjustment draws no picture of its own, so it is not a track matte.
     init(
         clip: ResolvedClip,
         place: Place,
         kind: PlaceKind
     ) {
-        let refusal: String? = if case .adjustment = clip.content { "an adjustment clip" } else { nil }
+        let refusal: TrackMatteRefusal? = if case .adjustment = clip.content { .adjustment } else { nil }
 
         self.init(place: place, kind: kind, id: clip.id, trackMatte: clip.trackMatte, refusal: refusal)
     }
