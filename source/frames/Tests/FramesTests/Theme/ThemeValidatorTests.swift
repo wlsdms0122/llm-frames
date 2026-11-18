@@ -115,7 +115,7 @@ struct ThemeValidatorTests {
         #expect(throws: ModelError.self) { try sut.checkKeys(of: theme) }
     }
 
-    @Test("a style that names a colour the base theme no longer holds stops", arguments: ["onAccent", "border", "emphasis"])
+    @Test("a style that names a colour the base theme does not hold stops", arguments: ["onAccent", "border", "emphasis"])
     func refusesRemovedColor(_ name: String) throws {
         // Given
         let layer = ThemeLayer(
