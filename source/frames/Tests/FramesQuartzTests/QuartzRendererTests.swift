@@ -175,6 +175,23 @@ struct QuartzRendererTests {
         }
     }
 
+    @Test("check walks a track matte's source, naming its place there")
+    func refusesUnknownBlendInTrackMatte() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let source = list(size: 1, items: [DisplayItem(blend: "hue", content: .path(fill))])
+        let item = DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: .path(fill))
+
+        // When
+        let checking = { try sut.check(list(size: 1, items: [item])) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].trackMatte.source.items[0].blend")) {
+            try checking()
+        }
+    }
+
     // Each cube is pinned by its own SHA-256, so only its contents are wrong. `line` is where the reader stops.
     @Test(
         "check refuses a pinned cube that does not read as a 3D LUT, naming its place and the cube's error",
