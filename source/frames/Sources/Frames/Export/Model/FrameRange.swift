@@ -41,7 +41,7 @@ package struct FrameRange: Equatable, Sendable {
         end: Double,
         kind: String
     ) throws -> [Double] {
-        guard step.timeTicks > 0 else { throw ExportError.nonPositiveStep(step) }
+        guard step >= 0.000_001 else { throw ExportError.nonPositiveStep(step) }
 
         let last = last(end: end)
         try FrameSpan(end: end, kind: kind).check(start, option: "--from")
