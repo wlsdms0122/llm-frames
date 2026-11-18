@@ -32,9 +32,7 @@ extension ResolvedClip {
 
     // The clock of the clip's own media when its track follows that media.
     private var ownMediaClock: MediaClock? {
-        guard ownTrackedMedia != nil, case let .media(media) = content else { return nil }
-
-        return media.clock
+        ownTrackedMedia == nil ? nil : clock
     }
 
     // MARK: - Initializer
