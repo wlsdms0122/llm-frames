@@ -13,6 +13,7 @@ struct TimePlanner: Sendable {
     private let resolver: MediaResolver
     private let reader = SequenceReader()
     private let parentFinder = ParentFinder()
+    private let matteFinder = TrackMatteFinder()
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
@@ -73,6 +74,7 @@ struct TimePlanner: Sendable {
             written: sequence.storyline.flatMap(\.connected) + sequence.clips,
             storyline: storyline
         )
+        try matteFinder.check(storyline.map(TrackMatteLink.init(plan:)) + planned.map(TrackMatteLink.init(plan:)))
 
         return TimePlan(
             duration: duration,
@@ -209,6 +211,7 @@ struct TimePlanner: Sendable {
                 edit: edit,
                 drawn: drawn,
                 transition: transitions[index],
+                trackMatte: clips[index].trackMatte,
                 keyframes: keyframes
             )
         }
@@ -367,6 +370,7 @@ struct TimePlanner: Sendable {
             kind: kind,
             space: OwnSpace(content: clip.content),
             storyline: owner,
+            trackMatte: clip.trackMatte,
             lane: try lane(of: clip, kind: kind),
             clock: clock,
             window: window,

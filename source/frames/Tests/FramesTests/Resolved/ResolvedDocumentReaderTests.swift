@@ -116,6 +116,19 @@ struct ResolvedDocumentReaderTests {
               { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "keyframes": [
                   { "at": 0, "mask": { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } },
                   { "at": 1, "mask": { "shape": "path", "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
+        """#,
+        // Track mattes: a storyline clip cut by a title's alpha, a still by a shape's inverted luma, and the shape by
+        // the title in turn, so the title is the matte of two clips and the end of a chain.
+        #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2,
+            "trackMatte": { "clip": "word", "mode": "alpha" },
+            "connected": [
+              { "id": "word", "title": "Hi", "style": "title", "at": [0, 1] },
+              { "media": "/abs/page.png", "at": [0, 1], "trackMatte": { "clip": "bar", "mode": "luma", "invert": true } } ] } ],
+          "clips": [
+            { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
+              "trackMatte": { "clip": "word", "mode": "alpha" } },
+            { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
         """#
     ]
 
@@ -310,7 +323,7 @@ struct ResolvedDocumentReaderTests {
         let mask = #"""
             [ { "at": 0, "value": [ { "geometry": \#(geometry), "feather": \#(feather), "invert": false, "mode": \#(mode) } ], "ease": "linear" } ]
             """#
-        let text = try replacingMask(ofClip: 0, with: mask, in: written(Self.documents[4]))
+        let text = try replacing("mask", ofClip: 0, with: mask, in: written(Self.documents[4]))
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
@@ -322,7 +335,8 @@ struct ResolvedDocumentReaderTests {
     @Test("a mask list with no mask stops, since a clip without masks has null")
     func refusesEmptyMaskList() throws {
         // Given
-        let text = try replacingMask(
+        let text = try replacing(
+            "mask",
             ofClip: 0,
             with: #"[ { "at": 0, "value": [], "ease": "linear" } ]"#,
             in: written(Self.documents[4])
@@ -333,6 +347,71 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description == "clips[0].mask[0].value (clip): a mask list holds at least one mask, and a clip without one has null")
+    }
+
+    @Test(
+        "a track matte that names no clip, a storyline clip or an adjustment, or a chain that comes back to itself, stops",
+        arguments: [
+            (
+                1,
+                #"{ "clip": "ghost", "mode": "alpha", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): no clip in the document has the id "ghost", and a track matte is a clip of the same document"#
+            ),
+            (
+                1,
+                #"{ "clip": "screen", "mode": "alpha", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): "screen" is a storyline clip, and a track matte is a connected or sequence media clip, title or shape"#
+            ),
+            (
+                1,
+                #"{ "clip": "grade", "mode": "luma", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): "grade" is an adjustment clip, and a track matte is a connected or sequence media clip, title or shape"#
+            ),
+            (
+                0,
+                #"{ "clip": "bar", "mode": "alpha", "invert": false }"#,
+                #"clips[0].trackMatte.clip (clip): the track matte chain comes back to itself: "word" > "bar" > "word""#
+            )
+        ]
+    )
+    func refusesTrackMatte(
+        clip: Int,
+        matte: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacing("trackMatte", ofClip: clip, with: matte, in: written(Self.documents[5]))
+
+        // When
+        let error = #expect(throws: ResolveError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a track matte with a mode other than alpha or luma, or without invert, stops")
+    func refusesTrackMatteMode() throws {
+        // Given
+        let unknown = try replacing(
+            "trackMatte",
+            ofClip: 1,
+            with: #"{ "clip": "bar", "mode": "red", "invert": false }"#,
+            in: written(Self.documents[5])
+        )
+        let missing = try replacing(
+            "trackMatte",
+            ofClip: 1,
+            with: #"{ "clip": "bar", "mode": "luma" }"#,
+            in: written(Self.documents[5])
+        )
+
+        // When
+        let unknownError = #expect(throws: ModelError.self) { try sut.read(unknown) }
+        let missingError = #expect(throws: ModelError.self) { try sut.read(missing) }
+
+        // Then
+        #expect(unknownError?.description == #"clips[1].trackMatte.mode (track matte): unknown value "red". Allowed: alpha, luma"#)
+        #expect(missingError?.description.hasPrefix("clips[1].trackMatte (track matte): missing") == true)
     }
 
     // MARK: - Private
@@ -353,15 +432,16 @@ struct ResolvedDocumentReaderTests {
         writer.write(try resolved(document))
     }
 
-    private func replacingMask(
+    private func replacing(
+        _ key: String,
         ofClip index: Int,
-        with mask: String,
+        with value: String,
         in text: String
     ) throws -> String {
         let root = try #require(try JSONReader().read(text).objectValue)
         var clips = try #require(root["clips"]?.arrayValue)
         let clip = try #require(clips[index].objectValue)
-        clips[index] = .object(clip.setting("mask", to: try Fixture.json(mask)))
+        clips[index] = .object(clip.setting(key, to: try Fixture.json(value)))
 
         return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }

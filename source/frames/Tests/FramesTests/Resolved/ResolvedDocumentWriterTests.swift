@@ -84,6 +84,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {
@@ -174,6 +175,7 @@ struct ResolvedDocumentWriterTests {
               "anchor": [19.125, 17.15625],
               "crop": null,
               "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {
@@ -245,6 +247,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {

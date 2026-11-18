@@ -56,6 +56,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "mask", value: values.masks(entry.mask)),
+            JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
             JSONMember(key: "scale", value: values.numbers(entry.scale)),
@@ -89,6 +90,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "anchor", value: anchor.map(values.point) ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
             JSONMember(key: "mask", value: values.masks(clip.mask)),
+            JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: clip.track.map(track) ?? .null)
         ]
 
@@ -248,6 +250,15 @@ struct ResolvedSequenceWriter: Sendable {
     }
 
     // Track frames are media frames, so they keep the media time of each frame, as `frames` does.
+    // `clip` is the id of the matte clip, which keeps its own entry.
+    private func trackMatte(_ matte: TrackMatte) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "clip", value: .string(matte.clip)),
+            JSONMember(key: "mode", value: .string(matte.mode.rawValue)),
+            JSONMember(key: "invert", value: .bool(matte.isInverted))
+        ]))
+    }
+
     private func track(_ track: ResolvedTrack) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "target", value: values.rectangle(track.target)),

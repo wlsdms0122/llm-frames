@@ -338,7 +338,7 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
-                "mask": \#(written), "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
+                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
                 "fill": "#FFFFFFFF", "stroke": null, "trim": [0, 1], "shadow": null } ] }
             """#
 
@@ -400,7 +400,7 @@ struct DisplayListReaderTests {
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
             (#""displayList": "1.0.0","#, "", #"top level (display list): missing key "displayList""#),
-            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, reveal, geometry, fill, stroke, trim, shadow"#),
+            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
             (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
             (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter"#),
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
@@ -433,8 +433,8 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(item.keys == [
-            "item", "origin", "transform", "opacity", "blend", "mask", "reveal", "geometry", "fill", "stroke", "trim",
-            "shadow"
+            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "geometry", "fill", "stroke",
+            "trim", "shadow"
         ])
         #expect(item["item"] == .string("path"))
         #expect(item["fill"] == .null)
@@ -503,7 +503,8 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
-                "mask": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""), "fill": "#FFFFFFFF",
+                "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
+                "fill": "#FFFFFFFF",
                 "stroke": \#(members["stroke"] ?? ""), "trim": \#(members["trim"] ?? ""), "shadow": null } ] }
             """#
 

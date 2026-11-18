@@ -67,7 +67,7 @@ package struct Evaluator: Sendable {
                 let space = parents.space(of: clip, at: time)
                 let picture = picture(of: clip, at: time, seed: seed)
                 let origin = ItemOrigin(clip: clip)
-                return clipEvaluator.items(of: clip, in: space, picture: picture, at: time).map { $0.drawn(by: origin) }
+                return clipEvaluator.items(of: clip, in: space, picture: picture, trackMatte: nil, at: time).map { $0.drawn(by: origin) }
             }
     }
 

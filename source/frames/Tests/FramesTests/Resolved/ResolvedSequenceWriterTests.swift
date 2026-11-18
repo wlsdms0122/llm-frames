@@ -382,7 +382,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0].keys == [
             "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
             "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-            "track", "opacity", "scale", "rotation", "blend", "animation"
+            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)
@@ -445,7 +445,7 @@ struct ResolvedSequenceWriterTests {
         // Then
         for entry in [storyline] + clips {
             let crop = try #require(entry.keys.firstIndex(of: "crop"))
-            #expect(Array(entry.keys[crop...].prefix(3)) == ["crop", "mask", "track"])
+            #expect(Array(entry.keys[crop...].prefix(4)) == ["crop", "mask", "trackMatte", "track"])
         }
         #expect(storyline["mask"] == (try Fixture.json(#"""
             [ { "at": 0, "value": [ { "geometry": { "ellipse": { "rect": [16, 16, 480, 480] } }, "feather": 6, "invert": false, "mode": "add" } ],

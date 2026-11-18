@@ -9,11 +9,12 @@
 // by: its version is checked before anything else, and a member that is missing or of another type, or a key the
 // writer never writes there, stops naming its place. The list keeps one seed for itself and every list nested in it,
 // so the seed of the first `grain` written is taken and a `grain` with another stops. A list with no `grain` reads
-// with seed 0, since only `grain` reads the seed.
+// with seed 0, since only `grain` reads the seed. A track matte's source of another size than the list holding its
+// item stops.
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "items"]
-    private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "reveal"]
+    private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
     private let checker: ResolvedDocumentChecker
@@ -66,16 +67,24 @@ package struct DisplayListReader: Sendable {
                 place: element.place,
                 kind: element.value.objectValue?["item"]?.stringValue ?? "display item"
             )
-            let nested = (try? values.member("source", of: item, kind: item.kind))
-                .flatMap { try? values.member("list", of: $0, kind: "display list") }
+            let trackMatte = (try? values.member("trackMatte", of: item, kind: item.kind))
+                .flatMap { try? values.member("source", of: $0, kind: "track matte") }
             let filter = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let grain = trackMatte.flatMap(nestedGrain)
+                ?? (try? values.member("source", of: item, kind: item.kind)).flatMap(nestedGrain)
+                ?? filter.first(where: isGrain)
 
-            if let grain = nested.flatMap(firstGrain) ?? filter.first(where: isGrain) {
+            if let grain {
                 return grain
             }
         }
 
         return nil
+    }
+
+    // The first `grain` in the list a source `{list}` holds.
+    private func nestedGrain(in source: PlacedJSONValue) -> PlacedJSONValue? {
+        (try? values.member("list", of: source, kind: "display list")).flatMap(firstGrain)
     }
 
     private func isGrain(_ operation: PlacedJSONValue) -> Bool {
@@ -86,19 +95,23 @@ package struct DisplayListReader: Sendable {
         _ object: PlacedJSONObject,
         seed: Int
     ) throws -> DisplayList {
-        DisplayList(
-            size: try values.size(object.member("size")),
+        let size = try values.size(object.member("size"))
+
+        return DisplayList(
+            size: size,
             background: try values.color(object.member("background")),
             seed: seed,
             items: try object.member("items").elements().map { element in
-                try item(element, seed: seed)
+                try item(element, in: size, seed: seed)
             }
         )
     }
 
-    // `item` names what an item draws, which decides the keys it holds besides those every item has.
+    // `item` names what an item draws, which decides the keys it holds besides those every item has. `size` is the size
+    // of the list that holds it.
     private func item(
         _ value: PlacedJSONValue,
+        in size: Size,
         seed: Int
     ) throws -> DisplayItem {
         let name = try values.member("item", of: value, kind: "display item")
@@ -111,6 +124,7 @@ package struct DisplayListReader: Sendable {
             opacity: try item.member("opacity").number(),
             blend: try item.member("blend").name(among: blends) { blends.contains($0) ? $0 : nil },
             mask: try item.member("mask").optional(masks) ?? [],
+            trackMatte: try item.member("trackMatte").optional { try trackMatte($0, in: size, seed: seed) },
             reveal: try item.member("reveal").optional(values.rectangle),
             content: try content(of: item, name: name, seed: seed),
             origin: try item.member("origin").optional(origin)
@@ -169,6 +183,25 @@ package struct DisplayListReader: Sendable {
             feather: try values.maskFeather(mask.member("feather")),
             isInverted: try mask.member("invert").bool(),
             mode: try literal(mask.member("mode"))
+        )
+    }
+
+    private func trackMatte(
+        _ value: PlacedJSONValue,
+        in size: Size,
+        seed: Int
+    ) throws -> ItemTrackMatte {
+        let trackMatte = try value.object(keys: ["source", "mode", "invert"])
+        let written = try trackMatte.member("source")
+        let source = try nestedList(written, seed: seed)
+        guard source.size == size else {
+            throw EvaluateError.trackMatteSize(place: written.place, kind: written.kind, size: source.size, listSize: size)
+        }
+
+        return ItemTrackMatte(
+            source: source,
+            mode: try literal(trackMatte.member("mode")),
+            isInverted: try trackMatte.member("invert").bool()
         )
     }
 
@@ -286,8 +319,7 @@ package struct DisplayListReader: Sendable {
         try value.name(among: Literal.allCases.map(\.rawValue), Literal.init(rawValue:))
     }
 
-    // `{media, frame}` for a frame of media and `{list}` for a nested list, which takes the seed of the list holding
-    // it.
+    // `{media, frame}` for a frame of media and `{list}` for a nested list.
     private func source(
         _ value: PlacedJSONValue,
         seed: Int
@@ -296,9 +328,17 @@ package struct DisplayListReader: Sendable {
             return .media(try frame(of: value.object(keys: ["media", "frame"]), mediaKey: "media"))
         }
 
+        return .displayList(try nestedList(value, seed: seed))
+    }
+
+    // `{list}`, a list without the version, which takes the seed of the list holding it.
+    private func nestedList(
+        _ value: PlacedJSONValue,
+        seed: Int
+    ) throws -> DisplayList {
         let list = try value.object(keys: ["list"]).member("list").object(kind: "display list", keys: Self.listKeys)
 
-        return .displayList(try self.list(list, seed: seed))
+        return try self.list(list, seed: seed)
     }
 
     // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it.

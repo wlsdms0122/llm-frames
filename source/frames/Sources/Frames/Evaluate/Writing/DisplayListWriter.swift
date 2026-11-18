@@ -8,7 +8,8 @@
 // Writes a display list as JSON, `"displayList"` first, set to the version of this frames, then its frame size, its
 // background and its items bottom first, in the layout and number form of a resolved document, so the same list gives
 // the same bytes. A nested list is the same shape without the version. Every `grain` carries the list's seed, the
-// number of the output frame it is drawn in. An item without masks writes its `mask` as `null`.
+// number of the output frame it is drawn in. An item without masks writes its `mask` as `null`, and one without a
+// track matte its `trackMatte`.
 package struct DisplayListWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -56,6 +57,7 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "opacity", value: .number(item.opacity)),
             JSONMember(key: "blend", value: .string(item.blend)),
             JSONMember(key: "mask", value: item.mask.isEmpty ? .null : .array(item.mask.map(mask))),
+            JSONMember(key: "trackMatte", value: item.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "reveal", value: rectangle(item.reveal))
         ]
 
@@ -178,6 +180,15 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "feather", value: .number(mask.feather)),
             JSONMember(key: "invert", value: .bool(mask.isInverted)),
             JSONMember(key: "mode", value: .string(mask.mode.rawValue))
+        ]))
+    }
+
+    // `source` is the matte clip's items as a nested list.
+    private func trackMatte(_ trackMatte: ItemTrackMatte) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "source", value: source(of: .displayList(trackMatte.source))),
+            JSONMember(key: "mode", value: .string(trackMatte.mode.rawValue)),
+            JSONMember(key: "invert", value: .bool(trackMatte.isInverted))
         ]))
     }
 

@@ -12,46 +12,10 @@ import Testing
 @Suite("ParentFinder Tests")
 struct ParentFinderTests {
     // MARK: - Property
-    private let sut = ParentFinder()
-
     private let planner = Fixture.planner
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a chain that ends at a storyline clip or at a clip with no parent holds no cycle, however deep")
-    func endsChain() {
-        // Given
-        // 0 names 1, 1 names 2, and 2 names a storyline clip or nothing.
-        let parents: [Int?] = [1, 2, nil]
-
-        // When
-        let cycles = parents.indices.map { sut.cycle(from: $0, parents: parents) }
-
-        // Then
-        #expect(cycles == [nil, nil, nil])
-    }
-
-    @Test(
-        "a chain that comes back to itself gives its cycle from the clip that comes first in the document",
-        arguments: [
-            ([0] as [Int?], 0, [0]),
-            ([2, 3, 3, 1] as [Int?], 0, [1, 3]),
-            ([2, 3, 3, 1] as [Int?], 3, [1, 3]),
-            ([nil, 2, 3, 1] as [Int?], 3, [1, 2, 3])
-        ]
-    )
-    func findsCycle(
-        parents: [Int?],
-        start: Int,
-        cycle: [Int]
-    ) {
-        // When
-        let found = sut.cycle(from: start, parents: parents)
-
-        // Then
-        #expect(found == cycle)
-    }
-
     @Test("a three-deep chain names each parent, the last a storyline clip")
     func findsChain() throws {
         // Given

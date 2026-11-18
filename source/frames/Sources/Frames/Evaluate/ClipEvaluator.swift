@@ -20,16 +20,18 @@ struct ClipEvaluator: Sendable {
     init() { }
 
     // MARK: - Public
-    // `picture` is a media clip's picture at the time, and nil for any other clip.
+    // `picture` is a media clip's picture at the time, and nil for any other clip. `trackMatte` is the clip's track
+    // matte at the time, which cuts its items after its masks.
     func items(
         of clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
+        trackMatte: ItemTrackMatte?,
         at time: Double
     ) -> [DisplayItem] {
         let mask = masks(of: clip, in: space, at: time)
 
-        return drawn(clip, in: space, picture: picture, at: time).map { $0.masked(by: mask) }
+        return drawn(clip, in: space, picture: picture, at: time).map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
     // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media

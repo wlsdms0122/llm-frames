@@ -48,6 +48,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
+    case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
+    case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: String)
+    case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
     case trackInClipParent(place: Place, kind: PlaceKind, id: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
@@ -209,6 +212,18 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .parentCycle(place, kind, ids):
             "\(place) (\(kind.label)): the parent chain comes back to itself: "
+                + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .unknownTrackMatte(place, kind, id):
+            "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id)), "
+                + "and a track matte is a clip of the same document"
+
+        case let .trackMatteKind(place, kind, id, matte):
+            "\(place) (\(kind.label)): \(quoted(id)) is \(matte), "
+                + "and a track matte is a connected or sequence media clip, title or shape"
+
+        case let .trackMatteCycle(place, kind, ids):
+            "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
         case let .trackInClipParent(place, kind, id):

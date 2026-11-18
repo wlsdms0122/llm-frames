@@ -10,6 +10,7 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableVersion(place: Place, kind: String, form: String, written: String, current: String)
     case differentSeed(place: Place, kind: String, seed: Int, listSeed: Int)
     case frameOutOfRange(place: Place, kind: String, frame: Int, count: Int)
+    case trackMatteSize(place: Place, kind: String, size: Size, listSize: Size)
 
     // MARK: - Property
     var description: String {
@@ -25,6 +26,10 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .frameOutOfRange(place, kind, frame, count):
             "\(place) (\(kind)): frame \(frame) is not a frame of the media, whose frames are 0 to \(count - 1)"
+
+        case let .trackMatteSize(place, kind, size, listSize):
+            "\(place) (\(kind)): the track matte's source is \(written(size)), and a track matte's source is the size "
+                + "of the list that holds its item, \(written(listSize))"
         }
     }
 
@@ -33,5 +38,9 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Private
     private func quoted(_ string: String) -> String {
         JSONValue.string(string).written
+    }
+
+    private func written(_ size: Size) -> String {
+        "\(JSONValue.number(size.width).written) by \(JSONValue.number(size.height).written)"
     }
 }

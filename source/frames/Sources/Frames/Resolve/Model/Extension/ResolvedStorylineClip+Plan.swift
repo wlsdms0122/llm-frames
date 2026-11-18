@@ -43,6 +43,7 @@ extension ResolvedStorylineClip {
             end: plan.edit.end,
             crop: crop,
             mask: geometry.mask?.keyframes(at: plan.instant) { $0 },
+            trackMatte: plan.trackMatte,
             track: geometry.track.map { ResolvedTrack(track: $0) },
             filter: try geometry.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) },
             box: ResolvedBox(

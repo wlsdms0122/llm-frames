@@ -80,7 +80,7 @@ struct ReferenceLibraryTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.template(named: "shorts/leak") }
-        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#)
+        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#)
     }
 
     @Test("media the probe cannot read throws the probe's failure without a place, for the place that names it to stop at")

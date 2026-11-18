@@ -79,14 +79,15 @@ enum ClipKeyTable {
     // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
     // for a path. A key a kind does not take stops as an unknown key.
     private static let everyShape = [
-        "track", "blend", "mask", "shape", "style", "anchor", "position", "scale", "rotation", "fill", "stroke", "trim",
-        "shadow"
+        "track", "blend", "mask", "trackMatte", "shape", "style", "anchor", "position", "scale", "rotation", "fill",
+        "stroke", "trim", "shadow"
     ]
 
     // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
     // parent.
     private static let storylineTransform = [
-        "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "radius", "border", "shadow"
+        "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border",
+        "shadow"
     ]
 
     private static func keys(
@@ -113,26 +114,27 @@ enum ClipKeyTable {
             return everyClip + [
                 "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut",
                 "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend", "mask",
-                "width", "height", "radius", "border", "shadow"
+                "trackMatte", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
                 "track", "anchor", "media", "placement", "position", "scale", "rotation", "crop",
-                "conform", "filter", "blend", "mask", "width", "height", "radius", "border", "shadow"
+                "conform", "filter", "blend", "mask", "trackMatte", "width", "height", "radius", "border",
+                "shadow"
             ]
 
         case (_, .title):
             return everyClip + [
                 "track", "anchor", "title", "style", "width", "placement", "position", "scale",
-                "rotation", "blend", "mask"
+                "rotation", "blend", "mask", "trackMatte"
             ]
 
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
 
         case (_, .adjust), (_, .solid):
-            return everyClip + ["adjust", "mask", "track"]
+            return everyClip + ["adjust", "mask", "trackMatte", "track"]
         }
     }
 
@@ -214,6 +216,16 @@ enum ClipKeyTable {
 
         case "mask":
             .masks
+
+        case "trackMatte":
+            .object(ObjectTable(
+                kind: "track matte",
+                rules: [
+                    KeyRule("clip", .name, isRequired: true),
+                    KeyRule("mode", .literal(TrackMatteMode.allCases.map(\.rawValue)), isRequired: true),
+                    KeyRule("invert", .bool)
+                ]
+            ))
 
         case "blend":
             .literal(VocabularyTable.blendModes)

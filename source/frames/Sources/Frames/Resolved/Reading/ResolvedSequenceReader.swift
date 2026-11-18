@@ -15,7 +15,7 @@ struct ResolvedSequenceReader: Sendable {
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
         "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-        "track", "opacity", "scale", "rotation", "blend", "animation"
+        "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
@@ -46,10 +46,18 @@ struct ResolvedSequenceReader: Sendable {
 
     func sequence(_ object: PlacedJSONObject) throws -> ResolvedSequence {
         let format = try format(object.member("format"))
-        let storyline = try object.member("storyline").elements().map(storyline)
+        let writtenStoryline = try object.member("storyline").elements()
+        let storyline = try writtenStoryline.map(storyline)
         let written = try object.member("clips").elements()
         let clips = try written.map(clip)
         try checkParents(of: clips, places: written.map(\.place), storyline: storyline)
+        // Evaluation follows each track matte chain to its end and draws its clips, so the checks of resolve hold here.
+        try TrackMatteFinder().check(
+            zip(storyline, writtenStoryline).map { entry, value in TrackMatteLink(entry: entry, place: value.place) }
+                + zip(clips, written).map { clip, value in
+                    TrackMatteLink(clip: clip, place: value.place, kind: kind(of: clip))
+                }
+        )
 
         return ResolvedSequence(
             format: format,
@@ -80,9 +88,8 @@ struct ResolvedSequenceReader: Sendable {
             return parent
         }
 
-        let finder = ParentFinder()
         for index in clips.indices {
-            guard let cycle = finder.cycle(from: index, parents: parents) else { continue }
+            guard let cycle = parents.cycle(from: index) else { continue }
 
             throw ResolveError.parentCycle(
                 place: places[cycle[0]].appending(key: "parent"),
@@ -114,8 +121,8 @@ struct ResolvedSequenceReader: Sendable {
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
             "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "size", "position", "anchor", "crop",
-            "mask", "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border", "shadow",
-            "transition"
+            "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border",
+            "shadow", "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -130,6 +137,7 @@ struct ResolvedSequenceReader: Sendable {
             end: try entry.member("end").number(),
             crop: try values.crops(entry.member("crop")),
             mask: try values.masks(entry.member("mask")),
+            trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
             filter: try values.filter(entry.member("filter")),
             box: ResolvedBox(
@@ -186,6 +194,7 @@ struct ResolvedSequenceReader: Sendable {
             box: box,
             crop: try clip.member("crop").optional(values.crops),
             mask: try values.masks(clip.member("mask")),
+            trackMatte: try clip.member("trackMatte").optional(trackMatte),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
@@ -372,6 +381,17 @@ struct ResolvedSequenceReader: Sendable {
         guard value.value.objectValue?.contains("kind") == true else { return .pinned(try values.media(value)) }
 
         return .nested(try document(value))
+    }
+
+    private func trackMatte(_ value: PlacedJSONValue) throws -> TrackMatte {
+        let matte = try value.object(kind: "track matte", keys: ["clip", "mode", "invert"])
+        let modes = TrackMatteMode.allCases.map(\.rawValue)
+
+        return TrackMatte(
+            clip: try matte.member("clip").string(),
+            mode: try matte.member("mode").name(among: modes, TrackMatteMode.init(rawValue:)),
+            isInverted: try matte.member("invert").bool()
+        )
     }
 
     private func track(_ value: PlacedJSONValue) throws -> ResolvedTrack {

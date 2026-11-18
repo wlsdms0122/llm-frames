@@ -7,7 +7,7 @@
 
 // A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`,
 // `crop` and `mask` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
-// parent. `placement` and `anchor` are the names written.
+// parent, and `trackMatte` its track matte as written. `placement` and `anchor` are the names written.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
 // theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
 // written, their keyframes on the clip's clock, and `filter` the filter choice: a media clip's `filter`, or an
@@ -29,6 +29,7 @@ struct Clip: Equatable, Sendable {
     let position: PropertyValue<PositionForm>?
     let crop: PropertyValue<CropForm>?
     let mask: PropertyValue<[ClipMask]>?
+    let trackMatte: TrackMatte?
     let track: TrackTarget?
     let width: Double?
     let height: Double?
@@ -59,6 +60,7 @@ struct Clip: Equatable, Sendable {
         position: PropertyValue<PositionForm>? = nil,
         crop: PropertyValue<CropForm>? = nil,
         mask: PropertyValue<[ClipMask]>? = nil,
+        trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
         width: Double? = nil,
         height: Double? = nil,
@@ -87,6 +89,7 @@ struct Clip: Equatable, Sendable {
         self.position = position
         self.crop = crop
         self.mask = mask
+        self.trackMatte = trackMatte
         self.track = track
         self.width = width
         self.height = height

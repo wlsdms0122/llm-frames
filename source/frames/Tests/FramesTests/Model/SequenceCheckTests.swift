@@ -65,7 +65,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#)
+        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#)
     }
 
     @Test(
@@ -398,23 +398,19 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a storyline clip takes no placement and no parent, a solid takes a transition only, and track mattes are not taken yet",
+        "a storyline clip takes no placement and no parent, and a solid takes a transition only",
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
                 #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, connected"#
-            ),
-            (
-                #"{ "media": "/abs/card.png", "duration": 2, "trackMatte": { "clip": "matte" } }"#,
-                #"storyline[0] (image): unknown key "trackMatte". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, radius, border, shadow, keyframes, connected"#
             )
         ]
     )
@@ -874,6 +870,94 @@ struct SequenceCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a track matte is taken by a storyline clip with media, a media clip, a title, every shape kind and an adjustment",
+        arguments: [
+            ("storyline", #""media": "/abs/run.mp4""#),
+            ("storyline", #""media": "/abs/card.png", "duration": 2"#),
+            ("clips", #""media": "/abs/log.png", "at": [0, 2]"#),
+            ("clips", #""title": "a", "style": "headline", "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "ellipse", "width": 100, "height": 50, "at": [0, 2]"#),
+            ("clips", #""shape": "path", "points": [[0, 0], [100, 100]], "at": [0, 2]"#),
+            ("clips", #""adjust": "frames/vivid", "at": [0, 2]"#)
+        ]
+    )
+    func acceptsTrackMatte(
+        list: String,
+        keys: String
+    ) throws {
+        // Given
+        let alpha = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "trackMatte": { "clip": "matte", "mode": "alpha" } } ] }
+            """#)
+        let luma = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "trackMatte": { "clip": "matte", "mode": "luma", "invert": true } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: alpha)
+        try sut.check(document: luma)
+    }
+
+    @Test(
+        "a track matte on a clip with no picture stops as an unknown key, and it is not keyframable",
+        arguments: [
+            (
+                "clips",
+                #"{ "media": "/abs/bgm.m4a", "trackMatte": { "clip": "matte", "mode": "alpha" } }"#,
+                #"clips[0] (audio): unknown key "trackMatte". Allowed: "#
+            ),
+            (
+                "storyline",
+                ##"{ "solid": "#000000", "duration": 2, "trackMatte": { "clip": "matte", "mode": "alpha" } }"##,
+                #"storyline[0] (solid): unknown key "trackMatte". Allowed: "#
+            ),
+            (
+                "clips",
+                #"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "trackMatte": { "clip": "matte", "mode": "alpha" } } ] }"#,
+                #"clips[0].keyframes[0] (keyframe): unknown key "trackMatte". Allowed: "#
+            )
+        ]
+    )
+    func refusesTrackMatteWithoutPicture(
+        list: String,
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a track matte needs its clip and mode, takes only clip, mode and invert, and its mode is alpha or luma",
+        arguments: [
+            (#"{ "mode": "alpha" }"#, #"clips[0].trackMatte (track matte): missing key "clip""#),
+            (#"{ "clip": "matte" }"#, #"clips[0].trackMatte (track matte): missing key "mode""#),
+            (#"{ "clip": "matte", "mode": "alpha", "feather": 2 }"#, #"clips[0].trackMatte (track matte): unknown key "feather""#),
+            (#"{ "clip": "matte", "mode": "red" }"#, #"clips[0].trackMatte.mode (track matte): unknown value "red". Allowed: alpha, luma"#),
+            (#"{ "clip": "matte", "mode": "alpha", "invert": 1 }"#, "clips[0].trackMatte.invert (track matte): expected true or false, found 1"),
+            (#""matte""#, #"clips[0].trackMatte (title): expected an object (track matte), found "matte""#)
+        ]
+    )
+    func refusesTrackMatteKeys(
+        matte: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": "a", "style": "headline", "at": [0, 1], "trackMatte": \#(matte) } ] }
+            """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
