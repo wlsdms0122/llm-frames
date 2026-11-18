@@ -7,7 +7,6 @@
 
 import Frames
 
-// `sheet <video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]`
 struct SheetOptions: CommandOptions, Equatable {
     // MARK: - Property
     private static let defaultColumns = 6

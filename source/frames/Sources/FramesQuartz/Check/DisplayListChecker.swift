@@ -62,8 +62,8 @@ struct DisplayListChecker {
         }
     }
 
-    // Every operation of FRAMES-15 has a Core Image form, so an operation added to the list stops the build here until
-    // the renderer draws it or refuses it.
+    // The switch names every operation and has no `default`, so an operation added to `ResolvedFilterOperation` stops
+    // the build here until the renderer draws it or refuses it.
     private func check(
         _ operation: ResolvedFilterOperation,
         place: String

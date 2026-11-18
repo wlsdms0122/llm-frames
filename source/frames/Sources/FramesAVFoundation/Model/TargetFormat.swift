@@ -10,13 +10,8 @@ import Foundation
 import VideoToolbox
 import Frames
 
-// How AVFoundation writes an encode target. A master is a QuickTime movie of ProRes 4444 with premultiplied alpha, or
-// ProRes 422 HQ, and 24-bit integer linear PCM at 48 kHz in stereo. A delivery is an MPEG-4 file of H.264 at quality
-// 1.0, which the H.264 encoder honours, and AAC at a constant 256 kbps at 48 kHz in stereo. A compressed video is the
-// file type its extension names, of H.264 or HEVC at the `AVVideoQualityKey` of its level, and AAC as `AACSettings`
-// writes it. Every video is tagged BT.709 primaries, the sRGB transfer and the BT.709 matrix. ProRes takes 16-bit RGBA
-// frames. H.264 and HEVC take 8-bit BGRA, which their hardware encoders read natively, since 16-bit RGBA handed to
-// them can fault the hardware encoder.
+// How AVFoundation writes an encode target. H.264 and HEVC take 8-bit BGRA, which their hardware encoders read
+// natively, since 16-bit RGBA handed to them can fault the hardware encoder.
 struct TargetFormat: Equatable, Sendable {
     // MARK: - Property
     private static let sampleRate = 48_000

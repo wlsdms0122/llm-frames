@@ -9,8 +9,7 @@ import Foundation
 import Frames
 
 // The line `transcode` prints: the output's path, size and format, and its size as a percentage of the source's with
-// one decimal and the source's size, as `/abs/out.mp4  1.2 MB  H.264 with AAC  42.0% of 2.9 MB`. An output that is
-// not smaller says so at the end, since a transcode is asked for to shrink a file.
+// one decimal and the source's size, as `/abs/out.mp4  1.2 MB  H.264 with AAC  42.0% of 2.9 MB`.
 struct TranscodeLine: Equatable, CustomStringConvertible, Sendable {
     // MARK: - Property
     let result: TranscodeResult

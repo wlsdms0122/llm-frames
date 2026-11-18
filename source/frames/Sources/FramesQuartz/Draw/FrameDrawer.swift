@@ -9,13 +9,10 @@ import CoreGraphics
 import CoreImage
 import Frames
 
-// Draws the display lists of one output frame: the list over its background, items bottom first, each carried by its
-// transform and cut to its reveal in its own coordinates, then its alpha multiplied by its masks' result and its track
-// matte's value in output pixels (`MaskDrawer`, `TrackMatteDrawer`), over the shadow it casts from that cut picture,
-// which they do not cut. A `normal` item is drawn source-over by Core Graphics, and any other blend mode draws the
-// item into a transparent layer that the mode's W3C kernel composites over the backdrop. Opacity below 1 and the
-// blend mode apply to the item and its shadow as a whole. Nested lists, a track matte's source among them, are drawn
-// once per frame at their own size.
+// Draws the display lists of one output frame, items bottom first. An item's masks and track matte multiply its alpha
+// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow.
+// Opacity below 1 and the blend mode apply to the item and its shadow as a whole. Nested lists, a track matte's source
+// among them, are drawn once per frame at their own size.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache

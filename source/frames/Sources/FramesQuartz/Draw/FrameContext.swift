@@ -58,7 +58,6 @@ final class FrameContext {
         self.height = height
     }
 
-    // The context that holds a size in whole pixels, a fraction of a pixel rounded up.
     convenience init(holding size: Size) throws {
         try self.init(width: Int(size.width.rounded(.up)), height: Int(size.height.rounded(.up)))
     }

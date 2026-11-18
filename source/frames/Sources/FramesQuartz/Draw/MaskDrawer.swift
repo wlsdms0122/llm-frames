@@ -10,12 +10,10 @@ import CoreImage
 import Foundation
 import Frames
 
-// Draws the masks of an item as one coverage value for each pixel of a region of output pixels, the masks' result
-// there: each mask's geometry carried by its transform and filled anti-aliased by the nonzero rule, a polyline closed,
-// blurred by a Gaussian whose standard deviation is its feather, then inverted when it is, and the masks combined in
-// list order by their modes (`MaskMode`), in floating point. A feathered mask is drawn over the region grown on every
-// side by four times its feather, so its blur sees the geometry past the region's edge: the frame does not cut a
-// mask, and an inverted mask's outside goes on past it.
+// Draws the masks of an item as one coverage value for each pixel of a region of output pixels, in floating point.
+// Each mask is blurred by a Gaussian whose standard deviation is its feather, then inverted when it is. A feathered
+// mask is drawn over the region grown on every side by four times its feather, so its blur sees the geometry past the
+// region's edge: the frame does not cut a mask, and an inverted mask's outside goes on past it.
 struct MaskDrawer {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.

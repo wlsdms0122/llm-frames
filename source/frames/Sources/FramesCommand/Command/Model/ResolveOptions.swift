@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `resolve <document.json> -o <resolved.json> [--args <args.json>]`
 struct ResolveOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

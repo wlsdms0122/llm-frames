@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `render <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]`
 struct RenderOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

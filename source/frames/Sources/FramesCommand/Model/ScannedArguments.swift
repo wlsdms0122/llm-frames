@@ -50,7 +50,6 @@ struct ScannedArguments: Equatable, Sendable {
         return argument
     }
 
-    // Paths are absolute, so a relative one stops, named by its placeholder.
     func requiredPositionalPath(at index: Int) throws -> String {
         let path = try requiredPositional(at: index)
         guard path.hasPrefix("/") else {

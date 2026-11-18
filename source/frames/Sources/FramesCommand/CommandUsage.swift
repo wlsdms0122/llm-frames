@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// What frames prints when it is run without a command: the command line grammar of FRAMES-23.
+// What frames prints when it is run without a command.
 enum CommandUsage {
     static let text = """
         frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] \

@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `packs [<pack>]`
 struct PacksOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []
