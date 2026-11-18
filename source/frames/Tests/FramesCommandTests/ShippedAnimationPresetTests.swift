@@ -123,18 +123,22 @@ struct ShippedAnimationPresetTests {
         #expect(isInPlace(end))
     }
 
-    @Test("pulse jabs an arrow forward with nudge and back while it pulses")
-    func pulseJabsArrow() throws {
+    @Test("pulse swells and settles back to size in each period, moving nothing but its scale")
+    func pulseSwellsAndSettles() throws {
         // Given
         let preset = try #require(try sut.animation(PresetInstance(name: "frames/pulse")))
         let loop = try #require(preset.loop)
 
         // When
-        let nudges = stride(from: 0.0, through: 1, by: 0.05).map { evaluator.motion(of: loop.span, at: $0).value(of: .nudge) }
+        let motions = stride(from: 0.0, through: 1, by: 0.05).map { evaluator.motion(of: loop.span, at: $0) }
+        let scales = motions.map { $0.value(of: .scale) }
 
         // Then
-        #expect(nudges.max() ?? 0 > 0)
-        #expect(nudges.min() == 0)
+        #expect(scales.max() ?? 1 > 1)
+        #expect(scales.allSatisfy { $0 >= 1 })
+        #expect(motions.allSatisfy { motion in
+            MotionProperty.allCases.filter { $0 != .scale }.allSatisfy { motion.value(of: $0) == $0.defaultValue }
+        })
     }
 
     @Test("a sequence with a title that names the shipped pop resolves on the base theme alone, and the title pops in with it")

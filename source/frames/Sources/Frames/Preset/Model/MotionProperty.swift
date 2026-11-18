@@ -12,7 +12,6 @@ enum MotionProperty: String, CaseIterable, Sendable {
     case y
     case rotation
     case reveal
-    case nudge
 
     // MARK: - Property
     var defaultValue: Double {
@@ -20,7 +19,7 @@ enum MotionProperty: String, CaseIterable, Sendable {
         case .opacity, .scale, .reveal:
             1
 
-        case .x, .y, .rotation, .nudge:
+        case .x, .y, .rotation:
             0
         }
     }

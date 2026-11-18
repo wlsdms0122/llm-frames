@@ -50,7 +50,6 @@ struct SpanEvaluatorTests {
         #expect(motion.value(of: .y) == 0)
         #expect(motion.value(of: .rotation) == 0)
         #expect(motion.value(of: .reveal) == 1)
-        #expect(motion.value(of: .nudge) == 0)
         #expect(sut.motion(of: Span(ease: .linear, keys: []), at: 0.5).value(of: .scale) == 1)
     }
 

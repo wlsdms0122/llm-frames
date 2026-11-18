@@ -6,7 +6,7 @@
 //
 
 enum PresetKeyTable {
-    static let motionProperties = ["opacity", "scale", "x", "y", "rotation", "reveal", "nudge"]
+    static let motionProperties = ["opacity", "scale", "x", "y", "rotation", "reveal"]
     static let animation = ObjectTable(
         kind: "animation",
         rules: [
