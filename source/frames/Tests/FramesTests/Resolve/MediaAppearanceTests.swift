@@ -89,6 +89,25 @@ struct MediaAppearanceTests {
         #expect(storylineError.map { "\($0)" } == #"storyline[0].shadow.color (video): colour "ink" is not in colors"#)
     }
 
+    @Test("a border colour that is not a theme colour stops at the clip that writes it")
+    func stopsOnUnknownBorderColor() throws {
+        // Given
+        let clip = #"""
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "media": "/abs/card.png", "at": [0, 1], "border": "ink" } ] }
+            """#
+        let storyline = #"""
+            { "kind": "sequence", "format": { "size": [960, 540] },
+              "storyline": [ { "media": "/abs/screen.mp4", "border": "ink" } ] }
+            """#
+
+        // When, Then
+        let clipError = #expect(throws: ThemeError.self) { try plan(clip) }
+        let storylineError = #expect(throws: ThemeError.self) { try plan(storyline) }
+        #expect(clipError.map { "\($0)" } == #"clips[0].border (image): colour "ink" is not in colors"#)
+        #expect(storylineError.map { "\($0)" } == #"storyline[0].border (video): colour "ink" is not in colors"#)
+    }
+
     // MARK: - Private
     private func document(_ keys: String) -> String {
         #"""

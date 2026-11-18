@@ -224,6 +224,7 @@ struct ClipAppearancePlanner: Sendable {
         }
 
         try checkColor(of: written.shadow, place: written.place, kind: plan.source.kind.label, theme: theme)
+        try checkColor(of: written.border, place: written.place, kind: plan.source.kind.label, theme: theme)
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { topLeft(of: $0, anchor: anchor) }
@@ -339,6 +340,7 @@ struct ClipAppearancePlanner: Sendable {
         guard let box, case .media = written.content, let picture else { return nil }
 
         try checkColor(of: written.shadow, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
+        try checkColor(of: written.border, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         let conform = written.conform ?? .fit
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
@@ -477,6 +479,18 @@ struct ClipAppearancePlanner: Sendable {
             kind: kind,
             name: color
         )
+    }
+
+    // A colour name a clip writes as its `border` must be a theme colour.
+    private func checkColor(
+        of border: BorderForm?,
+        place: Place,
+        kind: String,
+        theme: MergedTheme
+    ) throws {
+        guard case let .color(color) = border, !theme.isColor(color) else { return }
+
+        throw ThemeError.unknownColor(place: place.appending(key: "border"), kind: kind, name: color)
     }
 
     // The shape style a shape names, its lengths in points, or nothing without a name. A name the theme does not
