@@ -461,7 +461,7 @@ struct ResolvedSequenceReader: Sendable {
             throw ModelError.invalidValue(
                 place: value.place,
                 kind: value.kind,
-                reason: "a track's motion is a move, one scale above 0 and one rotation, [a, b, -b, a, tx, ty]"
+                reason: "a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found \(value.value.written)"
             )
         }
 

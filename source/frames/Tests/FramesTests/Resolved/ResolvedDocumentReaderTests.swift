@@ -480,12 +480,12 @@ struct ResolvedDocumentReaderTests {
             (
                 "motion",
                 "[1, 0, 0, 2, 0, 0]",
-                "clips[0].track.frames[0].motion (track frame): a track's motion is a move, one scale above 0 and one rotation, [a, b, -b, a, tx, ty]"
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [1, 0, 0, 2, 0, 0]"
             ),
             (
                 "motion",
                 "[0, 0, 0, 0, 5, 5]",
-                "clips[0].track.frames[0].motion (track frame): a track's motion is a move, one scale above 0 and one rotation, [a, b, -b, a, tx, ty]"
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [0, 0, 0, 0, 5, 5]"
             ),
             (
                 "target",
