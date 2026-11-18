@@ -17,12 +17,10 @@ enum ResolvedMediaContent: Equatable, Sendable {
     var frames: ClosedRange<Double>? {
         switch self {
         case let .pinned(media):
-            guard let first = media.frameTimes.first, let last = media.frameTimes.last else { return nil }
-
-            return first...last
+            ClosedRange(frameTimes: media.frameTimes)
 
         case let .nested(sequence):
-            return 0...(sequence.format.duration - .timeResolution)
+            ClosedRange(sequenceDuration: sequence.format.duration)
         }
     }
 

@@ -29,7 +29,7 @@ struct StorylinePlan: Equatable, Sendable {
     var clock: MediaClock? {
         guard let media = source.media else { return nil }
 
-        return MediaClock(playback: timeRemap.map(MediaPlayback.remapped) ?? .line(map), frames: media.frames)
+        return MediaClock(line: map, timeRemap: timeRemap, frames: media.frames)
     }
 
     // Where a static crop takes effect: the clip's `in`.

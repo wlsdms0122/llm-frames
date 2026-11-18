@@ -48,7 +48,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         guard let media else { return nil }
 
         let line = TimeMap(origin: start, in: `in`, speed: speed)
-        return MediaClock(playback: timeRemap.map(MediaPlayback.remapped) ?? .line(line), frames: media.frames)
+        return MediaClock(line: line, timeRemap: timeRemap, frames: media.frames)
     }
 
     // MARK: - Initializer

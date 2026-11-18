@@ -15,8 +15,17 @@ struct MediaPlan: Equatable, Sendable {
     let reference: String?
     let source: MediaPlanSource
     let duration: Double
-    let frames: ClosedRange<Double>?
     let hasSound: Bool
+
+    var frames: ClosedRange<Double>? {
+        switch source {
+        case let .file(file):
+            ClosedRange(frameTimes: file.frameTimes)
+
+        case let .sequence(plan):
+            ClosedRange(sequenceDuration: plan.duration)
+        }
+    }
 
     // MARK: - Initializer
     init(
@@ -24,14 +33,12 @@ struct MediaPlan: Equatable, Sendable {
         reference: String?,
         source: MediaPlanSource,
         duration: Double,
-        frames: ClosedRange<Double>? = nil,
         hasSound: Bool = false
     ) {
         self.kind = kind
         self.reference = reference
         self.source = source
         self.duration = duration
-        self.frames = frames
         self.hasSound = hasSound
     }
 

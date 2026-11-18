@@ -54,7 +54,6 @@ struct MediaResolver: Sendable {
                 reference: reference,
                 source: .file(MediaFile(path: file, probed: probed)),
                 duration: probed.duration,
-                frames: frames(of: probed),
                 hasSound: probed.hasSound
             )
 
@@ -81,8 +80,7 @@ struct MediaResolver: Sendable {
                 kind: .video,
                 reference: reference,
                 source: .file(file),
-                duration: duration,
-                frames: 0...max(duration - 1 / fps, 0)
+                duration: duration
             )
 
         case let .compound(document):
@@ -184,7 +182,6 @@ struct MediaResolver: Sendable {
             reference: reference,
             source: .sequence(plan),
             duration: plan.duration,
-            frames: 0...(plan.duration - .timeResolution),
             hasSound: media.contains { $0?.hasSound ?? false }
         )
     }
@@ -204,12 +201,5 @@ struct MediaResolver: Sendable {
         try Result(catching: probe)
             .mapError { ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\($0)") }
             .get()
-    }
-
-    private func frames(of probed: ProbedMedia) -> ClosedRange<Double>? {
-        guard probed.kind == .video else { return nil }
-        guard let first = probed.frames.first, let last = probed.frames.last else { return 0...probed.duration }
-
-        return first...last
     }
 }

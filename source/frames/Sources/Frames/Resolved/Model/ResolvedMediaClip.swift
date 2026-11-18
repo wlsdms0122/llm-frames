@@ -15,7 +15,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
 
     // The media time a timed clip shows, nil for a still.
     var clock: MediaClock? {
-        timing.map { timing in MediaClock(playback: timing.playback, frames: media.frames) }
+        timing.map { timing in MediaClock(timing: timing, frames: media.frames) }
     }
 
     // MARK: - Initializer

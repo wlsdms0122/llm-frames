@@ -22,6 +22,24 @@ struct MediaClock: Equatable, Sendable {
         self.frames = frames
     }
 
+    // A storyline clip's: its `timeRemap` keys when it writes them, and otherwise its line, which goes on into its
+    // handles.
+    init(
+        line: TimeMap,
+        timeRemap: [Keyframe<Double>]?,
+        frames: ClosedRange<Double>?
+    ) {
+        self.init(playback: timeRemap.map(MediaPlayback.remapped) ?? .line(line), frames: frames)
+    }
+
+    // A timed media clip's that is not on the storyline: its played range or its `timeRemap` keys.
+    init(
+        timing: MediaTiming,
+        frames: ClosedRange<Double>?
+    ) {
+        self.init(playback: timing.playback, frames: frames)
+    }
+
     // MARK: - Public
     func mediaTime(atSequenceTime time: Double) -> Double {
         let mediaTime = playback.mediaTime(atSequenceTime: time)
