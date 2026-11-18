@@ -7,8 +7,7 @@
 
 // A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant. A title,
 // a media clip or a shape given by `width` and `height` carries its box, and a shape placed by its geometry carries it
-// in its own entry. Scale and rotation belong to anything drawn but an adjustment, and so
-// does a blend mode.
+// in its own entry. Scale, rotation and a blend mode belong to anything drawn but an adjustment.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer

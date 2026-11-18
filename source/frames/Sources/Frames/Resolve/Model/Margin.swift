@@ -28,8 +28,8 @@ struct Margin: Equatable, Sendable {
         self.left = left
     }
 
-    // Reads `n` (every side), `[v, h]` (top and bottom, left and right) or `[t, r, b, l]`, in the order CSS writes
-    // them. The key tables have checked the form.
+    // Reads `n` (every side), `[v, h]` (top and bottom, left and right) or `[t, r, b, l]`. The key tables have checked
+    // the form.
     init(value: JSONValue) {
         let sides = value.numberValue.map { [$0] } ?? value.arrayValue?.compactMap(\.numberValue) ?? []
 

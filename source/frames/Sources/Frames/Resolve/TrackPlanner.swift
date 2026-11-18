@@ -6,10 +6,10 @@
 //
 
 // Plans what `track` follows. The target is found at the clip's instant before padding, and the tracker follows it in
-// the tracked media (FRAMES-12), a storyline or media clip's own video or image sequence and any other clip's parent's,
-// over every frame the clip can show and the frames between them and the instant: a storyline clip's handles included,
-// and through the clock of the tracked media's clip. A storyline clip that loses its target inside its edit range
-// stops, and a connected or sequence clip is visible only on the frames followed.
+// the tracked media, a storyline or media clip's own video or image sequence and any other clip's parent's, over every
+// frame the clip can show and the frames between them and the instant: a storyline clip's handles included, and through
+// the clock of the tracked media's clip. A storyline clip that loses its target inside its edit range stops, and a
+// connected or sequence clip is visible only on the frames followed.
 struct TrackPlanner: Sendable {
     // MARK: - Property
     // Sequence times are sums and quotients of media times, so a frame boundary may miss an edit point by rounding.
@@ -214,7 +214,7 @@ struct TrackPlanner: Sendable {
         )
     }
 
-    // A connected or sequence clip is visible only where its target was followed (FRAMES-12).
+    // A connected or sequence clip is visible only where its target was followed.
     private func narrowed(
         _ plan: ClipPlan,
         to followed: TimeRange,
@@ -227,8 +227,8 @@ struct TrackPlanner: Sendable {
         return plan.narrowed(to: visible)
     }
 
-    // What `true` follows (FRAMES-12): the one of the clip's area, mask and crop it has, each where it starts. A clip
-    // with more than one stops, since it must name its target.
+    // What `true` follows: the one of the clip's area, mask and crop it has, each where it starts. A clip with more
+    // than one stops, since it must name its target.
     private func own(
         _ candidates: [(key: String, value: PropertyValue<FoundArea>?)],
         place: Place,
@@ -275,9 +275,9 @@ struct TrackPlanner: Sendable {
         }
     }
 
-    // The target before padding and the sequence time it is found at, the tracked clip's instant (FRAMES-12): for
-    // `true` the one of the clip's own candidates it has, at its first keyframe or else at the clip's instant, and
-    // otherwise the area it names, found at the clip's instant. A named target does not look at the candidates.
+    // The target before padding and the sequence time it is found at: for `true` the one of the clip's own candidates
+    // it has, at its first keyframe or else at the clip's instant, and otherwise the area it names, found at the clip's
+    // instant. A named target does not look at the candidates.
     private func target(
         _ target: TrackTarget,
         candidates: [(key: String, value: PropertyValue<FoundArea>?)],

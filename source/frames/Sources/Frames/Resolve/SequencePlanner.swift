@@ -5,11 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
-// format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, what was found under a shape or adjustment brought into its space, its titles set, where each clip
-// is placed and how it is drawn, and its sound. A content-fit sequence is planned in its measuring space on a frame the
-// size of its first storyline picture's box, which gives its length scale, and then measured.
+// Plans what resolve decides for one sequence before evaluation, from its time plan. A content-fit sequence is planned
+// in its measuring space on a frame the size of its first storyline picture's box, which gives its length scale, and
+// then measured.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -398,9 +396,9 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // Keyframes of `mask` hold the clip's every mask and interpolate mask by mask (FRAMES-11), so each holds as many
-    // masks as the first written, and each mask keeps its shape, how its geometry is given, its number of points, its
-    // inversion and its mode.
+    // Keyframes of `mask` hold the clip's every mask and interpolate mask by mask, so each holds as many masks as the
+    // first written, and each mask keeps its shape, how its geometry is given, its number of points, its inversion and
+    // its mode.
     private func checkMasks(
         _ mask: PropertyValue<[ClipMask]>,
         place: Place,
@@ -478,9 +476,9 @@ struct SequencePlanner: Sendable {
     // picture nor a clip with a box. A text form is searched in the parent's picture, the media of a storyline or media
     // clip, at the media time the parent's clock gives, and under a shape or adjustment what it finds is where it lies
     // in that media until `ParentSpacePlanner` brings it into the parent's space. A media clip's crop is in its own
-    // picture. A mask is in the clip's own coordinate space (FRAMES-11): a media clip's media, a title's or a box
-    // shape's box, which has no picture to search, and for a shape placed by its geometry or an adjustment the space
-    // its parent gives, searched as its area is.
+    // picture. A mask is in the clip's own coordinate space: a media clip's media, a title's or a box shape's box,
+    // which has no picture to search, and for a shape placed by its geometry or an adjustment the space its parent
+    // gives, searched as its area is.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
@@ -599,7 +597,7 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // The place of the first mask given by text, which only a clip whose mask is in media takes.
+    // The place of the first mask given by text.
     private func byText(
         _ mask: PropertyValue<[ClipMask]>,
         place: Place
@@ -625,10 +623,10 @@ struct SequencePlanner: Sendable {
     }
 
     // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
-    // output pixels (FRAMES-10): a storyline clip's media, a media clip's media, a title's text box as a space with no
-    // picture, and for a shape or adjustment the space its geometry is written in, its own parent's. An unparented
-    // clip's space and a solid's are output pixels. The chain is walked up past every shape placed by its geometry and
-    // every adjustment, and ParentFinder has ruled out a cycle, so it ends.
+    // output pixels: a storyline clip's media, a media clip's media, a title's text box as a space with no picture, and
+    // for a shape or adjustment the space its geometry is written in, its own parent's. An unparented clip's space and
+    // a solid's are output pixels. The chain is walked up past every shape placed by its geometry and every adjustment,
+    // and ParentFinder has ruled out a cycle, so it ends.
     private func space(
         of parent: ClipParent?,
         time: TimePlan,
@@ -669,7 +667,7 @@ struct SequencePlanner: Sendable {
         return shape.points
     }
 
-    // The place of the first point given by an area written with text, which only a parented clip takes.
+    // The place of the first point given by an area written with text.
     private func byText(
         _ points: PropertyValue<[PositionForm]>,
         place: Place
@@ -689,7 +687,7 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The place of the first area written with text, which only a parented clip takes.
+    // The place of the first area written with text.
     private func byText(
         _ area: PropertyValue<AreaForm>,
         place: Place
@@ -705,7 +703,7 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The place of the first position given by an area written with text, which only a parented clip takes.
+    // The place of the first position given by an area written with text.
     private func byText(
         _ position: PropertyValue<PositionForm>,
         place: Place
@@ -747,7 +745,7 @@ struct SequencePlanner: Sendable {
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
-    // value. It is judged on the windows tracking leaves, since what is visible is what counts.
+    // value. It is judged on the windows tracking leaves.
     private func checkKeyframes(of time: TimePlan) throws {
         for plan in time.storyline {
             try checkKeyframes(plan.keyframes, visible: plan.drawn, place: plan.place, kind: plan.source.kind)

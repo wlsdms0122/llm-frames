@@ -6,8 +6,8 @@
 //
 
 // A storyline clip on the sequence clock. Its edit range lies between its edit points, and its drawn range runs from
-// the start of its incoming transition to the end of its outgoing one. `trackMatte` is its track matte, and
-// `keyframes` and `timeRemap` are in sequence time, `timeRemap` nil for a clip that writes none.
+// the start of its incoming transition to the end of its outgoing one. `keyframes` and `timeRemap` are in sequence
+// time, `timeRemap` nil for a clip that writes none.
 struct StorylinePlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place

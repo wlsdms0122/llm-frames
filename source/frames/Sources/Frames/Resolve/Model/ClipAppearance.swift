@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// How a connected or sequence clip is drawn, with every value resolve leaves for evaluation: `opacity`, `scale` and
-// `rotation` with keyframes in sequence time, 1, 1 and 0 when not written, its blend mode, how a shape is drawn, and the
-// filter operations it applies, its lengths already scaled, and how a media clip's picture fills its box.
+// How a connected or sequence clip is drawn. Keyframes are in sequence time, and `opacity`, `scale` and `rotation` are
+// 1, 1 and 0 when not written. The lengths in `filter` are already scaled.
 struct ClipAppearance: Equatable, Sendable {
     // MARK: - Property
     let opacity: PropertyValue<Double>

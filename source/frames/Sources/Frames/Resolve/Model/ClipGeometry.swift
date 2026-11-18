@@ -7,11 +7,9 @@
 
 // What resolve found and set for a connected or sequence clip, with keyframes in sequence time. `area`, a path's
 // `points` and `position` are in the space a parented clip's parent gives, and an unparented clip's in output pixels.
-// `crop` is in the clip's own media, `mask` in the clip's own coordinate space, and `track` is what a tracked clip
-// follows. `isInOutputPixels` says whether the clip's coordinates are output pixels, which under content fit are the
-// measuring space, so the clip moves with the content. `box` is where a title, a media clip or a shape given by
-// `width` and `height` is drawn, and `position` the anchor point it was found from. `title` is the text set for a
-// title, `nested` the plan of a nested sequence the clip shows, and `appearance` how it is drawn.
+// `crop` is in the clip's own media and `mask` in the clip's own coordinate space. Under content fit output pixels are
+// the measuring space, so a clip with `isInOutputPixels` moves with the content. `box` is where a title, a media clip
+// or a shape given by `width` and `height` is drawn, and `position` the anchor point it was found from.
 struct ClipGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<FoundArea>?

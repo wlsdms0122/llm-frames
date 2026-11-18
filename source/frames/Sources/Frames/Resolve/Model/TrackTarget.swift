@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What `track` follows: the clip's own area or crop (`true`), or an area it names.
+// What `track` follows: the clip's own area, mask or crop (`true`), or an area it names.
 enum TrackTarget: Equatable, Sendable {
     case own
     case area(AreaForm)

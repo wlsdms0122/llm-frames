@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What resolve decided for a sequence before evaluation: its time plan, with every visible window narrowed by its
-// track, its format, what was found and set for each storyline clip and each other clip, in the time plan's order, and
-// every source of sound, in document order. A sequence with no sound has none.
+// What resolve decided for a sequence before evaluation. `time` has every visible window narrowed by its track,
+// `storyline` and `clips` are in the time plan's order, and `sound` is in document order.
 struct SequencePlan: Equatable, Sendable {
     // MARK: - Property
     let time: TimePlan

@@ -43,7 +43,6 @@ struct TimePlan: Equatable, Sendable {
         storyline.firstIndex { $0.edit.contains(time) }
     }
 
-    // The same plan with clips whose visible windows resolve narrowed further.
     func replacingClips(_ clips: [ClipPlan]) -> TimePlan {
         TimePlan(
             duration: duration,

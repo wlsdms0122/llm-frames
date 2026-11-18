@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Merges a document's own `theme` over the theme in effect where the document is written, for every document kind.
+// Merges a document's own `theme` over the theme in effect where the document is written.
 struct DocumentThemeResolver: Sendable {
     // MARK: - Property
     private let library: ReferenceLibrary
