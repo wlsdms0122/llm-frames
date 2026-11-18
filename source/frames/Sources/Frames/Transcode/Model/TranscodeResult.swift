@@ -13,7 +13,6 @@ package struct TranscodeResult: Equatable, Sendable {
     package let sourceByteCount: Int
     package let format: TranscodeFormat
 
-    // The output's size over the source's.
     package var ratio: Double {
         Double(byteCount) / Double(sourceByteCount)
     }
