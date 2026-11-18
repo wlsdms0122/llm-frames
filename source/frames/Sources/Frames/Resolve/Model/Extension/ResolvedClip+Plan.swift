@@ -6,8 +6,8 @@
 //
 
 // A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant. A title,
-// a media clip or a shape given by `width` and `height` carries its box, an adjustment its area, and a shape placed by
-// its geometry carries it in its own entry. Scale and rotation belong to anything drawn but an adjustment, and so
+// a media clip or a shape given by `width` and `height` carries its box, and a shape placed by its geometry carries it
+// in its own entry. Scale and rotation belong to anything drawn but an adjustment, and so
 // does a blend mode.
 extension ResolvedClip {
     // MARK: - Property
@@ -20,7 +20,6 @@ extension ResolvedClip {
         let instant = plan.instant
         let appearance = geometry.appearance
         let content = try Self.content(of: plan, geometry: geometry, hashes: hashes)
-        let isShape = if case .shape = content { true } else { false }
         let isTransformed = if case .adjustment = content { false } else { true }
 
         self.init(
@@ -32,11 +31,11 @@ extension ResolvedClip {
             lane: plan.lane,
             storyline: plan.storyline,
             parent: plan.parent?.id,
-            area: isShape ? nil : geometry.area?.keyframes(at: instant) { $0.rectangle },
             box: geometry.box.map { box in
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
+            mask: geometry.mask?.keyframes(at: instant) { $0 },
             track: geometry.track?.track,
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,

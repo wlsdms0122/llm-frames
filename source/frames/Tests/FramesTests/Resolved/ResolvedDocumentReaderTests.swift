@@ -74,7 +74,7 @@ struct ResolvedDocumentReaderTests {
             { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
             { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "arrow" }, "at": [1, 2], "lane": -1 },
             { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
-            { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
+            { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
             { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },

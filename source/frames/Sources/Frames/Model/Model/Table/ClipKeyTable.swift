@@ -31,29 +31,29 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "position", "scale", "rotation", "opacity", "volume"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume"]
 
         case (.storyline, _):
-            ["crop", "position", "scale", "rotation", "opacity"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .media(.audio)):
             ["volume"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
-            ["position", "scale", "rotation", "opacity", "crop", "volume"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume"]
 
         case (_, .media):
-            ["position", "scale", "rotation", "opacity", "crop"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask"]
 
         case (_, .title):
-            ["position", "scale", "rotation", "opacity"]
+            ["position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .shape):
-            ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius"]
+            ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "mask"]
                 .filter(keys(for: kind, in: place).contains)
 
         case (_, .adjust), (_, .solid):
-            ["area", "opacity"]
+            ["opacity", "mask"]
         }
     }
 
@@ -79,13 +79,14 @@ enum ClipKeyTable {
     // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
     // for a path. A key a kind does not take stops as an unknown key.
     private static let everyShape = [
-        "track", "blend", "shape", "style", "anchor", "position", "scale", "rotation", "fill", "stroke", "trim", "shadow"
+        "track", "blend", "mask", "shape", "style", "anchor", "position", "scale", "rotation", "fill", "stroke", "trim",
+        "shadow"
     ]
 
     // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
     // parent.
     private static let storylineTransform = [
-        "anchor", "position", "scale", "rotation", "opacity", "blend", "radius", "border", "shadow"
+        "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "radius", "border", "shadow"
     ]
 
     private static func keys(
@@ -111,27 +112,27 @@ enum ClipKeyTable {
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
                 "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut",
-                "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend",
+                "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend", "mask",
                 "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
                 "track", "anchor", "media", "placement", "position", "scale", "rotation", "crop",
-                "conform", "filter", "blend", "width", "height", "radius", "border", "shadow"
+                "conform", "filter", "blend", "mask", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
             return everyClip + [
                 "track", "anchor", "title", "style", "width", "placement", "position", "scale",
-                "rotation", "blend"
+                "rotation", "blend", "mask"
             ]
 
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
 
         case (_, .adjust), (_, .solid):
-            return everyClip + ["adjust", "area", "track"]
+            return everyClip + ["adjust", "mask", "track"]
         }
     }
 
@@ -210,6 +211,9 @@ enum ClipKeyTable {
 
         case "conform":
             .literal(VocabularyTable.conforms)
+
+        case "mask":
+            .masks
 
         case "blend":
             .literal(VocabularyTable.blendModes)

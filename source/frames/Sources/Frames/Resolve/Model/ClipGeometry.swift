@@ -7,9 +7,10 @@
 
 // What resolve found and set for a connected or sequence clip, with keyframes in sequence time. `area`, a path's
 // `points` and `position` are in the space a parented clip's parent gives, and an unparented clip's in output pixels.
-// `crop` is in the clip's own media, and `track` is what a tracked clip follows. `box` is where a title, a media clip
-// or a shape given by `width` and `height` is drawn, and `position` the anchor point it was found from. `title` is the
-// text set for a title, `nested` the plan of a nested sequence the clip shows, and `appearance` how it is drawn.
+// `crop` is in the clip's own media, `mask` in the clip's own coordinate space, and `track` is what a tracked clip
+// follows. `box` is where a title, a media clip or a shape given by `width` and `height` is drawn, and `position` the
+// anchor point it was found from. `title` is the text set for a title, `nested` the plan of a nested sequence the clip
+// shows, and `appearance` how it is drawn.
 struct ClipGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<FoundArea>?
@@ -17,6 +18,7 @@ struct ClipGeometry: Equatable, Sendable {
     let position: PropertyValue<Point>?
     let box: ClipBox?
     let crop: PropertyValue<FoundArea>?
+    let mask: PropertyValue<[ResolvedMask]>?
     let track: StorylineTrack?
     let title: TextLayout?
     let nested: SequencePlan?
@@ -29,6 +31,7 @@ struct ClipGeometry: Equatable, Sendable {
         position: PropertyValue<Point>?,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
+        mask: PropertyValue<[ResolvedMask]>?,
         track: StorylineTrack?,
         title: TextLayout?,
         nested: SequencePlan?,
@@ -39,6 +42,7 @@ struct ClipGeometry: Equatable, Sendable {
         self.position = position
         self.box = box
         self.crop = crop
+        self.mask = mask
         self.track = track
         self.title = title
         self.nested = nested

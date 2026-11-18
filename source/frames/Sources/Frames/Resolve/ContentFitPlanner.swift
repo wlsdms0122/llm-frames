@@ -81,6 +81,7 @@ struct ContentFitPlanner: Sendable {
                     start: entry.start,
                     end: entry.end,
                     crop: entry.crop,
+                    mask: entry.mask,
                     track: entry.track,
                     filter: entry.filter,
                     box: entry.box,
@@ -104,9 +105,9 @@ struct ContentFitPlanner: Sendable {
                     lane: clip.lane,
                     storyline: clip.storyline,
                     parent: clip.parent,
-                    area: clip.area,
                     box: clip.box,
                     crop: clip.crop,
+                    mask: clip.mask,
                     track: clip.track,
                     opacity: clip.opacity,
                     scale: clip.scale,
@@ -204,6 +205,7 @@ struct ContentFitPlanner: Sendable {
 
         return StorylineGeometry(
             crop: geometry.crop,
+            mask: geometry.mask,
             track: geometry.track,
             nested: geometry.nested,
             filter: geometry.filter,
@@ -221,11 +223,19 @@ struct ContentFitPlanner: Sendable {
         )
     }
 
+    // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
+    // by its geometry. A title's or a box shape's is in its box and a media clip's in its media.
     private func moved(
         _ geometry: ClipGeometry,
         by offset: Point
     ) -> ClipGeometry {
-        ClipGeometry(
+        let isMaskInParentSpace = if case .box = geometry.appearance.shape?.geometry {
+            false
+        } else {
+            geometry.title == nil && geometry.appearance.media == nil
+        }
+
+        return ClipGeometry(
             area: geometry.area?.map { area in
                 FoundArea(
                     rectangle: moved(area.rectangle, by: offset),
@@ -240,11 +250,32 @@ struct ContentFitPlanner: Sendable {
                 ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
             },
             crop: geometry.crop,
+            mask: isMaskInParentSpace
+                ? geometry.mask?.map { masks in masks.map { moved($0, by: offset) } }
+                : geometry.mask,
             track: geometry.track,
             title: geometry.title,
             nested: geometry.nested,
             appearance: geometry.appearance
         )
+    }
+
+    private func moved(
+        _ mask: ResolvedMask,
+        by offset: Point
+    ) -> ResolvedMask {
+        let geometry: PathGeometry = switch mask.geometry {
+        case let .rect(rectangle, radius):
+            .rect(moved(rectangle, by: offset), radius: radius)
+
+        case let .ellipse(rectangle):
+            .ellipse(moved(rectangle, by: offset))
+
+        case let .polyline(points, isClosed):
+            .polyline(points.map { moved($0, by: offset) }, isClosed: isClosed)
+        }
+
+        return ResolvedMask(geometry: geometry, feather: mask.feather, isInverted: mask.isInverted, mode: mask.mode)
     }
 
     private func moved(

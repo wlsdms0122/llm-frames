@@ -10,7 +10,7 @@ import Foundation
 // The coordinate space a clip's positions and areas are written in, at one instant. `transform` is P(t), the map from
 // that space to output pixels of the list the clip is drawn in: its parent's chain composed down to the output, or the
 // identity for an unparented clip. It is a similarity, so `scale` and `rotation` are its one scale and its turn in
-// degrees. `frame` is the list's frame: what an adjustment without an area covers. `storyline` is the
+// degrees. `frame` is the list's frame: what an adjustment without a mask covers. `storyline` is the
 // storyline parent whose media a tracked clip follows. A tracked clip's values are where they are at the instant, and
 // its track's motion is a moving parent between them and this space: `area` and `anchor` answer in the clip's values'
 // coordinates, and `tracked(by:at:)` is the space that maps those coordinates to output pixels.
@@ -71,6 +71,17 @@ struct ClipSpace: Sendable {
         guard let track, let storyline else { return keyframes.value(at: time) }
 
         return track.points(of: keyframes, on: storyline, at: time)
+    }
+
+    // A clip's masks at the time, each keyframe brought back to the instant when it is tracked.
+    func masks(
+        of keyframes: [Keyframe<[ResolvedMask]>],
+        track: ResolvedTrack?,
+        at time: Double
+    ) -> [ResolvedMask] {
+        guard let track, let storyline else { return keyframes.value(at: time) }
+
+        return track.masks(of: keyframes, on: storyline, at: time)
     }
 
     // A box clip's anchor point at the time, `position + anchor`, each keyframe brought back to the instant when it is

@@ -284,7 +284,7 @@ struct SequencePlannerTests {
         "a text area under a shape or adjustment without a parent stops, since their coordinates are output pixels",
         arguments: [
             #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 100, 100] }"#
+            #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func refusesTextAreaInOutput(parent: String) throws {
@@ -336,7 +336,7 @@ struct SequencePlannerTests {
         "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
         arguments: [
             #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "area": [0, 0, 100, 100] }"#
+            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func cutsAreaUnderShape(parent: String) throws {
@@ -549,7 +549,7 @@ struct SequencePlannerTests {
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "adjust": ["mine/grade", "none"], "area": [0, 0, 10, 10], "at": [0, 1] } ] }
+                { "adjust": ["mine/grade", "none"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
             """#
 
         // When

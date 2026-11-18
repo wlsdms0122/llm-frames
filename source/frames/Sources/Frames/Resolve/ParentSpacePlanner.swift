@@ -22,20 +22,22 @@ struct ParentSpacePlanner: Sendable {
     private let areas: [PropertyValue<FoundArea>?]
     private let points: [PropertyValue<[Point]>?]
     private let positions: [PropertyValue<Point>?]
+    private let masks: [PropertyValue<[ResolvedMask]>?]
     // The transform of each shape placed by its geometry, nil for every other clip. Each is planned once, its
     // parents' first, since what a shape finds is brought back through its parents' transforms.
     private var transforms: [ParentTransformPlan?]
 
     // MARK: - Initializer
     // Each list is in the time plan's order of clips: the clips as written, their shapes as planned, and the areas,
-    // points and positions found for them, in the media searched.
+    // points, positions and masks found for them, in the media searched.
     init(
         tracked: TrackPlan,
         written: [Clip],
         shapes: [ShapeAppearance?],
         areas: [PropertyValue<FoundArea>?],
         points: [PropertyValue<[Point]>?],
-        positions: [PropertyValue<Point>?]
+        positions: [PropertyValue<Point>?],
+        masks: [PropertyValue<[ResolvedMask]>?]
     ) {
         self.tracked = tracked
         self.written = written
@@ -43,6 +45,7 @@ struct ParentSpacePlanner: Sendable {
         self.areas = areas
         self.points = points
         self.positions = positions
+        self.masks = masks
         self.transforms = Array(repeating: nil, count: written.count)
 
         for index in written.indices.sorted(by: { depth(of: $0) < depth(of: $1) }) {
@@ -101,7 +104,88 @@ struct ParentSpacePlanner: Sendable {
         }
     }
 
+    // The masks of a shape placed by its geometry or of an adjustment are in its parent's space, and each mask's area,
+    // position or points found by text is brought back as an area, a position or points are. A box is moved by its
+    // brought-back centre and keeps its written size. Every other clip's mask is in its own space.
+    func mask(of index: Int) -> PropertyValue<[ResolvedMask]>? {
+        let plan = tracked.time.clips[index]
+        guard
+            let found = masks[index],
+            let written = written[index].mask,
+            let parent = plan.parent,
+            isInParentSpace(index)
+        else {
+            return masks[index]
+        }
+
+        return values(found, written: written, instant: plan.instant) { masks, forms, time in
+            guard forms.contains(where: \.geometry.isFoundByText) else { return masks }
+
+            let links = links(under: parent, at: time)
+            return zip(masks, forms).map { mask, form in
+                ResolvedMask(
+                    geometry: bringBack(mask.geometry, written: form.geometry, through: links),
+                    feather: mask.feather,
+                    isInverted: mask.isInverted,
+                    mode: mask.mode
+                )
+            }
+        }
+    }
+
     // MARK: - Private
+    private func isInParentSpace(_ index: Int) -> Bool {
+        switch tracked.time.clips[index].kind {
+        case .adjust:
+            true
+
+        case .shape:
+            if case .box = shapes[index]?.geometry { false } else { true }
+
+        default:
+            false
+        }
+    }
+
+    private func bringBack(
+        _ geometry: PathGeometry,
+        written: MaskGeometryForm,
+        through links: [AffineTransform]
+    ) -> PathGeometry {
+        guard written.isFoundByText else { return geometry }
+
+        switch (geometry, written) {
+        case let (.rect(rectangle, radius), .area):
+            return .rect(bringBack(rectangle, through: links), radius: radius)
+
+        case let (.ellipse(rectangle), .area):
+            return .ellipse(bringBack(rectangle, through: links))
+
+        case let (.rect(rectangle, radius), .box):
+            return .rect(moved(rectangle, through: links), radius: radius)
+
+        case let (.ellipse(rectangle), .box):
+            return .ellipse(moved(rectangle, through: links))
+
+        case let (.polyline(points, isClosed), .points(forms)):
+            let brought = zip(points, forms).map { point, form in
+                form.isFoundByText ? bringBack(point, through: links) : point
+            }
+            return .polyline(brought, isClosed: isClosed)
+
+        default:
+            return geometry
+        }
+    }
+
+    // A box keeps its size and is centred on its centre brought back.
+    private func moved(
+        _ rectangle: Rectangle,
+        through links: [AffineTransform]
+    ) -> Rectangle {
+        Rectangle(center: bringBack(rectangle.center, through: links), width: rectangle.width, height: rectangle.height)
+    }
+
     // The map of each shape and adjustment from the parent out to the clip whose media is searched, the outermost
     // first, each from the space its children are written in to that of its own parent at the time its window holds.
     // Only one parented to a storyline clip is tracked, a shape given by `width` and `height` has a space with no

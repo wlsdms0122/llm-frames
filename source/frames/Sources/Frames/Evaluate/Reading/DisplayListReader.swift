@@ -15,7 +15,6 @@ package struct DisplayListReader: Sendable {
     private static let listKeys = ["size", "background", "items"]
     private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
-    private static let geometryForms = ["rect", "ellipse", "polyline"]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
@@ -174,7 +173,7 @@ package struct DisplayListReader: Sendable {
         }
 
         return ItemMask(
-            geometry: try geometry(mask.member("geometry")),
+            geometry: try values.geometry(mask.member("geometry")),
             transform: try transform(mask.member("transform")),
             feather: feather,
             isInverted: try mask.member("invert").bool(),
@@ -246,7 +245,7 @@ package struct DisplayListReader: Sendable {
 
     private func path(_ item: PlacedJSONObject) throws -> PathItem {
         PathItem(
-            geometry: try geometry(item.member("geometry")),
+            geometry: try values.geometry(item.member("geometry")),
             fill: try item.member("fill").optional(values.color),
             stroke: try item.member("stroke").optional { value in
                 let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end"])
@@ -263,43 +262,6 @@ package struct DisplayListReader: Sendable {
             trim: try trim(item.member("trim")),
             shadow: try item.member("shadow").optional(shadow)
         )
-    }
-
-    // One member named by its form: `rect`, `ellipse` or `polyline`, which runs through at least two points.
-    private func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
-        let geometry = try value.object(keys: Self.geometryForms)
-        let written = Self.geometryForms.filter(geometry.contains)
-        guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
-        }
-        guard written.count == 1 else {
-            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
-        }
-
-        let form = try geometry.member(name)
-        switch name {
-        case "rect":
-            let rect = try form.object(keys: ["rect", "radius"])
-
-            return .rect(try values.rectangle(rect.member("rect")), radius: try rect.member("radius").number())
-
-        case "ellipse":
-            return .ellipse(try values.rectangle(form.object(keys: ["rect"]).member("rect")))
-
-        default:
-            let polyline = try form.object(keys: ["points", "closed"])
-            let written = try polyline.member("points")
-            let points = try written.elements().map(values.point)
-            guard points.count >= 2 else {
-                throw ModelError.invalidValue(
-                    place: written.place,
-                    kind: written.kind,
-                    reason: "a polyline runs through at least two points, found \(points.count)"
-                )
-            }
-
-            return .polyline(points, isClosed: try polyline.member("closed").bool())
-        }
     }
 
     // `[a, b]`, each from 0 to 1.

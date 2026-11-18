@@ -55,6 +55,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.point)),
             JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
             JSONMember(key: "crop", value: crops(entry.crop)),
+            JSONMember(key: "mask", value: values.masks(entry.mask)),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
             JSONMember(key: "scale", value: values.numbers(entry.scale)),
@@ -82,14 +83,12 @@ struct ResolvedSequenceWriter: Sendable {
         let placement = shape?.geometry.placement
         let position = clip.box?.position ?? placement?.position
         let anchor = clip.box?.anchor ?? placement?.anchor
-        let area = shape == nil
-            ? [JSONMember(key: "area", value: clip.area.map { values.keyframes($0, value: values.rectangle) } ?? .null)]
-            : []
-        let geometry = area + [
+        let geometry = [
             JSONMember(key: "size", value: clip.box.map { values.size($0.size) } ?? .null),
             JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.point) } ?? .null),
             JSONMember(key: "anchor", value: anchor.map(values.point) ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
+            JSONMember(key: "mask", value: values.masks(clip.mask)),
             JSONMember(key: "track", value: clip.track.map(track) ?? .null)
         ]
 

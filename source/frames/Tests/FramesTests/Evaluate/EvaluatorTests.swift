@@ -776,14 +776,19 @@ struct EvaluatorTests {
         #expect(list.items.map(\.opacity) == [1, 0.2, 1])
     }
 
-    @Test("a parented adjustment is an item above the storyline picture, its area carried by its parent's map")
+    @Test("a parented adjustment is an item above the storyline picture, its mask carried by its parent's map")
     func carriesParentedAdjustment() throws {
         // Given
         let adjustment = clip(
             .adjustment([.blur(radius: 3)]),
             storyline: 0,
             parent: "shot",
-            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 200, height: 100))],
+            mask: [Keyframe(at: 0, value: [ResolvedMask(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 200, height: 100), radius: 0),
+                feather: 0,
+                isInverted: false,
+                mode: .add
+            )])],
             opacity: 0.5
         )
         let sequence = sequence([storylineClip(.pinned(first), id: "shot", start: 0, end: 4)], clips: [adjustment])
@@ -802,7 +807,7 @@ struct EvaluatorTests {
         #expect(list.items == [picture, adjust])
     }
 
-    @Test("a connected adjustment without an area filters, moves and wipes the whole frame")
+    @Test("a connected adjustment without a mask filters, moves and wipes the whole frame")
     func adjustsWholeFrameOfConnectedClip() {
         // Given
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
@@ -914,6 +919,7 @@ struct EvaluatorTests {
             start: entry.start,
             end: entry.end,
             crop: entry.crop,
+            mask: nil,
             track: entry.track,
             filter: entry.filter,
             box: ResolvedBox(size: entry.box.size, position: position ?? entry.box.position, anchor: entry.box.anchor),
@@ -972,7 +978,7 @@ struct EvaluatorTests {
         lane: Int = 1,
         storyline: Int? = nil,
         parent: String? = nil,
-        area: [Keyframe<Rectangle>]? = nil,
+        mask: [Keyframe<[ResolvedMask]>]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,
@@ -991,9 +997,9 @@ struct EvaluatorTests {
             lane: lane,
             storyline: storyline,
             parent: parent,
-            area: area,
             box: box,
             crop: crop,
+            mask: mask,
             track: track,
             opacity: [Keyframe(at: 0, value: opacity)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],

@@ -239,7 +239,7 @@ struct ClipWindowTests {
     func parentsOnlyByName() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "adjust": "frames/vivid", "area": [0, 0, 10, 10] }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "adjust": "frames/vivid", "area": [0, 0, 10, 10], "parent": "run" }
+            { "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
             """#)
 
         // When

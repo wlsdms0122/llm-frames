@@ -47,7 +47,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
@@ -212,11 +212,11 @@ struct TemplateCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
-                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
-                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, area, width, height, placement, radius, outset"#
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, area, width, height, placement, radius, outset"#
             )
         ]
     )

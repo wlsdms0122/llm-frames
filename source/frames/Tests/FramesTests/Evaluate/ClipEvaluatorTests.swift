@@ -111,13 +111,13 @@ struct ClipEvaluatorTests {
             lane: 1,
             storyline: nil,
             parent: nil,
-            area: nil,
             box: ResolvedBox(
                 size: text.size,
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 160))],
                 anchor: Point(x: 50, y: 40)
             ),
             crop: nil,
+            mask: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: opacity)],
             scale: [Keyframe(at: 0, value: scale)],

@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`
-// and `crop` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
+// A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`,
+// `crop` and `mask` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
 // parent. `placement` and `anchor` are the names written.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
 // theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
@@ -28,6 +28,7 @@ struct Clip: Equatable, Sendable {
     let area: PropertyValue<AreaForm>?
     let position: PropertyValue<PositionForm>?
     let crop: PropertyValue<CropForm>?
+    let mask: PropertyValue<[ClipMask]>?
     let track: TrackTarget?
     let width: Double?
     let height: Double?
@@ -57,6 +58,7 @@ struct Clip: Equatable, Sendable {
         area: PropertyValue<AreaForm>? = nil,
         position: PropertyValue<PositionForm>? = nil,
         crop: PropertyValue<CropForm>? = nil,
+        mask: PropertyValue<[ClipMask]>? = nil,
         track: TrackTarget? = nil,
         width: Double? = nil,
         height: Double? = nil,
@@ -84,6 +86,7 @@ struct Clip: Equatable, Sendable {
         self.area = area
         self.position = position
         self.crop = crop
+        self.mask = mask
         self.track = track
         self.width = width
         self.height = height

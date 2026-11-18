@@ -34,6 +34,8 @@ indirect enum ValueType: Equatable, Sendable {
     case oneOf([ValueType])
     case area
     case crop
+    // A mask, or a list of at least one mask, each taking the keys of its shape.
+    case masks
     case margin
     case media
     case document

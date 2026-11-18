@@ -381,8 +381,8 @@ struct ResolvedSequenceWriterTests {
         // Then
         #expect(clips[0].keys == [
             "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
-            "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "track",
-            "opacity", "scale", "rotation", "blend", "animation"
+            "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
+            "track", "opacity", "scale", "rotation", "blend", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)

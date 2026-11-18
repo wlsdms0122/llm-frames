@@ -27,20 +27,33 @@ struct TrackPlanner: Sendable {
     }
 
     // MARK: - Public
-    // `crops` are what was found for each storyline clip's crop, and `areas` for each other clip's area, in the time
-    // plan's order, which `true` follows.
+    // `crops` and `storylineMasks` are what was found for each storyline clip's crop and mask, and `areas` and `masks`
+    // for each other clip's area and mask, in the time plan's order, which `true` follows.
     func plan(
         _ time: TimePlan,
         crops: [PropertyValue<FoundArea>?],
-        areas: [PropertyValue<FoundArea>?]
+        storylineMasks: [PropertyValue<[ResolvedMask]>?],
+        areas: [PropertyValue<FoundArea>?],
+        masks: [PropertyValue<[ResolvedMask]>?]
     ) throws -> TrackPlan {
         let storyline = try time.storyline.indices.map { index in
-            try track(time.storyline[index], written: time.sequence.storyline[index], crop: crops[index])
+            try track(
+                time.storyline[index],
+                written: time.sequence.storyline[index],
+                crop: crops[index],
+                mask: storylineMasks[index]
+            )
         }
 
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
         let clips = try time.clips.indices.map { index in
-            try track(time.clips[index], written: written[index], area: areas[index], storyline: time.storyline)
+            try track(
+                time.clips[index],
+                written: written[index],
+                area: areas[index],
+                mask: masks[index],
+                storyline: time.storyline
+            )
         }
 
         return TrackPlan(time: time.replacingClips(clips.map(\.plan)), storyline: storyline, clips: clips.map(\.track))
@@ -50,7 +63,8 @@ struct TrackPlanner: Sendable {
     private func track(
         _ plan: StorylinePlan,
         written: StorylineClip,
-        crop: PropertyValue<FoundArea>?
+        crop: PropertyValue<FoundArea>?,
+        mask: PropertyValue<[ResolvedMask]>?
     ) throws -> Track? {
         guard let target = written.track else { return nil }
 
@@ -60,7 +74,14 @@ struct TrackPlanner: Sendable {
 
         let start = try self.target(
             target,
-            own: isArea(written.crop) ? crop : nil,
+            own: try own(
+                [
+                    ("crop", isArea(written.crop) ? crop : nil),
+                    ("mask", mask.map { self.area(of: $0, on: plan, instant: plan.instant) })
+                ],
+                place: place,
+                kind: kind
+            ),
             in: picture.picture,
             atMediaTime: plan.mediaTime(atSequenceTime: plan.instant),
             place: place,
@@ -81,12 +102,14 @@ struct TrackPlanner: Sendable {
         return followed.track
     }
 
-    // `true` belongs to a shape or an adjustment with an area, and a title or media clip names what it follows. A
-    // parented clip follows its parent's media, which must be a storyline clip's video or image sequence.
+    // `true` belongs to a shape or an adjustment with an area or a mask in its parent's space, and a title or media
+    // clip names what it follows. A parented clip follows its parent's media, which must be a storyline clip's video or
+    // image sequence.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
         area: PropertyValue<FoundArea>?,
+        mask: PropertyValue<[ResolvedMask]>?,
         storyline: [StorylinePlan]
     ) throws -> (plan: ClipPlan, track: Track?) {
         guard let target = written.track else { return (plan, nil) }
@@ -96,7 +119,7 @@ struct TrackPlanner: Sendable {
         if target == .own, isNaming(plan.kind) {
             throw ResolveError.trackOwnOnNamingClip(place: place, kind: kind)
         }
-        if target == .own, area == nil {
+        if target == .own, area == nil, mask == nil {
             throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
         }
         if case let .clip(_, id) = plan.parent {
@@ -110,9 +133,19 @@ struct TrackPlanner: Sendable {
         }
 
         let parent = storyline[index]
+        // A box shape's mask is in its own box, not in the media it follows.
+        let followsMask = if case let .shape(shape) = written.content { shape.width == nil } else { true }
+        let ownMask = followsMask ? mask.map { self.area(of: $0, on: parent, instant: plan.instant) } : nil
         let start = try self.target(
             target,
-            own: area,
+            own: target == .own ? try own(
+                [
+                    ("area", area),
+                    ("mask", ownMask)
+                ],
+                place: place,
+                kind: kind
+            ) : nil,
             in: picture.picture,
             atMediaTime: parent.mediaTime(atSequenceTime: plan.instant),
             place: place,
@@ -126,8 +159,56 @@ struct TrackPlanner: Sendable {
         return (plan.narrowed(to: visible), followed.track)
     }
 
-    // The target before padding: for `true` the clip's own area or crop where it starts, else the area it names, found
-    // at the instant.
+    // What `true` follows (FRAMES-12): the one of the clip's area, mask and crop it has, each where it starts. A clip
+    // with more than one stops, since it must name its target.
+    private func own(
+        _ candidates: [(key: String, value: PropertyValue<FoundArea>?)],
+        place: Place,
+        kind: PlaceKind
+    ) throws -> PropertyValue<FoundArea>? {
+        let present = candidates.filter { $0.value != nil }
+        guard present.count <= 1 else {
+            throw ResolveError.trackOwnAmbiguous(place: place, kind: kind, keys: present.map(\.key))
+        }
+
+        return present.first?.value
+    }
+
+    // The bounding box of every mask's geometry, without feather, at each value's time, as the area `true` follows: a
+    // keyframe's at its own time, and a static mask at the clip's instant.
+    private func area(
+        of mask: PropertyValue<[ResolvedMask]>,
+        on storyline: StorylinePlan,
+        instant: Double
+    ) -> PropertyValue<FoundArea> {
+        let found = { (masks: [ResolvedMask], time: Double) in
+            let bounds = masks.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
+            return FoundArea(
+                rectangle: bounds,
+                target: bounds,
+                mediaTime: storyline.mediaTime(atSequenceTime: time),
+                lines: []
+            )
+        }
+
+        switch mask {
+        case let .value(masks):
+            return .value(found(masks, instant))
+
+        case let .keyframes(keyframes):
+            return .keyframes(keyframes.map { keyframe in
+                TimedValue(
+                    index: keyframe.index,
+                    at: keyframe.at,
+                    value: found(keyframe.value, keyframe.at),
+                    ease: keyframe.ease
+                )
+            })
+        }
+    }
+
+    // The target before padding: for `true` the clip's own area, mask or crop where it starts, else the area it names,
+    // found at the instant.
     private func target(
         _ target: TrackTarget,
         own: PropertyValue<FoundArea>?,

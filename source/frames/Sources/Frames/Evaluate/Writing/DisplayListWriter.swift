@@ -162,7 +162,7 @@ package struct DisplayListWriter: Sendable {
         }
 
         return [
-            JSONMember(key: "geometry", value: geometry(path.geometry)),
+            JSONMember(key: "geometry", value: values.geometry(path.geometry)),
             JSONMember(key: "fill", value: path.fill.map(values.color) ?? .null),
             JSONMember(key: "stroke", value: stroke ?? .null),
             JSONMember(key: "trim", value: values.numbers([path.trim.start, path.trim.end])),
@@ -173,36 +173,12 @@ package struct DisplayListWriter: Sendable {
     // `geometry` in the form a path item writes it.
     private func mask(_ mask: ItemMask) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "geometry", value: geometry(mask.geometry)),
+            JSONMember(key: "geometry", value: values.geometry(mask.geometry)),
             JSONMember(key: "transform", value: values.numbers(transform(mask.transform))),
             JSONMember(key: "feather", value: .number(mask.feather)),
             JSONMember(key: "invert", value: .bool(mask.isInverted)),
             JSONMember(key: "mode", value: .string(mask.mode.rawValue))
         ]))
-    }
-
-    // One member named by its form.
-    private func geometry(_ geometry: PathGeometry) -> JSONValue {
-        let form = { (name: String, members: [JSONMember]) in
-            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
-        }
-
-        switch geometry {
-        case let .rect(rectangle, radius):
-            return form("rect", [
-                JSONMember(key: "rect", value: values.rectangle(rectangle)),
-                JSONMember(key: "radius", value: .number(radius))
-            ])
-
-        case let .ellipse(rectangle):
-            return form("ellipse", [JSONMember(key: "rect", value: values.rectangle(rectangle))])
-
-        case let .polyline(points, isClosed):
-            return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map(values.point))),
-                JSONMember(key: "closed", value: .bool(isClosed))
-            ])
-        }
     }
 
     private func shadow(_ shadow: DropShadow?) -> JSONValue {

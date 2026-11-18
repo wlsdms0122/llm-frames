@@ -127,7 +127,7 @@ struct ParentEvaluatorTests {
     }
 
     @Test(
-        "a shape or adjustment parent with an area gives the space its area is written in, carried by its presentation",
+        "a shape parent with an area or an adjustment parent with a mask gives the space they are written in, carried by its presentation",
         arguments: [
             ResolvedClipContent.shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
@@ -138,11 +138,18 @@ struct ParentEvaluatorTests {
     )
     func mapsAreaParent(content: ResolvedClipContent) {
         // Given
+        let isShape = if case .shape = content { true } else { false }
+        let mask = ResolvedMask(
+            geometry: .rect(Rectangle(x: 0, y: 0, width: 40, height: 20), radius: 0),
+            feather: 0,
+            isInverted: false,
+            mode: .add
+        )
         let parent = clip(
             id: "bar",
             content: content,
             parent: "shot",
-            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))]
+            mask: isShape ? nil : [Keyframe(at: 0, value: [mask])]
         )
         let child = fill(parent: "bar")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
@@ -366,14 +373,13 @@ struct ParentEvaluatorTests {
         start: Double = 0,
         end: Double = 4,
         parent: String? = nil,
-        area: [Keyframe<Rectangle>]? = nil,
+        mask: [Keyframe<[ResolvedMask]>]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,
         scale: Double = 1
     ) -> ResolvedClip {
         let isAdjustment = if case .adjustment = content { true } else { false }
-        let isShape = if case .shape = content { true } else { false }
 
         return ResolvedClip(
             place: "clips[0]",
@@ -384,9 +390,9 @@ struct ParentEvaluatorTests {
             lane: 1,
             storyline: nil,
             parent: parent,
-            area: isShape ? nil : area,
             box: box,
             crop: crop,
+            mask: mask,
             track: track,
             opacity: [Keyframe(at: 0, value: 1)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],

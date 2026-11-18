@@ -215,6 +215,9 @@ struct KeyChecker: Sendable {
         case .margin:
             try checkMargin(value, place: place, kind: kind, scope: &scope)
 
+        case .masks:
+            try checkMasks(value, place: place, kind: kind, scope: &scope)
+
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -391,6 +394,76 @@ struct KeyChecker: Sendable {
 
         default:
             throw wrongType(value, type, place, kind)
+        }
+    }
+
+    // An empty list stops, since a clip without masks writes no `mask`, as an After Effects layer without masks has
+    // none.
+    private func checkMasks(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try checkMask(value, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: kind,
+                reason: "a mask list holds at least one mask, and a clip without masks writes no mask"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            try checkMask(element, place: place.appending(index: index), kind: kind, scope: &scope)
+        }
+    }
+
+    // A mask takes the keys of its shape. A rect or an ellipse takes exactly one of `area` and the box `width`,
+    // `height` and `position`, all three together, and a path at least three points, since its path is closed.
+    private func checkMask(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let object = value.objectValue else { throw wrongType(value, .masks, place, kind) }
+
+        let shapeValue = object["shape"] ?? .null
+        guard object.contains("shape") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["shape"]) }
+
+        try check(
+            shapeValue,
+            as: .literal(VocabularyTable.shapes),
+            place: place.appending(key: "shape"),
+            kind: "mask",
+            scope: &scope
+        )
+        guard let shape = shapeValue.stringValue.flatMap(ShapeKind.init(rawValue:)) else { return }
+
+        let table = MaskKeyTable.table(for: shape)
+        if shape == .path, let points = object["points"]?.arrayValue, points.count < 3 {
+            throw ModelError.invalidValue(
+                place: place.appending(key: "points"),
+                kind: table.kind,
+                reason: "a path mask is closed, so it runs through at least three points, found \(points.count)"
+            )
+        }
+        try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
+        guard shape != .path else { return }
+
+        let box = MaskKeyTable.box.filter(object.contains)
+        if object.contains("area") {
+            guard box.isEmpty else {
+                throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
+            }
+        } else if box.isEmpty {
+            throw ModelError.missingKey(place: place, kind: table.kind, keys: ["area"] + MaskKeyTable.box)
+        } else if let missing = MaskKeyTable.box.first(where: { !object.contains($0) }) {
+            throw ModelError.missingKey(place: place, kind: table.kind, keys: [missing])
         }
     }
 
@@ -946,7 +1019,7 @@ struct KeyChecker: Sendable {
         case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
             true
 
-        case (.media, .string), (.media, .object):
+        case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array):
             true
 
         default:
@@ -1033,6 +1106,9 @@ struct KeyChecker: Sendable {
 
         case .margin:
             "a whole number, 0 or more, or a list of 2 or 4 of them"
+
+        case .masks:
+            "a mask or a list of masks"
 
         case .media:
             "a media reference"

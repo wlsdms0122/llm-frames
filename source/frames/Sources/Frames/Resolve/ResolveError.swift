@@ -42,6 +42,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
+    case masksDiffer(place: Place, kind: PlaceKind, property: String)
+    case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
@@ -49,6 +52,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
+    case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
     case unreadableFile(path: String)
@@ -177,6 +181,18 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
 
+        case let .maskCountsDiffer(place, kind, counts):
+            "\(place) (\(kind.label)): the keyframes of \"mask\" hold "
+                + counts.map { "\($0)" }.joined(separator: " and ")
+                + " masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"
+
+        case let .masksDiffer(place, kind, property):
+            "\(place) (\(kind.label)): this mask differs from the first keyframe's in its \(property), "
+                + "and a keyframed mask changes only its geometry's values, its radius and its feather"
+
+        case let .textMaskInOwnBox(place, kind):
+            "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
+
         case let .pointCountsDiffer(place, kind, counts):
             "\(place) (\(kind.label)): the keyframes of \"points\" hold "
                 + counts.map { "\($0)" }.joined(separator: " and ")
@@ -204,8 +220,12 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and there is none to follow here"
 
         case let .trackOwnWithoutArea(place, kind):
-            "\(place) (\(kind.label)): \"track\": true follows the clip's own area or crop, "
+            "\(place) (\(kind.label)): \"track\": true follows the clip's own area, mask or crop, "
                 + "and it has none given as an area"
+
+        case let .trackOwnAmbiguous(place, kind, keys):
+            "\(place) (\(kind.label)): \"track\": true follows one of the clip's area, mask and crop, and it has "
+                + keys.map { "\"\($0)\"" }.joined(separator: " and ") + ", so it must name its target"
 
         case let .trackOwnOnNamingClip(place, kind):
             "\(place) (\(kind.label)): a title or media clip names the area it tracks, "

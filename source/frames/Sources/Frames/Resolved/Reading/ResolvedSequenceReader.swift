@@ -14,14 +14,14 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parent", "area", "size", "position", "anchor", "crop",
+        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
         "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
-        "title", "shape", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke", "adjust",
-        "media", "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
+        "title", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke",
+        "adjust", "media", "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
     ]
 
     private static let shapeKeys = [
@@ -114,7 +114,8 @@ struct ResolvedSequenceReader: Sendable {
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
             "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "size", "position", "anchor", "crop",
-            "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border", "shadow", "transition"
+            "mask", "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border", "shadow",
+            "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -128,6 +129,7 @@ struct ResolvedSequenceReader: Sendable {
             start: try entry.member("start").number(),
             end: try entry.member("end").number(),
             crop: try values.crops(entry.member("crop")),
+            mask: try values.masks(entry.member("mask")),
             track: try entry.member("track").optional(track),
             filter: try values.filter(entry.member("filter")),
             box: ResolvedBox(
@@ -181,9 +183,9 @@ struct ResolvedSequenceReader: Sendable {
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
-            area: isShape ? nil : try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
             box: box,
             crop: try clip.member("crop").optional(values.crops),
+            mask: try values.masks(clip.member("mask")),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,

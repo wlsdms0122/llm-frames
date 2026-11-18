@@ -38,6 +38,7 @@ extension ResolvedStorylineClip {
             start: start,
             end: end,
             crop: crop,
+            mask: nil,
             track: track,
             filter: filter,
             box: ResolvedBox(

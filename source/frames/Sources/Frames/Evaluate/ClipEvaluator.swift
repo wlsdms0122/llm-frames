@@ -10,7 +10,8 @@
 // composed in through its space, after its tracked motion when it is tracked. A title or media clip is drawn in its
 // box's own pixels, its anchor point where that map carries its position, turned by its own rotation and the map's, at
 // its own scale, and so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its
-// space's coordinates, carried by that map whole, and an adjustment on its area so, or without one over the frame.
+// space's coordinates, carried by that map whole, and an adjustment around its masks' bounding box so, or without a
+// mask over the frame.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -61,7 +62,7 @@ struct ClipEvaluator: Sendable {
 
     // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media
     // clip's media pixels through its crop into its box, a box shape's box, and the space a shape's geometry or an
-    // adjustment's area is written in, each carried by the clip's transform, its tracked motion included.
+    // adjustment's mask is written in, each carried by the clip's transform, its tracked motion included.
     // Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
@@ -94,9 +95,9 @@ struct ClipEvaluator: Sendable {
 
         case .adjustment:
             let transform = adjustPresentation(of: clip, sample: sample, in: space, at: time).transform
-            guard clip.area == nil else { return transform }
+            guard clip.mask == nil else { return transform }
 
-            // Without an area the adjustment acts in output pixels, and its children are still in its parent's space.
+            // Without a mask the adjustment acts in output pixels, and its children are still in its parent's space.
             return space.tracked(by: clip.track, at: time).transform.concatenating(transform)
         }
     }
@@ -144,8 +145,8 @@ struct ClipEvaluator: Sendable {
         return ItemPresentation(box: box.size, anchor: box.anchor, values: values, motion: sample.animation.motion)
     }
 
-    // An adjustment over the whole list's frame, its reveal wiping across its area, or across the frame without one.
-    // Its opacity blends the filtered result with what is below.
+    // An adjustment over the whole list's frame, its reveal wiping across its masks' bounding box (FRAMES-14), or
+    // across the frame without a mask. Its opacity blends the filtered result with what is below.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: [ResolvedFilterOperation],
@@ -153,34 +154,44 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> DisplayItem {
-        let area = clip.area.map { space.area(of: $0, track: clip.track, at: time) }
+        let bounds = maskBounds(of: clip, in: space, at: time)
         let presentation = adjustPresentation(of: clip, sample: sample, in: space, at: time)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
-            reveal: sample.animation.reveal.rectangle(wiping: area ?? space.frame, from: sample.animation.revealFrom),
+            reveal: sample.animation.reveal.rectangle(wiping: bounds ?? space.frame, from: sample.animation.revealFrom),
             content: .adjust(AdjustItem(filter: filter))
         )
     }
 
-    // An area is in the clip's space and carried by its tracked motion and P(t). Without one the adjustment covers the
-    // list's frame, in output pixels.
+    // An adjustment's mask is in the clip's space and carried by its tracked motion and P(t), and its animation acts
+    // around the centre of its masks' bounding box (FRAMES-10). Without a mask the adjustment covers the list's frame,
+    // in output pixels, and acts around its centre.
     private func adjustPresentation(
         of clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
     ) -> ItemPresentation {
-        guard let area = clip.area.map({ space.area(of: $0, track: clip.track, at: time) }) else {
+        guard let bounds = maskBounds(of: clip, in: space, at: time) else {
             return ItemPresentation(area: space.frame, opacity: sample.opacity, motion: sample.animation.motion)
         }
 
         return ItemPresentation(
-            area: area,
+            area: bounds,
             opacity: sample.opacity,
             motion: sample.animation.motion,
             carriedBy: space.tracked(by: clip.track, at: time).transform
         )
+    }
+
+    // The bounding box of a clip's masks at the time in its own space, nil without a mask.
+    private func maskBounds(
+        of clip: ResolvedClip,
+        in space: ClipSpace,
+        at time: Double
+    ) -> Rectangle? {
+        clip.mask.flatMap { space.masks(of: $0, track: clip.track, at: time).bounds }
     }
 }
