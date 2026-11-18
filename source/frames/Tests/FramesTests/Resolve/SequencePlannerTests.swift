@@ -768,6 +768,10 @@ struct SequencePlannerTests {
                 "storyline[0]#screen.connected[0].mask[1] (rect): a text form is searched in media, and this clip's mask is in its own box"
             ),
             (
+                #"{ "shape": "rect", "stroke": { "width": 8 }, "width": 100, "parent": "screen", "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
+                "storyline[0]#screen.connected[0] (rect): missing key \"height\""
+            ),
+            (
                 #"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
                 "storyline[0]#screen.connected[0].mask (rect): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
             ),

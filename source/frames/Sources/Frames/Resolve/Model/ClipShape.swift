@@ -24,6 +24,10 @@ struct ClipShape: Equatable, Sendable {
     let trim: PropertyValue<Trim>?
     let shadow: ShadowForm?
 
+    // A rect or an ellipse given by `width` and `height` is placed by its box, a path or a shape given by `area` by its
+    // geometry. A rect missing one of the two is neither and stops when its geometry is planned.
+    var isPlacedByBox: Bool { kind != .path && width != nil && height != nil }
+
     // MARK: - Initializer
     init(
         kind: ShapeKind,

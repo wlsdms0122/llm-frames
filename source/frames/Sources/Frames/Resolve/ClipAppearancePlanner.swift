@@ -135,14 +135,14 @@ struct ClipAppearancePlanner: Sendable {
         }
 
         let outset = (shape.outset ?? style["outset"]?.numberValue ?? 0) * scale
-        let geometry: ShapeGeometryPlan = if shape.kind == .path {
-            .points(isClosed: shape.isClosed, anchor: written.anchor)
-        } else if let width = shape.width, let height = shape.height {
+        let geometry: ShapeGeometryPlan = if shape.isPlacedByBox, let width = shape.width, let height = shape.height {
             .box(
                 width: property(width, plain: 0, clock: plan.clock),
                 height: property(height, plain: 0, clock: plan.clock),
                 outset: outset
             )
+        } else if shape.kind == .path {
+            .points(isClosed: shape.isClosed, anchor: written.anchor)
         } else {
             .area(outset: outset, anchor: written.anchor)
         }
