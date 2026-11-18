@@ -400,7 +400,7 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.storyline[0].track == nil)
-        #expect(plan.clips[0].track?.target == Fixture.total)
+        #expect(plan.clips[0].track?.track.target == Fixture.total)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1))
     }
 

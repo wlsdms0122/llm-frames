@@ -47,7 +47,7 @@ struct ResolveEndToEndTests {
         #expect(area.lines.map(\.text) == ["Total 12,000원"])
         #expect(isNear(area.target, drawn[0]), "found \(area.target), drawn \(drawn[0])")
 
-        let track = try #require(plan.clips[0].track)
+        let track = try #require(plan.clips[0].track?.track)
         #expect(track.frames.map(\.time) == times)
         for (index, frame) in track.frames.enumerated() {
             let moved = frame.rectangle.center.y - track.target.center.y

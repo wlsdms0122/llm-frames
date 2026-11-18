@@ -124,10 +124,8 @@ struct ParentSpacePlanner: Sendable {
 
             let held = plan.visible.held(time)
             let own = transforms[index]?.transform(at: held) ?? .identity
-            if let link = track(of: index) {
-                let mediaTime = tracked.time.storyline[link.storyline].mediaTime(atSequenceTime: held)
-                let motion = link.track.track.motion(atMediaTime: mediaTime)
-                links.append(own.concatenating(AffineTransform(carrying: motion)))
+            if let track = StorylineTrack(clip: index, in: tracked) {
+                links.append(own.concatenating(AffineTransform(carrying: track.motion(at: held))))
             } else {
                 links.append(own)
             }
@@ -149,95 +147,29 @@ struct ParentSpacePlanner: Sendable {
         return depth
     }
 
-    // A shape placed by its geometry as its transform needs it, its area or points and its position as found and its
-    // named anchor taken on its geometry's box at its instant, as its entry has them
-    // (`ResolvedShape(shape:geometry:instant:)`). A shape given by `width` and `height` and an adjustment have no such
-    // transform.
+    // A shape placed by its geometry as its transform needs it: its geometry made from its plan and its area or
+    // points and position as found, as its entry makes it (`ResolvedShape(shape:geometry:instant:)`). A shape given by
+    // `width` and `height` and an adjustment have no such transform.
     private func transform(of index: Int) -> ParentTransformPlan? {
         guard let shape = shapes[index] else { return nil }
+        if case .box = shape.geometry { return nil }
 
         let plan = tracked.time.clips[index]
-        let position = atInstant(
-            position(of: index)?.keyframes(at: plan.instant) { $0 },
-            of: index
-        ) { track, point, time in
-            track.bringBack(point, fromMediaTime: time)
-        }
-        let geometry: ShapeGeometry
-        switch shape.geometry {
-        case .box:
-            return nil
-
-        case let .area(outset, anchor):
-            let area = atInstant(
-                area(of: index)?.keyframes(at: plan.instant) { $0.rectangle },
-                of: index
-            ) { track, rectangle, mediaTime in
-                track.bringBack(rectangle, fromMediaTime: mediaTime)
-            }
-            guard let area else { return nil }
-
-            geometry = .area(
-                area,
-                outset: outset,
-                placement: GeometryPlacement(
-                    position: position,
-                    anchor: anchor.map { name in area.value(at: plan.instant).point(named: name) }
-                )
-            )
-
-        case let .points(isClosed, anchor):
-            let points = atInstant(
-                points(of: index)?.keyframes(at: plan.instant) { $0 },
-                of: index
-            ) { track, points, time in
-                points.map { track.bringBack($0, fromMediaTime: time) }
-            }
-            guard let points else { return nil }
-
-            geometry = .points(
-                points,
-                isClosed: isClosed,
-                placement: GeometryPlacement(
-                    position: position,
-                    anchor: anchor.map { name in
-                        Rectangle(bounding: points.value(at: plan.instant)).point(named: name)
-                    }
-                )
-            )
-        }
         let written = written[index]
-
+        let track = StorylineTrack(clip: index, in: tracked)
         return ParentTransformPlan(
-            geometry: geometry,
+            geometry: ShapeGeometry(
+                plan: shape.geometry,
+                area: area(of: index)?.keyframes(at: plan.instant) { $0.rectangle },
+                points: points(of: index)?.keyframes(at: plan.instant) { $0 },
+                position: position(of: index)?.keyframes(at: plan.instant) { $0 },
+                instant: plan.instant,
+                track: track
+            ),
+            track: track,
             scale: (written.scale?.inSequenceTime(on: plan.clock) ?? .value(1)).keyframes(at: plan.instant) { $0 },
             rotation: (written.rotation?.inSequenceTime(on: plan.clock) ?? .value(0)).keyframes(at: plan.instant) { $0 }
         )
-    }
-
-    // A tracked clip's keyframes each brought back through the motion at the media time of its `at`, to where it lies
-    // at the instant, as its evaluation brings them back.
-    private func atInstant<Value: Interpolable>(
-        _ keyframes: [Keyframe<Value>]?,
-        of index: Int,
-        bringBack: (ResolvedTrack, Value, Double) -> Value
-    ) -> [Keyframe<Value>]? {
-        guard let keyframes, let link = track(of: index) else { return keyframes }
-
-        return keyframes.map { keyframe in
-            let mediaTime = tracked.time.storyline[link.storyline].mediaTime(atSequenceTime: keyframe.at)
-            let value = bringBack(link.track, keyframe.value, mediaTime)
-            return Keyframe(at: keyframe.at, value: value, ease: keyframe.ease)
-        }
-    }
-
-    // The track a clip parented to a storyline clip follows, and the index of that storyline clip.
-    private func track(of index: Int) -> (track: ResolvedTrack, storyline: Int)? {
-        guard let track = tracked.clips[index],
-            case let .storyline(storyline, _) = tracked.time.clips[index].parent
-        else { return nil }
-
-        return (ResolvedTrack(track: track), storyline)
     }
 
     private func bringBack(

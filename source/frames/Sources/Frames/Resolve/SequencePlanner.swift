@@ -151,7 +151,7 @@ struct SequencePlanner: Sendable {
                 position: placed[index].position,
                 box: box,
                 crop: placed[index].crop,
-                track: tracked.clips[index],
+                track: StorylineTrack(clip: index, in: tracked),
                 title: title,
                 nested: clipNested[index],
                 appearance: try appearances.appearance(

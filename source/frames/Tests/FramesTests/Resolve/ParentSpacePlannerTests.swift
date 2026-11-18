@@ -199,6 +199,39 @@ struct ParentSpacePlannerTests {
         #expect(isClose(anchor, beside), "the title is at \(anchor), the text's right at \(beside)")
     }
 
+    @Test(
+        "a title at a point of text under a tracked, scaled rect whose area keyframes are not at its instant and whose anchor is named lands beside the text at every time"
+    )
+    func placesTextUnderTrackedKeyframedArea() throws {
+        // Given
+        // The card names its target, so its instant is 0, and its area is keyed at 1 and 3, after it: where the area
+        // lies at the instant is its keyframes brought back through the motion at their own times.
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 4],
+                  "track": { "text": "Total" }, "anchor": "top-left", "scale": 1.5, "rotation": 20,
+                  "keyframes": [ { "at": 1, "area": { "text": "Total" } }, { "at": 3, "area": [300, 400, 200, 100] } ] },
+                { "title": "a", "style": "title", "parent": "card", "at": [2, 4], "anchor": "left",
+                  "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] }
+            """#)
+
+        // When
+        let resolved = try ResolvedSequence(
+            plan: sut.plan(Fixture.planner.plan(document: document)),
+            hashes: FileHashTable()
+        )
+
+        // Then
+        let parents = ParentEvaluator(sequence: resolved)
+        for time in [2.0, 3.5] {
+            let anchor = Self.anchor(of: resolved.clips[1], by: parents, at: time)
+            let text = Self.text(at: time, growth: 0)
+            let beside = Point(x: text.x + text.width + Self.padding, y: text.center.y)
+            #expect(isClose(anchor, beside), "at \(time) the title is at \(anchor), the text's right at \(beside)")
+        }
+    }
+
     @Test("an area of text under a turned and scaled shape is the box bounding its four corners carried back, and numbers are kept")
     func bringsAreaBackThroughRotation() throws {
         // Given
