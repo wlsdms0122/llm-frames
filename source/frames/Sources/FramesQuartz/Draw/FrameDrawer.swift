@@ -9,11 +9,12 @@ import CoreGraphics
 import CoreImage
 import Frames
 
-// Draws the display lists of one output frame: the list over its background, items bottom first, each cut to its mask
-// in output pixels, carried by its transform and cut to its reveal in its own coordinates, over the shadow it casts. A
-// `normal` item is drawn source-over by Core Graphics, and any other blend mode draws the item into a transparent
-// layer that the mode's W3C kernel composites over the backdrop. Opacity below 1 and the blend mode apply to the item
-// and its shadow as a whole. Nested lists are drawn once per frame at their own size.
+// Draws the display lists of one output frame: the list over its background, items bottom first, each carried by its
+// transform and cut to its reveal in its own coordinates, then its alpha multiplied by its masks' result in output
+// pixels (`MaskDrawer`), over the shadow it casts from that cut picture, which the masks do not cut. A `normal` item is
+// drawn source-over by Core Graphics, and any other blend mode draws the item into a transparent layer that the mode's
+// W3C kernel composites over the backdrop. Opacity below 1 and the blend mode apply to the item and its shadow as a
+// whole. Nested lists are drawn once per frame at their own size.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -67,33 +68,52 @@ final class FrameDrawer {
         context.saveGState()
         defer { context.restoreGState() }
 
-        if let mask = item.mask { context.clip(to: CGRect(mask)) }
+        // An item with a shadow is masked in the layer it casts the shadow from.
+        let shadow = shadow(of: item.content)
+        if shadow == nil {
+            let bounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
+            try mask(context, by: item.mask, over: bounds, at: bounds)
+        }
 
         guard item.opacity < 1 else {
-            try paint(item, drawing: drawing, in: context)
+            try paint(item, drawing: drawing, casting: shadow, in: context)
             return
         }
 
         context.setAlpha(item.opacity)
         context.beginTransparencyLayer(auxiliaryInfo: nil)
         defer { context.endTransparencyLayer() }
-        try paint(item, drawing: drawing, in: context)
+        try paint(item, drawing: drawing, casting: shadow, in: context)
+    }
+
+    // Multiplies the alpha of what the context draws after it by the masks' result over `region` of output pixels,
+    // which lies at `bounds` of the context's coordinates.
+    private func mask(
+        _ context: CGContext,
+        by masks: [ItemMask],
+        over region: CGRect,
+        at bounds: CGRect
+    ) throws {
+        guard !masks.isEmpty else { return }
+
+        context.clipUpright(to: bounds, mask: try MaskDrawer().image(of: masks, over: region))
     }
 
     // The item carried by its transform and cut to its reveal, over its shadow when it casts one.
     private func paint(
         _ item: DisplayItem,
         drawing: (CGContext) throws -> Void,
+        casting shadow: DropShadow?,
         in context: CGContext
     ) throws {
-        guard let shadow = shadow(of: item.content) else {
+        guard let shadow else {
             context.concatenate(CGAffineTransform(item.transform))
             if let reveal = item.reveal { context.clip(to: CGRect(reveal)) }
             try drawing(context)
             return
         }
 
-        try paint(item, drawing: drawing, casting: shadow, in: context)
+        try paint(item, drawing: drawing, castingFromLayer: shadow, in: context)
     }
 
     private func shadow(of content: DisplayContent) -> DropShadow? {
@@ -109,14 +129,14 @@ final class FrameDrawer {
         }
     }
 
-    // The item drawn in output pixels into a layer a margin wider than the frame on every side, so a shadow cast into
-    // the frame from outside it is kept. The layer's alpha in the shadow's colour, blurred and moved, is drawn below
-    // the layer. The shadow's radius and offset are in the item's own coordinates, so the transform carries the offset
-    // and scales the radius by its area's square root.
+    // The item drawn in output pixels and masked into a layer a margin wider than the frame on every side, so a shadow
+    // cast into the frame from outside it is kept. The layer's alpha in the shadow's colour, blurred and moved, is
+    // drawn below the layer. The shadow's radius and offset are in the item's own coordinates, so the transform carries
+    // the offset and scales the radius by its area's square root.
     private func paint(
         _ item: DisplayItem,
         drawing: (CGContext) throws -> Void,
-        casting shadow: DropShadow,
+        castingFromLayer shadow: DropShadow,
         in context: CGContext
     ) throws {
         let matrix = CGAffineTransform(item.transform)
@@ -124,6 +144,9 @@ final class FrameDrawer {
         let offset = CGSize(width: shadow.offset.x, height: shadow.offset.y).applying(matrix)
         let margin = Int((3 * blur + hypot(offset.width, offset.height)).rounded(.up)) + 1
         let layer = try FrameContext(width: context.width + 2 * margin, height: context.height + 2 * margin)
+        let region = CGRect(x: 0, y: 0, width: layer.width, height: layer.height)
+            .offsetBy(dx: CGFloat(-margin), dy: CGFloat(-margin))
+        try mask(layer.context, by: item.mask, over: region, at: layer.bounds)
         layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
         layer.context.concatenate(matrix)
         if let reveal = item.reveal { layer.context.clip(to: CGRect(reveal)) }
@@ -186,8 +209,8 @@ final class FrameDrawer {
         }
     }
 
-    // The backdrop under the adjustment's rectangle in output pixels, through its filter, drawn back where it was
-    // read. The rectangle is in the item's own coordinates, the whole frame when it is nil.
+    // The whole backdrop through the adjustment's filter, drawn back over the frame in output pixels, which the item's
+    // transform, carrying only its reveal, is undone for.
     private func adjusted(
         _ adjust: AdjustItem,
         transform: Frames.AffineTransform,
@@ -195,28 +218,16 @@ final class FrameDrawer {
         seed: Int
     ) throws -> (CGContext) throws -> Void {
         let matrix = CGAffineTransform(transform)
-        let region = adjust.rectangle.map(CGRect.init) ?? frame.bounds
-        let bounds = region.applying(matrix).integral.intersection(frame.bounds)
-        guard !bounds.isNull, !bounds.isEmpty, matrix.a * matrix.d - matrix.b * matrix.c != 0 else {
-            return { _ in }
-        }
+        guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return { _ in } }
 
-        // Core Image counts rows from the bottom.
-        let extent = CGRect(
-            x: bounds.minX,
-            y: CGFloat(frame.height) - bounds.maxY,
-            width: bounds.width,
-            height: bounds.height
-        )
-        let backdrop = try frame.ciImage().cropped(to: extent)
+        let backdrop = try frame.ciImage()
         let chain = FilterChain(tables: tables)
-        let filtered = try chain.apply(adjust.filter, to: backdrop, seed: seed).cropped(to: extent)
-        let image = try FrameContext.cgImage(of: filtered, in: extent)
+        let filtered = try chain.apply(adjust.filter, to: backdrop, seed: seed).cropped(to: backdrop.extent)
+        let image = try FrameContext.cgImage(of: filtered, in: backdrop.extent)
 
         return { context in
-            context.clip(to: region)
             context.concatenate(matrix.inverted())
-            context.drawUpright(image, in: bounds)
+            context.drawUpright(image, in: frame.bounds)
         }
     }
 }

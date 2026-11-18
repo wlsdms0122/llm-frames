@@ -795,7 +795,7 @@ struct EvaluatorTests {
         let adjust = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100), filter: [.blur(radius: 3)])),
+            content: .adjust(AdjustItem(filter: [.blur(radius: 3)])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
         let picture = storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry)
@@ -823,7 +823,7 @@ struct EvaluatorTests {
         // Halfway through its entrance the wipe shows the left half of the 200 x 100 frame.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
-            content: .adjust(AdjustItem(rectangle: nil, filter: [.blur(radius: 2)])),
+            content: .adjust(AdjustItem(filter: [.blur(radius: 2)])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         ))
     }

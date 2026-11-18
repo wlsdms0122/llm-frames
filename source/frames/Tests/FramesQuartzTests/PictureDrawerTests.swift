@@ -95,7 +95,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let item = DisplayItem(mask: content, content: .picture(picture))
+        let item = DisplayItem(mask: mask(content), content: .picture(picture))
         let bitmap = try sut.frame(of: list(size: Size(width: 24, height: 24), items: [item]))
 
         // Then
@@ -188,6 +188,11 @@ struct PictureDrawerTests {
     }
 
     // MARK: - Private
+    // One sharp `add` mask of the rectangle in output pixels.
+    private func mask(_ rectangle: Rectangle) -> [ItemMask] {
+        [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
     private func list(
         size: Size,
         items: [DisplayItem]

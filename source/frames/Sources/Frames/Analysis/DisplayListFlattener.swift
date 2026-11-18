@@ -9,8 +9,8 @@
 // list is replaced by that list's background and items, carried through the picture's source rect, destination and
 // transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
 // covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
-// arrowheads, a glyphs item's box, and an adjustment's rect or its list's frame. Rounded corners and mattes are left
-// out.
+// arrowheads, a glyphs item's box, and an adjustment's list frame, each cut to the region its masks bound
+// (`ConvexPolygon(bounding:)`). Rounded corners and mattes are left out.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -52,11 +52,30 @@ struct DisplayListFlattener: Sendable {
         state: GraphicsState
     ) -> [FlattenedItem] {
         let own = state.holding(item)
-        guard case let .picture(picture) = item.content else {
-            let coverage = own.covered(shape(of: item.content, frame: frame))
-            return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+        let coverage: ItemCoverage
+        switch item.content {
+        case let .picture(picture):
+            return items(of: picture, own: own)
+
+        case let .path(path):
+            coverage = own.covered(ItemCoverage(path: path))
+
+        case let .glyphs(glyphs):
+            let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
+            coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
+
+        case .adjust:
+            // An adjustment covers its list's frame, which its own transform does not carry.
+            coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
         }
 
+        return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+    }
+
+    private func items(
+        of picture: PictureItem,
+        own: GraphicsState
+    ) -> [FlattenedItem] {
         switch picture.source {
         case let .media(media):
             // Without a source rect the picture shows the whole frame, whose size in pixels is not known here.
@@ -64,7 +83,7 @@ struct DisplayListFlattener: Sendable {
                 own.transform.inverse.map { $0.concatenating(transform(from: picture.destination, onto: rectangle)) }
             }
             let placement = MediaPlacement(frame: media, transform: transform)
-            let coverage = own.covered(shape(of: item.content, frame: frame))
+            let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
             return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage, media: placement)]
 
         case let .displayList(list):
@@ -76,27 +95,6 @@ struct DisplayListFlattener: Sendable {
                 destination: picture.destination
             )
             return items(of: list, state: nested)
-        }
-    }
-
-    // What the item's content covers in its own coordinates.
-    private func shape(
-        of content: DisplayContent,
-        frame: Rectangle
-    ) -> ItemCoverage {
-        switch content {
-        case let .picture(picture):
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)])
-
-        case let .path(path):
-            return ItemCoverage(path: path)
-
-        case let .glyphs(glyphs):
-            let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: box)])
-
-        case let .adjust(adjust):
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: adjust.rectangle ?? frame)])
         }
     }
 

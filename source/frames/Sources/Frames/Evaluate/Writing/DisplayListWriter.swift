@@ -8,7 +8,7 @@
 // Writes a display list as JSON, `"displayList"` first, set to the version of this frames, then its frame size, its
 // background and its items bottom first, in the layout and number form of a resolved document, so the same list gives
 // the same bytes. A nested list is the same shape without the version. Every `grain` carries the list's seed, the
-// number of the output frame it is drawn in.
+// number of the output frame it is drawn in. An item without masks writes its `mask` as `null`.
 package struct DisplayListWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -55,7 +55,7 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "transform", value: values.numbers(transform(item.transform))),
             JSONMember(key: "opacity", value: .number(item.opacity)),
             JSONMember(key: "blend", value: .string(item.blend)),
-            JSONMember(key: "mask", value: rectangle(item.mask)),
+            JSONMember(key: "mask", value: item.mask.isEmpty ? .null : .array(item.mask.map(mask))),
             JSONMember(key: "reveal", value: rectangle(item.reveal))
         ]
 
@@ -111,10 +111,7 @@ package struct DisplayListWriter: Sendable {
             ]
 
         case let .adjust(adjust):
-            return [
-                JSONMember(key: "rect", value: rectangle(adjust.rectangle)),
-                JSONMember(key: "filter", value: values.filter(adjust.filter, seed: seed))
-            ]
+            return [JSONMember(key: "filter", value: values.filter(adjust.filter, seed: seed))]
         }
     }
 
@@ -171,6 +168,17 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "trim", value: values.numbers([path.trim.start, path.trim.end])),
             JSONMember(key: "shadow", value: shadow(path.shadow))
         ]
+    }
+
+    // `geometry` in the form a path item writes it.
+    private func mask(_ mask: ItemMask) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "geometry", value: geometry(mask.geometry)),
+            JSONMember(key: "transform", value: values.numbers(transform(mask.transform))),
+            JSONMember(key: "feather", value: .number(mask.feather)),
+            JSONMember(key: "invert", value: .bool(mask.isInverted)),
+            JSONMember(key: "mode", value: .string(mask.mode.rawValue))
+        ]))
     }
 
     // One member named by its form.

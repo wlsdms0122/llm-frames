@@ -50,13 +50,13 @@ struct EvaluationReporterTests {
     func cutsBoundsByMasks() {
         // Given
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 100, height: 100), color: red)
-        let masked = DisplayItem(mask: Rectangle(x: 50, y: 20, width: 100, height: 100), content: .path(fill))
+        let masked = DisplayItem(mask: mask(Rectangle(x: 50, y: 20, width: 100, height: 100)), content: .path(fill))
         let revealed = DisplayItem(
             transform: AffineTransform(translation: Point(x: 150, y: 0)),
             reveal: Rectangle(x: 0, y: 0, width: 25, height: 100),
             content: .path(fill)
         )
-        let hidden = DisplayItem(mask: Rectangle(x: 300, y: 0, width: 10, height: 10), content: .path(fill))
+        let hidden = DisplayItem(mask: mask(Rectangle(x: 300, y: 0, width: 10, height: 10)), content: .path(fill))
 
         // When
         let report = sut.report(of: list([masked, revealed, hidden]), at: 0)
@@ -75,7 +75,7 @@ struct EvaluationReporterTests {
         // A 20 x 20 square turned 45 degrees about its centre (50, 50) is a diamond reaching 50 ± 14.14 on each axis.
         let diamond = DisplayItem(
             transform: AffineTransform(rotation: 45, about: Point(x: 50, y: 50)),
-            mask: Rectangle(x: 0, y: 0, width: 50, height: 50),
+            mask: mask(Rectangle(x: 0, y: 0, width: 50, height: 50)),
             content: .path(PathItem(filling: Rectangle(x: 40, y: 40, width: 20, height: 20), color: red))
         )
 
@@ -288,6 +288,11 @@ struct EvaluationReporterTests {
     }
 
     // MARK: - Private
+    // One sharp `add` mask of the rectangle in output pixels.
+    private func mask(_ rectangle: Rectangle) -> [ItemMask] {
+        [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
     private func list(
         _ items: [DisplayItem],
         background: Color? = nil

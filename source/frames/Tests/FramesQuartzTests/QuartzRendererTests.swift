@@ -57,7 +57,7 @@ struct QuartzRendererTests {
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FF0000"))
         let item = DisplayItem(
             transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0),
-            mask: Rectangle(x: 0, y: 0, width: 5, height: 20),
+            mask: mask(Rectangle(x: 0, y: 0, width: 5, height: 20)),
             content: .path(fill)
         )
         let list = list(size: 20, items: [item])
@@ -118,14 +118,15 @@ struct QuartzRendererTests {
         expect(bitmap.pixel(x: 45, y: 30), equals: [1, 1, 1, 1])
     }
 
-    @Test("an adjustment draws the backdrop under its rectangle through its filter, at its opacity")
+    @Test("an adjustment draws the backdrop inside its mask through its filter, at its opacity")
     func adjustsBackdrop() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 16, height: 16), color: Color(written: "#3399CC"))
         let adjust = DisplayItem(
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 2, y: 2, width: 8, height: 8), filter: [.saturation(amount: 0)]))
+            mask: mask(Rectangle(x: 2, y: 2, width: 8, height: 8)),
+            content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))
         )
 
         // When
@@ -194,7 +195,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(rectangle: nil, filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
         let nested = list(size: 1, items: [DisplayItem(content: .adjust(adjust))])
         let picture = PictureItem(
             source: .displayList(nested),
@@ -229,7 +230,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(rectangle: nil, filter: [.lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [.lut(file: file, amount: 1)])
         let list = list(size: 4, items: [DisplayItem(content: .adjust(adjust))])
         try sut.check(list)
         try FileManager.default.removeItem(atPath: path)
@@ -242,6 +243,11 @@ struct QuartzRendererTests {
     }
 
     // MARK: - Private
+    // One sharp `add` mask of the rectangle in output pixels.
+    private func mask(_ rectangle: Rectangle) -> [ItemMask] {
+        [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
     private func list(
         size: Double,
         items: [DisplayItem]

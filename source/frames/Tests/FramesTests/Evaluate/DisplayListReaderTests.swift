@@ -30,6 +30,30 @@ struct DisplayListReaderTests {
     )
     private static let origin = ItemOrigin(place: "storyline[1]#intro", id: "intro", kind: "video")
     private static let rotation = AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 1080, ty: 0)
+    // One mask of each geometry form and mode, feathered, inverted and carried by a transform.
+    private static let masks = [
+        ItemMask(
+            geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1500), radius: 24),
+            transform: rotation,
+            feather: 0,
+            isInverted: false,
+            mode: .add
+        ),
+        ItemMask(
+            geometry: .ellipse(Rectangle(x: 100, y: 200, width: 300, height: 150)),
+            transform: AffineTransform(a: 1.5, b: 0, c: 0, d: 1.5, tx: -20, ty: 40.5),
+            feather: 12.5,
+            isInverted: true,
+            mode: .subtract
+        ),
+        ItemMask(
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 540, y: 0), Point(x: 270, y: 960)], isClosed: false),
+            transform: .identity,
+            feather: 3,
+            isInverted: false,
+            mode: .intersect
+        )
+    ]
 
     // Items that between them hold every kind and every optional member, set and null.
     private static let items: [DisplayItem] = [
@@ -37,7 +61,7 @@ struct DisplayListReaderTests {
             transform: rotation,
             opacity: 0.5,
             blend: "multiply",
-            mask: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
+            mask: masks,
             reveal: Rectangle(x: 0, y: 0, width: 540, height: 1920),
             content: .picture(PictureItem(
                 source: .media(MediaFrame(media: video, index: 2)),
@@ -109,8 +133,7 @@ struct DisplayListReaderTests {
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
         DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], stroke: nil, background: nil))),
-        DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.saturation(amount: 0)]))),
-        DisplayItem(content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), filter: []))),
+        DisplayItem(content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))),
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
             fill: Color(written: "#3366CC"),
@@ -159,7 +182,7 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 7,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: filter))),
+                DisplayItem(content: .adjust(AdjustItem(filter: filter))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .media(MediaFrame(media: Self.still, index: 0)),
                     rectangle: nil,
@@ -196,7 +219,7 @@ struct DisplayListReaderTests {
         let inner = list(
             size: Size(width: 400, height: 300),
             seed: 12,
-            items: [DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
         )
         let nested = list(
             size: Size(width: 1080, height: 1500),
@@ -216,7 +239,7 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 12,
             items: [DisplayItem(
-                mask: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
+                mask: [Self.masks[0]],
                 content: .picture(PictureItem(
                     source: .displayList(nested),
                     rectangle: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
@@ -258,17 +281,77 @@ struct DisplayListReaderTests {
         #expect(item?["origin"] == .null)
     }
 
+    @Test("an item without masks writes its mask as null, and each mask holds its geometry in the path's form")
+    func writesMaskMembers() throws {
+        // Given
+        let list = list(items: [Self.items[0], Self.items[1]])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue
+        let masks = items?.first?.objectValue?["mask"]?.arrayValue
+
+        // Then
+        #expect(items?.last?.objectValue?["mask"] == .null)
+        #expect(masks?.count == 3)
+        #expect(masks?.first?.objectValue?.keys == ["geometry", "transform", "feather", "invert", "mode"])
+        #expect(masks?.first == (try Fixture.json(#"""
+            { "geometry": { "rect": { "rect": [0, 0, 1080, 1500], "radius": 24 } }, "transform": [0, 1, -1, 0, 1080, 0],
+              "feather": 0, "invert": false, "mode": "add" }
+            """#)))
+    }
+
+    @Test(
+        "a mask list that is empty, or a mask with a missing key, a negative feather or an unknown mode stops",
+        arguments: [
+            ("[]", "items[0].mask (path): a mask list holds at least one mask, and an item without one has null"),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
+                #"items[0].mask[0] (path): missing key "mode""#
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": -2, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].feather (path): a feather is 0 or more, found -2"
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "multiply" }]"#,
+                #"items[0].mask[0].mode (path): unknown value "multiply". Allowed: add, subtract, intersect"#
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add", "expansion": 2 }]"#,
+                #"items[0].mask[0] (path): unknown key "expansion". Allowed: geometry, transform, feather, invert, mode"#
+            )
+        ]
+    )
+    func refusesUnreadableMask(
+        written: String,
+        message: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": \#(written), "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
+                "fill": "#FFFFFFFF", "stroke": null, "trim": [0, 1], "shadow": null } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     @Test("a grain with a seed other than the first grain's stops, naming its place")
     func refusesDifferentSeed() throws {
         // Given
         let inner = list(
             seed: 4,
-            items: [DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
         )
         let list = list(
             seed: 3,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)]))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .displayList(inner),
                     rectangle: nil,

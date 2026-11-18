@@ -144,8 +144,8 @@ struct ClipEvaluator: Sendable {
         return ItemPresentation(box: box.size, anchor: box.anchor, values: values, motion: sample.animation.motion)
     }
 
-    // An adjustment over its area, or over the whole list's frame without one. Its opacity blends the filtered result
-    // with what is below.
+    // An adjustment over the whole list's frame, its reveal wiping across its area, or across the frame without one.
+    // Its opacity blends the filtered result with what is below.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: [ResolvedFilterOperation],
@@ -160,7 +160,7 @@ struct ClipEvaluator: Sendable {
             transform: presentation.transform,
             opacity: presentation.opacity,
             reveal: sample.animation.reveal.rectangle(wiping: area ?? space.frame, from: sample.animation.revealFrom),
-            content: .adjust(AdjustItem(rectangle: area, filter: filter))
+            content: .adjust(AdjustItem(filter: filter))
         )
     }
 

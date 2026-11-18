@@ -105,21 +105,13 @@ package struct DisplayListReader: Sendable {
         let name = try values.member("item", of: value, kind: "display item")
             .name(among: Self.itemNames) { Self.itemNames.contains($0) ? $0 : nil }
         let item = try value.object(kind: name, keys: Self.itemKeys + keys(of: name))
-        let transform = try item.member("transform").numbers(count: 6)
         let blends = VocabularyTable.blendModes
 
         return DisplayItem(
-            transform: AffineTransform(
-                a: transform[0],
-                b: transform[1],
-                c: transform[2],
-                d: transform[3],
-                tx: transform[4],
-                ty: transform[5]
-            ),
+            transform: try transform(item.member("transform")),
             opacity: try item.member("opacity").number(),
             blend: try item.member("blend").name(among: blends) { blends.contains($0) ? $0 : nil },
-            mask: try item.member("mask").optional(values.rectangle),
+            mask: try item.member("mask").optional(masks) ?? [],
             reveal: try item.member("reveal").optional(values.rectangle),
             content: try content(of: item, name: name, seed: seed),
             origin: try item.member("origin").optional(origin)
@@ -138,8 +130,56 @@ package struct DisplayListReader: Sendable {
             ["size", "runs", "stroke", "background"]
 
         default:
-            ["rect", "filter"]
+            ["filter"]
         }
+    }
+
+    private func transform(_ value: PlacedJSONValue) throws -> AffineTransform {
+        let transform = try value.numbers(count: 6)
+
+        return AffineTransform(
+            a: transform[0],
+            b: transform[1],
+            c: transform[2],
+            d: transform[3],
+            tx: transform[4],
+            ty: transform[5]
+        )
+    }
+
+    // An item without masks writes `null`, so a list holds at least one.
+    private func masks(_ value: PlacedJSONValue) throws -> [ItemMask] {
+        let elements = try value.elements()
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a mask list holds at least one mask, and an item without one has null"
+            )
+        }
+
+        return try elements.map(mask)
+    }
+
+    private func mask(_ value: PlacedJSONValue) throws -> ItemMask {
+        let mask = try value.object(keys: ["geometry", "transform", "feather", "invert", "mode"])
+        let written = try mask.member("feather")
+        let feather = try written.number()
+        guard feather >= 0 else {
+            throw ModelError.invalidValue(
+                place: written.place,
+                kind: written.kind,
+                reason: "a feather is 0 or more, found \(written.value.written)"
+            )
+        }
+
+        return ItemMask(
+            geometry: try geometry(mask.member("geometry")),
+            transform: try transform(mask.member("transform")),
+            feather: feather,
+            isInverted: try mask.member("invert").bool(),
+            mode: try literal(mask.member("mode"))
+        )
     }
 
     private func origin(_ value: PlacedJSONValue) throws -> ItemOrigin {
@@ -168,10 +208,7 @@ package struct DisplayListReader: Sendable {
             return .glyphs(try glyphs(item))
 
         default:
-            return .adjust(AdjustItem(
-                rectangle: try item.member("rect").optional(values.rectangle),
-                filter: try filter(item.member("filter"), seed: seed)
-            ))
+            return .adjust(AdjustItem(filter: try filter(item.member("filter"), seed: seed)))
         }
     }
 
@@ -289,7 +326,7 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // A name among the literals a stroke key takes.
+    // A name among the literals a stroke or mask key takes.
     private func literal<Literal: CaseIterable & RawRepresentable>(
         _ value: PlacedJSONValue
     ) throws -> Literal where Literal.RawValue == String {

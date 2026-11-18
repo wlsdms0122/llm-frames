@@ -6,15 +6,16 @@
 //
 
 // One drawing step of a display list. `transform` carries the item's own coordinates into output pixels, `blend` is
-// its blend mode by name, `mask` a rectangle in output pixels it is cut to, and `reveal` a rectangle in its own
-// coordinates, before the transform, outside which nothing of it shows, so a wipe turns with the item. `origin` is the
-// clip that drew it, nil for a transition cover, which no clip draws. A role draws without it.
+// its blend mode by name, `mask` the masks its alpha is multiplied by after its transform, combined in list order and
+// empty where it has none, and `reveal` a rectangle in its own coordinates, before the transform, outside which nothing
+// of it shows, so a wipe turns with the item. `origin` is the clip that drew it, nil for a transition cover, which no
+// clip draws. A role draws without it.
 package struct DisplayItem: Equatable, Sendable {
     // MARK: - Property
     package let transform: AffineTransform
     package let opacity: Double
     package let blend: String
-    package let mask: Rectangle?
+    package let mask: [ItemMask]
     package let reveal: Rectangle?
     package let content: DisplayContent
     package let origin: ItemOrigin?
@@ -24,7 +25,7 @@ package struct DisplayItem: Equatable, Sendable {
         transform: AffineTransform = .identity,
         opacity: Double = 1,
         blend: String = "normal",
-        mask: Rectangle? = nil,
+        mask: [ItemMask] = [],
         reveal: Rectangle? = nil,
         content: DisplayContent,
         origin: ItemOrigin? = nil
