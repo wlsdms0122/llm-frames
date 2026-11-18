@@ -247,10 +247,20 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "end", value: .number(sound.end)),
             JSONMember(key: "audible", value: values.range(sound.audible)),
             JSONMember(key: "volume", value: values.numbers(sound.volume)),
+            JSONMember(key: "pan", value: values.numbers(sound.pan)),
             JSONMember(key: "fadeIn", value: values.range(sound.fadeIn)),
             JSONMember(key: "fadeOut", value: values.range(sound.fadeOut)),
-            JSONMember(key: "incoming", value: values.range(sound.incoming)),
-            JSONMember(key: "outgoing", value: values.range(sound.outgoing))
+            JSONMember(key: "incoming", value: sound.incoming.map(crossfade) ?? .null),
+            JSONMember(key: "outgoing", value: sound.outgoing.map(crossfade) ?? .null)
+        ]))
+    }
+
+    // A transition as the sound it crossfades hears it, by its range and its curve, the storyline entry's `audio`.
+    private func crossfade(_ crossfade: Crossfade) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "start", value: .number(crossfade.range.start)),
+            JSONMember(key: "end", value: .number(crossfade.range.end)),
+            JSONMember(key: "audio", value: .string(crossfade.curve.rawValue))
         ]))
     }
 
@@ -321,6 +331,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "start", value: .number(transition.start)),
             JSONMember(key: "end", value: .number(transition.end)),
             JSONMember(key: "over", value: .string(transition.over.rawValue)),
+            JSONMember(key: "audio", value: .string(transition.audio.rawValue)),
             JSONMember(key: "incoming", value: transition.incoming.map(span) ?? .null),
             JSONMember(key: "outgoing", value: transition.outgoing.map(span) ?? .null),
             JSONMember(key: "cover", value: cover ?? .null),

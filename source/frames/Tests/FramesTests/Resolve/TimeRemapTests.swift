@@ -51,7 +51,7 @@ struct TimeRemapTests {
 
     @Test(
         "a remapped clip plays no sound, so what shapes its sound stops",
-        arguments: [#""volume": 0.5"#, #""fadeIn": 1"#, #""fadeOut": 1"#]
+        arguments: [#""volume": 0.5"#, #""pan": -0.5"#, #""fadeIn": 1"#, #""fadeOut": 1"#]
     )
     func refusesSound(key: String) throws {
         // Given

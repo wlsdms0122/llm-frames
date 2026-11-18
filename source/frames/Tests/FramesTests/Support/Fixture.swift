@@ -96,7 +96,8 @@ enum Fixture {
             "frames/flash": transition(seconds: 0.5),
             "frames/push-up": transition(seconds: 0.5),
             "frames/wipe-right": transition(seconds: 1),
-            "mine/long": transition(seconds: 4)
+            "mine/long": transition(seconds: 4),
+            "mine/same-take": transition(seconds: 1, audio: .constantGain)
         ],
         animations: [
             "frames/pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
@@ -156,8 +157,20 @@ enum Fixture {
         return directory
     }()
 
-    private static func transition(seconds: Double) -> TransitionPreset {
-        TransitionPreset(description: "", seconds: seconds, over: .incoming, incoming: nil, outgoing: nil, cover: nil, matte: nil)
+    private static func transition(
+        seconds: Double,
+        audio: CrossfadeCurve = .constantPower
+    ) -> TransitionPreset {
+        TransitionPreset(
+            description: "",
+            seconds: seconds,
+            over: .incoming,
+            audio: audio,
+            incoming: nil,
+            outgoing: nil,
+            cover: nil,
+            matte: nil
+        )
     }
 
     private static func span(_ length: Double) -> AnimationSpan {

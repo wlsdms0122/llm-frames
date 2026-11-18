@@ -296,12 +296,12 @@ Keys: `kind, theme, params, banner, columns, border, items`, and an item takes `
 | --- | --- |
 | sequence | `kind, format, theme, params, storyline, clips` |
 | format | `size, fps, background, inset, conform` |
-| storyline clip, video or compound | `id, metadata, media, in, out, speed, track, crop, filter, transition, volume, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, video or compound | `id, metadata, media, in, out, speed, track, crop, filter, transition, volume, pan, fadeIn, fadeOut, keyframes, connected` |
 | storyline clip, still | `id, metadata, media, duration, crop, filter, transition, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
 | every other clip | `id, metadata, at, lane, opacity, animation, keyframes`, and its kind's keys |
-| media clip | `media, in, out, speed, loop, volume, fadeIn, fadeOut, track, anchor, placement, position, parent, scale, rotation, crop, conform, filter, blend, width, height, radius, border, shadow` (a still takes no time or sound keys) |
-| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, fadeIn, fadeOut, keyframes` |
+| media clip | `media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, track, anchor, placement, position, parent, scale, rotation, crop, conform, filter, blend, width, height, radius, border, shadow` (a still takes no time or sound keys) |
+| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
 | title clip | `title, style, width, track, anchor, placement, position, parent, scale, rotation, blend` |
 | shape clip | `shape, area, track, label, labelAnimation, color, blend`, and `side` for an arrow |
 | adjustment clip | `adjust, area, track` |
@@ -311,8 +311,9 @@ The full table is [FRAMES-7](spec/FRAMES-7/SPEC.md). What each key does: format 
 
 | Clip | Keyframable |
 | --- | --- |
-| storyline clip | `crop`, `volume`, and `timeRemap` on video, image sequence or compound media |
-| media clip | `position, scale, rotation, opacity, crop, volume`, and `timeRemap` on timed media |
+| storyline clip | `crop`, `volume`, `pan`, and `timeRemap` on video, image sequence or compound media |
+| media clip | `position, scale, rotation, opacity, crop, volume, pan`, and `timeRemap` on timed media |
+| audio clip | `volume, pan` |
 | title clip | `position, scale, rotation, opacity` |
 | shape or adjustment clip | `area, opacity` |
 

@@ -187,6 +187,7 @@ struct SequenceReader: Sendable {
             loop: clip["loop"]?.boolValue,
             timeRemap: property("timeRemap", of: clip, read: \.numberValue),
             volume: property("volume", of: clip, read: \.numberValue),
+            pan: property("pan", of: clip, read: \.numberValue),
             fadeIn: clip["fadeIn"]?.numberValue,
             fadeOut: clip["fadeOut"]?.numberValue
         )

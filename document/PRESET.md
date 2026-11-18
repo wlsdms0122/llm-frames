@@ -77,6 +77,7 @@ A transition plays across the edit point between two storyline clips. It moves t
 | `seconds` | the default length, required. A document can write `{ "preset": "mine/drop-in", "seconds": 0.6 }` instead |
 | `ease` | the default ease of every span in the preset |
 | `over` | which clip is on top: `incoming` (default) or `outgoing`. An uncover moves the outgoing clip off with `outgoing` on top |
+| `audio` | the curve of the sound crossfade: `constant-power` (default), for two different sounds, or `constant-gain`, for a cut inside one take. It runs at an even pace, and `ease` does not bend it |
 | `incoming`, `outgoing` | spans of the two clips. A picture reads opacity, scale, x, y, rotation and reveal, all about the centre of the content rect |
 | `cover` | `{color, keys}` or `{media, keys}` over both clips: a dip to a colour, or a stinger. Its keys take only `t` and `opacity` |
 | `matte` | `{media, softness, invert}`: a luma wipe from a greyscale image or video |

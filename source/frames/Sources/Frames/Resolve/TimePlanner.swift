@@ -156,6 +156,7 @@ struct TimePlanner: Sendable {
 
         let sound: [(key: String, isWritten: Bool)] = [
             ("volume", clipMedia.volume != nil),
+            ("pan", clipMedia.pan != nil),
             ("fadeIn", clipMedia.fadeIn != nil),
             ("fadeOut", clipMedia.fadeOut != nil)
         ]

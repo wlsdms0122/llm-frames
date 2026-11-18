@@ -99,6 +99,7 @@ struct PresetValueResolverTests {
             description: "",
             seconds: 1,
             over: .incoming,
+            audio: .constantPower,
             incoming: nil,
             outgoing: nil,
             cover: Cover(source: .color("shadow"), span: Span(ease: .linear, keys: [])),

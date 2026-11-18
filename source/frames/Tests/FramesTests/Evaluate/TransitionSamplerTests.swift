@@ -203,6 +203,7 @@ struct TransitionSamplerTests {
             start: start,
             end: end,
             over: .incoming,
+            audio: .constantPower,
             incoming: incoming,
             outgoing: outgoing,
             cover: nil,

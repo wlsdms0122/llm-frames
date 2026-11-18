@@ -38,6 +38,7 @@ struct SoundPlanTests {
                 range: TimeRange(start: 0, end: 6),
                 audible: TimeRange(start: 0, end: 6),
                 volume: .value(1),
+                pan: .value(0),
                 fadeIn: nil,
                 fadeOut: nil,
                 incoming: nil,
@@ -94,6 +95,26 @@ struct SoundPlanTests {
             TimedValue(index: 0, at: 4, value: 0, ease: .linear),
             TimedValue(index: 1, at: 4.5, value: 1, ease: .linear)
         ]))
+    }
+
+    @Test("pan keyframes move into sequence time as volume keyframes do, and a clip that writes no pan is centred")
+    func movesPanKeyframes() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [
+                { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+                  "keyframes": [ { "at": 4, "pan": -1, "ease": "ease-in" }, { "at": 6, "pan": 0.5 } ],
+                  "connected": [ { "media": "/abs/bgm.m4a", "at": 3, "pan": 0.25 } ] } ],
+              "clips": [ { "media": "/abs/bgm.m4a" } ] }
+            """#)
+
+        // Then
+        #expect(plan.sound[0].pan == .keyframes([
+            TimedValue(index: 0, at: 1, value: -1, ease: .easeIn),
+            TimedValue(index: 1, at: 2, value: 0.5, ease: .linear)
+        ]))
+        #expect(plan.sound[1].pan == .value(0.25))
+        #expect(plan.sound[2].pan == .value(0))
     }
 
     @Test("a static volume is kept")
@@ -155,7 +176,7 @@ struct SoundPlanTests {
         #expect(plan.sound[1].audible == TimeRange(start: 0, end: audibleEnd))
     }
 
-    @Test("both clips of a transition with handles play across it and keep its range to crossfade over")
+    @Test("both clips of a transition with handles play across it and keep its range and curve to crossfade over")
     func plansCrossfade() throws {
         // When
         let plan = try plan(#"""
@@ -165,7 +186,7 @@ struct SoundPlanTests {
             """#)
 
         // Then
-        let transition = TimeRange(start: 3.5, end: 4.5)
+        let transition = Crossfade(range: TimeRange(start: 3.5, end: 4.5), curve: .constantPower)
         #expect(plan.sound[0].range == TimeRange(start: 0, end: 4.5))
         #expect(plan.sound[0].audible == TimeRange(start: 0, end: 4.5))
         #expect(plan.sound[0].incoming == nil)
@@ -174,6 +195,21 @@ struct SoundPlanTests {
         #expect(plan.sound[1].audible == TimeRange(start: 3.5, end: 8))
         #expect(plan.sound[1].incoming == transition)
         #expect(plan.sound[1].outgoing == nil)
+    }
+
+    @Test("a transition whose preset crossfades at constant gain gives both its sounds that curve")
+    func plansConstantGainCrossfade() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [
+                { "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
+            """#)
+
+        // Then
+        let transition = Crossfade(range: TimeRange(start: 3.5, end: 4.5), curve: .constantGain)
+        #expect(plan.sound[0].outgoing == transition)
+        #expect(plan.sound[1].incoming == transition)
     }
 
     @Test("where a handle runs out of media its sound is silent")

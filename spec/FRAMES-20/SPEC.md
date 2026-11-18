@@ -115,6 +115,7 @@ The mix plan is the sound of a whole sequence: a list of segments, each with a m
 
 - The gain envelope is a list of points `[t, gain]` joined in straight lines. It already holds volume keyframes and their eases, fades, and transition crossfades on the transition's `audio` curve ([FRAMES-13](../FRAMES-13/SPEC.md)): with u the progress through the transition, `constant-power` gives the outgoing sound cos(uπ/2) and the incoming sin(uπ/2), and `constant-gain` gives them 1 - u and u. Eased keyframes and the crossfade curve are sampled at the frame rate.
 - The pan envelope is a list of points `[t, pan]` joined in straight lines, from -1 (left) to 1 (right), the pan keyframes and their eases sampled at the frame rate. The mixer pans by the pan law of [FRAMES-13](../FRAMES-13/SPEC.md).
+- An envelope has a point at both ends of its segment, at every keyframe and every end of a fade or transition, and at every frame time k / fps inside a span where its value moves: between two keyframes of different values, or over a fade or transition. A value that holds has no points between its bends.
 - The mixer mixes each segment's channels into the output's as its role decides ([FRAMES-21](../FRAMES-21/SPEC.md)). A loop is one segment per repeat, and a compound clip's sounds are segments of their own. A clip with `timeRemap` has no segment.
 - In the JSON form a segment is `{media, mediaStart, speed, start, end, envelope, pan}`, `media` the pinned media, each envelope point `[t, gain]` and each pan point `[t, pan]`.
 

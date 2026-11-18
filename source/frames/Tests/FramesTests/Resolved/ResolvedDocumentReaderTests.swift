@@ -15,13 +15,15 @@ struct ResolvedDocumentReaderTests {
     private let sut = ResolvedDocumentReader()
     private let writer = ResolvedDocumentWriter()
 
-    // A transition with spans, a video cover and a still matte, and a filter with a LUT.
+    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, and a filter with a
+    // LUT.
     private static let presets = PresetTable(
         transitions: Fixture.presets.transitions.merging([
             "reveal": TransitionPreset(
                 description: "",
                 seconds: 1,
                 over: .incoming,
+                audio: .constantPower,
                 incoming: Span(ease: .easeOut, keys: [SpanKey(t: 0, values: [.scale: 1.2, .opacity: 0]), SpanKey(t: 1, values: [:])]),
                 outgoing: nil,
                 cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .linear, keys: [])),
@@ -31,6 +33,7 @@ struct ResolvedDocumentReaderTests {
                 description: "",
                 seconds: 1,
                 over: .outgoing,
+                audio: .constantGain,
                 incoming: nil,
                 outgoing: Span(ease: .linear, revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
                 cover: Cover(source: .color("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
@@ -57,7 +60,8 @@ struct ResolvedDocumentReaderTests {
           "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
-                       "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
+                       "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
+                                      { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
         """#,
         // A solid, an image sequence, a nested sequence, transitions with a cover and a matte, and a LUT.
         #"""
@@ -200,7 +204,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""loop": true,"#,
                 #""loop": true, "scale": [],"#,
-                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, fadeIn, fadeOut, incoming, outgoing"#
+                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing"#
             )
         ]
     )
@@ -217,6 +221,24 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("an `audio` curve that is not a crossfade curve stops, on a storyline transition and on a sound's crossfade")
+    func refusesUnknownCrossfadeCurve() throws {
+        // Given
+        let text = try written(Self.documents[1])
+        let curve = #""audio": "constant-gain""#
+        let transition = replacingFirst(curve, with: #""audio": "linear""#, in: text)
+        let last = try #require(text.range(of: curve, options: .backwards))
+        let crossfade = text.replacingCharacters(in: last, with: #""audio": "linear""#)
+
+        // When
+        let transitionError = #expect(throws: ModelError.self) { try sut.read(transition) }
+        let crossfadeError = #expect(throws: ModelError.self) { try sut.read(crossfade) }
+
+        // Then
+        #expect(transitionError?.description == #"storyline[2].transition.audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#)
+        #expect(crossfadeError?.description == #"audio[0].incoming.audio (crossfade): unknown value "linear". Allowed: constant-power, constant-gain"#)
     }
 
     @Test("scale, rotation and blend are read for anything drawn, and not for an adjustment")

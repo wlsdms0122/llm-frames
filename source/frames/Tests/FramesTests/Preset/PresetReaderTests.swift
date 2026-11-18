@@ -87,7 +87,7 @@ struct PresetReaderTests {
         // Given
         let value = try Fixture.json(##"""
             { "description": "pushes up",
-              "seconds": 0.45, "ease": "ease-in-out", "over": "incoming",
+              "seconds": 0.45, "ease": "ease-in-out", "over": "incoming", "audio": "constant-gain",
               "incoming": { "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
               "outgoing": { "ease": "linear", "keys": [ { "t": 0, "y": 0 }, { "t": 1, "y": -1 } ] },
               "cover":    { "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
@@ -99,6 +99,7 @@ struct PresetReaderTests {
         // Then
         #expect(preset.seconds == 0.45)
         #expect(preset.over == .incoming)
+        #expect(preset.audio == .constantGain)
         #expect(preset.incoming?.ease == .easeInOut)
         #expect(preset.outgoing?.ease == .linear)
         #expect(preset.cover?.source == .color("#FFFFFF"))
@@ -107,7 +108,7 @@ struct PresetReaderTests {
         #expect(preset.matte == nil)
     }
 
-    @Test("a matte transition reads its media, softness and invert")
+    @Test("a matte transition reads its media, softness and invert, and without `audio` crossfades at constant power")
     func readsMatte() throws {
         // Given
         let value = try Fixture.json(#"{ "description": "luma wipe", "seconds": 1, "matte": { "media": "pack/gradient.png", "softness": 0.1, "invert": true } }"#)
@@ -117,6 +118,7 @@ struct PresetReaderTests {
 
         // Then
         #expect(preset.over == .incoming)
+        #expect(preset.audio == .constantPower)
         #expect(preset.matte == Matte(media: "pack/gradient.png", softness: 0.1, isInverted: true, ease: .linear))
     }
 
@@ -131,7 +133,9 @@ struct PresetReaderTests {
             (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (cover): takes only one of "color", "media""#),
             (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "keys": [ { "t": 0, "scale": 2 } ] } }"##, #"cover.keys[0] (cover key): unknown key "scale". Allowed: t, opacity"#),
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
-            (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#)
+            (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
+            (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
+            (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, #"audio (transition): parameter "curve" is not declared in params"#)
         ]
     )
     func refusesBrokenTransition(
