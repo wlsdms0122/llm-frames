@@ -209,6 +209,28 @@ struct EvaluationReporterTests {
         ])
     }
 
+    @Test("a clip used as a track matte reports no item, and the clip it cuts is bounded as without it, and so located")
+    func leavesTrackMatteOut() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
+              "clips": [
+                { "id": "m", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 4] },
+                { "id": "a", "shape": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400], "at": [0, 4],
+                  "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1.5)
+        let hits = try LocationReporter().report(of: document, at: 1.5, point: Point(x: 25, y: 25)).hits
+
+        // Then
+        #expect(report.items.compactMap { $0.origin?.id } == ["a"])
+        #expect(report.items.last?.bounds == Rectangle(x: 100, y: 200, width: 300, height: 400))
+        #expect(hits.allSatisfy { $0.origin?.id != "m" })
+    }
+
     @Test("a sequence stops on a time outside [0, duration) as still does", arguments: [-0.5, 4])
     func stopsOnTimeOutsideSequence(time: Double) throws {
         // Given

@@ -94,6 +94,23 @@ struct ContentFitTests {
         #expect(plan.format.size == Size(width: (right / 2).rounded(.up) * 2, height: 800))
     }
 
+    @Test("a clip used as a track matte is not drawn, so it is not measured")
+    func skipsTrackMatte() throws {
+        // Given
+        let matte = #"{ "id": "m", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] }"#
+        let rect = ##"{ "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
+        let storyline = #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": "#
+
+        // When
+        let matted = try plan(storyline + #"[ \#(matte), \#(rect), "trackMatte": { "clip": "m", "mode": "alpha" } } ] }"#)
+        let alone = try plan(storyline + #"[ \#(rect) } ] }"#)
+        let drawn = try plan(storyline + #"[ \#(matte), \#(rect) } ] }"#)
+
+        // Then
+        #expect(matted.format.size == alone.format.size)
+        #expect(drawn.format.size.width > alone.format.size.width)
+    }
+
     @Test("a parented child is measured through its parent's geometry, and stays where it is in its parent's space")
     func measuresParentedChild() throws {
         // When

@@ -11,8 +11,8 @@ import Foundation
 // space onto the measured frame. Each clip's extent is its geometry at sequence time 0 without animation or transition
 // motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's text
 // box, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills the frame and an adjustment
-// applies to it, so neither is measured. The union is rounded outward to whole pixels, the margin is added, and each
-// side is rounded up to an even number.
+// applies to it, so neither is measured, and nor is a clip used as a track matte, which is not drawn. The union is
+// rounded outward to whole pixels, the margin is added, and each side is rounded up to an even number.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -128,7 +128,7 @@ struct ContentFitPlanner: Sendable {
             let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
             return bounds(of: box, by: entry.presentation(at: 0).transform)
         }
-        let clips = sequence.clips.compactMap { clip in
+        let clips = sequence.clips.filter { !sequence.isMatte($0) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: 0))
         }
 

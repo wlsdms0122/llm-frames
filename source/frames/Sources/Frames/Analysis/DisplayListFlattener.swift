@@ -10,7 +10,8 @@
 // transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
 // covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
 // arrowheads, a glyphs item's box, and an adjustment's list frame, each cut to the region its masks bound
-// (`ConvexPolygon(bounding:)`). Rounded corners and mattes are left out.
+// (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
+// source is not drawn as items of the list, and does not cut what its item covers (FRAMES-23).
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.

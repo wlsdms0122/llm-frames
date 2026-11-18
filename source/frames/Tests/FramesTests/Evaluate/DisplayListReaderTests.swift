@@ -255,6 +255,63 @@ struct DisplayListReaderTests {
         #expect(read == list)
     }
 
+    @Test("a track matte reads back with its source the size of the list holding its item, from a grain only inside it")
+    func readsTrackMatte() throws {
+        // Given
+        let source = list(
+            seed: 7,
+            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+        )
+        let list = list(
+            seed: 7,
+            items: [
+                DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .luma, isInverted: true), content: Self.items[2].content),
+                DisplayItem(trackMatte: ItemTrackMatte(source: list(seed: 7, items: []), mode: .alpha, isInverted: false), content: Self.items[2].content)
+            ]
+        )
+
+        // When
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(read == list)
+    }
+
+    @Test("a track matte is written as {source: {list}, mode, invert} after the mask, and an item without one as null")
+    func writesTrackMatteMembers() throws {
+        // Given
+        let source = list(items: [])
+        let list = list(items: [
+            DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content),
+            Self.items[2]
+        ])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue)
+
+        // Then
+        #expect(items?.first?.keys.prefix(8) == ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
+        #expect(items?.first?["trackMatte"] == (try Fixture.json(#"""
+            { "source": { "list": { "size": [1080, 1920], "background": "#000000FF", "items": [] } }, "mode": "alpha", "invert": false }
+            """#)))
+        #expect(items?.last?["trackMatte"] == .null)
+    }
+
+    @Test("a track matte's source of another size than the list holding its item stops, naming both sizes")
+    func refusesTrackMatteSize() throws {
+        // Given
+        let source = list(size: Size(width: 540, height: 960), items: [])
+        let list = list(items: [
+            DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content)
+        ])
+
+        // When
+        let error = #expect(throws: EvaluateError.self) { try sut.read(writer.write(list)) }
+
+        // Then
+        #expect(error?.description == "items[0].trackMatte.source (path): the track matte's source is 540 by 960, and a track matte's source is the size of the list that holds its item, 1080 by 1920")
+    }
+
     @Test("a list with no grain reads with seed 0, since only a grain carries the seed")
     func readsSeedZeroWithoutGrain() throws {
         // Given
