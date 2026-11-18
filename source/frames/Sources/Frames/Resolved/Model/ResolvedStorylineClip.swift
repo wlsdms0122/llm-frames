@@ -32,7 +32,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let blend: String
     let radius: Double
     let border: MediaBorder?
-    let shadow: MediaShadow?
+    let shadow: DropShadow?
     let transition: ResolvedTransition?
 
     // MARK: - Initializer
@@ -56,7 +56,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         blend: String,
         radius: Double,
         border: MediaBorder?,
-        shadow: MediaShadow?,
+        shadow: DropShadow?,
         transition: ResolvedTransition?
     ) {
         self.place = place

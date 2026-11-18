@@ -8,9 +8,9 @@
 // Flattens a display list into what each of its items covers of the output frame, bottom first. A picture of a nested
 // list is replaced by that list's background and items, carried through the picture's source rect, destination and
 // transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
-// covers follows its shape where that is a rectangle: a picture's destination, a fill less its hole, a stroke's band
-// about its edge, an arrow's shaft and head, a glyphs item's box, and an adjustment's rect or its list's frame.
-// Rounded corners, trims and mattes are left out.
+// covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
+// arrowheads, a glyphs item's box, and an adjustment's rect or its list's frame. Rounded corners and mattes are left
+// out.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -88,23 +88,8 @@ struct DisplayListFlattener: Sendable {
         case let .picture(picture):
             return ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)])
 
-        case let .fill(fill):
-            return ItemCoverage(
-                pieces: [ConvexPolygon(rectangle: fill.rectangle)],
-                holes: fill.hole.map { [ConvexPolygon(rectangle: $0.rectangle)] } ?? []
-            )
-
-        case let .stroke(stroke):
-            // Centred on the rectangle's edge, so half its width lies to each side.
-            let half = stroke.width / 2
-            let inner = inset(stroke.rectangle, by: half)
-            return ItemCoverage(
-                pieces: [ConvexPolygon(rectangle: inset(stroke.rectangle, by: -half))],
-                holes: inner.width > 0 && inner.height > 0 ? [ConvexPolygon(rectangle: inner)] : []
-            )
-
-        case let .arrow(arrow):
-            return ItemCoverage(pieces: pieces(of: arrow))
+        case let .path(path):
+            return ItemCoverage(path: path)
 
         case let .glyphs(glyphs):
             let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
@@ -113,48 +98,6 @@ struct DisplayListFlattener: Sendable {
         case let .adjust(adjust):
             return ItemCoverage(pieces: [ConvexPolygon(rectangle: adjust.rectangle ?? frame)])
         }
-    }
-
-    // The shaft from the tail to the base of the head, and the head, which shrinks to the arrow's length on an arrow
-    // shorter than it.
-    private func pieces(of arrow: ArrowItem) -> [ConvexPolygon] {
-        let dx = arrow.head.x - arrow.tail.x
-        let dy = arrow.head.y - arrow.tail.y
-        let length = (dx * dx + dy * dy).squareRoot()
-        guard length > 0 else { return [] }
-
-        let along = Point(x: dx / length, y: dy / length)
-        let across = Point(x: -along.y, y: along.x)
-        let headLength = min(arrow.headSize, length)
-        let base = Point(x: arrow.head.x - along.x * headLength, y: arrow.head.y - along.y * headLength)
-        let point = { (origin: Point, distance: Double) in
-            Point(x: origin.x + across.x * distance, y: origin.y + across.y * distance)
-        }
-        let shaft = ConvexPolygon(corners: [
-            point(arrow.tail, arrow.width / 2),
-            point(base, arrow.width / 2),
-            point(base, -arrow.width / 2),
-            point(arrow.tail, -arrow.width / 2)
-        ])
-        let head = ConvexPolygon(corners: [
-            point(base, arrow.headSize / 2),
-            arrow.head,
-            point(base, -arrow.headSize / 2)
-        ])
-
-        return [shaft, head]
-    }
-
-    private func inset(
-        _ rectangle: Rectangle,
-        by distance: Double
-    ) -> Rectangle {
-        Rectangle(
-            x: rectangle.x + distance,
-            y: rectangle.y + distance,
-            width: rectangle.width - 2 * distance,
-            height: rectangle.height - 2 * distance
-        )
     }
 
     // The transform that carries `rectangle` onto `other`.

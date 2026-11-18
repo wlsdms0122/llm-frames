@@ -14,7 +14,7 @@ struct MediaAppearance: Equatable, Sendable {
     let crop: PropertyValue<Rectangle>
     let radius: Double
     let border: MediaBorder?
-    let shadow: MediaShadow?
+    let shadow: DropShadow?
 
     // MARK: - Initializer
     init(
@@ -22,7 +22,7 @@ struct MediaAppearance: Equatable, Sendable {
         crop: PropertyValue<Rectangle>,
         radius: Double,
         border: MediaBorder?,
-        shadow: MediaShadow?
+        shadow: DropShadow?
     ) {
         self.conform = conform
         self.crop = crop

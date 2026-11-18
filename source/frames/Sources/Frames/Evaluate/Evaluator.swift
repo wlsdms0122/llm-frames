@@ -119,7 +119,7 @@ package struct Evaluator: Sendable {
 
     // A storyline picture is two items: the outer one a picture of a nested list the size of the frame, carrying the
     // clip's blend and its transition motion about the centre of the frame, the motion's opacity and reveal, and the
-    // matte; the inner one, the one item of that list, its media or its fill with its own transform.
+    // matte; the inner one, the one item of that list, its media or its solid's rect with its own transform.
     private func storylineItem(
         of index: Int,
         in sequence: ResolvedSequence,
@@ -146,7 +146,8 @@ package struct Evaluator: Sendable {
     }
 
     // A storyline entry's own picture in its box: its media's conformed crop with its filter, rounded corners, border
-    // and shadow, or the fill of a solid, carried into the frame by its own transform and opacity, blended normally.
+    // and shadow, or a solid's rect filled with its colour, carried into the frame by its own transform and opacity,
+    // blended normally.
     private func innerItems(
         of entry: ResolvedStorylineClip,
         at time: Double,
@@ -167,7 +168,7 @@ package struct Evaluator: Sendable {
                 shadow: entry.shadow
             ))
         } else if let solid = entry.solid {
-            content = .fill(FillItem(rectangle: box, color: solid))
+            content = .path(PathItem(filling: box, color: solid))
         } else {
             return []
         }
@@ -230,7 +231,7 @@ package struct Evaluator: Sendable {
         let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress)
         switch cover.source {
         case let .color(color):
-            return [DisplayItem(opacity: opacity, content: .fill(FillItem(rectangle: frame, color: color)))]
+            return [DisplayItem(opacity: opacity, content: .path(PathItem(filling: frame, color: color)))]
 
         case let .media(media):
             let picture = PictureItem(

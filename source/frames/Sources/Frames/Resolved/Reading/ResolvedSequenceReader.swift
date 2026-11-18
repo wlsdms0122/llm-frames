@@ -267,10 +267,10 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    private func shadow(_ value: PlacedJSONValue) throws -> MediaShadow {
+    private func shadow(_ value: PlacedJSONValue) throws -> DropShadow {
         let shadow = try value.object(keys: ["radius", "offset", "color"])
 
-        return MediaShadow(
+        return DropShadow(
             radius: try shadow.member("radius").number(),
             offset: try values.point(shadow.member("offset")),
             color: try values.color(shadow.member("color"))

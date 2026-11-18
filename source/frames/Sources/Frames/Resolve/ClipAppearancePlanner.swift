@@ -377,10 +377,10 @@ struct ClipAppearancePlanner: Sendable {
         isDrawn: Bool,
         scale: Double,
         theme: MergedTheme
-    ) -> MediaShadow? {
+    ) -> DropShadow? {
         guard isDrawn else { return nil }
 
-        return MediaShadow(
+        return DropShadow(
             radius: theme.shadowRadius * scale,
             offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
             color: theme.shadowColor

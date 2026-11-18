@@ -175,7 +175,7 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    private func shadow(_ shadow: MediaShadow) -> JSONValue {
+    private func shadow(_ shadow: DropShadow) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "radius", value: .number(shadow.radius)),
             JSONMember(key: "offset", value: values.point(shadow.offset)),

@@ -1,13 +1,12 @@
 //
-//  MediaShadow.swift
+//  DropShadow.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
 //
 
-// The theme shadow under a media clip's box: the standard deviation of its blur and its offset, both scaled, and its
-// colour.
-package struct MediaShadow: Equatable, Sendable {
+// A drop shadow below a drawn picture: the standard deviation of its blur, its offset and its colour.
+package struct DropShadow: Equatable, Sendable {
     // MARK: - Property
     package let radius: Double
     package let offset: Point

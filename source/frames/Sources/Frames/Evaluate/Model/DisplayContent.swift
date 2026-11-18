@@ -8,9 +8,7 @@
 // What a display item draws.
 package enum DisplayContent: Equatable, Sendable {
     case picture(PictureItem)
-    case fill(FillItem)
-    case stroke(StrokeItem)
-    case arrow(ArrowItem)
+    case path(PathItem)
     case glyphs(GlyphsItem)
     case adjust(AdjustItem)
 }

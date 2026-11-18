@@ -29,12 +29,12 @@ struct EvaluationReporterTests {
         // Given
         let turned = DisplayItem(
             transform: AffineTransform(rotation: 90, about: Point(x: 100, y: 50)),
-            content: .fill(FillItem(rectangle: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
+            content: .path(PathItem(filling: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
             origin: title
         )
         let scaled = DisplayItem(
             transform: AffineTransform(scale: 2, about: Point(x: 0, y: 0)),
-            content: .fill(FillItem(rectangle: Rectangle(x: 10, y: 10, width: 20, height: 5), color: red))
+            content: .path(PathItem(filling: Rectangle(x: 10, y: 10, width: 20, height: 5), color: red))
         )
 
         // When
@@ -49,14 +49,14 @@ struct EvaluationReporterTests {
     @Test("bounds are cut by the mask, the reveal and the output frame, and an item they leave nothing of has none")
     func cutsBoundsByMasks() {
         // Given
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100), color: red)
-        let masked = DisplayItem(mask: Rectangle(x: 50, y: 20, width: 100, height: 100), content: .fill(fill))
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 100, height: 100), color: red)
+        let masked = DisplayItem(mask: Rectangle(x: 50, y: 20, width: 100, height: 100), content: .path(fill))
         let revealed = DisplayItem(
             transform: AffineTransform(translation: Point(x: 150, y: 0)),
             reveal: Rectangle(x: 0, y: 0, width: 25, height: 100),
-            content: .fill(fill)
+            content: .path(fill)
         )
-        let hidden = DisplayItem(mask: Rectangle(x: 300, y: 0, width: 10, height: 10), content: .fill(fill))
+        let hidden = DisplayItem(mask: Rectangle(x: 300, y: 0, width: 10, height: 10), content: .path(fill))
 
         // When
         let report = sut.report(of: list([masked, revealed, hidden]), at: 0)
@@ -76,7 +76,7 @@ struct EvaluationReporterTests {
         let diamond = DisplayItem(
             transform: AffineTransform(rotation: 45, about: Point(x: 50, y: 50)),
             mask: Rectangle(x: 0, y: 0, width: 50, height: 50),
-            content: .fill(FillItem(rectangle: Rectangle(x: 40, y: 40, width: 20, height: 20), color: red))
+            content: .path(PathItem(filling: Rectangle(x: 40, y: 40, width: 20, height: 20), color: red))
         )
 
         // When
@@ -93,11 +93,11 @@ struct EvaluationReporterTests {
         // Given
         let inner = DisplayList(size: Size(width: 100, height: 50), background: red, seed: 0, items: [
             DisplayItem(
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 50, height: 25), color: black)),
+                content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 50, height: 25), color: black)),
                 origin: nested
             ),
             DisplayItem(
-                content: .fill(FillItem(rectangle: Rectangle(x: 50, y: 25, width: 50, height: 25), color: black))
+                content: .path(PathItem(filling: Rectangle(x: 50, y: 25, width: 50, height: 25), color: black))
             )
         ])
         let picture = PictureItem(
@@ -130,7 +130,7 @@ struct EvaluationReporterTests {
         // Given
         let inner = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [
             DisplayItem(
-                content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100), color: black)),
+                content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 100, height: 100), color: black)),
                 origin: nested
             )
         ])
@@ -149,27 +149,32 @@ struct EvaluationReporterTests {
         ])
     }
 
-    @Test("a fill its hole takes all of covers nothing, and a stroke covers half its width to each side of its edge")
-    func boundsHolesAndStrokes() {
+    @Test(
+        "a stroked rect covers half its stroke to each side of its edge, and a filled polyline its points and its stroke"
+    )
+    func boundsPaths() {
         // Given
-        let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
-        let outside = DisplayItem(content: .fill(FillItem(
-            rectangle: frame,
-            color: black,
-            hole: RoundedRectangle(rectangle: frame, radius: 0)
+        let stroke = PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .arrow)
+        let rect = DisplayItem(content: .path(PathItem(
+            geometry: .rect(Rectangle(x: 20, y: 20, width: 40, height: 30), radius: 4),
+            fill: nil,
+            stroke: stroke
         )))
-        let stroke = DisplayItem(content: .stroke(StrokeItem(
-            rectangle: Rectangle(x: 20, y: 20, width: 40, height: 30),
-            radius: 4,
-            width: 4,
-            color: red
+        let polyline = DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 100, y: 10), Point(x: 160, y: 10), Point(x: 160, y: 50)], isClosed: false),
+            fill: black,
+            stroke: stroke
         )))
 
         // When
-        let report = sut.report(of: list([outside, stroke]), at: 0)
+        let report = sut.report(of: list([rect, polyline]), at: 0)
 
         // Then
-        #expect(report.items.map(\.bounds) == [nil, Rectangle(x: 18, y: 18, width: 44, height: 34)])
+        // The arrowhead at (160, 50) is 16 long and 16 wide, its base from x = 152 to 168.
+        #expect(report.items.map(\.bounds) == [
+            Rectangle(x: 18, y: 18, width: 44, height: 34),
+            Rectangle(x: 100, y: 8, width: 68, height: 42)
+        ])
     }
 
     @Test("a resolved document is evaluated at the time, and its clips report their places, ids, kinds and bounds")
@@ -247,7 +252,7 @@ struct EvaluationReporterTests {
         let turned = DisplayItem(
             transform: AffineTransform(rotation: 90, about: Point(x: 100, y: 50)),
             opacity: 0.1 + 0.2,
-            content: .fill(FillItem(rectangle: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
+            content: .path(PathItem(filling: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
             origin: title
         )
         let report = sut.report(of: list([turned], background: black), at: 1.0000004)

@@ -14,7 +14,8 @@ package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "items"]
     private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "reveal"]
-    private static let itemNames = ["picture", "fill", "stroke", "arrow", "glyphs", "adjust"]
+    private static let itemNames = ["picture", "path", "glyphs", "adjust"]
+    private static let geometryForms = ["rect", "ellipse", "polyline"]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
@@ -130,14 +131,8 @@ package struct DisplayListReader: Sendable {
         case "picture":
             ["source", "rect", "dest", "filter", "matte", "radius", "border", "shadow"]
 
-        case "fill":
-            ["rect", "radius", "color", "hole"]
-
-        case "stroke":
-            ["rect", "radius", "width", "color", "trim"]
-
-        case "arrow":
-            ["tail", "head", "width", "headSize", "color"]
+        case "path":
+            ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
             ["size", "runs", "stroke", "background"]
@@ -162,47 +157,12 @@ package struct DisplayListReader: Sendable {
         name: String,
         seed: Int
     ) throws -> DisplayContent {
-        let rectangle = { (key: String) in try values.rectangle(item.member(key)) }
-        let point = { (key: String) in try values.point(item.member(key)) }
-        let number = { (key: String) in try item.member(key).number() }
-        let color = { try values.color(item.member("color")) }
-
         switch name {
         case "picture":
             return .picture(try picture(item, seed: seed))
 
-        case "fill":
-            return .fill(FillItem(
-                rectangle: try rectangle("rect"),
-                radius: try number("radius"),
-                color: try color(),
-                hole: try item.member("hole").optional { value in
-                    let hole = try value.object(keys: ["rect", "radius"])
-
-                    return RoundedRectangle(
-                        rectangle: try values.rectangle(hole.member("rect")),
-                        radius: try hole.member("radius").number()
-                    )
-                }
-            ))
-
-        case "stroke":
-            return .stroke(StrokeItem(
-                rectangle: try rectangle("rect"),
-                radius: try number("radius"),
-                width: try number("width"),
-                color: try color(),
-                trim: try number("trim")
-            ))
-
-        case "arrow":
-            return .arrow(ArrowItem(
-                tail: try point("tail"),
-                head: try point("head"),
-                width: try number("width"),
-                headSize: try number("headSize"),
-                color: try color()
-            ))
+        case "path":
+            return .path(try path(item))
 
         case "glyphs":
             return .glyphs(try glyphs(item))
@@ -243,16 +203,97 @@ package struct DisplayListReader: Sendable {
                     color: try values.color(border.member("color"))
                 )
             },
-            shadow: try item.member("shadow").optional { value in
-                let shadow = try value.object(keys: ["radius", "offset", "color"])
+            shadow: try item.member("shadow").optional(shadow)
+        )
+    }
 
-                return MediaShadow(
-                    radius: try shadow.member("radius").number(),
-                    offset: try values.point(shadow.member("offset")),
-                    color: try values.color(shadow.member("color"))
+    private func path(_ item: PlacedJSONObject) throws -> PathItem {
+        PathItem(
+            geometry: try geometry(item.member("geometry")),
+            fill: try item.member("fill").optional(values.color),
+            stroke: try item.member("stroke").optional { value in
+                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end"])
+
+                return PathStroke(
+                    width: try stroke.member("width").number(),
+                    color: try values.color(stroke.member("color")),
+                    join: try literal(stroke.member("join")),
+                    cap: try literal(stroke.member("cap")),
+                    start: try literal(stroke.member("start")),
+                    end: try literal(stroke.member("end"))
+                )
+            },
+            trim: try trim(item.member("trim")),
+            shadow: try item.member("shadow").optional(shadow)
+        )
+    }
+
+    // One member named by its form: `rect`, `ellipse` or `polyline`, which runs through at least two points.
+    private func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
+        let geometry = try value.object(keys: Self.geometryForms)
+        let written = Self.geometryForms.filter(geometry.contains)
+        guard let name = written.first else {
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
+        }
+        guard written.count == 1 else {
+            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
+        }
+
+        let form = try geometry.member(name)
+        switch name {
+        case "rect":
+            let rect = try form.object(keys: ["rect", "radius"])
+
+            return .rect(try values.rectangle(rect.member("rect")), radius: try rect.member("radius").number())
+
+        case "ellipse":
+            return .ellipse(try values.rectangle(form.object(keys: ["rect"]).member("rect")))
+
+        default:
+            let polyline = try form.object(keys: ["points", "closed"])
+            let written = try polyline.member("points")
+            let points = try written.elements().map(values.point)
+            guard points.count >= 2 else {
+                throw ModelError.invalidValue(
+                    place: written.place,
+                    kind: written.kind,
+                    reason: "a polyline runs through at least two points, found \(points.count)"
                 )
             }
+
+            return .polyline(points, isClosed: try polyline.member("closed").bool())
+        }
+    }
+
+    // `[a, b]`, each from 0 to 1.
+    private func trim(_ value: PlacedJSONValue) throws -> Trim {
+        let numbers = try value.numbers(count: 2)
+        for (element, number) in zip(try value.elements(), numbers) where !(0...1).contains(number) {
+            throw ModelError.invalidValue(
+                place: element.place,
+                kind: element.kind,
+                reason: "a trim runs from 0 to 1, found \(element.value.written)"
+            )
+        }
+
+        return Trim(start: numbers[0], end: numbers[1])
+    }
+
+    private func shadow(_ value: PlacedJSONValue) throws -> DropShadow {
+        let shadow = try value.object(keys: ["radius", "offset", "color"])
+
+        return DropShadow(
+            radius: try shadow.member("radius").number(),
+            offset: try values.point(shadow.member("offset")),
+            color: try values.color(shadow.member("color"))
         )
+    }
+
+    // A name among the literals a stroke key takes.
+    private func literal<Literal: CaseIterable & RawRepresentable>(
+        _ value: PlacedJSONValue
+    ) throws -> Literal where Literal.RawValue == String {
+        try value.name(among: Literal.allCases.map(\.rawValue), Literal.init(rawValue:))
     }
 
     // `{media, frame}` for a frame of media and `{list}` for a nested list, which takes the seed of the list holding

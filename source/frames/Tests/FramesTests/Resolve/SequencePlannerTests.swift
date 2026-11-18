@@ -630,7 +630,7 @@ struct SequencePlannerTests {
         #expect(appearance.blend == "screen")
         #expect(appearance.radius == 12)
         #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
-        #expect(appearance.shadow == MediaShadow(
+        #expect(appearance.shadow == DropShadow(
             radius: theme.shadowRadius * scale,
             offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
             color: theme.shadowColor

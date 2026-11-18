@@ -155,7 +155,7 @@ struct PictureDrawerTests {
             source: .media(try white(size: 10)),
             rectangle: nil,
             destination: Rectangle(x: 45, y: 45, width: 10, height: 10),
-            shadow: MediaShadow(radius: 3, offset: Point(x: 30, y: 20), color: Color(written: "#000000"))
+            shadow: DropShadow(radius: 3, offset: Point(x: 30, y: 20), color: Color(written: "#000000"))
         )
 
         // When

@@ -129,7 +129,7 @@ struct EvaluatorTests {
         #expect(list.items == [
             storylineItem([mediaItem(first, frame: 11)], seed: 17),
             storylineItem([mediaItem(second, frame: 3)], seed: 17),
-            DisplayItem(opacity: 0.5, content: .fill(FillItem(rectangle: frame, color: white)))
+            DisplayItem(opacity: 0.5, content: .path(PathItem(filling: frame, color: white)))
         ])
     }
 
@@ -286,7 +286,7 @@ struct EvaluatorTests {
 
         // Then
         let entry = ItemOrigin(place: "storyline", id: nil, kind: "solid")
-        let fill = DisplayItem(content: .fill(FillItem(rectangle: frame, color: red)), origin: entry)
+        let fill = DisplayItem(content: .path(PathItem(filling: frame, color: red)), origin: entry)
         #expect(list.items == [storylineItem([fill], seed: 10, origin: entry)])
     }
 
@@ -442,14 +442,18 @@ struct EvaluatorTests {
         // Then
         // The crop is the whole picture at 0, shown at half size, and 200 x 100 from (100, 50) at 2, at full size.
         let item = try #require(list.items.last)
-        guard case let .stroke(stroke) = item.content else {
-            Issue.record("a box is a stroke")
+        guard
+            case let .path(path) = item.content,
+            case let .rect(rectangle, radius) = path.geometry,
+            let stroke = path.stroke
+        else {
+            Issue.record("a box is a stroked rect")
             return
         }
-        let corners = item.transform.apply(toCornersOf: stroke.rectangle)
+        let corners = item.transform.apply(toCornersOf: rectangle)
         #expect(isClose(corners, area))
         #expect(abs(stroke.width * item.transform.a - 4) < 1e-9)
-        #expect(abs(stroke.radius * item.transform.a - 2) < 1e-9)
+        #expect(abs(radius * item.transform.a - 2) < 1e-9)
     }
 
     @Test(
@@ -554,7 +558,7 @@ struct EvaluatorTests {
     func drawsMediaClip() {
         // Given
         let border = MediaBorder(width: 2, color: white)
-        let shadow = MediaShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
+        let shadow = DropShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
         let media = mediaClip(
             timing: nil,
             filter: [.blur(radius: 2)],
@@ -588,7 +592,7 @@ struct EvaluatorTests {
     func drawsStorylineTransform() {
         // Given
         let border = MediaBorder(width: 2, color: white)
-        let shadow = MediaShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
+        let shadow = DropShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
             scale: [Keyframe(at: 0, value: 0.5)],
@@ -803,8 +807,8 @@ struct EvaluatorTests {
 
         // Then
         let rooms = list.items.suffix(2).map { item -> Rectangle? in
-            guard case let .fill(fill) = item.content else { return nil }
-            return fill.rectangle
+            guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else { return nil }
+            return rectangle
         }
         #expect(rooms == [frame, frame])
     }
@@ -908,7 +912,7 @@ struct EvaluatorTests {
         blend: String = "normal",
         radius: Double = 0,
         border: MediaBorder? = nil,
-        shadow: MediaShadow? = nil
+        shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
         ResolvedStorylineClip(
             place: entry.place,
@@ -1033,7 +1037,7 @@ struct EvaluatorTests {
         _ rectangle: Rectangle,
         transform: AffineTransform = .identity
     ) -> DisplayItem {
-        DisplayItem(transform: transform, content: .fill(FillItem(rectangle: rectangle, color: red)), origin: fillOrigin)
+        DisplayItem(transform: transform, content: .path(PathItem(filling: rectangle, color: red)), origin: fillOrigin)
     }
 
     private func text(_ size: Size) -> ResolvedText {

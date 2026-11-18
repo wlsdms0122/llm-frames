@@ -67,14 +67,8 @@ package struct DisplayListWriter: Sendable {
         case .picture:
             "picture"
 
-        case .fill:
-            "fill"
-
-        case .stroke:
-            "stroke"
-
-        case .arrow:
-            "arrow"
+        case .path:
+            "path"
 
         case .glyphs:
             "glyphs"
@@ -95,37 +89,8 @@ package struct DisplayListWriter: Sendable {
         case let .picture(picture):
             return members(of: picture, seed: seed)
 
-        case let .fill(fill):
-            let hole = fill.hole.map { hole in
-                JSONValue.object(JSONObject(members: [
-                    JSONMember(key: "rect", value: values.rectangle(hole.rectangle)),
-                    number("radius", hole.radius)
-                ]))
-            }
-            return [
-                JSONMember(key: "rect", value: values.rectangle(fill.rectangle)),
-                number("radius", fill.radius),
-                color(fill.color),
-                JSONMember(key: "hole", value: hole ?? .null)
-            ]
-
-        case let .stroke(stroke):
-            return [
-                JSONMember(key: "rect", value: values.rectangle(stroke.rectangle)),
-                number("radius", stroke.radius),
-                number("width", stroke.width),
-                color(stroke.color),
-                number("trim", stroke.trim)
-            ]
-
-        case let .arrow(arrow):
-            return [
-                JSONMember(key: "tail", value: values.point(arrow.tail)),
-                JSONMember(key: "head", value: values.point(arrow.head)),
-                number("width", arrow.width),
-                number("headSize", arrow.headSize),
-                color(arrow.color)
-            ]
+        case let .path(path):
+            return members(of: path)
 
         case let .glyphs(glyphs):
             let stroke = glyphs.stroke.map { stroke in
@@ -164,13 +129,6 @@ package struct DisplayListWriter: Sendable {
                 JSONMember(key: "color", value: values.color(border.color))
             ]))
         }
-        let shadow = picture.shadow.map { shadow in
-            JSONValue.object(JSONObject(members: [
-                JSONMember(key: "radius", value: .number(shadow.radius)),
-                JSONMember(key: "offset", value: values.point(shadow.offset)),
-                JSONMember(key: "color", value: values.color(shadow.color))
-            ]))
-        }
         let matte = picture.matte.map { matte in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
@@ -189,8 +147,64 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "matte", value: matte ?? .null),
             JSONMember(key: "radius", value: .number(picture.radius)),
             JSONMember(key: "border", value: border ?? .null),
-            JSONMember(key: "shadow", value: shadow ?? .null)
+            JSONMember(key: "shadow", value: shadow(picture.shadow))
         ]
+    }
+
+    // `fill`, `stroke` and `shadow` are `null` where the path has none.
+    private func members(of path: PathItem) -> [JSONMember] {
+        let stroke = path.stroke.map { stroke in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(stroke.width)),
+                JSONMember(key: "color", value: values.color(stroke.color)),
+                JSONMember(key: "join", value: .string(stroke.join.rawValue)),
+                JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
+                JSONMember(key: "start", value: .string(stroke.start.rawValue)),
+                JSONMember(key: "end", value: .string(stroke.end.rawValue))
+            ]))
+        }
+
+        return [
+            JSONMember(key: "geometry", value: geometry(path.geometry)),
+            JSONMember(key: "fill", value: path.fill.map(values.color) ?? .null),
+            JSONMember(key: "stroke", value: stroke ?? .null),
+            JSONMember(key: "trim", value: values.numbers([path.trim.start, path.trim.end])),
+            JSONMember(key: "shadow", value: shadow(path.shadow))
+        ]
+    }
+
+    // One member named by its form.
+    private func geometry(_ geometry: PathGeometry) -> JSONValue {
+        let form = { (name: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        }
+
+        switch geometry {
+        case let .rect(rectangle, radius):
+            return form("rect", [
+                JSONMember(key: "rect", value: values.rectangle(rectangle)),
+                JSONMember(key: "radius", value: .number(radius))
+            ])
+
+        case let .ellipse(rectangle):
+            return form("ellipse", [JSONMember(key: "rect", value: values.rectangle(rectangle))])
+
+        case let .polyline(points, isClosed):
+            return form("polyline", [
+                JSONMember(key: "points", value: .array(points.map(values.point))),
+                JSONMember(key: "closed", value: .bool(isClosed))
+            ])
+        }
+    }
+
+    private func shadow(_ shadow: DropShadow?) -> JSONValue {
+        guard let shadow else { return .null }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "radius", value: .number(shadow.radius)),
+            JSONMember(key: "offset", value: values.point(shadow.offset)),
+            JSONMember(key: "color", value: values.color(shadow.color))
+        ]))
     }
 
     // A frame of media is `{media, frame}`, its pinned media and the frame's index, and a nested list `{list}`.

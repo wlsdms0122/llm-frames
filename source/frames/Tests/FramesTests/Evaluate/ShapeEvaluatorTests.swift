@@ -9,7 +9,7 @@ import Testing
 
 @testable import Frames
 
-// Shapes are sequence clips in a 200 x 100 frame, which is what a dim darkens.
+// Shapes are sequence clips in a 200 x 100 frame, which is what a dim fills.
 @Suite("ShapeEvaluator Tests")
 struct ShapeEvaluatorTests {
     // MARK: - Property
@@ -24,15 +24,14 @@ struct ShapeEvaluatorTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "a quarter of the way through a reveal from the right, each shape kind shows a quarter as its kind reveals",
+        "a quarter of the way through a reveal from the right, each shape kind's path shows a quarter as it reveals",
         arguments: [
             (
                 ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .stroke(StrokeItem(
-                    rectangle: ShapeEvaluatorTests.area,
-                    radius: 2,
+                DisplayItem(content: .path(ShapeEvaluatorTests.stroked(
+                    .rect(ShapeEvaluatorTests.area, radius: 2),
                     width: 4,
-                    color: ShapeEvaluatorTests.red,
+                    end: .none,
                     trim: 0.25
                 )))
             ),
@@ -40,25 +39,20 @@ struct ShapeEvaluatorTests {
                 ShapeDrawing.fill(color: ShapeEvaluatorTests.red),
                 DisplayItem(
                     reveal: Rectangle(x: 70, y: 20, width: 10, height: 20),
-                    content: .fill(FillItem(rectangle: ShapeEvaluatorTests.area, color: ShapeEvaluatorTests.red))
+                    content: .path(PathItem(filling: ShapeEvaluatorTests.area, color: ShapeEvaluatorTests.red))
                 )
             ),
             (
                 ShapeDrawing.dim(color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .fill(FillItem(
-                    rectangle: ShapeEvaluatorTests.frame,
-                    color: ShapeEvaluatorTests.red,
-                    hole: RoundedRectangle(rectangle: Rectangle(x: 10, y: 5, width: 160, height: 80), radius: 0)
-                )))
+                DisplayItem(content: .path(PathItem(filling: ShapeEvaluatorTests.frame, color: ShapeEvaluatorTests.red)))
             ),
             (
                 ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .arrow(ArrowItem(
-                    tail: Point(x: 10, y: 30),
-                    head: Point(x: 17.5, y: 30),
+                DisplayItem(content: .path(ShapeEvaluatorTests.stroked(
+                    .polyline([Point(x: 10, y: 30), Point(x: 40, y: 30)], isClosed: false),
                     width: 2,
-                    headSize: 8,
-                    color: ShapeEvaluatorTests.red
+                    end: .arrow,
+                    trim: 0.25
                 )))
             )
         ]
@@ -68,8 +62,8 @@ struct ShapeEvaluatorTests {
         item: DisplayItem
     ) {
         // Given
-        // The dim's hole closes a quarter of the way from the frame to the area, and the arrow, its tip at the middle
-        // of the area's left side and its tail 30 beyond it, grows a quarter of its length from its tail.
+        // A dim fills the whole frame, and the arrow runs from its tail 30 left of the area to its tip at the middle of
+        // the area's left side.
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
@@ -83,27 +77,7 @@ struct ShapeEvaluatorTests {
         #expect(items == [item])
     }
 
-    @Test("an arrow's nudge moves it towards what it points at by multiples of its length")
-    func nudgesArrow() {
-        // Given
-        let drawing = ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: Self.red)
-        let loop = AnimationSpan(length: 1, span: Span(ease: .linear, keys: [SpanKey(t: 0, values: [.nudge: 0.5])]))
-        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)], loop: loop)
-
-        // When
-        let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
-
-        // Then
-        #expect(items == [DisplayItem(content: .arrow(ArrowItem(
-            tail: Point(x: 25, y: 30),
-            head: Point(x: 55, y: 30),
-            width: 2,
-            headSize: 8,
-            color: Self.red
-        )))])
-    }
-
-    @Test("a shape without an area is drawn on the frame, and a dim without one darkens all of it")
+    @Test("a shape without an area is drawn on the frame, and a dim without one fills all of it")
     func drawsOnRoomWithoutArea() {
         // Given
         let drawing = ShapeDrawing.dim(color: Self.red)
@@ -113,7 +87,7 @@ struct ShapeEvaluatorTests {
         let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
 
         // Then
-        #expect(items == [DisplayItem(content: .fill(FillItem(rectangle: Self.frame, color: Self.red)))])
+        #expect(items == [DisplayItem(content: .path(PathItem(filling: Self.frame, color: Self.red)))])
     }
 
     @Test(
@@ -121,22 +95,20 @@ struct ShapeEvaluatorTests {
         arguments: [
             (
                 ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
-                DisplayContent.stroke(StrokeItem(
-                    rectangle: ShapeEvaluatorTests.area,
-                    radius: 1,
+                DisplayContent.path(ShapeEvaluatorTests.stroked(
+                    .rect(ShapeEvaluatorTests.area, radius: 1),
                     width: 2,
-                    color: ShapeEvaluatorTests.red,
+                    end: .none,
                     trim: 1
                 ))
             ),
             (
                 ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red),
-                DisplayContent.arrow(ArrowItem(
-                    tail: Point(x: 25, y: 30),
-                    head: Point(x: 40, y: 30),
+                DisplayContent.path(ShapeEvaluatorTests.stroked(
+                    .polyline([Point(x: 25, y: 30), Point(x: 40, y: 30)], isClosed: false),
                     width: 1,
-                    headSize: 4,
-                    color: ShapeEvaluatorTests.red
+                    end: .arrow,
+                    trim: 1
                 ))
             )
         ]
@@ -181,11 +153,25 @@ struct ShapeEvaluatorTests {
     }
 
     // MARK: - Private
+    // A red stroke with miter joins and butt caps, drawn from the start of its outline as far as `trim`.
+    private static func stroked(
+        _ geometry: PathGeometry,
+        width: Double,
+        end: StrokeEnd,
+        trim: Double
+    ) -> PathItem {
+        PathItem(
+            geometry: geometry,
+            fill: nil,
+            stroke: PathStroke(width: width, color: red, join: .miter, cap: .butt, start: .none, end: end),
+            trim: Trim(start: 0, end: trim)
+        )
+    }
+
     private func shape(
         _ drawing: ShapeDrawing,
         area: [Keyframe<Rectangle>]?,
-        entrance: AnimationSpan? = nil,
-        loop: AnimationSpan? = nil
+        entrance: AnimationSpan? = nil
     ) -> ResolvedClip {
         ResolvedClip(
             place: "clips[0]",
@@ -204,7 +190,7 @@ struct ShapeEvaluatorTests {
             scale: nil,
             rotation: nil,
             blend: "normal",
-            animation: ResolvedAnimation(entrance: entrance, loop: loop, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
         )
     }
 }

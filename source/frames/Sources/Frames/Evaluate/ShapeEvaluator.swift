@@ -7,10 +7,11 @@
 
 // Evaluates a shape clip at an instant into its item in output pixels of its list. A shape on an area is drawn in its
 // space's coordinates and carried whole by its tracked motion and P(t), its lengths divided by their scale so they
-// stay; one without an area is drawn on the frame in output pixels. `reveal` acts by what receives it: a box's border
-// is drawn around as its `trim`, a fill is wiped from the `revealFrom` side, a dim's hole closes in from the whole
-// frame to the area, and an arrow is nudged and grows from its tail. Scale, rotation and the offset act about the
-// centre of the shape's box: its area, or for an arrow the box it fills from tail to head.
+// stay; one without an area is drawn on the frame in output pixels. Each is a `path` item: a box a stroked rect, a
+// fill a filled rect, a dim a rect over the list's frame filled with its colour, and an arrow a line from its tail to
+// its tip with an arrowhead at its end. `reveal` draws a box's and an arrow's stroke on as their `trim` and wipes a
+// fill from the `revealFrom` side. Scale, rotation and the offset act about the centre of the shape's box: its area,
+// or for an arrow the box it fills from tail to head.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     private let drawer = ShapeDrawer()
@@ -35,7 +36,7 @@ struct ShapeEvaluator: Sendable {
         let laid = laid(drawing, on: area, sample: sample, in: tracked)
         let frame = frame(of: laid.presentation.transform, covering: space.frame)
 
-        return [item(of: laid.content, area: area, frame: frame, sample: sample, presentation: laid.presentation)]
+        return [item(of: laid.content, frame: frame, sample: sample, presentation: laid.presentation)]
     }
 
     // The map from the space the shape's area is written in to output pixels, which its children are carried by.
@@ -95,64 +96,56 @@ struct ShapeEvaluator: Sendable {
         return Rectangle(x: minX, y: minY, width: (xs.max() ?? frame.maxX) - minX, height: (ys.max() ?? frame.maxY) - minY)
     }
 
-    // The item of what the drawer laid the shape as, on the shape's area or the frame. `area` is the shape's own area,
-    // nil without one, and `frame` the list's frame in the item's coordinates.
+    // The item of what the drawer laid the shape as, on the shape's area or the frame, `frame` being the list's frame
+    // in the item's coordinates.
     private func item(
         of content: ShapeContent,
-        area: Rectangle?,
         frame: Rectangle,
         sample: ClipSample,
         presentation: ItemPresentation
     ) -> DisplayItem {
         let reveal = sample.animation.reveal
+        let drawn = Trim(start: 0, end: reveal.amount)
+        let stroke = { (width: Double, color: Color, end: StrokeEnd) in
+            PathStroke(width: width, color: color, join: .miter, cap: .butt, start: .none, end: end)
+        }
+        let item = { (path: PathItem, reveal: Rectangle?) in
+            DisplayItem(
+                transform: presentation.transform,
+                opacity: presentation.opacity,
+                blend: sample.blend,
+                reveal: reveal,
+                content: .path(path)
+            )
+        }
 
         switch content {
         case let .box(rectangle, width, radius, color):
-            let stroke = StrokeItem(
-                rectangle: rectangle,
-                radius: radius,
-                width: width,
-                color: color,
-                trim: reveal.amount
+            let path = PathItem(
+                geometry: .rect(rectangle, radius: radius),
+                fill: nil,
+                stroke: stroke(width, color, .none),
+                trim: drawn
             )
-            return DisplayItem(
-                transform: presentation.transform,
-                opacity: presentation.opacity,
-                blend: sample.blend,
-                content: .stroke(stroke)
-            )
+            return item(path, nil)
 
         case let .fill(rectangle, color):
-            return DisplayItem(
-                transform: presentation.transform,
-                opacity: presentation.opacity,
-                blend: sample.blend,
-                reveal: reveal.rectangle(wiping: rectangle, from: sample.animation.revealFrom),
-                content: .fill(FillItem(rectangle: rectangle, color: color))
+            return item(
+                PathItem(filling: rectangle, color: color),
+                reveal.rectangle(wiping: rectangle, from: sample.animation.revealFrom)
             )
 
         case let .dim(_, color):
-            // Without an area a dim darkens the whole frame.
-            let hole = area.map { area in
-                RoundedRectangle(rectangle: reveal.hole(closingFrom: frame, to: area), radius: 0)
-            }
-            let fill = FillItem(rectangle: frame, color: color, hole: hole)
-            return DisplayItem(
-                transform: presentation.transform,
-                opacity: presentation.opacity,
-                blend: sample.blend,
-                content: .fill(fill)
-            )
+            return item(PathItem(filling: frame, color: color), nil)
 
-        case let .arrow(tail, tip, width, head, color):
-            let item = ArrowItem(tail: tail, head: tip, width: width, headSize: head, color: color)
-                .moved(by: sample.animation.motion)
-            return DisplayItem(
-                transform: presentation.transform,
-                opacity: presentation.opacity,
-                blend: sample.blend,
-                content: .arrow(item)
+        case let .arrow(tail, tip, width, _, color):
+            let path = PathItem(
+                geometry: .polyline([tail, tip], isClosed: false),
+                fill: nil,
+                stroke: stroke(width, color, .arrow),
+                trim: drawn
             )
+            return item(path, nil)
         }
     }
 }

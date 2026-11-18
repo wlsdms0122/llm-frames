@@ -42,7 +42,7 @@ struct DisplayListChecker {
             case let .adjust(adjust):
                 try check(adjust.filter, place: itemPlace)
 
-            case .fill, .stroke, .arrow, .glyphs:
+            case .path, .glyphs:
                 break
             }
         }

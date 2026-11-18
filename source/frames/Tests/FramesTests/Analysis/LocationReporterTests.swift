@@ -104,14 +104,13 @@ struct LocationReporterTests {
         #expect(hit.media?.mediaTime == 0)
     }
 
-    @Test("hits come topmost first, and a point in a fill's hole, a stroke's middle or outside a mask is not under it")
+    @Test("hits come topmost first, and a point beside a fill, in a stroked rect's middle or outside a mask is not under it")
     func listsHitsTopmostFirst() {
         // Given
         let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
-        let outside = DisplayItem(content: .fill(FillItem(
-            rectangle: frame,
-            color: red,
-            hole: RoundedRectangle(rectangle: Rectangle(x: 50, y: 0, width: 100, height: 100), radius: 0)
+        let outside = DisplayItem(content: .path(PathItem(
+            filling: Rectangle(x: 0, y: 0, width: 50, height: 100),
+            color: red
         )))
         let picture = DisplayItem(
             content: .picture(PictureItem(
@@ -122,17 +121,16 @@ struct LocationReporterTests {
             origin: clip
         )
         let stroke = DisplayItem(
-            content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 80, y: 20, width: 40, height: 40),
-                radius: 0,
-                width: 4,
-                color: red
+            content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 80, y: 20, width: 40, height: 40), radius: 0),
+                fill: nil,
+                stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .none)
             )),
             origin: box
         )
         let masked = DisplayItem(
             mask: Rectangle(x: 0, y: 0, width: 10, height: 10),
-            content: .fill(FillItem(rectangle: frame, color: red))
+            content: .path(PathItem(filling: frame, color: red))
         )
 
         // When
@@ -164,22 +162,40 @@ struct LocationReporterTests {
         ])
     }
 
-    @Test("an arrow is under the point on its shaft and its head, but not beside the head's tip")
+    @Test("a path with an arrowhead is under the point on its line and its head, but not beside the head's tip")
     func hitsArrowShape() {
         // Given
         let arrow = DisplayItem(
-            content: .arrow(ArrowItem(
-                tail: Point(x: 10, y: 50),
-                head: Point(x: 110, y: 50),
-                width: 4,
-                headSize: 20,
-                color: red
+            content: .path(PathItem(
+                geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
+                fill: nil,
+                stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow)
             )),
-            origin: ItemOrigin(place: "clips[2]", id: nil, kind: "arrow")
+            origin: ItemOrigin(place: "clips[2]", id: nil, kind: "shape")
         )
 
         // When
         let hits = [Point(x: 50, y: 51), Point(x: 95, y: 56), Point(x: 108, y: 58)].map { point in
+            sut.report(of: list([arrow]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 1, 0])
+    }
+
+    @Test("a trimmed path's arrowhead sits at the end of its drawn stroke, and nothing past it is under the point")
+    func hitsTrimmedArrowShape() {
+        // Given
+        // Half of the line is drawn, to x = 60, its head from its base at x = 44 to its tip there.
+        let arrow = DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
+            fill: nil,
+            stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 0.5)
+        )))
+
+        // When
+        let hits = [Point(x: 30, y: 51), Point(x: 50, y: 54), Point(x: 90, y: 50)].map { point in
             sut.report(of: list([arrow]), point: point).hits.count
         }
 

@@ -10,10 +10,10 @@ import CoreImage
 import Frames
 
 // Draws the display lists of one output frame: the list over its background, items bottom first, each cut to its mask
-// in output pixels, carried by its transform and cut to its reveal in its own coordinates. A `normal` item is drawn
-// source-over by Core Graphics, and any other blend mode draws the item into a transparent layer that the mode's W3C
-// kernel composites over the backdrop. Opacity below 1 applies to the item as a whole. Nested lists are drawn once
-// per frame at their own size.
+// in output pixels, carried by its transform and cut to its reveal in its own coordinates, over the shadow it casts. A
+// `normal` item is drawn source-over by Core Graphics, and any other blend mode draws the item into a transparent
+// layer that the mode's W3C kernel composites over the backdrop. Opacity below 1 and the blend mode apply to the item
+// and its shadow as a whole. Nested lists are drawn once per frame at their own size.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -63,23 +63,86 @@ final class FrameDrawer {
         _ item: DisplayItem,
         drawing: (CGContext) throws -> Void,
         in context: CGContext
-    ) rethrows {
+    ) throws {
         context.saveGState()
         defer { context.restoreGState() }
 
         if let mask = item.mask { context.clip(to: CGRect(mask)) }
-        context.concatenate(CGAffineTransform(item.transform))
-        if let reveal = item.reveal { context.clip(to: CGRect(reveal)) }
 
         guard item.opacity < 1 else {
-            try drawing(context)
+            try paint(item, drawing: drawing, in: context)
             return
         }
 
         context.setAlpha(item.opacity)
         context.beginTransparencyLayer(auxiliaryInfo: nil)
         defer { context.endTransparencyLayer() }
-        try drawing(context)
+        try paint(item, drawing: drawing, in: context)
+    }
+
+    // The item carried by its transform and cut to its reveal, over its shadow when it casts one.
+    private func paint(
+        _ item: DisplayItem,
+        drawing: (CGContext) throws -> Void,
+        in context: CGContext
+    ) throws {
+        guard let shadow = shadow(of: item.content) else {
+            context.concatenate(CGAffineTransform(item.transform))
+            if let reveal = item.reveal { context.clip(to: CGRect(reveal)) }
+            try drawing(context)
+            return
+        }
+
+        try paint(item, drawing: drawing, casting: shadow, in: context)
+    }
+
+    private func shadow(of content: DisplayContent) -> DropShadow? {
+        switch content {
+        case let .picture(picture):
+            picture.shadow
+
+        case let .path(path):
+            path.shadow
+
+        case .glyphs, .adjust:
+            nil
+        }
+    }
+
+    // The item drawn in output pixels into a layer a margin wider than the frame on every side, so a shadow cast into
+    // the frame from outside it is kept. The layer's alpha in the shadow's colour, blurred and moved, is drawn below
+    // the layer. The shadow's radius and offset are in the item's own coordinates, so the transform carries the offset
+    // and scales the radius by its area's square root.
+    private func paint(
+        _ item: DisplayItem,
+        drawing: (CGContext) throws -> Void,
+        casting shadow: DropShadow,
+        in context: CGContext
+    ) throws {
+        let matrix = CGAffineTransform(item.transform)
+        let blur = shadow.radius * abs(matrix.a * matrix.d - matrix.b * matrix.c).squareRoot()
+        let offset = CGSize(width: shadow.offset.x, height: shadow.offset.y).applying(matrix)
+        let margin = Int((3 * blur + hypot(offset.width, offset.height)).rounded(.up)) + 1
+        let layer = try FrameContext(width: context.width + 2 * margin, height: context.height + 2 * margin)
+        layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
+        layer.context.concatenate(matrix)
+        if let reveal = item.reveal { layer.context.clip(to: CGRect(reveal)) }
+        try drawing(layer.context)
+
+        let picture = try layer.ciImage()
+        var tinted = CIImage(color: CIColor(cgColor: shadow.color.cgColor))
+            .cropped(to: picture.extent)
+            .applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: picture])
+        if blur > 0 {
+            tinted = tinted.applyingGaussianBlur(sigma: blur)
+        }
+        // Core Image counts rows from the bottom, so a shadow moved down moves to a smaller y.
+        let moved = tinted.transformed(by: CGAffineTransform(translationX: offset.width, y: -offset.height))
+        let frame = CGRect(x: margin, y: margin, width: context.width, height: context.height)
+        let bounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
+
+        context.drawUpright(try FrameContext.cgImage(of: moved, in: frame), in: bounds)
+        context.drawUpright(try FrameContext.cgImage(of: picture, in: frame), in: bounds)
     }
 
     // What the item draws in its own coordinates. Pictures are read and an adjustment's backdrop filtered before it,
@@ -97,14 +160,8 @@ final class FrameDrawer {
                 try PictureDrawer(tables: tables).draw(picture, source: source, matte: matte, seed: seed, in: context)
             }
 
-        case let .fill(fill):
-            return { context in ShapeDrawer().draw(fill, in: context) }
-
-        case let .stroke(stroke):
-            return { context in ShapeDrawer().draw(stroke, in: context) }
-
-        case let .arrow(arrow):
-            return { context in ShapeDrawer().draw(arrow, in: context) }
+        case let .path(path):
+            return { context in PathDrawer().draw(path, in: context) }
 
         case let .glyphs(glyphs):
             return { [glyphDrawer] context in try glyphDrawer.draw(glyphs, in: context) }

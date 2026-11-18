@@ -47,7 +47,7 @@ struct DisplayListReaderTests {
                 matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
-                shadow: MediaShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "#00000080"))
+                shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "#00000080"))
             )),
             origin: origin
         ),
@@ -57,31 +57,39 @@ struct DisplayListReaderTests {
             destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         ))),
         DisplayItem(
-            content: .fill(FillItem(
-                rectangle: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
-                radius: 0,
-                color: Color(written: "#00000099"),
-                hole: RoundedRectangle(rectangle: Rectangle(x: 100, y: 200, width: 300, height: 120), radius: 16)
+            content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1920), radius: 16),
+                fill: Color(written: "#00000099"),
+                stroke: nil,
+                shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "#00000080"))
             )),
-            origin: ItemOrigin(place: "clips[3]", id: nil, kind: "dim")
+            origin: ItemOrigin(place: "clips[3]", id: nil, kind: "shape")
         ),
-        DisplayItem(content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 1500, width: 1080, height: 420), color: Color(written: "#000000")))),
+        DisplayItem(content: .path(PathItem(
+            filling: Rectangle(x: 0, y: 1500, width: 1080, height: 420),
+            color: Color(written: "#000000")
+        ))),
         DisplayItem(
             transform: AffineTransform(a: 1.2, b: 0, c: 0, d: 1.2, tx: -54, ty: -96),
-            content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 150, y: 150, width: 100, height: 50),
-                radius: 8,
-                width: 6,
-                color: Color(written: "#FF3B30"),
-                trim: 0.625
+            content: .path(PathItem(
+                geometry: .ellipse(Rectangle(x: 150, y: 150, width: 100, height: 50)),
+                fill: nil,
+                stroke: PathStroke(
+                    width: 6,
+                    color: Color(written: "#FF3B30"),
+                    join: .miter,
+                    cap: .square,
+                    start: .none,
+                    end: .none
+                ),
+                trim: Trim(start: 0.125, end: 0.625)
             ))
         ),
-        DisplayItem(content: .arrow(ArrowItem(
-            tail: Point(x: 240, y: 175),
-            head: Point(x: 300, y: 175),
-            width: 6,
-            headSize: 24,
-            color: Color(written: "#FF3B30")
+        DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 240, y: 175), Point(x: 300, y: 175)], isClosed: false),
+            fill: nil,
+            stroke: PathStroke(width: 6, color: Color(written: "#FF3B30"), join: .round, cap: .round, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 0.6)
         ))),
         DisplayItem(
             transform: AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 75.4, ty: 1709.8),
@@ -102,7 +110,14 @@ struct DisplayListReaderTests {
         ),
         DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], stroke: nil, background: nil))),
         DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.saturation(amount: 0)]))),
-        DisplayItem(content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), filter: [])))
+        DisplayItem(content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), filter: []))),
+        DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
+            fill: Color(written: "#3366CC"),
+            stroke: PathStroke(width: 2.5, color: Color(written: "#FFFFFF80"), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
+            trim: Trim(start: 0.75, end: 0.25),
+            shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
+        )))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -165,7 +180,7 @@ struct DisplayListReaderTests {
     func readsWrittenBlend(blend: String) throws {
         // Given
         let list = list(items: [
-            DisplayItem(blend: blend, content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FFFFFF"))))
+            DisplayItem(blend: blend, content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FFFFFF"))))
         ])
 
         // When
@@ -294,10 +309,10 @@ struct DisplayListReaderTests {
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
             (#""displayList": "1.0.0","#, "", #"top level (display list): missing key "displayList""#),
-            (#""trim": 0.625"#, #""trimmed": 0.625"#, #"items[4] (stroke): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, reveal, rect, radius, width, color, trim"#),
-            (#""headSize": 24,"#, "", #"items[5] (arrow): missing key "headSize""#),
+            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, reveal, geometry, fill, stroke, trim, shadow"#),
+            (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
             (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter"#),
-            (#""item": "arrow""#, #""item": "line""#, #"items[5].item (display item): unknown value "line". Allowed: picture, fill, stroke, arrow, glyphs, adjust"#),
+            (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#)
         ]
@@ -315,6 +330,97 @@ struct DisplayListReaderTests {
 
         // Then
         #expect((error as? CustomStringConvertible)?.description == message)
+    }
+
+    @Test("a path's fill, stroke and shadow are written null where it has none, and its trim as [a, b]")
+    func writesPathMembers() throws {
+        // Given
+        let list = list(items: [Self.items[5]])
+
+        // When
+        let item = try #require(writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(item.keys == [
+            "item", "origin", "transform", "opacity", "blend", "mask", "reveal", "geometry", "fill", "stroke", "trim",
+            "shadow"
+        ])
+        #expect(item["item"] == .string("path"))
+        #expect(item["fill"] == .null)
+        #expect(item["shadow"] == .null)
+        #expect(item["trim"] == .array([.number(0), .number(0.6)]))
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end"])
+        #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test(
+        "a path whose geometry, stroke literal or trim is not of the JSON form stops, naming its place",
+        arguments: [
+            (
+                #"{ "polyline": { "points": [[1, 2]], "closed": false } }"#,
+                "geometry",
+                "items[0].geometry.polyline.points (path): a polyline runs through at least two points, found 1"
+            ),
+            (
+                #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
+                "geometry",
+                #"items[0].geometry (path): takes only one of "rect", "ellipse""#
+            ),
+            ("{}", "geometry", "items[0].geometry (path): needs one of rect, ellipse, polyline"),
+            (
+                #"{ "spline": { "points": [[0, 0], [1, 1]] } }"#,
+                "geometry",
+                #"items[0].geometry (path): unknown key "spline". Allowed: rect, ellipse, polyline"#
+            ),
+            (
+                #"{ "ellipse": { "rect": [0, 0, 1, 1], "radius": 2 } }"#,
+                "geometry",
+                #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                "stroke",
+                #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                "stroke",
+                #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
+            ),
+            ("[0, 1.5]", "trim", "items[0].trim[1] (path): a trim runs from 0 to 1, found 1.5"),
+            ("[-0.25, 1]", "trim", "items[0].trim[0] (path): a trim runs from 0 to 1, found -0.25"),
+            ("[0]", "trim", "items[0].trim (path): expected a list of 2 numbers, found a list of 1")
+        ]
+    )
+    func refusesUnreadablePath(
+        written: String,
+        member: String,
+        message: String
+    ) throws {
+        // Given
+        var members = [
+            "geometry": #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#,
+            "stroke": "null",
+            "trim": "[0, 1]"
+        ]
+        members[member] = written
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""), "fill": "#FFFFFFFF",
+                "stroke": \#(members["stroke"] ?? ""), "trim": \#(members["trim"] ?? ""), "shadow": null } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     // MARK: - Private
