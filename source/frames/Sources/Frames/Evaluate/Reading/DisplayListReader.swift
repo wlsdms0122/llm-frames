@@ -162,20 +162,11 @@ package struct DisplayListReader: Sendable {
 
     private func mask(_ value: PlacedJSONValue) throws -> ItemMask {
         let mask = try value.object(keys: ["geometry", "transform", "feather", "invert", "mode"])
-        let written = try mask.member("feather")
-        let feather = try written.number()
-        guard feather >= 0 else {
-            throw ModelError.invalidValue(
-                place: written.place,
-                kind: written.kind,
-                reason: "a feather is 0 or more, found \(written.value.written)"
-            )
-        }
 
         return ItemMask(
-            geometry: try values.geometry(mask.member("geometry")),
+            geometry: try values.maskGeometry(mask.member("geometry")),
             transform: try transform(mask.member("transform")),
-            feather: feather,
+            feather: try values.maskFeather(mask.member("feather")),
             isInverted: try mask.member("invert").bool(),
             mode: try literal(mask.member("mode"))
         )

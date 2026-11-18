@@ -47,7 +47,7 @@ struct DisplayListReaderTests {
             mode: .subtract
         ),
         ItemMask(
-            geometry: .polyline([Point(x: 0, y: 0), Point(x: 540, y: 0), Point(x: 270, y: 960)], isClosed: false),
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 540, y: 0), Point(x: 270, y: 960)], isClosed: true),
             transform: .identity,
             feather: 3,
             isInverted: false,
@@ -301,9 +301,17 @@ struct DisplayListReaderTests {
     }
 
     @Test(
-        "a mask list that is empty, or a mask with a missing key, a negative feather or an unknown mode stops",
+        "a mask list that is empty, or a mask that is not a closed polyline through three points, has a missing key, a negative feather or an unknown mode stops",
         arguments: [
             ("[]", "items[0].mask (path): a mask list holds at least one mask, and an item without one has null"),
+            (
+                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0], [2, 4]], "closed": false } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0]], "closed": true } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
+            ),
             (
                 #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
                 #"items[0].mask[0] (path): missing key "mode""#

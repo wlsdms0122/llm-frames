@@ -110,8 +110,38 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    // A clip's masks: `null`, or a keyframe list of lists of at least one mask. A path mask is a closed polyline
-    // through at least three points, and a feather is 0 or more.
+    // A mask's geometry, in a resolved document and a display list: a path mask is a closed polyline through at least
+    // three points.
+    func maskGeometry(_ value: PlacedJSONValue) throws -> PathGeometry {
+        let geometry = try geometry(value)
+        if case let .polyline(points, isClosed) = geometry {
+            guard isClosed, points.count >= 3 else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "a path mask is a closed polyline through at least three points"
+                )
+            }
+        }
+
+        return geometry
+    }
+
+    // A mask's feather, in a resolved document and a display list: 0 or more.
+    func maskFeather(_ value: PlacedJSONValue) throws -> Double {
+        let feather = try value.number()
+        guard feather >= 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a feather is 0 or more, found \(value.value.written)"
+            )
+        }
+
+        return feather
+    }
+
+    // A clip's masks: `null`, or a keyframe list of lists of at least one mask.
     func masks(_ value: PlacedJSONValue) throws -> [Keyframe<[ResolvedMask]>]? {
         try value.optional { value in
             try keyframes(value) { list in
@@ -259,30 +289,10 @@ struct ResolvedValueReader: Sendable {
     // MARK: - Private
     private func mask(_ value: PlacedJSONValue) throws -> ResolvedMask {
         let mask = try value.object(kind: "mask", keys: ["geometry", "feather", "invert", "mode"])
-        let geometry = try self.geometry(mask.member("geometry"))
-        if case let .polyline(points, isClosed) = geometry {
-            guard isClosed, points.count >= 3 else {
-                let written = try mask.member("geometry")
-                throw ModelError.invalidValue(
-                    place: written.place,
-                    kind: written.kind,
-                    reason: "a path mask is a closed polyline through at least three points"
-                )
-            }
-        }
-        let written = try mask.member("feather")
-        let feather = try written.number()
-        guard feather >= 0 else {
-            throw ModelError.invalidValue(
-                place: written.place,
-                kind: written.kind,
-                reason: "a feather is 0 or more, found \(written.value.written)"
-            )
-        }
 
         return ResolvedMask(
-            geometry: geometry,
-            feather: feather,
+            geometry: try maskGeometry(mask.member("geometry")),
+            feather: try maskFeather(mask.member("feather")),
             isInverted: try mask.member("invert").bool(),
             mode: try mask.member("mode").name(among: MaskMode.allCases.map(\.rawValue), MaskMode.init(rawValue:))
         )

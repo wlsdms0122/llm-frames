@@ -135,11 +135,11 @@ struct MaskDrawerTests {
         expect(alpha(of: bitmap, x: 18, y: 10), equals: 0)
     }
 
-    @Test("a polyline mask is filled closed by the nonzero rule, and an ellipse mask leaves its rectangle's corners")
+    @Test("a polyline mask is filled by the nonzero rule, and an ellipse mask leaves its rectangle's corners")
     func fillsPolylineAndEllipse() throws {
         // Given
         let triangle = ItemMask(
-            geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 0, y: 40)], isClosed: false),
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 0, y: 40)], isClosed: true),
             transform: .identity,
             feather: 0,
             isInverted: false,
