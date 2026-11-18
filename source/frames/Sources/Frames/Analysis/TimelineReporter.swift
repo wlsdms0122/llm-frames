@@ -173,20 +173,8 @@ package struct TimelineReporter: Sendable {
         case .title:
             ClipKind.title.label
 
-        case let .shape(drawing):
-            switch drawing {
-            case .box:
-                "box"
-
-            case .fill:
-                "fill"
-
-            case .dim:
-                "dim"
-
-            case .arrow:
-                "arrow"
-            }
+        case let .shape(shape):
+            ClipKind.shape(shape.kind.rawValue).label
 
         case .adjustment:
             ClipKind.adjust.label

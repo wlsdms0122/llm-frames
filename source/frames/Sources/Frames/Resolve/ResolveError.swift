@@ -37,6 +37,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case titleWidthUnderContentFit(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
+    case shapeAreaWithBox(place: Place, kind: PlaceKind)
+    case shapeWithoutGeometry(place: Place, kind: PlaceKind)
+    case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
+    case shapeDrawsNothing(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
@@ -160,6 +164,21 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .textAreaInOutputPixels(place, kind):
             "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
                 + "and this clip's coordinates are output pixels"
+
+        case let .shapeAreaWithBox(place, kind):
+            "\(place) (\(kind.label)): a rect or ellipse is given by \"area\" or by \"width\" and \"height\", "
+                + "and this one writes both"
+
+        case let .shapeWithoutGeometry(place, kind):
+            "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
+
+        case let .pointCountsDiffer(place, kind, counts):
+            "\(place) (\(kind.label)): the keyframes of \"points\" hold "
+                + counts.map { "\($0)" }.joined(separator: " and ")
+                + " points, and points interpolate one by one, so every value has the same number"
+
+        case let .shapeDrawsNothing(place, kind):
+            "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"
 
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"

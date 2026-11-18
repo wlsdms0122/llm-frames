@@ -20,11 +20,13 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
-        "title", "shape", "width", "radius", "color", "side", "length", "head", "adjust", "media", "in", "origin",
-        "out", "speed", "loop", "filter", "conform", "border", "shadow"
+        "title", "shape", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke", "adjust", "media",
+        "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
     ]
 
-    private static let shapeNames = ["box", "fill", "dim", "arrow"]
+    private static let shapeKeys = [
+        "shape", "area", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke", "shadow"
+    ]
 
     private let values = ResolvedValueReader()
 
@@ -144,23 +146,23 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // What a clip draws decides the keys it holds: its content's, then scale and rotation for a title or a media
-    // clip and a blend mode for anything but an adjustment.
+    // What a clip draws decides the keys it holds: its content's, then scale, rotation and a blend mode for anything
+    // but an adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let contentKeys = try self.contentKeys(of: written)
-        let isTransformed = written.contains("title") || written.contains("media")
-        let isBlended = !written.contains("adjust")
+        let isTransformed = !written.contains("adjust")
         let clip = try value.object(
             kind: "clip",
             keys: Self.clipKeys.filter { key in
-                (key != "scale" && key != "rotation" || isTransformed) && (key != "blend" || isBlended)
+                isTransformed || key != "scale" && key != "rotation" && key != "blend"
             } + contentKeys
         )
         let size = try clip.member("size")
         let position = try clip.member("position")
         let anchor = try clip.member("anchor")
-        let box: ResolvedBox? = if size.isNull && position.isNull && anchor.isNull {
+        let isShape = clip.contains("shape")
+        let box: ResolvedBox? = if size.isNull && (isShape || position.isNull && anchor.isNull) {
             nil
         } else {
             ResolvedBox(
@@ -173,20 +175,20 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedClip(
             place: try clip.member("place").string(),
             id: try clip.member("id").optional { try $0.string() },
-            content: try content(of: clip),
+            content: try content(of: clip, isPlacedByBox: box != nil),
             start: try clip.member("start").number(),
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
-            area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
+            area: isShape ? nil : try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
             box: box,
             crop: try clip.member("crop").optional(values.crops),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
-            blend: isBlended ? try clip.member("blend").string() : nil,
+            blend: isTransformed ? try clip.member("blend").string() : nil,
             animation: try values.animation(clip.member("animation"))
         )
     }
@@ -197,18 +199,7 @@ struct ResolvedSequenceReader: Sendable {
             return ["title"]
         }
         if clip.contains("shape") {
-            let name = try clip.member("shape").name(among: Self.shapeNames) { Self.shapeNames.contains($0) ? $0 : nil }
-
-            return switch name {
-            case "box":
-                ["shape", "width", "radius", "color"]
-
-            case "arrow":
-                ["shape", "side", "length", "width", "head", "color"]
-
-            default:
-                ["shape", "color"]
-            }
+            return Self.shapeKeys
         }
         if clip.contains("adjust") {
             return ["adjust"]
@@ -222,12 +213,15 @@ struct ResolvedSequenceReader: Sendable {
         throw ModelError.missingKey(place: clip.place, kind: clip.kind, keys: ["title", "shape", "adjust", "media"])
     }
 
-    private func content(of clip: PlacedJSONObject) throws -> ResolvedClipContent {
+    private func content(
+        of clip: PlacedJSONObject,
+        isPlacedByBox: Bool
+    ) throws -> ResolvedClipContent {
         if clip.contains("title") {
             return .title(try values.text(clip.member("title")))
         }
         if clip.contains("shape") {
-            return .shape(try shape(clip))
+            return .shape(try shape(clip, isPlacedByBox: isPlacedByBox))
         }
         if clip.contains("adjust") {
             return .adjustment(try values.filter(clip.member("adjust")))
@@ -277,29 +271,53 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    private func shape(_ clip: PlacedJSONObject) throws -> ShapeDrawing {
-        let number = { (key: String) in try clip.member(key).number() }
-        let color = try values.color(clip.member("color"))
+    // A shape's kind and geometry, then how it is drawn. One placed by its geometry carries its position and anchor.
+    private func shape(
+        _ clip: PlacedJSONObject,
+        isPlacedByBox: Bool
+    ) throws -> ResolvedShape {
+        let numbers = { (key: String) in try clip.member(key).optional(values.numbers) }
 
-        switch try clip.member("shape").string() {
-        case "box":
-            return .box(width: try number("width"), radius: try number("radius"), color: color)
+        return ResolvedShape(
+            kind: try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init),
+            area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
+            width: try numbers("width"),
+            height: try numbers("height"),
+            points: try clip.member("points").optional { value in
+                try values.keyframes(value) { points in try points.elements().map(values.point) }
+            },
+            isClosed: try clip.member("closed").optional { try $0.bool() },
+            radius: try values.numbers(clip.member("radius")),
+            trim: try values.keyframes(clip.member("trim")) { value in
+                let ends = try value.numbers()
+                guard ends.count == 2 else { throw value.wrongType("[a, b]") }
 
-        case "fill":
-            return .fill(color: color)
+                return Trim(start: ends[0], end: ends[1])
+            },
+            fill: try clip.member("fill").optional(values.color),
+            stroke: try clip.member("stroke").optional(stroke),
+            shadow: try clip.member("shadow").optional(shadow),
+            position: isPlacedByBox ? nil : try clip.member("position").optional { value in
+                try values.keyframes(value, read: values.point)
+            },
+            anchor: isPlacedByBox ? nil : try clip.member("anchor").optional(values.point)
+        )
+    }
 
-        case "dim":
-            return .dim(color: color)
-
-        default:
-            return .arrow(
-                side: try side(clip.member("side")),
-                length: try number("length"),
-                width: try number("width"),
-                head: try number("head"),
-                color: color
-            )
+    private func stroke(_ value: PlacedJSONValue) throws -> PathStroke {
+        let stroke = try value.object(kind: "stroke", keys: ["color", "width", "join", "cap", "start", "end"])
+        let end = { (key: String) in
+            try stroke.member(key).name(among: StrokeEnd.allCases.map(\.rawValue), StrokeEnd.init)
         }
+
+        return PathStroke(
+            width: try stroke.member("width").number(),
+            color: try values.color(stroke.member("color")),
+            join: try stroke.member("join").name(among: StrokeJoin.allCases.map(\.rawValue), StrokeJoin.init),
+            cap: try stroke.member("cap").name(among: StrokeCap.allCases.map(\.rawValue), StrokeCap.init),
+            start: try end("start"),
+            end: try end("end")
+        )
     }
 
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
@@ -402,9 +420,5 @@ struct ResolvedSequenceReader: Sendable {
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {
         try value.name(among: ["fit", "fill"], Conform.init)
-    }
-
-    private func side(_ value: PlacedJSONValue) throws -> Side {
-        try value.name(among: ["left", "right", "top", "bottom"], Side.init)
     }
 }

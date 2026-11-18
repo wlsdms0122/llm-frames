@@ -77,19 +77,29 @@ struct GeometryFinder: Sendable {
         kind: String
     ) throws -> PropertyValue<Point> {
         try values(property, key: "position", clock: clock, instant: instant, place: place) { form, time, place in
-            switch form {
-            case let .point(point):
-                return point
+            try point(form, in: picture, at: pictureClock.mediaTime(atSequenceTime: time), place: place, kind: kind)
+        }
+    }
 
-            case let .area(area, point):
-                let found = try self.area(
-                    area,
+    // A path's points, each found as a position is, at the place of its index in the list.
+    func points(
+        _ property: PropertyValue<[PositionForm]>,
+        in picture: Picture,
+        pictureClock: PictureClock,
+        clock: TimeMap,
+        instant: Double,
+        place: Place,
+        kind: String
+    ) throws -> PropertyValue<[Point]> {
+        try values(property, key: "points", clock: clock, instant: instant, place: place) { forms, time, place in
+            try forms.enumerated().map { index, form in
+                try point(
+                    form,
                     in: picture,
                     at: pictureClock.mediaTime(atSequenceTime: time),
-                    place: place.appending(key: "area"),
+                    place: place.appending(index: index),
                     kind: kind
                 )
-                return found.rectangle.point(named: point)
             }
         }
     }
@@ -105,6 +115,23 @@ struct GeometryFinder: Sendable {
     }
 
     // MARK: - Private
+    private func point(
+        _ form: PositionForm,
+        in picture: Picture,
+        at mediaTime: Double,
+        place: Place,
+        kind: String
+    ) throws -> Point {
+        switch form {
+        case let .point(point):
+            return point
+
+        case let .area(area, point):
+            let found = try self.area(area, in: picture, at: mediaTime, place: place.appending(key: "area"), kind: kind)
+            return found.rectangle.point(named: point)
+        }
+    }
+
     private func values<Form, Found>(
         _ property: PropertyValue<Form>,
         key: String,

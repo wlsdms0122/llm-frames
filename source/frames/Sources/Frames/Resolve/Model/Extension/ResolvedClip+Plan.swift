@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant. A title
-// or media clip carries its box, a shape or adjustment its area. Scale and rotation belong to a title or media clip,
-// and a blend mode to anything drawn but an adjustment.
+// A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant. A title,
+// a media clip or a shape given by `width` and `height` carries its box, an adjustment its area, and a shape placed by
+// its geometry carries it in its own entry. Scale and rotation belong to anything drawn but an adjustment, and so
+// does a blend mode.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,14 +20,8 @@ extension ResolvedClip {
         let instant = plan.instant
         let appearance = geometry.appearance
         let content = try Self.content(of: plan, geometry: geometry, hashes: hashes)
-        let isTransformed = switch content {
-        case .title, .media:
-            true
-
-        case .shape, .adjustment:
-            false
-        }
-        let isBlended = if case .adjustment = content { false } else { true }
+        let isShape = if case .shape = content { true } else { false }
+        let isTransformed = if case .adjustment = content { false } else { true }
 
         self.init(
             place: plan.place.description,
@@ -37,7 +32,7 @@ extension ResolvedClip {
             lane: plan.lane,
             storyline: plan.storyline,
             parent: plan.parent?.id,
-            area: geometry.area?.keyframes(at: instant) { $0.rectangle },
+            area: isShape ? nil : geometry.area?.keyframes(at: instant) { $0.rectangle },
             box: geometry.box.map { box in
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
@@ -46,15 +41,15 @@ extension ResolvedClip {
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,
-            blend: isBlended ? appearance.blend : nil,
+            blend: isTransformed ? appearance.blend : nil,
             animation: ResolvedAnimation(plan: plan.animation)
         )
     }
 
     // MARK: - Public
     // MARK: - Private
-    // A title is the one clip set as text, a shape the one drawn on its area, and a media clip the one with a picture that
-    // fills its box, so what is left is an adjustment.
+    // A title is the one clip set as text, a shape the one with a shape appearance, and a media clip the one with a
+    // picture that fills its box, so what is left is an adjustment.
     private static func content(
         of plan: ClipPlan,
         geometry: ClipGeometry,
@@ -66,8 +61,8 @@ extension ResolvedClip {
         if let title = geometry.title {
             return .title(try ResolvedText(layout: title, hashes: hashes))
         }
-        if let drawing = appearance.shape {
-            return .shape(drawing)
+        if let shape = appearance.shape {
+            return .shape(ResolvedShape(shape: shape, geometry: geometry, instant: plan.instant))
         }
         if
             let media = try ResolvedMediaContent(media: plan.media, nested: geometry.nested, hashes: hashes),

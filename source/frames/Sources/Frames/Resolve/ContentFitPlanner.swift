@@ -10,14 +10,13 @@ import Foundation
 // Measures a content-fit frame from a sequence planned in its measuring space, and moves what is written in that
 // space onto the measured frame. Each clip's extent is its geometry at sequence time 0 without animation or transition
 // motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's text
-// box, and a box, fill or arrow shape's outline grown by half its stroke, with its head. A solid fills the frame, an
-// adjustment applies to it, a shape without an area covers it and a dim darkens it, so none of them is measured. The
-// union is rounded outward to whole pixels, the margin is added, and each side is rounded up to an even number.
+// box, and a shape's outline grown by half its stroke width, with its arrowheads. A solid fills the frame and an
+// adjustment applies to it, so neither is measured. The union is rounded outward to whole pixels, the margin is added,
+// and each side is rounded up to an even number.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
     private let shapeEvaluator = ShapeEvaluator()
-    private let drawer = ShapeDrawer()
 
     // MARK: - Initializer
     init() { }
@@ -154,45 +153,94 @@ struct ContentFitPlanner: Sendable {
                 ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: drawn, by: transform)
 
-        case let .shape(drawing):
-            return extent(of: drawing, clip: clip, in: space)
+        case let .shape(shape):
+            return extent(of: shape, clip: clip, in: space)
 
         case .adjustment:
             return nil
         }
     }
 
-    // A shape at scale 0 draws nothing, so it is not measured.
+    // A shape's outline grown by half its stroke width after its transform, with its arrowheads. A path's arrowheads
+    // are measured as drawn, and a rect's or an ellipse's, which only a trim gives, by growing its outline by the half
+    // width of their base. A shape at scale 0 draws nothing, so it is not measured.
     private func extent(
-        of drawing: ShapeDrawing,
+        of shape: ResolvedShape,
         clip: ResolvedClip,
         in space: ClipSpace
     ) -> Rectangle? {
-        guard let keyframes = clip.area else { return nil }
-
-        let tracked = space.tracked(by: clip.track, at: 0)
-        guard tracked.scale > 0 else { return nil }
-
-        let area = space.area(of: keyframes, track: clip.track, at: 0)
-        let drawn = drawer.content(of: drawing, on: area, scale: tracked.scale)
-        let outline: Rectangle
-        switch drawn.content {
-        case let .box(rectangle, width, _, _):
-            outline = rectangle.grown(by: width / 2)
-
-        case let .fill(rectangle, _):
-            outline = rectangle
-
-        case .arrow:
-            outline = drawn.box
-
-        case .dim:
-            return nil
-        }
-
         let sample = ClipSample(clip: clip, at: 0)
-        let transform = shapeEvaluator.transform(of: drawing, clip: clip, sample: sample, in: space, at: 0)
-        return bounds(of: outline, by: transform)
+        let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: 0)
+        guard let item = items.first, case let .path(path) = item.content else { return nil }
+
+        let transform = item.transform
+        let width = path.stroke?.width ?? 0
+        let hasArrow = path.stroke.map { $0.start == .arrow || $0.end == .arrow } ?? false
+        switch path.geometry {
+        case let .rect(rectangle, _), let .ellipse(rectangle):
+            return bounds(of: rectangle.grown(by: hasArrow ? width * 2 : width / 2), by: transform)
+
+        case let .polyline(points, isClosed):
+            let scale = (transform.a * transform.a + transform.b * transform.b).squareRoot()
+            let outline = Rectangle(bounding: points.map(transform.apply(to:))).grown(by: width / 2 * scale)
+            let heads = path.stroke.map { stroke in
+                arrowheads(of: points, isClosed: isClosed, trim: path.trim, stroke: stroke).map(transform.apply(to:))
+            } ?? []
+            return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
+        }
+    }
+
+    // The corners of a polyline's arrowheads as drawn (FRAMES-20): each at an end of the trimmed stroke, its tip
+    // there, `4 × width` long along the outline's direction and as wide at its base, shrunk about its tip where the
+    // heads together are longer than the stroke. A whole closed outline has no ends.
+    private func arrowheads(
+        of points: [Point],
+        isClosed: Bool,
+        trim: Trim,
+        stroke: PathStroke
+    ) -> [Point] {
+        let vertices = isClosed ? points + [points[0]] : points
+        let segments = Array(zip(vertices, vertices.dropFirst()))
+        let length = segments.reduce(0) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
+        let from = min(trim.start, trim.end) * length
+        let to = max(trim.start, trim.end) * length
+        // The start's head points back along the outline, the end's forward.
+        let ends = [(stroke.start, from, -1.0), (stroke.end, to, 1.0)].filter { $0.0 == .arrow }
+        guard to > from, !ends.isEmpty, !(isClosed && from == 0 && to == length) else { return [] }
+
+        let head = min(stroke.width * 4, (to - from) / Double(ends.count))
+        return ends.flatMap { _, distance, sign -> [Point] in
+            guard let (tip, direction) = place(at: distance, along: segments) else { return [] }
+
+            let axis = Point(x: direction.x * sign, y: direction.y * sign)
+            let base = Point(x: tip.x - axis.x * head, y: tip.y - axis.y * head)
+            return [
+                tip,
+                Point(x: base.x - axis.y * head / 2, y: base.y + axis.x * head / 2),
+                Point(x: base.x + axis.y * head / 2, y: base.y - axis.x * head / 2)
+            ]
+        }
+    }
+
+    // The point at a distance along segments and the unit direction they run there, on the segment that reaches it.
+    private func place(
+        at distance: Double,
+        along segments: [(Point, Point)]
+    ) -> (Point, Point)? {
+        var start = 0.0
+        var last: (Point, Point)?
+        for (from, to) in segments {
+            let length = hypot(to.x - from.x, to.y - from.y)
+            guard length > 0 else { continue }
+
+            let direction = Point(x: (to.x - from.x) / length, y: (to.y - from.y) / length)
+            let along = min(max(distance - start, 0), length)
+            last = (Point(x: from.x + direction.x * along, y: from.y + direction.y * along), direction)
+            guard distance > start + length else { return last }
+
+            start += length
+        }
+        return last
     }
 
     private func bounds(
@@ -254,6 +302,7 @@ struct ContentFitPlanner: Sendable {
                     lines: area.lines
                 )
             },
+            points: geometry.points?.map { points in points.map { moved($0, by: offset) } },
             position: geometry.position?.map { moved($0, by: offset) },
             box: geometry.box.map { box in
                 ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)

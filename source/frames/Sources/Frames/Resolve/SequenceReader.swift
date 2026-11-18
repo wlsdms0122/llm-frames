@@ -124,7 +124,6 @@ struct SequenceReader: Sendable {
             scale: property("scale", of: object, read: \.numberValue),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            color: object["color"]?.stringValue,
             filter: object["filter"] ?? object["adjust"]
         )
     }
@@ -136,14 +135,39 @@ struct SequenceReader: Sendable {
         if let media = object["media"] {
             return .media(self.media(media, of: object, place: place.appending(key: "media")))
         }
-        if let shape = ShapeForm(object: object) {
-            return .shape(shape)
+        if let kind = object["shape"]?.stringValue.flatMap(ShapeKind.init(rawValue:)) {
+            return .shape(shape(kind, of: object))
         }
         if let title = object["title"]?.stringValue {
             return .title(text: title, style: object["style"]?.stringValue ?? "")
         }
 
         return .adjust
+    }
+
+    private func shape(
+        _ kind: ShapeKind,
+        of clip: JSONObject
+    ) -> ClipShape {
+        ClipShape(
+            kind: kind,
+            style: clip["style"]?.stringValue,
+            width: property("width", of: clip, read: \.numberValue),
+            height: property("height", of: clip, read: \.numberValue),
+            points: property("points", of: clip) { value in
+                value.arrayValue.map { elements in elements.compactMap(PositionForm.init(value:)) }
+            },
+            isClosed: clip["closed"]?.boolValue ?? false,
+            radius: property("radius", of: clip, read: \.numberValue),
+            outset: clip["outset"]?.numberValue,
+            fill: clip["fill"].flatMap(FillForm.init(value:)),
+            stroke: clip["stroke"].flatMap(StrokeForm.init(value:)),
+            trim: property("trim", of: clip) { value in
+                let ends = value.arrayValue?.compactMap(\.numberValue) ?? []
+                return ends.count == 2 ? Trim(start: ends[0], end: ends[1]) : nil
+            },
+            shadow: clip["shadow"].flatMap(ShadowForm.init(value:))
+        )
     }
 
     private func media(

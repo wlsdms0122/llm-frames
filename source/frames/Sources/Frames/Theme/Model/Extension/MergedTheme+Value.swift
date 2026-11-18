@@ -18,26 +18,6 @@ extension MergedTheme {
         number(at: ["placement", "padding"])
     }
 
-    var arrowWidth: Double {
-        number(at: ["shapes", "arrow", "width"])
-    }
-
-    var arrowLength: Double {
-        number(at: ["shapes", "arrow", "length"])
-    }
-
-    var arrowHead: Double {
-        number(at: ["shapes", "arrow", "head"])
-    }
-
-    var boxWidth: Double {
-        number(at: ["shapes", "box", "width"])
-    }
-
-    var boxRadius: Double {
-        number(at: ["shapes", "box", "radius"])
-    }
-
     var borderWidth: Double {
         number(at: ["border", "width"])
     }
@@ -65,6 +45,11 @@ extension MergedTheme {
         (value(at: ["styles"])?.objectValue?.keys ?? []).sorted()
     }
 
+    // The names of the shape styles the theme holds, in order, which a stop on a name it lacks lists.
+    var shapeStyleNames: [String] {
+        (value(at: ["shapes"])?.objectValue?.keys ?? []).sorted()
+    }
+
     // Where the font list was written, which a stop on it names.
     var fontPlace: Place {
         place(of: Place(components: [.key("font")]))
@@ -89,9 +74,9 @@ extension MergedTheme {
         written.hasPrefix("#") || value(at: ["colors", written]) != nil
     }
 
-    // A shape's theme colour, which a document's `color` replaces.
-    func shapeColor(of shape: ShapeKind) -> Color {
-        color(value(at: ["shapes", shape.rawValue, "color"])?.stringValue ?? "accent")
+    // A shape style as the theme holds it, its lengths in points, or nil for a name the theme does not hold.
+    func shapeStyle(named name: String) -> JSONObject? {
+        value(at: ["shapes", name])?.objectValue
     }
 
     // Where a style places a title that gives no position, and how far it sits from the top or bottom edge, in points.

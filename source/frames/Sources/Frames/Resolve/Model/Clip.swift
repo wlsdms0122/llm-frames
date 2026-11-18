@@ -10,8 +10,8 @@
 // parent. `placement` and `anchor` are the names written.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
 // theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
-// written, their keyframes on the clip's clock, `color` is a shape's as written, and `filter` the filter choice: a
-// media clip's `filter`, or an adjustment's `adjust`.
+// written, their keyframes on the clip's clock, and `filter` the filter choice: a media clip's `filter`, or an
+// adjustment's `adjust`. What a shape writes of its own is in its content.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -39,7 +39,6 @@ struct Clip: Equatable, Sendable {
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
     let blend: String?
-    let color: String?
     let filter: JSONValue?
 
     // MARK: - Initializer
@@ -69,7 +68,6 @@ struct Clip: Equatable, Sendable {
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        color: String? = nil,
         filter: JSONValue? = nil
     ) {
         self.place = place
@@ -97,7 +95,6 @@ struct Clip: Equatable, Sendable {
         self.scale = scale
         self.rotation = rotation
         self.blend = blend
-        self.color = color
         self.filter = filter
     }
 

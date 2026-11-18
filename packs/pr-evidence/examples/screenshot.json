@@ -6,10 +6,10 @@
     { "id": "checkout", "media": "/path/to/checkout.png", "duration": 1, "crop": { "from": "Order summary", "to": "Total", "padding": 40 },
       "anchor": "top-left", "position": [0, 168],
       "connected": [
-        { "shape": "fill", "id": "address", "parent": "checkout", "area": { "text": "Ship to", "padding": 14 }, "color": "#000000" },
-        { "shape": "box", "parent": "checkout", "area": { "text": "Item total", "padding": 14 } },
-        { "shape": "box", "parent": "checkout", "area": { "text": "Shipping", "padding": 14 } },
-        { "shape": "box", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
+        { "shape": "rect", "id": "address", "parent": "checkout", "area": { "text": "Ship to", "padding": 14 }, "fill": "#000000" },
+        { "shape": "rect", "style": "outline", "parent": "checkout", "area": { "text": "Item total", "padding": 14 } },
+        { "shape": "rect", "style": "outline", "parent": "checkout", "area": { "text": "Shipping", "padding": 14 } },
+        { "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
         { "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] }

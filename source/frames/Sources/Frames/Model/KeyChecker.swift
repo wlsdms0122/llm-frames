@@ -163,6 +163,26 @@ struct KeyChecker: Sendable {
                 try check(element, as: .number, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
+        case let .fractions(count):
+            guard let elements = value.arrayValue, elements.count == count else {
+                throw wrongType(value, type, place, kind)
+            }
+
+            for (index, element) in elements.enumerated() {
+                guard let number = element.numberValue, (0...1).contains(number) else {
+                    throw wrongType(element, type, place.appending(index: index), kind)
+                }
+            }
+
+        case .points:
+            guard let elements = value.arrayValue, elements.count >= 2 else {
+                throw wrongType(value, type, place, kind)
+            }
+
+            for (index, element) in elements.enumerated() {
+                try check(element, as: AreaKeyTable.point, place: place.appending(index: index), kind: kind, scope: &scope)
+            }
+
         case let .list(elementType):
             guard let elements = value.arrayValue else { throw wrongType(value, type, place, kind) }
             for (index, element) in elements.enumerated() {
@@ -915,7 +935,8 @@ struct KeyChecker: Sendable {
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.numbers, .array), (.list, .array), (.clips, .array):
+        case (.ease, .array), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
+             (.clips, .array):
             true
 
         case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
@@ -991,6 +1012,12 @@ struct KeyChecker: Sendable {
 
         case let .numbers(count):
             "a list of \(count) numbers"
+
+        case let .fractions(count):
+            "a list of \(count) numbers, each from 0 to 1"
+
+        case .points:
+            "a list of at least two points"
 
         case .list:
             "a list"

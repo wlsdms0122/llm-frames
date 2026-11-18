@@ -1,0 +1,58 @@
+//
+//  ClipShape.swift
+//  Frames
+//
+//  Created by JSilver on 11/18/26.
+//
+
+// What a shape clip writes of its own, beside the keys every clip with a picture takes: its kind, its geometry (a
+// rect's or an ellipse's `width` and `height`, or a path's `points` and `closed`; an `area` is the clip's), the shape
+// style it names, and the appearance keys written on it, each nil where not written. Keyframes are on the clip's
+// clock. Lengths are theme lengths, not yet scaled.
+struct ClipShape: Equatable, Sendable {
+    // MARK: - Property
+    let kind: ShapeKind
+    let style: String?
+    let width: PropertyValue<Double>?
+    let height: PropertyValue<Double>?
+    let points: PropertyValue<[PositionForm]>?
+    let isClosed: Bool
+    let radius: PropertyValue<Double>?
+    let outset: Double?
+    let fill: FillForm?
+    let stroke: StrokeForm?
+    let trim: PropertyValue<Trim>?
+    let shadow: ShadowForm?
+
+    // MARK: - Initializer
+    init(
+        kind: ShapeKind,
+        style: String? = nil,
+        width: PropertyValue<Double>? = nil,
+        height: PropertyValue<Double>? = nil,
+        points: PropertyValue<[PositionForm]>? = nil,
+        isClosed: Bool = false,
+        radius: PropertyValue<Double>? = nil,
+        outset: Double? = nil,
+        fill: FillForm? = nil,
+        stroke: StrokeForm? = nil,
+        trim: PropertyValue<Trim>? = nil,
+        shadow: ShadowForm? = nil
+    ) {
+        self.kind = kind
+        self.style = style
+        self.width = width
+        self.height = height
+        self.points = points
+        self.isClosed = isClosed
+        self.radius = radius
+        self.outset = outset
+        self.fill = fill
+        self.stroke = stroke
+        self.trim = trim
+        self.shadow = shadow
+    }
+
+    // MARK: - Public
+    // MARK: - Private
+}

@@ -7,10 +7,10 @@
 
 // A clips entry: a title, shape, adjustment or media clip. `start` and `end` are its visible window, already narrowed.
 // `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and `parent`
-// the id of the clip whose space it is placed in, nil for an unparented clip. `area` and `box` place it, each nil
-// where the other does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
-// `scale` and `rotation` belong to a title or media clip and `blend` to anything but an adjustment, and each is nil
-// where its entry has no such key.
+// the id of the clip whose space it is placed in, nil for an unparented clip. `box` places a title, a media clip or a
+// shape given by `width` and `height`, `area` an adjustment, and a shape placed by its geometry carries it in its
+// content. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time. `scale`,
+// `rotation` and `blend` belong to anything but an adjustment, and each is nil where its entry has no such key.
 struct ResolvedClip: Equatable, Sendable {
     // MARK: - Property
     let place: String

@@ -6,7 +6,7 @@
 //
 
 // The measures resolve takes of a rectangle once it is found: its edges, growing it, cutting it to a picture, and the
-// rectangle around two.
+// rectangle around two or around points.
 extension Rectangle {
     // MARK: - Property
     var maxX: Double {
@@ -18,6 +18,15 @@ extension Rectangle {
     }
 
     // MARK: - Initializer
+    // The axis-aligned box around points, at least one.
+    init(bounding points: [Point]) {
+        let xs = points.map(\.x)
+        let ys = points.map(\.y)
+        let minX = xs.min() ?? 0
+        let minY = ys.min() ?? 0
+        self.init(x: minX, y: minY, width: (xs.max() ?? 0) - minX, height: (ys.max() ?? 0) - minY)
+    }
+
     // MARK: - Public
     func grown(by length: Double) -> Rectangle {
         Rectangle(x: x - length, y: y - length, width: width + length * 2, height: height + length * 2)

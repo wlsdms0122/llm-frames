@@ -29,8 +29,8 @@ package struct ItemOrigin: Equatable, Sendable {
         case .title:
             .title
 
-        case let .shape(drawing):
-            .shape(Self.shape(of: drawing))
+        case let .shape(shape):
+            .shape(shape.kind.rawValue)
 
         case .adjustment:
             .adjust
@@ -50,22 +50,6 @@ package struct ItemOrigin: Equatable, Sendable {
 
     // MARK: - Public
     // MARK: - Private
-    private static func shape(of drawing: ShapeDrawing) -> String {
-        switch drawing {
-        case .box:
-            "box"
-
-        case .fill:
-            "fill"
-
-        case .dim:
-            "dim"
-
-        case .arrow:
-            "arrow"
-        }
-    }
-
     // Pinned media with frame times is a video or image sequence, and without them a still. A nested sequence is a
     // compound clip or a template instance.
     private static func kind(of media: ResolvedMediaContent) -> MediaKind {

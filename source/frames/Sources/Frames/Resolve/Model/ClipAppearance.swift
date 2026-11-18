@@ -14,7 +14,7 @@ struct ClipAppearance: Equatable, Sendable {
     let scale: PropertyValue<Double>
     let rotation: PropertyValue<Double>
     let blend: String
-    let shape: ShapeDrawing?
+    let shape: ShapeAppearance?
     let filter: [FilterOperation]
     let media: MediaAppearance?
 
@@ -24,7 +24,7 @@ struct ClipAppearance: Equatable, Sendable {
         scale: PropertyValue<Double>,
         rotation: PropertyValue<Double>,
         blend: String,
-        shape: ShapeDrawing?,
+        shape: ShapeAppearance?,
         filter: [FilterOperation],
         media: MediaAppearance?
     ) {

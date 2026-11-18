@@ -24,6 +24,10 @@ indirect enum ValueType: Equatable, Sendable {
     case ease
     case literal([String])
     case numbers(Int)
+    // A list of that many numbers, each from 0 to 1.
+    case fractions(Int)
+    // A list of at least two points, each as `position` takes it.
+    case points
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)

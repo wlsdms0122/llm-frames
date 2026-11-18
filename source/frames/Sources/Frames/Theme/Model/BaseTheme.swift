@@ -17,12 +17,7 @@ package enum BaseTheme {
             "subtitle": { "size": 48, "weight": "regular", "stroke": { "width": 3, "color": "#000000" },
                           "placement": "bottom", "offset": 108, "align": "center", "lines": 2 }
           },
-          "shapes": {
-            "box":   { "width": 8, "radius": 18, "color": "#ED2929" },
-            "fill":  { "color": "#FFD43B80" },
-            "dim":   { "color": "#0000008C" },
-            "arrow": { "width": 10, "length": 160, "head": 32, "color": "#ED2929" }
-          },
+          "shapes": {},
           "placement": { "padding": 96 },
           "border":    { "width": 4, "color": "accent" },
           "shadow":    { "radius": 32, "offset": [0, 12], "color": "shadow" },

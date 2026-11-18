@@ -5,7 +5,8 @@
     "styles": {
       "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
                  "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 }
-    }
+    },
+    "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } }
   },
   "storyline": [
     { "id": "title-card", "solid": "#000000", "duration": 1.5,
@@ -20,7 +21,7 @@
       "connected": [
         { "at": [0, 1.5], "title": "Item total and shipping are listed", "style": "subtitle" },
         { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" },
-        { "at": [1.8, 4], "shape": "box", "id": "total-box", "parent": "total", "area": { "text": "Total", "padding": 14 } },
+        { "at": [1.8, 4], "shape": "rect", "style": "outline", "id": "total-box", "parent": "total", "area": { "text": "Total", "padding": 14 } },
         { "at": [1.8, 4], "title": "38,000 + 4,000", "style": "label", "parent": "total-box",
           "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] },

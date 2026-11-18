@@ -79,6 +79,7 @@ struct SequencePlanner: Sendable {
             let plan = time.clips[index]
             return (
                 area: parentSpace.area(found[index].area, written: written[index].area, of: plan),
+                points: found[index].points,
                 position: parentSpace.position(found[index].position, written: written[index].position, of: plan),
                 crop: found[index].crop
             )
@@ -118,6 +119,12 @@ struct SequencePlanner: Sendable {
         }
         let clips = try tracked.time.clips.indices.map { index in
             let title = try title(of: written[index], format: format, theme: time.theme)
+            let shape = try appearances.shape(
+                of: tracked.time.clips[index],
+                written: written[index],
+                scale: lengthScale,
+                theme: time.theme
+            )
             let box = try appearances.box(
                 of: tracked.time.clips[index],
                 written: written[index],
@@ -125,11 +132,13 @@ struct SequencePlanner: Sendable {
                 crop: placed[index].crop,
                 title: title,
                 picture: clipPictures[index],
+                shape: shape,
                 format: format,
                 theme: time.theme
             )
             return ClipGeometry(
                 area: placed[index].area,
+                points: placed[index].points,
                 position: placed[index].position,
                 box: box,
                 crop: placed[index].crop,
@@ -142,6 +151,7 @@ struct SequencePlanner: Sendable {
                     box: box,
                     crop: placed[index].crop,
                     picture: clipPictures[index],
+                    shape: shape,
                     scale: lengthScale,
                     theme: time.theme,
                     defaults: time.defaults
@@ -369,6 +379,7 @@ struct SequencePlanner: Sendable {
         format: FormatPlan
     ) throws -> (
         area: PropertyValue<FoundArea>?,
+        points: PropertyValue<[Point]>?,
         position: PropertyValue<Point>?,
         crop: PropertyValue<FoundArea>?,
         isInOutputPixels: Bool
@@ -389,6 +400,21 @@ struct SequencePlanner: Sendable {
             return try finder.areas(
                 area,
                 key: "area",
+                in: space.picture,
+                pictureClock: space.clock,
+                clock: plan.clock,
+                instant: plan.instant,
+                place: written.place,
+                kind: plan.kind.label
+            )
+        }
+        let points = try shapePoints(of: written).map { points in
+            if space.isOutputPixels, let text = byText(points, place: written.place) {
+                throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
+            }
+
+            return try finder.points(
+                points,
                 in: space.picture,
                 pictureClock: space.clock,
                 clock: plan.clock,
@@ -426,7 +452,7 @@ struct SequencePlanner: Sendable {
             }
         }
 
-        return (area, position, crop, space.isOutputPixels)
+        return (area, points, position, crop, space.isOutputPixels)
     }
 
     // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
@@ -458,8 +484,13 @@ struct SequencePlanner: Sendable {
                 return (picture, plan.timing.map { .media($0) } ?? .still, false)
             }
 
+            let isPlacedByGeometry = if case let .shape(shape) = writtenClip(at: index, in: time).content {
+                shape.width == nil
+            } else {
+                false
+            }
             switch plan.kind {
-            case .shape, .adjust:
+            case .shape where isPlacedByGeometry, .adjust:
                 // ParentFinder has ruled out a cycle, so the chain ends.
                 return try space(
                     of: plan.parent,
@@ -472,6 +503,41 @@ struct SequencePlanner: Sendable {
             default:
                 return (Picture(name: id, source: .space, size: format.size), .still, false)
             }
+        }
+    }
+
+    // A clip in the time plan's order of clips.
+    private func writtenClip(
+        at index: Int,
+        in time: TimePlan
+    ) -> Clip {
+        let connected = time.sequence.storyline.flatMap(\.connected)
+        return index < connected.count ? connected[index] : time.sequence.clips[index - connected.count]
+    }
+
+    private func shapePoints(of clip: Clip) -> PropertyValue<[PositionForm]>? {
+        guard case let .shape(shape) = clip.content else { return nil }
+
+        return shape.points
+    }
+
+    // The place of the first point given by an area written with text, which only a parented clip takes.
+    private func byText(
+        _ points: PropertyValue<[PositionForm]>,
+        place: Place
+    ) -> Place? {
+        switch points {
+        case let .value(forms):
+            return forms.firstIndex(where: \.isFoundByText).map { place.appending(key: "points").appending(index: $0) }
+
+        case let .keyframes(keyframes):
+            for keyframe in keyframes {
+                guard let index = keyframe.value.firstIndex(where: \.isFoundByText) else { continue }
+
+                return place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "points")
+                    .appending(index: index)
+            }
+            return nil
         }
     }
 

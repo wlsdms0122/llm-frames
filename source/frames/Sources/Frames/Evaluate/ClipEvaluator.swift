@@ -9,8 +9,8 @@
 // keyframes sampled, its animation over its visible window combined on top, its blend, and its parent's map P(t)
 // composed in through its space, after its tracked motion when it is tracked. A title or media clip is drawn in its
 // box's own pixels, its anchor point where that map carries its position, turned by its own rotation and the map's, at
-// its own scale. A shape or adjustment is drawn in its space's coordinates on its area, carried by that map whole, or
-// without an area over the frame.
+// its own scale, and so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its
+// space's coordinates, carried by that map whole, and an adjustment on its area so, or without one over the frame.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -51,8 +51,8 @@ struct ClipEvaluator: Sendable {
             )
             return [boxItem(of: clip, box: box, sample: sample, in: space, content: .picture(item), at: time)]
 
-        case let .shape(drawing):
-            return shapeEvaluator.items(of: drawing, clip: clip, sample: sample, in: space, at: time)
+        case let .shape(shape):
+            return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
 
         case let .adjustment(filter):
             return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
@@ -60,8 +60,8 @@ struct ClipEvaluator: Sendable {
     }
 
     // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media
-    // clip's media pixels through its crop into its box, and the space a shape's or adjustment's area is written in,
-    // each carried by the clip's transform, its tracked motion included. Opacity and reveal take no part.
+    // clip's media pixels through its crop into its box, a box shape's box, and the space a shape's geometry or an
+    // adjustment's area is written in, each carried by the clip's transform, its tracked motion included. Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -88,8 +88,8 @@ struct ClipEvaluator: Sendable {
                 ))
                 .concatenating(transform)
 
-        case let .shape(drawing):
-            return shapeEvaluator.transform(of: drawing, clip: clip, sample: sample, in: space, at: time)
+        case let .shape(shape):
+            return shapeEvaluator.transform(of: shape, clip: clip, sample: sample, in: space, at: time)
 
         case .adjustment:
             let transform = adjustPresentation(of: clip, sample: sample, in: space, at: time).transform

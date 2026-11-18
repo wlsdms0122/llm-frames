@@ -45,6 +45,23 @@ extension ResolvedTrack {
         return brought.value(at: time)
     }
 
+    func points(
+        of keyframes: [Keyframe<[Point]>],
+        on entry: ResolvedStorylineClip,
+        at time: Double
+    ) -> [Point] {
+        let brought = keyframes.map { keyframe in
+            let mediaTime = entry.mediaTime(at: keyframe.at)
+            return Keyframe(
+                at: keyframe.at,
+                value: keyframe.value.map { bringBack($0, fromMediaTime: mediaTime) },
+                ease: keyframe.ease
+            )
+        }
+
+        return brought.value(at: time)
+    }
+
     func transform(
         on entry: ResolvedStorylineClip,
         at time: Double

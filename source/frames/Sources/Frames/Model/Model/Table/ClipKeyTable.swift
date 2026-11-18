@@ -18,8 +18,8 @@ enum ClipKeyTable {
     ) -> ObjectTable {
         let names = keys(for: kind, in: place)
         let rules = names.map { name in
-            // An arrow's side is the document's, since the engine has no rule to choose one.
-            KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style" || name == "side")
+            // Which kind of text a title is belongs to the document, so it names its style.
+            KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style" && kind == .title)
         }
 
         return ObjectTable(kind: kind.label, rules: rules)
@@ -48,7 +48,11 @@ enum ClipKeyTable {
         case (_, .title):
             ["position", "scale", "rotation", "opacity"]
 
-        case (_, .shape), (_, .adjust), (_, .solid):
+        case let (_, .shape(shape)):
+            ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius"]
+                .filter(keys(for: kind, in: place).contains)
+
+        case (_, .adjust), (_, .solid):
             ["area", "opacity"]
         }
     }
@@ -71,6 +75,12 @@ enum ClipKeyTable {
     }
 
     private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
+
+    // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
+    // for a path. A key a kind does not take stops as an unknown key.
+    private static let everyShape = [
+        "track", "blend", "shape", "style", "anchor", "position", "scale", "rotation", "fill", "stroke", "trim", "shadow"
+    ]
 
     // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
     // parent.
@@ -118,8 +128,7 @@ enum ClipKeyTable {
             ]
 
         case let (_, .shape(shape)):
-            let side = shape == "arrow" ? ["side"] : []
-            return everyClip + ["shape", "area", "track", "color", "blend"] + side
+            return everyClip + everyShape + shapeKeys(of: shape)
 
         case (_, .adjust), (_, .solid):
             return everyClip + ["adjust", "area", "track"]
@@ -168,17 +177,33 @@ enum ClipKeyTable {
         case "transition":
             ChoiceKeyTable.transition
 
-        case "solid", "color":
+        case "solid":
             .color
 
-        case "loop", "shadow":
+        case "loop", "closed":
             .bool
+
+        // A shape's shadow takes the object form, and a box's only the theme's.
+        case "shadow":
+            isShape(kind) ? ShapeKeyTable.shadow : .bool
+
+        case "fill":
+            ShapeKeyTable.fill
+
+        case "stroke":
+            ShapeKeyTable.stroke
+
+        case "trim":
+            .fractions(2)
+
+        case "points":
+            .points
 
         case "anchor", "placement":
             .literal(VocabularyTable.placementNames)
 
         case "position":
-            .oneOf([.numbers(2), .object(AreaKeyTable.point)])
+            AreaKeyTable.point
 
         case "area":
             .area
@@ -201,9 +226,6 @@ enum ClipKeyTable {
         case "shape":
             .literal(VocabularyTable.shapes)
 
-        case "side":
-            .literal(VocabularyTable.sides)
-
         // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
         case "width", "height":
             .positiveNumber
@@ -214,6 +236,26 @@ enum ClipKeyTable {
         default:
             .number
         }
+    }
+
+    private static func shapeKeys(of shape: String) -> [String] {
+        switch ShapeKind(rawValue: shape) {
+        case .rect:
+            ["area", "width", "height", "placement", "radius", "outset"]
+
+        case .ellipse:
+            ["area", "width", "height", "placement", "outset"]
+
+        case .path:
+            ["points", "closed"]
+
+        case .none:
+            []
+        }
+    }
+
+    private static func isShape(_ kind: ClipKind) -> Bool {
+        if case .shape = kind { true } else { false }
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {
