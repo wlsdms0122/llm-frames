@@ -82,11 +82,19 @@ struct TrackPlanner: Sendable {
                 ("mask", mask.map { self.area(of: $0, on: plan, instant: plan.instant) })
             ],
             in: picture.picture,
-            atMediaTime: plan.mediaTime(atSequenceTime: plan.instant),
+            at: plan.instant,
+            on: picture.clock,
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: plan, file: picture.file, fps: fps)
+        let followed = try follow(
+            start.area,
+            at: start.instant,
+            on: picture.clock,
+            drawn: plan.drawn,
+            file: picture.file,
+            fps: fps
+        )
         let isEditFollowed = followed.range.start <= plan.edit.start + Self.tolerance
             && followed.range.end >= plan.edit.end - Self.tolerance
         guard isEditFollowed else {
@@ -142,11 +150,19 @@ struct TrackPlanner: Sendable {
                 ("mask", ownMask)
             ],
             in: picture.picture,
-            atMediaTime: parent.mediaTime(atSequenceTime: plan.instant),
+            at: plan.instant,
+            on: picture.clock,
             place: place,
             kind: kind
         )
-        let followed = try follow(start, on: parent, file: picture.file, fps: fps)
+        let followed = try follow(
+            start.area,
+            at: start.instant,
+            on: picture.clock,
+            drawn: parent.drawn,
+            file: picture.file,
+            fps: fps
+        )
         guard let visible = plan.visible.intersection(followed.range) else {
             throw ResolveError.neverFollowed(place: written.place, kind: kind, visible: plan.visible)
         }
@@ -202,38 +218,44 @@ struct TrackPlanner: Sendable {
         }
     }
 
-    // The target before padding: for `true` the one of the clip's own candidates it has, where it starts, else the
-    // area it names, found at the instant. A named target does not look at the candidates.
+    // The target before padding and the sequence time it is found at, the tracked clip's instant (FRAMES-12): for
+    // `true` the one of the clip's own candidates it has, at its first keyframe or else at the clip's instant, and
+    // otherwise the area it names, found at the clip's instant. A named target does not look at the candidates.
     private func target(
         _ target: TrackTarget,
         candidates: [(key: String, value: PropertyValue<FoundArea>?)],
         in picture: Picture,
-        atMediaTime time: Double,
+        at instant: Double,
+        on clock: MediaClock,
         place: Place,
         kind: PlaceKind
-    ) throws -> FoundArea {
+    ) throws -> (area: FoundArea, instant: Double) {
         switch target {
         case .own:
-            let own = try own(candidates, place: place, kind: kind)
-            guard let found = own?.firstValue else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
+            guard let own = try own(candidates, place: place, kind: kind) else {
+                throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
+            }
 
-            return found
+            return (own.firstValue, own.first?.at ?? instant)
 
         case let .area(form):
-            return try finder.area(form, in: picture, atMediaTime: time, place: place, kind: kind.label)
+            let mediaTime = clock.mediaTime(atSequenceTime: instant)
+            return (try finder.area(form, in: picture, atMediaTime: mediaTime, place: place, kind: kind.label), instant)
         }
     }
 
-    // Follows the target over every media frame the storyline clip shows on the frames it draws and those between them
-    // and the target's frame: with holds and reverse, the lowest to the highest media time shown. The range comes back
-    // in sequence time, open on a side where nothing needed was lost.
+    // Follows the target found at the sequence time `instant` over every media frame the clock shows on the frames
+    // it draws and those between them and the target's frame: with holds and reverse, the lowest to the highest media
+    // time shown. The range comes back in sequence time, open on a side where nothing needed was lost.
     private func follow(
         _ target: FoundArea,
-        on plan: StorylinePlan,
+        at instant: Double,
+        on clock: MediaClock,
+        drawn: TimeRange,
         file: MediaFile,
         fps: Double
     ) throws -> (track: Track, range: TimeRange) {
-        let shown = shownMediaTimes(of: plan, fps: fps)
+        let shown = shownMediaTimes(on: clock, drawn: drawn, fps: fps)
         let firstShown = shown.min() ?? target.mediaTime
         let lastShown = shown.max() ?? target.mediaTime
         let firstNeeded = file.frameTime(at: min(firstShown, target.mediaTime)) ?? firstShown
@@ -246,38 +268,43 @@ struct TrackPlanner: Sendable {
         )
         let track = Track(target: target.target, mediaTime: target.mediaTime, frames: frames)
         guard let first = frames.first, let last = frames.last else {
-            let instant = plan.timeRemap == nil ? plan.map.sequenceTime(ofClipTime: target.mediaTime) : plan.instant
             return (track, TimeRange(start: instant, end: instant))
         }
 
         let next = file.frameTime(after: last.time)
         let isStartLost = first.time > firstNeeded
         let isEndLost = next.map { $0 <= lastNeeded } ?? false
-        guard plan.timeRemap != nil else {
-            let start = isStartLost ? plan.map.sequenceTime(ofClipTime: first.time) : -Double.infinity
-            let end = isEndLost ? next.map(plan.map.sequenceTime(ofClipTime:)) ?? .infinity : .infinity
-            return (track, TimeRange(start: start, end: end))
-        }
         guard isStartLost || isEndLost else { return (track, TimeRange(start: -.infinity, end: .infinity)) }
 
-        let followed = { (frame: Int) in
-            let shownFrame = file.frameTime(at: plan.mediaTime(atSequenceTime: Double(frame) / fps)) ?? 0
-            return first.time <= shownFrame && shownFrame <= last.time
+        // A clock whose media time moves one way turns the frames lost back into sequence time.
+        if
+            let start = isStartLost ? clock.sequenceTime(ofMediaTime: first.time) : -Double.infinity,
+            let end = isEndLost ? next.flatMap(clock.sequenceTime(ofMediaTime:)) : Double.infinity
+        {
+            return (track, TimeRange(start: start, end: end))
         }
-        return (track, followedRange(around: plan.instant, on: plan.drawn, fps: fps, where: followed))
+
+        let firstFollowed = file.frameIndex(at: first.time)
+        let lastFollowed = file.frameIndex(at: last.time)
+        let followed = { (frame: Int) in
+            let shownFrame = file.frameIndex(at: clock.mediaTime(atSequenceTime: Double(frame) / fps))
+            return firstFollowed <= shownFrame && shownFrame <= lastFollowed
+        }
+        return (track, followedRange(around: instant, on: drawn, fps: fps, where: followed))
     }
 
-    // The media times a storyline clip shows on the frames of its drawn range and at its ends.
+    // The media times a clock shows on the frames of a drawn range and at its ends.
     private func shownMediaTimes(
-        of plan: StorylinePlan,
+        on clock: MediaClock,
+        drawn: TimeRange,
         fps: Double
     ) -> [Double] {
-        let first = Int((plan.drawn.start * fps).rounded(.up))
-        let last = Int((plan.drawn.end * fps).rounded(.down))
+        let first = Int((drawn.start * fps).rounded(.up))
+        let last = Int((drawn.end * fps).rounded(.down))
         let frames = stride(from: first, through: last, by: 1)
-        let times = [plan.drawn.start] + frames.map { Double($0) / fps } + [plan.drawn.end]
+        let times = [drawn.start] + frames.map { Double($0) / fps } + [drawn.end]
 
-        return times.map(plan.mediaTime(atSequenceTime:))
+        return times.map(clock.mediaTime(atSequenceTime:))
     }
 
     // The frames walked out from the one at `instant` while each shows a followed frame, as a sequence range: a
@@ -310,17 +337,18 @@ struct TrackPlanner: Sendable {
 
     // The video or image sequence a storyline clip plays, which a tracker can follow, and nil for a still, a solid or
     // a compound clip.
-    private func picture(of plan: StorylinePlan) -> (picture: Picture, file: MediaFile)? {
+    private func picture(of plan: StorylinePlan) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
         guard
             plan.source.kind == .media(.video),
             let media = plan.source.media,
             case let .file(file) = media.source,
-            let size = file.size
+            let size = file.size,
+            let clock = plan.clock
         else {
             return nil
         }
 
-        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file)
+        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file, clock)
     }
 
     // A crop `true` follows is an area where it starts, not a `{scale}`.

@@ -30,5 +30,10 @@ struct MediaClock: Equatable, Sendable {
         return min(max(mediaTime, frames.lowerBound), frames.upperBound)
     }
 
+    // The sequence time its playback reaches a media time at, nil where the playback does not move one way.
+    func sequenceTime(ofMediaTime time: Double) -> Double? {
+        playback.sequenceTime(ofMediaTime: time)
+    }
+
     // MARK: - Private
 }

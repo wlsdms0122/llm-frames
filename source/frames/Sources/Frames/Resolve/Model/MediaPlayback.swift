@@ -29,5 +29,17 @@ enum MediaPlayback: Equatable, Sendable {
         }
     }
 
+    // The sequence time a media time is shown at, where one exists: a line moves one way without end, while a played
+    // range holds or loops past `out` and remap keys may hold or reverse, so they give nil.
+    func sequenceTime(ofMediaTime time: Double) -> Double? {
+        switch self {
+        case let .line(map):
+            map.sequenceTime(ofClipTime: time)
+
+        case .played, .remapped:
+            nil
+        }
+    }
+
     // MARK: - Private
 }
