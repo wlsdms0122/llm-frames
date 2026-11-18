@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Writes the values a resolved sequence and a resolved picture share: geometry, colours, eases, keyframe lists, filter
-// operations, spans, animations, shaped text, and files pinned by their absolute path and SHA-256.
+// Writes the values a resolved sequence, a display list and a mix plan share: geometry, colours, eases, keyframe lists,
+// filter operations, spans, animations, shaped text, and files pinned by their absolute path and SHA-256.
 struct ResolvedValueWriter: Sendable {
     // MARK: - Property
     // MARK: - Initializer
