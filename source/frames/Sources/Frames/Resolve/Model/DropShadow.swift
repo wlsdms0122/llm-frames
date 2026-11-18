@@ -24,5 +24,17 @@ package struct DropShadow: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The region the shadow of `rectangle` darkens: the rectangle at the offset, out to three standard deviations of
+    // the blur, past which a Gaussian leaves no visible trace.
+    package func castBounds(of rectangle: Rectangle) -> Rectangle {
+        Rectangle(
+            x: rectangle.x + offset.x,
+            y: rectangle.y + offset.y,
+            width: rectangle.width,
+            height: rectangle.height
+        )
+        .grown(by: radius * 3)
+    }
+
     // MARK: - Private
 }

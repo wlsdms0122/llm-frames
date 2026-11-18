@@ -116,10 +116,12 @@ struct ClipEvaluator: Sendable {
                 border: media.appearance.border,
                 shadow: media.appearance.shadow
             )
+            // The border lies inside the box, so only the shadow reaches past it.
+            let receiver = item.shadow.map { item.destination.union($0.castBounds(of: item.destination)) }
             return [boxItem(
                 of: clip,
                 box: box,
-                receiver: item.destination,
+                receiver: receiver ?? item.destination,
                 sample: sample,
                 in: space,
                 content: .picture(item),
