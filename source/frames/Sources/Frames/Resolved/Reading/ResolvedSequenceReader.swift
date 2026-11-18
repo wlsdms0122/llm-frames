@@ -451,13 +451,12 @@ struct ResolvedSequenceReader: Sendable {
     private func transition(_ value: PlacedJSONValue) throws -> ResolvedTransition {
         let transition = try value.object(
             kind: "transition",
-            keys: ["start", "end", "over", "audio", "incoming", "outgoing", "cover", "matte"]
+            keys: ["start", "end", "over", "incoming", "outgoing", "cover", "matte"]
         )
         return ResolvedTransition(
             start: try transition.member("start").number(),
             end: try transition.member("end").number(),
             over: try transition.member("over").name(among: ["incoming", "outgoing"], TransitionOrder.init),
-            audio: try curve(transition.member("audio")),
             incoming: try transition.member("incoming").optional(values.span),
             outgoing: try transition.member("outgoing").optional(values.span),
             cover: try transition.member("cover").optional(cover),

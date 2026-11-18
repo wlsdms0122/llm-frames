@@ -46,7 +46,6 @@ extension ResolvedTransition {
             start: plan.range.start,
             end: plan.range.end,
             over: definition.over,
-            audio: definition.audio,
             incoming: definition.incoming,
             outgoing: definition.outgoing,
             cover: cover,

@@ -255,7 +255,7 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // A transition as the sound it crossfades hears it, by its range and its curve, the storyline entry's `audio`.
+    // A transition as the sound it crossfades hears it, by its range and the curve its preset's `audio` names.
     private func crossfade(_ crossfade: Crossfade) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "start", value: .number(crossfade.range.start)),
@@ -331,7 +331,6 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "start", value: .number(transition.start)),
             JSONMember(key: "end", value: .number(transition.end)),
             JSONMember(key: "over", value: .string(transition.over.rawValue)),
-            JSONMember(key: "audio", value: .string(transition.audio.rawValue)),
             JSONMember(key: "incoming", value: transition.incoming.map(span) ?? .null),
             JSONMember(key: "outgoing", value: transition.outgoing.map(span) ?? .null),
             JSONMember(key: "cover", value: cover ?? .null),
