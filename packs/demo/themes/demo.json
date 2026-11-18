@@ -1,0 +1,11 @@
+{
+  "colors": { "accent": "#FF453A", "highlight": "#FFD60A" },
+  "styles": {
+    "subtitle": { "size": 44, "stroke": false, "background": { "color": "#000000B3", "padding": [12, 24], "radius": 12 } },
+    "kicker": { "size": 48, "weight": "bold", "color": "highlight" },
+    "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
+               "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
+  },
+  "shapes": { "outline": { "stroke": { "width": 8 }, "radius": 18 } },
+  "defaults": { "animation": { "title": { "subtitle": "frames/fade", "label": "frames/pop" } } }
+}
