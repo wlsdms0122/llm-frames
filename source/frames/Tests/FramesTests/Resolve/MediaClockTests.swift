@@ -1,5 +1,5 @@
 //
-//  MediaTimingTests.swift
+//  MediaClockTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/15/26.
@@ -9,8 +9,8 @@ import Testing
 
 @testable import Frames
 
-@Suite("MediaTiming Tests")
-struct MediaTimingTests {
+@Suite("MediaClock Tests")
+struct MediaClockTests {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Test

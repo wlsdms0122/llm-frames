@@ -1,5 +1,5 @@
 //
-//  TimeMapTests.swift
+//  PlayedRangeTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/17/26.
@@ -8,8 +8,8 @@
 @testable import Frames
 import Testing
 
-@Suite("TimeMap Tests")
-struct TimeMapTests {
+@Suite("PlayedRange Tests")
+struct PlayedRangeTests {
     // MARK: - Property
     // Ten frames a second, so `in` 0.1 is frame 1 and the frame before `out` 0.3 is frame 2.
     private let file = MediaFile(path: "/media/a.mov", frameTimes: (0..<10).map { Double($0) / 10 })
