@@ -27,7 +27,7 @@ An edit's sound is laid like its pictures: a music bed under the whole piece and
 | 2 (stereo) | min(1, 1 - p), on the left channel | min(1, 1 + p), on the right channel | both channels at 1 (a balance, as an NLE's balance control: turning it to one side lowers the other) |
 | more than 2 | as stereo, after the mixer mixes the sound down to two channels ([FRAMES-21](../FRAMES-21/SPEC.md)) | | |
 
-A mono sound is placed into both output channels at those gains. A stereo sound keeps its channels apart, each taking its own gain.
+A mono sound is placed into both output channels at those gains. A stereo sound keeps its channels apart, each taking its own gain. A `pan` outside -1 to 1 stops, as a value of the wrong type does ([FRAMES-7](../FRAMES-7/SPEC.md)).
 
 ### Crossfades
 
