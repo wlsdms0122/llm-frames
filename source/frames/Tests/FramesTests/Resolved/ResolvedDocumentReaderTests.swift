@@ -152,6 +152,14 @@ struct ResolvedDocumentReaderTests {
         """#
     ]
 
+    // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
+    // follows its own media.
+    private static let trackedDocument = #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": { "text": "Total" }, "connected": [
+            { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true },
+            { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": { "text": "Send" } } ] } ] }
+        """#
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("a resolved document reads back to the model it was written from", arguments: documents.indices)
@@ -532,6 +540,66 @@ struct ResolvedDocumentReaderTests {
             frames[0] = .object(frame.setting(key, to: try Fixture.json(value)))
             return track.setting("frames", to: .array(frames))
         }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a track reads back with the media it follows, its parent's for a shape and its own for a storyline clip and a media clip of video")
+    func readsTrackedMedia() throws {
+        // Given
+        let document = try resolved(Self.trackedDocument)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+    }
+
+    @Test(
+        "a track that pins other media than the one its clip follows stops, naming the track's media",
+        arguments: [
+            (
+                "clips",
+                0,
+                "/abs/short.mp4",
+                "clips[0].track.media (track): the clip follows its parent's media, so its track pins the media its parent shows"
+            ),
+            (
+                "clips",
+                1,
+                "/abs/screen.mp4",
+                "clips[1].track.media (track): the clip follows its own media, so its track pins the media the clip shows"
+            ),
+            (
+                "storyline",
+                0,
+                "/abs/short.mp4",
+                "storyline[0].track.media (track): the clip follows its own media, so its track pins the media the clip shows"
+            )
+        ]
+    )
+    func refusesTrackedMedia(
+        list: String,
+        index: Int,
+        file: String,
+        message: String
+    ) throws {
+        // Given
+        // The screen and the shape follow the screen, and the media clip the short, so each is given the other's.
+        let root = try #require(try JSONReader().read(written(Self.trackedDocument)).objectValue)
+        let pinned = (root["clips"]?.arrayValue ?? []).compactMap { $0.objectValue?["track"]?.objectValue?["media"] }
+        let media = try #require(pinned.first { $0.objectValue?["file"]?.stringValue == file })
+        var entries = try #require(root[list]?.arrayValue)
+        let entry = try #require(entries[index].objectValue)
+        let track = try #require(entry["track"]?.objectValue)
+        entries[index] = .object(entry.setting("track", to: .object(track.setting("media", to: media))))
+        let text = JSONWriter().write(.object(root.setting(list, to: .array(entries))))
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
