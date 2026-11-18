@@ -312,6 +312,27 @@ struct TimelineReporterTests {
         ])
     }
 
+    @Test("a time-remapped storyline clip reports that it is remapped in place of its speed, and timeRemap true")
+    func reportsTimeRemap() throws {
+        // Given
+        let value = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [
+              { "media": "/abs/short.mp4", "in": 0, "out": 2, "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ] },
+              { "media": "/abs/short.mp4", "in": 0, "out": 2 } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: value)
+
+        // Then
+        let entries = report.machineOutput.objectValue?["storyline"]?.arrayValue?.compactMap(\.objectValue) ?? []
+        #expect(entries.map { $0["timeRemap"] } == [.bool(true), .bool(false)])
+        #expect(entries.map { $0["speed"] } == [.number(1), .number(1)])
+        let lines = report.text.split(separator: "\n").dropFirst()
+        #expect(lines.map { $0.contains("  time-remapped  ") } == [true, false])
+        #expect(lines.map { $0.contains("  speed 1  ") } == [false, true])
+    }
+
     @Test("a text area found by OCR, a track, a title and a shape report, with the window tracking leaves")
     func reportsAreasAndTracking() throws {
         // Given
