@@ -5,6 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Frames
+
 // Reads a command line into what it asks for. The global options come before the command, each with a value, and
 // the first argument that is not one of them is the command's name, so everything after it is the command's own.
 struct CommandLineParser: Sendable {
@@ -15,9 +17,10 @@ struct CommandLineParser: Sendable {
         OptionRule("--renderer", value: "<name>"),
         OptionRule("--mixer", value: "<name>"),
         OptionRule("--encoder", value: "<name>"),
-        OptionRule("--ocr", value: "<name>"),
         OptionRule("--shaper", value: "<name>"),
-        OptionRule("--tracker", value: "<name>")
+        OptionRule("--tracker", value: "<name>"),
+        OptionRule("--ocr", value: "<name>"),
+        OptionRule("--ocr-languages", value: "<tag>[,<tag>...]")
     ]
 
     private static let version = "--version"
@@ -62,6 +65,7 @@ struct CommandLineParser: Sendable {
             mixer: values["--mixer"],
             encoder: values["--encoder"],
             ocr: values["--ocr"],
+            ocrLanguages: try values["--ocr-languages"].map(languages),
             shaper: values["--shaper"],
             tracker: values["--tracker"],
             written: Array(arguments[..<index])
@@ -71,4 +75,16 @@ struct CommandLineParser: Sendable {
     }
 
     // MARK: - Private
+    private func languages(_ value: String) throws -> [LanguageTag] {
+        guard let languages = [LanguageTag](commaSeparated: value) else {
+            throw CommandError.invalidValue(
+                command: nil,
+                option: "--ocr-languages",
+                value: value,
+                expected: "BCP 47 tags separated by commas"
+            )
+        }
+
+        return languages
+    }
 }

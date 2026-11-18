@@ -238,8 +238,8 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // What a clip draws decides the keys it holds: its content's, then scale, rotation and a blend mode for anything
-    // but an adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
+    // What a clip draws decides the keys it holds: its content's, then scale and rotation for anything but an
+    // adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let contentKeys = try self.contentKeys(of: written)
@@ -247,7 +247,7 @@ struct ResolvedSequenceReader: Sendable {
         let clip = try value.object(
             kind: "clip",
             keys: Self.clipKeys.filter { key in
-                isTransformed || key != "scale" && key != "rotation" && key != "blend"
+                isTransformed || key != "scale" && key != "rotation"
             } + contentKeys
         )
         let size = try clip.member("size")
@@ -281,7 +281,7 @@ struct ResolvedSequenceReader: Sendable {
             opacity: try values.numbers(clip.member("opacity")),
             scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
-            blend: isTransformed ? try clip.member("blend").string() : nil,
+            blend: try clip.member("blend").string(),
             animation: try values.animation(clip.member("animation"))
         )
     }

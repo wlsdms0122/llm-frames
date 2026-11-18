@@ -39,6 +39,7 @@ struct DisplayListFlattener: Sendable {
             ? []
             : [FlattenedItem(
                 origin: state.origin,
+                item: .background,
                 opacity: state.opacity,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
@@ -70,7 +71,12 @@ struct DisplayListFlattener: Sendable {
             coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
         }
 
-        return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+        return [FlattenedItem(
+            origin: own.origin,
+            item: ItemKind(content: item.content),
+            opacity: own.opacity,
+            coverage: coverage
+        )]
     }
 
     private func items(
@@ -85,7 +91,13 @@ struct DisplayListFlattener: Sendable {
             }
             let placement = MediaPlacement(frame: media, transform: transform)
             let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
-            return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage, media: placement)]
+            return [FlattenedItem(
+                origin: own.origin,
+                item: .picture,
+                opacity: own.opacity,
+                coverage: coverage,
+                media: placement
+            )]
 
         case let .displayList(list):
             let rectangle = picture.rectangle

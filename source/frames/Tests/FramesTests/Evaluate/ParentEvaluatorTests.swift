@@ -486,9 +486,7 @@ struct ParentEvaluatorTests {
         track: ResolvedTrack? = nil,
         scale: Double = 1
     ) -> ResolvedClip {
-        let isAdjustment = if case .adjustment = content { true } else { false }
-
-        return ResolvedClip(
+        ResolvedClip(
             place: "clips[0]",
             id: id,
             content: content,
@@ -505,7 +503,7 @@ struct ParentEvaluatorTests {
             opacity: [Keyframe(at: 0, value: 1)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
-            blend: isAdjustment ? nil : "normal",
+            blend: "normal",
             animation: .none
         )
     }

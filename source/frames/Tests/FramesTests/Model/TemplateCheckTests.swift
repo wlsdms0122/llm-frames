@@ -236,11 +236,11 @@ struct TemplateCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
-                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
-                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, area, width, height, placement, radius, outset"#
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset"#
             )
         ]
     )

@@ -183,7 +183,7 @@ struct LocationReporterTests {
 
         // Then
         #expect(report.hits == [
-            LocationHit(origin: nil, media: LocatedMedia(file: "/abs/run.mp4", mediaTime: 1.5, point: nil))
+            LocationHit(origin: nil, item: .picture, media: LocatedMedia(file: "/abs/run.mp4", mediaTime: 1.5, point: nil))
         ])
     }
 
@@ -319,12 +319,13 @@ struct LocationReporterTests {
     func writesMachineOutput() {
         // Given
         let report = LocationReport(hits: [
-            LocationHit(origin: rect, media: nil),
+            LocationHit(origin: rect, item: .path, media: nil),
             LocationHit(
                 origin: clip,
+                item: .picture,
                 media: LocatedMedia(file: "/abs/run.mp4", mediaTime: 0.5, point: Point(x: 0.1 + 0.2, y: 4))
             ),
-            LocationHit(origin: nil, media: nil)
+            LocationHit(origin: nil, item: .background, media: nil)
         ])
 
         // When
@@ -338,12 +339,14 @@ struct LocationReporterTests {
                 {
                   "place": "clips[0]",
                   "id": null,
-                  "kind": "rect"
+                  "kind": "rect",
+                  "item": "path"
                 },
                 {
                   "place": "clips[1]#shot",
                   "id": "shot",
                   "kind": "video",
+                  "item": "picture",
                   "media": "/abs/run.mp4",
                   "mediaTime": 0.5,
                   "point": [0.3, 4]
@@ -351,7 +354,8 @@ struct LocationReporterTests {
                 {
                   "place": null,
                   "id": null,
-                  "kind": null
+                  "kind": null,
+                  "item": "background"
                 }
               ]
             }

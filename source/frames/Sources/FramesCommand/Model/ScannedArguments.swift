@@ -135,6 +135,16 @@ struct ScannedArguments: Equatable, Sendable {
         return Point(x: horizontal, y: vertical)
     }
 
+    // BCP 47 tags separated by commas, as `en-US,ko-KR`.
+    func languages(of option: String) throws -> [LanguageTag]? {
+        guard let value = values[option] else { return nil }
+        guard let languages = [LanguageTag](commaSeparated: value) else {
+            throw invalidValue(of: option, value, expected: "BCP 47 tags separated by commas")
+        }
+
+        return languages
+    }
+
     // One of the values' names, as `--quality high`.
     func choice<Value: RawRepresentable & CaseIterable>(
         of option: String

@@ -96,6 +96,7 @@ package struct TimelineReporter: Sendable {
             kind: clip.kind.label,
             visible: clip.visible,
             lane: clip.lane,
+            storyline: clip.storyline.map { time.storyline[$0].place.description },
             parent: parent,
             animation: animation.isEmpty
                 ? nil
@@ -153,6 +154,7 @@ package struct TimelineReporter: Sendable {
             kind: kind(of: clip.content),
             visible: TimeRange(start: clip.start, end: clip.end),
             lane: clip.lane,
+            storyline: clip.storyline.map { sequence.storyline[$0].place },
             parent: parent,
             animation: animation == .none
                 ? nil

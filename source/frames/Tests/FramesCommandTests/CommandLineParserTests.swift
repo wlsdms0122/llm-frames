@@ -39,6 +39,7 @@ struct CommandLineParserTests {
                         mixer: nil,
                         encoder: nil,
                         ocr: "vision",
+                        ocrLanguages: nil,
                         shaper: nil,
                         tracker: nil,
                         written: ["--theme", "shorts/shorts", "--ocr", "vision"]
@@ -57,6 +58,7 @@ struct CommandLineParserTests {
                         mixer: nil,
                         encoder: nil,
                         ocr: nil,
+                        ocrLanguages: nil,
                         shaper: nil,
                         tracker: "point",
                         written: ["--tracker", "point"]
@@ -81,7 +83,11 @@ struct CommandLineParserTests {
         arguments: [
             (
                 ["--fps", "30", "render"],
-                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --ocr, --shaper, --tracker, --version"#
+                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --ocr-languages, --version"#
+            ),
+            (
+                ["--ocr-languages", "en_US", "probe"],
+                #"--ocr-languages "en_US" is not BCP 47 tags separated by commas"#
             ),
             (["--theme"], "--theme takes a value, <pack/name | /abs/theme.json>"),
             (["--ocr", "vision", "--ocr", "vision", "probe"], "--ocr is given more than once"),

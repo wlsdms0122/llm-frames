@@ -171,7 +171,8 @@ struct ClipEvaluator: Sendable {
         return ItemPresentation(box: box.size, anchor: box.anchor, values: values, motion: sample.animation.motion)
     }
 
-    // Its opacity blends the filtered result with what is below.
+    // Its opacity mixes the filtered result with what is below, and its blend composites the filtered result onto the
+    // unfiltered one.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: [ResolvedFilterOperation],
@@ -185,6 +186,7 @@ struct ClipEvaluator: Sendable {
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
+            blend: sample.blend,
             reveal: sample.animation.reveal.rectangle(wiping: bounds ?? space.frame, from: sample.animation.revealFrom),
             content: .adjust(AdjustItem(filter: filter))
         )

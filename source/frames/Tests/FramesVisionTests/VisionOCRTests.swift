@@ -19,6 +19,8 @@ import Testing
 @Suite("VisionOCR Tests", .serialized)
 struct VisionOCRTests {
     // MARK: - Property
+    private static let languages = ["ko-KR", "en-US"].compactMap(LanguageTag.init)
+
     // How far a recognised rectangle's edges may lie from the drawn glyphs' ink, in media pixels.
     private let tolerance = 8.0
     // How far a recognised rectangle's top and bottom may lie from the drawn glyphs' ink, in media pixels: a row of
@@ -49,8 +51,8 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0)
-        let again = try sut.lines(in: MediaFile(path: file), atMediaTime: 0)
+        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
+        let again = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
 
         // Then
         #expect(Set(lines.map(\.text)) == Set(drawn.keys))
@@ -78,7 +80,7 @@ struct VisionOCRTests {
 
         // When
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let lines = try sut.lines(in: media, atMediaTime: 0)
+        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages)
 
         // Then
         #expect(probed.size == Size(width: 720, height: 1280))
@@ -102,7 +104,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let texts = try [0, 0.49, 0.5, 0.9].map { try sut.lines(in: media, atMediaTime: $0).map(\.text) }
+        let texts = try [0, 0.49, 0.5, 0.9].map { try sut.lines(in: media, atMediaTime: $0, languages: Self.languages).map(\.text) }
 
         // Then
         #expect(texts == [["First"], ["First"], ["Second"], ["Second"]])
@@ -135,7 +137,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0)
+        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
 
         // Then
         let line = try #require(lines.first)
@@ -160,7 +162,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: media, atMediaTime: 0)
+        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages)
 
         // Then
         let line = try #require(lines.first)

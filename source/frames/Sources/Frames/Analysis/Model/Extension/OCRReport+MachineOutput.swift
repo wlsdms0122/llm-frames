@@ -5,14 +5,16 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"ocr": "1.0.0", size, frames}`, the object `ocr --json` prints: `size` as `[width, height]`, each frame
-// `{time, lines}` and each line `{text, rect}`, its rectangle `[x, y, w, h]` in media pixels.
+// `{"ocr": "1.0.0", size, languages, frames}`, the object `ocr --json` prints: `size` as `[width, height]`,
+// `languages` the tags asked for or `null`, each frame `{time, lines}` and each line `{text, rect}`, its rectangle
+// `[x, y, w, h]` in media pixels.
 extension OCRReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "ocr", value: .string(FramesVersion.current)),
             JSONMember(key: "size", value: .array([.measure(size.width), .measure(size.height)])),
+            JSONMember(key: "languages", value: languages.map { .array($0.map { .string($0.text) }) } ?? .null),
             JSONMember(key: "frames", value: .array(frames.map(output)))
         ]))
     }
