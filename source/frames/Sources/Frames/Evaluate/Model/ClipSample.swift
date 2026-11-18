@@ -26,7 +26,7 @@ struct ClipSample: Equatable, Sendable {
 
         self.window = window
         self.animation = animation
-        self.opacity = clip.opacity.value(at: time)
+        self.opacity = clip.opacity.opacity(at: time)
         self.blend = clip.blend ?? "normal"
         self.ownScale = (clip.scale.map { $0.value(at: time) } ?? 1) * animation.motion.value(of: .scale)
     }

@@ -46,7 +46,7 @@ struct ReferenceLibraryTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "clip": { "type": "video" }, "title": { "type": "text", "default": "New" } },
+            { "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" }, "title": { "type": "text", "default": "New", "description": "the title" } },
               "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "title" } ] } ] }
             """#,
             in: "shorts",
@@ -59,8 +59,8 @@ struct ReferenceLibraryTests {
         // Then
         #expect(template.place.description == "shorts/leak: top level")
         #expect(template.parameters == [
-            TemplateParameter(name: "clip", type: .video),
-            TemplateParameter(name: "title", type: .text, defaultValue: .string("New"))
+            Parameter(name: "clip", type: .video, description: "the clip"),
+            Parameter(name: "title", type: .text, defaultValue: .string("New"), description: "the title")
         ])
         #expect(template.references.map(\.place.description) == [
             "shorts/leak: storyline[0].media",
@@ -146,7 +146,7 @@ struct ReferenceLibraryTests {
     func refusesTemplateByFile() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "c": { "type": "video" } }, "storyline": [ { "media": { "param": "c" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "c": { "type": "video", "description": "the c" } }, "storyline": [ { "media": { "param": "c" } } ] }"#,
             in: "shorts",
             at: "media/intro.json"
         )

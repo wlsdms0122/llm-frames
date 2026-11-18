@@ -42,7 +42,7 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 | a list of masks (`mask`) | mask by mask: each mask's geometry as its form above, and its `feather` as a number. Two keyframes whose lists differ in length, or whose masks at one place differ in `shape`, geometry form, `invert` or `mode`, stop |
 
 - An area or point given by text resolves at its own keyframe's time before it interpolates, and becomes a rectangle or a point (on a tracked clip it is then brought back through the motion, as every value is, [FRAMES-12](../FRAMES-12/SPEC.md)). A point given as `{area, point}` interpolates as the point it resolves to.
-- An ease that overshoots (`back-out`, a spring with a `bounce` above 1 - √3/2, about 0.134, whose first peak falls inside the span) carries a value past its keyframes. Where a property's rule gives it a range (an opacity from 0 to 1, a `trim` end from 0 to 1), the value is clamped to that range where it is used.
+- An ease that overshoots (`back-out`, a spring with a `bounce` above 1 - √3/2, about 0.134, whose first peak falls inside the span) carries a value past its keyframes. Where a property's rule gives it a range (an opacity from 0 to 1, a `trim` end from 0 to 1), the value is clamped to that range where it is used. Each value is clamped where it is sampled, before it is combined with another: a clip's keyframed opacity and its motion opacity are each clamped to 0 to 1, then multiplied.
 
 ### Eases
 

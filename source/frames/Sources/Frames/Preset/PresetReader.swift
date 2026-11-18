@@ -7,13 +7,18 @@
 
 import Foundation
 
+// Reads a preset: checked against its parameter types, then read with every parameter at its default, so a preset
+// named without arguments always works, and read again with the arguments each choice passes it.
 struct PresetReader: Sendable {
     // MARK: - Property
     private let reader = JSONReader()
     private let checker = KeyChecker()
+    private let filler: ParameterFiller
 
     // MARK: - Initializer
-    init() { }
+    init() {
+        self.filler = ParameterFiller(checker: checker)
+    }
 
     // MARK: - Public
     func animation(from data: Data) throws -> AnimationPreset {
@@ -24,6 +29,125 @@ struct PresetReader: Sendable {
     func animation(
         from value: JSONValue,
         place: Place = .root
+    ) throws -> AnimationPreset {
+        try publishedAnimation(from: value, place: place).defaults
+    }
+
+    func publishedAnimation(
+        from value: JSONValue,
+        place: Place
+    ) throws -> PublishedPreset<AnimationPreset> {
+        try published(value, as: PresetKeyTable.animation, place: place) { try plainAnimation(from: $0, place: place) }
+    }
+
+    func animation(
+        _ preset: PublishedPreset<AnimationPreset>,
+        instance: PresetInstance
+    ) throws -> AnimationPreset {
+        try read(preset, instance: instance, kind: "animation choice") { try plainAnimation(from: $0, place: preset.place) }
+    }
+
+    func transition(from data: Data) throws -> TransitionPreset {
+        try transition(from: reader.read(data))
+    }
+
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func transition(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> TransitionPreset {
+        try publishedTransition(from: value, place: place).defaults
+    }
+
+    func publishedTransition(
+        from value: JSONValue,
+        place: Place
+    ) throws -> PublishedPreset<TransitionPreset> {
+        try published(value, as: PresetKeyTable.transition, place: place) { try plainTransition(from: $0, place: place) }
+    }
+
+    func transition(
+        _ preset: PublishedPreset<TransitionPreset>,
+        instance: PresetInstance
+    ) throws -> TransitionPreset {
+        try read(preset, instance: instance, kind: "transition choice") {
+            try plainTransition(from: $0, place: preset.place)
+        }
+    }
+
+    func filter(from data: Data) throws -> FilterPreset {
+        try filter(from: reader.read(data))
+    }
+
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func filter(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> FilterPreset {
+        try publishedFilter(from: value, place: place).defaults
+    }
+
+    func publishedFilter(
+        from value: JSONValue,
+        place: Place
+    ) throws -> PublishedPreset<FilterPreset> {
+        try published(value, as: PresetKeyTable.filter, place: place) { try plainFilter(from: $0, place: place) }
+    }
+
+    func filter(
+        _ preset: PublishedPreset<FilterPreset>,
+        instance: PresetInstance
+    ) throws -> FilterPreset {
+        try read(preset, instance: instance, kind: "filter choice") { try plainFilter(from: $0, place: preset.place) }
+    }
+
+    // MARK: - Private
+    private func published<Preset>(
+        _ value: JSONValue,
+        as table: ObjectTable,
+        place: Place,
+        reading: (JSONValue) throws -> Preset
+    ) throws -> PublishedPreset<Preset> {
+        let references = try checker.check(preset: value, as: table, place: place)
+        let parameters = Parameter.declared(in: value)
+        let defaults = try filler.values(of: JSONObject(), for: parameters, place: place, kind: ParameterKeyTable.kind)
+
+        return PublishedPreset(
+            value: value,
+            place: place,
+            parameters: parameters,
+            references: references,
+            defaults: try reading(filler.filling(value, at: references, with: defaults))
+        )
+    }
+
+    // The arguments are checked against their parameters where the choice writes them. A value they give that its
+    // place in the preset does not take stops as the preset's own would, named at the choice.
+    private func read<Preset>(
+        _ preset: PublishedPreset<Preset>,
+        instance: PresetInstance,
+        kind: String,
+        reading: (JSONValue) throws -> Preset
+    ) throws -> Preset {
+        guard !instance.arguments.members.isEmpty else { return preset.defaults }
+
+        let values = try filler.values(
+            of: instance.arguments,
+            for: preset.parameters,
+            place: instance.place.appending(key: "args"),
+            kind: ChoiceKeyTable.argumentsKind
+        )
+        do {
+            return try reading(filler.filling(preset.value, at: preset.references, with: values))
+        } catch {
+            throw PresetError.rejectedArguments(place: instance.place, kind: kind, name: instance.name, reason: "\(error)")
+        }
+    }
+
+    // A preset whose parameters are filled holds plain values, which meet every rule of their places.
+    private func plainAnimation(
+        from value: JSONValue,
+        place: Place
     ) throws -> AnimationPreset {
         try checker.check(value, as: PresetKeyTable.animation, place: place)
 
@@ -36,14 +160,9 @@ struct PresetReader: Sendable {
         )
     }
 
-    func transition(from data: Data) throws -> TransitionPreset {
-        try transition(from: reader.read(data))
-    }
-
-    // `place` is where the preset is written, the top of its file when it is read from one.
-    func transition(
+    private func plainTransition(
         from value: JSONValue,
-        place: Place = .root
+        place: Place
     ) throws -> TransitionPreset {
         try checker.check(value, as: PresetKeyTable.transition, place: place)
 
@@ -71,14 +190,9 @@ struct PresetReader: Sendable {
         )
     }
 
-    func filter(from data: Data) throws -> FilterPreset {
-        try filter(from: reader.read(data))
-    }
-
-    // `place` is where the preset is written, the top of its file when it is read from one.
-    func filter(
+    private func plainFilter(
         from value: JSONValue,
-        place: Place = .root
+        place: Place
     ) throws -> FilterPreset {
         try checker.check(value, as: PresetKeyTable.filter, place: place)
 
@@ -92,7 +206,6 @@ struct PresetReader: Sendable {
         return FilterPreset(description: object["description"]?.stringValue ?? "", operations: operations)
     }
 
-    // MARK: - Private
     private func animationSpan(
         _ object: JSONObject,
         _ name: String,

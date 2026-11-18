@@ -65,7 +65,7 @@ package struct ReferenceLibrary: MediaKindProvider {
         return ThemeLayer(value: value, place: Place(file: name, components: []), pack: packName(of: name))
     }
 
-    func template(named name: String) throws -> Template? {
+    package func template(named name: String) throws -> Template? {
         guard let (file, value) = try value(named: name, in: "templates", pathExtension: "json") else { return nil }
 
         return try TemplateReader(mediaKinds: reading(file: file, name: name))

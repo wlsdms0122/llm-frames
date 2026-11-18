@@ -129,7 +129,7 @@ struct DocumentCommandTests {
         try sut.write(
             #"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "params": { "length": { "type": "number", "default": 1 } },
+              "params": { "length": { "type": "number", "default": 1, "description": "the length" } },
               "storyline": [ { "solid": "#000000", "duration": { "param": "length" } } ] }
             """#,
             to: pack.appendingPathComponent("templates/card.json")

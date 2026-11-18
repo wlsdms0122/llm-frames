@@ -41,7 +41,7 @@ struct Clip: Equatable, Sendable {
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
     let blend: String?
-    let filter: JSONValue?
+    let filter: FilterChoice?
 
     // MARK: - Initializer
     init(
@@ -72,7 +72,7 @@ struct Clip: Equatable, Sendable {
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        filter: JSONValue? = nil
+        filter: FilterChoice? = nil
     ) {
         self.place = place
         self.id = id

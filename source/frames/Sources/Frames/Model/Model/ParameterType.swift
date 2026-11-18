@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-enum ParameterType: String, Sendable {
+package enum ParameterType: String, Sendable {
     case video
     case sequence
     case image

@@ -23,7 +23,7 @@ struct StorylineClip: Equatable, Sendable {
     let mask: PropertyValue<[ClipMask]>?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
-    let filter: JSONValue?
+    let filter: FilterChoice?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
     let scale: PropertyValue<Double>?
@@ -48,7 +48,7 @@ struct StorylineClip: Equatable, Sendable {
         mask: PropertyValue<[ClipMask]>? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
-        filter: JSONValue? = nil,
+        filter: FilterChoice? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,
         scale: PropertyValue<Double>? = nil,

@@ -78,6 +78,26 @@ struct PresetsCommandTests {
         #expect(sut.standardOutput == expected)
     }
 
+    @Test("presets <kind> <name> prints a preset that publishes parameters with its params as written")
+    func printsPresetParameters() throws {
+        // Given
+        let text = #"""
+            { "description": "dips to a colour",
+              "params": { "color": { "type": "color", "default": "#000000", "description": "colour of the dip" } },
+              "seconds": 0.7,
+              "cover": { "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+
+            """#
+        try sut.write(text, to: sut.installed.appendingPathComponent("shorts/presets/transition/dip.json"))
+
+        // When
+        let code = sut.run(["presets", "transition", "shorts/dip"])
+
+        // Then
+        #expect(code == 0)
+        #expect(sut.standardOutput == text)
+    }
+
     @Test(
         "an unknown kind or preset stops",
         arguments: [

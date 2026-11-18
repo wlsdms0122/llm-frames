@@ -50,7 +50,10 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].connected[0].content == .title(runs: [TitleRun(text: "a", style: nil)], style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].parent == "run")
-        #expect(sequence.storyline[1].transition == .timed(preset: "frames/wipe-right", seconds: 0.5))
+        #expect(sequence.storyline[1].transition == .preset(
+            PresetInstance(name: "frames/wipe-right", place: sequence.storyline[1].place.appending(key: "transition")),
+            seconds: 0.5
+        ))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
         #expect(sequence.storyline[2].transition == .cut)
@@ -60,7 +63,10 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].lane == -1)
         #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
-        #expect(sequence.clips[2].animation == .split(entrance: "frames/pop", exit: "none"))
+        #expect(sequence.clips[2].animation == .split(
+            entrance: PresetInstance(name: "frames/pop", place: sequence.clips[2].place.appending(key: "animation").appending(key: "entrance")),
+            exit: nil
+        ))
         #expect(sequence.clips[3].content == .title(
             runs: [TitleRun(text: "Ana\n", style: nil), TitleRun(text: "Director", style: "role")],
             style: "name"

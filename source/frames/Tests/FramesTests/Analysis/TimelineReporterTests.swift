@@ -151,7 +151,7 @@ struct TimelineReporterTests {
         let directory = try PackDirectory()
         try directory.addPack("shorts")
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
             in: "shorts",
             at: "templates/leak.json"
         )
@@ -200,14 +200,14 @@ struct TimelineReporterTests {
         try directory.write(
             #"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
-              "params": { "body": { "type": "sequence" } },
+              "params": { "body": { "type": "sequence", "description": "the body" } },
               "storyline": [ { "media": { "template": "shorts/inner", "args": { "body": { "param": "body" } } } } ] }
             """#,
             in: "shorts",
             at: "templates/outer.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "params": { "body": { "type": "sequence" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
             in: "shorts",
             at: "templates/inner.json"
         )
@@ -248,7 +248,7 @@ struct TimelineReporterTests {
         try directory.write(
             ##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
-              "params": { "body": { "type": "sequence" } },
+              "params": { "body": { "type": "sequence", "description": "the body" } },
               "storyline": [ { "media": { "template": "shorts/inner", "args": { "body":
                 { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
               } } } ] }
@@ -257,7 +257,7 @@ struct TimelineReporterTests {
             at: "templates/outer.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "params": { "body": { "type": "sequence" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
             in: "shorts",
             at: "templates/inner.json"
         )

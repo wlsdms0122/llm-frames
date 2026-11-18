@@ -5,10 +5,11 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Foundation
 import Frames
 
 // Lists the shipped and installed packs with what their `pack.json` says, or what one pack holds, by kind, each thing by the name
-// a document gives it.
+// a document gives it, and under each preset and template the parameters it publishes.
 struct PacksCommand: Command {
     // MARK: - Property
     let name = "packs"
@@ -29,11 +30,17 @@ struct PacksCommand: Command {
         guard let pack = try packs.pack(named: name) else { throw CommandError.unknownPack(name: name) }
 
         let presets = try PresetKind.allCases.flatMap { kind in
-            try context.presets.presets(of: kind, in: pack).map { "\(kind.rawValue)  \($0.name)  \($0.description)" }
+            try context.presets.presets(of: kind, in: pack).flatMap { entry in
+                ["\(kind.rawValue)  \(entry.name)  \(entry.description)"] + entry.parameters.map(line(of:))
+            }
         }
+        let library = context.library
         let files = try PackFolder.all.flatMap { folder in
-            try packs.names(in: folder.folder, of: pack, pathExtension: folder.pathExtension).map { file in
-                "\(folder.kind)  \(folder.isNamed ? "\(pack.name)/\(file)" : file)"
+            try packs.names(in: folder.folder, of: pack, pathExtension: folder.pathExtension).flatMap { file in
+                let name = folder.isNamed ? "\(pack.name)/\(file)" : file
+                let parameters = folder == .template ? try library.template(named: name)?.parameters ?? [] : []
+
+                return ["\(folder.kind)  \(name)"] + parameters.map(line(of:))
             }
         }
 
@@ -48,6 +55,20 @@ struct PacksCommand: Command {
         let manifest = pack.manifest
 
         return [pack.name, manifest.name ?? "-", manifest.version ?? "-", manifest.description ?? "-"]
+            .joined(separator: "  ")
+    }
+
+    // `  <name>  <type>  <default>  <description>`, indented under what publishes it, the default as JSON on one line
+    // and `-` for a template parameter without one.
+    private func line(of parameter: Parameter) -> String {
+        let defaultValue = parameter.defaultValue.map { value in
+            JSONWriter().write(value)
+                .split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .joined(separator: " ")
+        }
+
+        return "  " + [parameter.name, parameter.type.rawValue, defaultValue ?? "-", parameter.description]
             .joined(separator: "  ")
     }
 }

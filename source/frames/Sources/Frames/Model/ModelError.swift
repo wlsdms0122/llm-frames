@@ -65,7 +65,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind)): parameter \"\(name)\" of type \(type) cannot stand where \(expected) is expected"
 
         case let .unusedParameter(place, name):
-            "\(place) (parameter): \"\(name)\" is declared but nothing in the template refers to it"
+            "\(place) (parameter): \"\(name)\" is declared but nothing refers to it"
 
         case let .nestedTemplate(place, kind):
             "\(place) (\(kind)): a document with params is a template and is used only as a template instance"

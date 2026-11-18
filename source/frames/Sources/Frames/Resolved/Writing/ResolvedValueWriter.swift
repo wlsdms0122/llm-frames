@@ -124,6 +124,11 @@ struct ResolvedValueWriter: Sendable {
 
         case let .cubicBezier(x1, y1, x2, y2):
             numbers([x1, y1, x2, y2])
+
+        case let .spring(bounce):
+            .object(JSONObject(members: [
+                JSONMember(key: "spring", value: .object(JSONObject(members: [JSONMember(key: "bounce", value: .number(bounce))])))
+            ]))
         }
     }
 

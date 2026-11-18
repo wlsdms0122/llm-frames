@@ -13,7 +13,7 @@ enum DocumentKeyTable {
             KeyRule("kind", .literal(["sequence"]), isRequired: true),
             KeyRule("format", .object(format)),
             KeyRule("theme", theme),
-            KeyRule("params", .parameters),
+            KeyRule("params", .parameters(ParameterKeyTable.template)),
             KeyRule("storyline", .clips(.storyline)),
             KeyRule("clips", .clips(.sequence))
         ]

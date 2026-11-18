@@ -80,6 +80,28 @@ struct SpanEvaluatorTests {
         #expect(motion.value(of: .opacity) == 1)
     }
 
+    @Test("an opacity a spring carries past 1 or below 0 is drawn from 0 to 1, and an unranged property overshoots")
+    func clampsOvershootingOpacity() {
+        // Given
+        let rising = Span(ease: .spring(bounce: 0.6), keys: [
+            SpanKey(t: 0, values: [.opacity: 0, .scale: 0]),
+            SpanKey(t: 1, values: [.opacity: 1, .scale: 1])
+        ])
+        let falling = Span(ease: .spring(bounce: 0.6), keys: [
+            SpanKey(t: 0, values: [.opacity: 1]),
+            SpanKey(t: 1, values: [.opacity: 0])
+        ])
+
+        // When
+        let risen = sut.motion(of: rising, at: 0.6)
+        let fallen = sut.motion(of: falling, at: 0.6)
+
+        // Then
+        #expect(risen.value(of: .scale) > 1)
+        #expect(risen.value(of: .opacity) == 1)
+        #expect(fallen.value(of: .opacity) == 0)
+    }
+
     @Test("two keys at one progress cut from one value to the next")
     func cutsAtSharedProgress() {
         // Given

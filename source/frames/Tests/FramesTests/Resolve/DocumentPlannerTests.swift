@@ -18,7 +18,7 @@ struct DocumentPlannerTests {
     // A template of two clips, the first its argument, so a default transition would reach the second.
     private let leak = #"""
         { "kind": "sequence",
-          "params": { "clip": { "type": "video" }, "intro": { "type": "sequence", "default": "shorts/intro.json" } },
+          "params": { "clip": { "type": "video", "description": "the clip" }, "intro": { "type": "sequence", "default": "shorts/intro.json", "description": "the intro" } },
           "storyline": [ { "media": { "param": "clip" }, "in": 1, "out": 3 }, { "media": { "param": "intro" } } ] }
         """#
     // A document of two solids, so the theme it starts from decides the transition between them. Solids have no size,
@@ -190,7 +190,7 @@ struct DocumentPlannerTests {
     func continuesPlaceInInstance() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" }, "in": 5 } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" }, "in": 5 } ] }"#,
             in: "shorts",
             at: "templates/late.json"
         )
@@ -251,7 +251,7 @@ struct DocumentPlannerTests {
     func refusesSelfReferenceThroughArgument() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
             in: "shorts",
             at: "templates/wrap.json"
         )
@@ -272,7 +272,7 @@ struct DocumentPlannerTests {
     func plansInstanceInsideArgument() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "sequence", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
             in: "shorts",
             at: "templates/wrap.json"
         )
@@ -297,7 +297,7 @@ struct DocumentPlannerTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "clip": { "type": "sequence", "default": "shorts/loop.json" } },
+            { "kind": "sequence", "params": { "clip": { "type": "sequence", "default": "shorts/loop.json", "description": "the clip" } },
               "storyline": [ { "media": { "param": "clip" } } ] }
             """#,
             in: "shorts",
@@ -321,7 +321,7 @@ struct DocumentPlannerTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": { "template": "shorts/self" } } },
+            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": { "template": "shorts/self" }, "description": "the m" } },
               "storyline": [ { "media": { "param": "m" } } ] }
             """#,
             in: "shorts",
@@ -339,7 +339,7 @@ struct DocumentPlannerTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": "shorts/intro.json" } },
+            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": "shorts/intro.json", "description": "the m" } },
               "storyline": [ { "media": { "template": "shorts/self", "args": { "m": { "param": "m" } } } } ] }
             """#,
             in: "shorts",

@@ -588,7 +588,7 @@ struct SequencePlannerTests {
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "adjust": ["mine/grade", "none"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
+                { "adjust": ["mine/grade"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
             """#
 
         // When

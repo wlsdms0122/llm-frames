@@ -185,8 +185,7 @@ struct ClipAppearancePlanner: Sendable {
                 media: media(of: written),
                 scale: scale,
                 theme: theme,
-                defaults: defaults,
-                place: written.place.appending(key: written.content == .adjust ? "adjust" : "filter")
+                defaults: defaults
             ),
             media: try mediaAppearance(
                 of: written,
@@ -246,20 +245,19 @@ struct ClipAppearancePlanner: Sendable {
         )
     }
 
-    // A clip applies the filter it writes, or the theme's default when it takes one, and otherwise none. `place` is
-    // where the clip's choice is written, and the default's stops name the theme.
+    // A clip applies the filter it writes, or the theme's default when it takes one, and otherwise none. The clip's
+    // stops name its choice, and the default's name the theme.
     func filter(
-        _ written: JSONValue?,
+        _ written: FilterChoice?,
         kind: ClipKind,
         media: ClipMedia?,
         scale: Double,
         theme: MergedTheme,
-        defaults: ThemeDefaults,
-        place: Place
+        defaults: ThemeDefaults
     ) throws -> [FilterOperation] {
         let operations: [FilterOperation]
         if let written {
-            operations = try filters.operations(of: written, theme: theme, place: place, kind: .clip(kind))
+            operations = try filters.operations(of: written, theme: theme, kind: .clip(kind))
         } else if takesDefaultFilter(kind, media: media) {
             operations = try filters.operations(of: defaults.filter, theme: theme)
         } else {
