@@ -38,6 +38,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case shapeAreaWithBox(place: Place, kind: PlaceKind)
+    case placementWithoutBox(place: Place, kind: PlaceKind)
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
@@ -168,6 +169,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .shapeAreaWithBox(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse is given by \"area\" or by \"width\" and \"height\", "
                 + "and this one writes both"
+
+        case let .placementWithoutBox(place, kind):
+            "\(place) (\(kind.label)): \"placement\" places a box given by \"width\" and \"height\", "
+                + "and a shape given by \"area\" is placed by its area"
 
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""

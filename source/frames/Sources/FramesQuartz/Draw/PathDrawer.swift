@@ -35,7 +35,11 @@ struct PathDrawer {
             context.fillPath(using: .winding)
         }
 
-        guard let stroke = item.stroke, let shape = shape(of: stroke, along: outline, trim: item.trim) else { return }
+        guard
+            let stroke = item.stroke,
+            let drawn = item.drawnStroke(length: Double(outline.length)),
+            let shape = shape(of: stroke, drawn: drawn, along: outline)
+        else { return }
 
         context.addPath(shape)
         context.setFillColor(stroke.color.cgColor)
@@ -46,27 +50,21 @@ struct PathDrawer {
     // The stroke and its arrowheads as one shape, nil where it draws nothing.
     private func shape(
         of stroke: PathStroke,
-        along outline: PathOutline,
-        trim: Trim
+        drawn: DrawnStroke,
+        along outline: PathOutline
     ) -> CGPath? {
-        let length = outline.length
-        let low = CGFloat(min(max(min(trim.start, trim.end), 0), 1)) * length
-        let high = CGFloat(min(max(max(trim.start, trim.end), 0), 1)) * length
-        guard stroke.width > 0, high > low else { return nil }
+        guard !drawn.isWhole else { return stroked(outline.path, by: stroke) }
 
-        let width = CGFloat(stroke.width)
-        guard !outline.isClosed || low > 0 || high < length else { return stroked(outline.path, by: stroke) }
-
-        let hasStart = stroke.start == .arrow
-        let hasEnd = stroke.end == .arrow
-        let count = CGFloat([hasStart, hasEnd].filter { $0 }.count)
-        let headLength = count > 0 ? min(4 * width, (high - low) / count) : 0
-        let lineStart = low + (hasStart ? headLength : 0)
-        let lineEnd = high - (hasEnd ? headLength : 0)
-
+        let lineStart = CGFloat(drawn.lineStart)
+        let lineEnd = CGFloat(drawn.lineEnd)
+        let headLength = CGFloat(drawn.headLength)
         let line = lineEnd > lineStart ? stroked(outline.piece(from: lineStart, to: lineEnd), by: stroke) : nil
-        let start = hasStart ? head(at: low, along: outline, isStart: true, length: headLength) : nil
-        let end = hasEnd ? head(at: high, along: outline, isStart: false, length: headLength) : nil
+        let start = drawn.hasStartHead
+            ? head(at: CGFloat(drawn.start), along: outline, isStart: true, length: headLength)
+            : nil
+        let end = drawn.hasEndHead
+            ? head(at: CGFloat(drawn.end), along: outline, isStart: false, length: headLength)
+            : nil
         let parts = [line, start, end].compactMap { $0 }
         guard let first = parts.first else { return nil }
 

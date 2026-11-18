@@ -8,11 +8,12 @@
 // Evaluates a shape clip at an instant into its one `path` item in output pixels of its list, and gives the map its
 // children are carried by (FRAMES-10, FRAMES-20). A shape given by `width` and `height` is drawn in its box's own
 // pixels as a title's box is: its anchor point goes where its parent's map carries its position, it turns by its own
-// rotation and the map's, at its own scale, and its box is `w(t)` by `h(t)` with the anchor point held where it is, so
-// its lengths stay as written. A shape placed by its geometry is drawn in the coordinates its geometry is written in,
-// carried by its tracked motion and P(t) whole, with its own and its animation's scale and rotation about its anchor
-// point, and its lengths divided by P(t)'s scale, so that after the transform they are the clip's own times its own and
-// its animation's scale and not its parent's. `reveal` wipes the shape's receiver box from the animation's side.
+// rotation and the map's, at its own scale, and its box is `w(t)` by `h(t)` grown by its outset, with the anchor point
+// held where it is, so its lengths stay as written. A shape placed by its geometry is drawn in the coordinates its
+// geometry is written in, carried by its tracked motion and P(t) whole, with its own and its animation's scale and
+// rotation about its anchor point, and its lengths, its outset among them, divided by P(t)'s scale, so that after the
+// transform they are the clip's own times its own and its animation's scale and not its parent's. `reveal` wipes the
+// shape's receiver box from the animation's side.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -87,57 +88,73 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double)? {
-        if let box = clip.box {
-            return laid(shape, box: box, clip: clip, sample: sample, in: space, at: time)
-        }
-
         let tracked = space.tracked(by: clip.track, at: time)
-        guard tracked.scale > 0 else { return nil }
-
-        let radius = shape.radius.value(at: time) / tracked.scale
         let geometry: PathGeometry
         let bounds: Rectangle
-        if let area = shape.area {
-            let rectangle = space.area(of: area, track: clip.track, at: time)
-            geometry = shape.kind == .ellipse ? .ellipse(rectangle) : .rect(rectangle, radius: radius)
-            bounds = rectangle
-        } else if let keyframes = shape.points {
+        let growth: Double
+        switch shape.geometry {
+        case let .box(width, height, outset):
+            // A box shape's entry carries its box (FRAMES-19).
+            return clip.box.map { box in
+                laid(
+                    shape,
+                    width: width,
+                    height: height,
+                    outset: outset,
+                    box: box,
+                    clip: clip,
+                    sample: sample,
+                    in: space,
+                    at: time
+                )
+            }
+
+        case let .area(area, outset):
+            guard tracked.scale > 0 else { return nil }
+
+            bounds = space.area(of: area, track: clip.track, at: time)
+            growth = outset / tracked.scale
+            let grown = bounds.grown(by: growth)
+            let radius = shape.radius.value(at: time) / tracked.scale
+            geometry = shape.kind == .ellipse ? .ellipse(grown) : .rect(grown, radius: radius)
+
+        case let .points(keyframes, isClosed):
+            guard tracked.scale > 0 else { return nil }
+
             let points = space.points(of: keyframes, track: clip.track, at: time)
-            geometry = .polyline(points, isClosed: shape.isClosed ?? false)
             bounds = Rectangle(bounding: points)
-        } else {
-            return nil
+            growth = 0
+            geometry = .polyline(points, isClosed: isClosed)
         }
 
         let motion = sample.animation.motion
-        let anchor = shape.anchor ?? bounds.center
-        let position = shape.position.map { space.point(of: $0, track: clip.track, at: time) } ?? anchor
-        let offset = Point(
-            x: position.x - anchor.x + motion.value(of: .x) * bounds.width,
-            y: position.y - anchor.y + motion.value(of: .y) * bounds.height
-        )
-        let scale = (clip.scale.map { $0.value(at: time) } ?? 1) * motion.value(of: .scale)
-        let rotation = (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation)
-        let transform = AffineTransform(scale: scale, rotation: rotation, about: anchor, offset: offset)
-            .concatenating(tracked.transform)
+        let transform = AffineTransform(
+            placing: bounds,
+            outset: growth,
+            anchor: shape.anchor,
+            position: shape.position.map { space.point(of: $0, track: clip.track, at: time) },
+            scale: (clip.scale.map { $0.value(at: time) } ?? 1) * motion.value(of: .scale),
+            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
+            moved: Point(x: motion.value(of: .x), y: motion.value(of: .y))
+        ).concatenating(tracked.transform)
 
         return (geometry, transform, sample.opacity * motion.value(of: .opacity), tracked.scale)
     }
 
     // A box shape keeps its anchor point where it is while its box changes size: the anchor stays the same point of
-    // the box, scaled with it.
+    // the box, scaled with it. Its box is `width` by `height` grown by `outset` on every side.
     private func laid(
         _ shape: ResolvedShape,
+        width: [Keyframe<Double>],
+        height: [Keyframe<Double>],
+        outset: Double,
         box: ResolvedBox,
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
     ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double) {
-        let size = Size(
-            width: shape.width.map { $0.value(at: time) } ?? box.size.width,
-            height: shape.height.map { $0.value(at: time) } ?? box.size.height
-        )
+        let size = Size(width: width.value(at: time) + outset * 2, height: height.value(at: time) + outset * 2)
         let anchor = Point(
             x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
             y: box.size.height > 0 ? box.anchor.y * size.height / box.size.height : 0
@@ -160,7 +177,7 @@ struct ShapeEvaluator: Sendable {
     }
 
     // What the shape draws, in its own coordinates (FRAMES-14): its outline's box grown by half its stroke, or by the
-    // half width of an arrowhead's base where it has one, united with its shadow's box, moved by the shadow's offset
+    // half width of an arrowhead's base where its drawn stroke has one, united with its shadow's box, moved by the shadow's offset
     // and grown by three times its radius, where the blur has all but faded.
     private func receiverBox(of path: PathItem) -> Rectangle {
         let outline = switch path.geometry {
@@ -170,9 +187,7 @@ struct ShapeEvaluator: Sendable {
         case let .polyline(points, _):
             Rectangle(bounding: points)
         }
-        let growth = path.stroke.map { stroke in
-            stroke.start == .arrow || stroke.end == .arrow ? stroke.width * 2 : stroke.width / 2
-        } ?? 0
+        let growth = path.stroke.map { stroke in path.hasArrowhead ? stroke.width * 2 : stroke.width / 2 } ?? 0
         let drawn = outline.grown(by: growth)
         guard let shadow = path.shadow else { return drawn }
 

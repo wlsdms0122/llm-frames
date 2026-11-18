@@ -59,9 +59,12 @@ struct ClipAppearancePlanner: Sendable {
             style = nil
 
         case .shape:
-            guard let width = shape?.width, let height = shape?.height else { return nil }
+            guard case let .box(width, height, outset) = shape?.geometry else { return nil }
 
-            size = Size(width: value(of: width, at: plan.instant), height: value(of: height, at: plan.instant))
+            size = Size(
+                width: value(of: width, at: plan.instant) + outset * 2,
+                height: value(of: height, at: plan.instant) + outset * 2
+            )
             style = nil
 
         case .adjust:
@@ -135,18 +138,23 @@ struct ClipAppearancePlanner: Sendable {
         }
 
         let outset = (shape.outset ?? style["outset"]?.numberValue ?? 0) * scale
-        let grown = { (length: PropertyValue<Double>?) in
-            length.map { property($0, plain: 0, clock: plan.clock).map { $0 + outset * 2 } }
+        let geometry: ShapeGeometryPlan = if shape.kind == .path {
+            .points(isClosed: shape.isClosed)
+        } else if let width = shape.width, let height = shape.height {
+            .box(
+                width: property(width, plain: 0, clock: plan.clock),
+                height: property(height, plain: 0, clock: plan.clock),
+                outset: outset
+            )
+        } else {
+            .area(outset: outset)
         }
         let radius = shape.radius.map { property($0, plain: 0, clock: plan.clock) }
             ?? .value(style["radius"]?.numberValue ?? 0)
 
         return ShapeAppearance(
             kind: shape.kind,
-            width: grown(shape.width),
-            height: grown(shape.height),
-            isClosed: shape.isClosed,
-            outset: outset,
+            geometry: geometry,
             anchor: shape.width == nil ? written.anchor : nil,
             radius: radius.map { $0 * scale },
             trim: shape.trim.map { property($0, plain: .whole, clock: plan.clock) } ?? .value(.whole),
@@ -404,8 +412,8 @@ struct ClipAppearancePlanner: Sendable {
         property.keyframes(at: instant) { $0 }.value(at: instant)
     }
 
-    // A rect or an ellipse takes exactly one of `area` and the pair `width` and `height`, and a path its points, every
-    // keyframe of them as many.
+    // A rect or an ellipse takes exactly one of `area` and the pair `width` and `height`, and only with the pair a
+    // `placement`, and a path its points, every keyframe of them as many.
     private func checkGeometry(
         of shape: ClipShape,
         written: Clip,
@@ -428,7 +436,13 @@ struct ClipAppearancePlanner: Sendable {
         }
 
         switch (written.area, shape.width, shape.height) {
-        case (.some, .none, .none), (.none, .some, .some):
+        case (.some, .none, .none):
+            // `placement` places a clip by its box, and a shape given by its area is placed by its geometry.
+            guard written.placement == nil else {
+                throw ResolveError.placementWithoutBox(place: written.place, kind: kind)
+            }
+
+        case (.none, .some, .some):
             return
 
         case (.some, _, _):

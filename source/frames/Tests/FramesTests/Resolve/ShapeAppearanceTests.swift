@@ -73,6 +73,10 @@ struct ShapeAppearanceTests {
             (
                 #"{ "shape": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "color": "ink" } }"#,
                 #"clips[0].stroke.color (path): colour "ink" is not in colors"#
+            ),
+            (
+                #"{ "shape": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,
+                #"clips[0] (rect): "placement" places a box given by "width" and "height", and a shape given by "area" is placed by its area"#
             )
         ]
     )
@@ -119,10 +123,7 @@ struct ShapeAppearanceTests {
         // Then
         #expect(shape == ShapeAppearance(
             kind: .rect,
-            width: nil,
-            height: nil,
-            isClosed: false,
-            outset: 3,
+            geometry: .area(outset: 3),
             anchor: nil,
             radius: .value(9),
             trim: .value(.whole),
@@ -145,7 +146,7 @@ struct ShapeAppearanceTests {
         #expect(shape.fill == nil)
         #expect(shape.shadow == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         #expect(shape.radius == .value(0))
-        #expect(shape.outset == 0)
+        #expect(shape.geometry == .area(outset: 0))
     }
 
     @Test("a shape without a style takes nothing from the theme but colour names, and its stroke the stroke defaults")
@@ -156,10 +157,7 @@ struct ShapeAppearanceTests {
         // Then
         #expect(shape == ShapeAppearance(
             kind: .ellipse,
-            width: nil,
-            height: nil,
-            isClosed: false,
-            outset: 0,
+            geometry: .area(outset: 0),
             anchor: nil,
             radius: .value(0),
             trim: .value(.whole),
@@ -177,7 +175,7 @@ struct ShapeAppearanceTests {
         // Then
         // The outset of 5 grows the box to 210 by 110, inset from the bottom right by the placement padding.
         let padding = 96 * 0.5
-        #expect(plan.clips[0].appearance.shape?.width == .value(210))
+        #expect(plan.clips[0].appearance.shape?.geometry == .box(width: .value(200), height: .value(100), outset: 5))
         #expect(plan.clips[0].box == ClipBox(
             size: Size(width: 210, height: 110),
             position: .value(Point(x: 960 - padding - 210, y: 540 - padding - 110)),
@@ -198,16 +196,15 @@ struct ShapeAppearanceTests {
         ))
     }
 
-    @Test("a shape placed by its area writes its area grown by its outset, and the named point of it as its anchor")
+    @Test("a shape placed by its area writes its area as written and its outset in output pixels, and names its anchor on its area")
     func writesGeometryShape() throws {
         // When
         let shape = try resolvedShape(#"{ "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "position": [500, 300], "fill": "accent" }"#)
 
         // Then
-        let area = Rectangle(x: 90, y: 90, width: 220, height: 120)
-        #expect(shape.area == [Keyframe(at: 0, value: area)])
-        #expect(shape.width == nil)
-        #expect(shape.anchor == Point(x: 310, y: 210))
+        let area = Rectangle(x: 100, y: 100, width: 200, height: 100)
+        #expect(shape.geometry == .area([Keyframe(at: 0, value: area)], outset: 10))
+        #expect(shape.anchor == NamedPoint(area: area, name: "bottom-right"))
         #expect(shape.position == [Keyframe(at: 0, value: Point(x: 500, y: 300))])
     }
 
@@ -229,9 +226,13 @@ struct ShapeAppearanceTests {
             Issue.record("both clips are shapes")
             return
         }
-        let total = try #require(rect.area?.first?.value)
-        #expect(path.points?.map(\.value) == [[Point(x: 10, y: 20), total.point(named: "left")]])
-        #expect(path.isClosed == true)
+        guard case let .area(area, _) = rect.geometry, case let .points(points, isClosed) = path.geometry else {
+            Issue.record("the rect is placed by its area and the path by its points")
+            return
+        }
+        let total = try #require(area.first?.value)
+        #expect(points.map(\.value) == [[Point(x: 10, y: 20), total.point(named: "left")]])
+        #expect(isClosed)
         #expect(path.anchor == nil)
         #expect(clips[1].box == nil)
     }

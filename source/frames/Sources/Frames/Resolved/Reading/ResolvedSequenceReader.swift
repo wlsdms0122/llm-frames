@@ -20,12 +20,12 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
-        "title", "shape", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke", "adjust", "media",
-        "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
+        "title", "shape", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke", "adjust",
+        "media", "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
     ]
 
     private static let shapeKeys = [
-        "shape", "area", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke", "shadow"
+        "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke", "shadow"
     ]
 
     private let values = ResolvedValueReader()
@@ -271,22 +271,35 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // A shape's kind and geometry, then how it is drawn. One placed by its geometry carries its position and anchor.
+    // A shape's kind and geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
+    // `width` and `height`, and one without by its area. One placed by its geometry carries its position and its
+    // anchor, `{area, point}`.
     private func shape(
         _ clip: PlacedJSONObject,
         isPlacedByBox: Bool
     ) throws -> ResolvedShape {
-        let numbers = { (key: String) in try clip.member(key).optional(values.numbers) }
+        let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
+        let geometry: ShapeGeometry = if kind == .path {
+            .points(
+                try values.keyframes(clip.member("points")) { points in try points.elements().map(values.point) },
+                isClosed: try clip.member("closed").bool()
+            )
+        } else if isPlacedByBox {
+            .box(
+                width: try values.numbers(clip.member("width")),
+                height: try values.numbers(clip.member("height")),
+                outset: try clip.member("outset").number()
+            )
+        } else {
+            .area(
+                try values.keyframes(clip.member("area"), read: values.rectangle),
+                outset: try clip.member("outset").number()
+            )
+        }
 
         return ResolvedShape(
-            kind: try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init),
-            area: try clip.member("area").optional { try values.keyframes($0, read: values.rectangle) },
-            width: try numbers("width"),
-            height: try numbers("height"),
-            points: try clip.member("points").optional { value in
-                try values.keyframes(value) { points in try points.elements().map(values.point) }
-            },
-            isClosed: try clip.member("closed").optional { try $0.bool() },
+            kind: kind,
+            geometry: geometry,
             radius: try values.numbers(clip.member("radius")),
             trim: try values.keyframes(clip.member("trim")) { value in
                 let ends = try value.numbers()
@@ -300,7 +313,17 @@ struct ResolvedSequenceReader: Sendable {
             position: isPlacedByBox ? nil : try clip.member("position").optional { value in
                 try values.keyframes(value, read: values.point)
             },
-            anchor: isPlacedByBox ? nil : try clip.member("anchor").optional(values.point)
+            anchor: isPlacedByBox ? nil : try clip.member("anchor").optional(namedPoint)
+        )
+    }
+
+    private func namedPoint(_ value: PlacedJSONValue) throws -> NamedPoint {
+        let point = try value.object(keys: ["area", "point"])
+        let names = VocabularyTable.placementNames
+
+        return NamedPoint(
+            area: try values.rectangle(point.member("area")),
+            name: try point.member("point").name(among: names) { name in names.contains(name) ? name : nil }
         )
     }
 

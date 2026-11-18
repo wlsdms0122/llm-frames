@@ -22,6 +22,9 @@ struct ParentSpacePlanner: Sendable {
     private let areas: [PropertyValue<FoundArea>?]
     private let points: [PropertyValue<[Point]>?]
     private let positions: [PropertyValue<Point>?]
+    // The transform of each shape placed by its geometry, nil for every other clip. Each is planned once, its
+    // parents' first, since what a shape finds is brought back through its parents' transforms.
+    private var transforms: [ParentTransformPlan?]
 
     // MARK: - Initializer
     // Each list is in the time plan's order of clips: the clips as written, their shapes as planned, and the areas,
@@ -40,6 +43,11 @@ struct ParentSpacePlanner: Sendable {
         self.areas = areas
         self.points = points
         self.positions = positions
+        self.transforms = Array(repeating: nil, count: written.count)
+
+        for index in written.indices.sorted(by: { depth(of: $0) < depth(of: $1) }) {
+            transforms[index] = transform(of: index)
+        }
     }
 
     // MARK: - Public
@@ -106,7 +114,7 @@ struct ParentSpacePlanner: Sendable {
 
         let plan = tracked.time.clips[index]
         switch plan.kind {
-        case .shape where shapes[index]?.width == nil, .adjust:
+        case .shape where transforms[index] != nil, .adjust:
             break
 
         default:
@@ -115,31 +123,53 @@ struct ParentSpacePlanner: Sendable {
 
         let held = plan.visible.held(time)
         let outer = plan.parent.map { parent in links(under: parent, at: time) } ?? []
-        let own = transform(of: index)?.transform(at: held) ?? .identity
+        let own = transforms[index]?.transform(at: held) ?? .identity
         guard let link = track(of: index) else { return outer + [own] }
 
         let mediaTime = tracked.time.storyline[link.storyline].mediaTime(atSequenceTime: held)
         return outer + [own.concatenating(AffineTransform(carrying: link.track.track.motion(atMediaTime: mediaTime)))]
     }
 
-    // A shape placed by its geometry as its transform needs it, its area grown by its outset and its named anchor
-    // taken on its geometry's box at its instant, as its entry has them (`ResolvedShape(shape:geometry:instant:)`). An
-    // adjustment has no transform of its own.
+    // How many parents a clip has above it. ParentFinder has ruled out a cycle, so the chain ends.
+    private func depth(of index: Int) -> Int {
+        guard case let .clip(parent, _) = tracked.time.clips[index].parent else { return 0 }
+
+        return depth(of: parent) + 1
+    }
+
+    // A shape placed by its geometry as its transform needs it, its area or points as found and its named anchor
+    // taken on its geometry's box at its instant, as its entry has them (`ResolvedShape(shape:geometry:instant:)`). A
+    // shape given by `width` and `height` and an adjustment have no such transform.
     private func transform(of index: Int) -> ParentTransformPlan? {
         guard let shape = shapes[index] else { return nil }
 
         let plan = tracked.time.clips[index]
-        let area = atInstant(
-            area(of: index)?.keyframes(at: plan.instant) { $0.rectangle.grown(by: shape.outset) },
-            of: index
-        ) { track, rectangle, mediaTime in
-            track.bringBack(rectangle, fromMediaTime: mediaTime)
-        }
-        let points = atInstant(
-            points(of: index)?.keyframes(at: plan.instant) { $0 },
-            of: index
-        ) { track, points, time in
-            points.map { track.bringBack($0, fromMediaTime: time) }
+        let geometry: ShapeGeometry
+        switch shape.geometry {
+        case .box:
+            return nil
+
+        case let .area(outset):
+            let area = atInstant(
+                area(of: index)?.keyframes(at: plan.instant) { $0.rectangle },
+                of: index
+            ) { track, rectangle, mediaTime in
+                track.bringBack(rectangle, fromMediaTime: mediaTime)
+            }
+            guard let area else { return nil }
+
+            geometry = .area(area, outset: outset)
+
+        case let .points(isClosed):
+            let points = atInstant(
+                points(of: index)?.keyframes(at: plan.instant) { $0 },
+                of: index
+            ) { track, points, time in
+                points.map { track.bringBack($0, fromMediaTime: time) }
+            }
+            guard let points else { return nil }
+
+            geometry = .points(points, isClosed: isClosed)
         }
         let position = atInstant(
             position(of: index)?.keyframes(at: plan.instant) { $0 },
@@ -147,15 +177,12 @@ struct ParentSpacePlanner: Sendable {
         ) { track, point, time in
             track.bringBack(point, fromMediaTime: time)
         }
-        let box = area.map { $0.value(at: plan.instant) }
-            ?? points.map { Rectangle(bounding: $0.value(at: plan.instant)) }
         let written = written[index]
 
         return ParentTransformPlan(
-            area: area,
-            points: points,
+            geometry: geometry,
             position: position,
-            anchor: shape.anchor.flatMap { name in box?.point(named: name) },
+            anchor: shape.anchor.map { name in NamedPoint(area: geometry.bounds(at: plan.instant), name: name) },
             scale: (written.scale?.inSequenceTime(on: plan.clock) ?? .value(1)).keyframes(at: plan.instant) { $0 },
             rotation: (written.rotation?.inSequenceTime(on: plan.clock) ?? .value(0)).keyframes(at: plan.instant) { $0 }
         )

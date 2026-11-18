@@ -6,16 +6,12 @@
 //
 
 // How a shape clip is drawn once its style is applied, its lengths in output pixels and keyframes in sequence time:
-// `width` and `height` size a rect's or an ellipse's box, already grown by `outset`, nil for a shape placed by its
-// geometry, whose area is grown by `outset` where it is written. `anchor` is the anchor point named on a shape placed
-// by its geometry, nil for the centre of its geometry's box. `radius` is 0 and `trim` `[0, 1]` when neither is written.
+// how it is placed, and `anchor`, the anchor point named on a shape placed by its geometry, nil for the centre of its
+// geometry's box. `radius` is 0 and `trim` `[0, 1]` when neither is written.
 struct ShapeAppearance: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind
-    let width: PropertyValue<Double>?
-    let height: PropertyValue<Double>?
-    let isClosed: Bool
-    let outset: Double
+    let geometry: ShapeGeometryPlan
     let anchor: String?
     let radius: PropertyValue<Double>
     let trim: PropertyValue<Trim>
@@ -26,10 +22,7 @@ struct ShapeAppearance: Equatable, Sendable {
     // MARK: - Initializer
     init(
         kind: ShapeKind,
-        width: PropertyValue<Double>?,
-        height: PropertyValue<Double>?,
-        isClosed: Bool,
-        outset: Double,
+        geometry: ShapeGeometryPlan,
         anchor: String?,
         radius: PropertyValue<Double>,
         trim: PropertyValue<Trim>,
@@ -38,10 +31,7 @@ struct ShapeAppearance: Equatable, Sendable {
         shadow: DropShadow?
     ) {
         self.kind = kind
-        self.width = width
-        self.height = height
-        self.isClosed = isClosed
-        self.outset = outset
+        self.geometry = geometry
         self.anchor = anchor
         self.radius = radius
         self.trim = trim

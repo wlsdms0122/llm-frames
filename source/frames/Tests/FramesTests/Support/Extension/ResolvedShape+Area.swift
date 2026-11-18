@@ -7,7 +7,8 @@
 
 @testable import Frames
 
-// A rect placed by its area, filled with a colour or stroked, with square corners, no trim and no shadow.
+// A rect placed by its area with no outset, filled with a colour or stroked, with square corners, no trim and no
+// shadow.
 extension ResolvedShape {
     // MARK: - Property
     // MARK: - Initializer
@@ -18,7 +19,7 @@ extension ResolvedShape {
     ) {
         self.init(
             kind: .rect,
-            area: area,
+            geometry: .area(area, outset: 0),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: .whole)],
             fill: fill,

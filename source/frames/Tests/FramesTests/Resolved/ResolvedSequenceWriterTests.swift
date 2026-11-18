@@ -360,7 +360,7 @@ struct ResolvedSequenceWriterTests {
         #expect(music["volume"]?.arrayValue?.compactMap { $0.objectValue?["at"] } == [.number(0), .number(1)])
     }
 
-    @Test("a shape entry writes its kind, geometry and appearance after its id, every key present and null where none")
+    @Test("a shape entry writes its kind, its geometry as written, its outset and its appearance after its id, every key present and null where none")
     func writesShapeEntry() throws {
         // Given
         let document = ##"""
@@ -379,14 +379,15 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         #expect(clips[0].keys == [
-            "place", "id", "shape", "area", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke",
-            "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "track",
+            "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
+            "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "track",
             "opacity", "scale", "rotation", "blend", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)
         #expect(clips[0]["points"] == .null)
         #expect(clips[0]["closed"] == .null)
+        #expect(clips[0]["outset"] == .number(0))
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
@@ -403,11 +404,13 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["anchor"] == .null)
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
+        #expect(clips[1]["outset"] == .null)
         #expect(clips[1]["stroke"]?.objectValue?["color"] == .string(theme.color("accent").hex))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
         #expect(clips[1]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(0))
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
-        #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200 + 20 * scale))
+        #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200))
+        #expect(clips[2]["outset"] == .number(10 * scale))
         #expect(clips[2]["size"] == .array([.number(200 + 20 * scale), .number(100 + 20 * scale)]))
         #expect(clips[2]["anchor"] == .array([.number(100 + 10 * scale), .number(50 + 10 * scale)]))
         #expect(clips[2]["fill"] == .string("#00000080"))

@@ -287,6 +287,9 @@ struct ContentFitTests {
         arguments: [
             // The page is 300 wide, so a stroke of 64 is 10 output pixels and its arrowhead 40 long and 40 wide.
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            // A whole closed outline has no ends, so its arrowhead is drawn only where a trim leaves part of it undrawn.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 220)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),

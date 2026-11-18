@@ -570,10 +570,7 @@ struct SequencePlannerTests {
         #expect(plan.clips[1].appearance.blend == "normal")
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
-            width: nil,
-            height: nil,
-            isClosed: false,
-            outset: 0,
+            geometry: .area(outset: 0),
             anchor: nil,
             radius: .value(0),
             trim: .value(.whole),

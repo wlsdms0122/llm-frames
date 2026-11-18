@@ -162,8 +162,8 @@ struct ContentFitPlanner: Sendable {
     }
 
     // A shape's outline grown by half its stroke width after its transform, with its arrowheads. A path's arrowheads
-    // are measured as drawn, and a rect's or an ellipse's, which only a trim gives, by growing its outline by the half
-    // width of their base. A shape at scale 0 draws nothing, so it is not measured.
+    // are measured as drawn, and a rect's or an ellipse's, which only a trim leaving part of it undrawn gives, by
+    // growing its outline by the half width of their base. A shape at scale 0 draws nothing, so it is not measured.
     private func extent(
         of shape: ResolvedShape,
         clip: ResolvedClip,
@@ -175,40 +175,33 @@ struct ContentFitPlanner: Sendable {
 
         let transform = item.transform
         let width = path.stroke?.width ?? 0
-        let hasArrow = path.stroke.map { $0.start == .arrow || $0.end == .arrow } ?? false
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            return bounds(of: rectangle.grown(by: hasArrow ? width * 2 : width / 2), by: transform)
+            return bounds(of: rectangle.grown(by: path.hasArrowhead ? width * 2 : width / 2), by: transform)
 
         case let .polyline(points, isClosed):
             let scale = (transform.a * transform.a + transform.b * transform.b).squareRoot()
             let outline = Rectangle(bounding: points.map(transform.apply(to:))).grown(by: width / 2 * scale)
-            let heads = path.stroke.map { stroke in
-                arrowheads(of: points, isClosed: isClosed, trim: path.trim, stroke: stroke).map(transform.apply(to:))
-            } ?? []
+            let heads = arrowheads(of: points, isClosed: isClosed, path: path).map(transform.apply(to:))
             return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
         }
     }
 
-    // The corners of a polyline's arrowheads as drawn (FRAMES-20): each at an end of the trimmed stroke, its tip
-    // there, `4 × width` long along the outline's direction and as wide at its base, shrunk about its tip where the
-    // heads together are longer than the stroke. A whole closed outline has no ends.
+    // The corners of a polyline's arrowheads as `DrawnStroke` lays them (FRAMES-11): each with its tip at its end of
+    // the drawn stroke and its axis along the outline's direction there, as wide at its base as it is long.
     private func arrowheads(
         of points: [Point],
         isClosed: Bool,
-        trim: Trim,
-        stroke: PathStroke
+        path: PathItem
     ) -> [Point] {
         let vertices = isClosed ? points + [points[0]] : points
         let segments = Array(zip(vertices, vertices.dropFirst()))
         let length = segments.reduce(0) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
-        let from = min(trim.start, trim.end) * length
-        let to = max(trim.start, trim.end) * length
-        // The start's head points back along the outline, the end's forward.
-        let ends = [(stroke.start, from, -1.0), (stroke.end, to, 1.0)].filter { $0.0 == .arrow }
-        guard to > from, !ends.isEmpty, !(isClosed && from == 0 && to == length) else { return [] }
+        guard let drawn = path.drawnStroke(length: length) else { return [] }
 
-        let head = min(stroke.width * 4, (to - from) / Double(ends.count))
+        // The start's head points back along the outline, the end's forward.
+        let ends = [(drawn.hasStartHead, drawn.start, -1.0), (drawn.hasEndHead, drawn.end, 1.0)].filter(\.0)
+        let head = drawn.headLength
         return ends.flatMap { _, distance, sign -> [Point] in
             guard let (tip, direction) = place(at: distance, along: segments) else { return [] }
 

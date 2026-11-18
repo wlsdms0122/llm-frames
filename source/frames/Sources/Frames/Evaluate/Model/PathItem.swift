@@ -39,5 +39,26 @@ package struct PathItem: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // A rect's and an ellipse's outline is closed, and a polyline's when it says so.
+    package var isClosed: Bool {
+        switch geometry {
+        case .rect, .ellipse:
+            true
+
+        case let .polyline(_, isClosed):
+            isClosed
+        }
+    }
+
+    // Whether the stroke as drawn ends in an arrowhead at either end, which takes no length to know.
+    package var hasArrowhead: Bool {
+        drawnStroke(length: 1).map { $0.hasStartHead || $0.hasEndHead } ?? false
+    }
+
+    // The part of the outline the stroke draws along an outline `length` long, nil where it draws nothing.
+    package func drawnStroke(length: Double) -> DrawnStroke? {
+        stroke.flatMap { stroke in DrawnStroke(stroke: stroke, trim: trim, isClosed: isClosed, length: length) }
+    }
+
     // MARK: - Private
 }

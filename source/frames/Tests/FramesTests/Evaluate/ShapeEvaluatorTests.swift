@@ -82,14 +82,14 @@ struct ShapeEvaluatorTests {
         // Given
         let shape = ResolvedShape(
             kind: .rect,
-            area: [Keyframe(at: 0, value: Self.area)],
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: .whole)],
             fill: Self.red,
             stroke: nil,
             shadow: nil,
             position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
-            anchor: Point(x: 40, y: 20)
+            anchor: NamedPoint(area: Self.area, name: "top-left")
         )
         let clip = clip(shape, box: nil, rotation: 90)
 
@@ -182,12 +182,89 @@ struct ShapeEvaluatorTests {
         ))
     }
 
+    @Test(
+        "a rect placed by its area keeps its outset in output pixels under a parent's zoom, its named anchor on the grown box",
+        arguments: [0.5, 2.0]
+    )
+    func keepsOutsetUnderParentZoom(zoom: Double) throws {
+        // Given
+        // The outset is 4 output pixels, and the position puts the grown box's top left at (150, 50) in the parent's
+        // space.
+        let parent = ClipSpace(frame: Self.frame, transform: AffineTransform(a: zoom, b: 0, c: 0, d: zoom, tx: 10, ty: 0))
+        let shape = ResolvedShape(
+            kind: .rect,
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 4),
+            radius: [Keyframe(at: 0, value: 0)],
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: Self.red,
+            stroke: nil,
+            shadow: nil,
+            position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
+            anchor: NamedPoint(area: Self.area, name: "top-left")
+        )
+        let clip = clip(shape, box: nil)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: parent, at: 1)
+            .first)
+
+        // Then
+        guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else {
+            Issue.record("a rect draws one rect path item")
+            return
+        }
+        let topLeft = item.transform.apply(to: Point(x: rectangle.x, y: rectangle.y))
+        let bottomRight = item.transform.apply(to: Point(x: rectangle.maxX, y: rectangle.maxY))
+        #expect(abs(bottomRight.x - topLeft.x - (40 * zoom + 8)) < 1e-9)
+        #expect(abs(bottomRight.y - topLeft.y - (20 * zoom + 8)) < 1e-9)
+        expect(topLeft, parent.transform.apply(to: Point(x: 150, y: 50)))
+    }
+
+    @Test(
+        "a closed rect's arrowhead grows its receiver box only where a trim leaves part of its outline undrawn",
+        arguments: [(Trim.whole, 2.0), (Trim(start: 0, end: 0.5), 8.0)]
+    )
+    func growsReceiverBoxByDrawnArrowheads(
+        trim: Trim,
+        growth: Double
+    ) throws {
+        // Given
+        // A stroke 4 wide grows the box by half its width, and an arrowhead by half its base, 8.
+        let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .right, keys: [
+            SpanKey(t: 0, values: [.reveal: 0]),
+            SpanKey(t: 1, values: [.reveal: 1])
+        ]))
+        let shape = ResolvedShape(
+            kind: .rect,
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
+            radius: [Keyframe(at: 0, value: 0)],
+            trim: [Keyframe(at: 0, value: trim)],
+            fill: nil,
+            stroke: PathStroke(width: 4, color: Self.red, join: .round, cap: .butt, start: .none, end: .arrow),
+            shadow: nil
+        )
+        let clip = clip(shape, box: nil, entrance: entrance)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 0.25), in: space, at: 0.25)
+            .first)
+
+        // Then
+        let receiver = Self.area.grown(by: growth)
+        #expect(item.reveal == Rectangle(
+            x: receiver.x + receiver.width * 0.75,
+            y: receiver.y,
+            width: receiver.width * 0.25,
+            height: receiver.height
+        ))
+    }
+
     @Test("a trim keyframed out of 0 to 1 is clamped to it")
     func clampsTrim() throws {
         // Given
         let shape = ResolvedShape(
             kind: .ellipse,
-            area: [Keyframe(at: 0, value: Self.area)],
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
             fill: nil,
@@ -265,8 +342,7 @@ struct ShapeEvaluatorTests {
         case "path":
             ResolvedShape(
                 kind: .path,
-                points: [Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])],
-                isClosed: false,
+                geometry: .points([Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])], isClosed: false),
                 radius: [Keyframe(at: 0, value: 0)],
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: nil,
@@ -277,7 +353,7 @@ struct ShapeEvaluatorTests {
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
-                area: [Keyframe(at: 0, value: Self.area)],
+                geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
                 radius: [Keyframe(at: 0, value: 2)],
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: nil,
@@ -288,7 +364,7 @@ struct ShapeEvaluatorTests {
 
         return clip(
             shape,
-            box: shape.width == nil ? nil : box,
+            box: placement.hasSuffix("width and height") ? box : nil,
             scale: scale,
             rotation: rotation,
             entrance: entrance
@@ -302,8 +378,7 @@ struct ShapeEvaluatorTests {
     ) -> ResolvedShape {
         ResolvedShape(
             kind: kind,
-            width: width,
-            height: [Keyframe(at: 0, value: 20)],
+            geometry: .box(width: width, height: [Keyframe(at: 0, value: 20)], outset: 0),
             radius: [Keyframe(at: 0, value: 2)],
             trim: [Keyframe(at: 0, value: .whole)],
             fill: nil,

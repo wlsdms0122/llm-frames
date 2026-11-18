@@ -14,9 +14,7 @@ extension ItemCoverage {
     // MARK: - Property
     // MARK: - Initializer
     init(path: PathItem) {
-        let stroke = path.stroke.flatMap { stroke in
-            stroke.width > 0 && path.trim.start != path.trim.end ? stroke : nil
-        }
+        let stroke = path.drawnStroke(length: 1) != nil ? path.stroke : nil
 
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
@@ -31,9 +29,7 @@ extension ItemCoverage {
 
         case let .polyline(points, isClosed):
             let fill = path.fill == nil ? [] : [ConvexPolygon(corners: Self.hull(of: points))]
-            let line = stroke.map { stroke in
-                Self.pieces(of: points, isClosed: isClosed, trim: path.trim, stroke: stroke)
-            } ?? []
+            let line = Self.pieces(of: points, isClosed: isClosed, path: path)
             self.init(pieces: fill + line)
         }
     }
@@ -52,36 +48,27 @@ extension ItemCoverage {
         )
     }
 
-    // The stroke's segments from the smaller trim to the larger, each head `4 × width` long and wide, shrunk about
-    // its tip so that the heads together are no longer than the stroke.
+    // The stroke's segments between its arrowheads and the heads, as `DrawnStroke` lays them along the outline.
     private static func pieces(
         of points: [Point],
         isClosed: Bool,
-        trim: Trim,
-        stroke: PathStroke
+        path: PathItem
     ) -> [ConvexPolygon] {
         let vertices = isClosed ? points + [points[0]] : points
         let segments = zip(vertices, vertices.dropFirst()).filter { distance(from: $0.0, to: $0.1) > 0 }
         let length = segments.map { distance(from: $0.0, to: $0.1) }.reduce(0, +)
-        guard length > 0 else { return [] }
+        guard let stroke = path.stroke, let drawn = path.drawnStroke(length: length) else { return [] }
 
-        let low = min(max(min(trim.start, trim.end), 0), 1) * length
-        let high = min(max(max(trim.start, trim.end), 0), 1) * length
-        let isWhole = isClosed && low == 0 && high == length
-        let heads = isWhole ? [] : [stroke.start == .arrow, stroke.end == .arrow]
-        let count = Double(heads.filter { $0 }.count)
-        let headLength = count == 0 ? 0 : min(4 * stroke.width, (high - low) / count)
-        let lineStart = low + (heads.first == true ? headLength : 0)
-        let lineEnd = high - (heads.last == true ? headLength : 0)
-
-        let line = lineEnd > lineStart
-            ? piece(of: segments, from: lineStart, to: lineEnd).map { band(from: $0.0, to: $0.1, width: stroke.width) }
+        let line = drawn.lineEnd > drawn.lineStart
+            ? piece(of: segments, from: drawn.lineStart, to: drawn.lineEnd).map { start, end in
+                band(from: start, to: end, width: stroke.width)
+            }
             : []
-        let startHead = heads.first == true
-            ? head(at: low, of: segments, pointing: -1, length: headLength)
+        let startHead = drawn.hasStartHead
+            ? head(at: drawn.start, of: segments, pointing: -1, length: drawn.headLength)
             : nil
-        let endHead = heads.last == true
-            ? head(at: high, of: segments, pointing: 1, length: headLength)
+        let endHead = drawn.hasEndHead
+            ? head(at: drawn.end, of: segments, pointing: 1, length: drawn.headLength)
             : nil
 
         return line + [startHead, endHead].compactMap { $0 }
