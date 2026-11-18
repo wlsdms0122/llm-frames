@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Reads a mix plan from its JSON text as `MixPlanWriter` writes it, by the rule a resolved document is read by: its
-// version is checked before anything else, and a member that is missing or of another type, or a key the writer never
-// writes there, stops naming its place.
+// Reads a mix plan as `MixPlanWriter` writes it. The version is checked before anything else, and a member that is
+// missing or of another type, or a key the writer never writes there, stops naming its place.
 package struct MixPlanReader: Sendable {
     // MARK: - Property
     private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "envelope", "pan"]

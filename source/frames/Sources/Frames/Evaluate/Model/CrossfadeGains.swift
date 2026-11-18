@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The gains of the two sounds of a crossfade at one instant: the outgoing sound's and the incoming sound's.
 struct CrossfadeGains: Equatable, Sendable {
     // MARK: - Property
     let outgoing: Double

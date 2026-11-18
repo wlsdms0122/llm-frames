@@ -7,11 +7,9 @@
 
 import Foundation
 
-// The pan law of FRAMES-13, from -1 (left) to 1 (right), on a sound already mapped onto stereo. A mono sound, the same
-// on both channels, takes the equal-power law, cos((p + 1)π/4) on the left and sin((p + 1)π/4) on the right, so its
-// power is the same at every pan and both channels are at cos(π/4) at the centre. A sound of two or more channels takes
-// a balance, min(1, 1 - p) on the left and min(1, 1 + p) on the right, so it is untouched at the centre and turning it
-// to one side lowers the other. What a pan sounds like belongs to the document, so every mixer pans by this law.
+// A pan from -1 (left) to 1 (right) on a sound already mapped onto stereo. A mono sound takes the equal-power law, so
+// its power is the same at every pan; a sound of two or more channels takes a balance, untouched at the centre. Every
+// mixer pans by this law, so a document's pan sounds the same whichever mixer plays it.
 package struct PanLaw: Sendable {
     // MARK: - Property
     private let isMono: Bool

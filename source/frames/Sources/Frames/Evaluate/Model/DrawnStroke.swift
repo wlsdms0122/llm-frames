@@ -5,12 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The part of an outline a stroke draws (FRAMES-11), as fractions of the outline's length: from the smaller trim to the
-// larger, each held to 0...1. A stroke with no width or no part of the outline is not drawn. Arrowheads sit on the ends
-// of the stroke as drawn, so an open outline's stroke has an end at both, and a closed outline's only where its trim
-// leaves part of it undrawn: drawn whole, it has no end and takes no arrowhead. A head is `4 × width` long and as wide
-// at its base, and heads that together are longer than the drawn stroke shrink to share its length. The line runs
-// between the heads' bases. Where a head lies is the outline's to say (`PathOutline.arrowheads(of:)`).
+// The part of an outline a stroke draws, as fractions of the outline's length. Arrowheads sit on the ends of the stroke
+// as drawn, so a closed outline drawn whole takes none. Heads that together are longer than the drawn stroke shrink to
+// share its length, and the line runs between their bases. Where a head lies is `PathOutline.arrowheads(of:)`'s to say.
 package struct DrawnStroke: Equatable, Sendable {
     // MARK: - Property
     package let isDrawn: Bool

@@ -7,13 +7,13 @@
 
 import Foundation
 
-// The coordinate space a clip's positions and areas are written in, at one instant. `transform` is P(t), the map from
-// that space to output pixels of the list the clip is drawn in: its parent's chain composed down to the output, or the
-// identity for an unparented clip. It is a similarity, so `scale` and `rotation` are its one scale and its turn in
-// degrees. `frame` is the list's frame: what an adjustment without a mask covers. `clock` is the parent's media clock,
-// which gives the media time a tracked clip follows. A tracked clip's values are where they are at the instant, and
-// its track's motion is a moving parent between them and this space: `area` and `anchor` answer in the clip's values'
-// coordinates, and `tracked(by:at:)` is the space that maps those coordinates to output pixels.
+// The coordinate space a clip's positions and areas are written in, at one instant. `transform` maps that space to
+// output pixels of the list the clip is drawn in, the identity for an unparented clip. It is a similarity, so `scale`
+// and `rotation` are its one scale and its turn in degrees. `frame` is the list's frame, what an adjustment without a
+// mask covers, and `clock` the parent's media clock, which a tracked clip follows. A tracked clip's keyframes are each
+// brought back to the instant through its track, so `area`, `point`, `points`, `masks` and `anchor` answer in the
+// clip's values' coordinates, and `tracked(by:at:)` is the space that maps those to output pixels: the track's motion,
+// then this space's map.
 struct ClipSpace: Sendable {
     // MARK: - Property
     let frame: Rectangle
@@ -40,7 +40,6 @@ struct ClipSpace: Sendable {
     }
 
     // MARK: - Public
-    // A clip's area at the time, each keyframe brought back to the instant when it is tracked.
     func area(
         of keyframes: [Keyframe<Rectangle>],
         track: ResolvedTrack?,
@@ -51,8 +50,6 @@ struct ClipSpace: Sendable {
         return track.area(of: keyframes, on: clock, at: time)
     }
 
-    // A point a clip writes, such as a shape's position, at the time, and a path's points, each keyframe brought back
-    // to the instant when it is tracked.
     func point(
         of keyframes: [Keyframe<Point>],
         track: ResolvedTrack?,
@@ -73,7 +70,6 @@ struct ClipSpace: Sendable {
         return track.points(of: keyframes, on: clock, at: time)
     }
 
-    // A clip's masks at the time, each keyframe brought back to the instant when it is tracked.
     func masks(
         of keyframes: [Keyframe<[ResolvedMask]>],
         track: ResolvedTrack?,
@@ -84,8 +80,7 @@ struct ClipSpace: Sendable {
         return track.masks(of: keyframes, on: clock, at: time)
     }
 
-    // A box clip's anchor point at the time, `position + anchor`, each keyframe brought back to the instant when it is
-    // tracked.
+    // A box clip's anchor point, `position + anchor`.
     func anchor(
         of box: ResolvedBox,
         track: ResolvedTrack?,
@@ -103,7 +98,6 @@ struct ClipSpace: Sendable {
         return track.point(of: anchors, on: clock, at: time)
     }
 
-    // The space a clip's values are carried in at the time: its track's motion there, then P(t).
     func tracked(
         by track: ResolvedTrack?,
         at time: Double

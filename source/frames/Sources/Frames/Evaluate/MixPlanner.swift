@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans the sound of a sequence from its audio entries, with no file opened. A sound with media is heard as segments of
-// its own, and a nested sequence's sounds are heard through it: their times mapped through its clock, cut to where it
-// is heard, and their gains multiplied by its own.
+// Plans the sound of a sequence without opening a file. A nested sequence's sounds are heard through it: their times
+// mapped through its clock, cut to where it is heard, and their gains multiplied by its own.
 package struct MixPlanner: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -41,8 +40,6 @@ package struct MixPlanner: Sendable {
         return own.map { path in MixSegment(media: media, path: path, fps: fps) }
     }
 
-    // A sound plays once over where it is audible, or, when it loops, once per repeat, each repeat playing `in` to `out`
-    // and the next starting where it ends. Each is cut to where the path is heard.
     private func paths(
         of sound: ResolvedSound,
         through path: MixPath

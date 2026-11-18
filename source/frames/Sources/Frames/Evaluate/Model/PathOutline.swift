@@ -5,12 +5,10 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The outline of a path's geometry in y-down coordinates, clockwise as seen on the output from a fixed start (FRAMES-11):
-// a rect from the start of its top edge after the top left corner's arc, an ellipse from its top, a polyline from its
-// first point along its points, the closing segment last. A rect's radius past half its shorter side is held at it.
-// Segments of no length are left out, so every segment has a direction. It is what knows where a stroke's arrowheads
-// lie, each with its tip at its end of the drawn stroke and its axis along the outline's direction there, and what of
-// a stroke reaches past the outline grown by half its width.
+// The outline of a path's geometry in y-down coordinates, clockwise as seen on the output from a fixed start, which
+// trim fractions count from: a rect from the start of its top edge after the top left corner's arc, an ellipse from its
+// top, a polyline from its first point along its points, the closing segment last. Segments of no length are left out,
+// so every segment has a direction.
 package struct PathOutline: Equatable, Sendable {
     // MARK: - Property
     package let isClosed: Bool

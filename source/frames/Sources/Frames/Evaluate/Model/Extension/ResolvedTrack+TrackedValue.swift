@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A tracked clip's geometry at a sequence time, where it is at the instant in the media pixels it follows, its own or
-// its parent's: each keyframe is brought back through the motion at the media time the clock of that media gives at
-// the keyframe's `at`, and the keyframes are interpolated there by their eases. `transform` then carries the instant
-// to the frame shown at a time.
+// Each keyframe of a tracked clip's geometry is brought back through the motion at its own `at` into the instant's
+// coordinates, in the media pixels the clip follows, and interpolated there. `transform` carries the instant to the
+// frame shown at a time.
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -62,8 +61,7 @@ extension ResolvedTrack {
         return brought.value(at: time)
     }
 
-    // Each mask's geometry as an area or points are, its radius by the motion's scale, and its feather, in output
-    // pixels, as it is.
+    // A mask's feather is in output pixels and is not brought back.
     func masks(
         of keyframes: [Keyframe<[ResolvedMask]>],
         on clock: MediaClock,
@@ -95,7 +93,7 @@ extension ResolvedTrack {
     }
 
     // A crop is an upright region of its media, so it takes the motion's move and scale and not its rotation, and the
-    // interpolated crop is carried by the motion at the time (FRAMES-12).
+    // interpolated crop is carried by the motion at the time.
     func crop(
         of keyframes: [Keyframe<Crop>],
         on clock: MediaClock,

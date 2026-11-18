@@ -39,7 +39,6 @@ package struct PathItem: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // A rect's and an ellipse's outline is closed, and a polyline's when it says so.
     package var isClosed: Bool {
         switch geometry {
         case .rect, .ellipse:
@@ -50,7 +49,6 @@ package struct PathItem: Equatable, Sendable {
         }
     }
 
-    // The part of the outline the stroke draws and its arrowheads, nil without a stroke.
     package var drawnStroke: DrawnStroke? {
         stroke.map { stroke in DrawnStroke(stroke: stroke, trim: trim, isClosed: isClosed) }
     }

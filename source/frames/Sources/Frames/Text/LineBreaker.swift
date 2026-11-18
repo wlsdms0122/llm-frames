@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Finds where lines may break by the pair rules of UAX #14, LB4 to LB31, over the classes `LineBreakClass` tells, and
-// which of those breaks fall inside a word as CSS `word-break: keep-all` sees one.
+// Finds where lines may break by the pair rules of UAX #14, LB4 to LB31, and which of those breaks fall inside a word.
 struct LineBreaker: Sendable {
     // MARK: - Property
     private static let hardBreaks: [LineBreakClass] = [.mandatoryBreak, .carriageReturn, .lineFeed, .nextLine]
@@ -16,7 +15,7 @@ struct LineBreaker: Sendable {
     private static let jamo: [LineBreakClass] = [
         .leadingJamo, .vowelJamo, .trailingJamo, .twoJamoSyllable, .threeJamoSyllable
     ]
-    // Keep-all suppresses breaks between letter units of these classes, Hangul counting as ideographic.
+    // A break between letter units of these classes falls inside a word, Hangul counting as ideographic.
     private static let wordLetters: [LineBreakClass] = [.numeric, .alphabetic, .ideographic] + jamo
     // LB30 keeps an opening bracket on a letter only when the bracket is not wide, and wide forms start here.
     private static let firstWide: UInt32 = 0x2E80

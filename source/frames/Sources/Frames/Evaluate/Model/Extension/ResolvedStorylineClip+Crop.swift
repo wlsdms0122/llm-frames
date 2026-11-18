@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A storyline entry's conformed crop at a sequence time, in the media pixels of its picture, interpolated as a `Crop`,
-// and followed on its media when tracked.
+// A storyline entry's conformed crop in the media pixels of its picture, interpolated as a `Crop`.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer

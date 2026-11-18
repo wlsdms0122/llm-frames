@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// An arrowhead as a stroke draws it (FRAMES-11): a triangle with its tip at an end of the drawn stroke, pointing along
-// `axis`, a unit direction, `length` long and as wide at its base. `corners` are its base's two ends with the tip
-// between them.
+// A triangle with its tip at an end of the drawn stroke, pointing along `axis`, a unit direction, `length` long and as
+// wide at its base.
 package struct Arrowhead: Equatable, Sendable {
     // MARK: - Property
     package let tip: Point

@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A clip's mask as its item takes it: its geometry in the clip's space, `transform` that space's map to output pixels
-// of the list, and its feather, a theme length in output pixels, times `scale`, the clip's own scale and its
-// animation's at the time. A parent's scale does not grow it (FRAMES-10, FRAMES-20), so `transform` does not.
+// `transform` is the clip's space's map to output pixels of the list. The feather, a theme length in output pixels, is
+// multiplied by `scale`, the clip's own scale and its animation's; a parent's scale, which `transform` carries, does
+// not grow it.
 extension ItemMask {
     // MARK: - Property
     // MARK: - Initializer

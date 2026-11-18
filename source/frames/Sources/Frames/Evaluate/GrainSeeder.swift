@@ -5,16 +5,15 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The seed of every `grain` operation in an output frame: the number of that frame, so grain belongs to the output
-// frame and every list nested in it shares it.
+// The seed of every `grain` operation in an output frame is that frame's number, shared by every list nested in it.
 struct GrainSeeder: Sendable {
     // MARK: - Property
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // The number of the sequence frame whose interval `[k / fps, (k + 1) / fps)` holds the time, so frame k, drawn at
-    // k / fps, has seed k. The interval ends are measured as evaluation measures frame k's time, `Double(k) / fps`.
+    // Frame k holds `[k / fps, (k + 1) / fps)` with its ends computed as `Double(k) / fps`, as evaluation computes
+    // frame k's time, so frame k drawn at its own time has seed k.
     func seed(
         at time: Double,
         fps: Double

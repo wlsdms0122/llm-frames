@@ -5,11 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Writes a display list as JSON, `"displayList"` first, set to the version of this frames, then its frame size, its
-// background and its items bottom first, in the layout and number form of a resolved document, so the same list gives
-// the same bytes. A nested list is the same shape without the version. Every `grain` carries the list's seed, the
-// number of the output frame it is drawn in. An item without masks writes its `mask` as `null`, and one without a
-// track matte its `trackMatte`.
+// Writes a display list in the layout and number form of a resolved document, so the same list gives the same bytes.
+// A nested list has the same shape without the version.
 package struct DisplayListWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -38,7 +35,6 @@ package struct DisplayListWriter: Sendable {
         ]
     }
 
-    // `item` names what it draws, and the members every item has come before that item's own.
     private func item(
         of item: DisplayItem,
         seed: Int
@@ -146,7 +142,6 @@ package struct DisplayListWriter: Sendable {
         ]
     }
 
-    // `fill`, `stroke` and `shadow` are `null` where the path has none.
     private func members(of path: PathItem) -> [JSONMember] {
         let stroke = path.stroke.map { stroke in
             JSONValue.object(JSONObject(members: [
@@ -168,7 +163,6 @@ package struct DisplayListWriter: Sendable {
         ]
     }
 
-    // `geometry` in the form a path item writes it.
     private func mask(_ mask: ItemMask) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "geometry", value: values.geometry(mask.geometry)),
@@ -179,7 +173,6 @@ package struct DisplayListWriter: Sendable {
         ]))
     }
 
-    // `source` is the matte clip's items as a nested list.
     private func trackMatte(_ trackMatte: ItemTrackMatte) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "source", value: source(of: .displayList(trackMatte.source))),
@@ -198,7 +191,6 @@ package struct DisplayListWriter: Sendable {
         ]))
     }
 
-    // A frame of media is `{media, frame}`, its pinned media and the frame's index, and a nested list `{list}`.
     private func source(of source: PictureItemSource) -> JSONValue {
         switch source {
         case let .media(frame):

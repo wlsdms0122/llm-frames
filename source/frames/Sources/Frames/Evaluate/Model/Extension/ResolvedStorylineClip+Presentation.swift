@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A storyline entry's own transform and opacity at a sequence time, which carry its box's own pixels into the frame:
-// the box's top left goes to its keyframed position, and scale and rotation act about its anchor. The transition
+// A storyline entry's own transform and opacity, which carry its box's own pixels into the frame. The transition
 // motion is not part of it, since the outer item of its storyline picture carries that.
 extension ResolvedStorylineClip {
     // MARK: - Property

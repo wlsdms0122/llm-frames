@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The storyline transition whose range holds a sequence time, by the index of the entry it brings in, which follows the
-// one it takes out. Transitions are centred on edit points and no longer than either clip, so at most one holds a time.
+// Transitions are centred on edit points and no longer than either clip, so at most one holds a time.
 struct ActiveTransition: Equatable, Sendable {
     // MARK: - Property
     let incoming: Int
@@ -21,7 +20,6 @@ struct ActiveTransition: Equatable, Sendable {
     }
 
     // MARK: - Initializer
-    // Nil when no transition's range holds the time.
     init?(
         storyline: [ResolvedStorylineClip],
         at time: Double

@@ -5,12 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The gain of a sound on the clock its instants are on: its volume with its eases, times its fades from and to 0, each
-// linear over its range, and times its transition crossfades on their curves (FRAMES-13).
+// Times are on the clock the sound's instants are on.
 extension ResolvedSound {
     // MARK: - Property
-    // Where the gain bends: every volume keyframe and both ends of every fade and crossfade. It moves between volume
-    // keyframes of different values and over every fade and crossfade.
     var gainTimes: EnvelopeTimes {
         let ramps = [fadeIn, fadeOut, incoming?.range, outgoing?.range].compactMap { $0 }
 
@@ -34,7 +31,6 @@ extension ResolvedSound {
     }
 
     // MARK: - Private
-    // 0 at `silent`, 1 at `full`, linear between and held outside.
     private func ramp(
         at time: Double,
         from silent: Double,
@@ -43,7 +39,6 @@ extension ResolvedSound {
         min(max((time - silent) / (full - silent), 0), 1)
     }
 
-    // u, the progress through a crossfade at an even pace: 0 at its start and before, 1 at its end and after.
     private func progress(
         at time: Double,
         through crossfade: Crossfade

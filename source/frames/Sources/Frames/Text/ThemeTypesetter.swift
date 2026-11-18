@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Lays a title's runs out in named theme styles, with each style's lengths multiplied by the length scale of the place
-// the text is drawn: each run in its own style's character attributes and the face its font query finds, and the whole
-// title in the paragraph attributes of the clip's style.
+// `scale` is the length scale of the place the text is drawn, which multiplies each style's lengths. Each run takes its
+// own style's character attributes, and the whole title the paragraph attributes of the clip's style.
 struct ThemeTypesetter: Sendable {
     // MARK: - Property
     private let fonts: FontFinder
