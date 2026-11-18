@@ -118,9 +118,7 @@ struct ShapeEvaluator: Sendable {
         )
         let scale = (clip.scale.map { $0.value(at: time) } ?? 1) * motion.value(of: .scale)
         let rotation = (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation)
-        let transform = AffineTransform(scale: scale, about: anchor)
-            .concatenating(AffineTransform(rotation: rotation, about: anchor))
-            .concatenating(AffineTransform(translation: offset))
+        let transform = AffineTransform(scale: scale, rotation: rotation, about: anchor, offset: offset)
             .concatenating(tracked.transform)
 
         return (geometry, transform, sample.opacity * motion.value(of: .opacity), tracked.scale)

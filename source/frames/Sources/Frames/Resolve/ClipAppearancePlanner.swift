@@ -391,23 +391,7 @@ struct ClipAppearancePlanner: Sendable {
         plain: Value,
         clock: TimeMap
     ) -> PropertyValue<Value> {
-        switch value {
-        case .none:
-            .value(plain)
-
-        case let .value(value):
-            .value(value)
-
-        case let .keyframes(keyframes):
-            .keyframes(keyframes.map { keyframe in
-                TimedValue(
-                    index: keyframe.index,
-                    at: clock.sequenceTime(ofClipTime: keyframe.at),
-                    value: keyframe.value,
-                    ease: keyframe.ease
-                )
-            })
-        }
+        value?.inSequenceTime(on: clock) ?? .value(plain)
     }
 
     // The value of a property in sequence time at an instant, as its resolved keyframes give it.
