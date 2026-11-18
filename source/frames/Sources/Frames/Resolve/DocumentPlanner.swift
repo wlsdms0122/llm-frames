@@ -23,6 +23,7 @@ package struct DocumentPlanner: Sendable {
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider,
         ocr: any OCRProvider,
+        languages: [LanguageTag]? = nil,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         library: ReferenceLibrary
@@ -31,6 +32,7 @@ package struct DocumentPlanner: Sendable {
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
         self.sequencePlanner = SequencePlanner(
             ocr: ocr,
+            languages: languages,
             tracker: tracker,
             shaper: shaper,
             presets: presets,
@@ -42,11 +44,13 @@ package struct DocumentPlanner: Sendable {
     }
 
     // The planner a command plans with: presets from `presets`, and what a document names found in `packs`, with the
-    // facts of its media from `mediaFacts`.
+    // facts of its media from `mediaFacts`, and text found in the recognition languages `languages`, nil where the OCR
+    // provider detects them.
     package init(
         mediaFacts: any MediaFactProvider,
         presets: PresetLibrary,
         ocr: any OCRProvider,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         packs: PackLibrary
@@ -55,6 +59,7 @@ package struct DocumentPlanner: Sendable {
             mediaFacts: mediaFacts,
             presets: presets,
             ocr: ocr,
+            languages: languages,
             tracker: tracker,
             shaper: shaper,
             library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts)

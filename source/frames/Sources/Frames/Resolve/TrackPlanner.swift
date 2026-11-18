@@ -21,10 +21,11 @@ struct TrackPlanner: Sendable {
     // MARK: - Initializer
     init(
         tracker: any TrackerProvider,
-        ocr: any OCRProvider
+        ocr: any OCRProvider,
+        languages: [LanguageTag]? = nil
     ) {
         self.tracker = tracker
-        self.finder = AreaFinder(ocr: ocr)
+        self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
     // MARK: - Public

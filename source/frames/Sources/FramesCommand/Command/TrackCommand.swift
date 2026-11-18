@@ -22,7 +22,12 @@ struct TrackCommand: Command {
         in context: CommandContext
     ) throws {
         let roles = context.roles
-        let reporter = TrackReporter(mediaFacts: roles.decoder, ocr: roles.ocr, tracker: roles.tracker)
+        let reporter = TrackReporter(
+            mediaFacts: roles.decoder,
+            ocr: roles.ocr,
+            languages: context.options.ocrLanguages,
+            tracker: roles.tracker
+        )
         let report = try reporter.report(of: options.video, area: options.area, at: options.time, to: options.end)
 
         context.output.write(JSONWriter().write(report.machineOutput))

@@ -20,13 +20,14 @@ struct SequencePlanner: Sendable {
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
+        languages: [LanguageTag]? = nil,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         presets: any PresetProvider,
         library: ReferenceLibrary
     ) {
-        self.finder = GeometryFinder(ocr: ocr)
-        self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
+        self.finder = GeometryFinder(ocr: ocr, languages: languages)
+        self.tracker = TrackPlanner(tracker: tracker, ocr: ocr, languages: languages)
         self.text = ThemeTypesetter(shaper: shaper, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }

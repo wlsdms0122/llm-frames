@@ -23,11 +23,12 @@ package struct TrackReporter: Sendable {
     package init(
         mediaFacts: any MediaFactProvider,
         ocr: any OCRProvider,
+        languages: [LanguageTag]? = nil,
         tracker: any TrackerProvider
     ) {
         self.mediaFacts = mediaFacts
         self.tracker = tracker
-        self.finder = AreaFinder(ocr: ocr)
+        self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
     // MARK: - Public

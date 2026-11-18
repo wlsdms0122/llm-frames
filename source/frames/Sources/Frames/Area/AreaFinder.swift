@@ -5,17 +5,23 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Finds an area in a picture at one media time: a rectangle as written, or text through the OCR provider. An area
+// Finds an area in a picture at one media time: a rectangle as written, or text through the OCR provider in the
+// recognition languages, nil where the provider detects them. An area
 // found by text grows by its padding, in the picture's pixels. Every area is cut to the picture, and one wholly
 // outside it stops.
 struct AreaFinder: Sendable {
     // MARK: - Property
     private let ocr: any OCRProvider
+    private let languages: [LanguageTag]?
     private let order = ReadingOrder()
 
     // MARK: - Initializer
-    init(ocr: any OCRProvider) {
+    init(
+        ocr: any OCRProvider,
+        languages: [LanguageTag]? = nil
+    ) {
         self.ocr = ocr
+        self.languages = languages
     }
 
     // MARK: - Public
@@ -68,7 +74,7 @@ struct AreaFinder: Sendable {
     ) throws -> [RecognisedLine] {
         switch picture.source {
         case let .mediaFile(file):
-            return order.sorted(try ocr.lines(in: file, atMediaTime: time))
+            return order.sorted(try ocr.lines(in: file, atMediaTime: time, languages: languages))
 
         case .document:
             throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)

@@ -16,18 +16,21 @@ struct OCROptions: CommandOptions, Equatable {
         OptionRule("--from", value: "<t>"),
         OptionRule("--to", value: "<t>"),
         OptionRule("--step", value: "<s>"),
+        OptionRule("--languages", value: "<tag>[,<tag>...]"),
         OptionRule("--json")
     ]
     static let placeholders = ["<image | video>"]
 
     let media: String
     let selection: TimeSelection
+    let languages: [LanguageTag]?
     let isMachineOutput: Bool
 
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.media = try arguments.requiredPositionalPath(at: 0)
         self.selection = try Self.selection(of: arguments)
+        self.languages = try arguments.languages(of: "--languages")
         self.isMachineOutput = arguments.isSet("--json")
     }
 

@@ -9,7 +9,8 @@
 enum CommandUsage {
     static let text = """
         frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] \
-        [--encoder <name>] [--ocr <name>] [--shaper <name>] [--tracker <name>] <command> ...
+        [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]] \
+        <command> ...
 
         render    <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
         still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
@@ -18,7 +19,7 @@ enum CommandUsage {
         evaluate  <document.json> --at <t> [--args <args.json>]
         locate    <document.json> --at <t> --point <x,y> [--args <args.json>]
         probe     <media> [--json]
-        ocr       <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--json]
+        ocr       <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]
         track     <video> --at <t> --area <area> [--to <t>]
         extract   <video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]
         sheet     <video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]
