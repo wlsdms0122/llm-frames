@@ -435,7 +435,7 @@ The B-roll plays inside the letters of the word, and the logo, cut to a circle i
         { "id": "box", "parent": "menu", "shape": "rect", "area": { "text": "Cinnamon bun" }, "style": "outline",
           "keyframes": [ { "at": 0.5, "trim": [0, 0], "ease": "ease-out" }, { "at": 1.2, "trim": [0, 1] } ] },
         { "at": [1.2, 4], "parent": "box", "title": "New this week", "style": "note",
-          "anchor": "left", "position": { "area": { "text": "Cinnamon bun" }, "point": "right" },
+          "anchor": "left", "position": { "area": { "text": "Cinnamon bun", "padding": 28 }, "point": "right" },
           "animation": "frames/fade" } ] }
   ]
 }
