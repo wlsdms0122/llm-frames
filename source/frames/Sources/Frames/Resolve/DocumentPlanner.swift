@@ -15,6 +15,7 @@ package struct DocumentPlanner: Sendable {
     private let sequencePlanner: SequencePlanner
     private let checker: KeyChecker
     private let reader: TemplateReader
+    private let optionChecker: ChoiceOptionChecker
     private let instantiator: TemplateInstantiator
     private let merger = ThemeMerger()
 
@@ -40,6 +41,7 @@ package struct DocumentPlanner: Sendable {
         )
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
+        self.optionChecker = ChoiceOptionChecker(presets: presets, library: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
     }
 
@@ -86,6 +88,8 @@ package struct DocumentPlanner: Sendable {
             return try sequencePlanner.plan(try planner.plan(document: document, theme: merged))
         }
         guard theme == nil else { throw PackError.themeOnTemplate(place: .root, kind: documentKind) }
+
+        try optionChecker.check(template)
 
         let argumentPlace = arguments?.place ?? .root
         if let arguments {
