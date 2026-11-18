@@ -41,6 +41,8 @@ extension TimelineReport {
                 "\(indent)\(entry.place)",
                 entry.kind,
                 "visible \(written(entry.visible))",
+                "lane \(entry.lane.map(String.init) ?? "-")",
+                "parent \(entry.parent ?? "-")",
                 "animation \(animation)"
             ].joined(separator: "  ")
 
