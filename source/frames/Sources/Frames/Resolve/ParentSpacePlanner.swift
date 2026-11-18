@@ -123,12 +123,7 @@ struct ParentSpacePlanner: Sendable {
 
             let links = links(under: parent, at: time)
             return zip(masks, forms).map { mask, form in
-                ResolvedMask(
-                    geometry: bringBack(mask.geometry, written: form.geometry, through: links),
-                    feather: mask.feather,
-                    isInverted: mask.isInverted,
-                    mode: mask.mode
-                )
+                mask.replacing(geometry: bringBack(mask.geometry, written: form.geometry, through: links))
             }
         }
     }

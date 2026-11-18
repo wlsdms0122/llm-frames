@@ -85,12 +85,7 @@ extension ResolvedTrack {
                         .polyline(points.map { motion.bringBack($0) }, isClosed: isClosed)
                     }
 
-                    return ResolvedMask(
-                        geometry: geometry,
-                        feather: mask.feather,
-                        isInverted: mask.isInverted,
-                        mode: mask.mode
-                    )
+                    return mask.replacing(geometry: geometry)
                 },
                 ease: keyframe.ease
             )

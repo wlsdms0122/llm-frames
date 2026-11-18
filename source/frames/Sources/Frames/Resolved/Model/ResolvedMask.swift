@@ -44,5 +44,10 @@ struct ResolvedMask: Interpolable {
         )
     }
 
+    // The same mask with its geometry in another space; its feather, inversion and mode go with it.
+    func replacing(geometry: PathGeometry) -> ResolvedMask {
+        ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)
+    }
+
     // MARK: - Private
 }

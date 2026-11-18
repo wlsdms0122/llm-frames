@@ -275,7 +275,7 @@ struct ContentFitPlanner: Sendable {
             .polyline(points.map { moved($0, by: offset) }, isClosed: isClosed)
         }
 
-        return ResolvedMask(geometry: geometry, feather: mask.feather, isInverted: mask.isInverted, mode: mask.mode)
+        return mask.replacing(geometry: geometry)
     }
 
     private func moved(
