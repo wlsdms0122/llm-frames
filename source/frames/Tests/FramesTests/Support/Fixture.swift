@@ -103,7 +103,7 @@ enum Fixture {
             "frames/pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
             "frames/fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
             "frames/stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
-            "frames/draw": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
+            "frames/wipe": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
             "frames/pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
         ],
         filters: [

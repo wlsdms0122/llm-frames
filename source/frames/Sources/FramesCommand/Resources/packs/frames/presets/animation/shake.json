@@ -1,5 +1,5 @@
 {
-  "description": "Lands large, shakes side to side, then trembles while it stays, for an error or a warning.",
+  "description": "Lands large, shakes side to side, then trembles while it stays.",
   "entrance": { "seconds": 0.6, "ease": "linear", "keys": [ { "t": 0, "scale": 1.6, "opacity": 0, "x": 0 }, { "t": 0.1, "opacity": 1 }, { "t": 0.3, "scale": 1, "x": 0 }, { "t": 0.4, "x": 0.06 }, { "t": 0.5, "x": -0.06 }, { "t": 0.6, "x": 0.045 }, { "t": 0.7, "x": -0.03 }, { "t": 0.8, "x": 0.02 }, { "t": 0.9, "x": -0.01 }, { "t": 1, "x": 0 } ] },
   "loop": { "period": 0.16, "ease": "linear", "keys": [ { "t": 0, "x": 0, "rotation": 0 }, { "t": 0.25, "x": 0.008, "rotation": 1.5 }, { "t": 0.75, "x": -0.008, "rotation": -1.5 }, { "t": 1, "x": 0, "rotation": 0 } ] },
   "exit": { "seconds": 0.15, "ease": "ease-in-out", "keys": [ { "t": 0, "opacity": 1 }, { "t": 1, "opacity": 0 } ] }

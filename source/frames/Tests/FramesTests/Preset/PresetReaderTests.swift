@@ -62,7 +62,7 @@ struct PresetReaderTests {
             (#"{ "entrance": { "seconds": 1 } }"#, #"top level (animation): missing key "description""#),
             (#"{ "description": "x", "entrance": { "keys": [] } }"#, #"entrance (entrance): missing key "seconds""#),
             (#"{ "description": "x", "loop": { "seconds": 1 } }"#, #"loop (loop): unknown key "seconds". Allowed: period, ease, revealFrom, keys"#),
-            (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1, "blur": 1 } ] } }"#, #"exit.keys[0] (span key): unknown key "blur". Allowed: t, opacity, scale, x, y, rotation, reveal, nudge"#),
+            (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1, "blur": 1 } ] } }"#, #"exit.keys[0] (span key): unknown key "blur". Allowed: t, opacity, scale, x, y, rotation, reveal"#),
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "opacity": 1 } ] } }"#, #"exit.keys[0] (span key): missing key "t""#),
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1.5, "opacity": 1 } ] } }"#, "exit.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 1.5"),
             (#"{ "description": "x", "entrance": { "seconds": 0 } }"#, "entrance.seconds (entrance): a span runs for more than 0 seconds, found 0"),

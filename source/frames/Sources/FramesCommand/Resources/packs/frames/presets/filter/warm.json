@@ -1,5 +1,5 @@
 {
-  "description": "Warmer light, towards yellow, for a cosy or sunny feel",
+  "description": "Warmer light, towards yellow.",
   "ops": [
     { "op": "temperature", "kelvin": 1000 }
   ]

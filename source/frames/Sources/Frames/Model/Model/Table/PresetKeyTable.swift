@@ -6,7 +6,7 @@
 //
 
 enum PresetKeyTable {
-    static let motionProperties = ["opacity", "scale", "x", "y", "rotation", "reveal", "nudge"]
+    static let motionProperties = ["opacity", "scale", "x", "y", "rotation", "reveal"]
     static let animation = ObjectTable(
         kind: "animation",
         rules: [
@@ -41,7 +41,6 @@ enum PresetKeyTable {
             KeyRule("ops", .list(.filterOperation), isRequired: true)
         ]
     )
-    // Opacity and reveal run from nothing at 0 to everything at 1.
     static let spanKey = ObjectTable(
         kind: "span key",
         rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { property in

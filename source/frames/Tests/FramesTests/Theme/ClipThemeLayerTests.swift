@@ -19,7 +19,7 @@ struct ClipThemeLayerTests {
         arguments: [
             (#"{ "media": "/abs/run.mp4", "transition": "frames/flash", "filter": "frames/vivid" }"#, ClipKind.media(.video), #"{ "defaults": { "transition": "frames/flash", "filter": "frames/vivid" } }"#),
             (#"{ "title": "a", "style": "subtitle", "animation": "frames/pop" }"#, ClipKind.title, #"{ "defaults": { "animation": { "title": { "subtitle": "frames/pop" } } } }"#),
-            (#"{ "shape": "path", "animation": "frames/draw" }"#, ClipKind.shape("path"), #"{ "defaults": { "animation": { "shape": "frames/draw" } } }"#),
+            (#"{ "shape": "path", "animation": "frames/wipe" }"#, ClipKind.shape("path"), #"{ "defaults": { "animation": { "shape": "frames/wipe" } } }"#),
             (#"{ "adjust": "frames/vivid", "animation": "frames/fade" }"#, ClipKind.adjust, #"{ "defaults": { "animation": { "adjust": "frames/fade" } } }"#),
             (#"{ "media": "/abs/log.png", "animation": "frames/pop" }"#, ClipKind.media(.image), #"{ "defaults": { "animation": { "media": "frames/pop" } } }"#),
             (#"{ "media": { "kind": "sequence" } }"#, ClipKind.media(.sequence), #"{ "defaults": { "filter": "none" } }"#),

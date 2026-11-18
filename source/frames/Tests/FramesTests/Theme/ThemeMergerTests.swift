@@ -22,7 +22,7 @@ struct ThemeMergerTests {
             "label":    { "size": 40 } },
           "shapes": { "outline": { "stroke": { "width": 10 } } },
           "defaults": { "transition": { "preset": "frames/push-up", "seconds": 0.3 },
-                        "animation": { "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }, "shape": "frames/draw", "media": "frames/pop" } } }
+                        "animation": { "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }, "shape": "frames/wipe", "media": "frames/pop" } } }
         """#
 
     // MARK: - Initializer

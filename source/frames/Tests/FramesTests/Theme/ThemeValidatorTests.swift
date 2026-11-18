@@ -67,7 +67,7 @@ struct ThemeValidatorTests {
         let theme = try ThemeMerger().merge([
             ThemeLayer(value: Fixture.json(#"""
                 { "defaults": { "transition": { "preset": "frames/flash", "seconds": 1 }, "filter": ["frames/warm"],
-                                "animation": { "title": { "subtitle": "frames/fade" }, "shape": { "entrance": "frames/draw", "exit": "none" } } } }
+                                "animation": { "title": { "subtitle": "frames/fade" }, "shape": { "entrance": "frames/wipe", "exit": "none" } } } }
                 """#), place: .root)
         ])
 
@@ -91,7 +91,7 @@ struct ThemeValidatorTests {
             "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")))
         ])
         #expect(defaults.shapeAnimation == .split(
-            entrance: PresetInstance(name: "frames/draw", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
+            entrance: PresetInstance(name: "frames/wipe", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
             exit: nil
         ))
         #expect(defaults.mediaAnimation == AnimationChoice.none)

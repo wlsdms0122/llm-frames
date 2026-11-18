@@ -23,7 +23,7 @@ struct SequenceCheckTests {
             {
               "kind": "sequence",
               "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "conform": "fit" },
-              "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw" } } },
+              "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe" } } },
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],

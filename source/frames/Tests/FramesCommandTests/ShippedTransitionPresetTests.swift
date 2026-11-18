@@ -71,6 +71,31 @@ struct ShippedTransitionPresetTests {
         #expect(!preset.description.isEmpty)
     }
 
+    @Test("every shipped transition but fade, dip-black and flash eases in and out, and those three run at an even rate", arguments: names)
+    func easesAsTableSays(name: String) throws {
+        // Given
+        let even = ["fade", "dip-black", "flash"]
+
+        // When
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
+        let eases = [preset.incoming, preset.outgoing, preset.cover?.span].compactMap { $0?.ease }
+
+        // Then
+        #expect(!eases.isEmpty)
+        #expect(eases.allSatisfy { $0 == (even.contains(name) ? .linear : .easeInOut) })
+    }
+
+    @Test("every shipped transition's description is one capitalised sentence", arguments: names)
+    func describesInOneSentence(name: String) throws {
+        // Given, When
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
+
+        // Then
+        #expect(preset.description.first?.isUppercase == true)
+        #expect(preset.description.hasSuffix("."))
+        #expect(!preset.description.dropLast().contains(". "))
+    }
+
     @Test("every shipped transition crossfades the sound at constant power", arguments: names)
     func crossfadesAtConstantPower(name: String) throws {
         // Given, When

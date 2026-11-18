@@ -18,7 +18,7 @@
     "transition": { "preset": "frames/push-up", "seconds": 0.3 },
     "animation": {
       "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" },
-      "shape": "frames/draw",
+      "shape": "frames/wipe",
       "media": "frames/pop"
     }
   }
