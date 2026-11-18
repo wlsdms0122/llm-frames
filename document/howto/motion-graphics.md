@@ -1,14 +1,14 @@
 # Motion graphics
 
-frames composites media and does not generate it, so a graphic that moves (a lower third, an animated logo, a chart that draws itself) is made somewhere else and brought in. The easiest place is a web page: write it in HTML and CSS, render it frame by frame to PNG files with a transparent background in a headless browser, and bring the folder in as `{"imageSequence": ...}` media.
+frames draws titles, shapes and their keyframes and animations. A graphic beyond them (an animated logo, a chart that draws itself, a lower third laid out with CSS) is made somewhere else and brought in as media ([FRAMES-25](../../spec/FRAMES-25/SPEC.md)). A web page is a convenient place to make one: write it in HTML and CSS, render it frame by frame to PNG files with a transparent background in a headless browser, and bring the folder in as `{"imageSequence": ...}` media ([FRAMES-3](../../spec/FRAMES-3/SPEC.md)).
 
 ## What frames expects
 
 - **A folder of PNG files.** frames takes every PNG in the folder, in natural order (`2.png` before `10.png`), so keep nothing else in it. Naming frames `0000.png`, `0001.png`, ... keeps them in order in any file browser too.
-- **The rate in the media.** `{"imageSequence": "/path/to/lower-third", "fps": 30}` plays frame `n` at media second `n / 30`. Render at the document's `fps`, so each frame lands on one output frame.
+- **The rate in the media.** `{"imageSequence": "/path/to/lower-third", "fps": 30}` plays frame `n` at media second `n / 30`. Render at the document's `fps`, so each frame lands on one output frame. An image sequence plays like a video and takes `in`, `out`, `speed` and `timeRemap`.
 - **Alpha.** PNG keeps its alpha, so whatever the page leaves transparent shows the picture below.
-- **The output size.** A media clip without `width` or `height` is fitted to the output frame. Make the page the size of the document's `format.size` and draw the graphic where it should sit, and it lands there with no placing.
-- **The last frame holds.** When a clip's window is longer than its frames, the last frame stays on screen. Render only the entrance, and let `at` say how long the graphic stays.
+- **The output size.** A media clip without `width` or `height` is fitted to the frame. Make the page the size of the document's `format.size` and draw the graphic where it should sit, and it lands there with no placing.
+- **The last frame holds.** When a clip's window is longer than its media, the last frame stays on screen. Render only the entrance, and let `at` say how long the graphic stays.
 
 ## 1. Write the page
 
@@ -81,7 +81,7 @@ alpha yes
 audio none
 ```
 
-The folder probes as an image sequence. `alpha yes` says the transparency came through, and the size should be the document's. Duration and rate are `none` because the rate is the one you write in the document.
+The folder probes as an image sequence. `alpha yes` says the transparency came through, and the size should be the document's. Duration and rate are `none` because the rate is the one the document writes.
 
 ## 4. Bring it in
 
@@ -101,12 +101,12 @@ frames timeline /path/to/work/lower-third.json
 frames still /path/to/work/lower-third.json --at 0.6,0.9,1.4,2.5 -o /path/to/out/lower-third.png
 ```
 
-The bar slides in from 0.5 seconds, the second line fades in after it, and from 1.5 seconds the last frame holds until 3. On a lane above the storyline the graphic covers every storyline clip it spans. To have it ride on one storyline clip instead, put it in that clip's `connected` with `at` in the clip's own seconds.
+The bar slides in from 0.5 seconds, the second line fades in after it, and from 1.5 seconds the last frame holds until 3. On a lane above the storyline the graphic covers every storyline clip it spans. To have it ride on one storyline clip instead, put it in that clip's `connected` with `at` on the clip's clip time, and give it `parent` set to the clip's `id` when it should also move with the clip's transform and transitions ([FRAMES-10](../../spec/FRAMES-10/SPEC.md)).
 
 To take it away, either render the exit in the page as well and let the frames run out at the end of `at`, or give the clip an exit animation: `"animation": { "entrance": "none", "exit": "frames/fade" }`.
 
 ## Notes
 
-- Text in the graphic is pixels to frames. Change the page and render again to change it. Words that change from edit to edit are better as frames titles over a graphic that has none.
-- A graphic made for one form belongs in that form's pack: put the folder in the pack's `media/` and name it `<pack>/<folder>` in `imageSequence`, so the pack carries it ([PACK.md](../PACK.md)).
+- Text in the graphic is pixels to frames. Change the page and render again to change it. Words that change from edit to edit are better as frames titles over a graphic that has none, and a graphic used with different words in many edits is better as a template whose words are `text` parameters ([PACK.md](../PACK.md#a-template)).
+- A graphic used in many edits belongs in a pack: put the folder in the pack's `media/` and name it `<pack>/<folder>` in `imageSequence`, so the pack carries it ([PACK.md](../PACK.md)).
 - A browser renders the fonts installed on the machine. Use the same font as the form's theme, so the graphic and the titles match.
