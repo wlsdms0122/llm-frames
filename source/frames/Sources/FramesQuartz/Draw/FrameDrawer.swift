@@ -10,11 +10,12 @@ import CoreImage
 import Frames
 
 // Draws the display lists of one output frame: the list over its background, items bottom first, each carried by its
-// transform and cut to its reveal in its own coordinates, then its alpha multiplied by its masks' result in output
-// pixels (`MaskDrawer`), over the shadow it casts from that cut picture, which the masks do not cut. A `normal` item is
-// drawn source-over by Core Graphics, and any other blend mode draws the item into a transparent layer that the mode's
-// W3C kernel composites over the backdrop. Opacity below 1 and the blend mode apply to the item and its shadow as a
-// whole. Nested lists are drawn once per frame at their own size.
+// transform and cut to its reveal in its own coordinates, then its alpha multiplied by its masks' result and its track
+// matte's value in output pixels (`MaskDrawer`, `TrackMatteDrawer`), over the shadow it casts from that cut picture,
+// which they do not cut. A `normal` item is drawn source-over by Core Graphics, and any other blend mode draws the
+// item into a transparent layer that the mode's W3C kernel composites over the backdrop. Opacity below 1 and the
+// blend mode apply to the item and its shadow as a whole. Nested lists, a track matte's source among them, are drawn
+// once per frame at their own size.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -72,7 +73,7 @@ final class FrameDrawer {
         let shadow = shadow(of: item.content)
         if shadow == nil {
             let bounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
-            try mask(context, by: item.mask, over: bounds, at: bounds)
+            try mask(context, by: item, over: bounds, at: bounds)
         }
 
         guard item.opacity < 1 else {
@@ -86,17 +87,30 @@ final class FrameDrawer {
         try paint(item, drawing: drawing, casting: shadow, in: context)
     }
 
-    // Multiplies the alpha of what the context draws after it by the masks' result over `region` of output pixels,
-    // which lies at `bounds` of the context's coordinates.
+    // Multiplies the alpha of what the context draws after it by the item's masks' result and its track matte's value
+    // over `region` of output pixels, which lies at `bounds` of the context's coordinates. Both are multiplied in
+    // floating point, so the context clips once.
     private func mask(
         _ context: CGContext,
-        by masks: [ItemMask],
+        by item: DisplayItem,
         over region: CGRect,
         at bounds: CGRect
     ) throws {
-        guard !masks.isEmpty else { return }
+        let masks = item.mask.isEmpty ? nil : try MaskDrawer().values(of: item.mask, over: region)
+        let matte = try item.trackMatte.map { trackMatte in
+            try TrackMatteDrawer().values(
+                of: trackMatte,
+                source: try image(of: .displayList(trackMatte.source)),
+                over: region
+            )
+        }
+        let factors = [masks, matte].compactMap { $0 }
+        guard let first = factors.first else { return }
 
-        context.clipUpright(to: bounds, mask: try MaskDrawer().image(of: masks, over: region))
+        let values = factors.dropFirst().reduce(first) { product, values in zip(product, values).map(*) }
+
+        let image = try CGImage.coverage(of: values, width: Int(region.width), height: Int(region.height))
+        context.clipUpright(to: bounds, mask: image)
     }
 
     // The item carried by its transform and cut to its reveal, over its shadow when it casts one.
@@ -146,7 +160,7 @@ final class FrameDrawer {
         let layer = try FrameContext(width: context.width + 2 * margin, height: context.height + 2 * margin)
         let region = CGRect(x: 0, y: 0, width: layer.width, height: layer.height)
             .offsetBy(dx: CGFloat(-margin), dy: CGFloat(-margin))
-        try mask(layer.context, by: item.mask, over: region, at: layer.bounds)
+        try mask(layer.context, by: item, over: region, at: layer.bounds)
         layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
         layer.context.concatenate(matrix)
         if let reveal = item.reveal { layer.context.clip(to: CGRect(reveal)) }

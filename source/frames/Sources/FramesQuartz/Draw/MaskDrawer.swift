@@ -10,12 +10,12 @@ import CoreImage
 import Foundation
 import Frames
 
-// Draws the masks of an item as one grey coverage image over a region of output pixels, each pixel the masks' result
+// Draws the masks of an item as one coverage value for each pixel of a region of output pixels, the masks' result
 // there: each mask's geometry carried by its transform and filled anti-aliased by the nonzero rule, a polyline closed,
 // blurred by a Gaussian whose standard deviation is its feather, then inverted when it is, and the masks combined in
-// list order by their modes (`MaskMode`), in floating point before the result is stored in eight bits. A feathered
-// mask is drawn over the region grown on every side by four times its feather, so its blur sees the geometry past the
-// region's edge: the frame does not cut a mask, and an inverted mask's outside goes on past it.
+// list order by their modes (`MaskMode`), in floating point. A feathered mask is drawn over the region grown on every
+// side by four times its feather, so its blur sees the geometry past the region's edge: the frame does not cut a
+// mask, and an inverted mask's outside goes on past it.
 struct MaskDrawer {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
@@ -23,14 +23,12 @@ struct MaskDrawer {
 
     // MARK: - Initializer
     // MARK: - Public
-    // `region` is in output pixels, in whole pixels.
-    func image(
+    // `region` is in output pixels, in whole pixels. The values are rows from the top.
+    func values(
         of masks: [ItemMask],
         over region: CGRect
-    ) throws -> CGImage {
-        let width = Int(region.width)
-        let height = Int(region.height)
-        var result = [Double](repeating: masks.first?.mode.startValue ?? 1, count: width * height)
+    ) throws -> [Double] {
+        var result = [Double](repeating: masks.first?.mode.startValue ?? 1, count: Int(region.width) * Int(region.height))
         for mask in masks {
             let coverage = try self.coverage(of: mask, over: region)
             for index in result.indices {
@@ -39,7 +37,7 @@ struct MaskDrawer {
             }
         }
 
-        return try image(of: result, width: width, height: height)
+        return result
     }
 
     // MARK: - Private
@@ -115,35 +113,5 @@ struct MaskDrawer {
         }
 
         return pixels
-    }
-
-    // An eight bit grey image of the values, rows from the top, each held to [0, 1]. A clip takes its mask from an
-    // eight bit grey image only, and leaves a sixteen bit one unapplied.
-    private func image(
-        of values: [Double],
-        width: Int,
-        height: Int
-    ) throws -> CGImage {
-        let samples = values.map { UInt8((min(max($0, 0), 1) * Double(UInt8.max)).rounded()) }
-        guard
-            let provider = CGDataProvider(data: Data(samples) as CFData),
-            let image = CGImage(
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bitsPerPixel: 8,
-                bytesPerRow: width,
-                space: CGColorSpaceCreateDeviceGray(),
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: false,
-                intent: .defaultIntent
-            )
-        else {
-            throw QuartzError.unmadeBitmap(width: width, height: height)
-        }
-
-        return image
     }
 }
