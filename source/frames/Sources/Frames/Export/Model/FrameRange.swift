@@ -52,8 +52,9 @@ package struct FrameRange: Equatable, Sendable {
     }
 
     // from + k × step for every k whose time, measured to the microsecond, is before `last`. Each time is from + k ×
-    // step, not a running sum, so no rounding builds up over a long range. A step under a microsecond never reaches
-    // `last`, so it gives no time; every caller stops on it first with its own message.
+    // step, not a running sum, so no rounding builds up over a long range, and it is given rounded to the microsecond,
+    // so a frame is drawn at the time its label reads, as `still` draws that time. A step under a microsecond never
+    // reaches `last`, so it gives no time; every caller stops on it first with its own message.
     func times(before last: Double) -> [Double] {
         guard step.timeTicks > 0 else { return [] }
 
@@ -62,7 +63,7 @@ package struct FrameRange: Equatable, Sendable {
             let time = start + Double(times.count) * step
             guard time.timeTicks < last.timeTicks else { break }
 
-            times.append(time)
+            times.append(time.roundedTime)
         }
 
         return times
