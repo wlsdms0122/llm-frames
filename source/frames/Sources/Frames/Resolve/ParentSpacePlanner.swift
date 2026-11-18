@@ -5,15 +5,15 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// Brings what a text form found for a clip under a shape or adjustment parent into that parent's space (FRAMES-2). The
-// text is where it lies in the media searched at the value's instant, and the chain of shapes and adjustments from the
-// parent out to that media carries the parent's space to it, so the value is brought back through the transform of
-// each at that instant, the outermost first, without animation, each held at the edges of its own window as its
-// evaluation holds it: an adjustment's tracked motion, and a shape's own scale and rotation about its anchor point and
-// its position, then its tracked motion. A shape's own geometry and position are brought into its own parent's space
-// the same way first. An area carried back through a rotation is the box bounding its four carried corners. A value
-// written as numbers is in the parent's space already. A space at scale 0 is flattened to a point, so a value is left
-// as it is where a link cannot be undone.
+// Brings what a text form found for a clip under a shape or adjustment parent into that parent's space. The text is
+// where it lies in the media searched at the value's instant, and the chain of shapes and adjustments from the parent
+// out to that media carries the parent's space to it, so the value is brought back through the transform of each at
+// that instant, the outermost first, without animation, each held at the edges of its own window as its evaluation
+// holds it: an adjustment's tracked motion, and a shape's own scale and rotation about its anchor point and its
+// position, then its tracked motion. A shape's own geometry and position are brought into its own parent's space the
+// same way first. An area carried back through a rotation is the box bounding its four carried corners. A value written
+// as numbers is in the parent's space already. A space at scale 0 is flattened to a point, so a value is left as it is
+// where a link cannot be undone.
 struct ParentSpacePlanner: Sendable {
     // MARK: - Property
     private let tracked: TrackPlan
@@ -214,8 +214,8 @@ struct ParentSpacePlanner: Sendable {
     }
 
     // A shape placed by its geometry as its transform needs it: its geometry made from its plan and its area or
-    // points and position as found, as its entry makes it (`ResolvedShape(shape:geometry:instant:)`). A shape given by
-    // `width` and `height` and an adjustment have no such transform.
+    // points and position as found, as its entry makes it. A shape given by `width` and `height` and an adjustment
+    // have no such transform.
     private func transform(of index: Int) -> ParentTransformPlan? {
         guard let shape = shapes[index] else { return nil }
         if case .box = shape.geometry { return nil }
