@@ -6,15 +6,16 @@
 //
 
 // Evaluates a shape clip at an instant into its one `path` item in output pixels of its list, and gives the map its
-// children are carried by (FRAMES-10, FRAMES-20). A shape given by `width` and `height` is drawn in its box's own
+// children are carried by (FRAMES-10, FRAMES-20). A shape's box is its box as written, and its outset grows only the
+// outline it draws (FRAMES-11): its anchor point, the space its children see and the fractions of its box its animation
+// moves it by are all taken on the box as written. A shape given by `width` and `height` is drawn in its box's own
 // pixels as a title's box is: its anchor point goes where its parent's map carries its position, it turns by its own
-// rotation and the map's, at its own scale, and its box is `w(t)` by `h(t)` grown by its outset, with the anchor point
-// held where it is, so its lengths stay as written. A shape placed by its geometry is drawn in the coordinates its
-// geometry is written in, carried by its tracked motion and P(t) whole, with its own and its animation's scale and
-// rotation about its anchor point, a point of its geometry as written, and its lengths, its outset among them, divided
-// by P(t)'s scale, so that after the transform they are the clip's own times its own and its animation's scale and
-// not its parent's. Its outset only grows what it draws, so it does not move its anchor point. `reveal` wipes the
-// shape's receiver box from the animation's side.
+// rotation and the map's, at its own scale, and its box is `w(t)` by `h(t)`, with the anchor point held where it is, so
+// its lengths stay as written. A shape placed by its geometry is drawn in the coordinates its geometry is written in,
+// carried by its tracked motion and P(t) whole, with its own and its animation's scale and rotation about its anchor
+// point, and its lengths, its outset among them, divided by P(t)'s scale, so that after the transform they are the
+// clip's own times its own and its animation's scale and not its parent's. `reveal` wipes the shape's receiver box from
+// the animation's side.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -92,7 +93,6 @@ struct ShapeEvaluator: Sendable {
         let tracked = space.tracked(by: clip.track, at: time)
         let geometry: PathGeometry
         let bounds: Rectangle
-        let drawn: Rectangle
         let placement: GeometryPlacement
         switch shape.geometry {
         case let .box(width, height, outset):
@@ -115,8 +115,8 @@ struct ShapeEvaluator: Sendable {
             guard tracked.scale > 0 else { return nil }
 
             bounds = space.area(of: area, track: clip.track, at: time)
-            drawn = bounds.grown(by: outset / tracked.scale)
             placement = areaPlacement
+            let drawn = bounds.grown(by: outset / tracked.scale)
             let radius = shape.radius.value(at: time) / tracked.scale
             geometry = shape.kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: radius)
 
@@ -125,12 +125,11 @@ struct ShapeEvaluator: Sendable {
 
             let points = space.points(of: keyframes, track: clip.track, at: time)
             bounds = Rectangle(bounding: points)
-            drawn = bounds
             placement = pointsPlacement
             geometry = .polyline(points, isClosed: isClosed)
         }
 
-        // The animation moves the shape in fractions of its box, which is grown by its outset (FRAMES-11).
+        // The animation moves the shape in fractions of its box as written (FRAMES-14).
         let motion = sample.animation.motion
         let transform = AffineTransform(
             placing: bounds,
@@ -138,14 +137,14 @@ struct ShapeEvaluator: Sendable {
             position: placement.position.map { space.point(of: $0, track: clip.track, at: time) },
             scale: (clip.scale.map { $0.value(at: time) } ?? 1) * motion.value(of: .scale),
             rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
-            moved: Point(x: motion.value(of: .x) * drawn.width, y: motion.value(of: .y) * drawn.height)
+            moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
         ).concatenating(tracked.transform)
 
         return (geometry, transform, sample.opacity * motion.value(of: .opacity), tracked.scale)
     }
 
     // A box shape keeps its anchor point where it is while its box changes size: the anchor stays the same point of
-    // the box, scaled with it. Its box is `width` by `height` grown by `outset` on every side.
+    // the box, scaled with it. Its box is `width` by `height`, and its outline that box grown by `outset` on every side.
     private func laid(
         _ shape: ResolvedShape,
         width: [Keyframe<Double>],
@@ -157,7 +156,7 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double) {
-        let size = Size(width: width.value(at: time) + outset * 2, height: height.value(at: time) + outset * 2)
+        let size = Size(width: width.value(at: time), height: height.value(at: time))
         let anchor = Point(
             x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
             y: box.size.height > 0 ? box.anchor.y * size.height / box.size.height : 0
@@ -171,7 +170,7 @@ struct ShapeEvaluator: Sendable {
             opacity: sample.opacity
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
-        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: outset)
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
             : .rect(outline, radius: shape.radius.value(at: time))

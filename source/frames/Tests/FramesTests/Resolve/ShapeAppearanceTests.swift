@@ -165,20 +165,72 @@ struct ShapeAppearanceTests {
         ))
     }
 
-    @Test("a rect by its width and height is a box grown by its outset, placed as a media clip's box")
+    @Test("a rect by its width and height is a box as written, placed as a media clip's box, whatever its outset")
     func placesBoxShape() throws {
         // When
         let plan = try plan(document(#"{ "shape": "rect", "width": 200, "height": 100, "outset": 10, "placement": "bottom-right", "fill": "accent" }"#))
 
         // Then
-        // The outset of 5 grows the box to 210 by 110, inset from the bottom right by the placement padding.
+        // The outset of 5 grows only the outline, so the box of 200 by 100 is inset from the bottom right by the
+        // placement padding.
         let padding = 96 * 0.5
         #expect(plan.clips[0].appearance.shape?.geometry == .box(width: .value(200), height: .value(100), outset: 5))
         #expect(plan.clips[0].box == ClipBox(
-            size: Size(width: 210, height: 110),
-            position: .value(Point(x: 960 - padding - 210, y: 540 - padding - 110)),
-            anchor: Point(x: 210, y: 110)
+            size: Size(width: 200, height: 100),
+            position: .value(Point(x: 960 - padding - 200, y: 540 - padding - 100)),
+            anchor: Point(x: 200, y: 100)
         ))
+    }
+
+    @Test("a rect by its width and height and a rect by its area, with the same anchor, position and outset, put the top left of the box as written at the position")
+    func placesOutsetBoxAndAreaAlike() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
+              { "shape": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200], "outset": 10,
+                "fill": "accent", "at": [0, 1] },
+              { "shape": "rect", "area": [0, 0, 200, 100], "anchor": "top-left", "position": [300, 200], "outset": 10,
+                "fill": "accent", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let list = Evaluator().displayList(of: try ResolvedSequence(plan: plan(document), hashes: FileHashTable()), at: 0.5)
+
+        // Then
+        // The outset of 5 output pixels grows each drawn outline out from the box as written.
+        let drawn = list.items.compactMap { item -> Rectangle? in
+            guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else { return nil }
+
+            return Rectangle(bounding: item.transform.apply(toCornersOf: rectangle))
+        }
+        #expect(drawn.count == 2)
+        for rectangle in drawn {
+            #expect(isClose(rectangle, Rectangle(x: 295, y: 195, width: 210, height: 110)), "a rect is drawn at \(rectangle)")
+        }
+    }
+
+    @Test("a title parented to a rect by its width and height with an outset sits in the pixels of the box as written")
+    func placesChildInBoxAsWritten() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
+              { "id": "card", "shape": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200],
+                "outset": 10, "fill": "accent", "at": [0, 1] },
+              { "title": "a", "style": "title", "parent": "card", "anchor": "top-left", "position": [0, 0], "at": [0, 1] } ] }
+            """#
+
+        // When
+        let list = Evaluator().displayList(of: try ResolvedSequence(plan: plan(document), hashes: FileHashTable()), at: 0.5)
+
+        // Then
+        // The title's box has its top left at the card's box's origin, the top left of the box as written.
+        let title = try #require(list.items.first { item in
+            guard case .glyphs = item.content else { return false }
+
+            return true
+        })
+        let origin = title.transform.apply(to: Point(x: 0, y: 0))
+        #expect(isClose(origin, Point(x: 300, y: 200)), "the title's box is at \(origin)")
     }
 
     @Test("an ellipse by its width and height turns about its anchor point, which its position puts where it names")
@@ -240,6 +292,21 @@ struct ShapeAppearanceTests {
     }
 
     // MARK: - Private
+    private func isClose(
+        _ rectangle: Rectangle,
+        _ other: Rectangle
+    ) -> Bool {
+        isClose(Point(x: rectangle.x, y: rectangle.y), Point(x: other.x, y: other.y))
+            && isClose(Point(x: rectangle.maxX, y: rectangle.maxY), Point(x: other.maxX, y: other.maxY))
+    }
+
+    private func isClose(
+        _ point: Point,
+        _ other: Point
+    ) -> Bool {
+        abs(point.x - other.x) < 1e-6 && abs(point.y - other.y) < 1e-6
+    }
+
     private func document(_ clip: String) -> String {
         #"""
         { "kind": "sequence", "format": { "size": [960, 540] }, "theme": \#(Self.theme),

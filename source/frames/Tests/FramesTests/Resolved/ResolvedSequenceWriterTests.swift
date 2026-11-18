@@ -412,11 +412,12 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
         #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200))
         #expect(clips[2]["outset"] == .number(10 * scale))
-        #expect(clips[2]["size"] == .array([.number(200 + 20 * scale), .number(100 + 20 * scale)]))
-        #expect(clips[2]["anchor"] == .array([.number(100 + 10 * scale), .number(50 + 10 * scale)]))
+        // A box shape's box is as written, its outset growing only the outline it draws.
+        #expect(clips[2]["size"] == .array([.number(200), .number(100)]))
+        #expect(clips[2]["anchor"] == .array([.number(100), .number(50)]))
         #expect(clips[2]["fill"] == .string("#00000080"))
         #expect(clips[2]["stroke"] == .null)
-        // A named anchor of a shape placed by its area is a point of its area as written, before its outset.
+        // A named anchor of a shape placed by its area is a point of its area as written, whatever its outset.
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
     }
 

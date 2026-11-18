@@ -23,7 +23,7 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Public
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
-    // and `height` at the clip's instant grown by its outset. The box goes where its position puts its anchor point,
+    // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where its position puts its anchor point,
     // or where its placement sets it: a title by default where its style places it, and media and shapes in the
     // centre. Under content fit there is no frame to place on, so a placement stops and a box without a position has
     // its top left at the origin. A shape placed by its geometry or an adjustment has none, and an audio clip is not
@@ -59,12 +59,9 @@ struct ClipAppearancePlanner: Sendable {
             style = nil
 
         case .shape:
-            guard case let .box(width, height, outset) = shape?.geometry else { return nil }
+            guard case let .box(width, height, _) = shape?.geometry else { return nil }
 
-            size = Size(
-                width: value(of: width, at: plan.instant) + outset * 2,
-                height: value(of: height, at: plan.instant) + outset * 2
-            )
+            size = Size(width: value(of: width, at: plan.instant), height: value(of: height, at: plan.instant))
             style = nil
 
         case .adjust:
