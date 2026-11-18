@@ -56,7 +56,7 @@ struct TemplateCheckTests {
             (#"{ "name": { "type": "text" } }"#, #"{ "title": "x", "style": { "param": "name" } }"#,
              #"clips[0].style (title): parameter "name" of type text cannot stand where a string is expected"#),
             (#"{ "size": { "type": "number" } }"#, #"{ "title": { "param": "size" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "size" of type number cannot stand where a string is expected"#),
+             #"clips[0].title (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,

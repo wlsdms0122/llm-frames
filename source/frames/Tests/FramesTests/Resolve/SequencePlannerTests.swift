@@ -477,7 +477,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.size == Size(width: 38, height: 128))
+        #expect(plan.clips[0].title?.size == Size(width: 38, height: 76))
         #expect(plan.clips[0].title?.runs.first?.size == 76)
     }
 

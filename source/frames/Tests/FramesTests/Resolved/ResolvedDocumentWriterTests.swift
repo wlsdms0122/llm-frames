@@ -138,13 +138,12 @@ struct ResolvedDocumentWriterTests {
               "place": "clips[0]",
               "id": null,
               "title": {
-                "size": [38.25, 34.3125],
+                "size": [38.25, 29.25],
                 "background": {
                   "color": "#ED2929FF",
                   "padding": [9, 4.5],
                   "radius": 6.75
                 },
-                "stroke": null,
                 "runs": [
                   {
                     "file": "/System/Apple SD Gothic Neo.ttc",
@@ -152,9 +151,10 @@ struct ResolvedDocumentWriterTests {
                     "face": "Apple SD Gothic Neo-bold",
                     "size": 20.25,
                     "color": "#FFFFFFFF",
+                    "stroke": null,
                     "glyphs": [
-                      [72, 9, 23.23125],
-                      [105, 19.125, 23.23125]
+                      [72, 9, 20.7],
+                      [105, 19.125, 20.7]
                     ]
                   }
                 ]
@@ -164,15 +164,15 @@ struct ResolvedDocumentWriterTests {
               "lane": 1,
               "storyline": null,
               "parent": null,
-              "size": [38.25, 34.3125],
+              "size": [38.25, 29.25],
               "position": [
                 {
                   "at": 0,
-                  "value": [56.275000000000006, 1692.64375],
+                  "value": [56.275000000000006, 1695.175],
                   "ease": "linear"
                 }
               ],
-              "anchor": [19.125, 17.15625],
+              "anchor": [19.125, 14.625],
               "crop": null,
               "mask": null,
               "trackMatte": null,
