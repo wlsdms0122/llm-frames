@@ -18,8 +18,9 @@ extension ClosedRange<Double> {
         self = first...last
     }
 
+    // A sequence shorter than a microsecond has one frame, at 0.
     init(sequenceDuration duration: Double) {
-        self = 0...(duration - .timeResolution)
+        self = 0...Swift.max(duration - .timeResolution, 0)
     }
 
     // MARK: - Public

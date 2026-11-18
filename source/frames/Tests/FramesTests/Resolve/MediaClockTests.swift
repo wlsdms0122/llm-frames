@@ -101,6 +101,18 @@ struct MediaClockTests {
         #expect(nested == 0...(2 - .timeResolution))
     }
 
+    @Test("a nested sequence shorter than a microsecond holds its one frame at 0")
+    func boundsShortSequence() {
+        // Given
+        let duration = 0.0000005
+
+        // When
+        let sut = ClosedRange(sequenceDuration: duration)
+
+        // Then
+        #expect(sut == 0...0)
+    }
+
     @Test("a looping sound on the sequence repeats through the window the plan gives it")
     func loopsSequenceSound() throws {
         // Given
