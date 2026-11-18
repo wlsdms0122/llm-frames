@@ -62,6 +62,19 @@ struct FrameRangeTests {
         #expect(throws: expected) { try sut.times(end: 3, kind: "video") }
     }
 
+    @Test("each time is given rounded to the microsecond, so it is the time its label reads")
+    func roundsToMicrosecond() throws {
+        // Given
+        let sut = FrameRange(step: 0.3)
+
+        // When
+        let times = try sut.times(end: 2, kind: "sequence")
+
+        // Then
+        #expect(0 + 6 * 0.3 != 1.8)
+        #expect(times == [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8])
+    }
+
     @Test("a stop names the option and the time")
     func namesOption() {
         // Given
