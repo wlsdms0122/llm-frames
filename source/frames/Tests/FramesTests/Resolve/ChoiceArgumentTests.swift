@@ -51,6 +51,15 @@ struct ChoiceArgumentTests {
             in: "studio",
             at: "presets/filter/film.json"
         )
+        try directory.write(
+            #"""
+            { "description": "Blooms the highlights in a colour.",
+              "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "colour of the bloom" } },
+              "ops": [ { "op": "bloom", "amount": 0.4, "radius": 8, "color": { "param": "tint" } } ] }
+            """#,
+            in: "studio",
+            at: "presets/filter/glow.json"
+        )
     }
 
     // MARK: - Test
@@ -152,6 +161,52 @@ struct ChoiceArgumentTests {
         // Then
         #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("#1B3A6BFF"))
         #expect(error?.description.hasPrefix(#"theme.defaults.transition (transition choice): its arguments give "studio/dip" a value it does not take"#) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test("a theme colour a theme default names through its arguments may be the theme's own or the base theme's")
+    func takesThemeDefaultColorArguments() throws {
+        // Given
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "theme": { "colors": { "brand": "#1B3A6B" }, "defaults": {
+                "transition": { "preset": "studio/dip", "args": { "color": "brand" } },
+                "filter": { "preset": "studio/glow", "args": { "tint": "shadow" } } } },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+            """##)
+
+        // When
+        let plan = try planner().plan(document)
+
+        // Then
+        #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("#1B3A6BFF"))
+    }
+
+    @Test(
+        "a theme colour a theme default names through its arguments that the theme does not hold stops when the theme is read, though no clip takes the default",
+        arguments: [
+            (
+                #"{ "transition": { "preset": "studio/dip", "args": { "color": "brand" } } }"#,
+                #"theme.defaults.transition (defaults): the preset names the colour "brand", which is not in the theme's colors"#
+            ),
+            (
+                #"{ "filter": [ "studio/film", { "preset": "studio/glow", "args": { "tint": "brand" } } ] }"#,
+                #"theme.defaults.filter[1] (defaults): the preset names the colour "brand", which is not in the theme's colors"#
+            )
+        ]
+    )
+    func refusesUnknownThemeDefaultColorArgument(
+        defaults: String,
+        expected: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(
+            ##"{ "kind": "sequence", "theme": { "defaults": \##(defaults) }, "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##
+        )
+
+        // When
+        let error = #expect(throws: ResolveError.self) { try planner().plan(document) }
+
+        // Then
+        #expect(error?.description == expected)
     }
 
     // MARK: - Private

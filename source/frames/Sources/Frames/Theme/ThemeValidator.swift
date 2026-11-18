@@ -56,7 +56,8 @@ struct ThemeValidator: Sendable {
     }
 
     // The defaults of a merged theme. Only a theme merged over something other than the base theme can lack one, and
-    // that stops where it is missing. A preset a default names must be there whether or not a clip takes it.
+    // that stops where it is missing. A preset a default names must be there whether or not a clip takes it, and so
+    // must a theme colour it names with its arguments filled, since this theme is where it is chosen.
     func defaults(
         in theme: MergedTheme,
         presets: any PresetProvider
@@ -134,8 +135,11 @@ struct ThemeValidator: Sendable {
             reading: TransitionChoice.init(value:place:)
         )
         guard case let .preset(instance, _) = choice else { return choice }
-        guard try presets.transition(instance) != nil else {
+        guard let preset = try presets.transition(instance) else {
             throw ThemeError.unknownPreset(place: instance.place, kind: kind, presetKind: "transition", name: instance.name)
+        }
+        if case let .color(color) = preset.cover?.source {
+            _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
         }
 
         return choice
@@ -158,6 +162,10 @@ struct ThemeValidator: Sendable {
                     presetKind: "filter",
                     name: instance.name
                 )
+            }
+
+            for case let .bloom(_, _, .some(color)) in preset.operations {
+                _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
             }
 
             return ThemeFilterPreset(preset: preset, place: instance.place)
