@@ -22,8 +22,8 @@ struct ResolvedDocumentWriterTests {
     ])
 
     // A sequence shaped like the example of the resolved document: a cropped, filtered storyline clip at speed 2, a
-    // title in a style its theme adds that pops in, a still with a border in the centre, and looping music that fades
-    // out.
+    // title in a style its theme adds that pops in, a still with a border in the centre, and looping music panned a
+    // little left that fades out.
     private let sequence = #"""
         { "kind": "sequence", "format": { "size": [1080, 1920] },
           "theme": { "styles": { "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
@@ -34,7 +34,7 @@ struct ResolvedDocumentWriterTests {
                                           { "at": 8, "crop": [45, 97, 990, 1760], "scale": 0.5 } ] } ],
           "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
-                     { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
+                     { "media": "/abs/bgm.m4a", "at": 0, "loop": true, "pan": -0.2,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
     private let resolvedSequence = #"""
@@ -301,6 +301,13 @@ struct ResolvedDocumentWriterTests {
                   "ease": "linear"
                 }
               ],
+              "pan": [
+                {
+                  "at": 0,
+                  "value": 0,
+                  "ease": "linear"
+                }
+              ],
               "fadeIn": null,
               "fadeOut": null,
               "incoming": null,
@@ -335,6 +342,13 @@ struct ResolvedDocumentWriterTests {
                 {
                   "at": 3,
                   "value": 0,
+                  "ease": "linear"
+                }
+              ],
+              "pan": [
+                {
+                  "at": 0,
+                  "value": -0.2,
                   "ease": "linear"
                 }
               ],

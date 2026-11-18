@@ -377,6 +377,7 @@ struct RenderPipelineTests {
             end: 1,
             audible: TimeRange(start: 0, end: 1),
             volume: [Keyframe(at: 0, value: 1)],
+            pan: [Keyframe(at: 0, value: 0)],
             fadeIn: nil,
             fadeOut: nil,
             incoming: nil,

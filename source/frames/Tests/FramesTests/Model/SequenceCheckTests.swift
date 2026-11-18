@@ -353,7 +353,7 @@ struct SequenceCheckTests {
             (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, mask"#),
             (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, opacity, trim, mask"#),
             (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity, mask"#),
-            (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume"#),
+            (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan"#),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop, mask"#),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop, mask"),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "scale": 1 } ] }"#, #"clips[0].keyframes[0] (keyframe): missing key "at""#)
@@ -382,6 +382,48 @@ struct SequenceCheckTests {
         try sut.check(document: video)
     }
 
+    @Test("`pan` is keyframable on an audio clip, a connected video and a storyline video")
+    func keyframesPan() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [
+              { "media": "/abs/run.mp4", "pan": 0.2, "connected": [
+                { "media": "/abs/run.mp4", "at": [0, 1], "keyframes": [ { "at": 0, "pan": -1 }, { "at": 1, "pan": 1 } ] }
+              ], "keyframes": [] }
+            ], "clips": [
+              { "media": "/abs/bgm.m4a", "keyframes": [ { "at": 0, "pan": -0.5, "ease": "ease-in-out" }, { "at": 2, "pan": 0.5 } ] }
+            ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test("a `pan` outside -1 to 1 stops as a value of the wrong type")
+    func refusesPanOutOfRange() throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "media": "/abs/bgm.m4a", "pan": 1.5 } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == "clips[0].pan (audio): expected a number from -1 to 1, found 1.5")
+    }
+
+    @Test("a still takes no `pan`, since it plays no sound")
+    func refusesPanOnStill() throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "media": "/abs/log.png", "at": [0, 1], "pan": 0 } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        guard case let .unknownKey(_, kind, key, _) = error else {
+            Issue.record("expected an unknown key, found \(String(describing: error))")
+            return
+        }
+        #expect(kind == "image")
+        #expect(key == "pan")
+    }
+
     @Test("a storyline clip with media takes a transform and draws its box, keyframing its position, scale, rotation and opacity")
     func acceptsStorylineTransform() throws {
         // Given
@@ -402,7 +444,7 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
