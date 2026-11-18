@@ -16,6 +16,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case inAtOrAfterMediaEnd(place: Place, kind: PlaceKind, in: Double, end: Double)
     case outAtOrBeforeMediaStart(place: Place, kind: PlaceKind, out: Double)
     case nonPositiveSpeed(place: Place, kind: PlaceKind, speed: Double)
+    case speedWithTimeRemap(place: Place, kind: PlaceKind)
+    case soundWithTimeRemap(place: Place, kind: PlaceKind, key: String)
+    case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
+    case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
     case unknownPreset(place: Place, kind: PlaceKind, presetKind: String, name: String)
     case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
@@ -95,6 +99,22 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .nonPositiveSpeed(place, kind, speed):
             "\(place) (\(kind.label)): speed must be above 0, found \(number(speed))"
+
+        case let .speedWithTimeRemap(place, kind):
+            "\(place) (\(kind.label)): a clip with \"timeRemap\" takes no \"speed\", since its keys give the media time "
+                + "at every instant"
+
+        case let .soundWithTimeRemap(place, kind, key):
+            "\(place) (\(kind.label)): a clip with \"timeRemap\" plays no sound, so \"\(key)\" would do nothing. "
+                + "Place the shot's sound as an audio clip of its own"
+
+        case let .rangeWithTimeRemap(place, kind, key):
+            "\(place) (\(kind.label)): a media clip with \"timeRemap\" takes no \"\(key)\", since its keys give the "
+                + "media time at every instant of its window"
+
+        case let .singleStartWithTimeRemap(place, kind):
+            "\(place) (\(kind.label)): a media clip with \"timeRemap\" takes \"at\" as [start, end], since its keys and "
+                + "not its media give its length"
 
         case let .transitionOnFirstClip(place, kind):
             "\(place) (\(kind.label)): the first storyline clip has no transition. "

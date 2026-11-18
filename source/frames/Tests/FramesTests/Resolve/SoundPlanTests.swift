@@ -34,9 +34,7 @@ struct SoundPlanTests {
             SoundPlan(
                 place: time.storyline[0].place,
                 media: media,
-                map: TimeMap(origin: 0, in: 2, speed: 1),
-                out: 8,
-                loop: false,
+                played: PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 8, loop: false),
                 range: TimeRange(start: 0, end: 6),
                 audible: TimeRange(start: 0, end: 6),
                 volume: .value(1),
@@ -152,7 +150,7 @@ struct SoundPlanTests {
             """#)
 
         // Then
-        #expect(plan.sound[1].loop == (loop == "true"))
+        #expect(plan.sound[1].played.loop == (loop == "true"))
         #expect(plan.sound[1].range == TimeRange(start: 0, end: 4))
         #expect(plan.sound[1].audible == TimeRange(start: 0, end: audibleEnd))
     }

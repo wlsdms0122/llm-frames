@@ -212,6 +212,48 @@ struct GeometryFinderTests {
         #expect(position == .value(point))
     }
 
+    @Test("an area under a remapped storyline clip is searched at the media time its instant maps to through the remap")
+    func findsUnderRemappedClip() throws {
+        // Given
+        let plan = try plan(#"""
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" } }
+            """#, storylineKeys: #""out": 3, "keyframes": [ { "at": 1, "timeRemap": 2.5 }, { "at": 3, "timeRemap": 3.5 } ],"#)
+        let clip = plan.sequence.storyline[0].connected[0]
+
+        // When
+        let found = try find(clip.area, plan: plan, instant: plan.clips[0].window.start)
+
+        // Then
+        #expect(found.firstValue.mediaTime == 2.5)
+        #expect(found.firstValue.target.y == 700)
+    }
+
+    @Test("a crop on a remapped media clip is searched at the media time its instant maps to through the remap")
+    func findsOnRemappedClip() throws {
+        // Given
+        let plan = try Fixture.planner.plan(document: Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 4 } ],
+              "clips": [ { "media": "/abs/screen.mp4", "at": [1, 3], "crop": { "text": "Total" },
+                "keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] }
+            """#))
+        let clock = try #require(plan.clips[0].mediaClock)
+
+        // When
+        let found = try sut.crops(
+            plan.sequence.clips[0].crop ?? .value(.scale(1)),
+            in: screen,
+            pictureClock: .media(clock),
+            clock: plan.clips[0].clock,
+            instant: plan.clips[0].instant,
+            place: plan.clips[0].place,
+            kind: "video"
+        )
+
+        // Then
+        #expect(found.firstValue.mediaTime == 3)
+        #expect(found.firstValue.target.y == 700)
+    }
+
     // MARK: - Private
     private func plan(
         _ connected: String?,

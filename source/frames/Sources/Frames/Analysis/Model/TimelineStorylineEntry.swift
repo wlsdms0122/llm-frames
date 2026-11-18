@@ -6,7 +6,8 @@
 //
 
 // `media` is the file as the document wrote it, or nil for a solid, a document written in place and a template
-// instance. `clip` is `[in, out)` on its clip time.
+// instance. `clip` is `[in, out)` on its clip time, and `isTimeRemapped` whether its media time comes from `timeRemap`,
+// when its speed is 1.
 struct TimelineStorylineEntry: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -16,6 +17,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
     let drawn: TimeRange
     let clip: TimeRange
     let speed: Double
+    let isTimeRemapped: Bool
     let transition: TimelineTransition?
     let nested: TimelineReport?
 
@@ -28,6 +30,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         drawn: TimeRange,
         clip: TimeRange,
         speed: Double,
+        isTimeRemapped: Bool,
         transition: TimelineTransition?,
         nested: TimelineReport?
     ) {
@@ -38,6 +41,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         self.drawn = drawn
         self.clip = clip
         self.speed = speed
+        self.isTimeRemapped = isTimeRemapped
         self.transition = transition
         self.nested = nested
     }

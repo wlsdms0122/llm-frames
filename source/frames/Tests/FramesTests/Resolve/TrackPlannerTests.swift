@@ -109,6 +109,48 @@ struct TrackPlannerTests {
         #expect(track.motion(atMediaTime: 3.4) == track.motion(atMediaTime: 3))
     }
 
+    @Test("a reversed storyline clip is followed from the lowest to the highest media time it shows")
+    func followsReversedClip() throws {
+        // Given
+        let sut = planner()
+        let reverse = #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#
+        let time = try plan(storyline: #""track": { "text": "Total" }, \#(reverse)"#)
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [], masks: [])
+
+        // Then
+        let track = try #require(plan.storyline[0])
+        #expect(track.mediaTime == 3)
+        #expect(track.frames.first?.time == 1)
+        #expect(track.frames.last?.time == 3)
+        #expect(track.frames.count == 21)
+    }
+
+    @Test("a clip under a reversed storyline clip is visible on the frames that show a followed media frame")
+    func narrowsUnderReversedClip() throws {
+        // Given
+        // The media time is 3 - s at sequence time s, and the target is followed from media second 2 to 3. At 24 fps
+        // frame 24 shows media second 2 and frame 25 the frame at 1.9.
+        let sut = planner(followed: 2...3)
+        let time = try plan(
+            storyline: #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#,
+            connected: #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }
+                """#
+        )
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [nil])
+
+        // Then
+        let track = try #require(plan.clips[0])
+        #expect(track.mediaTime == 3)
+        #expect(track.frames.map(\.time) == (20...30).map { Double($0) / 10 })
+        #expect(time.fps == 24)
+        #expect(plan.time.clips[0].visible == TimeRange(start: 0, end: 25.0 / 24))
+    }
+
     @Test("true on a storyline clip follows its crop, at its first keyframe when the crop is keyframed")
     func followsOwnCrop() throws {
         // Given

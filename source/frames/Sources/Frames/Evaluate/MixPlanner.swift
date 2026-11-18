@@ -48,14 +48,14 @@ package struct MixPlanner: Sendable {
         through path: MixPath
     ) -> [MixPath] {
         let layers = path.layers + [MixLayer(sound: sound, clock: path.clock)]
-        let played = clock(of: sound)
+        let played = sound.played.map
         guard let heard = path.heard.intersection(outermost(sound.audible, through: path.clock)) else { return [] }
-        guard sound.loop else {
+        guard sound.played.loop else {
             return [MixPath(layers: layers, heard: heard, clock: composed(path.clock, played))]
         }
 
         // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends.
-        let period = played.sequenceTime(ofClipTime: sound.out) - played.origin
+        let period = sound.played.naturalLength
         let boundary = { (index: Int) in played.origin + Double(index) * period }
 
         return sequence(first: 0) { $0 + 1 }
@@ -64,15 +64,9 @@ package struct MixPlanner: Sendable {
                 let repeated = TimeRange(start: boundary(index), end: boundary(index + 1))
                 guard let cut = heard.intersection(outermost(repeated, through: path.clock)) else { return nil }
 
-                let repeatClock = TimeMap(origin: repeated.start, in: played.in, speed: played.speed)
+                let repeatClock = sound.played.starting(at: repeated.start).map
                 return MixPath(layers: layers, heard: cut, clock: composed(path.clock, repeatClock))
             }
-    }
-
-    // The clock from the time a sound's instants are on to the media or nested sequence time it plays: `in` plays at
-    // `origin`, at `speed`.
-    private func clock(of sound: ResolvedSound) -> TimeMap {
-        TimeMap(origin: sound.origin, in: sound.in, speed: sound.speed)
     }
 
     // A range on the time a path plays, in outermost sequence time.

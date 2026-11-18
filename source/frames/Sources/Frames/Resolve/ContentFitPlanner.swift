@@ -77,6 +77,7 @@ struct ContentFitPlanner: Sendable {
                     in: entry.in,
                     out: entry.out,
                     speed: entry.speed,
+                    timeRemap: entry.timeRemap,
                     start: entry.start,
                     end: entry.end,
                     crop: entry.crop,

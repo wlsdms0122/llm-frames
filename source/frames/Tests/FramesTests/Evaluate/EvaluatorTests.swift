@@ -259,6 +259,52 @@ struct EvaluatorTests {
         #expect(list.items == [storylineItem([mediaItem(first, frame: 8, filter: filter)], seed: 5)])
     }
 
+    @Test("a remapped storyline clip shows the frame at its remapped media time, played backwards here")
+    func picksRemappedFrame() {
+        // Given
+        let clip = ResolvedStorylineClip(
+            place: "storyline",
+            id: nil,
+            media: .pinned(first),
+            solid: nil,
+            in: 0,
+            out: 2,
+            speed: 1,
+            timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)],
+            start: 0,
+            end: 2,
+            crop: [Keyframe(at: 0, value: Crop(whole))],
+            track: nil,
+            filter: [],
+            transition: nil,
+            filling: size
+        )
+        let sequence = sequence([clip])
+
+        // When
+        let early = sut.displayList(of: sequence, at: 0.5)
+        let late = sut.displayList(of: sequence, at: 1.5)
+
+        // Then
+        // Media time 3 at 0.5 and 1 at 1.5, on frames every quarter second.
+        #expect(early.items == [storylineItem([mediaItem(first, frame: 12)], seed: 5)])
+        #expect(late.items == [storylineItem([mediaItem(first, frame: 4)], seed: 15)])
+    }
+
+    @Test("a remapped media clip holds between two keys of one value and shows its last frame past its media")
+    func picksRemappedMediaClipFrame() {
+        // Given
+        let timeRemap = [Keyframe(at: 0, value: 1.0), Keyframe(at: 1, value: 1), Keyframe(at: 2, value: 9)]
+        let media = mediaClip(timing: .remapped(origin: 0, timeRemap: timeRemap))
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let frames = [0.2, 0.9, 3].map { time in clipPicture(of: sut.displayList(of: sequence, at: time))?.source }
+
+        // Then
+        #expect(frames == [4, 4, 19].map { .media(MediaFrame(media: second, index: $0)) })
+    }
+
     @Test("a still shows its one frame at any time")
     func showsStill() {
         // Given
@@ -531,7 +577,8 @@ struct EvaluatorTests {
     @Test("a media clip narrowed by tracking shows nothing before its start and plays from `in` at its `origin`")
     func playsNarrowedMediaFromOrigin() throws {
         // Given
-        let media = mediaClip(timing: ResolvedMediaTiming(in: 0, origin: 1, out: 4, speed: 1, loop: false), start: 1.5)
+        let played = PlayedRange(map: TimeMap(origin: 1, in: 0, speed: 1), out: 4, loop: false)
+        let media = mediaClip(timing: .played(played), start: 1.5)
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
@@ -555,7 +602,8 @@ struct EvaluatorTests {
         // Given
         // At 1 the clip at speed 2 reaches media time 2.5, a second past `out` 1.5, and one loop of 1 brings it back
         // to `in` 0.5.
-        let media = mediaClip(timing: ResolvedMediaTiming(in: 0.5, origin: 0, out: 1.5, speed: 2, loop: loop))
+        let played = PlayedRange(map: TimeMap(origin: 0, in: 0.5, speed: 2), out: 1.5, loop: loop)
+        let media = mediaClip(timing: .played(played))
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
 
         // When
@@ -1066,6 +1114,7 @@ struct EvaluatorTests {
             in: entry.in,
             out: entry.out,
             speed: entry.speed,
+            timeRemap: entry.timeRemap,
             start: entry.start,
             end: entry.end,
             crop: entry.crop,
@@ -1163,7 +1212,7 @@ struct EvaluatorTests {
 
     // A media clip of the second media, its 80 x 40 box at (10, 20) showing the whole of its 400 x 200 picture.
     private func mediaClip(
-        timing: ResolvedMediaTiming?,
+        timing: MediaTiming?,
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
         appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),

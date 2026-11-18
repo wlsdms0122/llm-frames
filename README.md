@@ -311,8 +311,8 @@ The full table is [FRAMES-7](spec/FRAMES-7/SPEC.md). What each key does: format 
 
 | Clip | Keyframable |
 | --- | --- |
-| storyline clip | `crop`, `volume` |
-| media clip | `position, scale, rotation, opacity, crop, volume` |
+| storyline clip | `crop`, `volume`, and `timeRemap` on video, image sequence or compound media |
+| media clip | `position, scale, rotation, opacity, crop, volume`, and `timeRemap` on timed media |
 | title clip | `position, scale, rotation, opacity` |
 | shape or adjustment clip | `area, opacity` |
 
@@ -331,7 +331,7 @@ The full table is [FRAMES-7](spec/FRAMES-7/SPEC.md). What each key does: format 
 | a sequence clip's `at` and `keyframes` | sequence time |
 | `in` and `out` | the media's own seconds |
 
-Durations (`duration`, transition and animation seconds, fades) are sequence seconds. `at` is `[start, end]` or a start alone (then the media's natural length). A transition is centred on the edit point and does not change the sequence's length. Check every time with `timeline`. [FRAMES-8](spec/FRAMES-8/SPEC.md)
+Durations (`duration`, transition and animation seconds, fades) are sequence seconds. `at` is `[start, end]` or a start alone (then the media's natural length). A transition is centred on the edit point and does not change the sequence's length. `timeRemap` keyframes give the media seconds a clip shows at each instant, for holds, reverse and ramps; it is written only in keyframes, takes no `speed`, and the clip plays no sound. Check every time with `timeline`. [FRAMES-8](spec/FRAMES-8/SPEC.md)
 
 | ease | Shape |
 | --- | --- |

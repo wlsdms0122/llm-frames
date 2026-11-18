@@ -549,7 +549,7 @@ struct SequencePlanner: Sendable {
                 try finder.crops(
                     crop,
                     in: picture,
-                    pictureClock: plan.timing.map { .media($0) } ?? .still,
+                    pictureClock: plan.mediaClock.map { .media($0) } ?? .still,
                     clock: plan.clock,
                     instant: plan.instant,
                     place: written.place,
@@ -562,7 +562,7 @@ struct SequencePlanner: Sendable {
             try checkMasks(mask, place: written.place, kind: plan.kind)
             let maskSpace: (picture: Picture, clock: PictureClock)
             if plan.space == .media, let picture {
-                maskSpace = (picture, plan.timing.map { .media($0) } ?? .still)
+                maskSpace = (picture, plan.mediaClock.map { .media($0) } ?? .still)
             } else if plan.space == .box {
                 if let text = byText(mask, place: written.place) {
                     throw ResolveError.textMaskInOwnBox(place: text, kind: .clip(plan.kind))
@@ -658,7 +658,7 @@ struct SequencePlanner: Sendable {
                 return (Picture(name: id, source: .space, size: format.size), .still, false)
             }
 
-            return (picture, plan.timing.map { .media($0) } ?? .still, false)
+            return (picture, plan.mediaClock.map { .media($0) } ?? .still, false)
         }
     }
 

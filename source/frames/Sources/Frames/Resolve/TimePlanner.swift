@@ -109,12 +109,63 @@ struct TimePlanner: Sendable {
             return StorylineSource(kind: kind, media: media, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
+        guard clipMedia.timeRemap != nil else {
+            return StorylineSource(
+                kind: kind,
+                media: media,
+                clipRange: try clipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
+                speed: try speed(of: clipMedia, place: clip.place, kind: kind)
+            )
+        }
+
+        try checkRemapped(clipMedia, place: clip.place, kind: kind)
         return StorylineSource(
             kind: kind,
             media: media,
-            clipRange: try clipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
-            speed: try speed(of: clipMedia, place: clip.place, kind: kind)
+            clipRange: try remappedClipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
+            speed: 1
         )
+    }
+
+    // A remapped clip's `in` and `out` are clip times that need not lie in the media, so neither is cut to it.
+    private func remappedClipRange(
+        of clipMedia: ClipMedia,
+        media: MediaPlan,
+        place: Place,
+        kind: ClipKind
+    ) throws -> TimeRange {
+        let start = clipMedia.in ?? 0
+        let end = clipMedia.out ?? media.duration
+        guard start < end else {
+            throw ResolveError.emptyClipRange(place: place, kind: .clip(kind), in: start, out: end)
+        }
+
+        return TimeRange(start: start, end: end)
+    }
+
+    // `timeRemap` gives the media time at every instant, so `speed` beside it stops, and a remapped clip plays no
+    // sound, so what shapes its sound stops.
+    private func checkRemapped(
+        _ clipMedia: ClipMedia,
+        place: Place,
+        kind: ClipKind
+    ) throws {
+        if clipMedia.speed != nil {
+            throw ResolveError.speedWithTimeRemap(place: place.appending(key: "speed"), kind: .clip(kind))
+        }
+
+        let sound: [(key: String, isWritten: Bool)] = [
+            ("volume", clipMedia.volume != nil),
+            ("fadeIn", clipMedia.fadeIn != nil),
+            ("fadeOut", clipMedia.fadeOut != nil)
+        ]
+        if let written = sound.first(where: \.isWritten) {
+            throw ResolveError.soundWithTimeRemap(
+                place: place.appending(key: written.key),
+                kind: .clip(kind),
+                key: written.key
+            )
+        }
     }
 
     private func stillDuration(
@@ -203,6 +254,10 @@ struct TimePlanner: Sendable {
             let keyframes = clips[index].keyframes.map { keyframe in
                 keyframe.moved(to: map.sequenceTime(ofClipTime: keyframe.at))
             }
+            // The line has speed 1 on a remapped clip, so its keys keep their eases in sequence time.
+            let timeRemap = clips[index].media?.timeRemap.map { timeRemap in
+                timeRemap.inSequenceTime(on: map).keyframes(at: edit.start) { $0 }
+            }
 
             return StorylinePlan(
                 place: clips[index].place,
@@ -212,7 +267,8 @@ struct TimePlanner: Sendable {
                 drawn: drawn,
                 transition: transitions[index],
                 trackMatte: clips[index].trackMatte,
-                keyframes: keyframes
+                keyframes: keyframes,
+                timeRemap: timeRemap
             )
         }
     }
@@ -348,7 +404,7 @@ struct TimePlanner: Sendable {
         let window = try self.window(
             of: clip,
             clock: clock,
-            naturalLength: source.timing?.naturalLength,
+            naturalLength: source.played?.naturalLength,
             owner: ownerPlan,
             duration: duration,
             kind: kind
@@ -378,14 +434,7 @@ struct TimePlanner: Sendable {
             instant: window.start,
             animation: try animation(of: clip, kind: kind, defaults: defaults),
             media: source.media,
-            timing: source.timing.map { timing in
-                MediaTiming(
-                    media: timing.media,
-                    map: TimeMap(origin: window.start, in: timing.map.in, speed: timing.map.speed),
-                    out: timing.out,
-                    loop: timing.loop
-                )
-            },
+            timing: timing(of: source, window: window, clock: clock),
             keyframes: keyframes
         )
     }
@@ -403,11 +452,17 @@ struct TimePlanner: Sendable {
                 theme: theme
             )
             let kind = ClipKind.media(media.kind)
-            return ClipSource(
-                kind: kind,
-                media: media,
-                timing: try timing(of: clipMedia, media: media, place: clip.place, kind: kind)
-            )
+            guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
+            guard let timeRemap = clipMedia.timeRemap else {
+                return ClipSource(
+                    kind: kind,
+                    media: media,
+                    played: try played(of: clipMedia, media: media, place: clip.place, kind: kind)
+                )
+            }
+
+            try checkRemapped(clipMedia, of: clip, kind: kind)
+            return ClipSource(kind: kind, media: media, timeRemap: timeRemap)
 
         case .title:
             return ClipSource(kind: .title)
@@ -420,22 +475,63 @@ struct TimePlanner: Sendable {
         }
     }
 
-    // A timed media clip's edit points, with its window's start left at 0 until the window is known. A still has none.
-    private func timing(
+    // A timed media clip's edit points, with its window's start left at 0 until the window is known.
+    private func played(
         of clipMedia: ClipMedia,
         media: MediaPlan,
         place: Place,
         kind: ClipKind
-    ) throws -> MediaTiming? {
-        guard media.kind != .image else { return nil }
-
+    ) throws -> PlayedRange {
         let range = try clipRange(of: clipMedia, media: media, place: place, kind: kind)
-        return MediaTiming(
-            media: media,
+        return PlayedRange(
             map: TimeMap(origin: 0, in: range.start, speed: try speed(of: clipMedia, place: place, kind: kind)),
             out: range.end,
-            loop: clipMedia.loop
+            loop: clipMedia.loop ?? false
         )
+    }
+
+    // A remapped media clip's keys give the media time at every instant of its window, so its window cannot come from
+    // the media's length and `in`, `out` and `loop` stop beside them.
+    private func checkRemapped(
+        _ clipMedia: ClipMedia,
+        of clip: Clip,
+        kind: ClipKind
+    ) throws {
+        let written: [(key: String, isWritten: Bool)] = [
+            ("in", clipMedia.in != nil),
+            ("out", clipMedia.out != nil),
+            ("loop", clipMedia.loop != nil)
+        ]
+        if let range = written.first(where: \.isWritten) {
+            throw ResolveError.rangeWithTimeRemap(
+                place: clip.place.appending(key: range.key),
+                kind: .clip(kind),
+                key: range.key
+            )
+        }
+        if case .start = clip.at {
+            throw ResolveError.singleStartWithTimeRemap(place: clip.place.appending(key: "at"), kind: .clip(kind))
+        }
+
+        try checkRemapped(clipMedia, place: clip.place, kind: kind)
+    }
+
+    // The played range starts at the window's start, and `timeRemap` keys on the clip's clock move into sequence time.
+    private func timing(
+        of source: ClipSource,
+        window: TimeRange,
+        clock: TimeMap
+    ) -> MediaTiming? {
+        if let played = source.played {
+            return .played(played.starting(at: window.start))
+        }
+
+        return source.timeRemap.map { timeRemap in
+            .remapped(
+                origin: window.start,
+                timeRemap: timeRemap.inSequenceTime(on: clock).keyframes(at: window.start) { $0 }
+            )
+        }
     }
 
     private func window(

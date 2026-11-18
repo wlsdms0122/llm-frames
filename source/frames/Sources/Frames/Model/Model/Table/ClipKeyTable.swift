@@ -31,7 +31,7 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "timeRemap"]
 
         case (.storyline, _):
             ["crop", "position", "scale", "rotation", "opacity", "mask"]
@@ -40,7 +40,7 @@ enum ClipKeyTable {
             ["volume"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
-            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume", "timeRemap"]
 
         case (_, .media):
             ["position", "scale", "rotation", "opacity", "crop", "mask"]
@@ -73,6 +73,9 @@ enum ClipKeyTable {
             group: KeyGroup(keys: properties, isExclusive: false)
         )
     }
+
+    // Properties written only in keyframes, so a static value stops (FRAMES-4).
+    static let keyframedOnly = ["timeRemap"]
 
     private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
 

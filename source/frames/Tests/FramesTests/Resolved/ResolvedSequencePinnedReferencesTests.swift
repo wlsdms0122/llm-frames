@@ -184,11 +184,11 @@ struct ResolvedSequencePinnedReferencesTests {
             place: place,
             media: media,
             nested: [],
-            in: 0,
-            origin: 0,
-            out: 2,
-            speed: 1,
-            loop: false,
+            played: PlayedRange(
+                map: TimeMap(origin: 0, in: 0, speed: 1),
+                out: 2,
+                loop: false
+            ),
             start: 0,
             end: 2,
             audible: TimeRange(start: 0, end: 2),

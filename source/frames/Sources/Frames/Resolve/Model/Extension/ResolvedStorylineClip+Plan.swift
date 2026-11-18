@@ -39,6 +39,7 @@ extension ResolvedStorylineClip {
             in: plan.source.clipRange.start,
             out: plan.source.clipRange.end,
             speed: plan.source.speed,
+            timeRemap: plan.timeRemap,
             start: plan.edit.start,
             end: plan.edit.end,
             crop: crop,
