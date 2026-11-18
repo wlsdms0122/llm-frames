@@ -11,14 +11,11 @@ import Frames
 
 // Draws a path item in its own coordinates: its fill first, by the nonzero rule with an open polyline closed, then its
 // stroke over it. The stroke is drawn along its outline between the smaller and the larger trim, centred, with its
-// join under a miter limit of 4 and its cap on the ends of an open piece. Its arrowheads lie where the outline lays
+// join under the miter limit and its cap on the ends of an open piece. Its arrowheads lie where the outline lays
 // them (`PathOutline.arrowheads(of:)`), the line stopping at the middle of their bases. The stroked line and its heads
 // are united into one shape filled once, so a translucent colour is not drawn twice where they overlap.
 struct PathDrawer {
     // MARK: - Property
-    // SVG's default `stroke-miterlimit`.
-    private static let miterLimit: CGFloat = 4
-
     // MARK: - Initializer
     // MARK: - Public
     func draw(
@@ -72,7 +69,7 @@ struct PathDrawer {
             strokingWithWidth: CGFloat(stroke.width),
             lineCap: lineCap(of: stroke.cap),
             lineJoin: lineJoin(of: stroke.join),
-            miterLimit: Self.miterLimit
+            miterLimit: CGFloat(StrokeJoin.miterLimit)
         )
     }
 
