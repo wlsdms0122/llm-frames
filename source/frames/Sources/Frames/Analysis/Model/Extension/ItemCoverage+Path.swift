@@ -30,7 +30,7 @@ extension ItemCoverage {
             )
 
         case let .polyline(points, isClosed):
-            let fill = path.fill == nil ? [] : [ConvexPolygon(corners: Self.hull(of: points))]
+            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: points)]
             let line = Self.pieces(of: points, isClosed: isClosed, path: path)
             self.init(pieces: fill + line + overhangs)
         }
@@ -108,26 +108,6 @@ extension ItemCoverage {
             Point(x: end.x - across.x, y: end.y - across.y),
             Point(x: start.x - across.x, y: start.y - across.y)
         ])
-    }
-
-    // The convex hull by Andrew's monotone chain, which covers all a nonzero fill of the points can.
-    private static func hull(of points: [Point]) -> [Point] {
-        let sorted = points.sorted { ($0.x, $0.y) < ($1.x, $1.y) }
-        let cross = { (origin: Point, first: Point, second: Point) in
-            (first.x - origin.x) * (second.y - origin.y) - (first.y - origin.y) * (second.x - origin.x)
-        }
-        let chain = { (points: [Point]) in
-            points.reduce(into: [Point]()) { chain, point in
-                while chain.count >= 2, cross(chain[chain.count - 2], chain[chain.count - 1], point) <= 0 {
-                    chain.removeLast()
-                }
-                chain.append(point)
-            }
-        }
-        let lower = chain(sorted)
-        let upper = chain(sorted.reversed())
-
-        return Array(lower.dropLast() + upper.dropLast())
     }
 
     private static func distance(
