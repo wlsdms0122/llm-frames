@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The mean of points, the centre a track's fit takes each set of corners about (FRAMES-12).
 extension Point {
     // MARK: - Property
     // MARK: - Initializer

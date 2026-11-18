@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The keys of a mask (FRAMES-11) for each shape it can be: a rect or an ellipse takes a box, by `area` or by `width`,
-// `height` and `position`, and only a rect a `radius`, and a path takes `points`. A key its shape does not take stops
-// as an unknown key.
+// The keys of a mask for each shape it can be: a rect or an ellipse takes a box, by `area` or by `width`, `height` and
+// `position`, and only a rect a `radius`, and a path takes `points`. A key its shape does not take stops as an unknown
+// key.
 enum MaskKeyTable {
     static let box = ["width", "height", "position"]
 

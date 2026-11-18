@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// How a mask combines with the masks before it on one clip, as After Effects combines a layer's masks.
+// How a mask combines with the masks before it on one clip.
 package enum MaskMode: String, CaseIterable, Equatable, Sendable {
     case add
     case subtract

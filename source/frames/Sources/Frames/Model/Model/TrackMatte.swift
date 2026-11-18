@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A clip's track matte (FRAMES-11): `clip` the id of the matte clip in the same document, which is not drawn itself,
-// how its picture cuts the clip, and whether that value is inverted. Resolve writes it as it is written.
+// A clip's track matte: `clip` the id of the matte clip in the same document, which is not drawn itself, how its
+// picture cuts the clip, and whether that value is inverted. Resolve writes it as it is written.
 struct TrackMatte: Equatable, Sendable {
     // MARK: - Property
     let clip: String

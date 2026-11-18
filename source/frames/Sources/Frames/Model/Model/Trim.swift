@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The part of an outline a stroke draws, `[start, end]` as fractions of its length, as After Effects' Trim Paths.
+// The part of an outline a stroke draws, `[start, end]` as fractions of its length.
 // Either may be the larger.
 package struct Trim: Interpolable {
     // MARK: - Property
