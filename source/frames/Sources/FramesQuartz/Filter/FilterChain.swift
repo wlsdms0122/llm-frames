@@ -8,11 +8,10 @@
 import CoreImage
 import Frames
 
-// Applies a picture's filter operations in order to an image in the working space, each by its FRAMES-15 formula on
-// sRGB-encoded values, its result clamped to 0 to 1 and cropped to the image's extent. Colour operations work on the
-// unpremultiplied colour and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so a
-// transparent pixel weighs nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended
-// outward.
+// Applies a picture's filter operations in order to an image in the working space, each on sRGB-encoded values, its
+// result clamped to 0 to 1 and cropped to the image's extent. Colour operations work on the unpremultiplied colour
+// and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so a transparent pixel weighs
+// nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended outward.
 struct FilterChain: Sendable {
     // MARK: - Property
     private let tables: LookUpTableCache
@@ -106,7 +105,6 @@ struct FilterChain: Sendable {
         }
     }
 
-    // Applies the colour kernel `name` over the image's extent, the image first and then `arguments`.
     private func color(
         _ name: String,
         _ image: CIImage,

@@ -11,7 +11,6 @@ import Frames
 // An outline drawn as Core Graphics paths, along its segments from its start.
 extension PathOutline {
     // MARK: - Property
-    // The whole outline, closed when it is.
     var path: CGPath {
         piece(from: 0, to: length, closing: isClosed)
     }
@@ -23,7 +22,6 @@ extension PathOutline {
 
     // MARK: - Initializer
     // MARK: - Public
-    // The open piece between two distances along the outline.
     func piece(
         from start: Double,
         to end: Double
