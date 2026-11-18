@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A tracked clip's geometry at a sequence time, where it is at the instant in the media pixels of the parent it
-// follows: each keyframe is brought back through the motion at the media time the parent's clock gives at the
-// keyframe's `at`, and the keyframes are interpolated there by their eases. `transform` then carries the instant to the
-// frame the parent shows at a time.
+// A tracked clip's geometry at a sequence time, where it is at the instant in the media pixels it follows, its own or
+// its parent's: each keyframe is brought back through the motion at the media time the clock of that media gives at
+// the keyframe's `at`, and the keyframes are interpolated there by their eases. `transform` then carries the instant
+// to the frame shown at a time.
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -94,6 +94,24 @@ extension ResolvedTrack {
         return brought.value(at: time)
     }
 
+    // A crop is an upright region of its media, so it takes the motion's move and scale and not its rotation, and the
+    // interpolated crop is carried by the motion at the time (FRAMES-12).
+    func crop(
+        of keyframes: [Keyframe<Crop>],
+        on clock: MediaClock,
+        at time: Double
+    ) -> Rectangle {
+        let brought = keyframes.map { keyframe in
+            Keyframe(
+                at: keyframe.at,
+                value: Crop(uprightMotion(on: clock, at: keyframe.at).bringBack(keyframe.value.rectangle)),
+                ease: keyframe.ease
+            )
+        }
+
+        return uprightMotion(on: clock, at: time).carry(brought.value(at: time).rectangle)
+    }
+
     func transform(
         on clock: MediaClock,
         at time: Double
@@ -102,4 +120,10 @@ extension ResolvedTrack {
     }
 
     // MARK: - Private
+    private func uprightMotion(
+        on clock: MediaClock,
+        at time: Double
+    ) -> TrackMotion {
+        motion(atMediaTime: clock.mediaTime(atSequenceTime: time)).upright
+    }
 }
