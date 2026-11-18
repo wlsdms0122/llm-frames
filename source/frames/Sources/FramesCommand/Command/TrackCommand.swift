@@ -7,7 +7,8 @@
 
 import Frames
 
-// Prints, as machine output, the rectangles the tracker provider follows an area found in a video along.
+// Prints, as machine output, the quads the tracker provider follows an area found in a video along, and the motion
+// fitted to each.
 struct TrackCommand: Command {
     // MARK: - Property
     let name = "track"

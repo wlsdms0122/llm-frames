@@ -480,13 +480,76 @@ struct ResolvedDocumentReaderTests {
         #expect(missingError?.description.hasPrefix("clips[1].trackMatte (track matte): missing") == true)
     }
 
+    @Test("a track that turns and grows reads back as it was written, each frame's motion with its turn")
+    func readsTurningTrack() throws {
+        // Given
+        let tracker = TrackerTable(frameTimes: Fixture.tracker.frameTimes, drift: Point(x: 3, y: -2), growth: 0.1, turn: 30)
+        let document = try resolved(Self.documents[2], tracker: tracker)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        let track = try #require(read.clips.first?.track?.track)
+        let last = try #require(track.samples.last)
+        #expect(abs(last.motion.rotation - 30 * (last.time - track.mediaTime)) < 1e-9)
+        #expect(last.motion.rotation > 0)
+    }
+
+    @Test(
+        "a track motion that is not a similarity and a target of three points stop, naming their place",
+        arguments: [
+            (
+                "motion",
+                "[1, 0, 0, 2, 0, 0]",
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [1, 0, 0, 2, 0, 0]"
+            ),
+            (
+                "motion",
+                "[0, 0, 0, 0, 5, 5]",
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [0, 0, 0, 0, 5, 5]"
+            ),
+            (
+                "target",
+                "[[0, 0], [10, 0], [10, 10]]",
+                "clips[0].track.target (track): expected a list of 4 points, found a list of 3"
+            )
+        ]
+    )
+    func refusesTrackShape(
+        key: String,
+        value: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacingInTrack(ofClip: 0, in: written(Self.documents[2])) { track in
+            guard key == "motion" else { return track.setting(key, to: try Fixture.json(value)) }
+
+            var frames = try #require(track["frames"]?.arrayValue)
+            let frame = try #require(frames[0].objectValue)
+            frames[0] = .object(frame.setting(key, to: try Fixture.json(value)))
+            return track.setting("frames", to: .array(frames))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     // MARK: - Private
-    private func resolved(_ document: String) throws -> ResolvedSequence {
+    private func resolved(
+        _ document: String,
+        tracker: TrackerTable = Fixture.tracker
+    ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
             ocr: Fixture.ocr,
-            tracker: Fixture.tracker,
+            tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )
@@ -508,6 +571,20 @@ struct ResolvedDocumentReaderTests {
         var clips = try #require(root["clips"]?.arrayValue)
         let clip = try #require(clips[index].objectValue)
         clips[index] = .object(clip.setting(key, to: try Fixture.json(value)))
+
+        return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
+    }
+
+    private func replacingInTrack(
+        ofClip index: Int,
+        in text: String,
+        _ change: (JSONObject) throws -> JSONObject
+    ) throws -> String {
+        let root = try #require(try JSONReader().read(text).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[index].objectValue)
+        let track = try #require(clip["track"]?.objectValue)
+        clips[index] = .object(clip.setting("track", to: .object(try change(track))))
 
         return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }

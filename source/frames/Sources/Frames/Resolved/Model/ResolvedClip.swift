@@ -38,6 +38,13 @@ struct ResolvedClip: Equatable, Sendable {
         OwnSpace(content: content)
     }
 
+    // The media time a timed media clip shows, which a clip tracked in its media follows, nil for any other clip.
+    var clock: MediaClock? {
+        guard case let .media(media) = content else { return nil }
+
+        return media.clock
+    }
+
     // MARK: - Initializer
     init(
         place: String,

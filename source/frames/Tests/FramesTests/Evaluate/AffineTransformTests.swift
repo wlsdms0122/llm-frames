@@ -121,22 +121,6 @@ struct AffineTransformTests {
         #expect(inverse == nil)
     }
 
-    @Test("a track's motion as a matrix carries a point as the motion does")
-    func carriesTrackMotion() {
-        // Given
-        let motion = TrackMotion(
-            from: Rectangle(x: 0, y: 0, width: 100, height: 50),
-            to: Rectangle(x: 50, y: -50, width: 200, height: 400)
-        )
-        let sut = AffineTransform(carrying: motion)
-
-        // When
-        let point = sut.apply(to: Point(x: 60, y: 25))
-
-        // Then
-        #expect(point == Point(x: 190, y: 150))
-    }
-
     // MARK: - Private
     private func expectClose(
         _ point: Point,

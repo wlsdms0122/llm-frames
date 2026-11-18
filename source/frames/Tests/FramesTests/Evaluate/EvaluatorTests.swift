@@ -387,6 +387,87 @@ struct EvaluatorTests {
         #expect(isClose(rectangle, Rectangle(x: 25, y: 0, width: 100, height: 50)))
     }
 
+    @Test("a tracked crop takes the move and the scale of a turning target and stays upright")
+    func keepsTrackedCropUpright() throws {
+        // Given
+        // At 1 the target has turned a quarter turn clockwise and doubled about its centroid, (120, 110).
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let turned = AffineTransform(scale: 2, rotation: 90, about: Point(x: 120, y: 110), offset: Point(x: 0, y: 0))
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, quad: Quad(target).applying(turned))
+        ])
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4, track: track)])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // The whole picture's centre (200, 100) lies (80, -10) from the centroid, so twice that from it, upright.
+        let rectangle = try #require(mediaPicture(of: list)?.rectangle)
+        #expect(isClose(rectangle, Rectangle(x: -120, y: -110, width: 800, height: 400)))
+    }
+
+    @Test("a picture in picture clip tracked in its own media keeps its crop upright on the move and scale only, and stays in its box")
+    func keepsOwnTrackedCropUpright() throws {
+        // Given
+        // The clip shows its media time t at t. At 1 the target has turned a quarter turn clockwise and doubled about
+        // its centroid, (120, 110).
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let turned = AffineTransform(scale: 2, rotation: 90, about: Point(x: 120, y: 110), offset: Point(x: 0, y: 0))
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, quad: Quad(target).applying(turned))
+        ])
+        let played = PlayedRange(map: TimeMap(origin: 0, in: 0, speed: 1), out: 4, loop: false)
+        let media = mediaClip(timing: .played(played), track: track)
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // The whole picture's centre (200, 100) lies (80, -10) from the centroid, so twice that from it, upright, and
+        // the box stays where its position puts it.
+        let item = try #require(list.items.last)
+        let rectangle = try #require(clipPicture(of: list)?.rectangle)
+        #expect(isClose(rectangle, Rectangle(x: -120, y: -110, width: 800, height: 400)))
+        #expect(item.transform == AffineTransform(translation: Point(x: 10, y: 20)))
+    }
+
+    @Test("a tracked title turns a quarter turn clockwise with its target and keeps its size")
+    func turnsTrackedTitle() throws {
+        // Given
+        // At 1 the target has turned a quarter turn clockwise about its centroid, (120, 110). The title's anchor point
+        // is (160, 75) in the picture at the instant, (40, -35) from the centroid, so (155, 150) at 1 and (77.5, 75)
+        // in the output at half size.
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let turned = AffineTransform(rotation: 90, about: Point(x: 120, y: 110))
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, quad: Quad(target).applying(turned))
+        ])
+        let text = text(Size(width: 60, height: 20))
+        let box = ResolvedBox(
+            size: Size(width: 60, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            anchor: Point(x: 30, y: 10)
+        )
+        let sequence = sequence(
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
+            clips: [clip(.title(text), storyline: 0, parent: "shot", box: box, track: track)]
+        )
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let transform = try #require(list.items.last?.transform)
+        let expected = AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 87.5, ty: 45)
+        #expect(zip(transform.matrix, expected.matrix).allSatisfy { abs($0 - $1) < 1e-9 }, "\(transform)")
+        #expect(isClose(transform.apply(to: Point(x: 30, y: 10)), Point(x: 77.5, y: 75)))
+    }
+
     @Test("a `fit` crop beyond the picture is drawn as conformed, leaving what lies outside the picture transparent")
     func drawsCropBeyondPicture() throws {
         // Given
@@ -1216,7 +1297,8 @@ struct EvaluatorTests {
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
         appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
-        blend: String = "normal"
+        blend: String = "normal",
+        track: ResolvedTrack? = nil
     ) -> ResolvedClip {
         let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: filter, appearance: appearance)
         let box = ResolvedBox(
@@ -1225,7 +1307,14 @@ struct EvaluatorTests {
             anchor: Point(x: 40, y: 20)
         )
 
-        return clip(.media(media), start: start, box: box, crop: [Keyframe(at: 0, value: Crop(whole))], blend: blend)
+        return clip(
+            .media(media),
+            start: start,
+            box: box,
+            crop: [Keyframe(at: 0, value: Crop(whole))],
+            track: track,
+            blend: blend
+        )
     }
 
     private func fillItem(

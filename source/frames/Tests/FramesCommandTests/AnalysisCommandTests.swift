@@ -108,7 +108,7 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0, "\(sut.standardError)")
-        #expect(try keys(of: sut.standardOutput) == ["track", "frames"])
+        #expect(try keys(of: sut.standardOutput) == ["track", "time", "target", "frames"])
         #expect(try frameCount(in: sut.standardOutput) == 3)
     }
 

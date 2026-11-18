@@ -99,7 +99,7 @@ A template renders on its own with its arguments: `frames render mine/intro --ar
 | --- | --- |
 | `probe <media> [--json]` | kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, audio |
 | `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order `nth` counts them |
-| `track <video> --at <t> --area <area> [--to <t>]` | the rectangle of an area on every frame the tracker follows, as JSON |
+| `track <video> --at <t> --area <area> [--to <t>]` | the four corners of an area on every frame the tracker follows and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each labelled with its time |
 | `timeline <document> [--args <args.json>] [--json]` | every clip's ranges, speed, transition, animation and place, after resolve, without rendering |
@@ -387,7 +387,7 @@ A parameter is `{type, default, description}`, with `options` for a `choice`. Ty
 | --- | --- |
 | `probe` | `{"probe", kind, size, duration, fps, alpha, audio}` |
 | `ocr` | `{"ocr", size, frames: [{time, lines: [{text, rect}]}]}` |
-| `track` | `{"track", frames: [{time, rect}]}` |
+| `track` | `{"track", time, target, frames: [{time, quad, motion}]}` |
 | `timeline` | `{"timeline", duration, storyline, clips}` |
 | `evaluate` | `{"evaluate", time, size, items: [{place, id, kind, bounds, opacity}]}` |
 | `locate` | `{"locate", hits: [{place, id, kind}, ...]}` |

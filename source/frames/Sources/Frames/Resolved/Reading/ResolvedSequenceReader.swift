@@ -432,20 +432,40 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func track(_ value: PlacedJSONValue) throws -> ResolvedTrack {
-        let track = try value.object(kind: "track", keys: ["target", "time", "frames"])
+        let track = try value.object(kind: "track", keys: ["media", "time", "target", "frames"])
+        let target = try values.quad(track.member("target"))
 
         return ResolvedTrack(
-            target: try values.rectangle(track.member("target")),
-            mediaTime: try track.member("time").number(),
-            frames: try track.member("frames").elements().map { element in
-                let frame = try element.object(keys: ["time", "value"])
+            media: try values.media(track.member("media")),
+            track: Track(
+                target: target,
+                mediaTime: try track.member("time").number(),
+                samples: try track.member("frames").elements().map { element in
+                    let frame = try element.object(keys: ["time", "quad", "motion"])
 
-                return TrackedFrame(
-                    time: try frame.member("time").number(),
-                    rectangle: try values.rectangle(frame.member("value"))
-                )
-            }
+                    return TrackSample(
+                        time: try frame.member("time").number(),
+                        quad: try values.quad(frame.member("quad")),
+                        motion: TrackMotion(transform: try motion(frame.member("motion")), origin: target.centroid)
+                    )
+                }
+            )
         )
+    }
+
+    // A similarity, `[a, b, -b, a, tx, ty]` with a scale above 0, since evaluation takes its scale and rotation apart
+    // and brings values back through its inverse.
+    private func motion(_ value: PlacedJSONValue) throws -> AffineTransform {
+        let motion = AffineTransform(matrix: try value.numbers(count: 6))
+        guard motion.d == motion.a, motion.c == -motion.b, motion.a != 0 || motion.b != 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found \(value.value.written)"
+            )
+        }
+
+        return motion
     }
 
     private func transition(_ value: PlacedJSONValue) throws -> ResolvedTransition {

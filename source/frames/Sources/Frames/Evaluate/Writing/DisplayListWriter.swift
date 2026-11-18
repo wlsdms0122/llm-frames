@@ -53,7 +53,7 @@ package struct DisplayListWriter: Sendable {
         let members = [
             JSONMember(key: "item", value: .string(name(of: item.content))),
             JSONMember(key: "origin", value: origin ?? .null),
-            JSONMember(key: "transform", value: values.numbers(transform(item.transform))),
+            JSONMember(key: "transform", value: values.numbers(item.transform.matrix)),
             JSONMember(key: "opacity", value: .number(item.opacity)),
             JSONMember(key: "blend", value: .string(item.blend)),
             JSONMember(key: "mask", value: item.mask.isEmpty ? .null : .array(item.mask.map(mask))),
@@ -172,7 +172,7 @@ package struct DisplayListWriter: Sendable {
     private func mask(_ mask: ItemMask) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "geometry", value: values.geometry(mask.geometry)),
-            JSONMember(key: "transform", value: values.numbers(transform(mask.transform))),
+            JSONMember(key: "transform", value: values.numbers(mask.transform.matrix)),
             JSONMember(key: "feather", value: .number(mask.feather)),
             JSONMember(key: "invert", value: .bool(mask.isInverted)),
             JSONMember(key: "mode", value: .string(mask.mode.rawValue))
@@ -212,10 +212,6 @@ package struct DisplayListWriter: Sendable {
                 JSONMember(key: "list", value: .object(JSONObject(members: members(of: list))))
             ]))
         }
-    }
-
-    private func transform(_ transform: AffineTransform) -> [Double] {
-        [transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty]
     }
 
     private func rectangle(_ rectangle: Rectangle?) -> JSONValue {

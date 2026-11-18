@@ -39,6 +39,7 @@ struct TrackPointTests {
             try #require(TrackPoint(
                 at: end,
                 size: CGSize(width: 168, height: 88),
+                angle: 0,
                 in: images[0]
             ))
         }
@@ -51,7 +52,8 @@ struct TrackPointTests {
                 point.find(
                     in: images[1],
                     near: CGPoint(x: point.point.x + guess.x, y: point.point.y + 70 + guess.y),
-                    scale: 1
+                    scale: 1,
+                    angle: 0
                 )
             }
         }

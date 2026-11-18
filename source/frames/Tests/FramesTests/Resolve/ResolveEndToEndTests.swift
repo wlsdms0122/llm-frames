@@ -49,11 +49,11 @@ struct ResolveEndToEndTests {
         #expect(isNear(area.target, drawn[0]), "found \(area.target), drawn \(drawn[0])")
 
         let track = try #require(plan.clips[0].track?.track)
-        #expect(track.frames.map(\.time) == times)
-        for (index, frame) in track.frames.enumerated() {
-            let moved = frame.rectangle.center.y - track.target.center.y
+        #expect(track.samples.map(\.time) == times)
+        for (index, frame) in track.samples.enumerated() {
+            let moved = frame.quad.centroid.y - track.target.centroid.y
             let drift = drawn[index].center.y - drawn[0].center.y
-            let along = frame.rectangle.center.x - track.target.center.x
+            let along = frame.quad.centroid.x - track.target.centroid.x
             #expect(abs(moved - drift) <= trackTolerance, "frame \(index) moved \(moved), drawn \(drift)")
             #expect(abs(along) <= trackTolerance, "frame \(index) moved \(along) along the line")
         }

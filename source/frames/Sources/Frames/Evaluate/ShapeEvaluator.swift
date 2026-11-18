@@ -77,7 +77,7 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> AffineTransform {
         laid(shape, clip: clip, sample: sample, in: space, at: time)?.transform
-            ?? space.tracked(by: clip.track, at: time).transform
+            ?? space.tracked(by: clip.parentTrack, at: time).transform
     }
 
     // MARK: - Private
@@ -90,7 +90,7 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double)? {
-        let tracked = space.tracked(by: clip.track, at: time)
+        let tracked = space.tracked(by: clip.parentTrack, at: time)
         let geometry: PathGeometry
         let bounds: Rectangle
         let placement: GeometryPlacement
@@ -114,7 +114,7 @@ struct ShapeEvaluator: Sendable {
         case let .area(area, outset, areaPlacement):
             guard tracked.scale > 0 else { return nil }
 
-            bounds = space.area(of: area, track: clip.track, at: time)
+            bounds = space.area(of: area, track: clip.parentTrack, at: time)
             placement = areaPlacement
             let drawn = bounds.grown(by: outset / tracked.scale)
             let radius = shape.radius.value(at: time) / tracked.scale
@@ -123,7 +123,7 @@ struct ShapeEvaluator: Sendable {
         case let .points(keyframes, isClosed, pointsPlacement):
             guard tracked.scale > 0 else { return nil }
 
-            let points = space.points(of: keyframes, track: clip.track, at: time)
+            let points = space.points(of: keyframes, track: clip.parentTrack, at: time)
             bounds = Rectangle(bounding: points)
             placement = pointsPlacement
             geometry = .polyline(points, isClosed: isClosed)
@@ -134,7 +134,7 @@ struct ShapeEvaluator: Sendable {
         let transform = AffineTransform(
             placing: bounds,
             anchor: placement.anchor,
-            position: placement.position.map { space.point(of: $0, track: clip.track, at: time) },
+            position: placement.position.map { space.point(of: $0, track: clip.parentTrack, at: time) },
             scale: sample.ownScale,
             rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
             moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
@@ -161,8 +161,8 @@ struct ShapeEvaluator: Sendable {
             x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
             y: box.size.height > 0 ? box.anchor.y * size.height / box.size.height : 0
         )
-        let tracked = space.tracked(by: clip.track, at: time)
-        let point = tracked.transform.apply(to: space.anchor(of: box, track: clip.track, at: time))
+        let tracked = space.tracked(by: clip.parentTrack, at: time)
+        let point = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
         let values = KeyframedValues(
             position: Point(x: point.x - anchor.x, y: point.y - anchor.y),
             scale: clip.scale.map { $0.value(at: time) } ?? 1,

@@ -7,11 +7,12 @@
 
 // Evaluates one clips entry at an instant into the items it draws, bottom first, in output pixels of its list: its
 // keyframes sampled, its animation over its visible window combined on top, its blend, and its parent's map P(t)
-// composed in through its space, after its tracked motion when it is tracked. A title or media clip is drawn in its
-// box's own pixels, its anchor point where that map carries its position, turned by its own rotation and the map's, at
-// its own scale, and so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its
-// space's coordinates, carried by that map whole, and an adjustment around its masks' bounding box so, or without a
-// mask over the frame. Its masks are in the space it gives its children and are carried by that space's map.
+// composed in through its space, after its tracked motion when it follows its parent's media (a media clip tracked in
+// its own media moves its crop and masks instead, FRAMES-12). A title or media clip is drawn in its box's own pixels,
+// its anchor point where that map carries its position, turned by its own rotation and the map's, at its own scale, and
+// so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its space's coordinates,
+// carried by that map whole, and an adjustment around its masks' bounding box so, or without a mask over the frame. Its
+// masks are in the space it gives its children and are carried by that space's map.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -55,7 +56,7 @@ struct ClipEvaluator: Sendable {
             guard let box = clip.box else { return space.transform }
 
             let transform = presentation(of: clip, box: box, sample: sample, in: space, at: time).transform
-            guard let crop = clip.crop?.value(at: time).rectangle else { return transform }
+            guard let crop = clip.crop(at: time) else { return transform }
 
             return AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
                 .concatenating(AffineTransform(
@@ -72,7 +73,7 @@ struct ClipEvaluator: Sendable {
             guard clip.mask == nil else { return transform }
 
             // Without a mask the adjustment acts in output pixels, and its children are still in its parent's space.
-            return space.tracked(by: clip.track, at: time).transform.concatenating(transform)
+            return space.tracked(by: clip.parentTrack, at: time).transform.concatenating(transform)
         }
     }
 
@@ -108,7 +109,7 @@ struct ClipEvaluator: Sendable {
 
             let item = PictureItem(
                 source: picture,
-                rectangle: clip.crop.map { $0.value(at: time).rectangle },
+                rectangle: clip.crop(at: time),
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: media.filter,
                 radius: media.appearance.radius,
@@ -164,8 +165,8 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> ItemPresentation {
-        let tracked = space.tracked(by: clip.track, at: time)
-        let anchor = tracked.transform.apply(to: space.anchor(of: box, track: clip.track, at: time))
+        let tracked = space.tracked(by: clip.parentTrack, at: time)
+        let anchor = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
         let values = KeyframedValues(
             position: Point(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y),
             scale: clip.scale.map { $0.value(at: time) } ?? 1,
@@ -213,14 +214,14 @@ struct ClipEvaluator: Sendable {
             area: bounds,
             opacity: sample.opacity,
             motion: sample.animation.motion,
-            carriedBy: space.tracked(by: clip.track, at: time).transform
+            carriedBy: space.tracked(by: clip.parentTrack, at: time).transform
         )
     }
 
     // A clip's masks at the time on the space it gives its children (FRAMES-11). A title's and a media clip's are in
-    // their own box or media, and so are a box shape's, which a tracked motion carries through their transform. A shape
-    // placed by its geometry and an adjustment write theirs in their parent's space, each keyframe brought back to the
-    // instant when tracked, as their geometry is.
+    // their own box or media, and so are a box shape's, which a tracked motion carries through their transform, and a
+    // media clip tracked in its own media moves them there. A shape placed by its geometry and an adjustment write
+    // theirs in their parent's space, each keyframe brought back to the instant when tracked, as their geometry is.
     private func masks(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -228,8 +229,10 @@ struct ClipEvaluator: Sendable {
     ) -> [ItemMask] {
         guard let mask = clip.mask else { return [] }
 
-        let masks = clip.space == .parent ? space.masks(of: mask, track: clip.track, at: time) : mask.value(at: time)
-        let transform = childTransform(of: clip, in: space, at: time)
+        let masks = clip.space == .parent
+            ? space.masks(of: mask, track: clip.parentTrack, at: time)
+            : clip.ownMasks(at: time)
+        let transform = clip.ownMotion(at: time).concatenating(childTransform(of: clip, in: space, at: time))
         let scale = ClipSample(clip: clip, at: time).ownScale
         return masks.map { ItemMask(mask: $0, transform: transform, scale: scale) }
     }
@@ -240,6 +243,6 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> Rectangle? {
-        clip.mask.flatMap { space.masks(of: $0, track: clip.track, at: time).bounds }
+        clip.mask.flatMap { space.masks(of: $0, track: clip.parentTrack, at: time).bounds }
     }
 }
