@@ -190,7 +190,7 @@ struct ParentSpacePlanner: Sendable {
 
             let held = plan.visible.held(time)
             let own = transforms[index]?.transform(at: held) ?? .identity
-            if let track = StorylineTrack(clip: index, in: tracked) {
+            if let track = ParentTrack(clip: index, in: tracked) {
                 links.append(own.concatenating(track.motion(at: held).transform))
             } else {
                 links.append(own)
@@ -222,7 +222,7 @@ struct ParentSpacePlanner: Sendable {
 
         let plan = tracked.time.clips[index]
         let written = written[index]
-        let track = StorylineTrack(clip: index, in: tracked)
+        let track = ParentTrack(clip: index, in: tracked)
         return ParentTransformPlan(
             geometry: ShapeGeometry(
                 plan: shape.geometry,

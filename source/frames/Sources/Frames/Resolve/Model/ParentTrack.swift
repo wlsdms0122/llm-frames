@@ -1,5 +1,5 @@
 //
-//  StorylineTrack.swift
+//  ParentTrack.swift
 //  Frames
 //
 //  Created by JSilver on 11/18/26.
@@ -9,7 +9,7 @@
 // the media time of a sequence time. A tracked clip's keyframes are where they lie on the frame at their own `at`, and
 // each is brought back through the motion at the media time there to where it lies at the instant, as its evaluation
 // brings them back.
-struct StorylineTrack: Equatable, Sendable {
+struct ParentTrack: Equatable, Sendable {
     // MARK: - Property
     let track: Track
     let storyline: StorylinePlan

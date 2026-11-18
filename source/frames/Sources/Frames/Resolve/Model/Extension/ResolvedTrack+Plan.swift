@@ -20,7 +20,7 @@ extension ResolvedTrack {
     // A connected or sequence clip's track, in the media of the storyline clip it is parented to, which tracking has
     // found to be a video or image sequence.
     init?(
-        track: StorylineTrack,
+        track: ParentTrack,
         hashes: any FileHashProvider
     ) throws {
         guard case let .file(file) = track.storyline.source.media?.source else { return nil }
