@@ -8,10 +8,10 @@
 import AVFoundation
 import Foundation
 
-// Writes a file that holds only sound: a tone of `frequency` from 0 to `end` seconds at `sampleRate`, each channel at
-// its own level of `levels` (full scale 1), in the layout of that many channels (mono, stereo, 3.0, 4.0, 5.0, 5.1, 6.1
-// or 7.1 in SMPTE order). A `.wav` file holds 16 bit linear PCM and any other AAC. A movie writer takes its tone from
-// here too, a 440 Hz mono one at 48 kHz.
+// Writes a file that holds only sound: `signal`, a 440 Hz tone unless told otherwise, from 0 to `end` seconds at
+// `sampleRate`, each channel at its own level of `levels` (full scale 1), in the layout of that many channels (mono,
+// stereo, 3.0, 4.0, 5.0, 5.1, 6.1 or 7.1 in SMPTE order). A `.wav` file holds 16 bit linear PCM and any other AAC. A
+// movie writer takes its tone from here too, a 440 Hz mono one at 48 kHz.
 package struct SoundWriter {
     // MARK: - Property
     static var outputSettings: [String: Any] {
@@ -20,7 +20,7 @@ package struct SoundWriter {
 
     private let end: Double
     private let sampleRate: Int
-    private let frequency: Double
+    private let signal: SoundSignal
     private let levels: [Double]
 
     private var layoutTag: AudioChannelLayoutTag {
@@ -59,12 +59,12 @@ package struct SoundWriter {
     package init(
         end: Double,
         sampleRate: Int = 48_000,
-        frequency: Double = 440,
+        signal: SoundSignal = .tone(frequency: 440),
         levels: [Double] = [8_000.0 / 32_768]
     ) {
         self.end = end
         self.sampleRate = sampleRate
-        self.frequency = frequency
+        self.signal = signal
         self.levels = levels
     }
 
@@ -95,7 +95,7 @@ package struct SoundWriter {
         channel: Int,
         at index: Int
     ) -> Double {
-        sin(2 * Double.pi * frequency * Double(index) / Double(sampleRate)) * levels[channel]
+        signal.value(channel: channel, at: index, sampleRate: sampleRate) * levels[channel]
     }
 
     // 16 bit interleaved samples of the tone from `start` to `end` media seconds.
