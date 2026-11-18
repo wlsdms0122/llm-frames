@@ -96,7 +96,7 @@ struct ResolveEndToEndTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
+              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
               "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 

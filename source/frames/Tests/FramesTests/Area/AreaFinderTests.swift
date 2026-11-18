@@ -52,7 +52,7 @@ struct AreaFinderTests {
         #expect(padded.rectangle == rectangle(86, 0, 228, 58))
         #expect(padded.target == rectangle(100, 4, 200, 40))
         let error = #expect(throws: AreaError.self) { try find(.rectangle(rectangle(2000, 0, 10, 10)), with: sut) }
-        #expect(error?.description == "area (box): the area [2000, 0, 10, 10] lies wholly outside its picture of 1206x2622")
+        #expect(error?.description == "area (rect): the area [2000, 0, 10, 10] lies wholly outside its picture of 1206x2622")
     }
 
     @Test("a text area is the whole line that contains the text, grown by its padding, its target before padding")
@@ -100,7 +100,7 @@ struct AreaFinderTests {
         // When, Then
         let error = #expect(throws: AreaError.self) { try find(.text("Delete", nth: nil, padding: 0), with: sut) }
         #expect(error?.description == #"""
-            area (box): "Delete" matches 2 lines: [100, 300, 300, 40] "Delete all", [100, 900, 200, 40] "Delete". \#
+            area (rect): "Delete" matches 2 lines: [100, 300, 300, 40] "Delete all", [100, 900, 200, 40] "Delete". \#
             Give nth to pick one
             """#)
     }
@@ -137,9 +137,9 @@ struct AreaFinderTests {
         // When, Then
         let none = #expect(throws: AreaError.self) { try find(.text("Cart", nth: nil, padding: 0), with: sut) }
         let nth = #expect(throws: AreaError.self) { try find(.text("Item", nth: 1, padding: 0), with: sut) }
-        #expect(none?.description == #"area (box): no line of "/abs/screen.mp4" at media second 1 contains "Cart""#)
+        #expect(none?.description == #"area (rect): no line of "/abs/screen.mp4" at media second 1 contains "Cart""#)
         #expect(nth?.description == #"""
-            area (box): 1 line of "/abs/screen.mp4" at media second 1 contains "Item", so there is no line 1 \#
+            area (rect): 1 line of "/abs/screen.mp4" at media second 1 contains "Item", so there is no line 1 \#
             (counted from 0)
             """#)
     }
@@ -190,8 +190,8 @@ struct AreaFinderTests {
         let missing = #expect(throws: AreaError.self) {
             try find(.range(from: "Total", fromNth: 0, to: "Paid", toNth: nil, padding: 0), with: sut)
         }
-        #expect(ambiguous?.description.hasPrefix(#"area (box): "Total" matches 2 lines"#) == true)
-        #expect(missing?.description == #"area (box): no line of "/abs/screen.mp4" at media second 1 contains "Paid""#)
+        #expect(ambiguous?.description.hasPrefix(#"area (rect): "Total" matches 2 lines"#) == true)
+        #expect(missing?.description == #"area (rect): no line of "/abs/screen.mp4" at media second 1 contains "Paid""#)
     }
 
     @Test("text is searched in the frame shown at the media time asked")
@@ -205,8 +205,8 @@ struct AreaFinderTests {
         ]))
 
         // When
-        let early = try sut.area(.text("Total", nth: nil, padding: 0), in: screen, atMediaTime: 1.9, place: place, kind: "box")
-        let late = try sut.area(.text("Total", nth: nil, padding: 0), in: screen, atMediaTime: 2, place: place, kind: "box")
+        let early = try sut.area(.text("Total", nth: nil, padding: 0), in: screen, atMediaTime: 1.9, place: place, kind: "rect")
+        let late = try sut.area(.text("Total", nth: nil, padding: 0), in: screen, atMediaTime: 2, place: place, kind: "rect")
 
         // Then
         #expect(early.target.y == 100)
@@ -219,16 +219,16 @@ struct AreaFinderTests {
         // Given
         let sut = AreaFinder(ocr: OCRTable([:]))
         let picture = Picture(name: "pack/intro", source: .document, size: Size(width: 1080, height: 1920))
-        let message = #"area (box): "pack/intro" is drawn, not read, so it takes no text area. "#
+        let message = #"area (rect): "pack/intro" is drawn, not read, so it takes no text area. "#
             + "Point at text inside it from the document that draws it"
 
         // When
-        let rectangle = try sut.area(.rectangle(rectangle(0, 0, 10, 10)), in: picture, atMediaTime: 0, place: place, kind: "box")
+        let rectangle = try sut.area(.rectangle(rectangle(0, 0, 10, 10)), in: picture, atMediaTime: 0, place: place, kind: "rect")
 
         // Then
         #expect(rectangle.rectangle == self.rectangle(0, 0, 10, 10))
         let error = #expect(throws: AreaError.self) {
-            try sut.area(.text("a", nth: nil, padding: 0), in: picture, atMediaTime: 0, place: place, kind: "box")
+            try sut.area(.text("a", nth: nil, padding: 0), in: picture, atMediaTime: 0, place: place, kind: "rect")
         }
         #expect(error?.description == message)
     }
@@ -238,7 +238,7 @@ struct AreaFinderTests {
         _ form: AreaForm,
         with sut: AreaFinder
     ) throws -> FoundArea {
-        try sut.area(form, in: screen, atMediaTime: 1, place: place, kind: "box")
+        try sut.area(form, in: screen, atMediaTime: 1, place: place, kind: "rect")
     }
 
     private func rectangle(

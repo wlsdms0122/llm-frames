@@ -111,7 +111,7 @@ struct SequencePlannerTests {
     func findsParentedArea() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "box", "area": { "text": "Send", "padding": 14 }, "parent": "short" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send", "padding": 14 }, "parent": "short" } ] } ] }
             """#)
 
         // Then
@@ -128,7 +128,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
-              "clips": [ { "shape": "box", "area": [10, 20, 30, 40], "at": [0, 1] } ] }
+              "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [10, 20, 30, 40], "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -159,8 +159,8 @@ struct SequencePlannerTests {
         arguments: [
             (#"{ "title": "a", "style": "title", "position": { "area": { "text": "Total" }, "point": "left" } }"#, "storyline[0].connected[0].position", "title"),
             (#"{ "title": "a", "style": "title", "keyframes": [ { "at": 0, "position": [0, 0] }, { "at": 1, "position": { "area": { "text": "Total" }, "point": "left" } } ] }"#, "storyline[0].connected[0].keyframes[1].position", "title"),
-            (#"{ "shape": "box", "area": { "text": "Total" } }"#, "storyline[0].connected[0].area", "box"),
-            (#"{ "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": { "text": "Total" } } ] }"#, "storyline[0].connected[0].keyframes[1].area", "box")
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" } }"#, "storyline[0].connected[0].area", "rect"),
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": { "text": "Total" } } ] }"#, "storyline[0].connected[0].keyframes[1].area", "rect")
         ]
     )
     func refusesTextAreaWithoutParent(
@@ -195,7 +195,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [
-                { "shape": "box", "at": [0, 1], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -212,7 +212,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1.5, "at": [0, 2], "width": 300 },
-                { "shape": "box", "at": [0, 2], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 2], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -230,7 +230,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "speed": 2, "at": [0, 2], "width": 300 },
-                { "shape": "box", "at": [0.5, 2], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0.5, 2], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -247,7 +247,7 @@ struct SequencePlannerTests {
         arguments: [
             #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
-              "connected": [ { "shape": "box", "parent": "nest", "area": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "nest", "area": { "text": "Total" } } ] } ] }
             """#,
             #"""
             { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
@@ -255,7 +255,7 @@ struct SequencePlannerTests {
             """#,
             #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
-              "connected": [ { "id": "box", "shape": "box", "parent": "nest", "area": [0, 0, 10, 10] },
+              "connected": [ { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "nest", "area": [0, 0, 10, 10] },
                              { "title": "a", "style": "title", "parent": "box", "position": { "area": { "text": "Total" }, "point": "left" } } ] } ] }
             """#
         ]
@@ -272,18 +272,18 @@ struct SequencePlannerTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
                 { "id": "parent", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
         let error = #expect(throws: AreaError.self) { try plan(document) }
-        #expect(error?.description == #"clips[1].area (box): the parent "parent" is a title, whose text box has no picture to read, so it takes no text area"#)
+        #expect(error?.description == #"clips[1].area (rect): the parent "parent" is a title, whose text box has no picture to read, so it takes no text area"#)
     }
 
     @Test(
         "a text area under a shape or adjustment without a parent stops, since their coordinates are output pixels",
         arguments: [
-            #"{ "id": "parent", "shape": "box", "at": [0, 1], "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "area": [0, 0, 100, 100] }"#,
             #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 100, 100] }"#
         ]
     )
@@ -291,14 +291,14 @@ struct SequencePlannerTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                \#(parent), { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
+                \#(parent), { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "clips").appending(index: 1).appending(key: "area"),
-            kind: .clip(.shape("box"))
+            kind: .clip(.shape("rect"))
         ))
     }
 
@@ -307,7 +307,7 @@ struct SequencePlannerTests {
         // Given
         let document = ##"""
             { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "id": "back", "solid": "#000000", "duration": 1,
-              "connected": [ { "shape": "box", "parent": "back", "area": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "back", "area": { "text": "Total" } } ] } ] }
             """##
 
         // When, Then
@@ -315,7 +315,7 @@ struct SequencePlannerTests {
         #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "storyline").appending(index: 0, id: "back").appending(key: "connected")
                 .appending(index: 0).appending(key: "area"),
-            kind: .clip(.shape("box"))
+            kind: .clip(.shape("rect"))
         ))
     }
 
@@ -324,7 +324,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "area": { "text": "Total" } },
+                { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" } },
                 { "title": "a", "style": "title", "parent": "box", "anchor": "left", "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] }
             """#)
 
@@ -335,7 +335,7 @@ struct SequencePlannerTests {
     @Test(
         "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
         arguments: [
-            #"{ "id": "parent", "shape": "box", "parent": "screen", "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
             #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "area": [0, 0, 100, 100] }"#
         ]
     )
@@ -343,7 +343,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                \#(parent), { "shape": "box", "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
+                \#(parent), { "shape": "rect", "stroke": { "width": 8 }, "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
             """#)
 
         // Then
@@ -360,7 +360,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
                 { "id": "name", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "box", "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
             """#)
 
         // Then
@@ -395,7 +395,7 @@ struct SequencePlannerTests {
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } } ] } ] }
             """#)))
 
         // Then
@@ -410,14 +410,14 @@ struct SequencePlannerTests {
         let sut = planner(followed: 0...1.9)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" },
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" },
                                "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
             """#))
 
         // When, Then
         #expect(throws: Never.self) { try Fixture.sequencePlanner.plan(time) }
         let error = #expect(throws: ResolveError.self) { try sut.plan(time) }
-        #expect(error?.description == #"storyline[0]#screen.connected[0].keyframes (box): every keyframe of "opacity" lies outside [0.5, 1), so only one of its values would ever show"#)
+        #expect(error?.description == #"storyline[0]#screen.connected[0].keyframes (rect): every keyframe of "opacity" lies outside [0.5, 1), so only one of its values would ever show"#)
     }
 
     @Test(
@@ -548,7 +548,7 @@ struct SequencePlannerTests {
                 { "title": "a", "style": "title", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
-                { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1] },
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
                 { "adjust": ["mine/grade", "none"], "area": [0, 0, 10, 10], "at": [0, 1] } ] }
             """#
 
@@ -568,10 +568,25 @@ struct SequencePlannerTests {
         #expect(title.blend == "screen")
         #expect(title.shape == nil)
         #expect(plan.clips[1].appearance.blend == "normal")
-        #expect(plan.clips[1].appearance.shape == .box(
-            width: MergedTheme.base.boxWidth * MergedTheme.base.lengthScale(at: 2160),
-            radius: MergedTheme.base.boxRadius * MergedTheme.base.lengthScale(at: 2160),
-            color: MergedTheme.base.shapeColor(of: .box)
+        #expect(plan.clips[1].appearance.shape == ShapeAppearance(
+            kind: .rect,
+            width: nil,
+            height: nil,
+            isClosed: false,
+            outset: 0,
+            anchor: nil,
+            radius: .value(0),
+            trim: .value(.whole),
+            fill: nil,
+            stroke: PathStroke(
+                width: 8 * MergedTheme.base.lengthScale(at: 2160),
+                color: MergedTheme.base.color("accent"),
+                join: .round,
+                cap: .butt,
+                start: .none,
+                end: .none
+            ),
+            shadow: nil
         ))
         #expect(plan.clips[2].appearance.filter == graded)
     }

@@ -137,7 +137,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
-                { "id": "mark", "shape": "box", "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1, "parent": "run",
+                { "id": "mark", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1, "parent": "run",
                   "keyframes": [ { "at": 3, "opacity": 0, "ease": [0.3, 0, 0.2, 1] }, { "at": 4, "opacity": 1 } ] } ] } ] }
             """#
 
@@ -147,8 +147,7 @@ struct ResolvedSequenceWriterTests {
         // Then
         #expect(clip["place"] == .string("storyline[0]#run.connected[0]#mark"))
         #expect(clip["id"] == .string("mark"))
-        #expect(clip["shape"] == .string("box"))
-        #expect(clip["color"] == .string(MergedTheme.base.shapeColor(of: .box).hex))
+        #expect(clip["shape"] == .string("rect"))
         #expect(clip["start"] == .number(1))
         #expect(clip["end"] == .number(3))
         #expect(clip["lane"] == .number(-1))
@@ -167,7 +166,7 @@ struct ResolvedSequenceWriterTests {
                 JSONMember(key: "ease", value: .string("linear"))
             ]))
         ]))
-        #expect(clip["scale"] == nil)
+        #expect(clip["scale"]?.arrayValue?.first?.objectValue?["value"] == .number(1))
         #expect(clip["blend"] == .string("normal"))
     }
 
@@ -176,9 +175,9 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "id": "bar", "shape": "box", "area": [0, 0, 100, 20], "at": [0, 1] },
+              "clips": [ { "id": "bar", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 20], "at": [0, 1] },
                          { "title": "a", "style": "title", "at": [0, 1], "parent": "bar", "position": [10, 10] },
-                         { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "run" } ] }
+                         { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "run" } ] }
             """#
 
         // When
@@ -290,8 +289,8 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
-                { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true } ] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+                { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true } ] } ] }
             """#
 
         // When
@@ -361,15 +360,17 @@ struct ResolvedSequenceWriterTests {
         #expect(music["volume"]?.arrayValue?.compactMap { $0.objectValue?["at"] } == [.number(0), .number(1)])
     }
 
-    @Test("a shape carries how it is drawn, with theme lengths scaled: a box its stroke and corners, an arrow its side and lengths")
-    func writesShapeDrawing() throws {
+    @Test("a shape entry writes its kind, geometry and appearance after its id, every key present and null where none")
+    func writesShapeEntry() throws {
         // Given
-        let document = #"""
-            { "kind": "sequence", "format": { "size": [2412, 5244] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "shape": "box", "area": [0, 0, 100, 100], "at": [0, 1] },
-                { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [0, 1], "color": "#FF0000" },
-                { "shape": "dim", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
-            """#
+        let document = ##"""
+            { "kind": "sequence", "format": { "size": [2412, 5244] },
+              "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "shape": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
+                { "shape": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "arrow" }, "at": [0, 1] },
+                { "shape": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] } ] }
+            """##
         let theme = MergedTheme.base
         let scale = theme.lengthScale(at: 2412)
 
@@ -377,16 +378,40 @@ struct ResolvedSequenceWriterTests {
         let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
 
         // Then
-        #expect(clips[0]["width"] == .number(theme.boxWidth * scale))
-        #expect(clips[0]["radius"] == .number(theme.boxRadius * scale))
-        #expect(clips[0]["color"] == .string(theme.shapeColor(of: .box).hex))
-        #expect(clips[1]["side"] == .string("left"))
-        #expect(clips[1]["length"] == .number(theme.arrowLength * scale))
-        #expect(clips[1]["width"] == .number(theme.arrowWidth * scale))
-        #expect(clips[1]["head"] == .number(theme.arrowHead * scale))
-        #expect(clips[1]["color"] == .string("#FF0000FF"))
-        #expect(clips[2]["color"] == .string(theme.shapeColor(of: .dim).hex))
-        #expect(clips[2]["width"] == nil)
+        #expect(clips[0].keys == [
+            "place", "id", "shape", "area", "width", "height", "points", "closed", "radius", "trim", "fill", "stroke",
+            "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "track",
+            "opacity", "scale", "rotation", "blend", "animation"
+        ])
+        #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
+        #expect(clips[0]["width"] == .null)
+        #expect(clips[0]["points"] == .null)
+        #expect(clips[0]["closed"] == .null)
+        #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
+        #expect(clips[0]["fill"] == .null)
+        #expect(clips[0]["stroke"] == .object(JSONObject(members: [
+            JSONMember(key: "color", value: .string("#ED2929FF")),
+            JSONMember(key: "width", value: .number(8 * scale)),
+            JSONMember(key: "join", value: .string("round")),
+            JSONMember(key: "cap", value: .string("butt")),
+            JSONMember(key: "start", value: .string("none")),
+            JSONMember(key: "end", value: .string("none"))
+        ])))
+        #expect(clips[0]["shadow"] == .null)
+        #expect(clips[0]["size"] == .null)
+        #expect(clips[0]["position"] == .null)
+        #expect(clips[0]["anchor"] == .null)
+        #expect(clips[1]["closed"] == .bool(false))
+        #expect(clips[1]["area"] == .null)
+        #expect(clips[1]["stroke"]?.objectValue?["color"] == .string(theme.color("accent").hex))
+        #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
+        #expect(clips[1]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(0))
+        #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
+        #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200 + 20 * scale))
+        #expect(clips[2]["size"] == .array([.number(200 + 20 * scale), .number(100 + 20 * scale)]))
+        #expect(clips[2]["anchor"] == .array([.number(100 + 10 * scale), .number(50 + 10 * scale)]))
+        #expect(clips[2]["fill"] == .string("#00000080"))
+        #expect(clips[2]["stroke"] == .null)
     }
 
     // MARK: - Private

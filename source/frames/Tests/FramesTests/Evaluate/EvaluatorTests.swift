@@ -39,7 +39,7 @@ struct EvaluatorTests {
     // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
     private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
     private let shotEntry = ItemOrigin(place: "storyline", id: "shot", kind: "video")
-    private let fillOrigin = ItemOrigin(place: "clips[0]", id: nil, kind: "fill")
+    private let fillOrigin = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -428,10 +428,17 @@ struct EvaluatorTests {
             [storylineClip(.pinned(first), id: "shot", start: 0, end: 4, crop: zoom)],
             clips: [
                 clip(
-                    .shape(.box(width: 4, radius: 2, color: red)),
+                    .shape(ResolvedShape(
+                        kind: .rect,
+                        area: [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))],
+                        radius: [Keyframe(at: 0, value: 2)],
+                        trim: [Keyframe(at: 0, value: .whole)],
+                        fill: nil,
+                        stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none),
+                        shadow: nil
+                    )),
                     storyline: 0,
-                    parent: "shot",
-                    area: [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))]
+                    parent: "shot"
                 )
             ]
         )
@@ -505,7 +512,7 @@ struct EvaluatorTests {
         ]
         let sequence = sequence(
             [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
-            clips: [clip(.shape(.fill(color: red)), storyline: 0, parent: "shot", area: area, track: track)]
+            clips: [clip(.shape(ResolvedShape(area: area, fill: red)), storyline: 0, parent: "shot", track: track)]
         )
 
         // When
@@ -754,8 +761,8 @@ struct EvaluatorTests {
     func keepsChildOpacity() {
         // Given
         let area = Rectangle(x: 0, y: 0, width: 20, height: 20)
-        let parent = clip(.shape(.fill(color: red)), id: "bar", area: [Keyframe(at: 0, value: area)], opacity: 0.2)
-        let child = clip(.shape(.fill(color: red)), parent: "bar", area: [Keyframe(at: 0, value: area)])
+        let parent = clip(.shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: red)), id: "bar", opacity: 0.2)
+        let child = clip(.shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: red)), parent: "bar")
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [parent, child])
 
         // When
@@ -789,28 +796,6 @@ struct EvaluatorTests {
         )
         let picture = storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry)
         #expect(list.items == [picture, adjust])
-    }
-
-    @Test("a dim without an area darkens the frame, for a connected clip as for a sequence clip")
-    func dimsFrameOfClip() {
-        // Given
-        let sequence = sequence(
-            [storylineClip(.pinned(first), start: 0, end: 4)],
-            clips: [
-                clip(.shape(.dim(color: background)), storyline: 0),
-                clip(.shape(.dim(color: background)))
-            ]
-        )
-
-        // When
-        let list = sut.displayList(of: sequence, at: 1)
-
-        // Then
-        let rooms = list.items.suffix(2).map { item -> Rectangle? in
-            guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else { return nil }
-            return rectangle
-        }
-        #expect(rooms == [frame, frame])
     }
 
     @Test("a connected adjustment without an area filters, moves and wipes the whole frame")
@@ -967,12 +952,11 @@ struct EvaluatorTests {
         start: Double = 0
     ) -> ResolvedClip {
         clip(
-            .shape(.fill(color: red)),
+            .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: red)),
             start: start,
             lane: lane,
             storyline: storyline,
-            parent: parent,
-            area: [Keyframe(at: 0, value: area)]
+            parent: parent
         )
     }
 

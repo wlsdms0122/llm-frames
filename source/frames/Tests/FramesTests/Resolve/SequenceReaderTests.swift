@@ -25,7 +25,7 @@ struct SequenceReaderTests {
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "box", "parent": "run", "keyframes": [ { "at": 1.2, "area": { "text": "First line" } } ] } ] },
+                                 { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 1.2, "area": { "text": "First line" } } ] } ] },
                 { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
@@ -110,7 +110,7 @@ struct SequenceReaderTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
-                { "shape": "arrow", "area": { "from": "a", "to": "b", "toNth": 1, "padding": 6 }, "side": "left",
+                { "shape": "ellipse", "area": { "from": "a", "to": "b", "toNth": 1, "padding": 6 }, "fill": "accent",
                   "track": { "text": "c", "nth": 2 } },
                 { "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
@@ -120,17 +120,62 @@ struct SequenceReaderTests {
         let sequence = sut.sequence(from: document)
 
         // Then
-        let arrow = sequence.storyline[0].connected[0]
+        let ellipse = sequence.storyline[0].connected[0]
         let title = sequence.storyline[0].connected[1]
         #expect(sequence.format.size == .fixed(Size(width: 1080, height: 1920)))
         #expect(sequence.format.conform == .fill)
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
-        #expect(arrow.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
-        #expect(arrow.content == .shape(.arrow(.left)))
-        #expect(arrow.track == .area(.text("c", nth: 2, padding: 0)))
+        #expect(ellipse.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
+        #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: .color("accent"))))
+        #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
+    }
+
+    @Test("a shape's own keys read as written, each nil where it is not, and its scale and rotation are kept")
+    func readsShapeKeys() throws {
+        // Given
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "clips": [
+              { "shape": "rect", "style": "outline", "width": 100, "height": 50, "radius": 8, "outset": 4, "fill": false,
+                "stroke": { "width": 2, "join": "bevel", "end": "arrow" }, "shadow": true, "scale": 2, "rotation": 30 },
+              { "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "right" }], "closed": true,
+                "fill": "#FF0000", "stroke": false, "shadow": { "radius": 4, "color": "accent" },
+                "keyframes": [ { "at": 1, "trim": [0, 0.5] }, { "at": 2, "trim": [0, 1], "ease": "ease-in" } ] },
+              { "shape": "ellipse", "area": [0, 0, 10, 10], "shadow": false } ] }
+            """##)
+
+        // When
+        let sequence = sut.sequence(from: document)
+
+        // Then
+        #expect(sequence.clips[0].content == .shape(ClipShape(
+            kind: .rect,
+            style: "outline",
+            width: .value(100),
+            height: .value(50),
+            radius: .value(8),
+            outset: 4,
+            fill: .off,
+            stroke: .stroke(color: nil, width: 2, join: .bevel, cap: nil, start: nil, end: .arrow),
+            shadow: .shadow(radius: nil, offset: nil, color: nil)
+        )))
+        #expect(sequence.clips[0].scale == .value(2))
+        #expect(sequence.clips[0].rotation == .value(30))
+        #expect(sequence.clips[1].content == .shape(ClipShape(
+            kind: .path,
+            points: .value([.point(Point(x: 0, y: 0)), .area(.rectangle(Rectangle(x: 0, y: 0, width: 10, height: 10)), point: "right")]),
+            isClosed: true,
+            fill: .color("#FF0000"),
+            stroke: .off,
+            trim: .keyframes([
+                TimedValue(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
+                TimedValue(index: 1, at: 2, value: .whole, ease: .easeIn)
+            ]),
+            shadow: .shadow(radius: 4, offset: nil, color: "accent")
+        )))
+        #expect(sequence.clips[2].content == .shape(ClipShape(kind: .ellipse, shadow: .off)))
     }
 
     @Test(

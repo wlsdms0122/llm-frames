@@ -16,16 +16,16 @@ struct TrackPlannerTests {
     // MARK: - Property
     private static let untrackable: [(String, String)] = [
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "track": { "text": "Total" } } ] }"#,
-            "clips[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": { "text": "Total" } } ] }"#,
+            "clips[0].track (rect): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": { "text": "Total" } } ] } ] }"#,
             "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "page", "track": { "text": "Total" } } ] } ] }"#,
-            "storyline[0]#page.connected[0].track (box): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "page", "track": { "text": "Total" } } ] } ] }"#,
+            "storyline[0]#page.connected[0].track (rect): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
         ),
         (
             ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": { "text": "Total" } } ] }"##,
@@ -40,12 +40,12 @@ struct TrackPlannerTests {
             #"storyline[0]#screen.connected[0].track (image): a title or media clip names the area it tracks, so it cannot take "track": true"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "shape": "box", "at": [0, 1], "track": true } ] } ] }"#,
-            #"storyline[0].connected[0].track (box): "track": true follows the clip's own area or crop, and it has none given as an area"#
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "track": true } ] } ] }"#,
+            #"storyline[0].connected[0].track (rect): "track": true follows the clip's own area or crop, and it has none given as an area"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
-            #"clips[1].track (box): track follows the media of a storyline parent, and the parent "card" is a connected or sequence clip, whose media is not followed"#
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
+            #"clips[1].track (rect): track follows the media of a storyline parent, and the parent "card" is a connected or sequence clip, whose media is not followed"#
         )
     ]
 
@@ -164,7 +164,7 @@ struct TrackPlannerTests {
     func narrowsConnectedWindow() throws {
         // Given
         let sut = planner(followed: 0...1.9)
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -182,7 +182,7 @@ struct TrackPlannerTests {
     func findsTargetAtStorylineIn() throws {
         // Given
         let sut = planner()
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }"#)
 
         // When
         let plan = try sut.plan(time, crops: [nil], areas: [nil])
@@ -197,7 +197,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let time = try plan(connected: #"""
-            { "shape": "box", "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
             """#)
         let first = Rectangle(x: 10, y: 20, width: 30, height: 40)
 
@@ -220,12 +220,12 @@ struct TrackPlannerTests {
     func refusesNeverFollowed() throws {
         // Given
         let sut = planner(followed: 3...3.9)
-        let time = try plan(connected: #"{ "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, crops: [nil], areas: [nil]) }
         #expect(error?.description == #"""
-            storyline[0]#screen.connected[0] (box): never visible, since the tracker follows its target on none of the \#
+            storyline[0]#screen.connected[0] (rect): never visible, since the tracker follows its target on none of the \#
             frames of its visible range [0.5, 1.5)
             """#)
     }

@@ -183,7 +183,7 @@ struct EvaluationReporterTests {
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [ { "id": "intro", "media": "/abs/short.mp4", "in": 0, "out": 4,
-                               "connected": [ { "shape": "fill", "area": [100, 200, 300, 400] } ] } ] }
+                               "connected": [ { "shape": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400] } ] } ] }
             """#)
 
         // When
@@ -202,7 +202,7 @@ struct EvaluationReporterTests {
                 opacity: 1
             ),
             EvaluationItem(
-                origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "fill"),
+                origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "rect"),
                 bounds: Rectangle(x: 100, y: 200, width: 300, height: 400),
                 opacity: 1
             )
@@ -231,7 +231,7 @@ struct EvaluationReporterTests {
               "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4,
                                "connected": [ { "media": { "kind": "sequence",
                                                            "storyline": [ { "media": "/abs/page.png", "duration": 2,
-                                                               "connected": [ { "shape": "box", "area": [100, 100, 200, 100] } ] } ] },
+                                                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 100] } ] } ] },
                                                 "at": [0, 2] } ] } ] }
             """#)
 

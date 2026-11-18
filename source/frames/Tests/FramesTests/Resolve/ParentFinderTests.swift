@@ -58,8 +58,8 @@ struct ParentFinderTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [
               { "id": "card", "media": "/abs/card.png", "at": [0, 1], "parent": "bar", "position": [0, 0] },
-              { "id": "bar", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "panel" },
-              { "id": "panel", "shape": "box", "area": [0, 0, 20, 20], "at": [0, 1], "parent": "screen" } ] }
+              { "id": "bar", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "panel" },
+              { "id": "panel", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 20, 20], "at": [0, 1], "parent": "screen" } ] }
             """#
 
         // When
@@ -77,27 +77,27 @@ struct ParentFinderTests {
         "a parent that names no clip, an audio clip, or a chain that comes back to itself stops",
         arguments: [
             (
-                #"{ "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "missing" }"#,
-                #"clips[0].parent (box): no clip in the document has the id "missing""#
+                #"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "missing" }"#,
+                #"clips[0].parent (rect): no clip in the document has the id "missing""#
             ),
             (
                 #"""
                 { "id": "sound", "media": "/abs/bgm.m4a", "at": [0, 1] },
-                { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "sound" }
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "sound" }
                 """#,
-                #"clips[1].parent (box): "sound" is an audio clip, which has no picture to be a parent"#
+                #"clips[1].parent (rect): "sound" is an audio clip, which has no picture to be a parent"#
             ),
             (
-                #"{ "id": "self", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "self" }"#,
-                #"clips[0]#self.parent (box): the parent chain comes back to itself: "self" > "self""#
+                #"{ "id": "self", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "self" }"#,
+                #"clips[0]#self.parent (rect): the parent chain comes back to itself: "self" > "self""#
             ),
             (
                 #"""
-                { "id": "a", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "c" },
-                { "id": "b", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
-                { "id": "c", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "b" }
+                { "id": "a", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "c" },
+                { "id": "b", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
+                { "id": "c", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "b" }
                 """#,
-                #"clips[0]#a.parent (box): the parent chain comes back to itself: "a" > "c" > "b" > "a""#
+                #"clips[0]#a.parent (rect): the parent chain comes back to itself: "a" > "c" > "b" > "a""#
             )
         ]
     )

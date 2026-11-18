@@ -29,7 +29,7 @@ struct TemplateCheckTests {
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
-                               "connected": [ { "shape": "box", "area": { "text": { "param": "name" } }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
+                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": { "param": "name" } }, "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
             }
             """##)
 
@@ -59,8 +59,8 @@ struct TemplateCheckTests {
              #"clips[0].title (title): parameter "size" of type number cannot stand where a string is expected"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
-            (#"{ "name": { "type": "text" } }"#, #"{ "shape": "box", "area": { "param": "name" } }"#,
-             #"clips[0].area (box): parameter "name" of type text cannot stand where an area is expected"#),
+            (#"{ "name": { "type": "text" } }"#, #"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
+             #"clips[0].area (rect): parameter "name" of type text cannot stand where an area is expected"#),
             (#"{ "where": { "type": "choice", "options": ["top", "middle"] } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
@@ -208,15 +208,15 @@ struct TemplateCheckTests {
     }
 
     @Test(
-        "a shape taken by a choice checks its object with each option's keys, so a box and an arrow together stop",
+        "a shape taken by a choice checks its object with each option's keys, so a rect and a path together stop",
         arguments: [
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } ] }"#,
-                #"clips[0] (arrow): missing key "side""#
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#
             ),
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["box", "arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left" } ] }"#,
-                #"clips[0] (box): unknown key "side". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, shape, area, track, color, blend"#
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, area, width, height, placement, radius, outset"#
             )
         ]
     )
@@ -232,12 +232,12 @@ struct TemplateCheckTests {
         #expect(error?.description == message)
     }
 
-    @Test("a shape choice of arrows that names its side passes, with its references taken once")
-    func acceptsShapeChoiceOfArrows() throws {
+    @Test("a shape choice of a rect and an ellipse given by an area passes, with its references taken once")
+    func acceptsShapeChoiceOfBoxShapes() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] }, "c": { "type": "color" } },
-              "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "left", "color": { "param": "c" } } ] }
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"] }, "c": { "type": "color" } },
+              "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": { "param": "c" } } ] }
             """#)
 
         // When

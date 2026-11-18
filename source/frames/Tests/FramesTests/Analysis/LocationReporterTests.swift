@@ -23,7 +23,7 @@ struct LocationReporterTests {
         frameTimes: [0, 0.5, 1, 1.5]
     )
     private let clip = ItemOrigin(place: "clips[1]#shot", id: "shot", kind: "video")
-    private let box = ItemOrigin(place: "clips[0]", id: nil, kind: "box")
+    private let rect = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -126,7 +126,7 @@ struct LocationReporterTests {
                 fill: nil,
                 stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .none)
             )),
-            origin: box
+            origin: rect
         )
         let masked = DisplayItem(
             mask: Rectangle(x: 0, y: 0, width: 10, height: 10),
@@ -139,7 +139,7 @@ struct LocationReporterTests {
         let inMargin = sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 20, y: 40))
 
         // Then
-        #expect(onEdge.hits.map(\.origin) == [box, clip])
+        #expect(onEdge.hits.map(\.origin) == [rect, clip])
         #expect(inMiddle.hits.map(\.origin) == [clip])
         #expect(inMargin.hits.map(\.origin) == [clip, nil])
     }
@@ -231,7 +231,7 @@ struct LocationReporterTests {
     func writesMachineOutput() {
         // Given
         let report = LocationReport(hits: [
-            LocationHit(origin: box, media: nil),
+            LocationHit(origin: rect, media: nil),
             LocationHit(
                 origin: clip,
                 media: LocatedMedia(file: "/abs/run.mp4", mediaTime: 0.5, point: Point(x: 0.1 + 0.2, y: 4))
@@ -250,7 +250,7 @@ struct LocationReporterTests {
                 {
                   "place": "clips[0]",
                   "id": null,
-                  "kind": "box"
+                  "kind": "rect"
                 },
                 {
                   "place": "clips[1]#shot",

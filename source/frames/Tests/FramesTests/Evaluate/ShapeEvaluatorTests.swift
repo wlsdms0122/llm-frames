@@ -5,17 +5,21 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import Foundation
 import Testing
 
 @testable import Frames
 
-// Shapes are sequence clips in a 200 x 100 frame, which is what a dim fills.
+// Shapes are sequence clips in a 200 x 100 frame. A box shape is 40 by 20 with its top left at (40, 20), as the rect
+// given by `area` is.
 @Suite("ShapeEvaluator Tests")
 struct ShapeEvaluatorTests {
     // MARK: - Property
     private static let red = Color(written: "#FF0000")
     private static let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
     private static let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
+    private static let stroke = PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none)
+    private static let shadow = DropShadow(radius: 6, offset: Point(x: 2, y: 4), color: red)
 
     private let sut = ShapeEvaluator()
 
@@ -24,128 +28,196 @@ struct ShapeEvaluatorTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "a quarter of the way through a reveal from the right, each shape kind's path shows a quarter as it reveals",
-        arguments: [
-            (
-                ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .path(ShapeEvaluatorTests.stroked(
-                    .rect(ShapeEvaluatorTests.area, radius: 2),
-                    width: 4,
-                    end: .none,
-                    trim: 0.25
-                )))
-            ),
-            (
-                ShapeDrawing.fill(color: ShapeEvaluatorTests.red),
-                DisplayItem(
-                    reveal: Rectangle(x: 70, y: 20, width: 10, height: 20),
-                    content: .path(PathItem(filling: ShapeEvaluatorTests.area, color: ShapeEvaluatorTests.red))
-                )
-            ),
-            (
-                ShapeDrawing.dim(color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .path(PathItem(filling: ShapeEvaluatorTests.frame, color: ShapeEvaluatorTests.red)))
-            ),
-            (
-                ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red),
-                DisplayItem(content: .path(ShapeEvaluatorTests.stroked(
-                    .polyline([Point(x: 10, y: 30), Point(x: 40, y: 30)], isClosed: false),
-                    width: 2,
-                    end: .arrow,
-                    trim: 0.25
-                )))
-            )
-        ]
+        "after the transform a shape's lengths are its own times its own and its animation's scale, not its parent's",
+        arguments: ["rect by area", "ellipse by area", "path", "rect by width and height", "ellipse by width and height"]
     )
-    func revealsEachKind(
-        drawing: ShapeDrawing,
-        item: DisplayItem
-    ) {
+    func scalesLengthsByOwnScaleOnly(placement: String) throws {
         // Given
-        // A dim fills the whole frame, and the arrow runs from its tail 30 left of the area to its tip at the middle of
-        // the area's left side.
+        // The parent doubles its space, the clip is at scale 3 and its entrance at scale 2 throughout.
+        let parent = ClipSpace(frame: Self.frame, transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 0))
+        let entrance = AnimationSpan(length: 2, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.scale: 2]),
+            SpanKey(t: 1, values: [.scale: 2])
+        ]))
+        let clip = clip(placedBy: placement, scale: 3, entrance: entrance)
+        let shape = try #require(resolvedShape(of: clip))
+
+        // When
+        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: parent, at: 1)
+
+        // Then
+        let item = try #require(items.first)
+        guard case let .path(path) = item.content else {
+            Issue.record("a shape draws one path item")
+            return
+        }
+        let scale = (item.transform.a * item.transform.a + item.transform.b * item.transform.b).squareRoot()
+        #expect(abs(try #require(path.stroke).width * scale - 4 * 6) < 1e-9)
+        if case let .rect(_, radius) = path.geometry {
+            #expect(abs(radius * scale - 2 * 6) < 1e-9)
+        }
+        #expect(abs(try #require(path.shadow).radius * scale - 6 * 6) < 1e-9)
+        #expect(abs(try #require(path.shadow).offset.y * scale - 4 * 6) < 1e-9)
+    }
+
+    @Test("a shape placed by its area turns about the centre of its geometry's box by default")
+    func rotatesAreaShapeAboutCentre() throws {
+        // Given
+        let clip = clip(placedBy: "rect by area", rotation: 90)
+        let shape = try #require(resolvedShape(of: clip))
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+            .first)
+
+        // Then
+        // The top left corner is 20 left of and 10 above the centre (60, 30), and turns clockwise to 10 right of it and
+        // 20 above it.
+        expect(item.transform.apply(to: Point(x: 60, y: 30)), Point(x: 60, y: 30))
+        expect(item.transform.apply(to: Point(x: 40, y: 20)), Point(x: 70, y: 10))
+    }
+
+    @Test("a shape placed by its area turns about its named anchor, and its position moves that point there")
+    func rotatesAreaShapeAboutAnchor() throws {
+        // Given
+        let shape = ResolvedShape(
+            kind: .rect,
+            area: [Keyframe(at: 0, value: Self.area)],
+            radius: [Keyframe(at: 0, value: 0)],
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: Self.red,
+            stroke: nil,
+            shadow: nil,
+            position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
+            anchor: Point(x: 40, y: 20)
+        )
+        let clip = clip(shape, box: nil, rotation: 90)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+            .first)
+
+        // Then
+        // The bottom right corner is 40 right of and 20 below the anchor, and turns to 20 left of it and 40 below it.
+        expect(item.transform.apply(to: Point(x: 40, y: 20)), Point(x: 150, y: 50))
+        expect(item.transform.apply(to: Point(x: 80, y: 40)), Point(x: 130, y: 90))
+    }
+
+    @Test("a box shape is drawn in its box's own pixels, its anchor point where its position puts it, turning about it")
+    func rotatesBoxShapeAboutAnchor() throws {
+        // Given
+        // The anchor is the box's bottom right, at (80, 40).
+        let box = ResolvedBox(
+            size: Size(width: 40, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            anchor: Point(x: 40, y: 20)
+        )
+        let shape = boxShape(kind: .rect, width: [Keyframe(at: 0, value: 40)])
+        let clip = clip(shape, box: box, rotation: 90)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+            .first)
+
+        // Then
+        #expect(item.content == .path(PathItem(
+            geometry: .rect(Rectangle(x: 0, y: 0, width: 40, height: 20), radius: 2),
+            fill: nil,
+            stroke: Self.stroke
+        )))
+        expect(item.transform.apply(to: Point(x: 40, y: 20)), Point(x: 80, y: 40))
+        expect(item.transform.apply(to: Point(x: 0, y: 0)), Point(x: 100, y: 0))
+    }
+
+    @Test("a box shape's keyframed width keeps its anchor point where it is, the anchor scaled with the box")
+    func keepsAnchorPointWhileWidthChanges() throws {
+        // Given
+        // The anchor is the middle of the box's right side, at (80, 30), and the width goes from 40 to 80.
+        let box = ResolvedBox(
+            size: Size(width: 40, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            anchor: Point(x: 40, y: 10)
+        )
+        let shape = boxShape(kind: .ellipse, width: [Keyframe(at: 0, value: 40), Keyframe(at: 2, value: 80)])
+        let clip = clip(shape, box: box)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+            .first)
+
+        // Then
+        guard case let .path(path) = item.content else {
+            Issue.record("a shape draws one path item")
+            return
+        }
+        #expect(path.geometry == .ellipse(Rectangle(x: 0, y: 0, width: 60, height: 20)))
+        expect(item.transform.apply(to: Point(x: 60, y: 10)), Point(x: 80, y: 30))
+        expect(item.transform.apply(to: Point(x: 0, y: 0)), Point(x: 20, y: 20))
+    }
+
+    @Test("a quarter of the way through a reveal from the right, a shape shows the quarter of its stroked outline")
+    func revealsReceiverBox() throws {
+        // Given
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
         ]))
-        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)], entrance: entrance)
+        let clip = clip(placedBy: "rect by area", entrance: entrance)
+        let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 0.25), in: space, at: 0.25)
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 0.25), in: space, at: 0.25)
+            .first)
 
         // Then
-        #expect(items == [item])
+        // The stroke grows the area by 2, and the shadow's box, moved by (2, 4) and grown by 18, unites with it.
+        let drawn = Rectangle(x: 38, y: 18, width: 44, height: 24)
+        let cast = Rectangle(x: 22, y: 4, width: 80, height: 60)
+        let receiver = drawn.union(cast)
+        #expect(item.reveal == Rectangle(
+            x: receiver.x + receiver.width * 0.75,
+            y: receiver.y,
+            width: receiver.width * 0.25,
+            height: receiver.height
+        ))
     }
 
-    @Test("a shape without an area is drawn on the frame, and a dim without one fills all of it")
-    func drawsOnRoomWithoutArea() {
+    @Test("a trim keyframed out of 0 to 1 is clamped to it")
+    func clampsTrim() throws {
         // Given
-        let drawing = ShapeDrawing.dim(color: Self.red)
-        let clip = shape(drawing, area: nil)
+        let shape = ResolvedShape(
+            kind: .ellipse,
+            area: [Keyframe(at: 0, value: Self.area)],
+            radius: [Keyframe(at: 0, value: 0)],
+            trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
+            fill: nil,
+            stroke: Self.stroke,
+            shadow: nil
+        )
+        let clip = clip(shape, box: nil)
 
         // When
-        let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
+        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
 
         // Then
-        #expect(items == [DisplayItem(content: .path(PathItem(filling: Self.frame, color: Self.red)))])
+        #expect(items.first?.content == .path(PathItem(geometry: .ellipse(Self.area), fill: nil, stroke: Self.stroke)))
     }
 
     @Test(
-        "a shape on an area under a parent is carried whole by P, its lengths divided by P's scale so they stay",
-        arguments: [
-            (
-                ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
-                DisplayContent.path(ShapeEvaluatorTests.stroked(
-                    .rect(ShapeEvaluatorTests.area, radius: 1),
-                    width: 2,
-                    end: .none,
-                    trim: 1
-                ))
-            ),
-            (
-                ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red),
-                DisplayContent.path(ShapeEvaluatorTests.stroked(
-                    .polyline([Point(x: 25, y: 30), Point(x: 40, y: 30)], isClosed: false),
-                    width: 1,
-                    end: .arrow,
-                    trim: 1
-                ))
-            )
-        ]
+        "a shape placed by its geometry under a parent at scale 0 draws nothing, and its children land where it flattens",
+        arguments: ["rect by area", "path"]
     )
-    func keepsLengthsUnderParent(
-        drawing: ShapeDrawing,
-        content: DisplayContent
-    ) {
-        // Given
-        let transform = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 0)
-        let space = ClipSpace(frame: Self.frame, transform: transform)
-        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)])
-
-        // When
-        let items = sut.items(of: drawing, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1)
-
-        // Then
-        #expect(items == [DisplayItem(transform: transform, content: content)])
-    }
-
-    @Test(
-        "a shape on an area under a parent at scale 0 draws nothing, and its children land on the point it flattens to",
-        arguments: [
-            ShapeDrawing.box(width: 4, radius: 2, color: ShapeEvaluatorTests.red),
-            ShapeDrawing.arrow(side: .left, length: 30, width: 2, head: 8, color: ShapeEvaluatorTests.red)
-        ]
-    )
-    func drawsNothingAtZeroScale(drawing: ShapeDrawing) {
+    func drawsNothingAtZeroScale(placement: String) throws {
         // Given
         let transform = AffineTransform(a: 0, b: 0, c: 0, d: 0, tx: 10, ty: 20)
         let space = ClipSpace(frame: Self.frame, transform: transform)
-        let clip = shape(drawing, area: [Keyframe(at: 0, value: Self.area)])
+        let clip = clip(placedBy: placement)
+        let shape = try #require(resolvedShape(of: clip))
         let sample = ClipSample(clip: clip, at: 1)
 
         // When
-        let items = sut.items(of: drawing, clip: clip, sample: sample, in: space, at: 1)
-        let children = sut.transform(of: drawing, clip: clip, sample: sample, in: space, at: 1)
+        let items = sut.items(of: shape, clip: clip, sample: sample, in: space, at: 1)
+        let children = sut.transform(of: shape, clip: clip, sample: sample, in: space, at: 1)
 
         // Then
         #expect(items.isEmpty)
@@ -153,42 +225,116 @@ struct ShapeEvaluatorTests {
     }
 
     // MARK: - Private
-    // A red stroke with miter joins and butt caps, drawn from the start of its outline as far as `trim`.
-    private static func stroked(
-        _ geometry: PathGeometry,
-        width: Double,
-        end: StrokeEnd,
-        trim: Double
-    ) -> PathItem {
-        PathItem(
-            geometry: geometry,
-            fill: nil,
-            stroke: PathStroke(width: width, color: red, join: .miter, cap: .butt, start: .none, end: end),
-            trim: Trim(start: 0, end: trim)
+    private func expect(
+        _ point: Point,
+        _ expected: Point,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        #expect(
+            abs(point.x - expected.x) < 1e-9 && abs(point.y - expected.y) < 1e-9,
+            "\(point) is not \(expected)",
+            sourceLocation: sourceLocation
         )
     }
 
-    private func shape(
-        _ drawing: ShapeDrawing,
-        area: [Keyframe<Rectangle>]?,
+    private func resolvedShape(of clip: ResolvedClip) -> ResolvedShape? {
+        guard case let .shape(shape) = clip.content else { return nil }
+
+        return shape
+    }
+
+    // A stroked shape with a shadow, corners of radius 2, by each placement.
+    private func clip(
+        placedBy placement: String,
+        scale: Double? = nil,
+        rotation: Double? = nil,
+        entrance: AnimationSpan? = nil
+    ) -> ResolvedClip {
+        let box = ResolvedBox(
+            size: Size(width: 40, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            anchor: Point(x: 20, y: 10)
+        )
+        let shape = switch placement {
+        case "rect by width and height":
+            boxShape(kind: .rect, width: [Keyframe(at: 0, value: 40)], shadow: Self.shadow)
+
+        case "ellipse by width and height":
+            boxShape(kind: .ellipse, width: [Keyframe(at: 0, value: 40)], shadow: Self.shadow)
+
+        case "path":
+            ResolvedShape(
+                kind: .path,
+                points: [Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])],
+                isClosed: false,
+                radius: [Keyframe(at: 0, value: 0)],
+                trim: [Keyframe(at: 0, value: .whole)],
+                fill: nil,
+                stroke: Self.stroke,
+                shadow: Self.shadow
+            )
+
+        default:
+            ResolvedShape(
+                kind: placement == "ellipse by area" ? .ellipse : .rect,
+                area: [Keyframe(at: 0, value: Self.area)],
+                radius: [Keyframe(at: 0, value: 2)],
+                trim: [Keyframe(at: 0, value: .whole)],
+                fill: nil,
+                stroke: Self.stroke,
+                shadow: Self.shadow
+            )
+        }
+
+        return clip(
+            shape,
+            box: shape.width == nil ? nil : box,
+            scale: scale,
+            rotation: rotation,
+            entrance: entrance
+        )
+    }
+
+    private func boxShape(
+        kind: ShapeKind,
+        width: [Keyframe<Double>],
+        shadow: DropShadow? = nil
+    ) -> ResolvedShape {
+        ResolvedShape(
+            kind: kind,
+            width: width,
+            height: [Keyframe(at: 0, value: 20)],
+            radius: [Keyframe(at: 0, value: 2)],
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: nil,
+            stroke: Self.stroke,
+            shadow: shadow
+        )
+    }
+
+    private func clip(
+        _ shape: ResolvedShape,
+        box: ResolvedBox?,
+        scale: Double? = nil,
+        rotation: Double? = nil,
         entrance: AnimationSpan? = nil
     ) -> ResolvedClip {
         ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .shape(drawing),
+            content: .shape(shape),
             start: 0,
             end: 4,
             lane: 1,
             storyline: nil,
             parent: nil,
-            area: area,
-            box: nil,
+            area: nil,
+            box: box,
             crop: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: nil,
-            rotation: nil,
+            scale: scale.map { [Keyframe(at: 0, value: $0)] },
+            rotation: rotation.map { [Keyframe(at: 0, value: $0)] },
             blend: "normal",
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
         )

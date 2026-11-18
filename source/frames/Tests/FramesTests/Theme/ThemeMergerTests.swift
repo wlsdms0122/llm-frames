@@ -20,7 +20,7 @@ struct ThemeMergerTests {
             "subtitle": { "size": 66, "background": false, "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
             "headline": { "size": 84, "offset": 110 },
             "label":    { "size": 40 } },
-          "shapes": { "box": { "width": 10 } },
+          "shapes": { "outline": { "stroke": { "width": 10 } } },
           "defaults": { "transition": { "preset": "frames/push-up", "seconds": 0.3 },
                         "animation": { "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }, "shape": "frames/draw", "media": "frames/pop" } } }
         """#
@@ -38,7 +38,7 @@ struct ThemeMergerTests {
         // Then
         let colors = theme["colors"]?.objectValue
         let subtitle = theme["styles"]?.objectValue?["subtitle"]?.objectValue
-        let box = theme["shapes"]?.objectValue?["box"]?.objectValue
+        let outline = theme["shapes"]?.objectValue?["outline"]?.objectValue
         let defaults = theme["defaults"]?.objectValue
         let animation = defaults?["animation"]?.objectValue
         #expect(theme["baseWidth"] == .number(1080))
@@ -48,8 +48,8 @@ struct ThemeMergerTests {
         #expect(subtitle?["weight"] == .string("regular"))
         #expect(subtitle?["background"] == .bool(false))
         #expect(subtitle?["placement"] == .string("bottom"))
-        #expect(box?["width"] == .number(10))
-        #expect(box?["radius"] == .number(18))
+        #expect(outline?.keys == ["stroke"])
+        #expect(outline?["stroke"] == (try Fixture.json(#"{ "width": 10 }"#)))
         #expect(defaults?["filter"] == .string("none"))
         #expect(defaults?["transition"] == (try Fixture.json(#"{ "preset": "frames/push-up", "seconds": 0.3 }"#)))
         #expect(animation?["title"] == (try Fixture.json(#"{ "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }"#)))
@@ -72,9 +72,9 @@ struct ThemeMergerTests {
     @Test("a stronger layer wins: base, then the theme file, then the document, then the clip")
     func appliesPrecedence() throws {
         // Given
-        let file = try Fixture.json(##"{ "colors": { "accent": "#111111", "text": "#222222" }, "shapes": { "box": { "color": "text" } } }"##)
+        let file = try Fixture.json(##"{ "colors": { "accent": "#111111", "text": "#222222" }, "styles": { "subtitle": { "color": "text" } } }"##)
         let document = try Fixture.json(##"{ "colors": { "accent": "#333333" } }"##)
-        let clip = ClipThemeLayer.layer(forClip: try Fixture.object(##"{ "shape": "box", "color": "#444444" }"##), kind: .shape("box"))
+        let clip = ClipThemeLayer.layer(forClip: try Fixture.object(##"{ "shape": "rect", "animation": "frames/pop" }"##), kind: .shape("rect"))
 
         // When
         let documentTheme = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
@@ -85,9 +85,12 @@ struct ThemeMergerTests {
         #expect(colors?["accent"] == .string("#333333"))
         #expect(colors?["text"] == .string("#222222"))
         #expect(colors?["background"] == .string("#000000"))
-        #expect(documentTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("text"))
-        #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["color"] == .string("#444444"))
-        #expect(clipTheme.value.objectValue?["shapes"]?.objectValue?["box"]?.objectValue?["width"] == .number(8))
+        let subtitle = { (theme: MergedTheme) in theme.value.objectValue?["styles"]?.objectValue?["subtitle"]?.objectValue }
+        let animation = clipTheme.value.objectValue?["defaults"]?.objectValue?["animation"]?.objectValue
+        #expect(subtitle(documentTheme)?["color"] == .string("text"))
+        #expect(subtitle(documentTheme)?["size"] != nil)
+        #expect(animation?["shape"] == .string("frames/pop"))
+        #expect(subtitle(clipTheme)?["color"] == .string("text"))
     }
 
     @Test("a layer with an unknown key stops before anything is merged")
@@ -130,10 +133,32 @@ struct ThemeMergerTests {
     func resolvesReferencesAfterMerging() throws {
         // Given
         let file = try Fixture.json(##"{ "colors": { "brand": "#123456" } }"##)
-        let document = try Fixture.json(#"{ "shapes": { "arrow": { "color": "brand" } } }"#)
+        let document = try Fixture.json(#"{ "shapes": { "pointer": { "stroke": { "width": 4, "color": "brand" } } } }"#)
 
         // When, Then
         _ = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
+    }
+
+    @Test(
+        "a shape style takes only fill, stroke, radius, outset and shadow, and the colours it names are the theme's",
+        arguments: [
+            (#"{ "shapes": { "box": { "width": 8, "radius": 18 } } }"#, #"shapes.box (shape style): unknown key "width". Allowed: fill, stroke, radius, outset, shadow"#),
+            (#"{ "shapes": { "outline": { "stroke": { "color": "accent" } } } }"#, #"shapes.outline.stroke (stroke): missing key "width""#),
+            (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors"#),
+            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "color": "brand" } } } }"#, #"shapes.outline.stroke.color (stroke): colour "brand" is not in colors"#),
+            (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors"#)
+        ]
+    )
+    func checksShapeStyle(
+        layer: String,
+        message: String
+    ) throws {
+        // Given
+        let file = try Fixture.json(layer)
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
+        #expect("\(error.map { "\($0)" } ?? "no error")" == message)
     }
 
     @Test("a colour in colors is written in hexadecimal")

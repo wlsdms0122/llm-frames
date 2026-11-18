@@ -25,7 +25,7 @@ struct TemplateInstantiatorTests {
           },
           "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
                            "connected": [ { "title": { "param": "title" }, "style": "title" },
-                                          { "shape": "box", "area": { "text": "Send" }, "color": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
+                                          { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send" }, "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
         """##
 
     // MARK: - Initializer
@@ -44,7 +44,7 @@ struct TemplateInstantiatorTests {
             { "kind": "sequence",
               "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
                                "connected": [ { "title": "New feature", "style": "title" },
-                                              { "shape": "box", "area": { "text": "Send" }, "color": "#FF0000", "opacity": 0.5 } ] } ] }
+                                              { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send" }, "fill": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)
         #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
@@ -198,18 +198,18 @@ struct TemplateInstantiatorTests {
     }
 
     @Test(
-        "a shape choice of arrows that names its side fills the shape picked and keeps the side",
+        "a shape choice of paths with an arrowhead fills the shape picked and keeps its points and stroke",
         arguments: [
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["arrow"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "side": "top" } ] }"#,
-                #"{ "kind": "sequence", "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "top" } ] }"#
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["path"] } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" } } ] }"#,
+                #"{ "kind": "sequence", "clips": [ { "shape": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" } } ] }"#
             )
         ]
     )
-    func fillsShapeChoiceOfArrows(text: String, filled: String) throws {
+    func fillsShapeChoiceOfPaths(text: String, filled: String) throws {
         // Given
         let template = try template(text)
-        let arguments = try Fixture.object(#"{ "s": "arrow" }"#)
+        let arguments = try Fixture.object(#"{ "s": "path" }"#)
 
         // When
         let instance = try sut.instance(of: template, arguments: arguments, place: place)

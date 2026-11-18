@@ -129,7 +129,10 @@ struct ParentEvaluatorTests {
     @Test(
         "a shape or adjustment parent with an area gives the space its area is written in, carried by its presentation",
         arguments: [
-            ResolvedClipContent.shape(.fill(color: Color(written: "#FF0000"))),
+            ResolvedClipContent.shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
+                fill: Color(written: "#FF0000")
+            )),
             .adjustment([.blur(radius: 3)])
         ]
     )
@@ -158,9 +161,11 @@ struct ParentEvaluatorTests {
         // (50, 100), so its box's top left moves from (50, 160) to (0, 60).
         let bar = clip(
             id: "bar",
-            content: .shape(.fill(color: red)),
-            parent: "shot",
-            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))]
+            content: .shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
+                fill: red
+            )),
+            parent: "shot"
         )
         let label = title(id: "label", parent: "bar", position: Point(x: 50, y: 160), scale: 1)
         let child = fill(parent: "label")
@@ -196,9 +201,12 @@ struct ParentEvaluatorTests {
         ])
         let box = clip(
             id: "box",
-            content: .shape(.box(width: 2, radius: 0, color: red)),
+            content: .shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: target)],
+                fill: nil,
+                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+            )),
             parent: "shot",
-            area: [Keyframe(at: 0, value: target)],
             track: track
         )
         let label = title(id: "label", parent: "box", position: Point(x: 0, y: 0), scale: 1)
@@ -324,9 +332,11 @@ struct ParentEvaluatorTests {
     private func fill(parent: String?) -> ResolvedClip {
         clip(
             id: "child",
-            content: .shape(.fill(color: red)),
-            parent: parent,
-            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 10, height: 10))]
+            content: .shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 10, height: 10))],
+                fill: red
+            )),
+            parent: parent
         )
     }
 
@@ -363,6 +373,7 @@ struct ParentEvaluatorTests {
         scale: Double = 1
     ) -> ResolvedClip {
         let isAdjustment = if case .adjustment = content { true } else { false }
+        let isShape = if case .shape = content { true } else { false }
 
         return ResolvedClip(
             place: "clips[0]",
@@ -373,7 +384,7 @@ struct ParentEvaluatorTests {
             lane: 1,
             storyline: nil,
             parent: parent,
-            area: area,
+            area: isShape ? nil : area,
             box: box,
             crop: crop,
             track: track,

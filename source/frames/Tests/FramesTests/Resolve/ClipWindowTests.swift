@@ -69,7 +69,7 @@ struct ClipWindowTests {
     func spansStorylineClipWithoutAt() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "shape": "box", "area": [0, 0, 10, 10], "parent": "run" }, { "title": "a", "style": "subtitle" }, { "title": "b", "style": "subtitle", "parent": "run", "position": [0, 0] }
+            { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }, { "title": "a", "style": "subtitle" }, { "title": "b", "style": "subtitle", "parent": "run", "position": [0, 0] }
             """#)
 
         // When
@@ -87,7 +87,7 @@ struct ClipWindowTests {
     @Test("a connected clip whose window starts at its storyline clip's in starts at the edit point, inside the transition")
     func startsWindowAtEditPoint() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [2, 4], "shape": "box", "area": [0, 0, 10, 10], "parent": "run" }"#)
+        let document = try sequence(connected: #"{ "at": [2, 4], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -100,7 +100,7 @@ struct ClipWindowTests {
     @Test("a connected clip parented to its storyline clip is visible over its window cut to the sequence, past the drawn range")
     func cutsParentedClipToSequence() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [0, 20], "shape": "box", "area": [0, 0, 10, 10], "parent": "run" }"#)
+        let document = try sequence(connected: #"{ "at": [0, 20], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -126,11 +126,11 @@ struct ClipWindowTests {
     @Test("a connected clip with a picture whose window does not meet the sequence stops")
     func refusesNeverVisibleClip() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [12, 20], "shape": "box", "area": [0, 0, 10, 10] }"#)
+        let document = try sequence(connected: #"{ "at": [12, 20], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error?.description == "storyline[1]#run.connected[0] (box): never visible, since its window [7, 11) does not meet [0, 7)")
+        #expect(error?.description == "storyline[1]#run.connected[0] (rect): never visible, since its window [7, 11) does not meet [0, 7)")
     }
 
     @Test("a connected sound plays its window across transitions, but one whose start lies outside the drawn range stops")
@@ -206,7 +206,7 @@ struct ClipWindowTests {
             { "kind": "sequence", "storyline": [
               { "solid": "#000000", "duration": 2 },
               { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
-                "connected": [ { "at": [2, 8], "shape": "box", "parent": "run", "keyframes": [ { "at": 4, "area": { "text": "A" } }, { "at": 6, "area": { "text": "B" } } ] } ] }
+                "connected": [ { "at": [2, 8], "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 4, "area": { "text": "A" } }, { "at": 6, "area": { "text": "B" } } ] } ] }
             ], "clips": [ { "at": [0, 5], "media": "/abs/log.png", "keyframes": [ { "at": 1, "scale": 1 }, { "at": 2, "scale": 2 } ] } ] }
             """##)
 
@@ -239,7 +239,7 @@ struct ClipWindowTests {
     func parentsOnlyByName() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "adjust": "frames/vivid", "area": [0, 0, 10, 10] }, { "shape": "box", "area": [0, 0, 10, 10] }, { "adjust": "frames/vivid", "area": [0, 0, 10, 10], "parent": "run" }
+            { "adjust": "frames/vivid", "area": [0, 0, 10, 10] }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "adjust": "frames/vivid", "area": [0, 0, 10, 10], "parent": "run" }
             """#)
 
         // When
