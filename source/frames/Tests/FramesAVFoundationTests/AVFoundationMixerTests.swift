@@ -147,7 +147,7 @@ struct AVFoundationMixerTests {
         let file = directory.file("mono.wav")
         let writer = SoundWriter(end: 1, levels: [0.25])
         try await writer.write(to: file)
-        let ramp = [EnvelopePoint(time: 0, gain: 0), EnvelopePoint(time: 1, gain: 1)]
+        let ramp = [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 1, value: 1)]
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
@@ -298,7 +298,7 @@ struct AVFoundationMixerTests {
             speed: speed,
             start: start,
             end: end,
-            envelope: envelope ?? [EnvelopePoint(time: start, gain: 1), EnvelopePoint(time: end, gain: 1)]
+            envelope: envelope ?? [EnvelopePoint(time: start, value: 1), EnvelopePoint(time: end, value: 1)]
         )
     }
 

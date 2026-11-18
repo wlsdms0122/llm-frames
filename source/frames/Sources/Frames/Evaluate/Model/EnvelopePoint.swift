@@ -5,19 +5,19 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A point of a gain envelope: the gain at a sequence time.
+// A point of an envelope: its value, a gain or a pan, at a sequence time.
 package struct EnvelopePoint: Equatable, Sendable {
     // MARK: - Property
     package let time: Double
-    package let gain: Double
+    package let value: Double
 
     // MARK: - Initializer
     package init(
         time: Double,
-        gain: Double
+        value: Double
     ) {
         self.time = time
-        self.gain = gain
+        self.value = value
     }
 
     // MARK: - Public

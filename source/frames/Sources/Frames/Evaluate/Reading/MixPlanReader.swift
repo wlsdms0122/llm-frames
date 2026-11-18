@@ -61,7 +61,7 @@ package struct MixPlanReader: Sendable {
             envelope: try segment.member("envelope").elements().map { element in
                 let numbers = try element.numbers(count: 2)
 
-                return EnvelopePoint(time: numbers[0], gain: numbers[1])
+                return EnvelopePoint(time: numbers[0], value: numbers[1])
             }
         )
     }

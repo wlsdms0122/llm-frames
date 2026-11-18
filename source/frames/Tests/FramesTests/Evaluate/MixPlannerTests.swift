@@ -326,6 +326,6 @@ struct MixPlannerTests {
 
     // Points written as `[time, gain]`.
     private func envelope(_ points: [[Double]]) -> [EnvelopePoint] {
-        points.map { EnvelopePoint(time: $0[0], gain: $0[1]) }
+        points.map { EnvelopePoint(time: $0[0], value: $0[1]) }
     }
 }

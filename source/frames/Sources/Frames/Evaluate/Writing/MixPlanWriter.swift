@@ -37,7 +37,7 @@ package struct MixPlanWriter: Sendable {
             JSONMember(key: "start", value: .number(segment.start)),
             JSONMember(key: "end", value: .number(segment.end)),
             JSONMember(key: "envelope", value: .array(segment.envelope.map { point in
-                values.numbers([point.time, point.gain])
+                values.numbers([point.time, point.value])
             }))
         ]))
     }

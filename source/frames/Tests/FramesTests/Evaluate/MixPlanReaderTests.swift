@@ -33,7 +33,7 @@ struct MixPlanReaderTests {
                 speed: 2,
                 start: 0,
                 end: 3,
-                envelope: [EnvelopePoint(time: 0, gain: 0), EnvelopePoint(time: 0.5, gain: 1), EnvelopePoint(time: 3, gain: 1)]
+                envelope: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)]
             ),
             MixSegment(
                 media: music,
@@ -41,7 +41,7 @@ struct MixPlanReaderTests {
                 speed: 1,
                 start: 0,
                 end: 2.5,
-                envelope: [EnvelopePoint(time: 0, gain: 0.3), EnvelopePoint(time: 2.5, gain: 0.3)]
+                envelope: [EnvelopePoint(time: 0, value: 0.3), EnvelopePoint(time: 2.5, value: 0.3)]
             ),
             MixSegment(
                 media: music,
@@ -49,7 +49,7 @@ struct MixPlanReaderTests {
                 speed: 1,
                 start: 2.5,
                 end: 4,
-                envelope: [EnvelopePoint(time: 2.5, gain: 0.3), EnvelopePoint(time: 3.033333, gain: 0.15), EnvelopePoint(time: 4, gain: 0)]
+                envelope: [EnvelopePoint(time: 2.5, value: 0.3), EnvelopePoint(time: 3.033333, value: 0.15), EnvelopePoint(time: 4, value: 0)]
             ),
             MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [])
         ])

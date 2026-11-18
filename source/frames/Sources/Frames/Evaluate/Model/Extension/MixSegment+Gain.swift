@@ -25,11 +25,11 @@ extension MixSegment {
                 point += 1
             }
             let from = envelope[point]
-            guard point + 1 < envelope.count, time > from.time else { return Float(from.gain) }
+            guard point + 1 < envelope.count, time > from.time else { return Float(from.value) }
             let to = envelope[point + 1]
             let fraction = (time - from.time) / (to.time - from.time)
 
-            return Float(from.gain + (to.gain - from.gain) * fraction)
+            return Float(from.value + (to.value - from.value) * fraction)
         }
     }
 

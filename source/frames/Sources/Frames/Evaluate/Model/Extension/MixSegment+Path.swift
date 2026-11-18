@@ -31,7 +31,7 @@ extension MixSegment {
             speed: path.clock.speed,
             start: start,
             end: end,
-            envelope: times.map { EnvelopePoint(time: $0, gain: path.gain(at: $0)) }
+            envelope: times.map { EnvelopePoint(time: $0, value: path.gain(at: $0)) }
         )
     }
 
