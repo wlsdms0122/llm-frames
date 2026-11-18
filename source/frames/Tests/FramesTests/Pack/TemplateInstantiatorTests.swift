@@ -58,7 +58,7 @@ struct TemplateInstantiatorTests {
         let arguments = try Fixture.object(##"{ "clip": "/abs/run.mp4", "colour": "#000000" }"##)
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        let error = #expect(throws: ParameterError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
         #expect(error?.description == #"storyline[0].media.args (template arguments): unknown argument "colour". Allowed: clip, title, tone, tint, size"#)
     }
 
@@ -68,7 +68,7 @@ struct TemplateInstantiatorTests {
         let template = try template(template)
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
+        let error = #expect(throws: ParameterError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
         #expect(error?.description == #"storyline[0].media.args (template arguments): missing argument "clip", which has no default"#)
     }
 

@@ -131,7 +131,7 @@ struct PresetLibraryTests {
         let instance = PresetInstance(name: "shorts/pop", arguments: try Fixture.object(#"{ "bounce": 0.4 }"#), place: Place.root.appending(key: "animation"))
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.animation(instance) }
+        let error = #expect(throws: ParameterError.self) { try sut.animation(instance) }
         #expect(error?.description == #"animation.args (preset arguments): unknown argument "bounce". It publishes no parameters"#)
     }
 

@@ -15,8 +15,6 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownThemeOption(name: String)
     case themeOnTemplate(place: Place, kind: String)
     case argumentsWithoutTemplate(place: Place, kind: String)
-    case unknownArgument(place: Place, kind: String, name: String, allowed: [String])
-    case missingArgument(place: Place, kind: String, name: String)
     case argumentOfWrongKind(place: Place, kind: String, name: String, type: String, found: MediaKind)
 
     // MARK: - Property
@@ -52,13 +50,6 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .argumentsWithoutTemplate(place, kind):
             "\(place) (\(kind)): the document declares no params, so it takes no arguments"
-
-        case let .unknownArgument(place, kind, name, allowed):
-            "\(place) (\(kind)): unknown argument \(quoted(name)). "
-                + (allowed.isEmpty ? "It publishes no parameters" : "Allowed: \(allowed.joined(separator: ", "))")
-
-        case let .missingArgument(place, kind, name):
-            "\(place) (\(kind)): missing argument \(quoted(name)), which has no default"
 
         case let .argumentOfWrongKind(place, kind, name, type, found):
             "\(place) (\(kind)): parameter \(quoted(name)) takes \(type) media, found \(found.rawValue)"

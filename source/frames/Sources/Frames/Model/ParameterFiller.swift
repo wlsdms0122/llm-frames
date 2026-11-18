@@ -27,7 +27,7 @@ struct ParameterFiller: Sendable {
     ) throws -> [String: JSONValue] {
         let names = parameters.map(\.name)
         for name in arguments.keys where !names.contains(name) {
-            throw PackError.unknownArgument(place: place, kind: kind, name: name, allowed: names)
+            throw ParameterError.unknownArgument(place: place, kind: kind, name: name, allowed: names)
         }
 
         return try parameters.reduce(into: [String: JSONValue]()) { values, parameter in
@@ -37,7 +37,7 @@ struct ParameterFiller: Sendable {
             } else if let defaultValue = parameter.defaultValue {
                 values[parameter.name] = defaultValue
             } else {
-                throw PackError.missingArgument(place: place, kind: kind, name: parameter.name)
+                throw ParameterError.missingArgument(place: place, kind: kind, name: parameter.name)
             }
         }
     }

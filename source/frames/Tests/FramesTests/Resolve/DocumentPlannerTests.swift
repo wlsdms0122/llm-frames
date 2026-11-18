@@ -229,7 +229,7 @@ struct DocumentPlannerTests {
         let document = try Fixture.json(leak)
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+        let error = #expect(throws: ParameterError.self) { try sut.plan(document) }
         #expect(error?.description == #"top level (template arguments): missing argument "clip", which has no default"#)
     }
 
