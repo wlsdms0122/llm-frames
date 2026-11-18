@@ -57,14 +57,14 @@ struct ParameterFiller: Sendable {
     }
 
     // MARK: - Private
-    // An argument that is an object was checked as media where it is written, so only its type is left.
+    // Media written as an object was checked where it is written, so only its kind is left, which the caller probes.
     private func check(
         _ argument: JSONValue,
         of parameter: Parameter,
         place: Place,
         kind: String
     ) throws {
-        guard parameter.type.mediaKind == nil || argument.objectValue == nil else { return }
+        guard parameter.type.mediaKind == nil || !TemplateKeyTable.isMedia(argument) else { return }
 
         try checker.check(argument, as: parameter.valueType, place: place, kind: kind)
     }

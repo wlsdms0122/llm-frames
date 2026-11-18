@@ -121,8 +121,8 @@ struct KeyChecker: Sendable {
             return
 
         case .argument:
-            // An argument's type is the template's to say, but the only object one can be is media.
-            guard case .object = value else { return }
+            // An argument's type is the template's to say, and only media is checked where it is written.
+            guard TemplateKeyTable.isMedia(value) else { return }
 
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -566,7 +566,7 @@ struct KeyChecker: Sendable {
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
 
         case .object:
-            throw ModelError.missingKey(place: place, kind: "media", keys: ["kind", "imageSequence", "template"])
+            throw ModelError.missingKey(place: place, kind: "media", keys: TemplateKeyTable.mediaKeys)
 
         default:
             throw wrongType(value, .media, place, kind)
