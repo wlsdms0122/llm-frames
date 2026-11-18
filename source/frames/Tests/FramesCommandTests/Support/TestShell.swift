@@ -15,7 +15,6 @@ import FramesTestMedia
 // holds `pop` alone.
 final class TestShell {
     // MARK: - Property
-    // The base theme's defaults name it, so a theme without it stops.
     private static let pop = #"""
         { "description": "pops in", "entrance": { "seconds": 0.25, "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 1, "scale": 1 } ] } }
         """#
