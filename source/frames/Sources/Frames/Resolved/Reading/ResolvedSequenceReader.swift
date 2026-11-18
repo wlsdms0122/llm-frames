@@ -112,10 +112,24 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedFormat(
             size: try values.size(format.member("size")),
             fps: try format.member("fps").number(),
-            duration: try format.member("duration").number(),
+            duration: try duration(format.member("duration")),
             background: try values.color(format.member("background")),
             conform: try conform(format.member("conform"))
         )
+    }
+
+    // The sequence end, above 0: a nested sequence holds its media time inside `[0, duration)`.
+    private func duration(_ value: PlacedJSONValue) throws -> Double {
+        let duration = try value.number()
+        guard duration > 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a sequence's duration is above 0, found \(value.value.written)"
+            )
+        }
+
+        return duration
     }
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
