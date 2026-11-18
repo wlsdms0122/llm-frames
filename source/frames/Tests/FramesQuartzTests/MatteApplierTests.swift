@@ -65,7 +65,7 @@ struct MatteApplierTests {
     }
 
     // MARK: - Private
-    // The spec's rule, and at softness 0 its limit.
+    // The expected alpha, and at softness 0 the limit of the formula as the softness goes to 0.
     private func shown(
         luma: Double,
         progress: Double,
