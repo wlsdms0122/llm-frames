@@ -43,7 +43,7 @@ The target is found at the clip's instant ([FRAMES-2](../FRAMES-2/SPEC.md)), bef
 
 ### Where the target is lost
 
-- A connected or sequence clip is visible only where its target was followed: from its instant, its window ends, in each direction, at the first instant whose media frame was not followed, as [FRAMES-8](../FRAMES-8/SPEC.md) narrows any window.
+- A connected or sequence clip is visible only where its target was followed: from its instant, its window ends, in each direction, at the first instant whose media frame was not followed, as [FRAMES-8](../FRAMES-8/SPEC.md) narrows any window. Its parent's window does not bound it ([FRAMES-10](../FRAMES-10/SPEC.md)): outside that window a clip that follows its parent's media follows the frames its parent's time map gives there, while its parent's transform holds at the window's edge.
 - A storyline clip whose target is lost inside its edit range stops, naming the time. In a handle its motion holds the nearest value followed, as a handle past the end of the media holds its edge frame.
 
 **Note.** Perspective (corner pin) is left out (README). The tracker already reports four corners, so a later contract can fit a projective transform to the same quads without changing the provider.
