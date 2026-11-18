@@ -16,6 +16,24 @@ struct ClipEvaluatorTests {
 
     private let frame = ClipSpace(frame: Rectangle(x: 0, y: 0, width: 200, height: 200))
     private let white = Color(written: "#FFFFFF")
+    // A parent that doubles its space and moves it by (10, 0).
+    private let parent = ClipSpace(
+        frame: Rectangle(x: 0, y: 0, width: 200, height: 200),
+        transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 0)
+    )
+    private let media = PinnedMedia(
+        source: .file(PinnedFile(path: "/abs/media.mp4", sha256: String(repeating: "a", count: 64))),
+        frameTimes: [0]
+    )
+    // Scale 2 throughout a two second entrance.
+    private let doubling = ResolvedAnimation(
+        entrance: AnimationSpan(length: 2, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.scale: 2]),
+            SpanKey(t: 1, values: [.scale: 2])
+        ])),
+        loop: nil,
+        exit: nil
+    )
 
     // MARK: - Initializer
     // MARK: - Test
@@ -93,6 +111,176 @@ struct ClipEvaluatorTests {
         #expect(isClose(item.transform, AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: -60, ty: 150)))
     }
 
+    @Test(
+        "a mask's geometry is in the space its clip gives its children and is carried with it under a parent",
+        arguments: ["title", "media clip with a crop", "box shape", "area shape", "adjustment"]
+    )
+    func carriesMaskInClipSpace(kind: String) throws {
+        // Given
+        // Under the parent, a box clip's anchor point is carried and its box keeps its size. A title's 100 x 40
+        // box anchored at (50, 40) on (100, 200) lands with its top left at (160, 360). The media clip's 80 x 40 box
+        // shows the crop (100, 50, 200, 100) of its media at 0.4 of its size, its top left at (70, 60). The box
+        // shape's 40 x 20 box anchored at its centre on (60, 30) has its top left at (110, 50). The area shape turns a
+        // quarter about the centre (60, 30) of its area, and the adjustment doubles about the centre of its mask's
+        // bounds, before the parent's map.
+        let clip: ResolvedClip
+        let geometry: PathGeometry
+        let expected: [(Point, Point)]
+        switch kind {
+        case "title":
+            geometry = .rect(Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 0)
+            clip = masked(
+                .title(text()),
+                mask: geometry,
+                box: box(size: Size(width: 100, height: 40), at: Point(x: 50, y: 160), anchor: Point(x: 50, y: 40))
+            )
+            expected = [(Point(x: 0, y: 0), Point(x: 160, y: 360)), (Point(x: 100, y: 40), Point(x: 260, y: 400))]
+
+        case "media clip with a crop":
+            geometry = .ellipse(Rectangle(x: 100, y: 50, width: 200, height: 100))
+            clip = masked(
+                .media(ResolvedMediaClip(
+                    media: .pinned(media),
+                    timing: nil,
+                    filter: [],
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                )),
+                mask: geometry,
+                box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20)),
+                crop: Rectangle(x: 100, y: 50, width: 200, height: 100)
+            )
+            expected = [(Point(x: 100, y: 50), Point(x: 70, y: 60)), (Point(x: 300, y: 150), Point(x: 150, y: 100))]
+
+        case "box shape":
+            geometry = .rect(Rectangle(x: 0, y: 0, width: 40, height: 20), radius: 0)
+            clip = masked(
+                .shape(ResolvedShape(
+                    kind: .rect,
+                    geometry: .box(
+                        width: [Keyframe(at: 0, value: 40)],
+                        height: [Keyframe(at: 0, value: 20)],
+                        outset: 0
+                    ),
+                    radius: [Keyframe(at: 0, value: 0)],
+                    trim: [Keyframe(at: 0, value: .whole)],
+                    fill: white,
+                    stroke: nil,
+                    shadow: nil
+                )),
+                mask: geometry,
+                box: box(size: Size(width: 40, height: 20), at: Point(x: 40, y: 20), anchor: Point(x: 20, y: 10))
+            )
+            expected = [(Point(x: 0, y: 0), Point(x: 110, y: 50)), (Point(x: 40, y: 20), Point(x: 150, y: 70))]
+
+        case "area shape":
+            geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
+            let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
+            let shape = ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white)
+            clip = masked(.shape(shape), mask: geometry, rotation: 90)
+            expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 150, y: 20))]
+
+        default:
+            geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
+            clip = masked(.adjustment([.blur(radius: 2)]), mask: geometry, animation: doubling)
+            expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 50, y: 20))]
+        }
+
+        // When
+        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), at: 1)
+
+        // Then
+        let item = try #require(items.first)
+        let mask = try #require(item.mask.first)
+        #expect(item.mask.count == 1)
+        #expect(mask.geometry == geometry)
+        for (point, output) in expected {
+            expect(mask.transform.apply(to: point), output)
+        }
+    }
+
+    @Test(
+        "a mask's feather grows with its clip's own and its animation's scale and not with its parent's",
+        arguments: [("title", 6.0, 6.0), ("area shape", 6.0, 12.0), ("adjustment", 2.0, 4.0)]
+    )
+    func scalesFeatherByOwnScaleOnly(
+        kind: String,
+        factor: Double,
+        carried: Double
+    ) throws {
+        // Given
+        // The parent doubles its space, the clip is at scale 3 where it takes one, and its entrance doubles it.
+        let area = Rectangle(x: 0, y: 0, width: 40, height: 20)
+        let geometry = PathGeometry.ellipse(area)
+        let content: ResolvedClipContent = switch kind {
+        case "title":
+            .title(text())
+
+        case "area shape":
+            .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white))
+
+        default:
+            .adjustment([.blur(radius: 2)])
+        }
+        let isAdjustment = kind == "adjustment"
+        let clip = masked(
+            content,
+            mask: geometry,
+            feather: 1.5,
+            box: kind == "title" ? box(size: text().size, at: Point(x: 0, y: 0), anchor: Point(x: 0, y: 0)) : nil,
+            scale: isAdjustment ? nil : 3,
+            animation: doubling
+        )
+
+        // When
+        let items = sut.items(of: clip, in: parent, picture: nil, at: 1)
+
+        // Then
+        // The mask is carried with what it cuts, at the parent's scale for a shape and an adjustment, whose geometry is
+        // in the parent's space, and at its own for a title, whose box keeps its size. Its feather never takes the
+        // parent's.
+        let mask = try #require(items.first?.mask.first)
+        let scale = (mask.transform.a * mask.transform.a + mask.transform.b * mask.transform.b).squareRoot()
+        #expect(abs(mask.feather - 1.5 * factor) < 1e-9)
+        #expect(abs(scale - carried) < 1e-9)
+    }
+
+    @Test("between two keyframes a mask interpolates its geometry, its corner radius and its feather")
+    func interpolatesKeyframedMask() throws {
+        // Given
+        let mask = [
+            Keyframe(at: 0, value: [ResolvedMask(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 10), radius: 2),
+                feather: 2,
+                isInverted: true,
+                mode: .subtract
+            )]),
+            Keyframe(at: 2, value: [ResolvedMask(
+                geometry: .rect(Rectangle(x: 20, y: 10, width: 40, height: 30), radius: 6),
+                feather: 6,
+                isInverted: true,
+                mode: .subtract
+            )])
+        ]
+        let clip = masked(
+            .title(text()),
+            mask: mask,
+            box: box(size: Size(width: 100, height: 40), at: Point(x: 50, y: 160), anchor: Point(x: 50, y: 40))
+        )
+
+        // When
+        let items = sut.items(of: clip, in: frame, picture: nil, at: 1)
+
+        // Then
+        let item = try #require(items.first)
+        #expect(item.mask == [ItemMask(
+            geometry: .rect(Rectangle(x: 10, y: 5, width: 30, height: 20), radius: 4),
+            transform: item.transform,
+            feather: 4,
+            isInverted: true,
+            mode: .subtract
+        )])
+    }
+
     // MARK: - Private
     // A title whose 100 x 40 box sits at (50, 160), anchored at its bottom centre, visible from 0 to 4.
     private func title(
@@ -124,6 +312,86 @@ struct ClipEvaluatorTests {
             rotation: [Keyframe(at: 0, value: rotation)],
             blend: "normal",
             animation: animation
+        )
+    }
+
+    // A clip of `content` visible from 0 to 4 with one mask of `geometry`.
+    private func masked(
+        _ content: ResolvedClipContent,
+        mask geometry: PathGeometry,
+        feather: Double = 0,
+        box: ResolvedBox? = nil,
+        crop: Rectangle? = nil,
+        scale: Double? = nil,
+        rotation: Double? = nil,
+        animation: ResolvedAnimation = .none
+    ) -> ResolvedClip {
+        masked(
+            content,
+            mask: [Keyframe(at: 0, value: [
+                ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)
+            ])],
+            box: box,
+            crop: crop,
+            scale: scale,
+            rotation: rotation,
+            animation: animation
+        )
+    }
+
+    private func masked(
+        _ content: ResolvedClipContent,
+        mask: [Keyframe<[ResolvedMask]>],
+        box: ResolvedBox? = nil,
+        crop: Rectangle? = nil,
+        scale: Double? = nil,
+        rotation: Double? = nil,
+        animation: ResolvedAnimation = .none
+    ) -> ResolvedClip {
+        let isAdjustment = if case .adjustment = content { true } else { false }
+
+        return ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: content,
+            start: 0,
+            end: 4,
+            lane: 1,
+            storyline: nil,
+            parent: nil,
+            box: box,
+            crop: crop.map { [Keyframe(at: 0, value: Crop($0))] },
+            mask: mask,
+            track: nil,
+            opacity: [Keyframe(at: 0, value: 1)],
+            scale: isAdjustment ? nil : [Keyframe(at: 0, value: scale ?? 1)],
+            rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
+            blend: isAdjustment ? nil : "normal",
+            animation: animation
+        )
+    }
+
+    private func box(
+        size: Size,
+        at position: Point,
+        anchor: Point
+    ) -> ResolvedBox {
+        ResolvedBox(size: size, position: [Keyframe(at: 0, value: position)], anchor: anchor)
+    }
+
+    private func text() -> ResolvedText {
+        ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+    }
+
+    private func expect(
+        _ point: Point,
+        _ expected: Point,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        #expect(
+            abs(point.x - expected.x) < 1e-9 && abs(point.y - expected.y) < 1e-9,
+            "\(point) is not \(expected)",
+            sourceLocation: sourceLocation
         )
     }
 

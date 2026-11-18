@@ -841,6 +841,147 @@ struct EvaluatorTests {
         ))
     }
 
+    @Test("a storyline clip's mask is on its inner item, in its media pixels carried through its crop and own transform")
+    func masksStorylineInnerItem() throws {
+        // Given
+        let mask = ResolvedMask(geometry: .ellipse(whole), feather: 4, isInverted: false, mode: .add)
+        let entry = transformed(
+            storylineClip(.pinned(first), start: 0, end: 4),
+            scale: [Keyframe(at: 0, value: 0.5)],
+            mask: [Keyframe(at: 0, value: [mask])]
+        )
+
+        // When
+        let list = sut.displayList(of: sequence([entry]), at: 1)
+
+        // Then
+        // The 400 x 200 picture is half size in its box, which is half size about the centre of the frame. The feather
+        // is halved by the clip's own scale.
+        let inner = try #require(displayList(of: list.items.first)?.items.first)
+        let transform = AffineTransform(a: 0.25, b: 0, c: 0, d: 0.25, tx: 50, ty: 25)
+        #expect(list.items.first?.mask == [])
+        #expect(inner.mask == [
+            ItemMask(geometry: .ellipse(whole), transform: transform, feather: 2, isInverted: false, mode: .add)
+        ])
+    }
+
+    @Test("in a transition a storyline clip's mask cuts its picture before the motion, which its outer item carries")
+    func cutsStorylinePictureBeforeTransition() throws {
+        // Given
+        let incoming = Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.x: 1]),
+            SpanKey(t: 1, values: [.x: 0])
+        ])
+        let transition = ResolvedTransition(
+            start: 1.5,
+            end: 2.5,
+            over: .incoming,
+            incoming: incoming,
+            outgoing: nil,
+            cover: nil,
+            matte: nil
+        )
+        let mask = ResolvedMask(geometry: .rect(whole, radius: 0), feather: 0, isInverted: true, mode: .add)
+        let sequence = sequence([
+            storylineClip(.pinned(first), in: 1, start: 0, end: 2),
+            transformed(
+                storylineClip(.pinned(second), in: 1, start: 2, end: 4, transition: transition),
+                mask: [Keyframe(at: 2, value: [mask])]
+            )
+        ])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.75)
+
+        // Then
+        // A quarter of the way in, the outer item has slid the picture three quarters of the frame to the right.
+        let outer = try #require(list.items.last)
+        let inner = try #require(displayList(of: outer)?.items.first)
+        #expect(outer.transform == AffineTransform(translation: Point(x: 150, y: 0)))
+        #expect(outer.mask == [])
+        #expect(inner.mask.map(\.transform) == [AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)])
+    }
+
+    @Test("a tracked storyline clip's mask keyframes are brought back at their own times and carried whole by the motion")
+    func carriesTrackedStorylineMask() throws {
+        // Given
+        // The target moves 20 right a second and doubles in size from 1 to 2.
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
+            TrackedFrame(time: 2, rectangle: Rectangle(x: 35, y: -5, width: 20, height: 20))
+        ])
+        let mask = [
+            Keyframe(at: 0, value: [
+                ResolvedMask(geometry: .ellipse(target), feather: 2, isInverted: false, mode: .add)
+            ]),
+            Keyframe(at: 2, value: [ResolvedMask(
+                geometry: .ellipse(Rectangle(x: 55, y: -5, width: 20, height: 20)),
+                feather: 2,
+                isInverted: false,
+                mode: .add
+            )])
+        ]
+        let entry = transformed(storylineClip(.pinned(first), start: 0, end: 4, track: track), mask: mask)
+
+        // When
+        let list = sut.displayList(of: sequence([entry]), at: 1)
+
+        // Then
+        // At 2 the second keyframe is one target to the right of it, so (10, 0) at the instant. Halfway is (5, 0),
+        // carried 20 right by the motion at 1, as the crop is: the mask lands 5 right of the crop's top left, at half
+        // size in the frame.
+        let inner = try #require(displayList(of: list.items.first)?.items.first)
+        let itemMask = try #require(inner.mask.first)
+        #expect(itemMask.geometry == .ellipse(Rectangle(x: 5, y: 0, width: 10, height: 10)))
+        #expect(isClose(itemMask.transform.apply(to: Point(x: 5, y: 0)), Point(x: 2.5, y: 0)))
+        #expect(isClose(itemMask.transform.apply(to: Point(x: 15, y: 10)), Point(x: 7.5, y: 5)))
+        #expect(itemMask.feather == 2)
+    }
+
+    @Test("a tracked shape's mask is in its parent's media, each keyframe brought back to the instant and carried")
+    func carriesTrackedShapeMask() throws {
+        // Given
+        // The page scrolls up 40 a second, and the second keyframe is 40 right of the first where it is at 2.
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, rectangle: Rectangle(x: 100, y: 60, width: 40, height: 20)),
+            TrackedFrame(time: 2, rectangle: Rectangle(x: 100, y: 20, width: 40, height: 20))
+        ])
+        let mask = [
+            Keyframe(at: 0, value: [
+                ResolvedMask(geometry: .rect(target, radius: 0), feather: 0, isInverted: false, mode: .add)
+            ]),
+            Keyframe(at: 2, value: [ResolvedMask(
+                geometry: .rect(Rectangle(x: 140, y: 20, width: 40, height: 20), radius: 0),
+                feather: 0,
+                isInverted: false,
+                mode: .add
+            )])
+        ]
+        let shape = ResolvedShape(area: [Keyframe(at: 0, value: whole)], fill: red)
+        let sequence = sequence(
+            [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
+            clips: [clip(.shape(shape), storyline: 0, parent: "shot", mask: mask, track: track)]
+        )
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // (120, 100, 40, 20) at the instant, carried up 40 by the motion with the shape and then at half size.
+        let item = try #require(list.items.last)
+        #expect(item.mask == [ItemMask(
+            geometry: .rect(Rectangle(x: 120, y: 100, width: 40, height: 20), radius: 0),
+            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: -20),
+            feather: 0,
+            isInverted: false,
+            mode: .add
+        )])
+    }
+
     // MARK: - Private
     private func storylineClip(
         _ media: ResolvedMediaContent?,
@@ -904,12 +1045,13 @@ struct EvaluatorTests {
         )
     }
 
-    // `entry` with its own transform, opacity, blend and box drawing in place of the ones that fill the frame, its
-    // anchor still the centre of the frame.
+    // `entry` with its own transform, opacity, blend, box drawing and masks in place of the ones that fill the frame,
+    // its anchor still the centre of the frame.
     private func transformed(
         _ entry: ResolvedStorylineClip,
         position: [Keyframe<Point>]? = nil,
         scale: [Keyframe<Double>]? = nil,
+        mask: [Keyframe<[ResolvedMask]>]? = nil,
         opacity: Double = 1,
         blend: String = "normal",
         radius: Double = 0,
@@ -927,7 +1069,7 @@ struct EvaluatorTests {
             start: entry.start,
             end: entry.end,
             crop: entry.crop,
-            mask: nil,
+            mask: mask,
             track: entry.track,
             filter: entry.filter,
             box: ResolvedBox(size: entry.box.size, position: position ?? entry.box.position, anchor: entry.box.anchor),
@@ -1156,6 +1298,13 @@ struct EvaluatorTests {
     ) -> Bool {
         zip(corners, AffineTransform.identity.apply(toCornersOf: rectangle))
             .allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 }
+    }
+
+    private func isClose(
+        _ point: Point,
+        _ other: Point
+    ) -> Bool {
+        abs(point.x - other.x) < 1e-9 && abs(point.y - other.y) < 1e-9
     }
 
     private func isClose(
