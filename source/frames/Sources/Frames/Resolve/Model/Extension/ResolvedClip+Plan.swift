@@ -37,7 +37,7 @@ extension ResolvedClip {
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
             mask: geometry.mask?.keyframes(at: instant) { $0 },
             trackMatte: plan.trackMatte,
-            track: geometry.track?.track,
+            track: try geometry.track.flatMap { try ResolvedTrack(track: $0, hashes: hashes) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,

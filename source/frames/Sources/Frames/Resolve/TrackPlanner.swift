@@ -260,13 +260,9 @@ struct TrackPlanner: Sendable {
         let lastShown = shown.max() ?? target.mediaTime
         let firstNeeded = file.frameTime(at: min(firstShown, target.mediaTime)) ?? firstShown
         let lastNeeded = max(lastShown, target.mediaTime)
-        let frames = try tracker.track(
-            target.target,
-            in: file,
-            atMediaTime: target.mediaTime,
-            over: firstNeeded...lastNeeded
-        )
-        let track = Track(target: target.target, mediaTime: target.mediaTime, frames: frames)
+        let quad = Quad(target.target)
+        let frames = try tracker.track(quad, in: file, atMediaTime: target.mediaTime, over: firstNeeded...lastNeeded)
+        let track = Track(target: quad, mediaTime: target.mediaTime, frames: frames)
         guard let first = frames.first, let last = frames.last else {
             return (track, TimeRange(start: instant, end: instant))
         }

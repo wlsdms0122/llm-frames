@@ -11,12 +11,12 @@
 // brings them back.
 struct StorylineTrack: Equatable, Sendable {
     // MARK: - Property
-    let track: ResolvedTrack
+    let track: Track
     let storyline: StorylinePlan
 
     // MARK: - Initializer
     init(
-        track: ResolvedTrack,
+        track: Track,
         storyline: StorylinePlan
     ) {
         self.track = track
@@ -32,12 +32,12 @@ struct StorylineTrack: Equatable, Sendable {
             return nil
         }
 
-        self.init(track: ResolvedTrack(track: track), storyline: plan.time.storyline[storyline])
+        self.init(track: track, storyline: plan.time.storyline[storyline])
     }
 
     // MARK: - Public
     func motion(at time: Double) -> TrackMotion {
-        track.track.motion(atMediaTime: storyline.mediaTime(atSequenceTime: time))
+        track.motion(atMediaTime: storyline.mediaTime(atSequenceTime: time))
     }
 
     func area(_ keyframes: [Keyframe<Rectangle>]) -> [Keyframe<Rectangle>] {

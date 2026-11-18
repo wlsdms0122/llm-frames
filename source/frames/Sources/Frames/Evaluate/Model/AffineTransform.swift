@@ -20,6 +20,11 @@ package struct AffineTransform: Equatable, Sendable {
     package let tx: Double
     package let ty: Double
 
+    // `[a, b, c, d, tx, ty]`, as a display list and a resolved document write it.
+    var matrix: [Double] {
+        [a, b, c, d, tx, ty]
+    }
+
     // Nil when the matrix flattens the plane, as a scale of 0 does.
     var inverse: AffineTransform? {
         let determinant = a * d - b * c
@@ -50,6 +55,11 @@ package struct AffineTransform: Equatable, Sendable {
         self.d = d
         self.tx = tx
         self.ty = ty
+    }
+
+    // Six numbers in the order `matrix` gives them.
+    init(matrix: [Double]) {
+        self.init(a: matrix[0], b: matrix[1], c: matrix[2], d: matrix[3], tx: matrix[4], ty: matrix[5])
     }
 
     init(translation offset: Point) {
@@ -123,13 +133,7 @@ package struct AffineTransform: Equatable, Sendable {
 
     // The rectangle's corners carried by the transform, clockwise from its top left.
     func apply(toCornersOf rectangle: Rectangle) -> [Point] {
-        [
-            Point(x: rectangle.x, y: rectangle.y),
-            Point(x: rectangle.x + rectangle.width, y: rectangle.y),
-            Point(x: rectangle.x + rectangle.width, y: rectangle.y + rectangle.height),
-            Point(x: rectangle.x, y: rectangle.y + rectangle.height)
-        ]
-        .map(apply(to:))
+        Quad(rectangle).applying(self).corners
     }
 
     // MARK: - Private

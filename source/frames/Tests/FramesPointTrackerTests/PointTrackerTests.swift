@@ -35,12 +35,12 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(box(at: 10), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end)
 
         // Then
         #expect(frames.map(\.time) == times)
         for (index, frame) in frames.enumerated() {
-            #expect(isNear(frame.rectangle, box(at: index)), "frame \(index): \(frame.rectangle)")
+            #expect(isNear(frame.quad, box(at: index)), "frame \(index): \(frame.quad)")
         }
     }
 
@@ -52,7 +52,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(box(at: 10), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end)
 
         // Then
         #expect(frames.map(\.time) == Array(times[5..<13]))
@@ -67,7 +67,7 @@ struct PointTrackerTests {
 
         // When
         let frames = try sut.track(
-            box(at: 10),
+            Quad(box(at: 10)),
             in: media,
             atMediaTime: times[10] + 0.01,
             over: times[8]...times[13]
@@ -92,12 +92,12 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
 
         // Then
         #expect(frames.map(\.time) == times)
         for (index, frame) in frames.enumerated() {
-            #expect(isNear(frame.rectangle, lines[index]), "frame \(index): \(frame.rectangle)")
+            #expect(isNear(frame.quad, lines[index]), "frame \(index): \(frame.quad)")
         }
     }
 
@@ -117,12 +117,12 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
 
         // Then
         #expect(frames.map(\.time) == times)
         for (index, frame) in frames.enumerated() {
-            #expect(isNear(frame.rectangle, lines[index]), "frame \(index): \(frame.rectangle)")
+            #expect(isNear(frame.quad, lines[index]), "frame \(index): \(frame.quad)")
         }
     }
 
@@ -152,12 +152,12 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(lines[10], in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
 
         // Then
         #expect(frames.map(\.time) == times)
         for (index, frame) in frames.enumerated() {
-            #expect(isNear(frame.rectangle, lines[index]), "frame \(index): \(frame.rectangle)")
+            #expect(isNear(frame.quad, lines[index]), "frame \(index): \(frame.quad)")
         }
     }
 
@@ -199,17 +199,26 @@ struct PointTrackerTests {
         return MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
     }
 
+    // The quad's centroid against the rectangle's centre, and its mean side lengths against the rectangle's width and
+    // height.
     private func isNear(
-        _ found: Rectangle,
+        _ found: Quad,
         _ drawn: Rectangle
     ) -> Bool {
-        let centres = [
-            (found.x + found.width / 2, drawn.x + drawn.width / 2),
-            (found.y + found.height / 2, drawn.y + drawn.height / 2)
-        ]
-        let sizes = [(found.width, drawn.width), (found.height, drawn.height)]
+        let centroid = found.centroid
+        let width = (distance(found.topLeft, found.topRight) + distance(found.bottomLeft, found.bottomRight)) / 2
+        let height = (distance(found.topLeft, found.bottomLeft) + distance(found.topRight, found.bottomRight)) / 2
+        let centres = [(centroid.x, drawn.x + drawn.width / 2), (centroid.y, drawn.y + drawn.height / 2)]
+        let sizes = [(width, drawn.width), (height, drawn.height)]
 
         return centres.allSatisfy { abs($0 - $1) <= centreTolerance }
             && sizes.allSatisfy { abs($0 / $1 - 1) <= sizeTolerance }
+    }
+
+    private func distance(
+        _ point: Point,
+        _ other: Point
+    ) -> Double {
+        hypot(other.x - point.x, other.y - point.y)
     }
 }

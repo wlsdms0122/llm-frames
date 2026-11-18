@@ -288,14 +288,18 @@ struct ResolvedSequenceWriter: Sendable {
     }
 
     // Track frames are media frames, so they keep the media time of each frame, as `frames` does.
-    private func track(_ track: ResolvedTrack) -> JSONValue {
-        .object(JSONObject(members: [
-            JSONMember(key: "target", value: values.rectangle(track.target)),
+    private func track(_ resolved: ResolvedTrack) -> JSONValue {
+        let track = resolved.track
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "media", value: .object(JSONObject(members: values.media(resolved.media)))),
             JSONMember(key: "time", value: .number(track.mediaTime)),
-            JSONMember(key: "frames", value: .array(track.frames.map { frame in
+            JSONMember(key: "target", value: values.quad(track.target)),
+            JSONMember(key: "frames", value: .array(track.samples.map { sample in
                 .object(JSONObject(members: [
-                    JSONMember(key: "time", value: .number(frame.time)),
-                    JSONMember(key: "value", value: values.rectangle(frame.rectangle))
+                    JSONMember(key: "time", value: .number(sample.time)),
+                    JSONMember(key: "quad", value: values.quad(sample.quad)),
+                    JSONMember(key: "motion", value: values.numbers(sample.motion.transform.matrix))
                 ]))
             }))
         ]))

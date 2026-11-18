@@ -21,7 +21,7 @@ extension ResolvedTrack {
         let brought = keyframes.map { keyframe in
             Keyframe(
                 at: keyframe.at,
-                value: bringBack(keyframe.value, fromMediaTime: entry.mediaTime(at: keyframe.at)),
+                value: motion(atMediaTime: entry.mediaTime(at: keyframe.at)).bringBack(keyframe.value),
                 ease: keyframe.ease
             )
         }
@@ -37,7 +37,7 @@ extension ResolvedTrack {
         let brought = keyframes.map { keyframe in
             Keyframe(
                 at: keyframe.at,
-                value: bringBack(keyframe.value, fromMediaTime: entry.mediaTime(at: keyframe.at)),
+                value: motion(atMediaTime: entry.mediaTime(at: keyframe.at)).bringBack(keyframe.value),
                 ease: keyframe.ease
             )
         }
@@ -51,10 +51,10 @@ extension ResolvedTrack {
         at time: Double
     ) -> [Point] {
         let brought = keyframes.map { keyframe in
-            let mediaTime = entry.mediaTime(at: keyframe.at)
+            let motion = self.motion(atMediaTime: entry.mediaTime(at: keyframe.at))
             return Keyframe(
                 at: keyframe.at,
-                value: keyframe.value.map { bringBack($0, fromMediaTime: mediaTime) },
+                value: keyframe.value.map { motion.bringBack($0) },
                 ease: keyframe.ease
             )
         }
@@ -70,7 +70,7 @@ extension ResolvedTrack {
         at time: Double
     ) -> [ResolvedMask] {
         let brought = keyframes.map { keyframe in
-            let motion = track.motion(atMediaTime: entry.mediaTime(at: keyframe.at))
+            let motion = self.motion(atMediaTime: entry.mediaTime(at: keyframe.at))
             return Keyframe(
                 at: keyframe.at,
                 value: keyframe.value.map { mask in
@@ -98,7 +98,7 @@ extension ResolvedTrack {
         on entry: ResolvedStorylineClip,
         at time: Double
     ) -> AffineTransform {
-        AffineTransform(carrying: track.motion(atMediaTime: entry.mediaTime(at: time)))
+        motion(atMediaTime: entry.mediaTime(at: time)).transform
     }
 
     // MARK: - Private

@@ -64,14 +64,15 @@ package struct TrackReporter: Sendable {
         let found = try finder.area(form, in: picture, atMediaTime: time, place: Self.place, kind: Self.kind)
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
+        let target = Quad(found.target)
         let frames = try tracker.track(
-            found.target,
+            target,
             in: file,
             atMediaTime: time,
             over: (file.frameTime(at: first) ?? first)...last
         )
 
-        return TrackReport(frames: frames)
+        return TrackReport(track: Track(target: target, mediaTime: time, frames: frames))
     }
 
     // MARK: - Private

@@ -191,7 +191,7 @@ struct ParentSpacePlanner: Sendable {
             let held = plan.visible.held(time)
             let own = transforms[index]?.transform(at: held) ?? .identity
             if let track = StorylineTrack(clip: index, in: tracked) {
-                links.append(own.concatenating(AffineTransform(carrying: track.motion(at: held))))
+                links.append(own.concatenating(track.motion(at: held).transform))
             } else {
                 links.append(own)
             }

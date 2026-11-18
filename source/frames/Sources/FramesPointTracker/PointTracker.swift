@@ -10,13 +10,14 @@ import Frames
 
 // The `point` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
 // again, backwards over the frames the decoder reads by index. A track point sits near each end of the target's long
-// side, and the two points found on a frame give the target's move and scale there. The target is lost on the first
-// frame where either point's correlation with its feature falls below `lostCorrelation`, which ends that direction.
+// side, and the two points found on a frame give the target's move, scale and rotation there, the similarity that
+// carries the target's quad to the quad reported. The target is lost on the first frame where either point's
+// correlation with its feature falls below `lostCorrelation`, which ends that direction.
 package struct PointTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
 
-    // Each frame is matched twice, the second time with the features read at the scale the first found.
+    // Each frame is matched twice, the second time with the features read at the scale and angle the first found.
     private static let passes = 2
     private static let featureMargin = 0.6
 
@@ -33,15 +34,16 @@ package struct PointTracker: Sendable {
     // points would be if they kept the move of the last two frames, and then, if that does not find the target, from
     // where they were on the last frame.
     private func follow(
-        _ target: Rectangle,
+        _ target: Quad,
         in file: MediaFile,
         from start: Int,
         over indices: [Int]
     ) throws -> [TrackedFrame] {
-        guard let points = trackPoints(of: target, on: try image(of: file, atFrame: start)) else { return [] }
-        let span = distance(points[0].point, points[1].point)
+        let facing = TargetFacing(target)
+        guard let points = trackPoints(of: facing, on: try image(of: file, atFrame: start)) else { return [] }
+        let starts = points.map(\.point)
 
-        var last = TrackEstimate(points: points.map(\.point), scale: 1, correlation: 1)
+        var last = TrackEstimate(points: starts, correlation: 1)
         var beforeLast: TrackEstimate?
         var frames: [TrackedFrame] = []
         for index in indices {
@@ -54,21 +56,16 @@ package struct PointTracker: Sendable {
 
             var found: TrackEstimate?
             for guess in [moved, last.points].compactMap({ $0 }) {
-                guard let estimate = estimate(on: image, of: points, from: guess, scale: last.scale, span: span)
-                else {
-                    continue
-                }
+                guard let estimate = estimate(on: image, of: points, from: guess, facing: facing) else { continue }
                 if found.map({ estimate.correlation > $0.correlation }) ?? true { found = estimate }
                 if estimate.correlation >= Self.lostCorrelation { break }
             }
-            guard let found, found.correlation >= Self.lostCorrelation, found.scale > 0 else { break }
+            guard let found, found.correlation >= Self.lostCorrelation else { break }
 
-            // The points sit either side of the target's centre, so it lies midway between them.
-            let centre = midpoint(found.points[0], found.points[1])
-            let width = target.width * found.scale
-            let height = target.height * found.scale
-            let rectangle = Rectangle(x: centre.x - width / 2, y: centre.y - height / 2, width: width, height: height)
-            frames.append(TrackedFrame(time: file.frameTimes[index], rectangle: rectangle))
+            let motion = self.motion(from: starts, to: found.points)
+            guard motion.scale > 0 else { break }
+
+            frames.append(TrackedFrame(time: file.frameTimes[index], quad: target.applying(motion.transform)))
             beforeLast = last
             last = found
         }
@@ -76,67 +73,66 @@ package struct PointTracker: Sendable {
         return frames
     }
 
-    // The track points on `image` from `guess`, each pass reading the features at the scale the one before found.
+    // The track points on `image` from `guess`, each pass reading the features at the scale and angle the points the
+    // pass before found give against where they are on the target's frame.
     private func estimate(
         on image: GreyImage,
         of points: [TrackPoint],
         from guess: [CGPoint],
-        scale: Double,
-        span: Double
+        facing: TargetFacing
     ) -> TrackEstimate? {
+        let starts = points.map(\.point)
         var located = guess
-        var scale = scale
         var matches: [TrackPointMatch] = []
         for _ in 0..<Self.passes {
+            let motion = self.motion(from: starts, to: located)
+            let angle = facing.angle + motion.rotation * .pi / 180
             matches = zip(points, located).compactMap { point, expected in
-                point.find(in: image, near: expected, scale: scale)
+                point.find(in: image, near: expected, scale: motion.scale, angle: angle)
             }
             guard matches.count == points.count else { return nil }
 
             located = matches.map(\.point)
-            scale = distance(located[0], located[1]) / span
         }
 
-        return TrackEstimate(points: located, scale: scale, correlation: matches.map(\.correlation).min() ?? 0)
+        return TrackEstimate(points: located, correlation: matches.map(\.correlation).min() ?? 0)
     }
 
-    // A track point near each end of the target's long side. Each feature reaches `featureMargin` short sides past
-    // the target and holds up to three times its short side along it, so the two features hold different parts of a
-    // long target and their distance measures its scale.
+    // A track point near each end of the target's long side. Each feature, read in the target's own axes, reaches
+    // `featureMargin` short sides past the target and holds up to three times its short side along it, so the two
+    // features hold different parts of a long target and their distance measures its scale and their direction its
+    // rotation.
     private func trackPoints(
-        of target: Rectangle,
+        of facing: TargetFacing,
         on image: GreyImage
     ) -> [TrackPoint]? {
-        let isWide = target.width >= target.height
-        let long = max(target.width, target.height)
-        let short = min(target.width, target.height)
+        let isWide = facing.width >= facing.height
+        let long = max(facing.width, facing.height)
+        let short = min(facing.width, facing.height)
         let reach = min(long / 2, 3 * short)
         let along = (reach + 2 * Self.featureMargin * short).rounded(.up)
         let across = (short + 2 * Self.featureMargin * short).rounded(.up)
         let size = isWide ? CGSize(width: along, height: across) : CGSize(width: across, height: along)
 
+        // The long side runs along the target's top edge when it is wide, and down its left edge when it is tall.
         let offset = (long - reach) / 2
-        let centre = CGPoint(x: target.x + target.width / 2, y: target.y + target.height / 2)
+        let direction = isWide
+            ? Point(x: cos(facing.angle), y: sin(facing.angle))
+            : Point(x: -sin(facing.angle), y: cos(facing.angle))
         let ends = [-offset, offset].map { offset in
-            isWide ? CGPoint(x: centre.x + offset, y: centre.y) : CGPoint(x: centre.x, y: centre.y + offset)
+            CGPoint(x: facing.centre.x + offset * direction.x, y: facing.centre.y + offset * direction.y)
         }
-        let points = ends.compactMap { TrackPoint(at: $0, size: size, in: image) }
+        let points = ends.compactMap { TrackPoint(at: $0, size: size, angle: facing.angle, in: image) }
 
         return points.count == ends.count ? points : nil
     }
 
-    private func distance(
-        _ point: CGPoint,
-        _ other: CGPoint
-    ) -> Double {
-        hypot(other.x - point.x, other.y - point.y)
-    }
-
-    private func midpoint(
-        _ point: CGPoint,
-        _ other: CGPoint
-    ) -> CGPoint {
-        CGPoint(x: (point.x + other.x) / 2, y: (point.y + other.y) / 2)
+    // The similarity the track points give from where they are on the target's frame.
+    private func motion(
+        from starts: [CGPoint],
+        to ends: [CGPoint]
+    ) -> TrackMotion {
+        TrackMotion(from: starts.map { Point(x: $0.x, y: $0.y) }, to: ends.map { Point(x: $0.x, y: $0.y) })
     }
 
     private func image(
@@ -150,7 +146,7 @@ package struct PointTracker: Sendable {
 extension PointTracker: TrackerProvider {
     // MARK: - Lifecycle
     package func track(
-        _ target: Rectangle,
+        _ target: Quad,
         in file: MediaFile,
         atMediaTime time: Double,
         over range: ClosedRange<Double>
@@ -164,6 +160,6 @@ extension PointTracker: TrackerProvider {
         let forward = try follow(target, in: file, from: start, over: after)
         let backward = try follow(target, in: file, from: start, over: Array(before))
 
-        return backward.reversed() + [TrackedFrame(time: times[start], rectangle: target)] + forward
+        return backward.reversed() + [TrackedFrame(time: times[start], quad: target)] + forward
     }
 }

@@ -5,33 +5,47 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker followed: `target` is the area before padding on the frame at `mediaTime`, the clip's instant, and
-// `frames` its rectangle on every frame followed, in time order. A time before the first frame or after the last holds
-// the nearest one, as a handle past the end of the media holds its edge frame.
+// What the tracker followed: `target` is the quad of the area before padding on the frame at `mediaTime`, the clip's
+// instant, and `samples` its quad and fitted motion on every frame followed, in time order. A time before the first
+// frame or after the last holds the nearest one, as a handle past the end of the media holds its edge frame.
 struct Track: Equatable, Sendable {
     // MARK: - Property
-    let target: Rectangle
+    let target: Quad
     let mediaTime: Double
-    let frames: [TrackedFrame]
+    let samples: [TrackSample]
 
     // MARK: - Initializer
     init(
-        target: Rectangle,
+        target: Quad,
         mediaTime: Double,
-        frames: [TrackedFrame]
+        samples: [TrackSample]
     ) {
         self.target = target
         self.mediaTime = mediaTime
-        self.frames = frames
+        self.samples = samples
+    }
+
+    // The motion fitted to each frame the tracker reported.
+    init(
+        target: Quad,
+        mediaTime: Double,
+        frames: [TrackedFrame]
+    ) {
+        self.init(
+            target: target,
+            mediaTime: mediaTime,
+            samples: frames.map { frame in
+                TrackSample(time: frame.time, quad: frame.quad, motion: TrackMotion(from: target, to: frame.quad))
+            }
+        )
     }
 
     // MARK: - Public
     // The motion on the frame shown at the media time: the last frame followed at or before it.
     func motion(atMediaTime time: Double) -> TrackMotion {
-        guard let first = frames.first else { return .identity }
+        guard let first = samples.first else { return .identity }
 
-        let frame = frames.last { $0.time <= time } ?? first
-        return TrackMotion(from: target, to: frame.rectangle)
+        return (samples.last { $0.time <= time } ?? first).motion
     }
 
     // MARK: - Private

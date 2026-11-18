@@ -47,6 +47,10 @@ struct ResolvedValueWriter: Sendable {
         numbers([point.x, point.y])
     }
 
+    func quad(_ quad: Quad) -> JSONValue {
+        .array(quad.corners.map(point))
+    }
+
     // A path item's or a mask's geometry, one member named by its form.
     func geometry(_ geometry: PathGeometry) -> JSONValue {
         let form = { (name: String, members: [JSONMember]) in

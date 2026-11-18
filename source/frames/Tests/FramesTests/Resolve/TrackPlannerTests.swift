@@ -67,12 +67,12 @@ struct TrackPlannerTests {
 
         // Then
         let track = try #require(plan.storyline[0])
-        #expect(track.target == total)
+        #expect(track.target == Quad(total))
         #expect(track.mediaTime == 1)
-        #expect(track.frames.first?.time == 1)
-        #expect(track.frames.last?.time == 3)
-        #expect(track.frames.count == 21)
-        #expect(track.motion(atMediaTime: 2) == TrackMotion(from: total, to: moved(total, down: 10)))
+        #expect(track.samples.first?.time == 1)
+        #expect(track.samples.last?.time == 3)
+        #expect(track.samples.count == 21)
+        #expect(track.motion(atMediaTime: 2) == TrackMotion(from: Quad(total), to: Quad(moved(total, down: 10))))
     }
 
     @Test("a storyline clip that loses its target inside its edit range stops, naming where it was followed")
@@ -105,7 +105,7 @@ struct TrackPlannerTests {
         // Then
         let track = try #require(plan.storyline[0])
         #expect(time.storyline[0].drawn.end > time.storyline[0].edit.end)
-        #expect(track.frames.last?.time == 3)
+        #expect(track.samples.last?.time == 3)
         #expect(track.motion(atMediaTime: 3.4) == track.motion(atMediaTime: 3))
     }
 
@@ -122,9 +122,9 @@ struct TrackPlannerTests {
         // Then
         let track = try #require(plan.storyline[0])
         #expect(track.mediaTime == 3)
-        #expect(track.frames.first?.time == 1)
-        #expect(track.frames.last?.time == 3)
-        #expect(track.frames.count == 21)
+        #expect(track.samples.first?.time == 1)
+        #expect(track.samples.last?.time == 3)
+        #expect(track.samples.count == 21)
     }
 
     @Test("a clip under a reversed storyline clip is visible on the frames that show a followed media frame")
@@ -146,7 +146,7 @@ struct TrackPlannerTests {
         // Then
         let track = try #require(plan.clips[0])
         #expect(track.mediaTime == 3)
-        #expect(track.frames.map(\.time) == (20...30).map { Double($0) / 10 })
+        #expect(track.samples.map(\.time) == (20...30).map { Double($0) / 10 })
         #expect(time.fps == 24)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0, end: 25.0 / 24))
     }
@@ -171,7 +171,7 @@ struct TrackPlannerTests {
         // Then
         let track = try #require(plan.clips[0])
         #expect(track.mediaTime == 1.5)
-        #expect(track.frames.first?.time == 1.5)
+        #expect(track.samples.first?.time == 1.5)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1.5))
     }
 
@@ -229,9 +229,9 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(staticPlan.storyline[0]?.target == total)
+        #expect(staticPlan.storyline[0]?.target == Quad(total))
         #expect(staticPlan.storyline[0]?.mediaTime == 1)
-        #expect(keyframedPlan.storyline[0]?.target == crop)
+        #expect(keyframedPlan.storyline[0]?.target == Quad(crop))
         #expect(keyframedPlan.storyline[0]?.mediaTime == 1.5)
     }
 
@@ -269,9 +269,9 @@ struct TrackPlannerTests {
 
         // Then
         let track = try #require(plan.clips[0])
-        #expect(track.target == total)
+        #expect(track.target == Quad(total))
         #expect(track.mediaTime == 1.5)
-        #expect(track.frames.first?.time == 1)
+        #expect(track.samples.first?.time == 1)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1))
         #expect(plan.time.clips[0].window == time.clips[0].window)
     }
@@ -312,7 +312,7 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(plan.clips[0]?.target == first)
+        #expect(plan.clips[0]?.target == Quad(first))
         #expect(plan.clips[0]?.mediaTime == 1.8)
     }
 
@@ -376,9 +376,9 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(staticPlan.clips[0]?.target == Rectangle(x: 10, y: 20, width: 60, height: 80))
+        #expect(staticPlan.clips[0]?.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
         #expect(staticPlan.clips[0]?.mediaTime == 1)
-        #expect(keyframedPlan.clips[0]?.target == Rectangle(x: 10, y: 20, width: 60, height: 80))
+        #expect(keyframedPlan.clips[0]?.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
         #expect(keyframedPlan.clips[0]?.mediaTime == 1.8)
     }
 
@@ -398,7 +398,7 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(plan.storyline[0]?.target == Rectangle(x: 100, y: 100, width: 220, height: 100))
+        #expect(plan.storyline[0]?.target == Quad(Rectangle(x: 100, y: 100, width: 220, height: 100)))
         #expect(plan.storyline[0]?.mediaTime == 1)
     }
 
@@ -447,7 +447,7 @@ struct TrackPlannerTests {
         }
 
         // Then
-        #expect(plan.storyline[0]?.target == total)
+        #expect(plan.storyline[0]?.target == Quad(total))
         #expect(plan.storyline[0]?.mediaTime == 1)
         #expect(error?.description == #"""
             storyline[0]#screen.track (video): "track": true follows one of the clip's area, mask and crop, and it has \#

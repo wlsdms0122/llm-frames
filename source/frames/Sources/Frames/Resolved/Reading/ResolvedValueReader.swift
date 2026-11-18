@@ -72,6 +72,22 @@ struct ResolvedValueReader: Sendable {
         return Point(x: numbers[0], y: numbers[1])
     }
 
+    // Four corners, top left, top right, bottom right and bottom left.
+    func quad(_ value: PlacedJSONValue) throws -> Quad {
+        let corners = try value.elements()
+        guard corners.count == 4 else {
+            throw ModelError.wrongType(
+                place: value.place,
+                kind: value.kind,
+                expected: "a list of 4 points",
+                found: value.finding
+            )
+        }
+        let points = try corners.map(point)
+
+        return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
+    }
+
     // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `polyline`, which runs
     // through at least two points.
     func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
