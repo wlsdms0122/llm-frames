@@ -67,7 +67,7 @@ struct DefaultFilterTests {
         let directory = try PackDirectory()
         try directory.addPack("shorts")
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" }, "in": 0, "out": 3 } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" }, "in": 0, "out": 3 } ] }"#,
             in: "shorts",
             at: "templates/still.json"
         )

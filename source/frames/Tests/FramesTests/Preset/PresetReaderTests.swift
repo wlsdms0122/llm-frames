@@ -258,8 +258,8 @@ struct PresetReaderTests {
               "params": {
                 "color": { "type": "color", "default": "#000000", "description": "colour of the dip" },
                 "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" },
-                "length": { "type": "number", "default": 0.7 },
-                "bounce": { "type": "choice", "options": [{ "spring": { "bounce": 0.2 } }, "ease-out"], "default": { "spring": { "bounce": 0.2 } } } },
+                "length": { "type": "number", "default": 0.7, "description": "the length" },
+                "bounce": { "type": "choice", "options": [{ "spring": { "bounce": 0.2 } }, "ease-out"], "default": { "spring": { "bounce": 0.2 } }, "description": "the bounce" } },
               "seconds": { "param": "length" }, "ease": { "param": "curve" },
               "incoming": { "ease": { "param": "bounce" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
               "cover": { "color": { "param": "color" },
@@ -281,13 +281,13 @@ struct PresetReaderTests {
         // Given
         let animation = try Fixture.json(#"""
             { "description": "x",
-              "params": { "n": { "type": "number", "default": 0.5 } },
+              "params": { "n": { "type": "number", "default": 0.5, "description": "the n" } },
               "entrance": { "seconds": { "param": "n" }, "ease": { "spring": { "bounce": { "param": "n" } } },
                             "keys": [ { "t": { "param": "n" }, "scale": { "param": "n" } } ] },
               "loop": { "period": { "param": "n" } } }
             """#)
         let transition = try Fixture.json(#"""
-            { "description": "x", "params": { "soft": { "type": "number", "default": 0.25 } },
+            { "description": "x", "params": { "soft": { "type": "number", "default": 0.25, "description": "the soft" } },
               "seconds": 1, "matte": { "media": "/abs/m.png", "softness": { "param": "soft" } } }
             """#)
 
@@ -308,8 +308,8 @@ struct PresetReaderTests {
         // Given
         let value = try Fixture.json(##"""
             { "description": "x",
-              "params": { "glow": { "type": "number", "default": 0.4 }, "tint": { "type": "color", "default": "#FFAA00" },
-                          "black": { "type": "number", "default": 0.1 } },
+              "params": { "glow": { "type": "number", "default": 0.4, "description": "the glow" }, "tint": { "type": "color", "default": "#FFAA00", "description": "the tint" },
+                          "black": { "type": "number", "default": 0.1, "description": "the black" } },
               "ops": [ { "op": "bloom", "amount": { "param": "glow" }, "radius": 12, "color": { "param": "tint" } },
                        { "op": "levels", "input": [{ "param": "black" }, 0.9], "output": [0, 1] } ] }
             """##)
@@ -322,15 +322,17 @@ struct PresetReaderTests {
     }
 
     @Test(
-        "a preset's parameter is a number, a colour or a choice of eases with a default, and is referred to",
+        "a preset's parameter is a number, a colour or a choice of eases with a default and a description, and is referred to",
         arguments: [
-            (#"{ "p": { "type": "text", "default": "a" } }"#, #"params.p.type (parameter): unknown value "text". Allowed: number, color, choice"#),
-            (#"{ "p": { "type": "image", "default": "/abs/a.png" } }"#, #"params.p.type (parameter): unknown value "image". Allowed: number, color, choice"#),
-            (#"{ "p": { "type": "number" } }"#, #"params.p (parameter): missing key "default""#),
-            (#"{ "p": { "type": "number", "default": "big" } }"#, #"params.p.default (parameter): expected a number, found "big""#),
-            (#"{ "p": { "type": "choice", "options": ["linear", "fast"], "default": "linear" } }"#, #"params.p.options[1] (parameter): unknown value "fast". Allowed: linear, ease-in, ease-out, ease-in-out, back-out, bounce-out, step, [x1, y1, x2, y2], {spring}"#),
-            (#"{ "p": { "type": "choice", "options": ["linear", "step"], "default": "ease-in" } }"#, #"params.p.default (parameter): unknown value "ease-in". Allowed: linear, step"#),
-            (#"{ "p": { "type": "number", "default": 1 }, "unused": { "type": "number", "default": 1 } }"#, #"params.unused (parameter): "unused" is declared but nothing refers to it"#)
+            (#"{ "p": { "type": "text", "default": "a", "description": "the p" } }"#, #"params.p.type (parameter): unknown value "text". Allowed: number, color, choice"#),
+            (#"{ "p": { "type": "image", "default": "/abs/a.png", "description": "the p" } }"#, #"params.p.type (parameter): unknown value "image". Allowed: number, color, choice"#),
+            (#"{ "p": { "type": "number", "description": "the p" } }"#, #"params.p (parameter): missing key "default""#),
+            (#"{ "p": { "type": "number", "default": 1 } }"#, #"params.p (parameter): missing key "description""#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "linear"], "default": "linear", "description": "the p" } }"#, #"params.p.options (parameter): a choice offers at least two distinct options"#),
+            (#"{ "p": { "type": "number", "default": "big", "description": "the p" } }"#, #"params.p.default (parameter): expected a number, found "big""#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "fast"], "default": "linear", "description": "the p" } }"#, #"params.p.options[1] (parameter): unknown value "fast". Allowed: linear, ease-in, ease-out, ease-in-out, back-out, bounce-out, step, [x1, y1, x2, y2], {spring}"#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "step"], "default": "ease-in", "description": "the p" } }"#, #"params.p.default (parameter): unknown value "ease-in". Allowed: linear, step"#),
+            (#"{ "p": { "type": "number", "default": 1, "description": "the p" }, "unused": { "type": "number", "default": 1, "description": "the unused" } }"#, #"params.unused (parameter): "unused" is declared but nothing refers to it"#)
         ]
     )
     func refusesBrokenParameter(
@@ -365,8 +367,8 @@ struct PresetReaderTests {
         // Given
         let text = ##"""
             { "description": "x",
-              "params": { "n": { "type": "number", "default": 1 }, "c": { "type": "color", "default": "#000000" },
-                          "e": { "type": "choice", "options": ["linear", "step"], "default": "linear" } },
+              "params": { "n": { "type": "number", "default": 1, "description": "the n" }, "c": { "type": "color", "default": "#000000", "description": "the c" },
+                          "e": { "type": "choice", "options": ["linear", "step"], "default": "linear", "description": "the e" } },
             """## + body + "}"
         let value = try Fixture.json(text)
 
@@ -378,10 +380,10 @@ struct PresetReaderTests {
     @Test(
         "a preset is checked with each parameter at its default, where a value its place does not take stops",
         arguments: [
-            (#"{ "type": "number", "default": 0 }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
-            (#"{ "type": "number", "default": 1.5 }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): expected a number from 0 to 1, found 1.5"),
-            (#"{ "type": "number", "default": 2 }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
-            (#"{ "type": "number", "default": 1 }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1")
+            (#"{ "type": "number", "default": 0, "description": "the p" }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
+            (#"{ "type": "number", "default": 1.5, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): expected a number from 0 to 1, found 1.5"),
+            (#"{ "type": "number", "default": 2, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
+            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1")
         ]
     )
     func refusesBrokenDefault(
@@ -401,11 +403,11 @@ struct PresetReaderTests {
     func refusesFilterChoiceAndRange() throws {
         // Given
         let choice = try Fixture.json(#"""
-            { "description": "x", "params": { "p": { "type": "choice", "options": ["linear", "step"], "default": "linear" } },
+            { "description": "x", "params": { "p": { "type": "choice", "options": ["linear", "step"], "default": "linear", "description": "the p" } },
               "ops": [ { "op": "sepia", "amount": 1 } ] }
             """#)
         let range = try Fixture.json(#"""
-            { "description": "x", "params": { "p": { "type": "number", "default": 1.5 } },
+            { "description": "x", "params": { "p": { "type": "number", "default": 1.5, "description": "the p" } },
               "ops": [ { "op": "sepia", "amount": { "param": "p" } } ] }
             """#)
 

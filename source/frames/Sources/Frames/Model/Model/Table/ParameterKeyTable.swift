@@ -13,7 +13,7 @@ enum ParameterKeyTable {
         rules: [
             KeyRule("type", .literal(VocabularyTable.parameterTypes), isRequired: true),
             KeyRule("default", .anyValue),
-            KeyRule("description", .text),
+            KeyRule("description", .text, isRequired: true),
             KeyRule("options", .list(.anyValue))
         ]
     )
@@ -24,7 +24,7 @@ enum ParameterKeyTable {
         rules: [
             KeyRule("type", .literal(["number", "color", "choice"]), isRequired: true),
             KeyRule("default", .anyValue, isRequired: true),
-            KeyRule("description", .text),
+            KeyRule("description", .text, isRequired: true),
             KeyRule("options", .list(.ease))
         ]
     )
@@ -34,7 +34,7 @@ enum ParameterKeyTable {
         rules: [
             KeyRule("type", .literal(["number", "color"]), isRequired: true),
             KeyRule("default", .anyValue, isRequired: true),
-            KeyRule("description", .text)
+            KeyRule("description", .text, isRequired: true)
         ]
     )
 }

@@ -870,11 +870,11 @@ struct KeyChecker: Sendable {
         if isChoice, !object.contains("options") {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: ["options"])
         }
-        if isChoice, object["options"]?.arrayValue?.isEmpty == true {
+        if isChoice, let options = object["options"]?.arrayValue, distinctCount(of: options) < 2 {
             throw ModelError.invalidValue(
                 place: place.appending(key: "options"),
                 kind: table.kind,
-                reason: "a choice offers at least one option"
+                reason: "a choice offers at least two distinct options"
             )
         }
         if !isChoice, object.contains("options") {
@@ -896,6 +896,10 @@ struct KeyChecker: Sendable {
             kind: table.kind,
             scope: &defaultScope
         )
+    }
+
+    private func distinctCount(of values: [JSONValue]) -> Int {
+        values.indices.filter { index in !values[..<index].contains(values[index]) }.count
     }
 
     private func checkParameterReference(
