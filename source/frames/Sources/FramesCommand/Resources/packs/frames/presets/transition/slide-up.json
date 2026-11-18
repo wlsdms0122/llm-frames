@@ -1,5 +1,5 @@
 {
-  "description": "The next clip slides up from the bottom and covers the previous one, like a sheet opening. Eases in and out.",
+  "description": "The next clip slides up from the bottom and covers the previous one, which stays still.",
   "seconds": 0.45,
   "ease": "ease-in-out",
   "incoming": { "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] }

@@ -1,5 +1,5 @@
 {
-  "description": "One step darker, for a picture that came out bright or to sit behind text",
+  "description": "Half a stop darker.",
   "ops": [
     { "op": "exposure", "ev": -0.5 }
   ]

@@ -2,5 +2,5 @@
   "engine": "^1",
   "name": "Frames",
   "version": "1.0.0",
-  "description": "The transitions, animations and filters that ship with frames"
+  "description": "Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, and colour and detail filters."
 }

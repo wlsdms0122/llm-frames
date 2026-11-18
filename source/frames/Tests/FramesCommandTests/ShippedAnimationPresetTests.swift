@@ -48,14 +48,16 @@ struct ShippedAnimationPresetTests {
         #expect(names.sorted() == Self.names.map { "frames/\($0)" }.sorted())
     }
 
-    @Test("every shipped animation reads and says in one line how it looks", arguments: names)
+    @Test("every shipped animation reads and says in one capitalised sentence how it looks", arguments: names)
     func readsAnimation(name: String) throws {
         // Given, When
         let preset = try #require(try sut.animation(PresetInstance(name: "frames/\(name)")))
 
         // Then
-        #expect(!preset.description.isEmpty)
         #expect(!preset.description.contains("\n"))
+        #expect(preset.description.first?.isUppercase == true)
+        #expect(preset.description.hasSuffix("."))
+        #expect(!preset.description.dropLast().contains(". "))
     }
 
     @Test("none has no span, so a clip simply shows")

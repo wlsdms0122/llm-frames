@@ -1,5 +1,5 @@
 {
-  "description": "Fades to black, holds a beat, then the next clip comes up. A big scene or chapter change.",
+  "description": "Fades to black, holds a beat, then the next clip comes up out of it.",
   "seconds": 0.7,
   "ease": "linear",
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },

@@ -1,5 +1,5 @@
 {
-  "description": "Slides in from the right and leaves to the left, by its own width, for items that pass through in reading order.",
+  "description": "Slides in from the right by its own width, and leaves to the left.",
   "entrance": { "seconds": 0.4, "keys": [ { "t": 0, "x": 1, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "x": 0 } ] },
   "exit": { "seconds": 0.3, "keys": [ { "t": 0, "x": 0, "opacity": 1 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "x": -1, "opacity": 0 } ] }
 }

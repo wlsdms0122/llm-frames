@@ -1,5 +1,5 @@
 {
-  "description": "Highlights glow softly, for a dreamy photo or video, though it washes out text on a light background",
+  "description": "Highlights glow softly.",
   "ops": [
     { "op": "bloom", "amount": 0.5, "radius": 12 }
   ]

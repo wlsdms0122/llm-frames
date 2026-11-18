@@ -56,14 +56,16 @@ struct ShippedFilterPresetTests {
         #expect(Set(names) == Set(Self.names.map { "frames/\($0)" }))
     }
 
-    @Test("every shipped filter reads, with a one line description and at least one operation", arguments: names)
+    @Test("every shipped filter reads, with a one sentence capitalised description and at least one operation", arguments: names)
     func readsShippedFilter(name: String) throws {
         // Given, When
         let preset = try #require(try sut.filter(PresetInstance(name: "frames/\(name)")))
 
         // Then
-        #expect(!preset.description.isEmpty)
         #expect(!preset.description.contains("\n"))
+        #expect(preset.description.first?.isUppercase == true)
+        #expect(preset.description.hasSuffix("."))
+        #expect(!preset.description.dropLast().contains(". "))
         #expect(!preset.operations.isEmpty)
     }
 

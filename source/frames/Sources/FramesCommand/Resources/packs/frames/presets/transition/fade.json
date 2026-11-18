@@ -1,5 +1,5 @@
 {
-  "description": "Cross dissolve: the next clip fades in over the previous one at an even rate. The quiet default between related shots.",
+  "description": "Cross dissolve: the next clip fades in over the previous one at an even rate.",
   "seconds": 0.4,
   "ease": "linear",
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 1, "opacity": 1 } ] }

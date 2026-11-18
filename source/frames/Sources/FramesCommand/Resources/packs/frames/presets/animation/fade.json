@@ -1,5 +1,5 @@
 {
-  "description": "Fades in and out, the quiet default for anything that should not draw attention to itself.",
+  "description": "Fades in and out.",
   "entrance": { "seconds": 0.3, "keys": [ { "t": 0, "opacity": 0 }, { "t": 1, "opacity": 1 } ] },
   "exit": { "seconds": 0.25, "ease": "ease-in-out", "keys": [ { "t": 0, "opacity": 1 }, { "t": 1, "opacity": 0 } ] }
 }
