@@ -6,8 +6,8 @@
 //
 
 // Writes a mix plan as JSON, `"mixPlan"` first, set to the version of this frames, then its segments in plan order,
-// each with its pinned media under `media` and its envelope as `[time, gain]` points, in the layout and number form of
-// a resolved document, so the same plan gives the same bytes.
+// each with its pinned media under `media`, its envelope as `[time, gain]` points and its pan envelope as `[time, pan]`
+// points, in the layout and number form of a resolved document, so the same plan gives the same bytes.
 package struct MixPlanWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -36,9 +36,12 @@ package struct MixPlanWriter: Sendable {
             JSONMember(key: "speed", value: .number(segment.speed)),
             JSONMember(key: "start", value: .number(segment.start)),
             JSONMember(key: "end", value: .number(segment.end)),
-            JSONMember(key: "envelope", value: .array(segment.envelope.map { point in
-                values.numbers([point.time, point.value])
-            }))
+            JSONMember(key: "envelope", value: points(segment.envelope)),
+            JSONMember(key: "pan", value: points(segment.pan))
         ]))
+    }
+
+    private func points(_ points: [EnvelopePoint]) -> JSONValue {
+        .array(points.map { point in values.numbers([point.time, point.value]) })
     }
 }

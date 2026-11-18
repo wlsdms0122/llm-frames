@@ -5,24 +5,32 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The gain of a sound on the clock its instants are on: its volume with its eases, times its fades from and to 0 and its
-// transition crossfades, each linear over its range.
+// The gain of a sound on the clock its instants are on: its volume with its eases, times its fades from and to 0, each
+// linear over its range, and times its transition crossfades on their curves (FRAMES-13).
 extension ResolvedSound {
     // MARK: - Property
-    // The instants where the gain may bend: every volume keyframe and both ends of every fade and crossfade.
-    var breakpoints: [Double] {
-        let ranges = [fadeIn, fadeOut, incoming, outgoing].compactMap { $0 }
-        return volume.map(\.at) + ranges.flatMap { [$0.start, $0.end] }
+    // Where the gain bends: every volume keyframe and both ends of every fade and crossfade. It moves between volume
+    // keyframes of different values and over every fade and crossfade.
+    var gainTimes: EnvelopeTimes {
+        let ramps = [fadeIn, fadeOut, incoming?.range, outgoing?.range].compactMap { $0 }
+
+        return EnvelopeTimes(keyframes: volume).merged(with: EnvelopeTimes(ramps: ramps))
     }
 
     // MARK: - Initializer
     // MARK: - Public
     func gain(at time: Double) -> Double {
         let level = volume.value(at: time)
-        let rising = [fadeIn, incoming].compactMap { $0 }.map { ramp(at: time, from: $0.start, to: $0.end) }
-        let falling = [fadeOut, outgoing].compactMap { $0 }.map { ramp(at: time, from: $0.end, to: $0.start) }
+        let fades = [
+            fadeIn.map { ramp(at: time, from: $0.start, to: $0.end) },
+            fadeOut.map { ramp(at: time, from: $0.end, to: $0.start) }
+        ]
+        let crossfades = [
+            incoming.map { $0.curve.gains(at: progress(at: time, through: $0)).incoming },
+            outgoing.map { $0.curve.gains(at: progress(at: time, through: $0)).outgoing }
+        ]
 
-        return (rising + falling).reduce(level, *)
+        return (fades + crossfades).compactMap { $0 }.reduce(level, *)
     }
 
     // MARK: - Private
@@ -33,5 +41,13 @@ extension ResolvedSound {
         to full: Double
     ) -> Double {
         min(max((time - silent) / (full - silent), 0), 1)
+    }
+
+    // u, the progress through a crossfade at an even pace: 0 at its start and before, 1 at its end and after.
+    private func progress(
+        at time: Double,
+        through crossfade: Crossfade
+    ) -> Double {
+        ramp(at: time, from: crossfade.range.start, to: crossfade.range.end)
     }
 }
