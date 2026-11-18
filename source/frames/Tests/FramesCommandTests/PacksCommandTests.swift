@@ -42,14 +42,32 @@ struct PacksCommandTests {
             """)
     }
 
-    @Test("packs <pack> lists what the pack holds by kind, each by the name a document gives it")
+    @Test("packs <pack> lists what the pack holds by kind, each by the name a document gives it, with the parameters of each preset and template under it")
     func listsPackContents() throws {
         // Given
         let pack = try sut.addPack("shorts")
-        try sut.write(#"{ "description": "pushes up", "seconds": 0.3 }"#, to: pack.appendingPathComponent("presets/transition/push-up.json"))
+        try sut.write(
+            #"""
+            { "description": "pushes up",
+              "params": { "distance": { "type": "number", "default": 1, "description": "frames it pushes" },
+                          "curve": { "type": "choice", "options": ["linear", "ease-out"], "default": "ease-out", "description": "pace of the push" } },
+              "seconds": 0.3,
+              "incoming": { "ease": { "param": "curve" }, "keys": [ { "t": 0, "y": { "param": "distance" } }, { "t": 1, "y": 0 } ] } }
+            """#,
+            to: pack.appendingPathComponent("presets/transition/push-up.json")
+        )
         try sut.write(#"{ "description": "pops", "entrance": { "seconds": 0.3, "keys": [] } }"#, to: pack.appendingPathComponent("presets/animation/pop.json"))
         try sut.write("{}", to: pack.appendingPathComponent("themes/shorts.json"))
-        try sut.write(#"{ "kind": "sequence", "params": {} }"#, to: pack.appendingPathComponent("templates/intro.json"))
+        try sut.write(
+            ##"""
+            { "kind": "sequence",
+              "params": { "length": { "type": "number", "default": 5, "description": "seconds on screen" },
+                          "name": { "type": "text", "description": "the name shown" } },
+              "storyline": [ { "solid": "#000000", "duration": { "param": "length" } } ],
+              "clips": [ { "title": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
+            """##,
+            to: pack.appendingPathComponent("templates/intro.json")
+        )
         try sut.write("", to: pack.appendingPathComponent("luts/warm.cube"))
         try sut.write("", to: pack.appendingPathComponent("media/leak.mov"))
         try sut.write("", to: pack.appendingPathComponent("media/.DS_Store"))
@@ -63,9 +81,13 @@ struct PacksCommandTests {
         #expect(sut.standardOutput == """
             shorts  Shorts  1.2.0  Looks for shorts
             transition  shorts/push-up  pushes up
+              distance  number  1  frames it pushes
+              curve  choice  "ease-out"  pace of the push
             animation  shorts/pop  pops
             theme  shorts/shorts
             template  shorts/intro
+              length  number  5  seconds on screen
+              name  text  -  the name shown
             lut  shorts/warm
             media  shorts/leak.mov
             font  Pretendard-Bold.otf

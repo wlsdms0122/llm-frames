@@ -10,9 +10,10 @@
 // by its file.
 struct PackFolder: Equatable, Sendable {
     // MARK: - Property
+    static let template = PackFolder(kind: "template", folder: "templates", pathExtension: "json", isNamed: true)
     static let all = [
         PackFolder(kind: "theme", folder: "themes", pathExtension: "json", isNamed: true),
-        PackFolder(kind: "template", folder: "templates", pathExtension: "json", isNamed: true),
+        template,
         PackFolder(kind: "lut", folder: "luts", pathExtension: "cube", isNamed: true),
         PackFolder(kind: "media", folder: "media", pathExtension: nil, isNamed: true),
         PackFolder(kind: "font", folder: "fonts", pathExtension: nil, isNamed: false)

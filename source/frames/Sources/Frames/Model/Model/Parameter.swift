@@ -6,12 +6,13 @@
 //
 
 // A published parameter of a template or a preset. `options` are a choice's, and empty for any other type.
-struct Parameter: Equatable, Sendable {
+package struct Parameter: Equatable, Sendable {
     // MARK: - Property
-    let name: String
-    let type: ParameterType
-    let defaultValue: JSONValue?
-    let options: [JSONValue]
+    package let name: String
+    package let type: ParameterType
+    package let defaultValue: JSONValue?
+    package let options: [JSONValue]
+    package let description: String
 
     // The value an argument for it is, and its default: a choice's one of its options.
     var valueType: ValueType {
@@ -43,12 +44,14 @@ struct Parameter: Equatable, Sendable {
         name: String,
         type: ParameterType,
         defaultValue: JSONValue? = nil,
-        options: [JSONValue] = []
+        options: [JSONValue] = [],
+        description: String
     ) {
         self.name = name
         self.type = type
         self.defaultValue = defaultValue
         self.options = options
+        self.description = description
     }
 
     // A declaration that passed its checks, so only one without a known type is nil.
@@ -62,7 +65,8 @@ struct Parameter: Equatable, Sendable {
             name: name,
             type: type,
             defaultValue: declaration["default"],
-            options: declaration["options"]?.arrayValue ?? []
+            options: declaration["options"]?.arrayValue ?? [],
+            description: declaration["description"]?.stringValue ?? ""
         )
     }
 

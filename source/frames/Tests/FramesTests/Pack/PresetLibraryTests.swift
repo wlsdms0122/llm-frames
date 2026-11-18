@@ -166,10 +166,10 @@ struct PresetLibraryTests {
 
         // Then
         #expect(transitions == [
-            PresetEntry(kind: .transition, name: "frames/flash", description: "a flash"),
-            PresetEntry(kind: .transition, name: "shorts/push-up", description: "pushes up")
+            PresetEntry(kind: .transition, name: "frames/flash", description: "a flash", parameters: []),
+            PresetEntry(kind: .transition, name: "shorts/push-up", description: "pushes up", parameters: [])
         ])
-        #expect(animations == [PresetEntry(kind: .animation, name: "shorts/pop", description: "pops")])
+        #expect(animations == [PresetEntry(kind: .animation, name: "shorts/pop", description: "pops", parameters: [])])
     }
 
     @Test("a preset that would stop a document stops the listing, named as a document names it")
