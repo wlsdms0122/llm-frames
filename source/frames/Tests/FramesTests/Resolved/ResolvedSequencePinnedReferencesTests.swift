@@ -138,7 +138,6 @@ struct ResolvedSequencePinnedReferencesTests {
             start: 0.75,
             end: 1.25,
             over: .incoming,
-            audio: .constantPower,
             incoming: nil,
             outgoing: nil,
             cover: ResolvedCover(source: .media(ResolvedTransitionMedia(media: stinger, duration: 1)), span: span),

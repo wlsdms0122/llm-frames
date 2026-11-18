@@ -323,7 +323,6 @@ struct ParentEvaluatorTests {
                         start: 1.5,
                         end: 2.5,
                         over: .incoming,
-                        audio: .constantPower,
                         incoming: push,
                         outgoing: nil,
                         cover: nil,

@@ -271,8 +271,7 @@ struct ResolvedSequenceWriterTests {
         // Then
         let transition = try #require(storyline[1].objectValue?["transition"]?.objectValue)
         let incoming = try #require(transition["incoming"]?.objectValue)
-        #expect(transition.keys == ["start", "end", "over", "audio", "incoming", "outgoing", "cover", "matte"])
-        #expect(transition["audio"] == .string("constant-power"))
+        #expect(transition.keys == ["start", "end", "over", "incoming", "outgoing", "cover", "matte"])
         #expect(transition["start"] == .number(2.5))
         #expect(transition["end"] == .number(3.5))
         #expect(incoming["ease"] == .string("ease-out"))
@@ -388,7 +387,6 @@ struct ResolvedSequenceWriterTests {
         #expect(audio.first?.objectValue?["outgoing"] == crossfade)
         #expect(audio.last?.objectValue?["incoming"] == crossfade)
         #expect(audio.last?.objectValue?["outgoing"] == .null)
-        #expect(resolved["storyline"]?.arrayValue?.last?.objectValue?["transition"]?.objectValue?["audio"] == crossfade.objectValue?["audio"])
     }
 
     @Test("a shape entry writes its kind, its geometry as written, its outset and its appearance after its id, every key present and null where none")

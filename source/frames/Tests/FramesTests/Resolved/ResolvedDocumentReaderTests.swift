@@ -223,22 +223,22 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
-    @Test("an `audio` curve that is not a crossfade curve stops, on a storyline transition and on a sound's crossfade")
+    @Test("an `audio` curve that is not a crossfade curve stops on a sound's crossfade, and a storyline transition carries none")
     func refusesUnknownCrossfadeCurve() throws {
         // Given
         let text = try written(Self.documents[1])
         let curve = #""audio": "constant-gain""#
-        let transition = replacingFirst(curve, with: #""audio": "linear""#, in: text)
         let last = try #require(text.range(of: curve, options: .backwards))
         let crossfade = text.replacingCharacters(in: last, with: #""audio": "linear""#)
+        let transition = replacingFirst(#""over": "#, with: #""audio": "constant-gain", "over": "#, in: text)
 
         // When
-        let transitionError = #expect(throws: ModelError.self) { try sut.read(transition) }
         let crossfadeError = #expect(throws: ModelError.self) { try sut.read(crossfade) }
+        let transitionError = #expect(throws: ModelError.self) { try sut.read(transition) }
 
         // Then
-        #expect(transitionError?.description == #"storyline[2].transition.audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#)
         #expect(crossfadeError?.description == #"audio[0].incoming.audio (crossfade): unknown value "linear". Allowed: constant-power, constant-gain"#)
+        #expect(transitionError?.description == #"storyline[1].transition (transition): unknown key "audio". Allowed: start, end, over, incoming, outgoing, cover, matte"#)
     }
 
     @Test("scale, rotation and blend are read for anything drawn, and not for an adjustment")
