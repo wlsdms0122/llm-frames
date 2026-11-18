@@ -321,6 +321,61 @@ struct ConnectedClipRenderTests {
         #expect(!edge.isEmpty, "the shape reaches the frame's right edge inside the margin")
     }
 
+    @Test("a dark rect over the frame with an inverted mask of a region darkens everything but that region")
+    func darkensAllButRegion() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = try image(in: directory, named: "white.png", width: 160, height: 90, color: [255, 255, 255])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 },
+              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
+              "clips": [ { "shape": "rect", "area": [0, 0, 160, 90], "fill": "#00000080", "at": [0, 1],
+                           "mask": { "shape": "ellipse", "area": [40, 20, 80, 50], "invert": true } } ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        // Half black over white outside the ellipse, untouched inside it, on either side of its left edge at x 40.
+        let dark: [Double] = [127, 127, 127]
+        let untouched: [Double] = [255, 255, 255]
+        let probes = [(4, 4, dark), (155, 85, dark), (80, 4, dark), (36, 45, dark), (80, 45, untouched), (44, 45, untouched)]
+        for (x, y, color) in probes {
+            #expect(frame.isPixel(x: x, y: y, color, tolerance: 2.0 / 255), "(\(x), \(y)) is \(frame.pixel(x: x, y: y))")
+        }
+    }
+
+    @Test("a media clip cut to a feathered ellipse shows inside it, fades across its edge and leaves what lies below outside")
+    func cutsMediaClipToFeatheredEllipse() throws {
+        // Given
+        // The 40 x 40 picture fills an 80 x 80 box centred on (80, 45), so the ellipse written on the whole picture is
+        // the circle of radius 40 about that point, feathered by 2 output pixels at a length scale of 1.
+        let directory = try TemporaryDirectory()
+        let below = try image(in: directory, named: "black.png", width: 160, height: 90, color: [0, 0, 0])
+        let file = try image(in: directory, named: "red.png", width: 40, height: 40, color: [255, 0, 0])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 160 },
+              "storyline": [ { "media": "\#(below)", "duration": 1 } ],
+              "clips": [ { "media": "\#(file)", "width": 80, "position": [80, 45], "at": [0, 1],
+                           "mask": { "shape": "ellipse", "area": [0, 0, 40, 40], "feather": 2 } } ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        // Inside the circle the picture shows whole, across its edge in part, and in the box's corner not at all. The
+        // pixel (108, 16) is a third of a pixel outside the circle on its diagonal, inside the box.
+        #expect(frame.isPixel(x: 80, y: 45, [255, 0, 0], tolerance: tolerance))
+        #expect(frame.isPixel(x: 80, y: 20, [255, 0, 0], tolerance: tolerance))
+        #expect(frame.isPixel(x: 44, y: 9, [0, 0, 0], tolerance: tolerance))
+        let edge = frame.pixel(x: 108, y: 16)[0]
+        #expect(edge > 0.2 && edge < 0.8, "the edge is \(edge)")
+    }
+
     // MARK: - Private
     private func image(
         in directory: TemporaryDirectory,
