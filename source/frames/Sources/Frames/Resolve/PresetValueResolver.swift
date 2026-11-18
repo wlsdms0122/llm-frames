@@ -74,6 +74,7 @@ struct PresetValueResolver: Sendable {
             description: preset.description,
             seconds: preset.seconds,
             over: preset.over,
+            audio: preset.audio,
             incoming: preset.incoming,
             outgoing: preset.outgoing,
             cover: cover,

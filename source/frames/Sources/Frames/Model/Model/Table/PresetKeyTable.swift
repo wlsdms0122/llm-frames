@@ -24,6 +24,7 @@ enum PresetKeyTable {
             KeyRule("seconds", .number, isRequired: true),
             KeyRule("ease", .ease),
             KeyRule("over", .literal(["incoming", "outgoing"])),
+            KeyRule("audio", .literal(CrossfadeCurve.allCases.map(\.rawValue))),
             KeyRule("incoming", .object(transitionSpan("incoming"))),
             KeyRule("outgoing", .object(transitionSpan("outgoing"))),
             KeyRule("cover", .object(cover)),
