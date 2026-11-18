@@ -686,6 +686,47 @@ struct SequenceCheckTests {
         #expect(error?.description == #"clips[0].keyframes[1] (keyframe): "ease" shapes no span, since no later keyframe names position, scale"#)
     }
 
+    @Test("a spring ease is taken on a keyframe with a bounce greater than -1 and less than 1")
+    func acceptsSpringEase() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [
+              { "media": "/abs/log.png", "at": [0, 6],
+                "keyframes": [ { "at": 3, "scale": 1, "ease": { "spring": { "bounce": 0.99 } } }, { "at": 4, "scale": 1.5 } ] }
+            ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a spring ease with a bounce outside its range or another key stops where it is written",
+        arguments: [
+            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1"),
+            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found -1"),
+            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found "0.5""#),
+            (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
+            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
+        ]
+    )
+    func refusesBrokenSpring(
+        ease: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [
+              { "media": "/abs/log.png", "at": [0, 6],
+                "keyframes": [ { "at": 3, "scale": 1, "ease": \#(ease) }, { "at": 4, "scale": 1.5 } ] }
+            ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
     @Test("a document whose kind is not sequence stops", arguments: ["image", "layout", "movie"])
     func refusesKindOtherThanSequence(kind: String) throws {
         // Given

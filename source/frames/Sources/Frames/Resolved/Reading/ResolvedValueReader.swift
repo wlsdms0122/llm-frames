@@ -183,7 +183,7 @@ struct ResolvedValueReader: Sendable {
     }
 
     func ease(_ value: PlacedJSONValue) throws -> Ease {
-        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name or [x1, y1, x2, y2]") }
+        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name, [x1, y1, x2, y2] or {spring}") }
 
         return ease
     }

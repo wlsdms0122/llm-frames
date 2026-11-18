@@ -15,8 +15,8 @@ struct ResolvedDocumentReaderTests {
     private let sut = ResolvedDocumentReader()
     private let writer = ResolvedDocumentWriter()
 
-    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, and a filter with a
-    // LUT.
+    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, springs among their
+    // eases, and a filter with a LUT.
     private static let presets = PresetTable(
         transitions: Fixture.presets.transitions.merging([
             "reveal": TransitionPreset(
@@ -26,7 +26,7 @@ struct ResolvedDocumentReaderTests {
                 audio: .constantPower,
                 incoming: Span(ease: .easeOut, keys: [SpanKey(t: 0, values: [.scale: 1.2, .opacity: 0]), SpanKey(t: 1, values: [:])]),
                 outgoing: nil,
-                cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .linear, keys: [])),
+                cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .spring(bounce: 0.6), keys: [])),
                 matte: Matte(media: "/abs/matte.png", softness: 0.1, isInverted: true, ease: .cubicBezier(x1: 0.3, y1: 0, x2: 0.2, y2: 1))
             ),
             "dip": TransitionPreset(
@@ -35,7 +35,7 @@ struct ResolvedDocumentReaderTests {
                 over: .outgoing,
                 audio: .constantGain,
                 incoming: nil,
-                outgoing: Span(ease: .linear, revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
+                outgoing: Span(ease: .spring(bounce: -0.4), revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
                 cover: Cover(source: .color("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
                 matte: nil
             )
@@ -80,7 +80,7 @@ struct ResolvedDocumentReaderTests {
             { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
-              "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
+              "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
             { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
         """#,

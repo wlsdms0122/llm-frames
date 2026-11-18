@@ -108,6 +108,26 @@ struct PresetReaderTests {
         #expect(preset.matte == nil)
     }
 
+    @Test("a spring is taken as a transition's, a span's and a matte's ease")
+    func readsSpringEases() throws {
+        // Given
+        let transition = try Fixture.json(#"""
+            { "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 0.2 } },
+              "incoming": { "ease": { "spring": { "bounce": -0.3 } }, "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
+              "matte": { "media": "/abs/m.png" } }
+            """#)
+        let animation = try Fixture.json(#"{ "description": "x", "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": 0.5 } } } }"#)
+
+        // When
+        let readTransition = try sut.transition(from: transition)
+        let readAnimation = try sut.animation(from: animation)
+
+        // Then
+        #expect(readTransition.incoming?.ease == .spring(bounce: -0.3))
+        #expect(readTransition.matte?.ease == .spring(bounce: 0.2))
+        #expect(readAnimation.entrance?.span.ease == .spring(bounce: 0.5))
+    }
+
     @Test("a matte transition reads its media, softness and invert, and without `audio` crossfades at constant power")
     func readsMatte() throws {
         // Given
@@ -135,6 +155,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
+            (#"{ "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 1.5 } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1.5"),
             (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, #"audio (transition): parameter "curve" is not declared in params"#)
         ]
     )

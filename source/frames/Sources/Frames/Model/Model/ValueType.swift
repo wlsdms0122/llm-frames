@@ -15,6 +15,8 @@ indirect enum ValueType: Equatable, Sendable {
     case nonNegativeNumber
     // A number from -1 to 1.
     case signedFraction
+    // A number greater than -1 and less than 1.
+    case openSignedFraction
     case integer
     case nonNegativeInteger
     case positiveInteger

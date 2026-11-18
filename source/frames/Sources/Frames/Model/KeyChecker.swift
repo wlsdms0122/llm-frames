@@ -128,6 +128,11 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .openSignedFraction:
+            guard let number = value.numberValue, number > -1, number < 1 else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .integer:
             // A whole number that does not fit an integer could not be read as one.
             guard let number = value.numberValue, Int(exactly: number) != nil else {
@@ -151,7 +156,7 @@ struct KeyChecker: Sendable {
             try checkIdentifier(value, place: place, kind: kind, scope: &scope)
 
         case .ease:
-            try checkEase(value, place: place, kind: kind)
+            try checkEase(value, place: place, kind: kind, scope: &scope)
 
         case let .literal(names):
             guard let string = value.stringValue else { throw wrongType(value, type, place, kind) }
@@ -344,7 +349,8 @@ struct KeyChecker: Sendable {
     private func checkEase(
         _ value: JSONValue,
         place: Place,
-        kind: String
+        kind: String,
+        scope: inout DocumentScope
     ) throws {
         switch value {
         case let .string(name):
@@ -353,7 +359,7 @@ struct KeyChecker: Sendable {
                     place: place,
                     kind: kind,
                     value: name,
-                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]"]
+                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]", "{spring}"]
                 )
             }
 
@@ -365,6 +371,9 @@ struct KeyChecker: Sendable {
             guard (0...1).contains(numbers[0]), (0...1).contains(numbers[2]) else {
                 throw ModelError.invalidValue(place: place, kind: kind, reason: "a cubic Bézier's x1 and x2 lie between 0 and 1")
             }
+
+        case let .object(object):
+            try checkObject(object, as: EaseKeyTable.spring, place: place, scope: &scope)
 
         default:
             throw wrongType(value, .ease, place, kind)
@@ -986,8 +995,8 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .signedFraction, .integer, .nonNegativeInteger,
-             .positiveInteger, .margin:
+        case .number, .positiveNumber, .nonNegativeNumber, .signedFraction, .openSignedFraction, .integer,
+             .nonNegativeInteger, .positiveInteger, .margin:
             parameterType == "number"
 
         default:
@@ -1028,14 +1037,14 @@ struct KeyChecker: Sendable {
             true
 
         case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.signedFraction, .number),
-             (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
+             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
              (.clips, .array):
             true
 
@@ -1092,6 +1101,9 @@ struct KeyChecker: Sendable {
         case .signedFraction:
             "a number from -1 to 1"
 
+        case .openSignedFraction:
+            "a number greater than -1 and less than 1"
+
         case .integer:
             "a whole number"
 
@@ -1108,7 +1120,7 @@ struct KeyChecker: Sendable {
             "a colour"
 
         case .ease:
-            "an ease name or [x1, y1, x2, y2]"
+            "an ease name, [x1, y1, x2, y2] or {spring}"
 
         case let .literal(names):
             "one of \(names.joined(separator: ", "))"
