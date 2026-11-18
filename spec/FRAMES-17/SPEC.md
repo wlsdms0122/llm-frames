@@ -61,6 +61,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 - A `text` stands for text on screen: a title, given as a string or as a run's `text` ([FRAMES-11](../FRAMES-11/SPEC.md)), or the text an area's text form searches for (`text`, `from`, `to`, [FRAMES-2](../FRAMES-2/SPEC.md)).
 - A `choice` stands where one of its options is accepted. Names (presets, styles, shape styles, themes, templates) are taken only by a choice, so what a template lets its user pick is listed.
 - An unknown argument, an argument of the wrong type (a media argument whose probed kind is not its type, and a choice argument that is not one of its options, included), and a missing argument without a default stop. A declared parameter that nothing refers to stops.
+- An argument object is media only when it holds `kind` (a document), `imageSequence` or `template`. Any other object, such as a choice's `{preset, args}`, is checked against its parameter's type, so given to a media parameter it stops as media missing one of those keys.
 - A parameter is the preset's or template's own. A preset's `{"param"}` names only its own parameters, and a template's arguments reach a preset only where the template passes them on in a choice's `args`.
 
 ### Templates

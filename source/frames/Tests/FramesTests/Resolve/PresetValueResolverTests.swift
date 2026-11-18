@@ -67,7 +67,7 @@ struct PresetValueResolverTests {
     func keepsAbsolutePath() throws {
         // Given
         let sut = PresetValueResolver(library: directory.library())
-        let preset = try #require(try presets().transition(named: "shorts/stinger"))
+        let preset = try #require(try presets().transition(PresetInstance(name: "shorts/stinger")))
 
         // When
         let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
@@ -80,7 +80,7 @@ struct PresetValueResolverTests {
     func stopsOnBareName() throws {
         // Given
         let sut = PresetValueResolver(library: directory.library())
-        let preset = try #require(try presets().transition(named: "shorts/loose"))
+        let preset = try #require(try presets().transition(PresetInstance(name: "shorts/loose")))
 
         // When
         let error = #expect(throws: ResolveError.self) {

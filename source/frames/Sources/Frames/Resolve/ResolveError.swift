@@ -55,7 +55,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
     case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
-    case trackInClipParent(place: Place, kind: PlaceKind, id: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
@@ -246,12 +245,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
-        case let .trackInClipParent(place, kind, id):
-            "\(place) (\(kind.label)): track follows the media of a storyline parent, and the parent \(quoted(id)) "
-                + "is a connected or sequence clip, whose media is not followed"
-
         case let .trackWithoutVideo(place, kind):
-            "\(place) (\(kind.label)): track follows the video or image sequence of the clip's storyline parent, "
+            "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "
                 + "and there is none to follow here"
 
         case let .trackOwnWithoutArea(place, kind):
@@ -263,8 +258,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + keys.map { "\"\($0)\"" }.joined(separator: " and ") + ", so it must name its target"
 
         case let .trackOwnOnNamingClip(place, kind):
-            "\(place) (\(kind.label)): a title or media clip names the area it tracks, "
-                + "so it cannot take \"track\": true"
+            "\(place) (\(kind.label)): a title, still or compound clip names the area it tracks in its parent's "
+                + "media, so it cannot take \"track\": true"
 
         case let .trackLost(place, kind, followed, edit):
             "\(place) (\(kind.label)): the tracker follows its target only over \(written(followed)) and loses it "

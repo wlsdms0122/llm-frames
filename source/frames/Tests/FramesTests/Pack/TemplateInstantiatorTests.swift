@@ -17,11 +17,11 @@ struct TemplateInstantiatorTests {
     private let template = ##"""
         { "kind": "sequence",
           "params": {
-            "clip":  { "type": "video" },
-            "title": { "type": "text", "default": "New feature" },
-            "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm" },
-            "tint":  { "type": "color", "default": "#FF0000" },
-            "size":  { "type": "number", "default": 1 }
+            "clip":  { "type": "video", "description": "the clip" },
+            "title": { "type": "text", "default": "New feature", "description": "the title" },
+            "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "the tone" },
+            "tint":  { "type": "color", "default": "#FF0000", "description": "the tint" },
+            "size":  { "type": "number", "default": 1, "description": "the size" }
           },
           "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
                            "connected": [ { "title": { "param": "title" }, "style": "title" },
@@ -58,7 +58,7 @@ struct TemplateInstantiatorTests {
         let arguments = try Fixture.object(##"{ "clip": "/abs/run.mp4", "colour": "#000000" }"##)
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        let error = #expect(throws: ParameterError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
         #expect(error?.description == #"storyline[0].media.args (template arguments): unknown argument "colour". Allowed: clip, title, tone, tint, size"#)
     }
 
@@ -68,7 +68,7 @@ struct TemplateInstantiatorTests {
         let template = try template(template)
 
         // When, Then
-        let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
+        let error = #expect(throws: ParameterError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
         #expect(error?.description == #"storyline[0].media.args (template arguments): missing argument "clip", which has no default"#)
     }
 
@@ -113,7 +113,7 @@ struct TemplateInstantiatorTests {
     func refusesDefaultOfWrongKind() throws {
         // Given
         let template = try template(#"""
-            { "kind": "sequence", "params": { "clip": { "type": "video", "default": "/abs/card.png" } },
+            { "kind": "sequence", "params": { "clip": { "type": "video", "default": "/abs/card.png", "description": "the clip" } },
               "storyline": [ { "media": { "param": "clip" } } ] }
             """#)
 
@@ -126,27 +126,27 @@ struct TemplateInstantiatorTests {
         "a value its place cannot take stops at that place in the template, as the same value written there would",
         arguments: [
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
                 #"{ "p": -5 }"#,
                 "clips[0].width (title): expected a number above 0, found -5"
             ),
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "p": { "type": "number", "default": -1 } }, "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "default": -1, "description": "the p" } }, "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ]"#,
                 "{}",
                 "clips[0].radius (image): expected a number, 0 or more, found -1"
             ),
             (
-                #"{ "p": { "type": "number" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "w": { "type": "number" } }, "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
+                #"{ "w": { "type": "number", "description": "the w" } }, "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
                 #"{ "w": 0 }"#,
                 "storyline[0].crop[2] (video): expected a number above 0, found 0"
             )
@@ -166,7 +166,7 @@ struct TemplateInstantiatorTests {
     func refusesCropScaleOfZero() throws {
         // Given
         let template = try template(#"""
-            { "kind": "sequence", "params": { "s": { "type": "number" } },
+            { "kind": "sequence", "params": { "s": { "type": "number", "description": "the s" } },
               "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "s" } } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "s": 0 }"#)
@@ -180,7 +180,7 @@ struct TemplateInstantiatorTests {
     func fillsPlacesOfDifferentTypes() throws {
         // Given
         let template = try template(#"""
-            { "kind": "sequence", "params": { "p": { "type": "number" } },
+            { "kind": "sequence", "params": { "p": { "type": "number", "description": "the p" } },
               "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "p" } } } ],
               "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ] }
             """#)
@@ -197,33 +197,12 @@ struct TemplateInstantiatorTests {
         #expect(instance.document == expected)
     }
 
-    @Test(
-        "a shape choice of paths with an arrowhead fills the shape picked and keeps its points and stroke",
-        arguments: [
-            (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["path"] } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" } } ] }"#,
-                #"{ "kind": "sequence", "clips": [ { "shape": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" } } ] }"#
-            )
-        ]
-    )
-    func fillsShapeChoiceOfPaths(text: String, filled: String) throws {
-        // Given
-        let template = try template(text)
-        let arguments = try Fixture.object(#"{ "s": "path" }"#)
-
-        // When
-        let instance = try sut.instance(of: template, arguments: arguments, place: place)
-
-        // Then
-        #expect(instance.document == (try Fixture.json(filled)))
-    }
-
     @Test("media given as an argument is recorded where it stands, and a default is not")
     func recordsGivenMedia() throws {
         // Given
         let template = try template(#"""
             { "kind": "sequence",
-              "params": { "a": { "type": "video" }, "b": { "type": "video", "default": "/abs/run.mp4" } },
+              "params": { "a": { "type": "video", "description": "the a" }, "b": { "type": "video", "default": "/abs/run.mp4", "description": "the b" } },
               "storyline": [ { "media": { "param": "a" } }, { "media": { "param": "b" } }, { "media": { "param": "a" } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "a": "/abs/short.mp4" }"#)

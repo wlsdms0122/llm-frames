@@ -59,7 +59,7 @@ struct ShippedFilterPresetTests {
     @Test("every shipped filter reads, with a one line description and at least one operation", arguments: names)
     func readsShippedFilter(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.filter(named: "frames/\(name)"))
+        let preset = try #require(try sut.filter(PresetInstance(name: "frames/\(name)")))
 
         // Then
         #expect(!preset.description.isEmpty)

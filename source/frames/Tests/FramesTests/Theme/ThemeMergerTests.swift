@@ -100,7 +100,7 @@ struct ThemeMergerTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, emphasis, lineHeight, stroke, background, placement, offset, align, lines"#)
+        #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, lineHeight, stroke, background, placement, offset, align, lines"#)
     }
 
     @Test("a stroke without a width stops as a missing key, since it replaces the one under it whole")

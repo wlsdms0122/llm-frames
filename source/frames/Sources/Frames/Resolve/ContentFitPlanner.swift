@@ -152,7 +152,7 @@ struct ContentFitPlanner: Sendable {
 
             // The child map carries the media's crop onto the box.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
-            let drawn = clip.crop?.value(at: 0).rectangle
+            let drawn = clip.crop(at: 0)
                 ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: drawn, by: transform)
 

@@ -15,5 +15,10 @@ extension Array {
         KeyframeTrack(keyframes: self).value(at: time) ?? self[0].value
     }
 
+    // An ease that overshoots carries an opacity past its keyframes, and an opacity is drawn from 0 to 1.
+    func opacity(at time: Double) -> Double where Element == Keyframe<Double> {
+        Swift.min(Swift.max(value(at: time), 0), 1)
+    }
+
     // MARK: - Private
 }

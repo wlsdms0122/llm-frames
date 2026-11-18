@@ -24,7 +24,7 @@ A preset may publish parameters, as an NLE effect publishes its controls. `param
 - `default` is required, so a preset named without arguments always works.
 - A `choice`'s `options` are eases ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
-Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's type wherever a number, a colour or an ease is written: a key's property value or `t`, a span's `seconds` or `period`, a transition's `seconds`, `matte.softness`, a cover `color`, a spring's `bounce`, or a span's or transition's `ease`. It never stands for a key, a name (a `revealFrom` side, `over`, `audio`) or a file. A number parameter stands only where a number is written, a colour parameter only where a colour is, and a choice only where an ease is.
+Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's type wherever a number, a colour or an ease is written: a key's property value or `t`, a span's `seconds` or `period`, a transition's `seconds`, `matte.softness`, a cover `color`, a spring's `bounce`, or a span's or transition's `ease`. It never stands for a key, a name (a `revealFrom` side, `over`, `audio`) or a file, and written there it is a value of the wrong type for that place, which stops as one. A number parameter stands only where a number is written, a colour parameter only where a colour is, and a choice only where an ease is.
 
 ```json
 { "description": "Dips to a colour and holds a beat, then the next clip comes up out of it.",
@@ -37,7 +37,7 @@ Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's t
              "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 ```
 
-A preset is checked when it is read: its keys, that every `{"param"}` names one of its parameters and stands where its type is taken, that every parameter is referred to (a declared parameter nothing refers to stops), and every value with each parameter at its default. Where a choice passes arguments, the values are checked again with them, and a value its place does not take (a `seconds` of 0, an opacity outside 0 to 1) stops, naming the choice's place.
+A preset is checked when it is read: its keys, that every `{"param"}` names one of its parameters and stands where its type is taken, that every parameter is referred to (a declared parameter nothing refers to stops), and every value with each parameter at its default. Where a choice passes arguments, the values are checked again with them, and a value its place does not take (a `seconds` of 0, an opacity outside 0 to 1) stops, naming the choice's place. The stop names the preset and gives the reason its own check of that place gives.
 
 A document passes arguments in its preset choices:
 
@@ -51,7 +51,7 @@ A document passes arguments in its preset choices:
 - A preset name is `<pack>/<name>` or an absolute path.
 - In an object choice `preset` is required, and so is at least one of the other keys: `{preset}` alone stops, since the name alone is that choice.
 - `seconds` in a transition choice replaces the preset's own. It is above 0, as a preset's own is, and 0 or less stops.
-- `args` maps parameter names to values. An unknown name stops, a value of the wrong type stops (a choice value that is not one of its options included), and a parameter with no argument takes its default.
+- `args` maps parameter names to values. An unknown name stops, a value of the wrong type stops (a choice value that is not one of its options included), and a parameter with no argument takes its default. An empty `args` gives every parameter its default.
 - A choice is the same wherever it is written: on a clip ([FRAMES-7](../FRAMES-7/SPEC.md)), in a theme's `defaults` ([FRAMES-22](../FRAMES-22/SPEC.md)), or as a template's argument or option ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
 ```json
@@ -87,6 +87,7 @@ A span is:
 - Two keys that name a property at the same `t` make it jump there: it takes the first key's value up to that point and the second's from it.
 - A property the span does not name takes its default.
 - `ease` bends the progress first, and the bent value drives every property. It takes every ease form of [FRAMES-4](../FRAMES-4/SPEC.md), the spring included. Where an ease leaves 0 to 1 (`back-out`, a spring with bounce), a property whose keys reach that end goes on along its last line, so it overshoots. One whose keys stop short of it holds.
+- `opacity` and `reveal` lie in 0 to 1, and a key's value outside that range stops.
 - `revealFrom` is `left`, `right`, `top` or `bottom`. The default is `left`.
 
 ### animation
@@ -136,7 +137,7 @@ A span is:
 - A transition moves the two storyline pictures and nothing else. Each reads opacity, scale, x, y, rotation and reveal. The motion is applied after the picture's own transform ([FRAMES-9](../FRAMES-9/SPEC.md)): scale and rotation act around the centre of the frame, x and y move by multiples of the frame, opacity multiplies the picture's own, and reveal shows the frame from the `revealFrom` side.
 - `seconds` or `period` inside a span stops. A transition's time is its length.
 - To change scenes while the cover hides them, cut the incoming opacity from 0 to 1 at that point.
-- `matte.media` is a greyscale image or video, stretched over the frame. The incoming picture shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a matte wipe that shows the incoming picture where it is black. Either gives any wipe shape without code. A matte reveals the incoming picture, so a transition with both `matte` and `"over": "outgoing"` stops.
+- `matte.media` is a greyscale image or video, stretched over the frame. The incoming picture shows where the matte's luminance is below the transition progress, with an edge `softness` wide (0 to 1 of the luminance range, and a value outside stops). `invert` swaps dark and light. A still gradient gives the luma wipe (gradient wipe) of an NLE, and a black and white video gives a matte wipe that shows the incoming picture where it is black. Either gives any wipe shape without code. A matte reveals the incoming picture, so a transition with both `matte` and `"over": "outgoing"` stops.
 - A video in `matte` or `cover` is stretched over the transition: at progress p it shows media time p × its duration, so the transition's seconds change its speed, not its shape.
 - `audio` shapes the sound only. Its curve runs over the transition's time at an even pace, and the preset's `ease` does not bend it.
 

@@ -5,51 +5,25 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker followed: `target` is the area before padding on the frame at media time `mediaTime`, and `frames`
-// its rectangle on every frame followed, in media time.
+// What the tracker followed, as resolve pinned it: `media` is the media followed, the clip's own or its parent's, and
+// `track` the target's quad at the instant and its quad and fitted motion on every frame followed, in media time.
 struct ResolvedTrack: Equatable, Sendable {
     // MARK: - Property
-    let target: Rectangle
-    let mediaTime: Double
-    let frames: [TrackedFrame]
-
-    var track: Track {
-        Track(target: target, mediaTime: mediaTime, frames: frames)
-    }
+    let media: PinnedMedia
+    let track: Track
 
     // MARK: - Initializer
     init(
-        target: Rectangle,
-        mediaTime: Double,
-        frames: [TrackedFrame]
+        media: PinnedMedia,
+        track: Track
     ) {
-        self.target = target
-        self.mediaTime = mediaTime
-        self.frames = frames
+        self.media = media
+        self.track = track
     }
 
     // MARK: - Public
-    // A rectangle where it is on the frame at a media time, brought back through the motion there to where it is at the
-    // instant.
-    func bringBack(
-        _ rectangle: Rectangle,
-        fromMediaTime time: Double
-    ) -> Rectangle {
-        track.motion(atMediaTime: time).bringBack(rectangle)
-    }
-
-    func bringBack(
-        _ point: Point,
-        fromMediaTime time: Double
-    ) -> Point {
-        track.motion(atMediaTime: time).bringBack(point)
-    }
-
-    func carry(
-        _ rectangle: Rectangle,
-        toMediaTime time: Double
-    ) -> Rectangle {
-        track.motion(atMediaTime: time).carry(rectangle)
+    func motion(atMediaTime time: Double) -> TrackMotion {
+        track.motion(atMediaTime: time)
     }
 
     // MARK: - Private

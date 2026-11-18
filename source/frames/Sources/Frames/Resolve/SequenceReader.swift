@@ -73,13 +73,13 @@ struct SequenceReader: Sendable {
             media: object["media"].map { media($0, of: object, place: place.appending(key: "media")) },
             solid: object["solid"]?.stringValue,
             duration: object["duration"]?.numberValue,
-            transition: object["transition"].flatMap(TransitionChoice.init(value:)),
+            transition: object["transition"].flatMap { TransitionChoice(value: $0, place: place.appending(key: "transition")) },
             keyframes: keyframes(object["keyframes"]),
             crop: property("crop", of: object, read: CropForm.init(value:)),
             mask: property("mask", of: object, read: ClipMask.masks(in:)),
             trackMatte: object["trackMatte"].flatMap(TrackMatte.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
-            filter: object["filter"],
+            filter: object["filter"].flatMap { FilterChoice(value: $0, place: place.appending(key: "filter")) },
             anchor: object["anchor"]?.stringValue,
             position: property("position", of: object, read: PositionForm.init(value:)),
             scale: property("scale", of: object, read: \.numberValue),
@@ -110,7 +110,7 @@ struct SequenceReader: Sendable {
             parent: object["parent"]?.stringValue,
             placement: object["placement"]?.stringValue,
             anchor: object["anchor"]?.stringValue,
-            animation: object["animation"].flatMap(AnimationChoice.init(value:)),
+            animation: object["animation"].flatMap { AnimationChoice(value: $0, place: place.appending(key: "animation")) },
             keyframes: keyframes,
             area: property("area", of: object, read: AreaForm.init(value:)),
             position: property("position", of: object, read: PositionForm.init(value:)),
@@ -128,8 +128,18 @@ struct SequenceReader: Sendable {
             scale: property("scale", of: object, read: \.numberValue),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            filter: object["filter"] ?? object["adjust"]
+            filter: filter(of: object, place: place)
         )
+    }
+
+    // An adjustment clip's `adjust` is its filter choice.
+    private func filter(
+        of object: JSONObject,
+        place: Place
+    ) -> FilterChoice? {
+        let key = object.contains("adjust") ? "adjust" : "filter"
+
+        return object[key].flatMap { FilterChoice(value: $0, place: place.appending(key: key)) }
     }
 
     private func content(
@@ -142,8 +152,8 @@ struct SequenceReader: Sendable {
         if let kind = object["shape"]?.stringValue.flatMap(ShapeKind.init(rawValue:)) {
             return .shape(shape(kind, of: object))
         }
-        if let title = object["title"]?.stringValue {
-            return .title(text: title, style: object["style"]?.stringValue ?? "")
+        if let title = object["title"] {
+            return .title(runs: TitleRun.runs(in: title), style: object["style"]?.stringValue ?? "")
         }
 
         return .adjust

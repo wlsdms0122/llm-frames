@@ -5,10 +5,11 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Finds a preset by the name a document or theme gives it: `<pack>/<name>` or an absolute path.
-// A preset that is not there is nil, and one that is there but broken throws.
+// Finds the preset a choice names, by its name (`<pack>/<name>` or an absolute path), read with the arguments the
+// choice passes. A preset that is not there is nil, and one that is there but broken, or that its arguments break,
+// throws.
 protocol PresetProvider: Sendable {
-    func transition(named name: String) throws -> TransitionPreset?
-    func animation(named name: String) throws -> AnimationPreset?
-    func filter(named name: String) throws -> FilterPreset?
+    func transition(_ instance: PresetInstance) throws -> TransitionPreset?
+    func animation(_ instance: PresetInstance) throws -> AnimationPreset?
+    func filter(_ instance: PresetInstance) throws -> FilterPreset?
 }

@@ -82,8 +82,9 @@ struct SequencePlanner: Sendable {
 
         let tracked = try tracker.plan(
             time,
-            crops: crops,
+            storylineCrops: crops,
             storylineMasks: storylineMasks,
+            crops: found.map(\.crop),
             areas: found.map(\.area),
             masks: found.map(\.mask)
         )
@@ -96,8 +97,9 @@ struct SequencePlanner: Sendable {
                 theme: time.theme
             )
         }
-        // A tracked clip is parented to a storyline clip, so no text it finds needs a track, and what was found under a
-        // shape or adjustment is brought into its space once every track and shape is planned.
+        // Text a tracked clip finds lies in the media it follows, where it is at the value's own time, as evaluation
+        // takes it, and what was found under a shape or adjustment is brought into its space once every track and
+        // shape is planned.
         let parentSpace = ParentSpacePlanner(
             tracked: tracked,
             written: written,
@@ -129,8 +131,7 @@ struct SequencePlanner: Sendable {
                     media: time.sequence.storyline[index].media,
                     scale: lengthScale,
                     theme: time.theme,
-                    defaults: time.defaults,
-                    place: time.storyline[index].place.appending(key: "filter")
+                    defaults: time.defaults
                 ),
                 color: time.sequence.storyline[index].solid.map(time.theme.color),
                 appearance: try appearances.appearance(
@@ -170,7 +171,7 @@ struct SequencePlanner: Sendable {
                 box: box,
                 crop: placed[index].crop,
                 mask: placed[index].mask,
-                track: StorylineTrack(clip: index, in: tracked),
+                track: tracked.clips[index],
                 isInOutputPixels: found[index].isInOutputPixels,
                 title: title,
                 nested: clipNested[index],
@@ -727,14 +728,14 @@ struct SequencePlanner: Sendable {
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
-        guard case let .title(text, style) = written.content else { return nil }
+        guard case let .title(runs, style) = written.content else { return nil }
         guard written.width != nil || !format.isMeasured else {
             throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
         }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(
-            text,
+            runs,
             style: style,
             stylePlace: written.place.appending(key: "style"),
             width: written.width ?? format.size.width - theme.placementPadding * scale * 2,

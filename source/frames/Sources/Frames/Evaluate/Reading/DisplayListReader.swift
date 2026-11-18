@@ -140,7 +140,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "stroke", "background"]
+            ["size", "runs", "background"]
 
         default:
             ["filter"]
@@ -148,16 +148,7 @@ package struct DisplayListReader: Sendable {
     }
 
     private func transform(_ value: PlacedJSONValue) throws -> AffineTransform {
-        let transform = try value.numbers(count: 6)
-
-        return AffineTransform(
-            a: transform[0],
-            b: transform[1],
-            c: transform[2],
-            d: transform[3],
-            tx: transform[4],
-            ty: transform[5]
-        )
+        AffineTransform(matrix: try value.numbers(count: 6))
     }
 
     // An item without masks writes `null`, so a list holds at least one.
@@ -372,14 +363,6 @@ package struct DisplayListReader: Sendable {
         GlyphsItem(
             size: try values.size(item.member("size")),
             runs: try values.runs(item.member("runs")),
-            stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color"])
-
-                return TextStroke(
-                    width: try stroke.member("width").number(),
-                    color: try values.color(stroke.member("color"))
-                )
-            },
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 

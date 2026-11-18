@@ -46,7 +46,7 @@ struct ReferenceLibraryTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "clip": { "type": "video" }, "title": { "type": "text", "default": "New" } },
+            { "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" }, "title": { "type": "text", "default": "New", "description": "the title" } },
               "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "title" } ] } ] }
             """#,
             in: "shorts",
@@ -59,14 +59,58 @@ struct ReferenceLibraryTests {
         // Then
         #expect(template.place.description == "shorts/leak: top level")
         #expect(template.parameters == [
-            TemplateParameter(name: "clip", type: .video),
-            TemplateParameter(name: "title", type: .text, defaultValue: .string("New"))
+            Parameter(name: "clip", type: .video, description: "the clip"),
+            Parameter(name: "title", type: .text, defaultValue: .string("New"), description: "the title")
         ])
         #expect(template.references.map(\.place.description) == [
             "shorts/leak: storyline[0].media",
             "shorts/leak: storyline[0].connected[0].title"
         ])
         #expect(try sut.hasTemplate(named: "shorts/leak"))
+    }
+
+    @Test("a template's declared parameters are read from its params alone, so media it names that is not there does not stop them")
+    func readsTemplateParameters() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "clip": { "type": "video", "default": "shorts/gone.mov", "description": "the clip" } },
+              "storyline": [ { "media": { "param": "clip" } }, { "media": "shorts/gone.mov" } ] }
+            """#,
+            in: "shorts",
+            at: "templates/promo.json"
+        )
+
+        // When
+        let parameters = try sut.templateParameters(named: "shorts/promo")
+        let missing = try sut.templateParameters(named: "shorts/nothing")
+
+        // Then
+        #expect(parameters == [Parameter(name: "clip", type: .video, defaultValue: .string("shorts/gone.mov"), description: "the clip")])
+        #expect(missing == nil)
+        #expect(throws: ModelError.missingMedia(place: Place(file: "shorts/promo", components: [.key("storyline"), .index(1, id: nil), .key("media")]), kind: "storyline clip", reference: "shorts/gone.mov")) {
+            try sut.template(named: "shorts/promo")
+        }
+    }
+
+    @Test("a template's declared parameter without a description stops where it is declared")
+    func stopsOnUndescribedParameter() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/promo.json"
+        )
+
+        // When
+        let error = #expect(throws: ModelError.self) {
+            try sut.templateParameters(named: "shorts/promo")
+        }
+
+        // Then
+        #expect(error?.description == "shorts/promo: params.clip (parameter): missing key \"description\"")
     }
 
     @Test("an error in a template file names the template as it was referred to, with the place in that file")
@@ -146,7 +190,7 @@ struct ReferenceLibraryTests {
     func refusesTemplateByFile() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "c": { "type": "video" } }, "storyline": [ { "media": { "param": "c" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "c": { "type": "video", "description": "the c" } }, "storyline": [ { "media": { "param": "c" } } ] }"#,
             in: "shorts",
             at: "media/intro.json"
         )

@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Chooses a style's face: the first family in its font list that its pack carries or the machine has installed, in
-// the style's weight. A pack's fonts come before the machine's.
+// Chooses a character style's face: the first family in its font list that its pack carries or the machine has
+// installed, in the style's weight. A pack's fonts come before the machine's.
 struct FontFinder: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -24,7 +24,7 @@ struct FontFinder: Sendable {
     // MARK: - Public
     // `place` is where the font list was written, which a stop names.
     func face(
-        for style: TextStyle,
+        for style: CharacterStyle,
         place: Place
     ) throws -> FontFace {
         let packFiles = try style.pack.map { try library.fontFiles(inPack: $0) } ?? []

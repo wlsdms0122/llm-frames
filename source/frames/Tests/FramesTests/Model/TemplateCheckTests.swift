@@ -23,9 +23,9 @@ struct TemplateCheckTests {
             { "kind": "sequence",
               "params": {
                 "clip":  { "type": "video", "description": "the recording" },
-                "name":  { "type": "text", "default": "Ada" },
-                "tint":  { "type": "color", "default": "#FF0000" },
-                "size":  { "type": "number", "default": 2 },
+                "name":  { "type": "text", "default": "Ada", "description": "the name" },
+                "tint":  { "type": "color", "default": "#FF0000", "description": "the tint" },
+                "size":  { "type": "number", "default": 2, "description": "the size" },
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
@@ -37,11 +37,30 @@ struct TemplateCheckTests {
         try sut.check(document: document)
     }
 
+    @Test(
+        "a text parameter stands for a whole title and for a run's text, and a choice for a run's style",
+        arguments: [
+            #"{ "title": { "param": "name" }, "style": "s" }"#,
+            #"{ "title": [ { "text": { "param": "name" }, "style": { "param": "look" } }, { "text": " and more" } ], "style": "s" }"#
+        ]
+    )
+    func acceptsRunParameters(clip: String) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "params": { "name": { "type": "text", "description": "the name" }, "look": { "type": "choice", "options": ["name", "role"], "default": "name", "description": "the look" } },
+              "clips": [ \#(clip), { "title": "x", "style": { "param": "look" } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
     @Test("a media parameter's type picks the media row")
     func picksRowByParameterType() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "card": { "type": "image" } },
+            { "kind": "sequence", "params": { "card": { "type": "image", "description": "the card" } },
               "storyline": [ { "media": { "param": "card" }, "in": 1 } ] }
             """#)
 
@@ -53,18 +72,20 @@ struct TemplateCheckTests {
     @Test(
         "a parameter that cannot stand where it is written stops",
         arguments: [
-            (#"{ "name": { "type": "text" } }"#, #"{ "title": "x", "style": { "param": "name" } }"#,
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": "x", "style": { "param": "name" } }"#,
              #"clips[0].style (title): parameter "name" of type text cannot stand where a string is expected"#),
-            (#"{ "size": { "type": "number" } }"#, #"{ "title": { "param": "size" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "size" of type number cannot stand where a string is expected"#),
-            (#"{ "name": { "type": "text" } }"#, #"{ "media": { "param": "name" } }"#,
+            (#"{ "size": { "type": "number", "description": "the size" } }"#, #"{ "title": { "param": "size" }, "style": "s" }"#,
+             #"clips[0].title (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
-            (#"{ "name": { "type": "text" } }"#, #"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
              #"clips[0].area (rect): parameter "name" of type text cannot stand where an area is expected"#),
-            (#"{ "where": { "type": "choice", "options": ["top", "middle"] } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
+            (#"{ "where": { "type": "choice", "options": ["top", "middle"], "description": "the where" } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
-            (#"{ "name": { "type": "text" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "nam" is not declared in params"#)
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
+             #"clips[0].title (title): parameter "nam" is not declared in params"#),
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
+             #"clips[0].title[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
         ]
     )
     func refusesMisplacedParameter(
@@ -83,24 +104,27 @@ struct TemplateCheckTests {
     @Test("a declared parameter that nothing refers to stops")
     func refusesUnusedParameter() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "params": { "name": { "type": "text" } }, "clips": [] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "params": { "name": { "type": "text", "description": "the name" } }, "clips": [] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"params.name (parameter): "name" is declared but nothing in the template refers to it"#)
+        #expect(error?.description == #"params.name (parameter): "name" is declared but nothing refers to it"#)
     }
 
     @Test(
-        "a parameter takes only its own keys, and options only as a choice",
+        "a parameter takes only its own keys, a description, and options only as a choice",
         arguments: [
-            (#"{ "type": "text", "options": ["a"] }"#, #"params.p (parameter): unknown key "options". Allowed: type, default, description"#),
-            (#"{ "type": "choice" }"#, #"params.p (parameter): missing key "options""#),
-            (#"{ "type": "choice", "options": [] }"#, #"params.p.options (parameter): a choice offers at least one option"#),
-            (#"{ "type": "font" }"#, #"params.p.type (parameter): unknown value "font". Allowed: video, sequence, image, audio, text, color, number, choice"#),
-            (#"{ "type": "number", "default": "2" }"#, #"params.p.default (parameter): expected a number, found "2""#),
-            (#"{ "type": "choice", "options": ["a", "b"], "default": "c" }"#, #"params.p.default (parameter): unknown value "c". Allowed: a, b"#),
-            (#"{ "default": 1 }"#, #"params.p (parameter): missing key "type""#),
-            (#"{ "type": "text", "label": "x" }"#, #"params.p (parameter): unknown key "label". Allowed: type, default, description, options"#)
+            (#"{ "type": "text", "options": ["a", "b"], "description": "d" }"#, #"params.p (parameter): unknown key "options". Allowed: type, default, description"#),
+            (#"{ "type": "choice", "description": "d" }"#, #"params.p (parameter): missing key "options""#),
+            (#"{ "type": "choice", "options": [], "description": "d" }"#, #"params.p.options (parameter): a choice offers at least two distinct options"#),
+            (#"{ "type": "choice", "options": ["a"], "description": "d" }"#, #"params.p.options (parameter): a choice offers at least two distinct options"#),
+            (#"{ "type": "choice", "options": ["a", "a"], "description": "d" }"#, #"params.p.options (parameter): a choice offers at least two distinct options"#),
+            (#"{ "type": "text" }"#, #"params.p (parameter): missing key "description""#),
+            (#"{ "type": "font", "description": "d" }"#, #"params.p.type (parameter): unknown value "font". Allowed: video, sequence, image, audio, text, color, number, choice"#),
+            (#"{ "type": "number", "default": "2", "description": "d" }"#, #"params.p.default (parameter): expected a number, found "2""#),
+            (#"{ "type": "choice", "options": ["a", "b"], "default": "c", "description": "d" }"#, #"params.p.default (parameter): unknown value "c". Allowed: a, b"#),
+            (#"{ "default": 1, "description": "d" }"#, #"params.p (parameter): missing key "type""#),
+            (#"{ "type": "text", "label": "x", "description": "d" }"#, #"params.p (parameter): unknown key "label". Allowed: type, default, description, options"#)
         ]
     )
     func checksParameterKeys(
@@ -155,7 +179,7 @@ struct TemplateCheckTests {
     func readsTemplateNamedByChoice() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"] } },
+            { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"], "description": "the t" } },
               "storyline": [ { "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
             """#)
         let checker = KeyChecker(mediaKinds: MediaKindTable(templates: ["pack/intro", "pack/outro"]))
@@ -168,7 +192,7 @@ struct TemplateCheckTests {
     func recordsParameterInsideArgumentInstance() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "p": { "type": "text" } },
+            { "kind": "sequence", "params": { "p": { "type": "text", "description": "the p" } },
               "storyline": [ { "media": { "template": "pack/intro", "args": { "x": { "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
             """#)
 
@@ -211,11 +235,11 @@ struct TemplateCheckTests {
         "a shape taken by a choice checks its object with each option's keys, so a rect and a path together stop",
         arguments: [
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
                 #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#
             ),
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"] } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
                 #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, area, width, height, placement, radius, outset"#
             )
         ]
@@ -242,7 +266,7 @@ struct TemplateCheckTests {
             ),
             (
                 #"{ "shape": { "param": "s" }, "points": [[0, 0], [10, 0]] }"#,
-                #"["path"]"#,
+                #"["path", "rect"]"#,
                 "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
             ),
             (
@@ -252,7 +276,7 @@ struct TemplateCheckTests {
             ),
             (
                 #"{ "shape": { "param": "s" }, "area": [0, 0, 10, 10], "width": 10 }"#,
-                #"["ellipse"]"#,
+                #"["ellipse", "rect"]"#,
                 #"clips[0].mask (ellipse mask): takes only one of "area", "width""#
             )
         ]
@@ -264,7 +288,7 @@ struct TemplateCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "s": { "type": "choice", "options": \#(options) } },
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": \#(options), "description": "the s" } },
               "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }
             """#)
 
@@ -277,7 +301,7 @@ struct TemplateCheckTests {
     func acceptsMaskShapeChoiceOfBoxShapes() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"] } },
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"], "description": "the s" } },
               "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
             """#)
 
@@ -292,7 +316,7 @@ struct TemplateCheckTests {
     func acceptsShapeChoiceOfBoxShapes() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"] }, "c": { "type": "color" } },
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"], "description": "the s" }, "c": { "type": "color", "description": "the c" } },
               "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": { "param": "c" } } ] }
             """#)
 

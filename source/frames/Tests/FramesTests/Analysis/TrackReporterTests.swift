@@ -60,34 +60,58 @@ struct TrackReporterTests {
 
         // Then
         let expected = #"""
-            {"track": "1.0.0", "frames": [{"time": 0, "rect": [10, 30, 100, 50]}, \#
-            {"time": 0.25, "rect": [10, 20, 100, 50]}, {"time": 0.5, "rect": [10, 10, 100, 50]}, \#
-            {"time": 0.75, "rect": [10, 0, 100, 50]}]}
+            {"track": "1.0.0", "time": 0.25, "target": [[10, 20], [110, 20], [110, 70], [10, 70]], "frames": [\#
+            {"time": 0, "quad": [[10, 30], [110, 30], [110, 80], [10, 80]], "motion": [1, 0, 0, 1, 0, 10]}, \#
+            {"time": 0.25, "quad": [[10, 20], [110, 20], [110, 70], [10, 70]], "motion": [1, 0, 0, 1, 0, 0]}, \#
+            {"time": 0.5, "quad": [[10, 10], [110, 10], [110, 60], [10, 60]], "motion": [1, 0, 0, 1, 0, -10]}, \#
+            {"time": 0.75, "quad": [[10, 0], [110, 0], [110, 50], [10, 50]], "motion": [1, 0, 0, 1, 0, -20]}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
 
-    @Test("the machine output writes each rectangle to the nearest millionth, without the tracker's noise")
-    func roundsRectangles() throws {
+    @Test("a target turning a quarter turn clockwise reports its quad turned and the motion's matrix of that turn")
+    func writesQuarterTurn() throws {
+        // Given
+        let sut = TrackReporter(
+            mediaFacts: facts,
+            ocr: OCRTable([:]),
+            tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0, 0.25]], turn: 360)
+        )
+
+        // When
+        let report = try sut.report(of: "/abs/clip.mov", area: "[0, 0, 100, 50]", at: 0)
+
+        // Then
+        let expected = #"""
+            {"track": "1.0.0", "time": 0, "target": [[0, 0], [100, 0], [100, 50], [0, 50]], "frames": [\#
+            {"time": 0, "quad": [[0, 0], [100, 0], [100, 50], [0, 50]], "motion": [1, 0, 0, 1, 0, 0]}, \#
+            {"time": 0.25, "quad": [[75, -25], [75, 75], [25, 75], [25, -25]], "motion": [0, 1, -1, 0, 75, -25]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("the machine output writes each corner to the nearest millionth, without the tracker's noise")
+    func roundsQuads() throws {
         // Given
         let noisy = Rectangle(x: 93.99999999268294, y: 99.99999997439016, width: 200.00000000000003, height: 42)
         let sut = TrackReporter(
             mediaFacts: facts,
             ocr: OCRTable([:]),
-            tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0, 0.25]])
+            tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0]])
         )
 
         // When
         let report = try sut.report(
             of: "/abs/clip.mov",
             area: "[\(noisy.x), \(noisy.y), \(noisy.width), \(noisy.height)]",
-            at: 0
+            at: 0,
+            to: 0
         )
 
         // Then
         let expected = #"""
-            {"track": "1.0.0", "frames": [{"time": 0, "rect": [94, 100, 200, 42]}, \#
-            {"time": 0.25, "rect": [94, 100, 200, 42]}]}
+            {"track": "1.0.0", "time": 0, "target": [[94, 100], [294, 100], [294, 142], [94, 142]], "frames": [\#
+            {"time": 0, "quad": [[94, 100], [294, 100], [294, 142], [94, 142]], "motion": [1, 0, 0, 1, 0, 0]}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -105,8 +129,9 @@ struct TrackReporterTests {
         let report = try sut.report(of: "/abs/clip.mov", area: area, at: 0.5)
 
         // Then
-        #expect(report.frames.map(\.time) == times)
-        #expect(report.frames.first(where: { $0.time == 0.5 })?.rectangle == found)
+        #expect(report.track.samples.map(\.time) == times)
+        #expect(report.track.target == Quad(found))
+        #expect(report.track.samples.first(where: { $0.time == 0.5 })?.quad == Quad(found))
     }
 
     @Test("with `--to` only the frames shown between it and `--at` are followed, either way", arguments: [
@@ -123,7 +148,7 @@ struct TrackReporterTests {
         let report = try sut.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: at, to: to)
 
         // Then
-        #expect(report.frames.map(\.time) == followed)
+        #expect(report.track.samples.map(\.time) == followed)
     }
 
     @Test("a bad or unmatched area stops, naming `--area`, and so do an image and times outside the video", arguments: [
@@ -173,13 +198,13 @@ struct TrackReporterTests {
         let report = try sut.report(of: video, area: #"{"text": "Total"}"#, at: 0.5)
 
         // Then
-        #expect(report.frames.map(\.time) == ScreenRecording.frameTimes)
-        let start = try #require(report.frames.first { $0.time == 0.5 })
-        for (index, frame) in report.frames.enumerated() {
-            let moved = frame.rectangle.center.y - start.rectangle.center.y
+        #expect(report.track.samples.map(\.time) == ScreenRecording.frameTimes)
+        let start = try #require(report.track.samples.first { $0.time == 0.5 })
+        for (index, frame) in report.track.samples.enumerated() {
+            let moved = frame.quad.centroid.y - start.quad.centroid.y
             let drift = drawn[index].center.y - drawn[15].center.y
             #expect(abs(moved - drift) <= 1.5, "frame \(index) moved \(moved), drawn \(drift)")
-            #expect(abs(frame.rectangle.center.x - start.rectangle.center.x) <= 1.5, "frame \(index) moved along")
+            #expect(abs(frame.quad.centroid.x - start.quad.centroid.x) <= 1.5, "frame \(index) moved along")
         }
     }
 

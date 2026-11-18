@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Resolves a filter choice to the operations it applies, in order: a preset name, a list of them, or `none`. The
-// names its operations hold are resolved to values in `theme`.
+// Resolves a filter choice to the operations it applies, in order, each preset read with its arguments. The names its
+// operations hold are resolved to values in `theme`.
 struct FilterResolver: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
@@ -22,26 +22,20 @@ struct FilterResolver: Sendable {
     }
 
     // MARK: - Public
+    // Each preset's stops name the place its choice writes it.
     func operations(
-        of choice: JSONValue,
+        of choice: FilterChoice,
         theme: MergedTheme,
-        place: Place,
         kind: PlaceKind
     ) throws -> [FilterOperation] {
-        if let names = choice.arrayValue {
-            return try names.enumerated().flatMap { index, name in
-                try operations(of: name, theme: theme, place: place.appending(index: index), kind: kind)
+        try choice.presets.flatMap { instance in
+            guard let preset = try presets.filter(instance) else {
+                throw ResolveError.unknownPreset(place: instance.place, kind: kind, presetKind: "filter", name: instance.name)
             }
-        }
 
-        let name = choice.stringValue ?? "none"
-        guard name != "none" else { return [] }
-        guard let preset = try presets.filter(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: kind, presetKind: "filter", name: name)
-        }
-
-        return try preset.operations.map { operation in
-            try values.operation(operation, theme: theme, place: place, kind: kind)
+            return try preset.operations.map { operation in
+                try values.operation(operation, theme: theme, place: instance.place, kind: kind)
+            }
         }
     }
 

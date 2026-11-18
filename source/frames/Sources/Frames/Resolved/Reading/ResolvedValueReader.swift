@@ -72,6 +72,22 @@ struct ResolvedValueReader: Sendable {
         return Point(x: numbers[0], y: numbers[1])
     }
 
+    // Four corners, top left, top right, bottom right and bottom left.
+    func quad(_ value: PlacedJSONValue) throws -> Quad {
+        let corners = try value.elements()
+        guard corners.count == 4 else {
+            throw ModelError.wrongType(
+                place: value.place,
+                kind: value.kind,
+                expected: "a list of 4 points",
+                found: value.finding
+            )
+        }
+        let points = try corners.map(point)
+
+        return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
+    }
+
     // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `polyline`, which runs
     // through at least two points.
     func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
@@ -183,7 +199,7 @@ struct ResolvedValueReader: Sendable {
     }
 
     func ease(_ value: PlacedJSONValue) throws -> Ease {
-        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name or [x1, y1, x2, y2]") }
+        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name, [x1, y1, x2, y2] or {spring}") }
 
         return ease
     }
@@ -259,11 +275,10 @@ struct ResolvedValueReader: Sendable {
     }
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
-        let text = try value.object(keys: ["size", "lines", "background", "stroke", "runs"])
+        let text = try value.object(keys: ["size", "background", "runs"])
 
         return ResolvedText(
             size: try size(text.member("size")),
-            lineCount: try text.member("lines").integer(),
             background: try text.member("background").optional { value in
                 let background = try value.object(keys: ["color", "padding", "radius"])
 
@@ -272,11 +287,6 @@ struct ResolvedValueReader: Sendable {
                     padding: try size(background.member("padding")),
                     radius: try background.member("radius").number()
                 )
-            },
-            stroke: try text.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color"])
-
-                return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
             },
             runs: try runs(text.member("runs"))
         )
@@ -300,13 +310,18 @@ struct ResolvedValueReader: Sendable {
 
     // A glyph is `[id, x, y]`, its baseline origin in the text's box.
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
-        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "glyphs"])
+        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
 
         return ResolvedGlyphRun(
             font: try pinned(run),
             face: try run.member("face").string(),
             size: try run.member("size").number(),
             color: try color(run.member("color")),
+            stroke: try run.member("stroke").optional { value in
+                let stroke = try value.object(keys: ["width", "color"])
+
+                return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
+            },
             glyphs: try run.member("glyphs").elements().map { element in
                 let numbers = try element.numbers(count: 3)
                 guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }

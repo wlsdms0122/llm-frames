@@ -86,6 +86,37 @@ package struct Canvas {
         }
     }
 
+    // Draws what `drawing` draws turned `degrees` clockwise, as the picture is displayed, about `centre`.
+    package func turned(
+        by degrees: Double,
+        about centre: Point,
+        drawing: () -> Void
+    ) {
+        context.saveGState()
+        defer { context.restoreGState() }
+
+        // The context's y axis points up, so a clockwise turn on the displayed picture is a negative angle in it.
+        context.translateBy(x: centre.x, y: size.height - centre.y)
+        context.rotate(by: -degrees * .pi / 180)
+        context.translateBy(x: -centre.x, y: -(size.height - centre.y))
+        drawing()
+    }
+
+    // Draws what `drawing` draws scaled by `scale` about `centre`.
+    package func scaled(
+        by scale: Double,
+        about centre: Point,
+        drawing: () -> Void
+    ) {
+        context.saveGState()
+        defer { context.restoreGState() }
+
+        context.translateBy(x: centre.x, y: size.height - centre.y)
+        context.scaleBy(x: scale, y: scale)
+        context.translateBy(x: -centre.x, y: -(size.height - centre.y))
+        drawing()
+    }
+
     // MARK: - Private
     private func flipped(_ rectangle: Rectangle) -> CGRect {
         CGRect(

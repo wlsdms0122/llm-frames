@@ -29,6 +29,10 @@ struct CommandContext: Sendable {
         PresetLibrary(packs: packs)
     }
 
+    var library: ReferenceLibrary {
+        ReferenceLibrary(packs: packs, mediaFacts: roles.decoder)
+    }
+
     var planner: DocumentPlanner {
         DocumentPlanner(
             mediaFacts: roles.decoder,

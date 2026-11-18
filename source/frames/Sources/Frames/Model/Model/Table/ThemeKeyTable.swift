@@ -39,7 +39,6 @@ enum ThemeKeyTable {
             KeyRule("size", .number),
             KeyRule("weight", .literal(["regular", "bold"])),
             KeyRule("color", .color),
-            KeyRule("emphasis", .color),
             KeyRule("lineHeight", .number),
             KeyRule("stroke", .oneOf([
                 .exactly(.bool(false)),

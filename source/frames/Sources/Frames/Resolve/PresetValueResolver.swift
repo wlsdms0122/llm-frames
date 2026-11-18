@@ -37,7 +37,7 @@ struct PresetValueResolver: Sendable {
             .bloom(
                 amount: amount,
                 radius: radius,
-                color: try color.map { try self.color($0, theme: theme, place: place, kind: kind) }
+                color: try color.map { try theme.presetColor($0, place: place, kind: kind) }
             )
 
         case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .vignette,
@@ -55,7 +55,7 @@ struct PresetValueResolver: Sendable {
         let cover = try preset.cover.map { cover in
             switch cover.source {
             case let .color(color):
-                Cover(source: .color(try self.color(color, theme: theme, place: place, kind: kind)), span: cover.span)
+                Cover(source: .color(try theme.presetColor(color, place: place, kind: kind)), span: cover.span)
 
             case let .media(media):
                 Cover(source: .media(try mediaFile(media, place: place, kind: kind)), span: cover.span)
@@ -83,20 +83,6 @@ struct PresetValueResolver: Sendable {
     }
 
     // MARK: - Private
-    // A colour is a value or the name of a theme colour, and a name the theme does not hold stops.
-    private func color(
-        _ written: String,
-        theme: MergedTheme,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> String {
-        guard theme.isColor(written) else {
-            throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written)
-        }
-
-        return theme.color(written).hex
-    }
-
     private func mediaFile(
         _ name: String,
         place: Place,

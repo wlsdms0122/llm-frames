@@ -16,6 +16,8 @@ enum Ease: Equatable, Sendable {
     case bounceOut
     case step
     case cubicBezier(x1: Double, y1: Double, x2: Double, y2: Double)
+    // A damped spring settling from 0 to 1, `bounce` greater than -1 and less than 1.
+    case spring(bounce: Double)
 
     // MARK: - Property
     // MARK: - Initializer
@@ -47,6 +49,12 @@ enum Ease: Equatable, Sendable {
             guard numbers.count == 4, elements.count == 4 else { return nil }
 
             self = .cubicBezier(x1: numbers[0], y1: numbers[1], x2: numbers[2], y2: numbers[3])
+
+        case let .object(object):
+            guard object.keys == ["spring"], let spring = object["spring"]?.objectValue, spring.keys == ["bounce"],
+                  let bounce = spring["bounce"]?.numberValue, bounce > -1, bounce < 1 else { return nil }
+
+            self = .spring(bounce: bounce)
 
         default:
             return nil
@@ -81,6 +89,9 @@ enum Ease: Equatable, Sendable {
 
         case let .cubicBezier(x1, y1, x2, y2):
             return cubicBezier(u, x1: x1, y1: y1, x2: x2, y2: y2)
+
+        case let .spring(bounce):
+            return springResponse(at: u, bounce: bounce) / springResponse(at: 1, bounce: bounce)
         }
     }
 
@@ -101,6 +112,29 @@ enum Ease: Equatable, Sendable {
             let shifted = u - 2.625 / d
             return n * shifted * shifted + 0.984375
         }
+    }
+
+    // The step response of a damped harmonic oscillator at rest at 0 and pulled toward 1, its natural frequency one
+    // cycle over the span, so it depends on u and the bounce alone.
+    private func springResponse(
+        at u: Double,
+        bounce: Double
+    ) -> Double {
+        let theta = 2 * Double.pi * u
+
+        if bounce > 0 {
+            let damping = 1 - bounce
+            let damped = (1 - damping * damping).squareRoot()
+            return 1 - exp(-damping * theta) * (cos(damped * theta) + damping / damped * sin(damped * theta))
+        }
+        guard bounce < 0 else { return 1 - exp(-theta) * (1 + theta) }
+
+        // The hyperbolic form multiplies a vanishing exponential by a growing one, so the over-damped response is
+        // written by its two real roots, the slow one from their product of 1 to keep its digits.
+        let damping = 1 / (1 + bounce)
+        let fast = -damping - (damping * damping - 1).squareRoot()
+        let slow = 1 / fast
+        return 1 - (fast * exp(slow * theta) - slow * exp(fast * theta)) / (fast - slow)
     }
 
     private func cubicBezier(

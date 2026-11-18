@@ -99,7 +99,7 @@ A template renders on its own with its arguments: `frames render mine/intro --ar
 | --- | --- |
 | `probe <media> [--json]` | kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, audio |
 | `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order `nth` counts them |
-| `track <video> --at <t> --area <area> [--to <t>]` | the rectangle of an area on every frame the tracker follows, as JSON |
+| `track <video> --at <t> --area <area> [--to <t>]` | the four corners of an area on every frame the tracker follows and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each labelled with its time |
 | `timeline <document> [--args <args.json>] [--json]` | every clip's ranges, speed, transition, animation and place, after resolve, without rendering |
@@ -192,10 +192,12 @@ A sequence plays clips over time. The storyline plays one clip after another, co
 ```json
 { "kind": "sequence",
   "format": { "size": [1080, 1920], "fps": 30, "inset": [420, 0, 120, 0] },
+  "theme": { "styles": { "emphasis": { "size": 48, "weight": "bold", "color": "#FFE14D" } } },
   "storyline": [
     { "media": "/path/to/recording.mp4", "in": 0.2, "out": 1.5,
       "connected": [
-        { "at": [0.4, 1.5], "title": "The total **includes shipping**", "style": "subtitle" },
+        { "at": [0.4, 1.5], "title": [ { "text": "The total " }, { "text": "includes shipping", "style": "emphasis" } ],
+          "style": "subtitle" },
         { "at": [0.6, 1.5], "shape": "box", "area": "Total", "label": "fixed" } ] },
     { "media": "/path/to/shot.png", "duration": 2.5, "transition": "frames/fade",
       "keyframes": [ { "at": 0, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 2.5, "crop": { "scale": 1.2 } } ] }
@@ -319,9 +321,9 @@ The full table is [FRAMES-7](spec/FRAMES-7/SPEC.md). What each key does: format 
 
 | Choice | Takes |
 | --- | --- |
-| transition | a preset name, `<pack>/<name>`, an absolute path, `"cut"`, or `{preset, seconds}` |
-| animation | a preset name, `<pack>/<name>`, an absolute path, `"none"`, or `{entrance, exit}` |
-| filter | a preset name, `<pack>/<name>`, an absolute path, a list of those, or `"none"` |
+| transition | a preset name, `<pack>/<name>`, an absolute path, `"cut"`, or `{preset, seconds, args}` |
+| animation | a preset name, `<pack>/<name>`, an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, each side a name, `"none"` or `{preset, args}` |
+| filter | a preset name, `<pack>/<name>`, an absolute path, `{preset, args}`, a list of those without `"none"`, or `"none"` |
 
 ### Time
 
@@ -352,7 +354,7 @@ Durations (`duration`, transition and animation seconds, fades) are sequence sec
 | `dim` | darkens everything but the area |
 | `arrow` | points at the area from `side` (`left`, `right`, `top`, `bottom`) |
 
-A `label` goes on the first side in the theme `shapes.label.sides` where it fits, and stops when none does. A title needs a `style`. `blend` takes the W3C modes: `normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter`. [FRAMES-11](spec/FRAMES-11/SPEC.md)
+A `label` goes on the first side in the theme `shapes.label.sides` where it fits, and stops when none does. A title needs a `style`. Its `title` is a string or a list of runs `{text, style}`: a run's style gives it its size, weight, colour and stroke, and the clip's style gives the paragraph its placement, alignment, line height, line limit and background ([FRAMES-5](spec/FRAMES-5/SPEC.md)). `blend` takes the W3C modes: `normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter`. [FRAMES-11](spec/FRAMES-11/SPEC.md)
 
 ### Theme
 
@@ -362,7 +364,7 @@ A `label` goes on the first side in the theme `shapes.label.sides` where it fits
 | --- | --- |
 | `baseWidth`, `font` | the width theme lengths are written for, and the font families in order |
 | `colors` | named colours (`accent`, `background`, `text`, ...), an open map |
-| `styles` | text styles by name: `size, weight, color, emphasis, lineHeight, stroke, background, placement, offset, align, lines`, an open map |
+| `styles` | text styles by name: `size, weight, color, lineHeight, stroke, background, placement, offset, align, lines`, an open map |
 | `shapes` | `box, fill, dim, arrow, border, shadow, label` |
 | `area`, `placement`, `image`, `layout` | paddings and gaps |
 | `defaults` | the transition, filter and animations a clip takes when it names none |
@@ -385,7 +387,7 @@ A parameter is `{type, default, description}`, with `options` for a `choice`. Ty
 | --- | --- |
 | `probe` | `{"probe", kind, size, duration, fps, alpha, audio}` |
 | `ocr` | `{"ocr", size, frames: [{time, lines: [{text, rect}]}]}` |
-| `track` | `{"track", frames: [{time, rect}]}` |
+| `track` | `{"track", time, target, frames: [{time, quad, motion}]}` |
 | `timeline` | `{"timeline", duration, storyline, clips}` |
 | `evaluate` | `{"evaluate", time, size, items: [{place, id, kind, bounds, opacity}]}` |
 | `locate` | `{"locate", hits: [{place, id, kind}, ...]}` |

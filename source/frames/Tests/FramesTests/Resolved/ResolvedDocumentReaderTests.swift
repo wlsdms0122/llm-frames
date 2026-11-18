@@ -15,8 +15,8 @@ struct ResolvedDocumentReaderTests {
     private let sut = ResolvedDocumentReader()
     private let writer = ResolvedDocumentWriter()
 
-    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, and a filter with a
-    // LUT.
+    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, springs among their
+    // eases, and a filter with a LUT.
     private static let presets = PresetTable(
         transitions: Fixture.presets.transitions.merging([
             "reveal": TransitionPreset(
@@ -26,7 +26,7 @@ struct ResolvedDocumentReaderTests {
                 audio: .constantPower,
                 incoming: Span(ease: .easeOut, keys: [SpanKey(t: 0, values: [.scale: 1.2, .opacity: 0]), SpanKey(t: 1, values: [:])]),
                 outgoing: nil,
-                cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .linear, keys: [])),
+                cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .spring(bounce: 0.6), keys: [])),
                 matte: Matte(media: "/abs/matte.png", softness: 0.1, isInverted: true, ease: .cubicBezier(x1: 0.3, y1: 0, x2: 0.2, y2: 1))
             ),
             "dip": TransitionPreset(
@@ -35,7 +35,7 @@ struct ResolvedDocumentReaderTests {
                 over: .outgoing,
                 audio: .constantGain,
                 incoming: nil,
-                outgoing: Span(ease: .linear, revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
+                outgoing: Span(ease: .spring(bounce: -0.4), revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
                 cover: Cover(source: .color("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
                 matte: nil
             )
@@ -80,7 +80,7 @@ struct ResolvedDocumentReaderTests {
             { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
-              "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
+              "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
             { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
         """#,
@@ -141,8 +141,24 @@ struct ResolvedDocumentReaderTests {
             { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
             "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
               { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
+        """#,
+        // A title of runs over two lines with a background, one run in the stroked subtitle style.
+        #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "theme": { "styles": { "card": { "size": 40, "background": { "color": "#000000", "padding": [4, 8], "radius": 6 } } } },
+          "storyline": [ { "solid": "#000000", "duration": 2 } ],
+          "clips": [ { "title": [ { "text": "Big", "style": "subtitle" }, { "text": " news\nToday" } ], "style": "card",
+                       "at": [0, 2], "position": [200, 200] } ] }
         """#
     ]
+
+    // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
+    // follows its own media.
+    private static let trackedDocument = #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": { "text": "Total" }, "connected": [
+            { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true },
+            { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": { "text": "Send" } } ] } ] }
+        """#
 
     // MARK: - Initializer
     // MARK: - Test
@@ -157,6 +173,22 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(read == document)
+    }
+
+    @Test("a run's stroke reads back with the run, and a run without one reads back without")
+    func readsRunStroke() throws {
+        // Given
+        let text = try written(Self.documents[Self.documents.count - 1])
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.runs.map(\.stroke) == [TextStroke(width: 3, color: Color(written: "#000000")), nil, nil])
     }
 
     @Test(
@@ -456,13 +488,136 @@ struct ResolvedDocumentReaderTests {
         #expect(missingError?.description.hasPrefix("clips[1].trackMatte (track matte): missing") == true)
     }
 
+    @Test("a track that turns and grows reads back as it was written, each frame's motion with its turn")
+    func readsTurningTrack() throws {
+        // Given
+        let tracker = TrackerTable(frameTimes: Fixture.tracker.frameTimes, drift: Point(x: 3, y: -2), growth: 0.1, turn: 30)
+        let document = try resolved(Self.documents[2], tracker: tracker)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        let track = try #require(read.clips.first?.track?.track)
+        let last = try #require(track.samples.last)
+        #expect(abs(last.motion.rotation - 30 * (last.time - track.mediaTime)) < 1e-9)
+        #expect(last.motion.rotation > 0)
+    }
+
+    @Test(
+        "a track motion that is not a similarity and a target of three points stop, naming their place",
+        arguments: [
+            (
+                "motion",
+                "[1, 0, 0, 2, 0, 0]",
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [1, 0, 0, 2, 0, 0]"
+            ),
+            (
+                "motion",
+                "[0, 0, 0, 0, 5, 5]",
+                "clips[0].track.frames[0].motion (track): a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found [0, 0, 0, 0, 5, 5]"
+            ),
+            (
+                "target",
+                "[[0, 0], [10, 0], [10, 10]]",
+                "clips[0].track.target (track): expected a list of 4 points, found a list of 3"
+            )
+        ]
+    )
+    func refusesTrackShape(
+        key: String,
+        value: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacingInTrack(ofClip: 0, in: written(Self.documents[2])) { track in
+            guard key == "motion" else { return track.setting(key, to: try Fixture.json(value)) }
+
+            var frames = try #require(track["frames"]?.arrayValue)
+            let frame = try #require(frames[0].objectValue)
+            frames[0] = .object(frame.setting(key, to: try Fixture.json(value)))
+            return track.setting("frames", to: .array(frames))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a track reads back with the media it follows, its parent's for a shape and its own for a storyline clip and a media clip of video")
+    func readsTrackedMedia() throws {
+        // Given
+        let document = try resolved(Self.trackedDocument)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+    }
+
+    @Test(
+        "a track that pins other media than the one its clip follows stops, naming the track's media",
+        arguments: [
+            (
+                "clips",
+                0,
+                "/abs/short.mp4",
+                "clips[0].track.media (track): the clip follows its parent's media, so its track pins the media its parent shows"
+            ),
+            (
+                "clips",
+                1,
+                "/abs/screen.mp4",
+                "clips[1].track.media (track): the clip follows its own media, so its track pins the media the clip shows"
+            ),
+            (
+                "storyline",
+                0,
+                "/abs/short.mp4",
+                "storyline[0].track.media (track): the clip follows its own media, so its track pins the media the clip shows"
+            )
+        ]
+    )
+    func refusesTrackedMedia(
+        list: String,
+        index: Int,
+        file: String,
+        message: String
+    ) throws {
+        // Given
+        // The screen and the shape follow the screen, and the media clip the short, so each is given the other's.
+        let root = try #require(try JSONReader().read(written(Self.trackedDocument)).objectValue)
+        let pinned = (root["clips"]?.arrayValue ?? []).compactMap { $0.objectValue?["track"]?.objectValue?["media"] }
+        let media = try #require(pinned.first { $0.objectValue?["file"]?.stringValue == file })
+        var entries = try #require(root[list]?.arrayValue)
+        let entry = try #require(entries[index].objectValue)
+        let track = try #require(entry["track"]?.objectValue)
+        entries[index] = .object(entry.setting("track", to: .object(track.setting("media", to: media))))
+        let text = JSONWriter().write(.object(root.setting(list, to: .array(entries))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     // MARK: - Private
-    private func resolved(_ document: String) throws -> ResolvedSequence {
+    private func resolved(
+        _ document: String,
+        tracker: TrackerTable = Fixture.tracker
+    ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
             ocr: Fixture.ocr,
-            tracker: Fixture.tracker,
+            tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )
@@ -484,6 +639,20 @@ struct ResolvedDocumentReaderTests {
         var clips = try #require(root["clips"]?.arrayValue)
         let clip = try #require(clips[index].objectValue)
         clips[index] = .object(clip.setting(key, to: try Fixture.json(value)))
+
+        return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
+    }
+
+    private func replacingInTrack(
+        ofClip index: Int,
+        in text: String,
+        _ change: (JSONObject) throws -> JSONObject
+    ) throws -> String {
+        let root = try #require(try JSONReader().read(text).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[index].objectValue)
+        let track = try #require(clip["track"]?.objectValue)
+        clips[index] = .object(clip.setting("track", to: .object(try change(track))))
 
         return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }

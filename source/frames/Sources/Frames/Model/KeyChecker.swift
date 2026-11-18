@@ -40,6 +40,34 @@ struct KeyChecker: Sendable {
         return scope.references
     }
 
+    // A preset checked against its parameter types, with the place of every reference to a parameter in it, so they
+    // can be filled.
+    func check(
+        preset: JSONValue,
+        as table: ObjectTable,
+        place: Place
+    ) throws -> [ParameterReference] {
+        guard let object = preset.objectValue else { throw wrongType(preset, .object(table), place, table.kind) }
+
+        var scope = DocumentScope(owner: .preset)
+        try checkPublishing(object, as: table, place: place, scope: &scope)
+
+        return scope.references
+    }
+
+    // The `params` a template declares, checked as they are where they are written and without the rest of it, so
+    // what it publishes can be read while what it holds, its media included, is not.
+    func check(
+        declarationsOf template: JSONValue,
+        place: Place
+    ) throws {
+        let table = DocumentKeyTable.sequence
+        guard let object = template.objectValue else { throw wrongType(template, .document, place, "document") }
+
+        var scope = DocumentScope()
+        try checkDeclarations(of: object, as: table, place: place, scope: &scope)
+    }
+
     // A document named by its file where media is taken, which stands as if written there.
     func check(
         nestedDocument document: JSONValue,
@@ -96,18 +124,18 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
-        if case let .object(object) = value, object.contains("param"), takesParameter(type) {
+        if case let .object(object) = value, object.contains("param"), takesParameter(type, by: scope.owner) {
             try checkParameterReference(object, as: type, place: place, kind: kind, scope: &scope)
             return
         }
 
         switch type {
-        case .anyValue:
+        case .anyValue, .presetArgument:
             return
 
         case .argument:
-            // An argument's type is the template's to say, but the only object one can be is media.
-            guard case .object = value else { return }
+            // An argument's type is the template's to say, and only media is checked where it is written.
+            guard MediaKeyTable.isMedia(value) else { return }
 
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -123,8 +151,16 @@ struct KeyChecker: Sendable {
         case .nonNegativeNumber:
             guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
 
+        case .fraction:
+            guard let number = value.numberValue, (0...1).contains(number) else { throw wrongType(value, type, place, kind) }
+
         case .signedFraction:
             guard let number = value.numberValue, (-1...1).contains(number) else {
+                throw wrongType(value, type, place, kind)
+            }
+
+        case .openSignedFraction:
+            guard let number = value.numberValue, number > -1, number < 1 else {
                 throw wrongType(value, type, place, kind)
             }
 
@@ -151,7 +187,7 @@ struct KeyChecker: Sendable {
             try checkIdentifier(value, place: place, kind: kind, scope: &scope)
 
         case .ease:
-            try checkEase(value, place: place, kind: kind)
+            try checkEase(value, place: place, kind: kind, scope: &scope)
 
         case let .literal(names):
             guard let string = value.stringValue else { throw wrongType(value, type, place, kind) }
@@ -223,6 +259,9 @@ struct KeyChecker: Sendable {
         case .masks:
             try checkMasks(value, place: place, kind: kind, scope: &scope)
 
+        case .runs:
+            try checkRuns(value, place: place, kind: kind, scope: &scope)
+
         case .media:
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -235,14 +274,23 @@ struct KeyChecker: Sendable {
                 try checkClip(element, place: elementPlace(place, index, element), in: clipPlace, scope: &scope)
             }
 
-        case .parameters:
+        case let .parameters(table):
             guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
             for member in object.members {
-                try checkParameter(member.value, place: place.appending(key: member.key), scope: &scope)
+                try checkParameter(
+                    member.value,
+                    named: member.key,
+                    as: table,
+                    place: place.appending(key: member.key),
+                    scope: &scope
+                )
             }
 
         case .filterOperation:
             try checkFilterOperation(value, place: place, kind: kind, scope: &scope)
+
+        case .filterChoice:
+            try checkFilterChoice(value, place: place, kind: kind, scope: &scope)
         }
     }
 
@@ -297,7 +345,15 @@ struct KeyChecker: Sendable {
         }
 
         // When only one alternative takes this kind of value, its own error says more than a list of every form.
-        let admitting = types.indices.filter { admits(types[$0], value) }
+        // Objects of several forms are told apart by the keys they hold.
+        var admitting = types.indices.filter { admits(types[$0], value) }
+        if admitting.count > 1, let object = value.objectValue {
+            admitting = admitting.filter { index in
+                guard case let .object(table) = types[index] else { return false }
+
+                return object.keys.contains { table.rule(named: $0) != nil }
+            }
+        }
         guard admitting.count == 1 else {
             throw wrongType(value, .oneOf(types), place, kind)
         }
@@ -344,7 +400,8 @@ struct KeyChecker: Sendable {
     private func checkEase(
         _ value: JSONValue,
         place: Place,
-        kind: String
+        kind: String,
+        scope: inout DocumentScope
     ) throws {
         switch value {
         case let .string(name):
@@ -353,7 +410,7 @@ struct KeyChecker: Sendable {
                     place: place,
                     kind: kind,
                     value: name,
-                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]"]
+                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]", "{spring}"]
                 )
             }
 
@@ -365,6 +422,9 @@ struct KeyChecker: Sendable {
             guard (0...1).contains(numbers[0]), (0...1).contains(numbers[2]) else {
                 throw ModelError.invalidValue(place: place, kind: kind, reason: "a cubic Bézier's x1 and x2 lie between 0 and 1")
             }
+
+        case let .object(object):
+            try checkObject(object, as: EaseKeyTable.spring, place: place, scope: &scope)
 
         default:
             throw wrongType(value, .ease, place, kind)
@@ -424,6 +484,31 @@ struct KeyChecker: Sendable {
 
         for (index, element) in elements.enumerated() {
             try checkMask(element, place: place.appending(index: index), kind: kind, scope: &scope)
+        }
+    }
+
+    // An empty list stops, since it is a title with nothing to show.
+    private func checkRuns(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try check(value, as: .text, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: kind,
+                reason: "a list of runs holds at least one run, since a title without one has nothing to show"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            let place = place.appending(index: index)
+            try check(element, as: .object(ClipKeyTable.run), place: place, kind: kind, scope: &scope)
         }
     }
 
@@ -516,13 +601,13 @@ struct KeyChecker: Sendable {
             try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
 
         case let .object(object) where object.contains("imageSequence"):
-            try checkObject(object, as: TemplateKeyTable.imageSequence, place: place, scope: &scope)
+            try checkObject(object, as: MediaKeyTable.imageSequence, place: place, scope: &scope)
 
         case let .object(object) where object.contains("template"):
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
 
         case .object:
-            throw ModelError.missingKey(place: place, kind: "media", keys: ["kind", "imageSequence", "template"])
+            throw ModelError.missingKey(place: place, kind: "media", keys: MediaKeyTable.keys)
 
         default:
             throw wrongType(value, .media, place, kind)
@@ -641,17 +726,19 @@ struct KeyChecker: Sendable {
             return
         }
 
+        try checkPublishing(object, as: table, place: place, scope: &scope)
+    }
+
+    // An object that may publish `params`, a template or a preset, whose references name its own parameters.
+    private func checkPublishing(
+        _ object: JSONObject,
+        as table: ObjectTable,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws {
         // Declarations are checked before anything refers to them, so a broken one is reported where it is written,
         // and a reference written before `params` still finds its declaration.
-        if let declarations = object["params"], let rule = table.rule(named: "params") {
-            try check(declarations, as: rule.type, place: place.appending(key: "params"), kind: table.kind, scope: &scope)
-            scope.parameters = Dictionary(
-                (declarations.objectValue?.members ?? []).compactMap { member in
-                    member.value.objectValue.map { (member.key, $0) }
-                },
-                uniquingKeysWith: { first, _ in first }
-            )
-        }
+        try checkDeclarations(of: object, as: table, place: place, scope: &scope)
         try checkObject(object, as: table, place: place, skipping: ["params"], scope: &scope)
 
         let parameters = object["params"]?.objectValue?.members ?? []
@@ -659,6 +746,24 @@ struct KeyChecker: Sendable {
         for member in parameters where !scope.usedParameters.contains(member.key) {
             throw ModelError.unusedParameter(place: place.appending(key: "params").appending(key: member.key), name: member.key)
         }
+    }
+
+    // The `params` an object publishes, each checked by its owner's table, and known to the scope by name.
+    private func checkDeclarations(
+        of object: JSONObject,
+        as table: ObjectTable,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws {
+        guard let declarations = object["params"], let rule = table.rule(named: "params") else { return }
+
+        try check(declarations, as: rule.type, place: place.appending(key: "params"), kind: table.kind, scope: &scope)
+        scope.parameters = Dictionary(
+            (declarations.objectValue?.members ?? []).compactMap { member in
+                member.value.objectValue.map { (member.key, $0) }
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     private func checkClip(
@@ -814,24 +919,24 @@ struct KeyChecker: Sendable {
 
     private func checkParameter(
         _ value: JSONValue,
+        named name: String,
+        as table: ObjectTable,
         place: Place,
         scope: inout DocumentScope
     ) throws {
-        let table = TemplateKeyTable.parameter
         guard let object = value.objectValue else { throw wrongType(value, .object(table), place, table.kind) }
 
         try checkObject(object, as: table, place: place, skipping: ["default"], scope: &scope)
 
-        let type = object["type"]?.stringValue ?? ""
-        let isChoice = type == "choice"
+        let isChoice = object["type"]?.stringValue == ParameterType.choice.rawValue
         if isChoice, !object.contains("options") {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: ["options"])
         }
-        if isChoice, object["options"]?.arrayValue?.isEmpty == true {
+        if isChoice, let options = object["options"]?.arrayValue, distinctCount(of: options) < 2 {
             throw ModelError.invalidValue(
                 place: place.appending(key: "options"),
                 kind: table.kind,
-                reason: "a choice offers at least one option"
+                reason: "a choice offers at least two distinct options"
             )
         }
         if !isChoice, object.contains("options") {
@@ -839,43 +944,24 @@ struct KeyChecker: Sendable {
                 place: place,
                 kind: table.kind,
                 key: "options",
-                allowed: ["type", "default", "description"]
+                allowed: table.keys.filter { $0 != "options" }
             )
         }
 
-        guard let defaultValue = object["default"] else { return }
+        guard let defaultValue = object["default"], let parameter = Parameter(name: name, declaration: object) else { return }
 
-        let options = object["options"]?.arrayValue?.compactMap(\.stringValue) ?? []
         var defaultScope = scope
         try check(
             defaultValue,
-            as: defaultType(of: type, options: options),
+            as: parameter.valueType,
             place: place.appending(key: "default"),
             kind: table.kind,
             scope: &defaultScope
         )
     }
 
-    private func defaultType(
-        of parameterType: String,
-        options: [String]
-    ) -> ValueType {
-        switch parameterType {
-        case "text":
-            .text
-
-        case "color":
-            .color
-
-        case "number":
-            .number
-
-        case "choice":
-            .literal(options)
-
-        default:
-            .media
-        }
+    private func distinctCount(of values: [JSONValue]) -> Int {
+        values.indices.filter { index in !values[..<index].contains(values[index]) }.count
     }
 
     private func checkParameterReference(
@@ -901,6 +987,15 @@ struct KeyChecker: Sendable {
         scope.references.append(ParameterReference(place: place, name: name, type: type, kind: kind))
 
         let parameterType = parameter["type"]?.stringValue ?? ""
+        if parameterType == ParameterType.choice.rawValue, scope.owner == .preset, type != .ease {
+            throw ModelError.misplacedParameter(
+                place: place,
+                kind: kind,
+                name: name,
+                type: parameterType,
+                expected: expectation(of: type)
+            )
+        }
         guard parameterType != "choice" else {
             // A choice stands for each of its options, so each one must fit where the reference stands.
             for option in parameter["options"]?.arrayValue ?? [] {
@@ -941,6 +1036,39 @@ struct KeyChecker: Sendable {
         return mediaKind
     }
 
+    // `"none"` turns the filter off, so it is written alone, and a list applies at least one preset.
+    private func checkFilterChoice(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: ChoiceKeyTable.filterKind,
+                reason: "a filter list holds at least one preset"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            let elementPlace = place.appending(index: index)
+            guard element != .string("none") else {
+                throw ModelError.invalidValue(
+                    place: elementPlace,
+                    kind: ChoiceKeyTable.filterKind,
+                    reason: "\"none\" turns the filter off, so it is written alone and never in a list"
+                )
+            }
+
+            try check(element, as: ChoiceKeyTable.filterPreset, place: elementPlace, kind: kind, scope: &scope)
+        }
+    }
+
     private func checkFilterOperation(
         _ value: JSONValue,
         place: Place,
@@ -977,17 +1105,20 @@ struct KeyChecker: Sendable {
         case .argument, .anyValue:
             true
 
+        case .presetArgument:
+            parameterType == "number" || parameterType == "color"
+
         case .media:
             MediaKind(rawValue: parameterType) != nil
 
-        case .text:
+        case .text, .runs:
             parameterType == "text"
 
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .signedFraction, .integer, .nonNegativeInteger,
-             .positiveInteger, .margin:
+        case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
+             .nonNegativeInteger, .positiveInteger, .margin:
             parameterType == "number"
 
         default:
@@ -995,13 +1126,20 @@ struct KeyChecker: Sendable {
         }
     }
 
-    private func takesParameter(_ type: ValueType) -> Bool {
-        switch type {
-        case .anyObject, .anyValue:
+    // A preset's parameter never stands for a name, a key or a file, only where a number, a colour or an ease is written.
+    private func takesParameter(
+        _ type: ValueType,
+        by owner: ParameterOwner
+    ) -> Bool {
+        switch (owner, type) {
+        case (_, .anyObject), (_, .anyValue):
             false
 
-        default:
+        case (.template, _):
             true
+
+        case (.preset, _):
+            type == .ease || fits("number", type) || fits("color", type)
         }
     }
 
@@ -1018,7 +1156,7 @@ struct KeyChecker: Sendable {
         _ value: JSONValue
     ) -> Bool {
         switch (type, value) {
-        case (.anyValue, _), (.argument, _), (.oneOf, _):
+        case (.anyValue, _), (.argument, _), (.presetArgument, _), (.oneOf, _):
             true
 
         case let (.exactly(expected), _):
@@ -1027,15 +1165,16 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.signedFraction, .number),
-             (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
+        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
+             (.signedFraction, .number),
+             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
              (.clips, .array):
             true
 
@@ -1046,7 +1185,11 @@ struct KeyChecker: Sendable {
         case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
             true
 
-        case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array):
+        case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array), (.runs, .string),
+             (.runs, .array):
+            true
+
+        case (.filterChoice, .string), (.filterChoice, .object), (.filterChoice, .array):
             true
 
         default:
@@ -1089,8 +1232,14 @@ struct KeyChecker: Sendable {
         case .nonNegativeNumber:
             "a number, 0 or more"
 
+        case .fraction:
+            "a number from 0 to 1"
+
         case .signedFraction:
             "a number from -1 to 1"
+
+        case .openSignedFraction:
+            "a number greater than -1 and less than 1"
 
         case .integer:
             "a whole number"
@@ -1108,7 +1257,7 @@ struct KeyChecker: Sendable {
             "a colour"
 
         case .ease:
-            "an ease name or [x1, y1, x2, y2]"
+            "an ease name, [x1, y1, x2, y2] or {spring}"
 
         case let .literal(names):
             "one of \(names.joined(separator: ", "))"
@@ -1140,6 +1289,9 @@ struct KeyChecker: Sendable {
         case .masks:
             "a mask or a list of masks"
 
+        case .runs:
+            "a string or a list of runs"
+
         case .media:
             "a media reference"
 
@@ -1151,6 +1303,12 @@ struct KeyChecker: Sendable {
 
         case .filterOperation:
             "a filter operation"
+
+        case .presetArgument:
+            "a number, a colour or an ease"
+
+        case .filterChoice:
+            "a preset name, {preset, args} or a list of them"
         }
     }
 

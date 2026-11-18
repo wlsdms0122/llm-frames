@@ -51,6 +51,12 @@ struct ResolvedSequenceReader: Sendable {
         let written = try object.member("clips").elements()
         let clips = try written.map(clip)
         try checkParents(of: clips, places: written.map(\.place), storyline: storyline)
+        try checkTrackedMedia(
+            of: clips,
+            places: written.map(\.place),
+            storyline: storyline,
+            storylinePlaces: writtenStoryline.map(\.place)
+        )
         // Evaluation follows each track matte chain to its end and draws its clips, so the checks of resolve hold here.
         try TrackMatteFinder().check(
             zip(storyline, writtenStoryline).map { entry, value in TrackMatteLink(entry: entry, place: value.place) }
@@ -97,6 +103,67 @@ struct ResolvedSequenceReader: Sendable {
                 ids: cycle.map { clips[$0].id ?? clips[$0].place }
             )
         }
+    }
+
+    // Evaluation moves a tracked clip by its track's motion on the clock of the media it follows, its own or its
+    // parent's as the clip decides, so a track that pins other media stops here, where only the reader can see it.
+    private func checkTrackedMedia(
+        of clips: [ResolvedClip],
+        places: [Place],
+        storyline: [ResolvedStorylineClip],
+        storylinePlaces: [Place]
+    ) throws {
+        for (entry, place) in zip(storyline, storylinePlaces) {
+            guard let track = entry.track else { continue }
+            guard case let .pinned(media) = entry.media, track.media == media else {
+                throw trackedMediaMismatch(at: place, followsParent: false)
+            }
+        }
+
+        for (clip, place) in zip(clips, places) {
+            guard let track = clip.track else { continue }
+
+            if let media = clip.ownTrackedMedia {
+                guard track.media == media else { throw trackedMediaMismatch(at: place, followsParent: false) }
+            } else {
+                guard track.media == pinnedMedia(of: clip.parent, clips: clips, storyline: storyline) else {
+                    throw trackedMediaMismatch(at: place, followsParent: true)
+                }
+            }
+        }
+    }
+
+    private func trackedMediaMismatch(
+        at place: Place,
+        followsParent: Bool
+    ) -> ModelError {
+        .invalidValue(
+            place: place.appending(key: "track").appending(key: "media"),
+            kind: "track",
+            reason: followsParent
+                ? "the clip follows its parent's media, so its track pins the media its parent shows"
+                : "the clip follows its own media, so its track pins the media the clip shows"
+        )
+    }
+
+    // The pinned media of the storyline entry or clip with the id, nil for none or for one without pinned media.
+    private func pinnedMedia(
+        of id: String?,
+        clips: [ResolvedClip],
+        storyline: [ResolvedStorylineClip]
+    ) -> PinnedMedia? {
+        guard let id else { return nil }
+
+        let content: ResolvedMediaContent? = if let entry = storyline.first(where: { $0.id == id }) {
+            entry.media
+        } else if case let .media(media) = clips.first(where: { $0.id == id })?.content {
+            media.media
+        } else {
+            nil
+        }
+        guard case let .pinned(media) = content else { return nil }
+
+        return media
     }
 
     private func kind(of clip: ResolvedClip) -> PlaceKind {
@@ -432,20 +499,40 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func track(_ value: PlacedJSONValue) throws -> ResolvedTrack {
-        let track = try value.object(kind: "track", keys: ["target", "time", "frames"])
+        let track = try value.object(kind: "track", keys: ["media", "time", "target", "frames"])
+        let target = try values.quad(track.member("target"))
 
         return ResolvedTrack(
-            target: try values.rectangle(track.member("target")),
-            mediaTime: try track.member("time").number(),
-            frames: try track.member("frames").elements().map { element in
-                let frame = try element.object(keys: ["time", "value"])
+            media: try values.media(track.member("media")),
+            track: Track(
+                target: target,
+                mediaTime: try track.member("time").number(),
+                samples: try track.member("frames").elements().map { element in
+                    let frame = try element.object(keys: ["time", "quad", "motion"])
 
-                return TrackedFrame(
-                    time: try frame.member("time").number(),
-                    rectangle: try values.rectangle(frame.member("value"))
-                )
-            }
+                    return TrackSample(
+                        time: try frame.member("time").number(),
+                        quad: try values.quad(frame.member("quad")),
+                        motion: TrackMotion(transform: try motion(frame.member("motion")), origin: target.centroid)
+                    )
+                }
+            )
         )
+    }
+
+    // A similarity, `[a, b, -b, a, tx, ty]` with a scale above 0, since evaluation takes its scale and rotation apart
+    // and brings values back through its inverse.
+    private func motion(_ value: PlacedJSONValue) throws -> AffineTransform {
+        let motion = AffineTransform(matrix: try value.numbers(count: 6))
+        guard motion.d == motion.a, motion.c == -motion.b, motion.a != 0 || motion.b != 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a track's motion is a move, one scale above 0 and one rotation, written [a, b, -b, a, tx, ty], found \(value.value.written)"
+            )
+        }
+
+        return motion
     }
 
     private func transition(_ value: PlacedJSONValue) throws -> ResolvedTransition {

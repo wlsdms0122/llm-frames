@@ -44,7 +44,7 @@ struct ClipEvaluatorTests {
             SpanKey(t: 0, values: [.scale: 0.5, .opacity: 0, .reveal: 0]),
             SpanKey(t: 1, values: [.scale: 1, .opacity: 1, .reveal: 1])
         ]))
-        let text = ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
         let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil), opacity: 0.8)
 
         // When
@@ -61,14 +61,56 @@ struct ClipEvaluatorTests {
         )])
     }
 
+    @Test("a media clip's reveal wipes across its box and its shadow, and its border inside the box adds nothing")
+    func revealsMediaClipWithShadow() throws {
+        // Given
+        let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
+            SpanKey(t: 0, values: [.reveal: 0]),
+            SpanKey(t: 1, values: [.reveal: 1])
+        ]))
+        let appearance = ResolvedMediaAppearance(
+            conform: .fit,
+            radius: 0,
+            border: MediaBorder(width: 4, color: white),
+            shadow: DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white)
+        )
+        let clip = ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: [], appearance: appearance)),
+            start: 0,
+            end: 4,
+            lane: 1,
+            storyline: nil,
+            parent: nil,
+            box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
+            crop: nil,
+            mask: nil,
+            trackMatte: nil,
+            track: nil,
+            opacity: [Keyframe(at: 0, value: 1)],
+            scale: [Keyframe(at: 0, value: 1)],
+            rotation: [Keyframe(at: 0, value: 0)],
+            blend: "normal",
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+        )
+
+        // When
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, at: 0.5)
+
+        // Then
+        // The shadow is the 80 x 40 box moved by (4, 6) and grown by three times its radius, (-2, 0) to (90, 52), and
+        // with the box it spans 92 x 52 from (-2, 0). Halfway, the left half of that shows.
+        let item = try #require(items.first)
+        #expect(item.reveal == Rectangle(x: -2, y: 0, width: 46, height: 52))
+    }
+
     @Test("a title's keyframed scale and rotation act about its anchor point, and its background fills its whole box")
     func transformsTitleAboutAnchor() throws {
         // Given
         let text = ResolvedText(
             size: Size(width: 100, height: 40),
-            lineCount: 1,
             background: TextBackground(color: white, padding: Size(width: 8, height: 4), radius: 6),
-            stroke: nil,
             runs: []
         )
         let clip = title(text, animation: .none, opacity: 1, scale: 2, rotation: 90)
@@ -86,7 +128,6 @@ struct ClipEvaluatorTests {
         #expect(item.content == .glyphs(GlyphsItem(
             size: Size(width: 100, height: 40),
             runs: [],
-            stroke: nil,
             background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 6, color: white)
         )))
     }
@@ -96,7 +137,7 @@ struct ClipEvaluatorTests {
         // Given
         // P doubles, turns a quarter clockwise and moves by (300, 0), so the anchor point (100, 200) lands at
         // (-100, 200). The box keeps its 100 x 40 size and turns a quarter about its bottom centre (50, 40).
-        let text = ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
         let clip = title(text, animation: .none, opacity: 1)
         let transform = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0)
             .concatenating(AffineTransform(rotation: 90, about: Point(x: 0, y: 0)))
@@ -382,7 +423,7 @@ struct ClipEvaluatorTests {
     }
 
     private func text() -> ResolvedText {
-        ResolvedText(size: Size(width: 100, height: 40), lineCount: 1, background: nil, stroke: nil, runs: [])
+        ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
     }
 
     private func expect(

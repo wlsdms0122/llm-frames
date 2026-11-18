@@ -32,7 +32,6 @@ struct GlyphDrawerTests {
         let glyphs = GlyphsItem(
             size: Size(width: 100, height: 100),
             runs: [run(glyph: glyph)],
-            stroke: nil,
             background: nil
         )
 
@@ -58,8 +57,7 @@ struct GlyphDrawerTests {
         let (glyph, bounds) = try letterI()
         let glyphs = GlyphsItem(
             size: Size(width: 100, height: 100),
-            runs: [run(glyph: glyph)],
-            stroke: TextStroke(width: 6, color: Color(written: "#0000FF")),
+            runs: [run(glyph: glyph, stroke: TextStroke(width: 6, color: Color(written: "#0000FF")))],
             background: GlyphBackground(
                 rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
                 radius: 0,
@@ -79,6 +77,25 @@ struct GlyphDrawerTests {
         #expect(bitmap.pixel(x: 2, y: 2) == [0, 1, 0, 1])
     }
 
+    @Test("each run is stroked in its own stroke, and a run without one draws no outline")
+    func strokesEachRunInItsOwn() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let (glyph, bounds) = try letterI()
+        let stroked = run(glyph: glyph, stroke: TextStroke(width: 6, color: Color(written: "#0000FF")))
+        let plain = run(glyph: glyph, x: Self.baseline.x + 40)
+        let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [stroked, plain], background: nil)
+
+        // When
+        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
+
+        // Then
+        let row = Int(bounds.midY)
+        #expect(bitmap.pixel(x: Int(bounds.minX) - 2, y: row) == [0, 0, 1, 1])
+        #expect(bitmap.pixel(x: Int(bounds.minX) + 40 - 2, y: row) == [0, 0, 0, 0])
+        #expect(bitmap.pixel(x: Int(bounds.midX) + 40, y: row) == [1, 0, 0, 1])
+    }
+
     @Test("a face the font file does not hold is refused, naming both")
     func refusesMissingFace() throws {
         // Given
@@ -88,9 +105,10 @@ struct GlyphDrawerTests {
             face: "Helvetica-Missing",
             size: Self.size,
             color: Color(written: "#FF0000"),
+            stroke: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 0)]
         )
-        let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], stroke: nil, background: nil)
+        let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], background: nil)
 
         // When
         let drawing = { try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))])) }
@@ -104,13 +122,18 @@ struct GlyphDrawerTests {
         DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: items)
     }
 
-    private func run(glyph: CGGlyph) -> ResolvedGlyphRun {
+    private func run(
+        glyph: CGGlyph,
+        x: Double = Self.baseline.x,
+        stroke: TextStroke? = nil
+    ) -> ResolvedGlyphRun {
         ResolvedGlyphRun(
             font: PinnedFile(path: Self.file, sha256: ""),
             face: Self.face,
             size: Self.size,
             color: Color(written: "#FF0000"),
-            glyphs: [PositionedGlyph(id: Int(glyph), x: Self.baseline.x, y: Self.baseline.y)]
+            stroke: stroke,
+            glyphs: [PositionedGlyph(id: Int(glyph), x: x, y: Self.baseline.y)]
         )
     }
 

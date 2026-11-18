@@ -10,17 +10,19 @@
       ],
       "connected": [
         { "at": [0, 1.6], "title": "주문 요약을 열면", "style": "subtitle" },
-        { "at": [1.6, 3.5], "title": "**합계**에 배송비가 들어가요", "style": "subtitle" },
+        { "at": [1.6, 3.5], "title": [ { "text": "합계", "style": "subtitle-emphasis" }, { "text": "에 배송비가 들어가요" } ], "style": "subtitle" },
         { "at": [2, 3.5], "shape": "rect", "style": "outline", "id": "total", "parent": "summary", "area": { "text": "Total", "padding": 14 } },
         { "at": [2, 3.5], "title": "배송비 포함", "style": "label", "parent": "total",
           "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] },
     { "media": "/path/to/result.png", "duration": 2.5,
       "connected": [
-        { "at": [0, 2.5], "title": "이제 **42,000원** 그대로 결제돼요", "style": "subtitle" }
+        { "at": [0, 2.5], "title": [ { "text": "이제 " }, { "text": "42,000원", "style": "subtitle-emphasis" }, { "text": " 그대로 결제돼요" } ],
+          "style": "subtitle" }
       ] }
   ],
   "clips": [
-    { "title": "결제 금액이\n**한눈에** 보여요", "style": "headline" }
+    { "title": [ { "text": "결제 금액이\n" }, { "text": "한눈에", "style": "headline-emphasis" }, { "text": " 보여요" } ],
+      "style": "headline" }
   ]
 }

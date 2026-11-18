@@ -20,7 +20,7 @@ extension ResolvedStorylineClip {
                 position: box.position.value(at: time),
                 scale: scale.value(at: time),
                 rotation: rotation.value(at: time),
-                opacity: opacity.value(at: time)
+                opacity: opacity.opacity(at: time)
             ),
             motion: Motion()
         )

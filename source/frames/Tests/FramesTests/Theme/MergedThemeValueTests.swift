@@ -20,22 +20,19 @@ struct MergedThemeValueTests {
         let sut = try theme(#"{ "styles": { "caption": { "size": 40 } } }"#)
 
         // When
-        let style = sut.style(named: "caption", scale: 1)
+        let character = sut.characterStyle(named: "caption", scale: 1)
+        let paragraph = sut.paragraphStyle(named: "caption", scale: 1)
 
         // Then
-        #expect(style == TextStyle(
+        #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
             pack: nil,
-            size: 40,
             weight: .regular,
+            size: 40,
             color: Color(written: "#FFFFFF"),
-            emphasis: Color(written: "#FFFFFF"),
-            lineHeight: 50,
-            stroke: nil,
-            background: nil,
-            align: .left,
-            lines: nil
+            stroke: nil
         ))
+        #expect(paragraph == ParagraphStyle(lineHeight: 50, background: nil, align: .left, lines: nil))
     }
 
     @Test("a background without colour, padding or radius, and a stroke without colour, take the plain values")
@@ -47,40 +44,43 @@ struct MergedThemeValueTests {
             """#)
 
         // When
-        let style = sut.style(named: "caption", scale: 1)
+        let character = sut.characterStyle(named: "caption", scale: 1)
+        let paragraph = sut.paragraphStyle(named: "caption", scale: 1)
 
         // Then
-        #expect(style.background == TextBackground(
+        #expect(paragraph.background == TextBackground(
             color: Color(written: "#112233"),
             padding: Size(width: 0, height: 0),
             radius: 0
         ))
-        #expect(style.stroke == TextStroke(width: 4, color: Color(written: "#445566")))
+        #expect(character.stroke == TextStroke(width: 4, color: Color(written: "#445566")))
     }
 
     @Test("a written style keeps its values, colours by name or by value, with its lengths times the scale")
     func readsWrittenStyle() throws {
         // Given
         let sut = try theme(#"""
-            { "styles": { "caption": { "size": 40, "weight": "bold", "color": "accent", "emphasis": "#00ff0080",
+            { "styles": { "caption": { "size": 40, "weight": "bold", "color": "accent",
                                        "lineHeight": 60, "stroke": { "width": 4, "color": "shadow" },
                                        "background": { "color": "#000000", "padding": [10, 20], "radius": 8 },
                                        "align": "right", "lines": 1 } } }
             """#)
 
         // When
-        let style = sut.style(named: "caption", scale: 0.5)
+        let character = sut.characterStyle(named: "caption", scale: 0.5)
+        let paragraph = sut.paragraphStyle(named: "caption", scale: 0.5)
 
         // Then
-        #expect(style == TextStyle(
+        #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
             pack: nil,
-            size: 20,
             weight: .bold,
+            size: 20,
             color: Color(written: "#FFFFFF"),
-            emphasis: Color(written: "#00FF0080"),
+            stroke: TextStroke(width: 2, color: Color(written: "#00000080"))
+        ))
+        #expect(paragraph == ParagraphStyle(
             lineHeight: 30,
-            stroke: TextStroke(width: 2, color: Color(written: "#00000080")),
             background: TextBackground(color: Color(written: "#000000"), padding: Size(width: 10, height: 5), radius: 4),
             align: .right,
             lines: 1
@@ -93,12 +93,13 @@ struct MergedThemeValueTests {
         let sut = try theme(#"{ "styles": { "subtitle": { "background": false } } }"#)
 
         // When
-        let style = sut.style(named: "subtitle", scale: 2)
+        let character = sut.characterStyle(named: "subtitle", scale: 2)
+        let paragraph = sut.paragraphStyle(named: "subtitle", scale: 2)
 
         // Then
-        #expect(style.background == nil)
-        #expect(style.size == 96)
-        #expect(style.lineHeight == 120)
+        #expect(paragraph.background == nil)
+        #expect(character.size == 96)
+        #expect(paragraph.lineHeight == 120)
     }
 
     @Test("a style's lines is the most lines its text may take, two for the base subtitle")
@@ -107,8 +108,8 @@ struct MergedThemeValueTests {
         let sut = try theme(#"{ "styles": { "caption": { "size": 40, "lines": 3 } } }"#)
 
         // When
-        let caption = sut.style(named: "caption", scale: 1)
-        let subtitle = sut.style(named: "subtitle", scale: 1)
+        let caption = sut.paragraphStyle(named: "caption", scale: 1)
+        let subtitle = sut.paragraphStyle(named: "subtitle", scale: 1)
 
         // Then
         #expect(caption.lines == 3)
@@ -124,7 +125,7 @@ struct MergedThemeValueTests {
         ])
 
         // When
-        let style = sut.style(named: "subtitle", scale: 1)
+        let style = sut.characterStyle(named: "subtitle", scale: 1)
 
         // Then
         #expect(style.stroke == nil)
@@ -139,7 +140,7 @@ struct MergedThemeValueTests {
         ])
 
         // When
-        let style = sut.style(named: "label", scale: 1)
+        let style = sut.characterStyle(named: "label", scale: 1)
 
         // Then
         #expect(style.families == ["Inter", "Apple SD Gothic Neo"])
@@ -159,7 +160,7 @@ struct MergedThemeValueTests {
         let merged = try ThemeMerger().merge([sized, unsized])
 
         // Then
-        #expect(merged.style(named: "caption", scale: 1).size == 40)
+        #expect(merged.characterStyle(named: "caption", scale: 1).size == 40)
         let error = #expect(throws: ThemeError.self) { try ThemeMerger().merge([unsized]) }
         #expect(error?.description == #"""
             doc.json: theme.styles.caption (style): style "caption" has no size, and text is set only in a style with one

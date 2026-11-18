@@ -10,14 +10,14 @@ import Testing
 @testable import Frames
 
 // The fake shaper sets each scalar 0.5 em wide and a space 0.25 em, with an ascent of 0.8 em and a descent of 0.2 em,
-// so at size 40 a letter is 20 wide, a space 10, and a line 50 high has its baseline at 37.
+// so at size 40 a letter is 20 wide, a space 10, and a line reaches 32 above its baseline and 8 below.
 @Suite("Typesetter Tests")
 struct TypesetterTests {
     // MARK: - Property
     private let sut = Typesetter(shaper: ShaperTable(missing: ["✓"]))
     private let face = ShaperTable.face("Apple SD Gothic Neo", .bold)
     private let text = Color(written: "#FFFFFF")
-    private let emphasis = Color(written: "#FFD43B")
+    private let accent = Color(written: "#FFD43B")
     private let place = Place.root.appending(key: "title")
 
     // MARK: - Initializer
@@ -25,68 +25,157 @@ struct TypesetterTests {
     @Test("a line is set in the style's size and colour, its glyphs placed on the baseline")
     func setsOneLine() throws {
         // Given
-        let style = style()
+        let runs = [run("ab")]
 
         // When
-        let layout = try sut.layout("ab", style: style, face: face, width: 500, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
 
         // Then
         #expect(layout == TextLayout(
-            size: Size(width: 40, height: 50),
+            size: Size(width: 40, height: 40),
             lineCount: 1,
             runs: [
-                GlyphRun(face: face, size: 40, color: text, glyphs: [glyph("a", 0, 37), glyph("b", 20, 37)])
+                GlyphRun(
+                    face: face,
+                    size: 40,
+                    color: text,
+                    stroke: nil,
+                    glyphs: [glyph("a", 0, 32), glyph("b", 20, 32)]
+                )
             ],
-            stroke: nil,
             background: nil
         ))
     }
 
-    @Test("**text** takes the emphasis colour, and a last ** that nothing closes is text")
-    func setsEmphasis() throws {
+    @Test("each run is set in its own size, colour and stroke, and text written with markup is set as written")
+    func setsRunsInTheirStyles() throws {
         // Given
-        let style = style()
+        let stroke = TextStroke(width: 3, color: Color(written: "#000000"))
+        let runs = [run("a "), run("**b**", style: character(size: 20, color: accent, stroke: stroke))]
 
         // When
-        let closed = try sut.layout("a **b** c", style: style, face: face, width: 500, place: place, kind: "title")
-        let open = try sut.layout("a **b", style: style, face: face, width: 500, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
 
         // Then
-        #expect(closed.runs.map(\.color) == [text, emphasis, text])
-        #expect(closed.runs.map { $0.glyphs.map(\.id) } == [ids("a "), ids("b"), ids(" c")])
-        #expect(open.runs.map(\.color) == [text])
-        #expect(open.runs.map { $0.glyphs.map(\.id) } == [ids("a **b")])
+        #expect(layout.runs == [
+            GlyphRun(face: face, size: 40, color: text, stroke: nil, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
+            GlyphRun(
+                face: face,
+                size: 20,
+                color: accent,
+                stroke: stroke,
+                glyphs: [
+                    glyph("*", 30, 32), glyph("*", 40, 32), glyph("b", 50, 32), glyph("*", 60, 32), glyph("*", 70, 32)
+                ]
+            )
+        ])
+    }
+
+    @Test("a small run and a big run on one line share its baseline, which lies the big run's ascent below the top")
+    func setsMixedSizesOnOneBaseline() throws {
+        // Given
+        let runs = [run("a", style: character(size: 20)), run("B"), run("c", style: character(size: 20))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
+
+        // Then
+        #expect(layout.size == Size(width: 40, height: 40))
+        #expect(layout.runs.map(\.glyphs) == [[glyph("a", 0, 32)], [glyph("B", 10, 32)], [glyph("c", 30, 32)]])
+    }
+
+    @Test("the first baseline follows the first line's largest ascent and the box ends the last line's largest descent")
+    func measuresLinesByTheirRuns() throws {
+        // Given
+        let runs = [run("a\n", style: character(size: 20)), run("B")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
+
+        // Then
+        #expect(layout.size == Size(width: 20, height: 16 + 50 + 8))
+        #expect(layout.runs.map(\.glyphs) == [[glyph("a", 0, 16)], [glyph("B", 0, 66)]])
+    }
+
+    // At size 20 a line reaches 16 above its baseline and 4 below, and at 40 32 and 8, and lines lie 50 apart.
+    @Test(
+        "a line with no text takes the extent of the run it begins in",
+        arguments: [
+            (["a\n", "\nb"], [20, 40], 124),
+            (["a", "\n"], [40, 20], 86),
+            (["\n", "b"], [20, 40], 74)
+        ] as [([String], [Double], Double)]
+    )
+    func measuresEmptyLines(
+        texts: [String],
+        sizes: [Double],
+        height: Double
+    ) throws {
+        // Given
+        let runs = zip(texts, sizes).map { text, size in run(text, style: character(size: size)) }
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
+
+        // Then
+        #expect(layout.size.height == height)
+    }
+
+    @Test("a run boundary is no break opportunity, so a word split over two runs stays whole on its line")
+    func keepsWordWholeAcrossRuns() throws {
+        // Given
+        let runs = [run("go iPhone"), run("에서", style: character(size: 40, color: accent))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 170, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [ids("go "), ids("iPhone"), ids("에서")])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[32, 32, 32], Array(repeating: 82, count: 6), [82, 82]])
+        #expect(layout.runs[2].glyphs.first?.x == 120)
+    }
+
+    @Test("lines align on the advances of every run on them")
+    func alignsAcrossRuns() throws {
+        // Given
+        let runs = [run("aa\nb"), run("b", style: character(size: 20))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(align: .right), width: 500, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map { $0.glyphs.map(\.x) } == [[0, 20], [10], [30]])
     }
 
     @Test("lines wrap where UAX #14 allows at the width, and spaces at a line's end hang outside it")
     func wrapsAtWidth() throws {
         // Given
-        let style = style()
+        let runs = [run("aa bb cc")]
 
         // When
-        let layout = try sut.layout("aa bb cc", style: style, face: face, width: 110, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 110, place: place, kind: "title")
 
         // Then
-        #expect(layout.size == Size(width: 90, height: 100))
+        #expect(layout.size == Size(width: 90, height: 90))
         #expect(layout.lineCount == 2)
         #expect(layout.runs.map { $0.glyphs.map(\.id) } == [ids("aa bb "), ids("cc")])
-        #expect(layout.runs[1].glyphs.first == glyph("c", 0, 87))
+        #expect(layout.runs[1].glyphs.first == glyph("c", 0, 82))
     }
 
     @Test("a piece wider than the width alone overflows on its own line, and \\n always breaks")
     func breaksAtNewlineAndOverflows() throws {
         // Given
-        let style = style()
+        let style = paragraph()
 
         // When
-        let long = try sut.layout("a bbbbbb", style: style, face: face, width: 50, place: place, kind: "title")
-        let newline = try sut.layout("a\n\nb", style: style, face: face, width: 500, place: place, kind: "title")
+        let long = try sut.layout([run("a bbbbbb")], paragraph: style, width: 50, place: place, kind: "title")
+        let newline = try sut.layout([run("a\n\nb")], paragraph: style, width: 500, place: place, kind: "title")
 
         // Then
         #expect(long.lineCount == 2)
         #expect(long.size.width == 120)
         #expect(newline.lineCount == 3)
-        #expect(newline.runs.map { $0.glyphs.map(\.y) } == [[37], [137]])
+        #expect(newline.runs.map { $0.glyphs.map(\.y) } == [[32], [132]])
     }
 
     @Test(
@@ -102,10 +191,10 @@ struct TypesetterTests {
         lines: [String]
     ) throws {
         // Given
-        let style = style()
+        let runs = [run(text)]
 
         // When
-        let layout = try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: width, place: place, kind: "title")
 
         // Then
         #expect(layout.runs.map { $0.glyphs.map(\.id) } == lines.map(ids))
@@ -114,10 +203,10 @@ struct TypesetterTests {
     @Test("a Korean word wider than its line starts a line and breaks inside it, where UAX #14 allows")
     func breaksWideWordInside() throws {
         // Given
-        let style = style()
+        let runs = [run("가 결제하기버튼")]
 
         // When
-        let layout = try sut.layout("가 결제하기버튼", style: style, face: face, width: 100, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 100, place: place, kind: "title")
 
         // Then
         #expect(layout.runs.map { $0.glyphs.map(\.id) } == [ids("가 "), ids("결제하기버"), ids("튼")])
@@ -133,10 +222,10 @@ struct TypesetterTests {
         x: Double
     ) throws {
         // Given
-        let style = style(align: align)
+        let style = paragraph(align: align)
 
         // When
-        let layout = try sut.layout("aa bb c ", style: style, face: face, width: 100, place: place, kind: "title")
+        let layout = try sut.layout([run("aa bb c ")], paragraph: style, width: 100, place: place, kind: "title")
 
         // Then
         #expect(layout.runs[1].glyphs.first?.x == x)
@@ -146,24 +235,24 @@ struct TypesetterTests {
     func padsBackground() throws {
         // Given
         let background = TextBackground(color: Color(written: "#000000"), padding: Size(width: 16, height: 8), radius: 4)
-        let style = style(lineHeight: 64, background: background)
+        let style = paragraph(lineHeight: 64, background: background)
 
         // When
-        let layout = try sut.layout("a\nb", style: style, face: face, width: 500, place: place, kind: "title")
+        let layout = try sut.layout([run("a\nb")], paragraph: style, width: 500, place: place, kind: "title")
 
         // Then
-        #expect(layout.size == Size(width: 52, height: 144))
-        #expect(layout.runs.map(\.glyphs) == [[glyph("a", 16, 52)], [glyph("b", 16, 116)]])
+        #expect(layout.size == Size(width: 52, height: 120))
+        #expect(layout.runs.map(\.glyphs) == [[glyph("a", 16, 40)], [glyph("b", 16, 104)]])
         #expect(layout.background == background)
     }
 
     @Test("characters the face lacks are set in the face the shaper falls back to, in a run of their own")
     func keepsFallbackFace() throws {
         // Given
-        let style = style()
+        let runs = [run("a✓b")]
 
         // When
-        let layout = try sut.layout("a✓b", style: style, face: face, width: 500, place: place, kind: "title")
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 500, place: place, kind: "title")
 
         // Then
         #expect(layout.runs.map(\.face) == [face, ShaperTable.fallback, face])
@@ -173,11 +262,17 @@ struct TypesetterTests {
     @Test("a one-line style never wraps, and has no width when none is given")
     func keepsOneLine() throws {
         // Given
-        let style = style(lines: 1)
+        let style = paragraph(lines: 1)
 
         // When
-        let fits = try sut.layout("aa bb cc", style: style, face: face, width: 150, place: place, kind: "title")
-        let unbounded = try sut.layout("aa bb cc", style: self.style(), face: face, width: nil, place: place, kind: "title")
+        let fits = try sut.layout([run("aa bb cc")], paragraph: style, width: 150, place: place, kind: "title")
+        let unbounded = try sut.layout(
+            [run("aa bb cc")],
+            paragraph: paragraph(),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
 
         // Then
         #expect(fits.lineCount == 1)
@@ -206,11 +301,11 @@ struct TypesetterTests {
         message: String
     ) throws {
         // Given
-        let style = style(lines: 1)
+        let style = paragraph(lines: 1)
 
         // When, Then
         let error = #expect(throws: TextError.self) {
-            try sut.layout(text, style: style, face: face, width: 100, place: place, kind: "title")
+            try sut.layout([run(text)], paragraph: style, width: 100, place: place, kind: "title")
         }
         #expect(error?.description == message)
     }
@@ -224,10 +319,10 @@ struct TypesetterTests {
         width: Double
     ) throws {
         // Given
-        let style = style(lines: 2)
+        let style = paragraph(lines: 2)
 
         // When
-        let layout = try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+        let layout = try sut.layout([run(text)], paragraph: style, width: width, place: place, kind: "title")
 
         // Then
         #expect(layout.lineCount == 2)
@@ -242,35 +337,45 @@ struct TypesetterTests {
         width: Double
     ) throws {
         // Given
-        let style = style(lines: 2)
+        let style = paragraph(lines: 2)
 
         // When, Then
         let error = #expect(throws: TextError.self) {
-            try sut.layout(text, style: style, face: face, width: width, place: place, kind: "title")
+            try sut.layout([run(text)], paragraph: style, width: width, place: place, kind: "title")
         }
         #expect(error?.description == "title (title): the text takes 3 lines, and its style allows at most 2")
     }
 
     // MARK: - Private
-    private func style(
+    private func paragraph(
         lineHeight: Double = 50,
         background: TextBackground? = nil,
         align: TextAlignment = .left,
         lines: Int? = nil
-    ) -> TextStyle {
-        TextStyle(
+    ) -> ParagraphStyle {
+        ParagraphStyle(lineHeight: lineHeight, background: background, align: align, lines: lines)
+    }
+
+    private func character(
+        size: Double = 40,
+        color: Color? = nil,
+        stroke: TextStroke? = nil
+    ) -> CharacterStyle {
+        CharacterStyle(
             families: ["Apple SD Gothic Neo"],
             pack: nil,
-            size: 40,
             weight: .bold,
-            color: text,
-            emphasis: emphasis,
-            lineHeight: lineHeight,
-            stroke: nil,
-            background: background,
-            align: align,
-            lines: lines
+            size: size,
+            color: color ?? text,
+            stroke: stroke
         )
+    }
+
+    private func run(
+        _ text: String,
+        style: CharacterStyle? = nil
+    ) -> TextRun {
+        TextRun(text: text, style: style ?? character(), face: face)
     }
 
     private func glyph(

@@ -13,8 +13,12 @@ indirect enum ValueType: Equatable, Sendable {
     case number
     case positiveNumber
     case nonNegativeNumber
+    // A number from 0 to 1.
+    case fraction
     // A number from -1 to 1.
     case signedFraction
+    // A number greater than -1 and less than 1.
+    case openSignedFraction
     case integer
     case nonNegativeInteger
     case positiveInteger
@@ -38,11 +42,19 @@ indirect enum ValueType: Equatable, Sendable {
     case crop
     // A mask, or a list of at least one mask, each taking the keys of its shape.
     case masks
+    // A title's text: a string, or a list of at least one run.
+    case runs
     case margin
     case media
     case document
     case clips(ClipPlace)
-    case parameters
+    // A `params` object, each parameter checked by the table of its owner.
+    case parameters(ObjectTable)
     case argument
+    // An argument a preset choice passes, whose type is the preset's to say. It is a number, a colour or an ease,
+    // and a template's parameter stands for it.
+    case presetArgument
+    // A preset name, `{preset, args}`, or a list of at least one of those without `"none"`.
+    case filterChoice
     case filterOperation
 }

@@ -27,7 +27,7 @@ struct SequenceCheckTests {
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],
-                  "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
+                  "connected": [ { "at": [2, 8], "title": "Subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
                   "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Sent" }, "animation": "frames/stamp" },
@@ -38,7 +38,7 @@ struct SequenceCheckTests {
                                    "keyframes": [ { "at": 1.2, "area": { "text": "First line" } }, { "at": 1.65, "area": { "text": "Second line" } } ] } ] }
               ],
               "clips": [
-                { "at": [0, 30], "title": "Top title\n**emphasis**", "style": "headline", "lane": 2 },
+                { "at": [0, 30], "title": "Top title\nSecond line", "style": "headline", "lane": 2 },
                 { "at": [1, 6], "media": "/abs/log.png", "width": 420, "radius": 24, "shadow": true,
                   "animation": { "entrance": "frames/pop", "exit": "frames/fade" }, "lane": 5,
                   "keyframes": [ { "at": 3, "position": [600, 500], "ease": "ease-in-out" }, { "at": 4, "position": [330, 900], "scale": 1.5 } ] },
@@ -636,6 +636,13 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
             #"{ "clips": [ { "shape": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" }, "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
+            ##"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ] }"##,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "args": { "curve": "linear" } } } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "animation": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } } } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "animation": { "entrance": { "preset": "studio/spring-in", "args": { "ease": { "spring": { "bounce": 0.4 } } } }, "exit": "frames/fade" } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } }, { "preset": "studio/film", "args": { "grain": 0.04 } }] } ] }"#,
+            ##"{ "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#000000" } }, "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } } }"##,
             #"{ "format": { "size": { "fit": "content" } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": 0 } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": [8, 16] } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
@@ -651,15 +658,21 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a choice written as an object takes both of its keys",
+        "a choice written as an object takes both sides, or a preset with another key beside it",
         arguments: [
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
-            (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): missing key "seconds""#),
-            (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): missing key "seconds""#)
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "args""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation choice): missing key "args""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args"#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
+            (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): missing key "args""#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one preset"#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
         ]
     )
-    func requiresBothChoiceKeys(
+    func requiresChoiceKeys(
         body: String,
         message: String
     ) throws {
@@ -684,6 +697,47 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == #"clips[0].keyframes[1] (keyframe): "ease" shapes no span, since no later keyframe names position, scale"#)
+    }
+
+    @Test("a spring ease is taken on a keyframe with a bounce greater than -1 and less than 1")
+    func acceptsSpringEase() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [
+              { "media": "/abs/log.png", "at": [0, 6],
+                "keyframes": [ { "at": 3, "scale": 1, "ease": { "spring": { "bounce": 0.99 } } }, { "at": 4, "scale": 1.5 } ] }
+            ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a spring ease with a bounce outside its range or another key stops where it is written",
+        arguments: [
+            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1"),
+            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found -1"),
+            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found "0.5""#),
+            (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
+            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
+        ]
+    )
+    func refusesBrokenSpring(
+        ease: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [
+              { "media": "/abs/log.png", "at": [0, 6],
+                "keyframes": [ { "at": 3, "scale": 1, "ease": \#(ease) }, { "at": 4, "scale": 1.5 } ] }
+            ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test("a document whose kind is not sequence stops", arguments: ["image", "layout", "movie"])
@@ -795,6 +849,42 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == "clips[0].width (title): expected a number above 0, found 0")
+    }
+
+    @Test("a title is a list of runs, each its text with a style or without one")
+    func acceptsTitleRuns() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": [ { "text": "Ana Ruiz", "style": "name" }, { "text": "\nDirector" } ],
+              "style": "role", "at": [0, 1] } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a list of runs holds at least one run, and a run is an object of its text and style with its text",
+        arguments: [
+            (#"[]"#, "clips[0].title (title): a list of runs holds at least one run, since a title without one has nothing to show"),
+            (#"[ "Ana" ]"#, #"clips[0].title[0] (title): expected an object (run), found "Ana""#),
+            (##"[ { "text": "Ana", "color": "#FFFFFF" } ]"##, #"clips[0].title[0] (run): unknown key "color". Allowed: text, style"#),
+            (#"[ { "style": "name" } ]"#, #"clips[0].title[0] (run): missing key "text""#),
+            (#"[ { "text": 3 } ]"#, "clips[0].title[0].text (run): expected a string, found 3")
+        ]
+    )
+    func refusesMalformedRuns(
+        title: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": \#(title), "style": "role", "at": [0, 1] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test("a media clip's radius of 0 leaves square corners")

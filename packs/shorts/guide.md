@@ -10,7 +10,7 @@ Viewers scrolling a vertical feed on a phone watch it: YouTube Shorts, Instagram
 
 `shorts/shorts` ([FRAMES-22](../../spec/FRAMES-22/SPEC.md)). Every document of this form writes `"theme": "shorts/shorts"`.
 
-It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide short. It makes the accent red `#FF3B30` and the emphasis yellow `#FFE14D`. Subtitles are 66 pixels, white with a 7 pixel black outline and no box, their bottom 330 pixels above the bottom of the frame. The headline is 84 pixels, white with the base theme's black outline, its top 110 pixels below the top of the frame. Labels are 40 pixels and boxes 10 pixels wide. Its defaults push every scene up in 0.3 seconds (`frames/push-up`), pop subtitles, labels and media clips in (`frames/pop`), draw shapes in (`frames/draw`), and show the headline without an entrance.
+It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide short. It makes the accent red `#FF3B30` and the `emphasis` colour yellow `#FFE14D`, which the `subtitle-emphasis` and `headline-emphasis` styles set a run of a subtitle or the headline in. Subtitles are 66 pixels, white with a 7 pixel black outline and no box, their bottom 330 pixels above the bottom of the frame. The headline is 84 pixels, white with the base theme's black outline, its top 110 pixels below the top of the frame. Labels are 40 pixels and boxes 10 pixels wide. Its defaults push every scene up in 0.3 seconds (`frames/push-up`), pop subtitles, labels and media clips in (`frames/pop`), draw shapes in (`frames/draw`), and show the headline without an entrance.
 
 ## Format
 
@@ -32,7 +32,7 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 
 ### Emphasis
 
-- `**` marks at most one word or number in a subtitle and one in the headline. The yellow is where the eye jumps, and two places split it.
+- A run in `subtitle-emphasis` or `headline-emphasis` marks at most one word or number in a subtitle and one in the headline. The yellow is where the eye jumps, and two places split it.
 - A box goes on the thing the subtitle is talking about, while it is talking about it. Pointing at something no one mentions makes the viewer search.
 - Zoom in on what is talked about with crop keyframes: `{"scale": 1}` first, then the area by its text. The picture is small on a phone, and a screenshot read whole is unreadable there.
 - Nothing that matters goes in the right 120 pixels or the bottom 330, where the platform draws over the picture.
@@ -70,7 +70,7 @@ It sets `baseWidth` to 1080, so its lengths are output pixels on a 1080 wide sho
 
 It shows the format and the rules together:
 
-- The headline is the one title in `clips`, with no `at`, so it holds the top of the frame for the whole video: `"결제 금액이\n**한눈에** 보여요"`, two short lines broken by hand and one word in emphasis.
+- The headline is the one title in `clips`, with no `at`, so it holds the top of the frame for the whole video: `[ { "text": "결제 금액이\n" }, { "text": "한눈에", "style": "headline-emphasis" }, { "text": " 보여요" } ]`, two short lines broken by hand and one word in emphasis.
 - The first scene zooms from the whole screenshot to the lines from `Item total` to `Total` with two crop keyframes, then boxes `Total` while its subtitle names it.
 - Its subtitles change back to back in the scene's seconds, `[0, 1.6]` then `[1.6, 3.5]`, and the second scene's subtitle spans that scene.
 - No clip names a transition or an animation: the theme pushes the second scene up, pops the subtitles and the label in, and draws the box.

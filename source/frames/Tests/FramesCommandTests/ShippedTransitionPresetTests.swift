@@ -64,7 +64,7 @@ struct ShippedTransitionPresetTests {
     @Test("every shipped transition is as long as its table says", arguments: names)
     func lastsSeconds(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // Then
         #expect(preset.seconds == Self.seconds[name])
@@ -74,7 +74,7 @@ struct ShippedTransitionPresetTests {
     @Test("every shipped transition crossfades the sound at constant power", arguments: names)
     func crossfadesAtConstantPower(name: String) throws {
         // Given, When
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // Then
         #expect(preset.audio == .constantPower)
@@ -83,7 +83,7 @@ struct ShippedTransitionPresetTests {
     @Test("at its end a shipped transition shows the incoming clip whole and in place, with no cover", arguments: names)
     func endsOnIncoming(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // When
         let incoming = picture(moving: preset.incoming, at: 1)
@@ -100,7 +100,7 @@ struct ShippedTransitionPresetTests {
     @Test("at its start a shipped transition shows only the outgoing clip, whole and in place", arguments: names)
     func startsOnOutgoing(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // When
         let incoming = picture(moving: preset.incoming, at: 0)
@@ -117,7 +117,7 @@ struct ShippedTransitionPresetTests {
     @Test("a shipped cover is fully opaque whenever the incoming clip switches on, so the scene change is hidden", arguments: ["dip-black", "flash"])
     func hidesSceneChange(name: String) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // When
         let changes = zip(Self.progresses, Self.progresses.dropFirst()).filter { before, after in
@@ -142,7 +142,7 @@ struct ShippedTransitionPresetTests {
         property: MotionProperty
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
         let incoming = try #require(preset.incoming)
         let outgoing = try #require(preset.outgoing)
         let evaluator = SpanEvaluator()
@@ -172,7 +172,7 @@ struct ShippedTransitionPresetTests {
         offset: Double
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
         let moving = try #require(preset.over == .incoming ? preset.incoming : preset.outgoing)
         let still = preset.over == .incoming ? preset.outgoing : preset.incoming
         let evaluator = SpanEvaluator()
@@ -194,7 +194,7 @@ struct ShippedTransitionPresetTests {
         side: RevealEdge
     ) throws {
         // Given
-        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+        let preset = try #require(try sut.transition(PresetInstance(name: "frames/\(name)")))
 
         // When
         let incoming = try #require(preset.incoming)

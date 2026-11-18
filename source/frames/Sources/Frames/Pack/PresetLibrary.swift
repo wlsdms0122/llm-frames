@@ -8,11 +8,15 @@
 import Foundation
 
 // Finds a preset by the name a document or theme gives it: `<pack>/<name>` in that pack's presets, or an absolute
-// path.
+// path. Each preset is read and checked once for the library's life, which is one resolve, and each choice fills in
+// its arguments.
 package struct PresetLibrary: PresetProvider {
     // MARK: - Property
     private let packs: PackLibrary
     private let reader = PresetReader()
+    private let transitions = PresetCache<TransitionPreset>()
+    private let animations = PresetCache<AnimationPreset>()
+    private let filters = PresetCache<FilterPreset>()
 
     // MARK: - Initializer
     package init(packs: PackLibrary) {
@@ -20,22 +24,16 @@ package struct PresetLibrary: PresetProvider {
     }
 
     // MARK: - Lifecycle
-    func transition(named name: String) throws -> TransitionPreset? {
-        try value(named: name, kind: "transition").map { value in
-            try reader.transition(from: value, place: Place(file: name, components: []))
-        }
+    func transition(_ instance: PresetInstance) throws -> TransitionPreset? {
+        try publishedTransition(named: instance.name).map { try reader.transition($0, instance: instance) }
     }
 
-    func animation(named name: String) throws -> AnimationPreset? {
-        try value(named: name, kind: "animation").map { value in
-            try reader.animation(from: value, place: Place(file: name, components: []))
-        }
+    func animation(_ instance: PresetInstance) throws -> AnimationPreset? {
+        try publishedAnimation(named: instance.name).map { try reader.animation($0, instance: instance) }
     }
 
-    func filter(named name: String) throws -> FilterPreset? {
-        try value(named: name, kind: "filter").map { value in
-            try reader.filter(from: value, place: Place(file: name, components: []))
-        }
+    func filter(_ instance: PresetInstance) throws -> FilterPreset? {
+        try publishedFilter(named: instance.name).map { try reader.filter($0, instance: instance) }
     }
 
     // MARK: - Public
@@ -78,18 +76,46 @@ package struct PresetLibrary: PresetProvider {
         named name: String,
         kind: PresetKind
     ) throws -> PresetEntry? {
-        let description = switch kind {
+        switch kind {
         case .transition:
-            try transition(named: name)?.description
+            try publishedTransition(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
 
         case .animation:
-            try animation(named: name)?.description
+            try publishedAnimation(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
 
         case .filter:
-            try filter(named: name)?.description
+            try publishedFilter(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
         }
+    }
 
-        return description.map { PresetEntry(kind: kind, name: name, description: $0) }
+    private func publishedTransition(named name: String) throws -> PublishedPreset<TransitionPreset>? {
+        try transitions.preset(named: name) {
+            try value(named: name, kind: "transition").map { value in
+                try reader.publishedTransition(from: value, place: Place(file: name, components: []))
+            }
+        }
+    }
+
+    private func publishedAnimation(named name: String) throws -> PublishedPreset<AnimationPreset>? {
+        try animations.preset(named: name) {
+            try value(named: name, kind: "animation").map { value in
+                try reader.publishedAnimation(from: value, place: Place(file: name, components: []))
+            }
+        }
+    }
+
+    private func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
+        try filters.preset(named: name) {
+            try value(named: name, kind: "filter").map { value in
+                try reader.publishedFilter(from: value, place: Place(file: name, components: []))
+            }
+        }
     }
 
     private func value(

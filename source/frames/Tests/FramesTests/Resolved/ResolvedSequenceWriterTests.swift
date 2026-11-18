@@ -126,8 +126,8 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
-        #expect(title.keys == ["size", "lines", "background", "stroke", "runs"])
-        #expect(run.keys == ["file", "sha256", "face", "size", "color", "glyphs"])
+        #expect(title.keys == ["size", "background", "runs"])
+        #expect(run.keys == ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])
         #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 3 } == true)
@@ -285,7 +285,7 @@ struct ResolvedSequenceWriterTests {
         #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
-    @Test("a tracked clip writes its track as the target, its media time and the frames followed")
+    @Test("a tracked clip writes its track as the media followed, the media time, the target and the frames followed")
     func writesTrack() throws {
         // Given
         let document = #"""
@@ -298,8 +298,8 @@ struct ResolvedSequenceWriterTests {
         let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
 
         // Then
-        #expect(clips[0]["track"]?.objectValue?.keys == ["target", "time", "frames"])
-        #expect(clips[1]["track"]?.objectValue?.keys == ["target", "time", "frames"])
+        #expect(clips[0]["track"]?.objectValue?.keys == ["media", "time", "target", "frames"])
+        #expect(clips[1]["track"]?.objectValue?.keys == ["media", "time", "target", "frames"])
     }
 
     @Test("a media clip plays in at its window's start, written as origin, even where the sequence cuts its start")

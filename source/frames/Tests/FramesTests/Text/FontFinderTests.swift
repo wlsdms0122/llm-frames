@@ -97,19 +97,14 @@ struct FontFinderTests {
     private func style(
         _ families: [String],
         pack: String?
-    ) -> TextStyle {
-        TextStyle(
+    ) -> CharacterStyle {
+        CharacterStyle(
             families: families,
             pack: pack,
-            size: 40,
             weight: .bold,
+            size: 40,
             color: Color(written: "#000000"),
-            emphasis: Color(written: "#FFD43B"),
-            lineHeight: 50,
-            stroke: nil,
-            background: nil,
-            align: .left,
-            lines: nil
+            stroke: nil
         )
     }
 }
