@@ -408,6 +408,33 @@ struct EvaluatorTests {
         #expect(isClose(rectangle, Rectangle(x: -120, y: -110, width: 800, height: 400)))
     }
 
+    @Test("a picture in picture clip tracked in its own media keeps its crop upright on the move and scale only, and stays in its box")
+    func keepsOwnTrackedCropUpright() throws {
+        // Given
+        // The clip shows its media time t at t. At 1 the target has turned a quarter turn clockwise and doubled about
+        // its centroid, (120, 110).
+        let target = Rectangle(x: 100, y: 100, width: 40, height: 20)
+        let turned = AffineTransform(scale: 2, rotation: 90, about: Point(x: 120, y: 110), offset: Point(x: 0, y: 0))
+        let track = ResolvedTrack(target: target, mediaTime: 0, frames: [
+            TrackedFrame(time: 0, rectangle: target),
+            TrackedFrame(time: 1, quad: Quad(target).applying(turned))
+        ])
+        let played = PlayedRange(map: TimeMap(origin: 0, in: 0, speed: 1), out: 4, loop: false)
+        let media = mediaClip(timing: .played(played), track: track)
+        let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // The whole picture's centre (200, 100) lies (80, -10) from the centroid, so twice that from it, upright, and
+        // the box stays where its position puts it.
+        let item = try #require(list.items.last)
+        let rectangle = try #require(clipPicture(of: list)?.rectangle)
+        #expect(isClose(rectangle, Rectangle(x: -120, y: -110, width: 800, height: 400)))
+        #expect(item.transform == AffineTransform(translation: Point(x: 10, y: 20)))
+    }
+
     @Test("a tracked title turns a quarter turn clockwise with its target and keeps its size")
     func turnsTrackedTitle() throws {
         // Given
@@ -1270,7 +1297,8 @@ struct EvaluatorTests {
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
         appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
-        blend: String = "normal"
+        blend: String = "normal",
+        track: ResolvedTrack? = nil
     ) -> ResolvedClip {
         let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: filter, appearance: appearance)
         let box = ResolvedBox(
@@ -1279,7 +1307,14 @@ struct EvaluatorTests {
             anchor: Point(x: 40, y: 20)
         )
 
-        return clip(.media(media), start: start, box: box, crop: [Keyframe(at: 0, value: Crop(whole))], blend: blend)
+        return clip(
+            .media(media),
+            start: start,
+            box: box,
+            crop: [Keyframe(at: 0, value: Crop(whole))],
+            track: track,
+            blend: blend
+        )
     }
 
     private func fillItem(
