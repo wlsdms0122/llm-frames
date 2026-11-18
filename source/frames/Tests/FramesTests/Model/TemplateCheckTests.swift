@@ -87,7 +87,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"params.name (parameter): "name" is declared but nothing in the template refers to it"#)
+        #expect(error?.description == #"params.name (parameter): "name" is declared but nothing refers to it"#)
     }
 
     @Test(

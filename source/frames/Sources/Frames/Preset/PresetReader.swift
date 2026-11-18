@@ -7,13 +7,18 @@
 
 import Foundation
 
+// Reads a preset: checked against its parameter types, then read with every parameter at its default, so a preset
+// named without arguments always works.
 struct PresetReader: Sendable {
     // MARK: - Property
     private let reader = JSONReader()
     private let checker = KeyChecker()
+    private let filler: ParameterFiller
 
     // MARK: - Initializer
-    init() { }
+    init() {
+        self.filler = ParameterFiller(checker: checker)
+    }
 
     // MARK: - Public
     func animation(from data: Data) throws -> AnimationPreset {
@@ -24,6 +29,52 @@ struct PresetReader: Sendable {
     func animation(
         from value: JSONValue,
         place: Place = .root
+    ) throws -> AnimationPreset {
+        try read(value, as: PresetKeyTable.animation, place: place) { try plainAnimation(from: $0, place: place) }
+    }
+
+    func transition(from data: Data) throws -> TransitionPreset {
+        try transition(from: reader.read(data))
+    }
+
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func transition(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> TransitionPreset {
+        try read(value, as: PresetKeyTable.transition, place: place) { try plainTransition(from: $0, place: place) }
+    }
+
+    func filter(from data: Data) throws -> FilterPreset {
+        try filter(from: reader.read(data))
+    }
+
+    // `place` is where the preset is written, the top of its file when it is read from one.
+    func filter(
+        from value: JSONValue,
+        place: Place = .root
+    ) throws -> FilterPreset {
+        try read(value, as: PresetKeyTable.filter, place: place) { try plainFilter(from: $0, place: place) }
+    }
+
+    // MARK: - Private
+    private func read<Preset>(
+        _ value: JSONValue,
+        as table: ObjectTable,
+        place: Place,
+        reading: (JSONValue) throws -> Preset
+    ) throws -> Preset {
+        let references = try checker.check(preset: value, as: table, place: place)
+        let parameters = Parameter.declared(in: value)
+        let defaults = try filler.values(of: JSONObject(), for: parameters, place: place, kind: ParameterKeyTable.kind)
+
+        return try reading(filler.filling(value, at: references, with: defaults))
+    }
+
+    // A preset whose parameters are filled holds plain values, which meet every rule of their places.
+    private func plainAnimation(
+        from value: JSONValue,
+        place: Place
     ) throws -> AnimationPreset {
         try checker.check(value, as: PresetKeyTable.animation, place: place)
 
@@ -36,14 +87,9 @@ struct PresetReader: Sendable {
         )
     }
 
-    func transition(from data: Data) throws -> TransitionPreset {
-        try transition(from: reader.read(data))
-    }
-
-    // `place` is where the preset is written, the top of its file when it is read from one.
-    func transition(
+    private func plainTransition(
         from value: JSONValue,
-        place: Place = .root
+        place: Place
     ) throws -> TransitionPreset {
         try checker.check(value, as: PresetKeyTable.transition, place: place)
 
@@ -71,14 +117,9 @@ struct PresetReader: Sendable {
         )
     }
 
-    func filter(from data: Data) throws -> FilterPreset {
-        try filter(from: reader.read(data))
-    }
-
-    // `place` is where the preset is written, the top of its file when it is read from one.
-    func filter(
+    private func plainFilter(
         from value: JSONValue,
-        place: Place = .root
+        place: Place
     ) throws -> FilterPreset {
         try checker.check(value, as: PresetKeyTable.filter, place: place)
 
@@ -92,7 +133,6 @@ struct PresetReader: Sendable {
         return FilterPreset(description: object["description"]?.stringValue ?? "", operations: operations)
     }
 
-    // MARK: - Private
     private func animationSpan(
         _ object: JSONObject,
         _ name: String,

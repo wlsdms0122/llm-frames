@@ -40,6 +40,21 @@ struct KeyChecker: Sendable {
         return scope.references
     }
 
+    // A preset checked against its parameter types, with the place of every reference to a parameter in it, so they
+    // can be filled.
+    func check(
+        preset: JSONValue,
+        as table: ObjectTable,
+        place: Place
+    ) throws -> [ParameterReference] {
+        guard let object = preset.objectValue else { throw wrongType(preset, .object(table), place, table.kind) }
+
+        var scope = DocumentScope(owner: .preset)
+        try checkPublishing(object, as: table, place: place, scope: &scope)
+
+        return scope.references
+    }
+
     // A document named by its file where media is taken, which stands as if written there.
     func check(
         nestedDocument document: JSONValue,
@@ -96,7 +111,7 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
-        if case let .object(object) = value, object.contains("param"), takesParameter(type) {
+        if case let .object(object) = value, object.contains("param"), takesParameter(type, by: scope.owner) {
             try checkParameterReference(object, as: type, place: place, kind: kind, scope: &scope)
             return
         }
@@ -122,6 +137,9 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeNumber:
             guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
+
+        case .fraction:
+            guard let number = value.numberValue, (0...1).contains(number) else { throw wrongType(value, type, place, kind) }
 
         case .signedFraction:
             guard let number = value.numberValue, (-1...1).contains(number) else {
@@ -903,6 +921,15 @@ struct KeyChecker: Sendable {
         scope.references.append(ParameterReference(place: place, name: name, type: type, kind: kind))
 
         let parameterType = parameter["type"]?.stringValue ?? ""
+        if parameterType == ParameterType.choice.rawValue, scope.owner == .preset, type != .ease {
+            throw ModelError.misplacedParameter(
+                place: place,
+                kind: kind,
+                name: name,
+                type: parameterType,
+                expected: expectation(of: type)
+            )
+        }
         guard parameterType != "choice" else {
             // A choice stands for each of its options, so each one must fit where the reference stands.
             for option in parameter["options"]?.arrayValue ?? [] {
@@ -988,7 +1015,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .signedFraction, .openSignedFraction, .integer,
+        case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
              .nonNegativeInteger, .positiveInteger, .margin:
             parameterType == "number"
 
@@ -997,13 +1024,20 @@ struct KeyChecker: Sendable {
         }
     }
 
-    private func takesParameter(_ type: ValueType) -> Bool {
-        switch type {
-        case .anyObject, .anyValue:
+    // A preset's parameter never stands for a name, a key or a file, only where a number, a colour or an ease is written.
+    private func takesParameter(
+        _ type: ValueType,
+        by owner: ParameterOwner
+    ) -> Bool {
+        switch (owner, type) {
+        case (_, .anyObject), (_, .anyValue):
             false
 
-        default:
+        case (.template, _):
             true
+
+        case (.preset, _):
+            type == .ease || fits("number", type) || fits("color", type)
         }
     }
 
@@ -1029,7 +1063,8 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.signedFraction, .number),
+        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
+             (.signedFraction, .number),
              (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
@@ -1090,6 +1125,9 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeNumber:
             "a number, 0 or more"
+
+        case .fraction:
+            "a number from 0 to 1"
 
         case .signedFraction:
             "a number from -1 to 1"

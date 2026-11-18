@@ -11,6 +11,7 @@ enum PresetKeyTable {
         kind: "animation",
         rules: [
             KeyRule("description", .text, isRequired: true),
+            KeyRule("params", .parameters(ParameterKeyTable.preset)),
             KeyRule("entrance", .object(timedSpan("entrance", length: "seconds"))),
             KeyRule("loop", .object(timedSpan("loop", length: "period"))),
             KeyRule("exit", .object(timedSpan("exit", length: "seconds")))
@@ -21,6 +22,7 @@ enum PresetKeyTable {
         kind: "transition",
         rules: [
             KeyRule("description", .text, isRequired: true),
+            KeyRule("params", .parameters(ParameterKeyTable.preset)),
             KeyRule("seconds", .number, isRequired: true),
             KeyRule("ease", .ease),
             KeyRule("over", .literal(["incoming", "outgoing"])),
@@ -35,12 +37,16 @@ enum PresetKeyTable {
         kind: "filter",
         rules: [
             KeyRule("description", .text, isRequired: true),
+            KeyRule("params", .parameters(ParameterKeyTable.filterPreset)),
             KeyRule("ops", .list(.filterOperation), isRequired: true)
         ]
     )
+    // Opacity and reveal run from nothing at 0 to everything at 1.
     static let spanKey = ObjectTable(
         kind: "span key",
-        rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { KeyRule($0, .number) }
+        rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { property in
+            KeyRule(property, ["opacity", "reveal"].contains(property) ? .fraction : .number)
+        }
     )
 
     private static let revealFrom = KeyRule("revealFrom", .literal(VocabularyTable.sides))
@@ -54,7 +60,7 @@ enum PresetKeyTable {
                 kind: "cover key",
                 rules: [
                     KeyRule("t", .number, isRequired: true),
-                    KeyRule("opacity", .number)
+                    KeyRule("opacity", .fraction)
                 ]
             ))))
         ],
@@ -64,7 +70,7 @@ enum PresetKeyTable {
         kind: "matte",
         rules: [
             KeyRule("media", .name, isRequired: true),
-            KeyRule("softness", .number),
+            KeyRule("softness", .fraction),
             KeyRule("invert", .bool),
             KeyRule("ease", .ease)
         ]

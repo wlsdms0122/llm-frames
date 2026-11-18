@@ -67,7 +67,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "exit": { "seconds": 1, "keys": [ { "t": 1.5, "opacity": 1 } ] } }"#, "exit.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 1.5"),
             (#"{ "description": "x", "entrance": { "seconds": 0 } }"#, "entrance.seconds (entrance): a span runs for more than 0 seconds, found 0"),
             (#"{ "description": "x", "entrance": { "seconds": 1, "revealFrom": "middle" } }"#, #"entrance.revealFrom (entrance): unknown value "middle". Allowed: left, right, top, bottom"#),
-            (#"{ "description": "x", "intro": {} }"#, #"top level (animation): unknown key "intro". Allowed: description, entrance, loop, exit"#)
+            (#"{ "description": "x", "intro": {} }"#, #"top level (animation): unknown key "intro". Allowed: description, params, entrance, loop, exit"#)
         ]
     )
     func refusesBrokenAnimation(
@@ -156,7 +156,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
             (#"{ "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 1.5 } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1.5"),
-            (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, #"audio (transition): parameter "curve" is not declared in params"#)
+            (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, "audio (transition): expected one of constant-power, constant-gain, found an object")
         ]
     )
     func refusesBrokenTransition(
@@ -248,5 +248,173 @@ struct PresetReaderTests {
         // When, Then
         let error = #expect(throws: (any Error).self) { try sut.filter(from: value) }
         #expect("\(error.map { "\($0)" } ?? "")" == message)
+    }
+
+    @Test("a preset with parameters is read with each parameter at its default")
+    func readsParametersAtDefaults() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "description": "Dips to a colour and holds a beat, then the next clip comes up out of it.",
+              "params": {
+                "color": { "type": "color", "default": "#000000", "description": "colour of the dip" },
+                "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" },
+                "length": { "type": "number", "default": 0.7 },
+                "bounce": { "type": "choice", "options": [{ "spring": { "bounce": 0.2 } }, "ease-out"], "default": { "spring": { "bounce": 0.2 } } } },
+              "seconds": { "param": "length" }, "ease": { "param": "curve" },
+              "incoming": { "ease": { "param": "bounce" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
+              "cover": { "color": { "param": "color" },
+                         "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+            """##)
+
+        // When
+        let preset = try sut.transition(from: value)
+
+        // Then
+        #expect(preset.seconds == 0.7)
+        #expect(preset.cover?.source == .color("#000000"))
+        #expect(preset.cover?.span.ease == .linear)
+        #expect(preset.incoming?.ease == .spring(bounce: 0.2))
+    }
+
+    @Test("a number parameter stands for a key's value and t, a span's seconds and period, a softness and a bounce")
+    func fillsNumberPlaces() throws {
+        // Given
+        let animation = try Fixture.json(#"""
+            { "description": "x",
+              "params": { "n": { "type": "number", "default": 0.5 } },
+              "entrance": { "seconds": { "param": "n" }, "ease": { "spring": { "bounce": { "param": "n" } } },
+                            "keys": [ { "t": { "param": "n" }, "scale": { "param": "n" } } ] },
+              "loop": { "period": { "param": "n" } } }
+            """#)
+        let transition = try Fixture.json(#"""
+            { "description": "x", "params": { "soft": { "type": "number", "default": 0.25 } },
+              "seconds": 1, "matte": { "media": "/abs/m.png", "softness": { "param": "soft" } } }
+            """#)
+
+        // When
+        let readAnimation = try sut.animation(from: animation)
+        let readTransition = try sut.transition(from: transition)
+
+        // Then
+        #expect(readAnimation.entrance?.length == 0.5)
+        #expect(readAnimation.entrance?.span.ease == .spring(bounce: 0.5))
+        #expect(readAnimation.entrance?.span.keys == [SpanKey(t: 0.5, values: [.scale: 0.5])])
+        #expect(readAnimation.loop?.length == 0.5)
+        #expect(readTransition.matte?.softness == 0.25)
+    }
+
+    @Test("a filter preset's number and colour parameters stand for an operation's numbers and its colour")
+    func fillsFilterParameters() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "description": "x",
+              "params": { "glow": { "type": "number", "default": 0.4 }, "tint": { "type": "color", "default": "#FFAA00" },
+                          "black": { "type": "number", "default": 0.1 } },
+              "ops": [ { "op": "bloom", "amount": { "param": "glow" }, "radius": 12, "color": { "param": "tint" } },
+                       { "op": "levels", "input": [{ "param": "black" }, 0.9], "output": [0, 1] } ] }
+            """##)
+
+        // When
+        let preset = try sut.filter(from: value)
+
+        // Then
+        #expect(preset.operations == [.bloom(amount: 0.4, radius: 12, color: "#FFAA00"), .levels(input: [0.1, 0.9], output: [0, 1])])
+    }
+
+    @Test(
+        "a preset's parameter is a number, a colour or a choice of eases with a default, and is referred to",
+        arguments: [
+            (#"{ "p": { "type": "text", "default": "a" } }"#, #"params.p.type (parameter): unknown value "text". Allowed: number, color, choice"#),
+            (#"{ "p": { "type": "image", "default": "/abs/a.png" } }"#, #"params.p.type (parameter): unknown value "image". Allowed: number, color, choice"#),
+            (#"{ "p": { "type": "number" } }"#, #"params.p (parameter): missing key "default""#),
+            (#"{ "p": { "type": "number", "default": "big" } }"#, #"params.p.default (parameter): expected a number, found "big""#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "fast"], "default": "linear" } }"#, #"params.p.options[1] (parameter): unknown value "fast". Allowed: linear, ease-in, ease-out, ease-in-out, back-out, bounce-out, step, [x1, y1, x2, y2], {spring}"#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "step"], "default": "ease-in" } }"#, #"params.p.default (parameter): unknown value "ease-in". Allowed: linear, step"#),
+            (#"{ "p": { "type": "number", "default": 1 }, "unused": { "type": "number", "default": 1 } }"#, #"params.unused (parameter): "unused" is declared but nothing refers to it"#)
+        ]
+    )
+    func refusesBrokenParameter(
+        params: String,
+        message: String
+    ) throws {
+        // Given
+        let value = try Fixture.json(#"{ "description": "x", "params": \#(params), "seconds": { "param": "p" } }"#)
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.transition(from: value) }
+        #expect("\(error.map { "\($0)" } ?? "")" == message)
+    }
+
+    @Test(
+        "a preset's parameter stands only where a value of its type is written, never for a name, a key or a file",
+        arguments: [
+            (#""seconds": 1, "cover": { "color": { "param": "n" } }"#, #"cover.color (cover): parameter "n" of type number cannot stand where a colour is expected"#),
+            (#""seconds": { "param": "c" }"#, #"seconds (transition): parameter "c" of type color cannot stand where a number is expected"#),
+            (#""seconds": { "param": "e" }"#, #"seconds (transition): parameter "e" of type choice cannot stand where a number is expected"#),
+            (#""seconds": 1, "over": { "param": "e" }"#, "over (transition): expected one of incoming, outgoing, found an object"),
+            (#""seconds": 1, "audio": { "param": "e" }"#, "audio (transition): expected one of constant-power, constant-gain, found an object"),
+            (#""seconds": 1, "incoming": { "revealFrom": { "param": "e" } }"#, "incoming.revealFrom (incoming): expected one of left, right, top, bottom, found an object"),
+            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, "matte.media (matte): expected a string, found an object"),
+            (#""seconds": 1, "matte": { "media": "/abs/m.png", "invert": { "param": "n" } }"#, "matte.invert (matte): expected true or false, found an object")
+        ]
+    )
+    func refusesMisplacedParameter(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let text = ##"""
+            { "description": "x",
+              "params": { "n": { "type": "number", "default": 1 }, "c": { "type": "color", "default": "#000000" },
+                          "e": { "type": "choice", "options": ["linear", "step"], "default": "linear" } },
+            """## + body + "}"
+        let value = try Fixture.json(text)
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.transition(from: value) }
+        #expect("\(error.map { "\($0)" } ?? "")" == message)
+    }
+
+    @Test(
+        "a preset is checked with each parameter at its default, where a value its place does not take stops",
+        arguments: [
+            (#"{ "type": "number", "default": 0 }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
+            (#"{ "type": "number", "default": 1.5 }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): expected a number from 0 to 1, found 1.5"),
+            (#"{ "type": "number", "default": 2 }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
+            (#"{ "type": "number", "default": 1 }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1")
+        ]
+    )
+    func refusesBrokenDefault(
+        parameter: String,
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let value = try Fixture.json(#"{ "description": "x", "params": { "p": \#(parameter) }, "# + body + "}")
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.transition(from: value) }
+        #expect("\(error.map { "\($0)" } ?? "")" == message)
+    }
+
+    @Test("a filter preset's parameter is a number or a colour, and a range it breaks at its default stops")
+    func refusesFilterChoiceAndRange() throws {
+        // Given
+        let choice = try Fixture.json(#"""
+            { "description": "x", "params": { "p": { "type": "choice", "options": ["linear", "step"], "default": "linear" } },
+              "ops": [ { "op": "sepia", "amount": 1 } ] }
+            """#)
+        let range = try Fixture.json(#"""
+            { "description": "x", "params": { "p": { "type": "number", "default": 1.5 } },
+              "ops": [ { "op": "sepia", "amount": { "param": "p" } } ] }
+            """#)
+
+        // When
+        let choiceError = #expect(throws: (any Error).self) { try sut.filter(from: choice) }
+        let rangeError = #expect(throws: (any Error).self) { try sut.filter(from: range) }
+
+        // Then
+        #expect("\(choiceError.map { "\($0)" } ?? "")" == #"params.p.type (parameter): unknown value "choice". Allowed: number, color"#)
+        #expect("\(rangeError.map { "\($0)" } ?? "")" == "ops[0].amount (sepia): 1.5 is not within 0 to 1")
     }
 }

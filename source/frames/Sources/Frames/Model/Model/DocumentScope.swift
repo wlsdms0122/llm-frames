@@ -7,13 +7,18 @@
 
 struct DocumentScope: Sendable {
     // MARK: - Property
+    let owner: ParameterOwner
     var parameters: [String: JSONObject]
     var usedParameters: Set<String>
     var references: [ParameterReference]
     var identifiers: [String: Place]
 
     // MARK: - Initializer
-    init(parameters: [String: JSONObject] = [:]) {
+    init(
+        owner: ParameterOwner = .template,
+        parameters: [String: JSONObject] = [:]
+    ) {
+        self.owner = owner
         self.parameters = parameters
         self.usedParameters = []
         self.references = []
