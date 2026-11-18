@@ -122,7 +122,7 @@ struct TrackPlanner: Sendable {
         mask: PropertyValue<[ResolvedMask]>?,
         time: TimePlan,
         fps: Double
-    ) throws -> (plan: ClipPlan, track: ParentTrack?) {
+    ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
         guard let target = written.track else { return (plan, nil) }
 
         let place = written.place.appending(key: "track")
@@ -154,7 +154,7 @@ struct TrackPlanner: Sendable {
 
         return (
             try narrowed(plan, to: followed.range, place: written.place),
-            ParentTrack(track: followed.track, file: picture.file, clock: picture.clock)
+            TrackedMedia(track: followed.track, file: picture.file, clock: picture.clock)
         )
     }
 
@@ -170,7 +170,7 @@ struct TrackPlanner: Sendable {
         mask: PropertyValue<[ResolvedMask]>?,
         time: TimePlan,
         fps: Double
-    ) throws -> (plan: ClipPlan, track: ParentTrack?) {
+    ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.kind)
         if target == .own, isNaming(plan.kind) {
@@ -210,7 +210,7 @@ struct TrackPlanner: Sendable {
 
         return (
             try narrowed(plan, to: followed.range, place: written.place),
-            ParentTrack(track: followed.track, file: picture.file, clock: picture.clock)
+            TrackedMedia(track: followed.track, file: picture.file, clock: picture.clock)
         )
     }
 

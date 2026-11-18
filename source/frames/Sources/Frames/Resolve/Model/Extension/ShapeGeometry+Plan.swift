@@ -20,7 +20,7 @@ extension ShapeGeometry {
         points: [Keyframe<[Point]>]?,
         position: [Keyframe<Point>]?,
         instant: Double,
-        track: ParentTrack?
+        track: TrackedMedia?
     ) {
         switch plan {
         case let .box(width, height, outset):

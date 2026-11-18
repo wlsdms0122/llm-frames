@@ -14,14 +14,14 @@
 struct ParentTransformPlan: Equatable, Sendable {
     // MARK: - Property
     let geometry: ShapeGeometry
-    let track: ParentTrack?
+    let track: TrackedMedia?
     let scale: [Keyframe<Double>]
     let rotation: [Keyframe<Double>]
 
     // MARK: - Initializer
     init(
         geometry: ShapeGeometry,
-        track: ParentTrack?,
+        track: TrackedMedia?,
         scale: [Keyframe<Double>],
         rotation: [Keyframe<Double>]
     ) {

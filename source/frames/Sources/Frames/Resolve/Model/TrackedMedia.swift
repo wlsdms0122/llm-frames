@@ -1,15 +1,15 @@
 //
-//  ParentTrack.swift
+//  TrackedMedia.swift
 //  Frames
 //
 //  Created by JSilver on 11/18/26.
 //
 
-// The track a clip follows in its parent's media (FRAMES-12): the video file followed, and the parent's clock, which
-// gives the media time it shows at a sequence time. A tracked clip's keyframes are where they lie on the frame at their
-// own `at`, and each is brought back through the motion at the media time there to where it lies at the instant, as
-// its evaluation brings them back.
-struct ParentTrack: Equatable, Sendable {
+// A connected or sequence clip's track with its tracked media (FRAMES-12), its own or its parent's: the video file
+// followed, and the clock of that media's clip, which gives the media time it shows at a sequence time. A clip tracked
+// in its parent's media has keyframes where they lie on the frame at their own `at`, and each is brought back through
+// the motion at the media time there to where it lies at the instant, as its evaluation brings them back.
+struct TrackedMedia: Equatable, Sendable {
     // MARK: - Property
     let track: Track
     let file: MediaFile
