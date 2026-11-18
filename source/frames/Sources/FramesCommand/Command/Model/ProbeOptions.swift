@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `probe <media> [--json]`
 struct ProbeOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [OptionRule("--json")]

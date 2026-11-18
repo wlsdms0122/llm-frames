@@ -7,7 +7,6 @@
 
 import Frames
 
-// `transcode <in> -o <out> [--quality high|medium|low] [--max <px>] [--codec h264|hevc]`
 struct TranscodeOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `presets [<kind>] [<name>]`
 struct PresetsOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []

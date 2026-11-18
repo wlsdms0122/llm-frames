@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `theme`, which takes nothing.
 struct ThemeOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []

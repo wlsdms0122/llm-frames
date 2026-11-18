@@ -7,7 +7,6 @@
 
 import Frames
 
-// `locate <document.json> --at <t> --point <x,y> [--args <args.json>]`
 struct LocateOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

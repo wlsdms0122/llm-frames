@@ -7,8 +7,6 @@
 
 import Frames
 
-// `ocr <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--json]`. A range is any of `--from`, `--to` and
-// `--step`, which it needs, and `--at` reads one frame, so it takes none of them.
 struct OCROptions: CommandOptions, Equatable {
     // MARK: - Property
     private static let rangeOptions = ["--from", "--to", "--step"]

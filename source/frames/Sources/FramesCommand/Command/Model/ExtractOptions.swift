@@ -7,7 +7,6 @@
 
 import Frames
 
-// `extract <video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]`
 struct ExtractOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

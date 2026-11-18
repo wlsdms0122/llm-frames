@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `evaluate <document.json> --at <t> [--args <args.json>]`
 struct EvaluateOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

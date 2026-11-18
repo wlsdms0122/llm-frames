@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `still <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]`
 struct StillOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [

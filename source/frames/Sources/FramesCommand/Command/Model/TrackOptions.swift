@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `track <video> --at <t> --area <area> [--to <t>]`
 struct TrackOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
