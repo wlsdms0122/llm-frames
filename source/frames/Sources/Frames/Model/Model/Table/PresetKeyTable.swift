@@ -41,7 +41,6 @@ enum PresetKeyTable {
             KeyRule("ops", .list(.filterOperation), isRequired: true)
         ]
     )
-    // Opacity and reveal run from nothing at 0 to everything at 1.
     static let spanKey = ObjectTable(
         kind: "span key",
         rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { property in

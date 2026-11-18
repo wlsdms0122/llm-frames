@@ -13,8 +13,8 @@ import Testing
 @testable import Frames
 @testable import FramesCommand
 
-// The filters that ship with frames, read from the tool's own resources, and each drawn by `still` on a test picture
-// whose width is the base theme's, so their theme lengths are drawn as written. Serialized, since each draws a frame.
+// The filters that ship with frames, read from the tool's own resources, and each drawn by `still` on a test picture.
+// Serialized, since each draws a frame.
 @Suite("ShippedFilterPreset Tests", .serialized)
 struct ShippedFilterPresetTests {
     // MARK: - Property
