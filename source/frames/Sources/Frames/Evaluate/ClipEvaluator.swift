@@ -11,7 +11,7 @@
 // box's own pixels, its anchor point where that map carries its position, turned by its own rotation and the map's, at
 // its own scale, and so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its
 // space's coordinates, carried by that map whole, and an adjustment around its masks' bounding box so, or without a
-// mask over the frame.
+// mask over the frame. Its masks are in the space it gives its children and are carried by that space's map.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -27,37 +27,9 @@ struct ClipEvaluator: Sendable {
         picture: PictureItemSource?,
         at time: Double
     ) -> [DisplayItem] {
-        let sample = ClipSample(clip: clip, at: time)
+        let mask = masks(of: clip, in: space, at: time)
 
-        switch clip.content {
-        case let .title(text):
-            // A title carries its box.
-            guard let box = clip.box else { return [] }
-
-            let glyphs = GlyphsItem(text: text)
-            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .glyphs(glyphs), at: time)]
-
-        case let .media(media):
-            // A media clip carries its box and every crop conformed to it, and its picture is given.
-            guard let box = clip.box, let picture else { return [] }
-
-            let item = PictureItem(
-                source: picture,
-                rectangle: clip.crop.map { $0.value(at: time).rectangle },
-                destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
-                filter: media.filter,
-                radius: media.appearance.radius,
-                border: media.appearance.border,
-                shadow: media.appearance.shadow
-            )
-            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .picture(item), at: time)]
-
-        case let .shape(shape):
-            return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
-
-        case let .adjustment(filter):
-            return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
-        }
+        return drawn(clip, in: space, picture: picture, at: time).map { $0.masked(by: mask) }
     }
 
     // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media
@@ -103,6 +75,46 @@ struct ClipEvaluator: Sendable {
     }
 
     // MARK: - Private
+    // The items the clip draws, before its masks.
+    private func drawn(
+        _ clip: ResolvedClip,
+        in space: ClipSpace,
+        picture: PictureItemSource?,
+        at time: Double
+    ) -> [DisplayItem] {
+        let sample = ClipSample(clip: clip, at: time)
+
+        switch clip.content {
+        case let .title(text):
+            // A title carries its box.
+            guard let box = clip.box else { return [] }
+
+            let glyphs = GlyphsItem(text: text)
+            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .glyphs(glyphs), at: time)]
+
+        case let .media(media):
+            // A media clip carries its box and every crop conformed to it, and its picture is given.
+            guard let box = clip.box, let picture else { return [] }
+
+            let item = PictureItem(
+                source: picture,
+                rectangle: clip.crop.map { $0.value(at: time).rectangle },
+                destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
+                filter: media.filter,
+                radius: media.appearance.radius,
+                border: media.appearance.border,
+                shadow: media.appearance.shadow
+            )
+            return [boxItem(of: clip, box: box, sample: sample, in: space, content: .picture(item), at: time)]
+
+        case let .shape(shape):
+            return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
+
+        case let .adjustment(filter):
+            return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
+        }
+    }
+
     // A title or media clip's item in its box's own pixels, wiped across its box from the animation's side.
     private func boxItem(
         of clip: ResolvedClip,
@@ -184,6 +196,33 @@ struct ClipEvaluator: Sendable {
             motion: sample.animation.motion,
             carriedBy: space.tracked(by: clip.track, at: time).transform
         )
+    }
+
+    // A clip's masks at the time on the space it gives its children (FRAMES-11). A title's and a media clip's are in
+    // their own box or media, and so are a box shape's, which a tracked motion carries through their transform. A shape
+    // placed by its geometry and an adjustment write theirs in their parent's space, each keyframe brought back to the
+    // instant when tracked, as their geometry is.
+    private func masks(
+        of clip: ResolvedClip,
+        in space: ClipSpace,
+        at time: Double
+    ) -> [ItemMask] {
+        guard let mask = clip.mask else { return [] }
+
+        let isInOwnSpace = switch clip.content {
+        case .title, .media:
+            true
+
+        case let .shape(shape):
+            if case .box = shape.geometry { true } else { false }
+
+        case .adjustment:
+            false
+        }
+        let masks = isInOwnSpace ? mask.value(at: time) : space.masks(of: mask, track: clip.track, at: time)
+        let transform = childTransform(of: clip, in: space, at: time)
+        let scale = ClipSample(clip: clip, at: time).ownScale
+        return masks.map { ItemMask(mask: $0, transform: transform, scale: scale) }
     }
 
     // The bounding box of a clip's masks at the time in its own space, nil without a mask.

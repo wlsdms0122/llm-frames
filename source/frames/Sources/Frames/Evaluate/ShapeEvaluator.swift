@@ -135,7 +135,7 @@ struct ShapeEvaluator: Sendable {
             placing: bounds,
             anchor: placement.anchor,
             position: placement.position.map { space.point(of: $0, track: clip.track, at: time) },
-            scale: (clip.scale.map { $0.value(at: time) } ?? 1) * motion.value(of: .scale),
+            scale: sample.ownScale,
             rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
             moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
         ).concatenating(tracked.transform)

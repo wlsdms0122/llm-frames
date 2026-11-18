@@ -147,7 +147,7 @@ package struct Evaluator: Sendable {
 
     // A storyline entry's own picture in its box: its media's conformed crop with its filter, rounded corners, border
     // and shadow, or a solid's rect filled with its colour, carried into the frame by its own transform and opacity,
-    // blended normally.
+    // blended normally, and cut by its masks before the outer item's transition motion. A solid has no mask.
     private func innerItems(
         of entry: ResolvedStorylineClip,
         at time: Double,
@@ -176,6 +176,7 @@ package struct Evaluator: Sendable {
         let item = DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
+            mask: entry.masks(at: time),
             content: content,
             origin: origin
         )

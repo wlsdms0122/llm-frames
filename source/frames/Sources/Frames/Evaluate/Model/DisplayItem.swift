@@ -53,5 +53,18 @@ package struct DisplayItem: Equatable, Sendable {
         )
     }
 
+    // The same item, its alpha multiplied by `mask`.
+    func masked(by mask: [ItemMask]) -> DisplayItem {
+        DisplayItem(
+            transform: transform,
+            opacity: opacity,
+            blend: blend,
+            mask: mask,
+            reveal: reveal,
+            content: content,
+            origin: origin
+        )
+    }
+
     // MARK: - Private
 }

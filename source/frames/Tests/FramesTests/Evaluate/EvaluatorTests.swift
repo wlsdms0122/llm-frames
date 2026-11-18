@@ -797,9 +797,17 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
+        let transform = AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)
         let adjust = DisplayItem(
-            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
+            transform: transform,
             opacity: 0.5,
+            mask: [ItemMask(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 200, height: 100), radius: 0),
+                transform: transform,
+                feather: 0,
+                isInverted: false,
+                mode: .add
+            )],
             content: .adjust(AdjustItem(filter: [.blur(radius: 3)])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
