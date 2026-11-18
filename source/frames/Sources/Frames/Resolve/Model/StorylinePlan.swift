@@ -7,7 +7,7 @@
 
 // A storyline clip on the sequence clock. Its edit range lies between its edit points, and its drawn range runs from
 // the start of its incoming transition to the end of its outgoing one. `trackMatte` is its track matte, and
-// `keyframes` are in sequence time.
+// `keyframes` and `timeRemap` are in sequence time, `timeRemap` nil for a clip that writes none.
 struct StorylinePlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -18,9 +18,18 @@ struct StorylinePlan: Equatable, Sendable {
     let transition: TransitionPlan?
     let trackMatte: TrackMatte?
     let keyframes: [KeyframeInstant]
+    let timeRemap: [Keyframe<Double>]?
 
     var map: TimeMap {
         TimeMap(origin: edit.start, in: source.clipRange.start, speed: source.speed)
+    }
+
+    // The media time it shows, nil for a solid. In a handle where the media runs out, its first or last frame holds,
+    // and a still simply goes on.
+    var clock: MediaClock? {
+        guard let media = source.media else { return nil }
+
+        return MediaClock(playback: timeRemap.map(MediaPlayback.remapped) ?? .line(map), frames: media.frames)
     }
 
     // Where a static crop takes effect: the clip's `in`.
@@ -37,7 +46,8 @@ struct StorylinePlan: Equatable, Sendable {
         drawn: TimeRange,
         transition: TransitionPlan?,
         trackMatte: TrackMatte?,
-        keyframes: [KeyframeInstant]
+        keyframes: [KeyframeInstant],
+        timeRemap: [Keyframe<Double>]?
     ) {
         self.place = place
         self.id = id
@@ -47,15 +57,13 @@ struct StorylinePlan: Equatable, Sendable {
         self.transition = transition
         self.trackMatte = trackMatte
         self.keyframes = keyframes
+        self.timeRemap = timeRemap
     }
 
     // MARK: - Public
-    // In a handle where the media runs out, its first or last frame holds. A still or solid simply goes on.
+    // The media time it shows at a sequence time, or a solid's clip time.
     func mediaTime(atSequenceTime time: Double) -> Double {
-        let clipTime = map.clipTime(atSequenceTime: time)
-        guard let media = source.media else { return clipTime }
-
-        return media.clamped(clipTime)
+        clock?.mediaTime(atSequenceTime: time) ?? map.clipTime(atSequenceTime: time)
     }
 
     // MARK: - Private

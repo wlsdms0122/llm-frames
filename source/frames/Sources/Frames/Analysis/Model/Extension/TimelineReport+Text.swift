@@ -27,7 +27,7 @@ extension TimelineReport {
                 "edit \(written(entry.edit))",
                 "drawn \(written(entry.drawn))",
                 "clip \(written(entry.clip))",
-                "speed \(number(entry.speed))",
+                entry.isTimeRemapped ? "time-remapped" : "speed \(number(entry.speed))",
                 "transition \(transition)"
             ].joined(separator: "  ")
 

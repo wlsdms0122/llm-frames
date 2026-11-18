@@ -21,7 +21,7 @@ struct ResolvedSequenceReader: Sendable {
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
         "title", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke",
-        "adjust", "media", "in", "origin", "out", "speed", "loop", "filter", "conform", "border", "shadow"
+        "adjust", "media", "in", "origin", "out", "speed", "loop", "timeRemap", "filter", "conform", "border", "shadow"
     ]
 
     private static let shapeKeys = [
@@ -120,9 +120,9 @@ struct ResolvedSequenceReader: Sendable {
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
-            "place", "id", "media", "solid", "in", "out", "speed", "start", "end", "size", "position", "anchor", "crop",
-            "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "filter", "radius", "border",
-            "shadow", "transition"
+            "place", "id", "media", "solid", "in", "out", "speed", "timeRemap", "start", "end", "size", "position",
+            "anchor", "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "filter",
+            "radius", "border", "shadow", "transition"
         ])
 
         return ResolvedStorylineClip(
@@ -133,6 +133,7 @@ struct ResolvedSequenceReader: Sendable {
             in: try entry.member("in").number(),
             out: try entry.member("out").number(),
             speed: try entry.member("speed").number(),
+            timeRemap: try entry.member("timeRemap").optional(values.numbers),
             start: try entry.member("start").number(),
             end: try entry.member("end").number(),
             crop: try values.crops(entry.member("crop")),
@@ -216,7 +217,7 @@ struct ResolvedSequenceReader: Sendable {
             return ["adjust"]
         }
         if clip.contains("media") {
-            let timing = clip.contains("in") ? ["in", "origin", "out", "speed", "loop"] : []
+            let timing = clip.contains("origin") ? ["in", "origin", "out", "speed", "loop", "timeRemap"] : []
 
             return ["media"] + timing + ["filter", "conform", "radius", "border", "shadow"]
         }
@@ -238,17 +239,7 @@ struct ResolvedSequenceReader: Sendable {
             return .adjustment(try values.filter(clip.member("adjust")))
         }
 
-        let timing: ResolvedMediaTiming? = if clip.contains("in") {
-            ResolvedMediaTiming(
-                in: try clip.member("in").number(),
-                origin: try clip.member("origin").number(),
-                out: try clip.member("out").number(),
-                speed: try clip.member("speed").number(),
-                loop: try clip.member("loop").bool()
-            )
-        } else {
-            nil
-        }
+        let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
 
         return .media(ResolvedMediaClip(
             media: try media(clip.member("media")),
@@ -349,6 +340,20 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
+    // A clip with `timeRemap` has no `in`, `out` or `loop`.
+    private func timing(of clip: PlacedJSONObject) throws -> MediaTiming {
+        let origin = try clip.member("origin").number()
+        if let timeRemap = try clip.member("timeRemap").optional(values.numbers) {
+            return .remapped(origin: origin, timeRemap: timeRemap)
+        }
+
+        return .played(PlayedRange(
+            map: TimeMap(origin: origin, in: try clip.member("in").number(), speed: try clip.member("speed").number()),
+            out: try clip.member("out").number(),
+            loop: try clip.member("loop").bool()
+        ))
+    }
+
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
             "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
@@ -360,11 +365,15 @@ struct ResolvedSequenceReader: Sendable {
             place: try sound.member("place").string(),
             media: try sound.member("media").optional(values.media),
             nested: try sound.member("nested").elements().map(self.sound),
-            in: try sound.member("in").number(),
-            origin: try sound.member("origin").number(),
-            out: try sound.member("out").number(),
-            speed: try sound.member("speed").number(),
-            loop: try sound.member("loop").bool(),
+            played: PlayedRange(
+                map: TimeMap(
+                    origin: try sound.member("origin").number(),
+                    in: try sound.member("in").number(),
+                    speed: try sound.member("speed").number()
+                ),
+                out: try sound.member("out").number(),
+                loop: try sound.member("loop").bool()
+            ),
             start: try sound.member("start").number(),
             end: try sound.member("end").number(),
             audible: try values.range(sound.member("audible")),

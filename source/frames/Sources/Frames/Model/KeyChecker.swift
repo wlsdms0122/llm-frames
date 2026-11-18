@@ -682,6 +682,7 @@ struct KeyChecker: Sendable {
         let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
             let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
+            try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
             try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
         }
@@ -730,6 +731,23 @@ struct KeyChecker: Sendable {
 
         default:
             return [.solid]
+        }
+    }
+
+    // A property the clip takes only in keyframes stops as a static value, not as a key the clip does not know.
+    private func checkKeyframedOnly(
+        _ object: JSONObject,
+        kind: ClipKind,
+        place: Place,
+        in clipPlace: ClipPlace
+    ) throws {
+        let keyframable = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        for property in ClipKeyTable.keyframedOnly where keyframable.contains(property) && object.contains(property) {
+            throw ModelError.staticKeyframedOnly(
+                place: place.appending(key: property),
+                kind: kind.label,
+                property: property
+            )
         }
     }
 

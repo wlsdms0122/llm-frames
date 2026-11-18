@@ -9,14 +9,19 @@
 struct ResolvedMediaClip: Equatable, Sendable {
     // MARK: - Property
     let media: ResolvedMediaContent
-    let timing: ResolvedMediaTiming?
+    let timing: MediaTiming?
     let filter: [ResolvedFilterOperation]
     let appearance: ResolvedMediaAppearance
+
+    // The media time a timed clip shows, nil for a still.
+    var clock: MediaClock? {
+        timing.map { timing in MediaClock(playback: timing.playback, frames: media.frames) }
+    }
 
     // MARK: - Initializer
     init(
         media: ResolvedMediaContent,
-        timing: ResolvedMediaTiming?,
+        timing: MediaTiming?,
         filter: [ResolvedFilterOperation],
         appearance: ResolvedMediaAppearance
     ) {

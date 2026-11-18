@@ -121,7 +121,7 @@ package struct Evaluator: Sendable {
     ) -> PictureItemSource? {
         guard case let .media(media) = clip.content else { return nil }
 
-        return source(of: media.media, at: media.timing?.mediaTime(at: time) ?? 0, seed: seed)
+        return source(of: media.media, at: media.clock?.mediaTime(atSequenceTime: time) ?? 0, seed: seed)
     }
 
     // The storyline pictures visible at the time, bottom first. During a transition the two it joins are visible,
@@ -251,17 +251,8 @@ package struct Evaluator: Sendable {
             .media(MediaFrame(media: media, mediaTime: mediaTime))
 
         case let .nested(sequence):
-            .displayList(nestedDisplayList(of: sequence, at: mediaTime, seed: seed))
+            .displayList(displayList(of: sequence, at: mediaTime, seed: seed))
         }
-    }
-
-    // A nested sequence's list at a media time, held inside `[0, duration)`.
-    private func nestedDisplayList(
-        of sequence: ResolvedSequence,
-        at time: Double,
-        seed: Int
-    ) -> DisplayList {
-        displayList(of: sequence, at: min(max(time, 0), sequence.format.duration - .timeResolution), seed: seed)
     }
 
     // The matte's frame follows the transition's progress, and the luminance it shows below follows its own ease.

@@ -36,11 +36,5 @@ struct MediaPlan: Equatable, Sendable {
     }
 
     // MARK: - Public
-    func clamped(_ time: Double) -> Double {
-        guard let frames else { return time }
-
-        return min(max(time, frames.lowerBound), frames.upperBound)
-    }
-
     // MARK: - Private
 }
