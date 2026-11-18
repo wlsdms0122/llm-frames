@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// One mask as written (FRAMES-11), its keys checked for its shape. `index` is its place in the list written, nil for a
-// mask written alone. `radius` is a rect's, in the mask's coordinate space, and `feather` a theme length, not yet
-// scaled.
+// One mask as written. `index` is its place in the list written, nil for a mask written alone. `radius` is a rect's,
+// in the mask's coordinate space, and `feather` a theme length, not yet scaled.
 struct ClipMask: Equatable, Sendable {
     // MARK: - Property
     let index: Int?
@@ -62,7 +61,6 @@ struct ClipMask: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // A mask or a list of them as written, each with its index in the list.
     static func masks(in value: JSONValue) -> [ClipMask]? {
         guard let elements = value.arrayValue else { return ClipMask(value: value, index: nil).map { [$0] } }
 

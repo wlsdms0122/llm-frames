@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// When a keyframe is and which properties it names. `index` is its place in the clip's `keyframes`.
+// `index` is the keyframe's place in the clip's `keyframes`.
 struct KeyframeInstant: Equatable, Sendable {
     // MARK: - Property
     let index: Int

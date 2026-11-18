@@ -7,8 +7,8 @@
 
 // What resolve finds of a connected or sequence clip's geometry before tracks and parents' spaces are planned, every
 // text form searched. `area`, a path's `points` and `position` are in the space the clip's parent gives, `crop` in its
-// own media and `mask` in its own coordinate space. `isInOutputPixels` says whether the clip's coordinates are output
-// pixels, which under content fit are the measuring space, so the clip moves with the content.
+// own media and `mask` in its own coordinate space. Under content fit output pixels are the measuring space, so a clip
+// with `isInOutputPixels` moves with the content.
 struct FoundGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<FoundArea>?

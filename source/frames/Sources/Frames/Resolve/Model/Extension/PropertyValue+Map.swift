@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A property with each value changed in place, its keyframes keeping their instants and eases.
 extension PropertyValue {
     // MARK: - Property
     // MARK: - Initializer

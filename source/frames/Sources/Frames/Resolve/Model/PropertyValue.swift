@@ -23,7 +23,6 @@ enum PropertyValue<Value: Equatable & Sendable>: Equatable, Sendable {
         }
     }
 
-    // The value the property takes first: its static value, or its earliest keyframe's.
     var firstValue: Value {
         switch self {
         case let .value(value):

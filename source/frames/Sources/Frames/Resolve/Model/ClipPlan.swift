@@ -7,9 +7,8 @@
 
 // A connected or sequence clip on the sequence clock. `space` is its own coordinate space, which its mask is in and
 // which it gives its children. `window` is where its `at` puts it, and `visible` is the part of the window it is seen
-// or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, `parent` the clip it names
-// as its parent, `trackMatte` its track matte, and `clock` maps its instants to sequence time. `instant` is where its
-// areas take effect: the start of its window, its storyline clip's `in` when it has no `at`. `keyframes` are in
+// or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and `clock` maps its
+// instants to sequence time. `instant`, the start of its window, is where its areas take effect. `keyframes` are in
 // sequence time.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property

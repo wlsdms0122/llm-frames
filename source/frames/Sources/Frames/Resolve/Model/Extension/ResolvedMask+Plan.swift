@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A mask as resolve gives it (FRAMES-19): a rect or an ellipse on its area, or on its box centred on its position, and
+// A mask as resolve gives it: a rect or an ellipse on its area, or on its box centred on its position, and
 // a path as a closed polyline, in the clip's own coordinate space, and its feather, a theme length, in output pixels.
 extension ResolvedMask {
     // MARK: - Property

@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A sequence's format as resolve planned it.
 extension ResolvedFormat {
     // MARK: - Property
     // MARK: - Initializer

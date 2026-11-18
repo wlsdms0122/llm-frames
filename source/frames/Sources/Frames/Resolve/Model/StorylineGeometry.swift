@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What resolve found for a storyline clip's picture: its crop as written, found in its media with keyframes in
-// sequence time (nil for the whole picture), its masks found in its media the same way (nil for none), what its track
-// followed, the plan of a nested sequence it shows, the filter operations it applies, their lengths already scaled, a
-// solid's colour, and how its picture is drawn.
+// What resolve found for a storyline clip's picture, with keyframes in sequence time. `crop` and `mask` are found in
+// its media, nil for the whole picture and for no mask. The lengths in `filter` are already scaled, and `color` is a
+// solid's.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?

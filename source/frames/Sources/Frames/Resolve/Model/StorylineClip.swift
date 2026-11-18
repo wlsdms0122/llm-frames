@@ -5,11 +5,9 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A storyline clip as written. `media` is nil for a solid, and `solid` its colour as written. Whether media is timed
-// or still is known once it is probed. `crop`, `mask`, `trackMatte` and `track` are as written, and keyframes are on the
-// clip's own clock. `filter` is the filter choice as written. `anchor` is the name written, and `position`, `scale`,
-// `rotation`, `opacity`, `blend`, `radius`, `border` and `shadow` are its transform and how its box is drawn, as on a
-// media clip.
+// A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, and whether media is
+// timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
+// and `shadow` are its transform and how its box is drawn, as on a media clip.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place

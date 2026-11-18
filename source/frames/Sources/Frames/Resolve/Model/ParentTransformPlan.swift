@@ -5,12 +5,11 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A shape parent placed by its geometry as resolve plans its transform before its entry exists (FRAMES-10): its
-// geometry as its entry holds it (`ShapeGeometry(plan:area:points:position:instant:track:)`), in its own parent's
-// space, the track a tracked shape follows, and its scale and rotation, every keyframe in sequence time.
-// `transform(at:)` is the map from the space its children are written in to that of its own parent, without its
-// animation and its tracked motion, by the formula its evaluation lays it out with: a tracked shape's keyframes are
-// brought back to the instant first, as evaluation brings them back. Its outset is how it is drawn and takes no part.
+// A shape parent placed by its geometry, as resolve plans its transform before its entry exists. `geometry` is as its
+// entry holds it, in its own parent's space, and every keyframe is in sequence time. `transform(at:)` maps the space
+// its children are written in to that of its own parent, without its animation and its tracked motion, and must lay
+// the shape out as evaluation does: a tracked shape's keyframes are brought back to the instant first. Its outset
+// takes no part.
 struct ParentTransformPlan: Equatable, Sendable {
     // MARK: - Property
     let geometry: ShapeGeometry

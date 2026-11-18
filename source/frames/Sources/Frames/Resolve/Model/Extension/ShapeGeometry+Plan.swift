@@ -6,11 +6,10 @@
 //
 
 // A shape's geometry plan made its geometry and where it goes, every static property one keyframe at the clip's
-// instant. This is the one place a plan becomes geometry: it holds the keyframes its caller gives, and names its
-// anchor once, as a point of its geometry's box at the instant where that box lies for its evaluation, which brings a
-// tracked shape's keyframes back through its track to the instant. So the entry, the transform resolve plans for a
-// shape parent and the bounds evaluation lays out take the anchor in one space. A shape placed by its area or its
-// points was checked to write them, so they were found.
+// instant. The anchor is named once, as a point of the geometry's box at the instant where evaluation lays that box
+// out, a tracked shape's keyframes brought back through its track to the instant. The shape's entry and the transform
+// resolve plans for a shape parent are both made here, so they and evaluation take the anchor in one space. A shape
+// placed by its area or its points was checked to write them, so they were found.
 extension ShapeGeometry {
     // MARK: - Property
     // MARK: - Initializer
