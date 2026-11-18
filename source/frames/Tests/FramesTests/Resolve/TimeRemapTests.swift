@@ -140,7 +140,7 @@ struct TimeRemapTests {
         #expect(remapped.mediaTime(atSequenceTime: 4) == 1 + 2.5 * Ease.backOut.value(at: 0.5))
     }
 
-    @Test("two keys with one value hold a frame, a lower next value plays backwards and the last key holds after it")
+    @Test("two keys with one value hold, a lower next value plays backwards and the last key holds after it")
     func holdsAndReverses() throws {
         // Given
         let document = try Fixture.json(#"""
@@ -156,7 +156,7 @@ struct TimeRemapTests {
         #expect(times == [1, 1, 1, 0.75, 0.5, 0.5])
     }
 
-    @Test("a remap value outside the media is clamped to its first or last frame, and a hold past the end shows the last")
+    @Test("a value outside the media clamps to its first or last frame; a hold past the end shows the last")
     func clampsOutsideMedia() throws {
         // Given
         let document = try Fixture.json(#"""
@@ -172,7 +172,7 @@ struct TimeRemapTests {
         #expect(times == [0, 0, 3.9, 3.9])
     }
 
-    @Test("a connected media clip's remap keys are on its storyline clip's clock and give its media time over its window")
+    @Test("a connected media clip's remap keys are on its storyline clip's clock and give its media time in its window")
     func remapsConnectedClip() throws {
         // Given
         let document = try Fixture.json(#"""
@@ -210,7 +210,7 @@ struct TimeRemapTests {
         #expect(sequence.audio.map(\.place) == ["clips[1]"])
     }
 
-    @Test("the resolved document writes timeRemap in sequence time, speed 1, and a remapped media clip's in, out and loop as null")
+    @Test("the resolved document writes timeRemap in sequence time and a remapped media clip's in, out, loop as null")
     func writesTimeRemap() throws {
         // Given
         let document = try Fixture.json(#"""
