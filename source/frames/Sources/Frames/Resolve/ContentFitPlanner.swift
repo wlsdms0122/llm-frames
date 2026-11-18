@@ -174,13 +174,13 @@ struct ContentFitPlanner: Sendable {
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
         let transform = item.transform
-        let width = path.stroke?.width ?? 0
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            return bounds(of: rectangle.grown(by: path.hasArrowhead ? width * 2 : width / 2), by: transform)
+            return bounds(of: rectangle.grown(by: path.drawnStroke?.reach ?? 0), by: transform)
 
         case let .polyline(points, isClosed):
             let scale = (transform.a * transform.a + transform.b * transform.b).squareRoot()
+            let width = path.stroke?.width ?? 0
             let outline = Rectangle(bounding: points.map(transform.apply(to:))).grown(by: width / 2 * scale)
             let heads = arrowheads(of: points, isClosed: isClosed, path: path).map(transform.apply(to:))
             return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
@@ -197,11 +197,14 @@ struct ContentFitPlanner: Sendable {
         let vertices = isClosed ? points + [points[0]] : points
         let segments = Array(zip(vertices, vertices.dropFirst()))
         let length = segments.reduce(0) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
-        guard let drawn = path.drawnStroke(length: length) else { return [] }
+        guard let drawn = path.drawnStroke else { return [] }
 
         // The start's head points back along the outline, the end's forward.
-        let ends = [(drawn.hasStartHead, drawn.start, -1.0), (drawn.hasEndHead, drawn.end, 1.0)].filter(\.0)
-        let head = drawn.headLength
+        let ends = [
+            (drawn.hasStartHead, drawn.start(along: length), -1.0),
+            (drawn.hasEndHead, drawn.end(along: length), 1.0)
+        ].filter(\.0)
+        let head = drawn.headLength(along: length)
         return ends.flatMap { _, distance, sign -> [Point] in
             guard let (tip, direction) = place(at: distance, along: segments) else { return [] }
 

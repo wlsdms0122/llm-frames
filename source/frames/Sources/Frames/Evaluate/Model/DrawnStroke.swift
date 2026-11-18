@@ -5,48 +5,74 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The part of an outline a stroke draws (FRAMES-11), as distances along the outline: from the smaller trim to the
-// larger, each held to 0...1. Arrowheads sit on the ends of the stroke as drawn, so an open outline's stroke has an end
-// at both, and a closed outline's only where its trim leaves part of it undrawn: drawn whole, it has no end and takes
-// no arrowhead. A head is `4 × width` long, and heads that together are longer than the drawn stroke shrink to share
-// its length. The line runs between the heads' bases.
+// The part of an outline a stroke draws (FRAMES-11), as fractions of the outline's length: from the smaller trim to the
+// larger, each held to 0...1. A stroke with no width or no part of the outline is not drawn. Arrowheads sit on the ends
+// of the stroke as drawn, so an open outline's stroke has an end at both, and a closed outline's only where its trim
+// leaves part of it undrawn: drawn whole, it has no end and takes no arrowhead. A head is `4 × width` long and as wide
+// at its base, and heads that together are longer than the drawn stroke shrink to share its length. The line runs
+// between the heads' bases.
 package struct DrawnStroke: Equatable, Sendable {
     // MARK: - Property
-    package let start: Double
-    package let end: Double
+    package let isDrawn: Bool
     package let isWhole: Bool
     package let hasStartHead: Bool
     package let hasEndHead: Bool
-    package let headLength: Double
+    private let low: Double
+    private let high: Double
+    private let width: Double
 
-    package var lineStart: Double { start + (hasStartHead ? headLength : 0) }
-    package var lineEnd: Double { end - (hasEndHead ? headLength : 0) }
+    package var hasArrowhead: Bool { hasStartHead || hasEndHead }
+
+    // How far the stroke and its heads reach outside the outline at most: half the stroke's width, or half a head's
+    // base where it has a head, which lies across the outline at its end.
+    package var reach: Double { hasArrowhead ? 2 * width : width / 2 }
 
     // MARK: - Initializer
-    // Nil where the stroke draws nothing: no width, or no part of the outline.
-    package init?(
+    package init(
         stroke: PathStroke,
         trim: Trim,
-        isClosed: Bool,
-        length: Double
+        isClosed: Bool
     ) {
         let low = min(max(min(trim.start, trim.end), 0), 1)
         let high = min(max(max(trim.start, trim.end), 0), 1)
-        guard stroke.width > 0, high > low, length > 0 else { return nil }
-
+        let isDrawn = stroke.width > 0 && high > low
         let isWhole = isClosed && low == 0 && high == 1
-        let hasStartHead = !isWhole && stroke.start == .arrow
-        let hasEndHead = !isWhole && stroke.end == .arrow
-        let count = Double([hasStartHead, hasEndHead].filter { $0 }.count)
 
-        self.start = low * length
-        self.end = high * length
+        self.isDrawn = isDrawn
         self.isWhole = isWhole
-        self.hasStartHead = hasStartHead
-        self.hasEndHead = hasEndHead
-        self.headLength = count > 0 ? min(4 * stroke.width, (high - low) * length / count) : 0
+        self.hasStartHead = isDrawn && !isWhole && stroke.start == .arrow
+        self.hasEndHead = isDrawn && !isWhole && stroke.end == .arrow
+        self.low = low
+        self.high = high
+        self.width = stroke.width
     }
 
     // MARK: - Public
+    // Where the drawn stroke starts and ends along an outline `length` long.
+    package func start(along length: Double) -> Double {
+        low * length
+    }
+
+    package func end(along length: Double) -> Double {
+        high * length
+    }
+
+    // The length of each head along an outline `length` long, after shrinking.
+    package func headLength(along length: Double) -> Double {
+        let count = Double([hasStartHead, hasEndHead].filter { $0 }.count)
+        guard count > 0 else { return 0 }
+
+        return min(4 * width, (high - low) * length / count)
+    }
+
+    // Where the line between the heads' bases starts and ends along an outline `length` long.
+    package func lineStart(along length: Double) -> Double {
+        start(along: length) + (hasStartHead ? headLength(along: length) : 0)
+    }
+
+    package func lineEnd(along length: Double) -> Double {
+        end(along: length) - (hasEndHead ? headLength(along: length) : 0)
+    }
+
     // MARK: - Private
 }

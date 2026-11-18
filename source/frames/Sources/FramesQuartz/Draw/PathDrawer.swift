@@ -37,7 +37,9 @@ struct PathDrawer {
 
         guard
             let stroke = item.stroke,
-            let drawn = item.drawnStroke(length: Double(outline.length)),
+            let drawn = item.drawnStroke,
+            drawn.isDrawn,
+            outline.length > 0,
             let shape = shape(of: stroke, drawn: drawn, along: outline)
         else { return }
 
@@ -55,15 +57,16 @@ struct PathDrawer {
     ) -> CGPath? {
         guard !drawn.isWhole else { return stroked(outline.path, by: stroke) }
 
-        let lineStart = CGFloat(drawn.lineStart)
-        let lineEnd = CGFloat(drawn.lineEnd)
-        let headLength = CGFloat(drawn.headLength)
+        let length = Double(outline.length)
+        let lineStart = CGFloat(drawn.lineStart(along: length))
+        let lineEnd = CGFloat(drawn.lineEnd(along: length))
+        let headLength = CGFloat(drawn.headLength(along: length))
         let line = lineEnd > lineStart ? stroked(outline.piece(from: lineStart, to: lineEnd), by: stroke) : nil
         let start = drawn.hasStartHead
-            ? head(at: CGFloat(drawn.start), along: outline, isStart: true, length: headLength)
+            ? head(at: CGFloat(drawn.start(along: length)), along: outline, isStart: true, length: headLength)
             : nil
         let end = drawn.hasEndHead
-            ? head(at: CGFloat(drawn.end), along: outline, isStart: false, length: headLength)
+            ? head(at: CGFloat(drawn.end(along: length)), along: outline, isStart: false, length: headLength)
             : nil
         let parts = [line, start, end].compactMap { $0 }
         guard let first = parts.first else { return nil }

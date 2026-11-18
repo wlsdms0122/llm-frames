@@ -14,7 +14,7 @@ extension ItemCoverage {
     // MARK: - Property
     // MARK: - Initializer
     init(path: PathItem) {
-        let stroke = path.drawnStroke(length: 1) != nil ? path.stroke : nil
+        let stroke = path.drawnStroke?.isDrawn == true ? path.stroke : nil
 
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
@@ -57,18 +57,21 @@ extension ItemCoverage {
         let vertices = isClosed ? points + [points[0]] : points
         let segments = zip(vertices, vertices.dropFirst()).filter { distance(from: $0.0, to: $0.1) > 0 }
         let length = segments.map { distance(from: $0.0, to: $0.1) }.reduce(0, +)
-        guard let stroke = path.stroke, let drawn = path.drawnStroke(length: length) else { return [] }
+        guard let stroke = path.stroke, let drawn = path.drawnStroke, drawn.isDrawn, length > 0 else { return [] }
 
-        let line = drawn.lineEnd > drawn.lineStart
-            ? piece(of: segments, from: drawn.lineStart, to: drawn.lineEnd).map { start, end in
+        let lineStart = drawn.lineStart(along: length)
+        let lineEnd = drawn.lineEnd(along: length)
+        let headLength = drawn.headLength(along: length)
+        let line = lineEnd > lineStart
+            ? piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
                 band(from: start, to: end, width: stroke.width)
             }
             : []
         let startHead = drawn.hasStartHead
-            ? head(at: drawn.start, of: segments, pointing: -1, length: drawn.headLength)
+            ? head(at: drawn.start(along: length), of: segments, pointing: -1, length: headLength)
             : nil
         let endHead = drawn.hasEndHead
-            ? head(at: drawn.end, of: segments, pointing: 1, length: drawn.headLength)
+            ? head(at: drawn.end(along: length), of: segments, pointing: 1, length: headLength)
             : nil
 
         return line + [startHead, endHead].compactMap { $0 }
