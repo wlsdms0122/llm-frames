@@ -94,7 +94,7 @@ How it is written, so the same plan gives the same bytes:
 ```
 
 - The example is laid out to be read and keeps only the keys it explains. Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
-- `format.size` is the frame size, the measured one for a content-fit frame ([FRAMES-6](../FRAMES-6/SPEC.md)). `format.duration` is the sequence end.
+- `format.size` is the frame size, the measured one for a content-fit frame ([FRAMES-6](../FRAMES-6/SPEC.md)). `format.duration` is the sequence end, above 0.
 - A video or image sequence keeps its frame timestamps in `frames` (cut short in the example).
 - A storyline entry has `id`, `media`, `in`, `out`, `speed`, `timeRemap`, `start`, `end`, its box (`size`, `anchor`, `position`), its keyframable properties (`crop` as conformed crops, `position`, `scale`, `rotation`, `opacity`) as keyframe lists in sequence time, its `blend`, `mask`, `trackMatte` and `track`, its filter as an op list, and `transition` as `null` or `{start, end, over, audio, incoming, outgoing, cover, matte}` with spans and files inline. A cover or matte that shows media carries it pinned, a video with its `frames`, and its `duration` in media seconds (0 for a still), so evaluation shows media time p × `duration` at progress p ([FRAMES-14](../FRAMES-14/SPEC.md)) without opening the file.
 - A solid storyline entry carries its colour as `solid`, and `media` is `null`.
