@@ -140,6 +140,97 @@ struct ParentSpacePlannerTests {
         #expect(isClose(text.value, beside), "the text keyframe is at \(text.value), the text's right at \(beside)")
     }
 
+    @Test(
+        "a title at a point of text under a turned and scaled shape lands beside the text, the shape held at its window's edge",
+        arguments: [
+            #""at": [0, 4], "scale": 1.5, "rotation": 30"#,
+            #""at": [0, 4], "anchor": "top-left", "position": [400, 500], "scale": 0.5, "rotation": -90"#,
+            #""at": [0, 4], "keyframes": [ { "at": 0, "scale": 1, "rotation": 0 }, { "at": 4, "scale": 2, "rotation": 90 } ]"#,
+            #""at": [0, 1], "keyframes": [ { "at": 0, "position": [0, 0], "rotation": 0 }, { "at": 1, "position": [300, 200], "rotation": 60 } ]"#
+        ]
+    )
+    func placesTextUnderTurnedShape(card: String) throws {
+        // Given
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "area": [200, 300, 400, 200], \#(card) },
+                { "title": "a", "style": "title", "parent": "card", "at": [2, 4], "anchor": "left", "position": \#(Self.beside) } ] } ] }
+            """#)
+
+        // When
+        let resolved = try ResolvedSequence(
+            plan: sut.plan(Fixture.planner.plan(document: document)),
+            hashes: FileHashTable()
+        )
+
+        // Then
+        let anchor = Self.anchor(of: resolved.clips[1], by: ParentEvaluator(sequence: resolved), at: 2)
+        let text = Self.text(at: 2, growth: 0)
+        let beside = Point(x: text.x + text.width + Self.padding, y: text.center.y)
+        #expect(isClose(anchor, beside), "the title is at \(anchor), the text's right at \(beside)")
+    }
+
+    @Test("an area of text under a turned and scaled shape is the box bounding its four corners carried back, and numbers are kept")
+    func bringsAreaBackThroughRotation() throws {
+        // Given
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": [200, 300, 400, 200],
+                  "scale": 1.5, "rotation": 30 },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "area": { "text": "Total" } },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [2, 4], "area": { "text": "Total" } },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "area": [300, 100, 50, 50] } ] } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(Fixture.planner.plan(document: document))
+
+        // Then
+        guard case let .value(underCard) = plan.clips[1].area,
+            case let .value(onScreen) = plan.clips[2].area,
+            case let .value(numbers) = plan.clips[3].area
+        else {
+            Issue.record("the areas were not found as static values")
+            return
+        }
+        let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
+        let inverse = try #require(card.inverse)
+        let expected = Rectangle(bounding: inverse.apply(toCornersOf: onScreen.rectangle))
+        #expect(isClose(underCard.rectangle, expected), "the area is \(underCard.rectangle), the carried corners' box \(expected)")
+        // Turned by 30 degrees, the wide line of text stands taller than its height at that scale.
+        #expect(underCard.rectangle.height > onScreen.rectangle.height / 1.5)
+        #expect(numbers.rectangle == Rectangle(x: 300, y: 100, width: 50, height: 50))
+    }
+
+    @Test("a path's point of text under a turned and scaled shape is carried back into its space, and a point of numbers is kept")
+    func bringsPointsBackThroughRotation() throws {
+        // Given
+        let sut = planner(growth: 0)
+        let points = #"[\#(Self.beside), [0, 0]]"#
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": [200, 300, 400, 200],
+                  "scale": 1.5, "rotation": 30 },
+                { "shape": "path", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "points": \#(points) },
+                { "shape": "path", "stroke": { "width": 8 }, "parent": "screen", "at": [2, 4], "points": \#(points) } ] } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(Fixture.planner.plan(document: document))
+
+        // Then
+        guard case let .value(underCard) = plan.clips[1].points, case let .value(onScreen) = plan.clips[2].points else {
+            Issue.record("the points were not found as static values")
+            return
+        }
+        let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
+        let expected = try #require(card.inverse).apply(to: onScreen[0])
+        #expect(isClose(underCard[0], expected), "the point is \(underCard[0]), carried back \(expected)")
+        #expect(underCard[1] == Point(x: 0, y: 0))
+    }
+
     // MARK: - Private
     private static let beside = #"{ "area": { "text": "Total", "padding": 14 }, "point": "right" }"#
 
@@ -192,5 +283,13 @@ struct ParentSpacePlannerTests {
         _ other: Point
     ) -> Bool {
         abs(point.x - other.x) < 1e-6 && abs(point.y - other.y) < 1e-6
+    }
+
+    private func isClose(
+        _ rectangle: Rectangle,
+        _ other: Rectangle
+    ) -> Bool {
+        isClose(Point(x: rectangle.x, y: rectangle.y), Point(x: other.x, y: other.y))
+            && isClose(Point(x: rectangle.width, y: rectangle.height), Point(x: other.width, y: other.height))
     }
 }

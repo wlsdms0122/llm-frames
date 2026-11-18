@@ -72,20 +72,34 @@ struct SequencePlanner: Sendable {
 
         let tracked = try tracker.plan(time, crops: crops, areas: found.map(\.area))
         try checkKeyframes(of: tracked.time)
+        let lengthScale = time.theme.lengthScale(at: format.size.width)
+        let shapes = try tracked.time.clips.indices.map { index in
+            try appearances.shape(
+                of: tracked.time.clips[index],
+                written: written[index],
+                scale: lengthScale,
+                theme: time.theme
+            )
+        }
         // A tracked clip is parented to a storyline clip, so no text it finds needs a track, and what was found under a
-        // shape or adjustment is brought into its space once every track is planned.
-        let parentSpace = ParentSpacePlanner(tracked: tracked)
+        // shape or adjustment is brought into its space once every track and shape is planned.
+        let parentSpace = ParentSpacePlanner(
+            tracked: tracked,
+            written: written,
+            shapes: shapes,
+            areas: found.map(\.area),
+            points: found.map(\.points),
+            positions: found.map(\.position)
+        )
         let placed = time.clips.indices.map { index in
-            let plan = time.clips[index]
-            return (
-                area: parentSpace.area(found[index].area, written: written[index].area, of: plan),
-                points: found[index].points,
-                position: parentSpace.position(found[index].position, written: written[index].position, of: plan),
+            (
+                area: parentSpace.area(of: index),
+                points: parentSpace.points(of: index),
+                position: parentSpace.position(of: index),
                 crop: found[index].crop
             )
         }
 
-        let lengthScale = time.theme.lengthScale(at: format.size.width)
         let storyline = try time.storyline.indices.map { index in
             StorylineGeometry(
                 crop: crops[index],
@@ -119,12 +133,7 @@ struct SequencePlanner: Sendable {
         }
         let clips = try tracked.time.clips.indices.map { index in
             let title = try title(of: written[index], format: format, theme: time.theme)
-            let shape = try appearances.shape(
-                of: tracked.time.clips[index],
-                written: written[index],
-                scale: lengthScale,
-                theme: time.theme
-            )
+            let shape = shapes[index]
             let box = try appearances.box(
                 of: tracked.time.clips[index],
                 written: written[index],
