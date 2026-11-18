@@ -365,6 +365,7 @@ struct TimePlanner: Sendable {
             place: clip.place,
             id: clip.id,
             kind: kind,
+            space: OwnSpace(content: clip.content),
             storyline: owner,
             lane: try lane(of: clip, kind: kind),
             clock: clock,

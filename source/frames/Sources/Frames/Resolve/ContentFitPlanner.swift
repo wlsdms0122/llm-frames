@@ -58,7 +58,9 @@ struct ContentFitPlanner: Sendable {
             format: format,
             storyline: plan.storyline.map { moved($0, by: offset) },
             clips: plan.clips.indices.map { index in
-                inOutputPixels[index] ? moved(plan.clips[index], by: offset) : plan.clips[index]
+                inOutputPixels[index]
+                    ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset)
+                    : plan.clips[index]
             },
             sound: plan.sound
         )
@@ -227,15 +229,10 @@ struct ContentFitPlanner: Sendable {
     // by its geometry. A title's or a box shape's is in its box and a media clip's in its media.
     private func moved(
         _ geometry: ClipGeometry,
+        in space: OwnSpace,
         by offset: Point
     ) -> ClipGeometry {
-        let isMaskInParentSpace = if case .box = geometry.appearance.shape?.geometry {
-            false
-        } else {
-            geometry.title == nil && geometry.appearance.media == nil
-        }
-
-        return ClipGeometry(
+        ClipGeometry(
             area: geometry.area?.map { area in
                 FoundArea(
                     rectangle: moved(area.rectangle, by: offset),
@@ -250,7 +247,7 @@ struct ContentFitPlanner: Sendable {
                 ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
             },
             crop: geometry.crop,
-            mask: isMaskInParentSpace
+            mask: space == .parent
                 ? geometry.mask?.map { masks in masks.map { moved($0, by: offset) } }
                 : geometry.mask,
             track: geometry.track,

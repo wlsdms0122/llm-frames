@@ -209,17 +209,7 @@ struct ClipEvaluator: Sendable {
     ) -> [ItemMask] {
         guard let mask = clip.mask else { return [] }
 
-        let isInOwnSpace = switch clip.content {
-        case .title, .media:
-            true
-
-        case let .shape(shape):
-            if case .box = shape.geometry { true } else { false }
-
-        case .adjustment:
-            false
-        }
-        let masks = isInOwnSpace ? mask.value(at: time) : space.masks(of: mask, track: clip.track, at: time)
+        let masks = clip.space == .parent ? space.masks(of: mask, track: clip.track, at: time) : mask.value(at: time)
         let transform = childTransform(of: clip, in: space, at: time)
         let scale = ClipSample(clip: clip, at: time).ownScale
         return masks.map { ItemMask(mask: $0, transform: transform, scale: scale) }

@@ -113,7 +113,7 @@ struct ParentSpacePlanner: Sendable {
             let found = masks[index],
             let written = written[index].mask,
             let parent = plan.parent,
-            isInParentSpace(index)
+            plan.space == .parent
         else {
             return masks[index]
         }
@@ -129,19 +129,6 @@ struct ParentSpacePlanner: Sendable {
     }
 
     // MARK: - Private
-    private func isInParentSpace(_ index: Int) -> Bool {
-        switch tracked.time.clips[index].kind {
-        case .adjust:
-            true
-
-        case .shape:
-            if case .box = shapes[index]?.geometry { false } else { true }
-
-        default:
-            false
-        }
-    }
-
     private func bringBack(
         _ geometry: PathGeometry,
         written: MaskGeometryForm,

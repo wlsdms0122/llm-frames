@@ -129,9 +129,8 @@ struct TrackPlanner: Sendable {
         }
 
         let parent = storyline[index]
-        // A box shape's mask is in its own box, not in the media it follows.
-        let followsMask = if case let .shape(shape) = written.content { shape.width == nil } else { true }
-        let ownMask = followsMask ? mask.map { self.area(of: $0, on: parent, instant: plan.instant) } : nil
+        // Only a mask in the parent's space lies in the media followed; a box shape's is in its own box.
+        let ownMask = plan.space == .parent ? mask.map { self.area(of: $0, on: parent, instant: plan.instant) } : nil
         let start = try self.target(
             target,
             candidates: [

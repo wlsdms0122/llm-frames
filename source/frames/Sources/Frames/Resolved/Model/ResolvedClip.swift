@@ -31,6 +31,10 @@ struct ResolvedClip: Equatable, Sendable {
     let rotation: [Keyframe<Double>]?
     let blend: String?
     let animation: ResolvedAnimation
+    // The clip's own coordinate space, which its mask is in and which it gives its children.
+    var space: OwnSpace {
+        OwnSpace(content: content)
+    }
 
     // MARK: - Initializer
     init(

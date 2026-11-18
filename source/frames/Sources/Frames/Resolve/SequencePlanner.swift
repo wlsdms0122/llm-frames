@@ -567,9 +567,9 @@ struct SequencePlanner: Sendable {
         let mask = try written.mask.map { mask in
             try checkMasks(mask, place: written.place, kind: plan.kind)
             let maskSpace: (picture: Picture, clock: PictureClock)
-            if let picture {
+            if plan.space == .media, let picture {
                 maskSpace = (picture, plan.timing.map { .media($0) } ?? .still)
-            } else if isPlacedByBox(written) {
+            } else if plan.space == .box {
                 if let text = byText(mask, place: written.place) {
                     throw ResolveError.textMaskInOwnBox(place: text, kind: .clip(plan.kind))
                 }
@@ -595,20 +595,6 @@ struct SequencePlanner: Sendable {
         }
 
         return (area, points, position, crop, mask, space.isOutputPixels)
-    }
-
-    // A title and a shape given by `width` and `height` are placed by their box, which their mask is written in.
-    private func isPlacedByBox(_ clip: Clip) -> Bool {
-        switch clip.content {
-        case .title:
-            true
-
-        case let .shape(shape):
-            shape.width != nil
-
-        case .media, .adjust:
-            false
-        }
     }
 
     // The place of the first mask given by text, which only a clip whose mask is in media takes.
@@ -649,7 +635,7 @@ struct SequencePlanner: Sendable {
         format: FormatPlan
     ) throws -> (picture: Picture, clock: PictureClock, isOutputPixels: Bool) {
         var parent = parent
-        while case let .clip(index, _) = parent, clipPictures[index] == nil, passesOnSpace(at: index, in: time) {
+        while case let .clip(index, _) = parent, time.clips[index].space == .parent {
             parent = time.clips[index].parent
         }
 
@@ -673,34 +659,6 @@ struct SequencePlanner: Sendable {
 
             return (picture, plan.timing.map { .media($0) } ?? .still, false)
         }
-    }
-
-    // Whether a clip gives its children its own parent's space: a shape placed by its geometry or an adjustment.
-    private func passesOnSpace(
-        at index: Int,
-        in time: TimePlan
-    ) -> Bool {
-        switch time.clips[index].kind {
-        case .shape:
-            guard case let .shape(shape) = writtenClip(at: index, in: time).content else { return false }
-
-            return shape.width == nil
-
-        case .adjust:
-            return true
-
-        default:
-            return false
-        }
-    }
-
-    // A clip in the time plan's order of clips.
-    private func writtenClip(
-        at index: Int,
-        in time: TimePlan
-    ) -> Clip {
-        let connected = time.sequence.storyline.flatMap(\.connected)
-        return index < connected.count ? connected[index] : time.sequence.clips[index - connected.count]
     }
 
     private func shapePoints(of clip: Clip) -> PropertyValue<[PositionForm]>? {
