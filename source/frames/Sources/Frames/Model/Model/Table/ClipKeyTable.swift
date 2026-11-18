@@ -31,16 +31,16 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "pan", "timeRemap"]
 
         case (.storyline, _):
             ["crop", "position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .media(.audio)):
-            ["volume"]
+            ["volume", "pan"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
-            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume", "pan", "timeRemap"]
 
         case (_, .media):
             ["position", "scale", "rotation", "opacity", "crop", "mask"]
@@ -74,6 +74,9 @@ enum ClipKeyTable {
         )
     }
 
+    // Properties written only in keyframes, so a static value stops (FRAMES-4).
+    static let keyframedOnly = ["timeRemap"]
+
     private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
 
     // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
@@ -98,7 +101,7 @@ enum ClipKeyTable {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
                 "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition"
-            ] + storylineTransform + ["volume", "fadeIn", "fadeOut", "keyframes", "connected"]
+            ] + storylineTransform + ["volume", "pan", "fadeIn", "fadeOut", "keyframes", "connected"]
 
         case (.storyline, .solid):
             return ["id", "metadata", "solid", "duration", "transition", "connected"]
@@ -108,11 +111,14 @@ enum ClipKeyTable {
                 + ["keyframes", "connected"]
 
         case (_, .media(.audio)):
-            return ["id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut", "keyframes"]
+            return [
+                "id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut",
+                "keyframes"
+            ]
 
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
-                "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "fadeIn", "fadeOut",
+                "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut",
                 "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend", "mask",
                 "trackMatte", "width", "height", "radius", "border", "shadow"
             ]
@@ -248,6 +254,10 @@ enum ClipKeyTable {
 
         case "radius":
             .nonNegativeNumber
+
+        // A sound sits between the left channel (-1) and the right (1).
+        case "pan":
+            .signedFraction
 
         default:
             .number

@@ -15,13 +15,15 @@ struct ResolvedDocumentReaderTests {
     private let sut = ResolvedDocumentReader()
     private let writer = ResolvedDocumentWriter()
 
-    // A transition with spans, a video cover and a still matte, and a filter with a LUT.
+    // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, and a filter with a
+    // LUT.
     private static let presets = PresetTable(
         transitions: Fixture.presets.transitions.merging([
             "reveal": TransitionPreset(
                 description: "",
                 seconds: 1,
                 over: .incoming,
+                audio: .constantPower,
                 incoming: Span(ease: .easeOut, keys: [SpanKey(t: 0, values: [.scale: 1.2, .opacity: 0]), SpanKey(t: 1, values: [:])]),
                 outgoing: nil,
                 cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .linear, keys: [])),
@@ -31,6 +33,7 @@ struct ResolvedDocumentReaderTests {
                 description: "",
                 seconds: 1,
                 over: .outgoing,
+                audio: .constantGain,
                 incoming: nil,
                 outgoing: Span(ease: .linear, revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
                 cover: Cover(source: .color("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
@@ -57,7 +60,8 @@ struct ResolvedDocumentReaderTests {
           "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
-                       "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
+                       "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
+                                      { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
         """#,
         // A solid, an image sequence, a nested sequence, transitions with a cover and a matte, and a LUT.
         #"""
@@ -129,6 +133,14 @@ struct ResolvedDocumentReaderTests {
             { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
               "trackMatte": { "clip": "word", "mode": "alpha" } },
             { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
+        """#,
+        // Time remapping: a storyline clip held, reversed and eased past the end of its media, and a connected media
+        // clip remapped over its window, which writes no `in`, `out` or `loop`.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 6, "keyframes": [
+            { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
+            "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
+              { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
         """#
     ]
 
@@ -192,7 +204,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""loop": true,"#,
                 #""loop": true, "scale": [],"#,
-                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, fadeIn, fadeOut, incoming, outgoing"#
+                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing"#
             )
         ]
     )
@@ -209,6 +221,24 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("an `audio` curve that is not a crossfade curve stops on a sound's crossfade, and a storyline transition carries none")
+    func refusesUnknownCrossfadeCurve() throws {
+        // Given
+        let text = try written(Self.documents[1])
+        let curve = #""audio": "constant-gain""#
+        let last = try #require(text.range(of: curve, options: .backwards))
+        let crossfade = text.replacingCharacters(in: last, with: #""audio": "linear""#)
+        let transition = replacingFirst(#""over": "#, with: #""audio": "constant-gain", "over": "#, in: text)
+
+        // When
+        let crossfadeError = #expect(throws: ModelError.self) { try sut.read(crossfade) }
+        let transitionError = #expect(throws: ModelError.self) { try sut.read(transition) }
+
+        // Then
+        #expect(crossfadeError?.description == #"audio[0].incoming.audio (crossfade): unknown value "linear". Allowed: constant-power, constant-gain"#)
+        #expect(transitionError?.description == #"storyline[1].transition (transition): unknown key "audio". Allowed: start, end, over, incoming, outgoing, cover, matte"#)
     }
 
     @Test("scale, rotation and blend are read for anything drawn, and not for an adjustment")
@@ -278,6 +308,18 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("a format duration that is not above 0 stops", arguments: ["0", "-1"])
+    func refusesDurationNotAboveZero(duration: String) throws {
+        // Given
+        let text = try replacingFirst(#""duration": 3,"#, with: #""duration": \#(duration),"#, in: written(Self.documents[0]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "format.duration (format): a sequence's duration is above 0, found \(duration)")
     }
 
     @Test("a root that is not an object stops")

@@ -22,6 +22,7 @@ struct ResolvedSequenceWriterTests {
                 description: "",
                 seconds: 1,
                 over: .incoming,
+                audio: .constantPower,
                 incoming: Span(ease: .easeOut, keys: [SpanKey(t: 0, values: [.scale: 1.2, .opacity: 0]), SpanKey(t: 1, values: [:])]),
                 outgoing: nil,
                 cover: Cover(source: .media("/abs/leak.mov"), span: Span(ease: .linear, keys: [])),
@@ -337,13 +338,13 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.arrayValue?.count == 1)
     }
 
-    @Test("audio is every source of sound, with its volume in sequence time")
+    @Test("audio is every source of sound, with its volume and pan in sequence time")
     func writesAudio() throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
               "clips": [ { "media": "/abs/bgm.m4a", "at": 1, "loop": true,
-                           "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 1, "volume": 0 } ] } ] }
+                           "keyframes": [ { "at": 0, "volume": 0.3, "pan": -1 }, { "at": 1, "volume": 0, "pan": 1 } ] } ] }
             """#
 
         // When
@@ -358,6 +359,34 @@ struct ResolvedSequenceWriterTests {
         #expect(music["loop"] == .bool(true))
         #expect(music["start"] == .number(1))
         #expect(music["volume"]?.arrayValue?.compactMap { $0.objectValue?["at"] } == [.number(0), .number(1)])
+        #expect(music.keys.firstIndex(of: "pan") == music.keys.firstIndex(of: "volume").map { $0 + 1 })
+        #expect(music["pan"]?.arrayValue?.compactMap { $0.objectValue?["at"] } == [.number(0), .number(1)])
+        #expect(music["pan"]?.arrayValue?.compactMap { $0.objectValue?["value"] } == [.number(-1), .number(1)])
+        #expect(audio.first?.objectValue?["pan"]?.arrayValue?.first?.objectValue?["value"] == .number(0))
+    }
+
+    @Test("a sound crossfading over a transition writes it as its range and the storyline entry's audio curve")
+    func writesCrossfade() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                                                 { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
+            """#
+
+        // When
+        let resolved = try write(document)
+
+        // Then
+        let audio = try #require(resolved["audio"]?.arrayValue)
+        let crossfade = JSONValue.object(JSONObject(members: [
+            JSONMember(key: "start", value: .number(3.5)),
+            JSONMember(key: "end", value: .number(4.5)),
+            JSONMember(key: "audio", value: .string("constant-gain"))
+        ]))
+        #expect(audio.first?.objectValue?["incoming"] == .null)
+        #expect(audio.first?.objectValue?["outgoing"] == crossfade)
+        #expect(audio.last?.objectValue?["incoming"] == crossfade)
+        #expect(audio.last?.objectValue?["outgoing"] == .null)
     }
 
     @Test("a shape entry writes its kind, its geometry as written, its outset and its appearance after its id, every key present and null where none")

@@ -109,6 +109,102 @@ struct TrackPlannerTests {
         #expect(track.motion(atMediaTime: 3.4) == track.motion(atMediaTime: 3))
     }
 
+    @Test("a reversed storyline clip is followed from the lowest to the highest media time it shows")
+    func followsReversedClip() throws {
+        // Given
+        let sut = planner()
+        let reverse = #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#
+        let time = try plan(storyline: #""track": { "text": "Total" }, \#(reverse)"#)
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [], masks: [])
+
+        // Then
+        let track = try #require(plan.storyline[0])
+        #expect(track.mediaTime == 3)
+        #expect(track.frames.first?.time == 1)
+        #expect(track.frames.last?.time == 3)
+        #expect(track.frames.count == 21)
+    }
+
+    @Test("a clip under a reversed storyline clip is visible on the frames that show a followed media frame")
+    func narrowsUnderReversedClip() throws {
+        // Given
+        // The media time is 3 - s at sequence time s, and the target is followed from media second 2 to 3. At 24 fps
+        // frame 24 shows media second 2 and frame 25 the frame at 1.9.
+        let sut = planner(followed: 2...3)
+        let time = try plan(
+            storyline: #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#,
+            connected: #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }
+                """#
+        )
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [nil])
+
+        // Then
+        let track = try #require(plan.clips[0])
+        #expect(track.mediaTime == 3)
+        #expect(track.frames.map(\.time) == (20...30).map { Double($0) / 10 })
+        #expect(time.fps == 24)
+        #expect(plan.time.clips[0].visible == TimeRange(start: 0, end: 25.0 / 24))
+    }
+
+    @Test("a clip that starts after its remapped storyline clip is followed from its own instant")
+    func followsFromConnectedInstantUnderRemap() throws {
+        // Given
+        // The media time is 1 + s at sequence time s, and the target is followed from media second 1.5, so the
+        // storyline clip's first frame shows a frame where it is lost and the connected clip's first frame one where
+        // it is followed.
+        let sut = planner(followed: 1.5...3)
+        let time = try plan(
+            storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 3 } ]"#,
+            connected: #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }
+                """#
+        )
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [nil])
+
+        // Then
+        let track = try #require(plan.clips[0])
+        #expect(track.mediaTime == 1.5)
+        #expect(track.frames.first?.time == 1.5)
+        #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1.5))
+    }
+
+    @Test("true on a clip under a remapped storyline clip is followed from its first keyframe")
+    func followsFromFirstKeyframeUnderRemap() throws {
+        // Given
+        // The media time is 1 + s at sequence time s, the area's first keyframe is at sequence time 0.8, and the
+        // target is followed from media second 1.5, which sequence time 0.5 shows.
+        let sut = planner(followed: 1.5...3)
+        let time = try plan(
+            storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 3 } ]"#,
+            connected: #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
+                """#
+        )
+
+        // When
+        let plan = try sut.plan(
+            time,
+            crops: [nil],
+            storylineMasks: [nil],
+            areas: [.keyframes([
+                TimedValue(index: 1, at: 1.2, value: found(total, at: 2.2), ease: .linear),
+                TimedValue(index: 0, at: 0.8, value: found(total, at: 1.8), ease: .linear)
+            ])],
+            masks: [nil]
+        )
+
+        // Then
+        #expect(plan.clips[0]?.mediaTime == 1.8)
+        #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 2))
+    }
+
     @Test("true on a storyline clip follows its crop, at its first keyframe when the crop is keyframed")
     func followsOwnCrop() throws {
         // Given

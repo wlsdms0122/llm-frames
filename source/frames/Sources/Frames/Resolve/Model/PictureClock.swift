@@ -9,7 +9,7 @@
 // clip's own media, or a picture that holds still.
 enum PictureClock: Equatable, Sendable {
     case storyline(StorylinePlan)
-    case media(MediaTiming)
+    case media(MediaClock)
     case still
 
     // MARK: - Property
@@ -20,8 +20,8 @@ enum PictureClock: Equatable, Sendable {
         case let .storyline(plan):
             plan.mediaTime(atSequenceTime: time)
 
-        case let .media(timing):
-            timing.mediaTime(atSequenceTime: time) ?? timing.map.in
+        case let .media(clock):
+            clock.mediaTime(atSequenceTime: time)
 
         case .still:
             0

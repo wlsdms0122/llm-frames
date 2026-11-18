@@ -36,6 +36,7 @@ extension TimelineReport {
             JSONMember(key: "drawn", value: output(entry.drawn)),
             JSONMember(key: "clip", value: output(entry.clip)),
             JSONMember(key: "speed", value: .number(entry.speed)),
+            JSONMember(key: "timeRemap", value: .bool(entry.isTimeRemapped)),
             JSONMember(key: "transition", value: transition ?? .null)
         ]
 

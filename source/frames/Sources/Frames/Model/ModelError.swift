@@ -14,6 +14,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case invalidValue(place: Place, kind: String, reason: String)
     case duplicateIdentifier(place: Place, kind: String, id: String, first: Place)
     case staticAndKeyframed(place: Place, kind: String, property: String)
+    case staticKeyframedOnly(place: Place, kind: String, property: String)
     case unknownParameter(place: Place, kind: String, name: String)
     case misplacedParameter(place: Place, kind: String, name: String, type: String, expected: String)
     case unusedParameter(place: Place, name: String)
@@ -53,6 +54,9 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .staticAndKeyframed(place, kind, property):
             "\(place) (\(kind)): \"\(property)\" is written both as a static value and in a keyframe"
+
+        case let .staticKeyframedOnly(place, kind, property):
+            "\(place) (\(kind)): \"\(property)\" is written only in keyframes, so a static value has no meaning"
 
         case let .unknownParameter(place, kind, name):
             "\(place) (\(kind)): parameter \"\(name)\" is not declared in params"

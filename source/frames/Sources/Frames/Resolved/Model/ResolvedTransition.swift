@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A transition by its range in sequence time, the storyline picture on top, and its spans inline, with its cover and matte media
-// pinned.
+// A transition's picture by its range in sequence time, the storyline picture on top, and its spans inline, with its
+// cover and matte media pinned. The curve of its sound crossfade is on each sound it crossfades.
 struct ResolvedTransition: Equatable, Sendable {
     // MARK: - Property
     let start: Double

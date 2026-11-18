@@ -36,14 +36,14 @@ struct SoundPlanner: Sendable {
 
     // MARK: - Private
     // A storyline clip plays over its drawn range, its handles included, and its media exists from media time 0 to the
-    // end of the media.
+    // end of the media. A remapped clip plays no sound.
     private func sound(
         of time: TimePlan,
         index: Int,
         nested: SequencePlan?
     ) -> SoundPlan? {
         let plan = time.storyline[index]
-        guard let media = plan.source.media, media.hasSound else { return nil }
+        guard let media = plan.source.media, media.hasSound, plan.timeRemap == nil else { return nil }
 
         let written = time.sequence.storyline[index].media
         let map = plan.map
@@ -54,22 +54,21 @@ struct SoundPlanner: Sendable {
         return SoundPlan(
             place: plan.place,
             media: media,
-            map: map,
-            out: plan.source.clipRange.end,
-            loop: false,
+            played: PlayedRange(map: map, out: plan.source.clipRange.end, loop: false),
             range: plan.drawn,
             audible: audible,
-            volume: volume(written?.volume, clock: map),
+            volume: sequenceTime(written?.volume, clock: map, default: 1),
+            pan: sequenceTime(written?.pan, clock: map, default: 0),
             fadeIn: fadeIn(written?.fadeIn, over: plan.drawn),
             fadeOut: fadeOut(written?.fadeOut, over: plan.drawn),
-            incoming: plan.transition?.range,
-            outgoing: outgoing?.range,
+            incoming: plan.transition.map(Crossfade.init(plan:)),
+            outgoing: outgoing.map(Crossfade.init(plan:)),
             nested: nested?.sound ?? []
         )
     }
 
     // A media clip plays its visible window, from `in` at the start of its window. Past `out` it repeats when it loops
-    // and is silent when it does not.
+    // and is silent when it does not. A remapped clip plays no sound.
     private func sound(
         of plan: ClipPlan,
         written: Clip,
@@ -77,28 +76,27 @@ struct SoundPlanner: Sendable {
     ) -> SoundPlan? {
         guard
             case let .media(clipMedia) = written.content,
-            let timing = plan.timing,
-            timing.media.hasSound
+            let media = plan.media,
+            let played = plan.timing?.played,
+            media.hasSound
         else {
             return nil
         }
 
-        let map = timing.map
         let exists = TimeRange(
-            start: map.origin,
-            end: timing.loop ? plan.visible.end : map.sequenceTime(ofClipTime: timing.out)
+            start: played.origin,
+            end: played.loop ? plan.visible.end : played.map.sequenceTime(ofClipTime: played.out)
         )
         guard let audible = plan.visible.intersection(exists) else { return nil }
 
         return SoundPlan(
             place: plan.place,
-            media: timing.media,
-            map: map,
-            out: timing.out,
-            loop: timing.loop,
+            media: media,
+            played: played,
             range: plan.visible,
             audible: audible,
-            volume: volume(clipMedia.volume, clock: plan.clock),
+            volume: sequenceTime(clipMedia.volume, clock: plan.clock, default: 1),
+            pan: sequenceTime(clipMedia.pan, clock: plan.clock, default: 0),
             fadeIn: fadeIn(clipMedia.fadeIn, over: plan.visible),
             fadeOut: fadeOut(clipMedia.fadeOut, over: plan.visible),
             incoming: nil,
@@ -107,28 +105,14 @@ struct SoundPlanner: Sendable {
         )
     }
 
-    // Volume keyframes are on the clip's clock, so they move into sequence time.
-    private func volume(
-        _ volume: PropertyValue<Double>?,
-        clock: TimeMap
+    // Volume and pan keyframes are on the clip's clock, so they move into sequence time. A property left unwritten is its
+    // default.
+    private func sequenceTime(
+        _ property: PropertyValue<Double>?,
+        clock: TimeMap,
+        default defaultValue: Double
     ) -> PropertyValue<Double> {
-        switch volume {
-        case nil:
-            return .value(1)
-
-        case let .value(value):
-            return .value(value)
-
-        case let .keyframes(keyframes):
-            return .keyframes(keyframes.map { keyframe in
-                TimedValue(
-                    index: keyframe.index,
-                    at: clock.sequenceTime(ofClipTime: keyframe.at),
-                    value: keyframe.value,
-                    ease: keyframe.ease
-                )
-            })
-        }
+        property?.inSequenceTime(on: clock) ?? .value(defaultValue)
     }
 
     private func fadeIn(

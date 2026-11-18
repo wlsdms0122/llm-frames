@@ -6,7 +6,9 @@
 //
 
 // A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
-// colour as `solid`. `in`, `out` and `speed` are media time, and `start` and `end` its edit range in sequence time.
+// colour as `solid`. `in` and `out` are its clip time, `speed` as written, `timeRemap` keyframes in sequence time whose
+// values are media seconds (nil for none, when clip time is media time), and `start` and `end` its edit range in
+// sequence time.
 // `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes in sequence
 // time. `mask` is its masks in the media pixels of its media, nil for none, a keyframe's where it lies at its own
 // time when tracked, and `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed by its
@@ -22,6 +24,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let `in`: Double
     let out: Double
     let speed: Double
+    let timeRemap: [Keyframe<Double>]?
     let start: Double
     let end: Double
     let crop: [Keyframe<Crop>]
@@ -39,6 +42,15 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let shadow: DropShadow?
     let transition: ResolvedTransition?
 
+    // The media time it shows at a sequence time, nil for a solid: `in` at `start`, at `speed`, on the same line in the
+    // handles, or its `timeRemap`, held to its media's first and last frame.
+    var clock: MediaClock? {
+        guard let media else { return nil }
+
+        let line = TimeMap(origin: start, in: `in`, speed: speed)
+        return MediaClock(line: line, timeRemap: timeRemap, frames: media.frames)
+    }
+
     // MARK: - Initializer
     init(
         place: String,
@@ -48,6 +60,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         in: Double,
         out: Double,
         speed: Double,
+        timeRemap: [Keyframe<Double>]?,
         start: Double,
         end: Double,
         crop: [Keyframe<Crop>],
@@ -72,6 +85,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         self.in = `in`
         self.out = out
         self.speed = speed
+        self.timeRemap = timeRemap
         self.start = start
         self.end = end
         self.crop = crop
@@ -91,5 +105,9 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     }
 
     // MARK: - Public
+    func mediaTime(at time: Double) -> Double {
+        clock?.mediaTime(atSequenceTime: time) ?? 0
+    }
+
     // MARK: - Private
 }

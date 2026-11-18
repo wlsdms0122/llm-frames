@@ -123,6 +123,11 @@ struct KeyChecker: Sendable {
         case .nonNegativeNumber:
             guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
 
+        case .signedFraction:
+            guard let number = value.numberValue, (-1...1).contains(number) else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .integer:
             // A whole number that does not fit an integer could not be read as one.
             guard let number = value.numberValue, Int(exactly: number) != nil else {
@@ -682,6 +687,7 @@ struct KeyChecker: Sendable {
         let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
             let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
+            try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
             try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
         }
@@ -730,6 +736,23 @@ struct KeyChecker: Sendable {
 
         default:
             return [.solid]
+        }
+    }
+
+    // A property the clip takes only in keyframes stops as a static value, not as a key the clip does not know.
+    private func checkKeyframedOnly(
+        _ object: JSONObject,
+        kind: ClipKind,
+        place: Place,
+        in clipPlace: ClipPlace
+    ) throws {
+        let keyframable = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        for property in ClipKeyTable.keyframedOnly where keyframable.contains(property) && object.contains(property) {
+            throw ModelError.staticKeyframedOnly(
+                place: place.appending(key: property),
+                kind: kind.label,
+                property: property
+            )
         }
     }
 
@@ -963,7 +986,8 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .integer, .nonNegativeInteger, .positiveInteger, .margin:
+        case .number, .positiveNumber, .nonNegativeNumber, .signedFraction, .integer, .nonNegativeInteger,
+             .positiveInteger, .margin:
             parameterType == "number"
 
         default:
@@ -1003,8 +1027,8 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.integer, .number),
-             (.nonNegativeInteger, .number), (.positiveInteger, .number):
+        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.signedFraction, .number),
+             (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -1064,6 +1088,9 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeNumber:
             "a number, 0 or more"
+
+        case .signedFraction:
+            "a number from -1 to 1"
 
         case .integer:
             "a whole number"

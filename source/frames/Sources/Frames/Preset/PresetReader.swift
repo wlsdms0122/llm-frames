@@ -63,6 +63,7 @@ struct PresetReader: Sendable {
             description: object["description"]?.stringValue ?? "",
             seconds: seconds,
             over: over,
+            audio: object["audio"]?.stringValue.flatMap(CrossfadeCurve.init(rawValue:)) ?? .constantPower,
             incoming: try object["incoming"].map { try span($0, place: place.appending(key: "incoming"), ease: ease) },
             outgoing: try object["outgoing"].map { try span($0, place: place.appending(key: "outgoing"), ease: ease) },
             cover: try object["cover"].map { try cover($0, place: place.appending(key: "cover"), ease: ease) },

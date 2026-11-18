@@ -10,6 +10,11 @@ package struct ChannelLayout: Equatable, Sendable {
     // MARK: - Property
     package let labels: [ChannelLabel]
 
+    // One channel, whatever speaker it names: a mixer plays it on both sides and pans it by the equal-power law.
+    package var isMono: Bool {
+        labels.count == 1
+    }
+
     // MARK: - Initializer
     package init(labels: [ChannelLabel]) {
         self.labels = labels

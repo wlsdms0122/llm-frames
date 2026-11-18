@@ -6,8 +6,8 @@
 //
 
 // A stretch of one media file heard in the output: from sequence time `start` to `end`, playing from media time
-// `mediaStart` at `speed`, at the gain its envelope gives. The envelope's points are in sequence time from `start` to
-// `end`, joined in straight lines.
+// `mediaStart` at `speed`, at the gain its envelope gives and the pan, from -1 (left) to 1 (right), its pan envelope
+// gives. Both envelopes' points are in sequence time from `start` to `end`, joined in straight lines.
 package struct MixSegment: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia
@@ -16,6 +16,7 @@ package struct MixSegment: Equatable, Sendable {
     package let start: Double
     package let end: Double
     package let envelope: [EnvelopePoint]
+    package let pan: [EnvelopePoint]
 
     // MARK: - Initializer
     package init(
@@ -24,7 +25,8 @@ package struct MixSegment: Equatable, Sendable {
         speed: Double,
         start: Double,
         end: Double,
-        envelope: [EnvelopePoint]
+        envelope: [EnvelopePoint],
+        pan: [EnvelopePoint]
     ) {
         self.media = media
         self.mediaStart = mediaStart
@@ -32,6 +34,7 @@ package struct MixSegment: Equatable, Sendable {
         self.start = start
         self.end = end
         self.envelope = envelope
+        self.pan = pan
     }
 
     // MARK: - Public

@@ -35,39 +35,5 @@ struct TimeMap: Equatable, Sendable {
         `in` + (time - origin) * speed
     }
 
-    // The clip time of a clip that plays from `in` up to `out`. Past `out` a looping clip repeats from `in`, wrapped
-    // on whole microseconds so the time lies in [in, out) at that resolution, and any other holds the last frame
-    // before `out`.
-    func clipTime(
-        atSequenceTime time: Double,
-        out: Double,
-        loop: Bool
-    ) -> Double {
-        let clipTime = clipTime(atSequenceTime: time)
-        guard hasReached(out, at: clipTime) else { return clipTime }
-        guard loop else { return out - .timeResolution }
-
-        let inTicks = `in`.timeTicks
-        // A range shorter than a microsecond repeats `in` rather than dividing by zero.
-        let period = max(out.timeTicks - inTicks, 1)
-
-        return Double(timeTicks: inTicks + (clipTime.timeTicks - inTicks) % period)
-    }
-
-    // Whether a clip that plays up to `out` and does not loop has ended at a sequence time.
-    func hasEnded(
-        atSequenceTime time: Double,
-        out: Double,
-        loop: Bool
-    ) -> Bool {
-        !loop && hasReached(out, at: clipTime(atSequenceTime: time))
-    }
-
     // MARK: - Private
-    private func hasReached(
-        _ out: Double,
-        at clipTime: Double
-    ) -> Bool {
-        clipTime.timeTicks >= out.timeTicks
-    }
 }

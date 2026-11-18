@@ -71,6 +71,15 @@ struct ShippedTransitionPresetTests {
         #expect(!preset.description.isEmpty)
     }
 
+    @Test("every shipped transition crossfades the sound at constant power", arguments: names)
+    func crossfadesAtConstantPower(name: String) throws {
+        // Given, When
+        let preset = try #require(try sut.transition(named: "frames/\(name)"))
+
+        // Then
+        #expect(preset.audio == .constantPower)
+    }
+
     @Test("at its end a shipped transition shows the incoming clip whole and in place, with no cover", arguments: names)
     func endsOnIncoming(name: String) throws {
         // Given

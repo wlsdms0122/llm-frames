@@ -67,6 +67,7 @@ package struct TimelineReporter: Sendable {
             drawn: clip.drawn,
             clip: clip.source.clipRange,
             speed: clip.source.speed,
+            isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
             nested: geometry.nested.map { report(of: $0) }
         )
@@ -130,6 +131,7 @@ package struct TimelineReporter: Sendable {
             drawn: drawn,
             clip: TimeRange(start: clip.in, end: clip.out),
             speed: clip.speed,
+            isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: nil, seconds: $0.end - $0.start) },
             nested: clip.media.flatMap(nestedReport(of:))
         )

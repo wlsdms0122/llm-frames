@@ -10,4 +10,21 @@
 enum ResolvedMediaContent: Equatable, Sendable {
     case pinned(PinnedMedia)
     case nested(ResolvedSequence)
+
+    // MARK: - Property
+    // The first and last media time a picture exists at: the pinned frame times, or a nested sequence held inside
+    // `[0, duration)`. A still with no frame times simply goes on.
+    var frames: ClosedRange<Double>? {
+        switch self {
+        case let .pinned(media):
+            ClosedRange(frameTimes: media.frameTimes)
+
+        case let .nested(sequence):
+            ClosedRange(sequenceDuration: sequence.format.duration)
+        }
+    }
+
+    // MARK: - Initializer
+    // MARK: - Public
+    // MARK: - Private
 }

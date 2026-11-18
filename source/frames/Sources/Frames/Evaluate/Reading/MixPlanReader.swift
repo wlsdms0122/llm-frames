@@ -10,7 +10,7 @@
 // writes there, stops naming its place.
 package struct MixPlanReader: Sendable {
     // MARK: - Property
-    private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "envelope"]
+    private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "envelope", "pan"]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
@@ -58,11 +58,16 @@ package struct MixPlanReader: Sendable {
             speed: try segment.member("speed").number(),
             start: try segment.member("start").number(),
             end: try segment.member("end").number(),
-            envelope: try segment.member("envelope").elements().map { element in
-                let numbers = try element.numbers(count: 2)
-
-                return EnvelopePoint(time: numbers[0], gain: numbers[1])
-            }
+            envelope: try points(segment.member("envelope")),
+            pan: try points(segment.member("pan"))
         )
+    }
+
+    private func points(_ value: PlacedJSONValue) throws -> [EnvelopePoint] {
+        try value.elements().map { element in
+            let numbers = try element.numbers(count: 2)
+
+            return EnvelopePoint(time: numbers[0], value: numbers[1])
+        }
     }
 }

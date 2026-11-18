@@ -22,8 +22,8 @@ struct MixPlanReaderTests {
     )
     private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
 
-    // A video's sound at speed 2 with a fade in, a loop of music as one segment per repeat under a ducking envelope,
-    // and a compound clip's sound as a segment of its own.
+    // A video's sound at speed 2 with a fade in, a loop of music as one segment per repeat under a ducking envelope and
+    // panning left, and a compound clip's sound as a segment of its own.
     private static let plans = [
         MixPlan(segments: []),
         MixPlan(segments: [
@@ -33,7 +33,8 @@ struct MixPlanReaderTests {
                 speed: 2,
                 start: 0,
                 end: 3,
-                envelope: [EnvelopePoint(time: 0, gain: 0), EnvelopePoint(time: 0.5, gain: 1), EnvelopePoint(time: 3, gain: 1)]
+                envelope: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)],
+                pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 0)]
             ),
             MixSegment(
                 media: music,
@@ -41,7 +42,8 @@ struct MixPlanReaderTests {
                 speed: 1,
                 start: 0,
                 end: 2.5,
-                envelope: [EnvelopePoint(time: 0, gain: 0.3), EnvelopePoint(time: 2.5, gain: 0.3)]
+                envelope: [EnvelopePoint(time: 0, value: 0.3), EnvelopePoint(time: 2.5, value: 0.3)],
+                pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 2.5, value: -0.4)]
             ),
             MixSegment(
                 media: music,
@@ -49,9 +51,10 @@ struct MixPlanReaderTests {
                 speed: 1,
                 start: 2.5,
                 end: 4,
-                envelope: [EnvelopePoint(time: 2.5, gain: 0.3), EnvelopePoint(time: 3.033333, gain: 0.15), EnvelopePoint(time: 4, gain: 0)]
+                envelope: [EnvelopePoint(time: 2.5, value: 0.3), EnvelopePoint(time: 3.033333, value: 0.15), EnvelopePoint(time: 4, value: 0)],
+                pan: [EnvelopePoint(time: 2.5, value: -0.4), EnvelopePoint(time: 4, value: -0.4)]
             ),
-            MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [])
+            MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
         ])
     ]
 
@@ -81,6 +84,19 @@ struct MixPlanReaderTests {
         #expect(segment?["envelope"]?.arrayValue?.last == .array([.number(3), .number(1)]))
     }
 
+    @Test("a pan envelope is written as [time, pan] points after the gain envelope")
+    func writesPanPoints() throws {
+        // Given
+        let plan = Self.plans[1]
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?[1].objectValue
+
+        // Then
+        #expect(segment?.keys.suffix(2) == ["envelope", "pan"])
+        #expect(segment?["pan"]?.arrayValue == [.array([.number(0), .number(0)]), .array([.number(2.5), .number(-0.4)])])
+    }
+
     @Test(
         "a mix plan from a later minor version or another major version is refused, naming both versions",
         arguments: ["1.1.0", "2.0.0", "0.9.0"]
@@ -104,7 +120,7 @@ struct MixPlanReaderTests {
         arguments: [
             (#""mixPlan": "1.0.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
             (#""speed": 2,"#, "", #"segments[0] (segment): missing key "speed""#),
-            (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, envelope"#),
+            (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, envelope, pan"#),
             (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, segments"#),
             (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)
         ]

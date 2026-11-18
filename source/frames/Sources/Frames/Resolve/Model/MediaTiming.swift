@@ -2,42 +2,46 @@
 //  MediaTiming.swift
 //  Frames
 //
-//  Created by JSilver on 11/15/26.
+//  Created by JSilver on 11/18/26.
 //
 
-// How a timed media clip that is not on the storyline plays: from `in` at the start of its window, at its own speed.
-struct MediaTiming: Equatable, Sendable {
-    // MARK: - Property
-    let media: MediaPlan
-    let map: TimeMap
-    let out: Double
-    let loop: Bool
+// How a timed media clip that is not on the storyline plays over its window: along its played range, or by its
+// `timeRemap` keyframes in sequence time, whose values are media seconds. `origin` is the start of the window before
+// tracking narrowed it. A remapped clip's keys give the media time at every instant of its window, so it has no `in`,
+// `out` or `loop`, and its speed is 1.
+enum MediaTiming: Equatable, Sendable {
+    case played(PlayedRange)
+    case remapped(origin: Double, timeRemap: [Keyframe<Double>])
 
-    // The single-start window: the clip's natural length in sequence seconds.
-    var naturalLength: Double {
-        (out - map.in) / map.speed
+    // MARK: - Property
+    var origin: Double {
+        switch self {
+        case let .played(range):
+            range.origin
+
+        case let .remapped(origin, _):
+            origin
+        }
+    }
+
+    var playback: MediaPlayback {
+        switch self {
+        case let .played(range):
+            .played(range)
+
+        case let .remapped(_, timeRemap):
+            .remapped(timeRemap)
+        }
+    }
+
+    // The played range of a clip that is not remapped, which is what its sound plays.
+    var played: PlayedRange? {
+        guard case let .played(range) = self else { return nil }
+
+        return range
     }
 
     // MARK: - Initializer
-    init(
-        media: MediaPlan,
-        map: TimeMap,
-        out: Double,
-        loop: Bool
-    ) {
-        self.media = media
-        self.map = map
-        self.out = out
-        self.loop = loop
-    }
-
     // MARK: - Public
-    // The media time by the clip's time map, within the media's frames. A sound that has ended is silent (nil).
-    func mediaTime(atSequenceTime time: Double) -> Double? {
-        guard media.kind != .audio || !map.hasEnded(atSequenceTime: time, out: out, loop: loop) else { return nil }
-
-        return media.clamped(map.clipTime(atSequenceTime: time, out: out, loop: loop))
-    }
-
     // MARK: - Private
 }

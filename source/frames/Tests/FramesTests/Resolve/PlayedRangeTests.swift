@@ -1,5 +1,5 @@
 //
-//  TimeMapTests.swift
+//  PlayedRangeTests.swift
 //  FramesTests
 //
 //  Created by JSilver on 11/17/26.
@@ -8,8 +8,8 @@
 @testable import Frames
 import Testing
 
-@Suite("TimeMap Tests")
-struct TimeMapTests {
+@Suite("PlayedRange Tests")
+struct PlayedRangeTests {
     // MARK: - Property
     // Ten frames a second, so `in` 0.1 is frame 1 and the frame before `out` 0.3 is frame 2.
     private let file = MediaFile(path: "/media/a.mov", frameTimes: (0..<10).map { Double($0) / 10 })
@@ -24,13 +24,14 @@ struct TimeMapTests {
     )
     func picksFramesAtLoopSeams(speed: Double) {
         // Given
-        let sut = TimeMap(origin: 1, in: 0.1, speed: speed)
+        let map = TimeMap(origin: 1, in: 0.1, speed: speed)
+        let sut = PlayedRange(map: map, out: 0.3, loop: true)
         let period = 0.2 / speed
         let seams = (1...4).map { count in (0..<count).reduce(1.0) { time, _ in time + period } }
 
         // When
-        let atSeams = seams.map { sut.clipTime(atSequenceTime: $0, out: 0.3, loop: true) }
-        let beforeSeams = seams.map { sut.clipTime(atSequenceTime: $0 - period / 4, out: 0.3, loop: true) }
+        let atSeams = seams.map { sut.clipTime(atSequenceTime: $0) }
+        let beforeSeams = seams.map { sut.clipTime(atSequenceTime: $0 - period / 4) }
 
         // Then
         #expect(atSeams.map(file.frameIndex(at:)) == [1, 1, 1, 1])
@@ -39,36 +40,32 @@ struct TimeMapTests {
     }
 
     @Test(
-        "a clip that does not loop holds the frame before out at and past out, and has ended there",
+        "a clip that does not loop holds the frame before out at and past out",
         arguments: [0.7 + 0.5, 1.5, 9.0]
     )
     func holdsPastOut(time: Double) {
         // Given
-        let sut = TimeMap(origin: 1, in: 0.1, speed: 1)
+        let sut = PlayedRange(map: TimeMap(origin: 1, in: 0.1, speed: 1), out: 0.3, loop: false)
 
         // When
-        let clipTime = sut.clipTime(atSequenceTime: time, out: 0.3, loop: false)
-        let hasEnded = sut.hasEnded(atSequenceTime: time, out: 0.3, loop: false)
+        let clipTime = sut.clipTime(atSequenceTime: time)
 
         // Then
         #expect(file.frameIndex(at: clipTime) == 2)
-        #expect(hasEnded)
     }
 
-    @Test("before out a clip plays along its line and has not ended, looping or not")
+    @Test("before out a clip plays along its line, looping or not")
     func playsBeforeOut() {
         // Given
-        let sut = TimeMap(origin: 1, in: 0.1, speed: 1)
+        let map = TimeMap(origin: 1, in: 0.1, speed: 1)
 
         // When
-        let looping = sut.clipTime(atSequenceTime: 1.15, out: 0.3, loop: true)
-        let once = sut.clipTime(atSequenceTime: 1.15, out: 0.3, loop: false)
-        let hasEnded = sut.hasEnded(atSequenceTime: 1.15, out: 0.3, loop: false)
+        let looping = PlayedRange(map: map, out: 0.3, loop: true).clipTime(atSequenceTime: 1.15)
+        let once = PlayedRange(map: map, out: 0.3, loop: false).clipTime(atSequenceTime: 1.15)
 
         // Then
-        #expect(looping == sut.clipTime(atSequenceTime: 1.15))
+        #expect(looping == map.clipTime(atSequenceTime: 1.15))
         #expect(once == looping)
-        #expect(!hasEnded)
     }
 
     // MARK: - Private

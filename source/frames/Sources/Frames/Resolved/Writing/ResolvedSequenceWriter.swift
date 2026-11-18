@@ -49,6 +49,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "in", value: .number(entry.in)),
             JSONMember(key: "out", value: .number(entry.out)),
             JSONMember(key: "speed", value: .number(entry.speed)),
+            JSONMember(key: "timeRemap", value: entry.timeRemap.map(values.numbers) ?? .null),
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
             JSONMember(key: "size", value: values.size(entry.box.size)),
@@ -122,15 +123,7 @@ struct ResolvedSequenceWriter: Sendable {
             return [JSONMember(key: "adjust", value: values.filter(operations))]
 
         case let .media(clip):
-            let timing = clip.timing.map { timing in
-                [
-                    JSONMember(key: "in", value: .number(timing.in)),
-                    JSONMember(key: "origin", value: .number(timing.origin)),
-                    JSONMember(key: "out", value: .number(timing.out)),
-                    JSONMember(key: "speed", value: .number(timing.speed)),
-                    JSONMember(key: "loop", value: .bool(timing.loop))
-                ]
-            } ?? []
+            let timing = clip.timing.map(self.timing) ?? []
 
             return [JSONMember(key: "media", value: media(clip.media))] + timing
                 + [JSONMember(key: "filter", value: values.filter(clip.filter))]
@@ -214,24 +207,60 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
+    // A remapped clip's keys give the media time at every instant of its window, so it has no `in`, `out` or `loop`,
+    // and its speed is 1.
+    private func timing(_ timing: MediaTiming) -> [JSONMember] {
+        switch timing {
+        case let .played(range):
+            [
+                JSONMember(key: "in", value: .number(range.in)),
+                JSONMember(key: "origin", value: .number(range.origin)),
+                JSONMember(key: "out", value: .number(range.out)),
+                JSONMember(key: "speed", value: .number(range.speed)),
+                JSONMember(key: "loop", value: .bool(range.loop)),
+                JSONMember(key: "timeRemap", value: .null)
+            ]
+
+        case let .remapped(origin, timeRemap):
+            [
+                JSONMember(key: "in", value: .null),
+                JSONMember(key: "origin", value: .number(origin)),
+                JSONMember(key: "out", value: .null),
+                JSONMember(key: "speed", value: .number(1)),
+                JSONMember(key: "loop", value: .null),
+                JSONMember(key: "timeRemap", value: values.numbers(timeRemap))
+            ]
+        }
+    }
+
     private func sound(_ sound: ResolvedSound) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(sound.place)),
             JSONMember(key: "media", value: sound.media.map { .object(JSONObject(members: values.media($0))) } ?? .null),
             JSONMember(key: "nested", value: .array(sound.nested.map(self.sound))),
-            JSONMember(key: "in", value: .number(sound.in)),
-            JSONMember(key: "origin", value: .number(sound.origin)),
-            JSONMember(key: "out", value: .number(sound.out)),
-            JSONMember(key: "speed", value: .number(sound.speed)),
-            JSONMember(key: "loop", value: .bool(sound.loop)),
+            JSONMember(key: "in", value: .number(sound.played.in)),
+            JSONMember(key: "origin", value: .number(sound.played.origin)),
+            JSONMember(key: "out", value: .number(sound.played.out)),
+            JSONMember(key: "speed", value: .number(sound.played.speed)),
+            JSONMember(key: "loop", value: .bool(sound.played.loop)),
             JSONMember(key: "start", value: .number(sound.start)),
             JSONMember(key: "end", value: .number(sound.end)),
             JSONMember(key: "audible", value: values.range(sound.audible)),
             JSONMember(key: "volume", value: values.numbers(sound.volume)),
+            JSONMember(key: "pan", value: values.numbers(sound.pan)),
             JSONMember(key: "fadeIn", value: values.range(sound.fadeIn)),
             JSONMember(key: "fadeOut", value: values.range(sound.fadeOut)),
-            JSONMember(key: "incoming", value: values.range(sound.incoming)),
-            JSONMember(key: "outgoing", value: values.range(sound.outgoing))
+            JSONMember(key: "incoming", value: sound.incoming.map(crossfade) ?? .null),
+            JSONMember(key: "outgoing", value: sound.outgoing.map(crossfade) ?? .null)
+        ]))
+    }
+
+    // A transition as the sound it crossfades hears it, by its range and the curve its preset's `audio` names.
+    private func crossfade(_ crossfade: Crossfade) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "start", value: .number(crossfade.range.start)),
+            JSONMember(key: "end", value: .number(crossfade.range.end)),
+            JSONMember(key: "audio", value: .string(crossfade.curve.rawValue))
         ]))
     }
 

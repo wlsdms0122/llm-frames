@@ -10,7 +10,8 @@ import Frames
 
 // The `avfoundation` mixer: reads each segment's media time through the decoder, maps its channels onto stereo,
 // resamples it to 48 kHz, stretches it in time with the pitch kept when its speed is not 1, multiplies it by its
-// envelope and adds it into the output from its start sample. The sum is not clipped.
+// envelope, pans it by its pan envelope with the pan law of its channel count, and adds it into the output from its
+// start sample. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate: Double = 48_000
@@ -88,13 +89,16 @@ extension AVFoundationMixer: Mixer {
                 buffer = try TimeStretcher().stretched(buffer, speed: segment.speed, path: path)
             }
 
+            let law = PanLaw(layout: sound.layout)
             let gains = segment.gains(atSamples: first..<last, sampleRate: Self.sampleRate)
+            let pans = segment.pans(atSamples: first..<last, sampleRate: Self.sampleRate)
             let heard = min(last - first, Int(buffer.frameLength))
             guard heard > 0, let channels = buffer.floatChannelData else { continue }
             for offset in max(-first, 0)..<heard {
                 let gain = gains[offset]
-                samples[(first + offset) * 2] += channels[0][offset] * gain
-                samples[(first + offset) * 2 + 1] += channels[1][offset] * gain
+                let panned = law.gains(at: pans[offset])
+                samples[(first + offset) * 2] += channels[0][offset] * gain * panned.left
+                samples[(first + offset) * 2 + 1] += channels[1][offset] * gain * panned.right
             }
         }
 

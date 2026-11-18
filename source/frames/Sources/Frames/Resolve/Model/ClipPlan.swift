@@ -30,6 +30,11 @@ struct ClipPlan: Equatable, Sendable {
     let timing: MediaTiming?
     let keyframes: [KeyframeInstant]
 
+    // The media time a timed media clip shows, nil for a still, a title, a shape or an adjustment.
+    var mediaClock: MediaClock? {
+        timing.map { timing in MediaClock(timing: timing, frames: media?.frames) }
+    }
+
     // MARK: - Initializer
     init(
         place: Place,
