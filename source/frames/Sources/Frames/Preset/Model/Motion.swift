@@ -16,8 +16,12 @@ struct Motion: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // An ease that overshoots carries opacity past its keys, and an opacity is drawn from 0 to 1.
     func value(of property: MotionProperty) -> Double {
-        values[property] ?? property.defaultValue
+        let value = values[property] ?? property.defaultValue
+        guard property == .opacity else { return value }
+
+        return min(max(value, 0), 1)
     }
 
     // MARK: - Private
