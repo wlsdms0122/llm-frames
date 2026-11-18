@@ -467,7 +467,8 @@ struct SequencePlanner: Sendable {
     // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
     // output pixels (FRAMES-10): a storyline clip's media, a media clip's media, a title's text box as a space with no
     // picture, and for a shape or adjustment the space its geometry is written in, its own parent's. An unparented
-    // clip's space and a solid's are output pixels.
+    // clip's space and a solid's are output pixels. The chain is walked up past every shape placed by its geometry and
+    // every adjustment, and ParentFinder has ruled out a cycle, so it ends.
     private func space(
         of parent: ClipParent?,
         time: TimePlan,
@@ -475,6 +476,11 @@ struct SequencePlanner: Sendable {
         clipPictures: [Picture?],
         format: FormatPlan
     ) throws -> (picture: Picture, clock: PictureClock, isOutputPixels: Bool) {
+        var parent = parent
+        while case let .clip(index, _) = parent, clipPictures[index] == nil, passesOnSpace(at: index, in: time) {
+            parent = time.clips[index].parent
+        }
+
         switch parent {
         case .none:
             return (output(of: format), .still, true)
@@ -489,29 +495,30 @@ struct SequencePlanner: Sendable {
 
         case let .clip(index, id):
             let plan = time.clips[index]
-            if let picture = clipPictures[index] {
-                return (picture, plan.timing.map { .media($0) } ?? .still, false)
-            }
-
-            let isPlacedByGeometry = if case let .shape(shape) = writtenClip(at: index, in: time).content {
-                shape.width == nil
-            } else {
-                false
-            }
-            switch plan.kind {
-            case .shape where isPlacedByGeometry, .adjust:
-                // ParentFinder has ruled out a cycle, so the chain ends.
-                return try space(
-                    of: plan.parent,
-                    time: time,
-                    storylineNested: storylineNested,
-                    clipPictures: clipPictures,
-                    format: format
-                )
-
-            default:
+            guard let picture = clipPictures[index] else {
                 return (Picture(name: id, source: .space, size: format.size), .still, false)
             }
+
+            return (picture, plan.timing.map { .media($0) } ?? .still, false)
+        }
+    }
+
+    // Whether a clip gives its children its own parent's space: a shape placed by its geometry or an adjustment.
+    private func passesOnSpace(
+        at index: Int,
+        in time: TimePlan
+    ) -> Bool {
+        switch time.clips[index].kind {
+        case .shape:
+            guard case let .shape(shape) = writtenClip(at: index, in: time).content else { return false }
+
+            return shape.width == nil
+
+        case .adjust:
+            return true
+
+        default:
+            return false
         }
     }
 

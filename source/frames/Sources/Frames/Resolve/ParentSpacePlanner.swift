@@ -110,31 +110,43 @@ struct ParentSpacePlanner: Sendable {
         under parent: ClipParent,
         at time: Double
     ) -> [AffineTransform] {
-        guard case let .clip(index, _) = parent else { return [] }
+        var links: [AffineTransform] = []
+        var next: ClipParent? = parent
+        while case let .clip(index, _) = next {
+            let plan = tracked.time.clips[index]
+            switch plan.kind {
+            case .shape where transforms[index] != nil, .adjust:
+                break
 
-        let plan = tracked.time.clips[index]
-        switch plan.kind {
-        case .shape where transforms[index] != nil, .adjust:
-            break
+            default:
+                return links.reversed()
+            }
 
-        default:
-            return []
+            let held = plan.visible.held(time)
+            let own = transforms[index]?.transform(at: held) ?? .identity
+            if let link = track(of: index) {
+                let mediaTime = tracked.time.storyline[link.storyline].mediaTime(atSequenceTime: held)
+                let motion = link.track.track.motion(atMediaTime: mediaTime)
+                links.append(own.concatenating(AffineTransform(carrying: motion)))
+            } else {
+                links.append(own)
+            }
+            next = plan.parent
         }
 
-        let held = plan.visible.held(time)
-        let outer = plan.parent.map { parent in links(under: parent, at: time) } ?? []
-        let own = transforms[index]?.transform(at: held) ?? .identity
-        guard let link = track(of: index) else { return outer + [own] }
-
-        let mediaTime = tracked.time.storyline[link.storyline].mediaTime(atSequenceTime: held)
-        return outer + [own.concatenating(AffineTransform(carrying: link.track.track.motion(atMediaTime: mediaTime)))]
+        return links.reversed()
     }
 
     // How many parents a clip has above it. ParentFinder has ruled out a cycle, so the chain ends.
     private func depth(of index: Int) -> Int {
-        guard case let .clip(parent, _) = tracked.time.clips[index].parent else { return 0 }
+        var depth = 0
+        var next = tracked.time.clips[index].parent
+        while case let .clip(parent, _) = next {
+            depth += 1
+            next = tracked.time.clips[parent].parent
+        }
 
-        return depth(of: parent) + 1
+        return depth
     }
 
     // A shape placed by its geometry as its transform needs it, its area or points as found and its named anchor

@@ -21,23 +21,32 @@ struct ParentEvaluator: Sendable {
     }
 
     // MARK: - Public
+    // The chain is walked up to a storyline clip or an unparented clip, then composed from the outermost parent down.
     func space(
         of clip: ResolvedClip,
         at time: Double
     ) -> ClipSpace {
         let frame = sequence.format.frame
-        guard let id = clip.parent else { return ClipSpace(frame: frame) }
+        var chain: [ResolvedClip] = []
+        var outer = ClipSpace(frame: frame)
+        var next = clip.parent
+        while let id = next {
+            if let index = sequence.storyline.firstIndex(where: { $0.id == id }) {
+                let entry = sequence.storyline[index]
+                outer = ClipSpace(frame: frame, transform: transform(of: index, at: time), storyline: entry)
+                break
+            }
+            // Resolve has checked that the id names a clip of the sequence and that the chain has no cycle.
+            guard let parent = sequence.clips.first(where: { $0.id == id }) else { break }
 
-        if let index = sequence.storyline.firstIndex(where: { $0.id == id }) {
-            let entry = sequence.storyline[index]
-            return ClipSpace(frame: frame, transform: transform(of: index, at: time), storyline: entry)
+            chain.append(parent)
+            next = parent.parent
         }
-        // Resolve has checked that the id names a clip of the sequence.
-        guard let parent = sequence.clips.first(where: { $0.id == id }) else { return ClipSpace(frame: frame) }
 
-        let held = TimeRange(start: parent.start, end: parent.end).held(time)
-        let transform = clipEvaluator.childTransform(of: parent, in: space(of: parent, at: time), at: held)
-        return ClipSpace(frame: frame, transform: transform)
+        return chain.reversed().reduce(outer) { space, parent in
+            let held = TimeRange(start: parent.start, end: parent.end).held(time)
+            return ClipSpace(frame: frame, transform: clipEvaluator.childTransform(of: parent, in: space, at: held))
+        }
     }
 
     // MARK: - Private

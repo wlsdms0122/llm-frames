@@ -231,13 +231,14 @@ struct ParentSpacePlannerTests {
         #expect(underCard[1] == Point(x: 0, y: 0))
     }
 
-    @Test("a chain of eight shapes, each finding its area by text under the one before, plans each parent's transform once")
+    @Test("a chain of 64 shapes, each finding its area by text under the one before, resolves and evaluates in place")
     func bringsBackThroughDeepChain() throws {
         // Given
         // Each shape's text is brought back through every shape above it, which would be planned again for every
-        // level below if a parent's transform were not kept.
+        // level below if a parent's transform were not kept, and every walk up the chain is as deep as the chain.
         let sut = planner(growth: 0)
-        let shapes = (0..<8).map { index in
+        let count = 64
+        let shapes = (0..<count).map { index in
             let parent = index == 0 ? "screen" : "s\(index - 1)"
             return #"""
                 { "id": "s\#(index)", "shape": "rect", "stroke": { "width": 8 }, "parent": "\#(parent)", "at": [0, 4],
@@ -251,14 +252,24 @@ struct ParentSpacePlannerTests {
 
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: document))
+        let list = Evaluator().displayList(of: try ResolvedSequence(plan: plan, hashes: FileHashTable()), at: 1)
 
         // Then
-        guard case let .value(first) = plan.clips[0].area, case let .value(last) = plan.clips[7].area else {
+        guard case let .value(first) = plan.clips[0].area, case let .value(last) = plan.clips[count - 1].area else {
             Issue.record("the areas were not found as static values")
             return
         }
-        // No shape above moves its space, so the text lies where the first shape found it.
+        // No shape above moves its space, so the text lies where the first shape found it, and each is drawn there.
         #expect(isClose(last.rectangle, first.rectangle), "the last area is \(last.rectangle), the first \(first.rectangle)")
+        let drawn = list.items.compactMap { item -> Rectangle? in
+            guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else { return nil }
+
+            return Rectangle(bounding: item.transform.apply(toCornersOf: rectangle))
+        }
+        #expect(drawn.count == count)
+        for rectangle in drawn {
+            #expect(isClose(rectangle, first.rectangle), "a shape is drawn at \(rectangle), the text is at \(first.rectangle)")
+        }
     }
 
     // MARK: - Private
