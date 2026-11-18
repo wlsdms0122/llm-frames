@@ -18,7 +18,7 @@ import Testing
 struct ShippedAnimationPresetTests {
     // MARK: - Property
     private static let names = [
-        "none", "fade", "pop", "stamp", "zoom", "draw", "wipe",
+        "none", "fade", "pop", "stamp", "zoom", "wipe",
         "rise", "drop", "slide-left", "bounce", "pulse", "blink", "shake"
     ]
 
@@ -39,7 +39,7 @@ struct ShippedAnimationPresetTests {
     }
 
     // MARK: - Test
-    @Test("the shipped animations are exactly the 14 that FRAMES-16 names")
+    @Test("the shipped animations are exactly the 13 that FRAMES-16 names")
     func namesShippedAnimations() throws {
         // Given, When
         let names = try sut.presets(of: .animation).map(\.name)
