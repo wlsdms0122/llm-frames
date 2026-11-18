@@ -12,13 +12,13 @@ struct TrackPlan: Equatable, Sendable {
     // MARK: - Property
     let time: TimePlan
     let storyline: [Track?]
-    let clips: [Track?]
+    let clips: [ParentTrack?]
 
     // MARK: - Initializer
     init(
         time: TimePlan,
         storyline: [Track?],
-        clips: [Track?]
+        clips: [ParentTrack?]
     ) {
         self.time = time
         self.storyline = storyline

@@ -17,19 +17,19 @@ struct TrackPlannerTests {
     private static let untrackable: [(String, String)] = [
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": { "text": "Total" } } ] }"#,
-            "clips[0].track (rect): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            "clips[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": { "text": "Total" } } ] } ] }"#,
-            "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "page", "track": { "text": "Total" } } ] } ] }"#,
-            "storyline[0]#page.connected[0].track (rect): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            "storyline[0]#page.connected[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
             ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": { "text": "Total" } } ] }"##,
-            "storyline[0].track (compound): track follows the video or image sequence of the clip's storyline parent, and there is none to follow here"
+            "storyline[0].track (compound): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": "screen", "position": [0, 0], "track": true } ] } ] }"#,
@@ -44,8 +44,8 @@ struct TrackPlannerTests {
             #"storyline[0].connected[0].track (rect): "track": true follows the clip's own area, mask or crop, and it has none given as an area"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/screen.mp4", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
-            #"clips[1].track (rect): track follows the media of a storyline parent, and the parent "card" is a connected or sequence clip, whose media is not followed"#
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
+            "clips[1].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         )
     ]
 
@@ -144,7 +144,7 @@ struct TrackPlannerTests {
         let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [nil])
 
         // Then
-        let track = try #require(plan.clips[0])
+        let track = try #require(plan.clips[0]?.track)
         #expect(track.mediaTime == 3)
         #expect(track.samples.map(\.time) == (20...30).map { Double($0) / 10 })
         #expect(time.fps == 24)
@@ -169,7 +169,7 @@ struct TrackPlannerTests {
         let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [nil])
 
         // Then
-        let track = try #require(plan.clips[0])
+        let track = try #require(plan.clips[0]?.track)
         #expect(track.mediaTime == 1.5)
         #expect(track.samples.first?.time == 1.5)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1.5))
@@ -201,7 +201,7 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(plan.clips[0]?.mediaTime == 1.8)
+        #expect(plan.clips[0]?.track.mediaTime == 1.8)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 2))
     }
 
@@ -268,12 +268,38 @@ struct TrackPlannerTests {
         let plan = try sut.plan(time, crops: [nil], storylineMasks: time.storyline.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil })
 
         // Then
-        let track = try #require(plan.clips[0])
+        let track = try #require(plan.clips[0]?.track)
         #expect(track.target == Quad(total))
         #expect(track.mediaTime == 1.5)
         #expect(track.samples.first?.time == 1)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1))
         #expect(plan.time.clips[0].window == time.clips[0].window)
+    }
+
+    @Test("a clip parented to a media clip follows that clip's media through its clock, and is visible only where followed")
+    func followsMediaClipParent() throws {
+        // Given
+        // The card plays the screen from media time 0.5 at sequence time 0.5, so it shows media time t at t.
+        let sut = planner(followed: 0...1.3)
+        let time = try Fixture.planner.plan(document: Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
+                { "id": "card", "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300 },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": { "text": "Total" }, "at": [1, 1.5],
+                  "track": { "text": "Total" } } ] }
+            """#))
+
+        // When
+        let plan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil, nil], masks: [nil, nil])
+
+        // Then
+        let track = try #require(plan.clips[1])
+        #expect(track.file.path == "/abs/screen.mp4")
+        #expect(track.clock == time.clips[0].mediaClock)
+        #expect(track.track.target == Quad(total))
+        #expect(track.track.mediaTime == 1)
+        #expect(track.track.samples.map(\.time) == [1, 1.1, 1.2, 1.3])
+        // At 24 fps the frame at 34 / 24 is the first to show media time 1.4, which was not followed.
+        #expect(plan.time.clips[1].visible == TimeRange(start: 1, end: 34.0 / 24))
     }
 
     @Test("a clip parented to its storyline clip without at finds its target at that clip's in")
@@ -286,7 +312,7 @@ struct TrackPlannerTests {
         let plan = try sut.plan(time, crops: [nil], storylineMasks: time.storyline.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil })
 
         // Then
-        #expect(plan.clips[0]?.mediaTime == 1)
+        #expect(plan.clips[0]?.track.mediaTime == 1)
         #expect(plan.time.clips[0].visible == time.clips[0].visible)
     }
 
@@ -312,8 +338,8 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(plan.clips[0]?.target == Quad(first))
-        #expect(plan.clips[0]?.mediaTime == 1.8)
+        #expect(plan.clips[0]?.track.target == Quad(first))
+        #expect(plan.clips[0]?.track.mediaTime == 1.8)
     }
 
     @Test("a connected clip whose target is followed on none of its visible frames stops")
@@ -376,10 +402,10 @@ struct TrackPlannerTests {
         )
 
         // Then
-        #expect(staticPlan.clips[0]?.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
-        #expect(staticPlan.clips[0]?.mediaTime == 1)
-        #expect(keyframedPlan.clips[0]?.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
-        #expect(keyframedPlan.clips[0]?.mediaTime == 1.8)
+        #expect(staticPlan.clips[0]?.track.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
+        #expect(staticPlan.clips[0]?.track.mediaTime == 1)
+        #expect(keyframedPlan.clips[0]?.track.target == Quad(Rectangle(x: 10, y: 20, width: 60, height: 80)))
+        #expect(keyframedPlan.clips[0]?.track.mediaTime == 1.8)
     }
 
     @Test("true on a storyline clip follows the bounding box of its masks in its own media")

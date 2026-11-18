@@ -170,7 +170,7 @@ struct ParentSpacePlanner: Sendable {
 
     // The map of each shape and adjustment from the parent out to the clip whose media is searched, the outermost
     // first, each from the space its children are written in to that of its own parent at the time its window holds.
-    // Only one parented to a storyline clip is tracked, a shape given by `width` and `height` has a space with no
+    // Only one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no
     // picture to search, and ParentFinder has ruled out a cycle, so the chain ends.
     private func links(
         under parent: ClipParent,
@@ -190,7 +190,7 @@ struct ParentSpacePlanner: Sendable {
 
             let held = plan.visible.held(time)
             let own = transforms[index]?.transform(at: held) ?? .identity
-            if let track = ParentTrack(clip: index, in: tracked) {
+            if let track = tracked.clips[index] {
                 links.append(own.concatenating(track.motion(at: held).transform))
             } else {
                 links.append(own)
@@ -222,7 +222,7 @@ struct ParentSpacePlanner: Sendable {
 
         let plan = tracked.time.clips[index]
         let written = written[index]
-        let track = ParentTrack(clip: index, in: tracked)
+        let track = tracked.clips[index]
         return ParentTransformPlan(
             geometry: ShapeGeometry(
                 plan: shape.geometry,

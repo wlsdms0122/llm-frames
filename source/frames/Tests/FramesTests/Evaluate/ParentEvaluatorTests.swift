@@ -49,14 +49,15 @@ struct ParentEvaluatorTests {
     ) {
         // Given
         let child = fill(parent: "shot")
-        let sut = ParentEvaluator(sequence: sequence(clips: [child], crop: zoom))
+        let resolved = sequence(clips: [child], crop: zoom)
+        let sut = ParentEvaluator(sequence: resolved)
 
         // When
         let space = sut.space(of: child, at: time)
 
         // Then
         #expect(isClose(space.transform, transform))
-        #expect(space.storyline?.id == "shot")
+        #expect(space.clock == resolved.storyline[0].clock)
     }
 
     @Test(
@@ -186,6 +187,63 @@ struct ParentEvaluatorTests {
     }
 
     @Test(
+        "a title parented to a shape that tracks a media clip parent's media follows the motion at the media time it shows",
+        arguments: [
+            (0.0, Point(x: -30, y: -12)),
+            (0.5, Point(x: -26, y: -12))
+        ]
+    )
+    func followsShapeTrackedInMediaClip(
+        time: Double,
+        position: Point
+    ) throws {
+        // Given
+        // The card shows media time 2 at sequence time 0, its whole 400 x 200 picture in an 80 x 40 box at (10, 20).
+        // At media time 2.5 the target has moved 20 right, so the title's anchor point (50, 40) in the card's media
+        // moves 4 right in output pixels.
+        let target = Rectangle(x: 0, y: 0, width: 10, height: 10)
+        let track = ResolvedTrack(target: target, mediaTime: 2, frames: [
+            TrackedFrame(time: 2, rectangle: target),
+            TrackedFrame(time: 2.5, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10))
+        ])
+        let card = clip(
+            id: "card",
+            content: .media(ResolvedMediaClip(
+                media: .pinned(media),
+                timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
+                filter: [],
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+            )),
+            box: ResolvedBox(
+                size: Size(width: 80, height: 40),
+                position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+                anchor: Point(x: 40, y: 20)
+            ),
+            crop: [Keyframe(at: 0, value: Crop(whole))]
+        )
+        let box = clip(
+            id: "box",
+            content: .shape(ResolvedShape(
+                area: [Keyframe(at: 0, value: target)],
+                fill: nil,
+                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+            )),
+            parent: "card",
+            track: track
+        )
+        let label = title(id: "label", parent: "box", position: Point(x: 0, y: 0), scale: 1)
+        let parents = ParentEvaluator(sequence: sequence(clips: [card, box, label]))
+        let sut = ClipEvaluator()
+
+        // When
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, at: time)
+
+        // Then
+        let item = try #require(items.first)
+        #expect(isClose(item.transform, AffineTransform(translation: position)))
+    }
+
+    @Test(
         "a title parented to a shape that tracks its storyline parent's media follows the tracked motion on each frame",
         arguments: [
             (0.0, Point(x: -25, y: -20)),
@@ -277,7 +335,7 @@ struct ParentEvaluatorTests {
 
         // Then
         #expect(space.transform == .identity)
-        #expect(space.storyline == nil)
+        #expect(space.clock == nil)
     }
 
     // MARK: - Private

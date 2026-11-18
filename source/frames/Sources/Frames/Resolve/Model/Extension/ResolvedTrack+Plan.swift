@@ -17,15 +17,12 @@ extension ResolvedTrack {
         self.init(media: try PinnedMedia(file: file, hashes: hashes), track: track)
     }
 
-    // A connected or sequence clip's track, in the media of the storyline clip it is parented to, which tracking has
-    // found to be a video or image sequence.
-    init?(
+    // A connected or sequence clip's track, in the media of its parent.
+    init(
         track: ParentTrack,
         hashes: any FileHashProvider
     ) throws {
-        guard case let .file(file) = track.storyline.source.media?.source else { return nil }
-
-        try self.init(track: track.track, file: file, hashes: hashes)
+        try self.init(track: track.track, file: track.file, hashes: hashes)
     }
 
     // MARK: - Public

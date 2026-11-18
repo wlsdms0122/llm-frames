@@ -170,7 +170,7 @@ struct SequencePlanner: Sendable {
                 box: box,
                 crop: placed[index].crop,
                 mask: placed[index].mask,
-                track: ParentTrack(clip: index, in: tracked),
+                track: tracked.clips[index],
                 isInOutputPixels: found[index].isInOutputPixels,
                 title: title,
                 nested: clipNested[index],

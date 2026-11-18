@@ -18,13 +18,13 @@ extension ResolvedStorylineClip {
         guard let mask else { return [] }
 
         let scale = scale.value(at: time)
-        guard let track else {
+        guard let track, let clock else {
             let transform = spaceTransform(at: time)
             return mask.value(at: time).map { ItemMask(mask: $0, transform: transform, scale: scale) }
         }
 
-        let transform = track.transform(on: self, at: time).concatenating(spaceTransform(at: time))
-        return track.masks(of: mask, on: self, at: time).map { ItemMask(mask: $0, transform: transform, scale: scale) }
+        let transform = track.transform(on: clock, at: time).concatenating(spaceTransform(at: time))
+        return track.masks(of: mask, on: clock, at: time).map { ItemMask(mask: $0, transform: transform, scale: scale) }
     }
 
     // MARK: - Private

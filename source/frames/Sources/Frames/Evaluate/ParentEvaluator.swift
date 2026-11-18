@@ -33,7 +33,7 @@ struct ParentEvaluator: Sendable {
         while let id = next {
             if let index = sequence.storyline.firstIndex(where: { $0.id == id }) {
                 let entry = sequence.storyline[index]
-                outer = ClipSpace(frame: frame, transform: transform(of: index, at: time), storyline: entry)
+                outer = ClipSpace(frame: frame, transform: transform(of: index, at: time), clock: entry.clock)
                 break
             }
             // Resolve has checked that the id names a clip of the sequence and that the chain has no cycle.
@@ -45,7 +45,11 @@ struct ParentEvaluator: Sendable {
 
         return chain.reversed().reduce(outer) { space, parent in
             let held = TimeRange(start: parent.start, end: parent.end).held(time)
-            return ClipSpace(frame: frame, transform: clipEvaluator.childTransform(of: parent, in: space, at: held))
+            return ClipSpace(
+                frame: frame,
+                transform: clipEvaluator.childTransform(of: parent, in: space, at: held),
+                clock: parent.clock
+            )
         }
     }
 

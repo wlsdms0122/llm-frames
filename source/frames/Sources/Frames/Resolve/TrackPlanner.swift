@@ -6,9 +6,10 @@
 //
 
 // Plans what `track` follows. The target is found at the clip's instant before padding, and the tracker follows it in
-// the storyline clip's media over every frame that clip draws, handles included, and the frames between them and the
-// instant. A storyline clip that loses its target inside its edit range stops, and a connected clip is visible only
-// on the frames followed.
+// the media of the storyline clip, or of the parent of a connected or sequence clip, over every frame the clip can show
+// and the frames between them and the instant: a storyline clip's handles included, and through its parent's clock for
+// a parented clip. A storyline clip that loses its target inside its edit range stops, and a connected or sequence
+// clip is visible only on the frames followed.
 struct TrackPlanner: Sendable {
     // MARK: - Property
     // Sequence times are sums and quotients of media times, so a frame boundary may miss an edit point by rounding.
@@ -53,7 +54,7 @@ struct TrackPlanner: Sendable {
                 written: written[index],
                 area: areas[index],
                 mask: masks[index],
-                storyline: time.storyline,
+                time: time,
                 fps: time.fps
             )
         }
@@ -79,7 +80,7 @@ struct TrackPlanner: Sendable {
             target,
             candidates: [
                 ("crop", isArea(written.crop) ? crop : nil),
-                ("mask", mask.map { self.area(of: $0, on: plan, instant: plan.instant) })
+                ("mask", mask.map { self.area(of: $0, on: picture.clock, instant: plan.instant) })
             ],
             in: picture.picture,
             at: plan.instant,
@@ -110,16 +111,17 @@ struct TrackPlanner: Sendable {
     }
 
     // `true` belongs to a shape or an adjustment with an area or a mask in its parent's space, and a title or media
-    // clip names what it follows. A parented clip follows its parent's media, which must be a storyline clip's video or
-    // image sequence.
+    // clip names what it follows. A parented clip follows its parent's media, which must be the video or image sequence
+    // of a storyline clip or of a connected or sequence media clip. The frames needed under a storyline clip are those
+    // it draws, and under any other parent those its clock shows while the clip is visible.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
         area: PropertyValue<FoundArea>?,
         mask: PropertyValue<[ResolvedMask]>?,
-        storyline: [StorylinePlan],
+        time: TimePlan,
         fps: Double
-    ) throws -> (plan: ClipPlan, track: Track?) {
+    ) throws -> (plan: ClipPlan, track: ParentTrack?) {
         guard let target = written.track else { return (plan, nil) }
 
         let place = written.place.appending(key: "track")
@@ -130,19 +132,14 @@ struct TrackPlanner: Sendable {
         if target == .own, area == nil, mask == nil {
             throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
         }
-        if case let .clip(_, id) = plan.parent {
-            throw ResolveError.trackInClipParent(place: place, kind: kind, id: id)
-        }
-        guard
-            case let .storyline(index, _) = plan.parent,
-            let picture = picture(of: storyline[index])
-        else {
+        guard let parent = plan.parent, let picture = picture(of: parent, in: time) else {
             throw ResolveError.trackWithoutVideo(place: place, kind: kind)
         }
 
-        let parent = storyline[index]
         // Only a mask in the parent's space lies in the media followed; a box shape's is in its own box.
-        let ownMask = plan.space == .parent ? mask.map { self.area(of: $0, on: parent, instant: plan.instant) } : nil
+        let ownMask = plan.space == .parent
+            ? mask.map { self.area(of: $0, on: picture.clock, instant: plan.instant) }
+            : nil
         let start = try self.target(
             target,
             candidates: [
@@ -159,7 +156,7 @@ struct TrackPlanner: Sendable {
             start.area,
             at: start.instant,
             on: picture.clock,
-            drawn: parent.drawn,
+            drawn: drawn(under: parent, of: plan, in: time),
             file: picture.file,
             fps: fps
         )
@@ -167,7 +164,10 @@ struct TrackPlanner: Sendable {
             throw ResolveError.neverFollowed(place: written.place, kind: kind, visible: plan.visible)
         }
 
-        return (plan.narrowed(to: visible), followed.track)
+        return (
+            plan.narrowed(to: visible),
+            ParentTrack(track: followed.track, file: picture.file, clock: picture.clock)
+        )
     }
 
     // What `true` follows (FRAMES-12): the one of the clip's area, mask and crop it has, each where it starts. A clip
@@ -189,7 +189,7 @@ struct TrackPlanner: Sendable {
     // keyframe's at its own time, and a static mask at the clip's instant.
     private func area(
         of mask: PropertyValue<[ResolvedMask]>,
-        on storyline: StorylinePlan,
+        on clock: MediaClock,
         instant: Double
     ) -> PropertyValue<FoundArea> {
         let found = { (masks: [ResolvedMask], time: Double) in
@@ -197,7 +197,7 @@ struct TrackPlanner: Sendable {
             return FoundArea(
                 rectangle: bounds,
                 target: bounds,
-                mediaTime: storyline.mediaTime(atSequenceTime: time),
+                mediaTime: clock.mediaTime(atSequenceTime: time),
                 lines: []
             )
         }
@@ -345,6 +345,48 @@ struct TrackPlanner: Sendable {
         }
 
         return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file, clock)
+    }
+
+    // The video or image sequence a connected or sequence media clip plays, nil for any other clip.
+    private func picture(of plan: ClipPlan) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
+        guard
+            plan.kind == .media(.video),
+            let media = plan.media,
+            case let .file(file) = media.source,
+            let size = file.size,
+            let clock = plan.mediaClock
+        else {
+            return nil
+        }
+
+        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file, clock)
+    }
+
+    private func picture(
+        of parent: ClipParent,
+        in time: TimePlan
+    ) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
+        switch parent {
+        case let .storyline(index, _):
+            picture(of: time.storyline[index])
+
+        case let .clip(index, _):
+            picture(of: time.clips[index])
+        }
+    }
+
+    private func drawn(
+        under parent: ClipParent,
+        of plan: ClipPlan,
+        in time: TimePlan
+    ) -> TimeRange {
+        switch parent {
+        case let .storyline(index, _):
+            time.storyline[index].drawn
+
+        case .clip:
+            plan.visible
+        }
     }
 
     // A crop `true` follows is an area where it starts, not a `{scale}`.
