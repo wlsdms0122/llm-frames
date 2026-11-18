@@ -1,14 +1,14 @@
 //
 //  PanLawTests.swift
-//  FramesAVFoundationTests
+//  FramesTests
 //
 //  Created by JSilver on 11/18/26.
 //
 
 import Foundation
-import Frames
-@testable import FramesAVFoundation
 import Testing
+
+@testable import Frames
 
 @Suite("PanLaw Tests")
 struct PanLawTests {

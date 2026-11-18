@@ -1,18 +1,18 @@
 //
 //  StereoGain.swift
-//  FramesAVFoundation
+//  Frames
 //
 //  Created by JSilver on 11/18/26.
 //
 
 // The gains a sound reaches the left and right output channels at.
-struct StereoGain: Equatable, Sendable {
+package struct StereoGain: Equatable, Sendable {
     // MARK: - Property
-    let left: Float
-    let right: Float
+    package let left: Float
+    package let right: Float
 
     // MARK: - Initializer
-    init(
+    package init(
         left: Float,
         right: Float
     ) {
