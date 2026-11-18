@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `lane` is nil for a sound, and `parent` is the place of the storyline clip a parented clip is composited with.
+// `lane` is nil for a sound, and `parent` is the place of the clip whose space a parented clip is placed in.
 struct TimelineClipEntry: Equatable, Sendable {
     // MARK: - Property
     let place: String
