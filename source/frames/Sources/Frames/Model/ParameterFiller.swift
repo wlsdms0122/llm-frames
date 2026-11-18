@@ -64,7 +64,7 @@ struct ParameterFiller: Sendable {
         place: Place,
         kind: String
     ) throws {
-        guard parameter.type.mediaKind == nil || !TemplateKeyTable.isMedia(argument) else { return }
+        guard parameter.type.mediaKind == nil || !MediaKeyTable.isMedia(argument) else { return }
 
         try checker.check(argument, as: parameter.valueType, place: place, kind: kind)
     }

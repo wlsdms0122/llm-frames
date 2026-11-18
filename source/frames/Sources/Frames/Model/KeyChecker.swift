@@ -135,7 +135,7 @@ struct KeyChecker: Sendable {
 
         case .argument:
             // An argument's type is the template's to say, and only media is checked where it is written.
-            guard TemplateKeyTable.isMedia(value) else { return }
+            guard MediaKeyTable.isMedia(value) else { return }
 
             try checkMedia(value, place: place, kind: kind, scope: &scope)
 
@@ -601,13 +601,13 @@ struct KeyChecker: Sendable {
             try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
 
         case let .object(object) where object.contains("imageSequence"):
-            try checkObject(object, as: TemplateKeyTable.imageSequence, place: place, scope: &scope)
+            try checkObject(object, as: MediaKeyTable.imageSequence, place: place, scope: &scope)
 
         case let .object(object) where object.contains("template"):
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
 
         case .object:
-            throw ModelError.missingKey(place: place, kind: "media", keys: TemplateKeyTable.mediaKeys)
+            throw ModelError.missingKey(place: place, kind: "media", keys: MediaKeyTable.keys)
 
         default:
             throw wrongType(value, .media, place, kind)

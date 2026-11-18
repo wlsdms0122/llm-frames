@@ -16,19 +16,4 @@ enum TemplateKeyTable {
             KeyRule("args", arguments)
         ]
     )
-    static let imageSequence = ObjectTable(
-        kind: "image sequence",
-        rules: [
-            KeyRule("imageSequence", .name, isRequired: true),
-            KeyRule("fps", .positiveNumber, isRequired: true)
-        ]
-    )
-    // An object holding none of them is a value, such as a choice's `{preset, args}` or an ease.
-    static let mediaKeys = ["kind", "imageSequence", "template"]
-
-    static func isMedia(_ value: JSONValue) -> Bool {
-        guard let object = value.objectValue else { return false }
-
-        return mediaKeys.contains(where: object.contains)
-    }
 }
