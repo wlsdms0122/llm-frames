@@ -611,7 +611,7 @@ struct SequencePlannerTests {
         ))
     }
 
-    @Test("a storyline clip's anchor is named on the frame, its keyframes move to sequence time, and its border and shadow are the theme's")
+    @Test("a storyline clip's anchor is named on the frame, its keyframes move to sequence time, its radius is a theme length, and its border and shadow are the theme's")
     func plansStorylineTransform() throws {
         // Given
         let document = #"""
@@ -643,7 +643,7 @@ struct SequencePlannerTests {
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius == 12)
+        #expect(appearance.radius == 12 * scale)
         #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
         #expect(appearance.shadow == DropShadow(
             radius: theme.shadowRadius * scale,

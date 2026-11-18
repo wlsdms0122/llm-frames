@@ -183,9 +183,9 @@ enum ClipKeyTable {
         case "loop", "closed":
             .bool
 
-        // A shape's shadow takes the object form, and a box's only the theme's.
+        // A media clip's and a storyline clip's shadow take the same forms as a shape's.
         case "shadow":
-            isShape(kind) ? ShapeKeyTable.shadow : .bool
+            ShapeKeyTable.shadow
 
         case "fill":
             ShapeKeyTable.fill
@@ -252,10 +252,6 @@ enum ClipKeyTable {
         case .none:
             []
         }
-    }
-
-    private static func isShape(_ kind: ClipKind) -> Bool {
-        if case .shape = kind { true } else { false }
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {

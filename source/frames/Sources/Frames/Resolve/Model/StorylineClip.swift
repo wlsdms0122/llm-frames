@@ -29,7 +29,7 @@ struct StorylineClip: Equatable, Sendable {
     let blend: String?
     let radius: Double?
     let border: BorderForm?
-    let shadow: Bool
+    let shadow: ShadowForm?
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -52,7 +52,7 @@ struct StorylineClip: Equatable, Sendable {
         blend: String? = nil,
         radius: Double? = nil,
         border: BorderForm? = nil,
-        shadow: Bool = false,
+        shadow: ShadowForm? = nil,
         connected: [Clip]
     ) {
         self.place = place

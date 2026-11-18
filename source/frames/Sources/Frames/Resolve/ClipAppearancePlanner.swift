@@ -186,6 +186,7 @@ struct ClipAppearancePlanner: Sendable {
             ),
             media: try mediaAppearance(
                 of: written,
+                kind: plan.kind,
                 box: box,
                 crop: crop,
                 picture: picture,
@@ -197,9 +198,9 @@ struct ClipAppearancePlanner: Sendable {
 
     // A storyline clip's box is `box`, which its conformed crop fills, and its anchor point, `center` unless written,
     // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its
-    // transform fills the frame exactly, and under content fit the box's top left lies at the origin. Its border and
-    // shadow are drawn as a media clip's. A solid has no box, and takes no transform (FRAMES-9), so it keeps the plain
-    // values and its transform is the identity, as its children's space is output pixels (FRAMES-10).
+    // transform fills the frame exactly, and under content fit the box's top left lies at the origin. Its radius,
+    // border and shadow are drawn as a media clip's. A solid has no box, and takes no transform (FRAMES-9), so it keeps
+    // the plain values and its transform is the identity, as its children's space is output pixels (FRAMES-10).
     func appearance(
         of plan: StorylinePlan,
         written: StorylineClip,
@@ -208,7 +209,7 @@ struct ClipAppearancePlanner: Sendable {
         format: FormatPlan,
         scale: Double,
         theme: MergedTheme
-    ) -> StorylineAppearance {
+    ) throws -> StorylineAppearance {
         guard let box else {
             return StorylineAppearance(
                 box: nil,
@@ -222,6 +223,7 @@ struct ClipAppearancePlanner: Sendable {
             )
         }
 
+        try checkColor(of: written.shadow, place: written.place, kind: plan.source.kind.label, theme: theme)
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { topLeft(of: $0, anchor: anchor) }
@@ -233,9 +235,9 @@ struct ClipAppearancePlanner: Sendable {
             scale: property(written.scale, plain: 1, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
             blend: written.blend ?? "normal",
-            radius: written.radius ?? 0,
+            radius: (written.radius ?? 0) * scale,
             border: border(written.border, scale: scale, theme: theme),
-            shadow: shadow(isDrawn: written.shadow, scale: scale, theme: theme)
+            shadow: written.shadow.flatMap { shadow($0, scale: scale, theme: theme) }
         )
     }
 
@@ -323,9 +325,11 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
-    // picture does, so the box holds still while the crop moves.
+    // picture does, so the box holds still while the crop moves. Its radius, border and shadow lengths are theme
+    // lengths, scaled.
     private func mediaAppearance(
         of written: Clip,
+        kind: ClipKind,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
         picture: Picture?,
@@ -334,6 +338,7 @@ struct ClipAppearancePlanner: Sendable {
     ) throws -> MediaAppearance? {
         guard let box, case .media = written.content, let picture else { return nil }
 
+        try checkColor(of: written.shadow, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         let conform = written.conform ?? .fit
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
@@ -359,9 +364,9 @@ struct ClipAppearancePlanner: Sendable {
         return MediaAppearance(
             conform: conform,
             crop: crops,
-            radius: written.radius ?? 0,
+            radius: (written.radius ?? 0) * scale,
             border: border(written.border, scale: scale, theme: theme),
-            shadow: shadow(isDrawn: written.shadow, scale: scale, theme: theme)
+            shadow: written.shadow.flatMap { shadow($0, scale: scale, theme: theme) }
         )
     }
 
@@ -468,13 +473,26 @@ struct ClipAppearancePlanner: Sendable {
         if case let .stroke(.some(color), _, _, _, _, _) = shape.stroke {
             names.append((color, written.place.appending(key: "stroke").appending(key: "color")))
         }
-        if case let .shadow(_, _, .some(color)) = shape.shadow {
-            names.append((color, written.place.appending(key: "shadow").appending(key: "color")))
-        }
-
         for (name, place) in names where !theme.isColor(name) {
             throw ThemeError.unknownColor(place: place, kind: kind.label, name: name)
         }
+        try checkColor(of: shape.shadow, place: written.place, kind: kind.label, theme: theme)
+    }
+
+    // A colour name a clip writes in its `shadow` must be a theme colour.
+    private func checkColor(
+        of shadow: ShadowForm?,
+        place: Place,
+        kind: String,
+        theme: MergedTheme
+    ) throws {
+        guard case let .shadow(_, _, .some(color)) = shadow, !theme.isColor(color) else { return }
+
+        throw ThemeError.unknownColor(
+            place: place.appending(key: "shadow").appending(key: "color"),
+            kind: kind,
+            name: color
+        )
     }
 
     // The shape style a shape names, its lengths in points, or nothing without a name. A name the theme does not
@@ -531,8 +549,7 @@ struct ClipAppearancePlanner: Sendable {
         )
     }
 
-    // A border takes the theme's width, and its colour unless the clip writes one, and a shadow is the theme's, their
-    // lengths scaled.
+    // A border takes the theme's width, and its colour unless the clip writes one, its width scaled.
     private func border(
         _ border: BorderForm?,
         scale: Double,
@@ -541,20 +558,6 @@ struct ClipAppearancePlanner: Sendable {
         border.map { border in
             MediaBorder(width: theme.borderWidth * scale, color: borderColor(of: border, theme: theme))
         }
-    }
-
-    private func shadow(
-        isDrawn: Bool,
-        scale: Double,
-        theme: MergedTheme
-    ) -> DropShadow? {
-        guard isDrawn else { return nil }
-
-        return DropShadow(
-            radius: theme.shadowRadius * scale,
-            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
-            color: theme.shadowColor
-        )
     }
 
     private func borderColor(

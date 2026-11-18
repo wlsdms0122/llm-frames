@@ -299,6 +299,39 @@ struct SequenceCheckTests {
         try sut.check(document: document)
     }
 
+    @Test(
+        "a media clip and a storyline clip take a shadow of true, false or an object, and an object with another key stops",
+        arguments: [
+            (#"true"#, nil),
+            (#"false"#, nil),
+            (#"{ "radius": 4, "offset": [0, 2], "color": "accent" }"#, nil),
+            (#"{ "blur": 4 }"#, #"(shadow): unknown key "blur""#),
+            (#""soft""#, #"(image): expected "#)
+        ] as [(String, String?)]
+    )
+    func checksMediaShadow(
+        shadow: String,
+        message: String?
+    ) throws {
+        // Given
+        let clip = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "media": "/abs/log.png", "at": [0, 1], "shadow": \#(shadow) } ] }"#)
+        let storyline = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/log.png", "shadow": \#(shadow) } ] }"#)
+
+        // When, Then
+        guard let message else {
+            try sut.check(document: clip)
+            try sut.check(document: storyline)
+            return
+        }
+        let clipError = #expect(throws: ModelError.self) { try sut.check(document: clip) }
+        let storylineError = #expect(throws: ModelError.self) { try sut.check(document: storyline) }
+        #expect(clipError?.description.hasPrefix("clips[0].shadow \(message)") == true, "\(clipError?.description ?? "no error")")
+        #expect(
+            storylineError?.description.hasPrefix("storyline[0].shadow \(message)") == true,
+            "\(storylineError?.description ?? "no error")"
+        )
+    }
+
     @Test("a property written both as a static value and in a keyframe stops")
     func refusesStaticAndKeyframed() throws {
         // Given

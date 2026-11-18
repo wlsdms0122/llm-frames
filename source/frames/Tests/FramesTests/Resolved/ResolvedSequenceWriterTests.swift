@@ -210,7 +210,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["anchor"] == .array([.number(150), .number(150)]))
         #expect(clip["crop"] == keyframes(at: 0, Rectangle(x: 0, y: 135, width: 1080, height: 1080)))
         #expect(clip["conform"] == .string("fill"))
-        #expect(clip["radius"] == .number(12))
+        #expect(clip["radius"] == .number(6.75))
         #expect(clip["border"] == .object(JSONObject(members: [
             JSONMember(key: "width", value: .number(2.25)),
             JSONMember(key: "color", value: .string("#FFFFFFFF"))

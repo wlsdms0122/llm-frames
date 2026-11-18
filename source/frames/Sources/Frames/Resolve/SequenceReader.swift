@@ -86,7 +86,7 @@ struct SequenceReader: Sendable {
             blend: object["blend"]?.stringValue,
             radius: object["radius"]?.numberValue,
             border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"]?.boolValue ?? false,
+            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
             connected: connected
         )
     }
@@ -119,7 +119,7 @@ struct SequenceReader: Sendable {
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
             radius: object["radius"]?.numberValue,
             border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"]?.boolValue ?? false,
+            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
             opacity: property("opacity", of: object, read: \.numberValue),
             scale: property("scale", of: object, read: \.numberValue),
             rotation: property("rotation", of: object, read: \.numberValue),

@@ -101,7 +101,7 @@ struct SequencePlanner: Sendable {
                     place: time.storyline[index].place.appending(key: "filter")
                 ),
                 color: time.sequence.storyline[index].solid.map(time.theme.color),
-                appearance: appearances.appearance(
+                appearance: try appearances.appearance(
                     of: time.storyline[index],
                     written: time.sequence.storyline[index],
                     position: storylinePositions[index],

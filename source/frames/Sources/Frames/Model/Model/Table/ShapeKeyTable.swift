@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The appearance keys a shape clip and a shape style share, and the shape style itself.
+// The appearance keys a shape clip and a shape style share, `shadow` also a media clip's and a storyline clip's, and the
+// shape style itself.
 enum ShapeKeyTable {
     static let fill = ValueType.oneOf([.exactly(.bool(false)), .color])
     static let stroke = ValueType.oneOf([
