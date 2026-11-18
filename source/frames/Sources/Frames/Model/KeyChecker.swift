@@ -422,8 +422,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape. A rect or an ellipse takes exactly one of `area` and the box `width`,
-    // `height` and `position`, all three together, and a path at least three points, since its path is closed.
+    // A mask is checked as each shape its `shape` can be.
     private func checkMask(
         _ value: JSONValue,
         place: Place,
@@ -431,19 +430,22 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .masks, place, kind) }
-
-        let shapeValue = object["shape"] ?? .null
         guard object.contains("shape") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["shape"]) }
 
-        try check(
-            shapeValue,
-            as: .literal(VocabularyTable.shapes),
-            place: place.appending(key: "shape"),
-            kind: "mask",
-            scope: &scope
-        )
-        guard let shape = shapeValue.stringValue.flatMap(ShapeKind.init(rawValue:)) else { return }
+        let shapes = try shapes(of: object, place: place, kind: "mask", scope: &scope)
+        try checkEach(shapes, scope: &scope) { shape, scope in
+            try checkMask(object, as: shape, place: place, scope: &scope)
+        }
+    }
 
+    // A mask takes the keys of its shape. A rect or an ellipse takes exactly one of `area` and the box `width`,
+    // `height` and `position`, all three together, and a path at least three points, since its path is closed.
+    private func checkMask(
+        _ object: JSONObject,
+        as shape: ShapeKind,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws {
         let table = MaskKeyTable.table(for: shape)
         if shape == .path, let points = object["points"]?.arrayValue, points.count < 3 {
             throw ModelError.invalidValue(
@@ -718,7 +720,7 @@ struct KeyChecker: Sendable {
             return [.media(mediaKind)]
 
         case "shape":
-            return try shapes(of: object, place: place, scope: &scope).map { .shape($0.rawValue) }
+            return try shapes(of: object, place: place, kind: "shape", scope: &scope).map { .shape($0.rawValue) }
 
         case "title":
             return [.title]
@@ -747,10 +749,11 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A shape picks the keys its object takes, so a choice there stands for each of its options.
+    // A shape picks the keys its object takes, a clip's or a mask's, so a choice there stands for each of its options.
     private func shapes(
         of object: JSONObject,
         place: Place,
+        kind: String,
         scope: inout DocumentScope
     ) throws -> [ShapeKind] {
         let value = object["shape"] ?? .null
@@ -758,7 +761,7 @@ struct KeyChecker: Sendable {
             value,
             as: .literal(VocabularyTable.shapes),
             place: place.appending(key: "shape"),
-            kind: "shape",
+            kind: kind,
             scope: &scope
         )
 

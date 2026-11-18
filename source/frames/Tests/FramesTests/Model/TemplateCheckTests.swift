@@ -232,6 +232,62 @@ struct TemplateCheckTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a mask shape taken by a choice checks the mask with each option's keys and geometry",
+        arguments: [
+            (
+                #"{ "shape": { "param": "s" }, "area": [0, 0, 10, 10] }"#,
+                #"["rect", "path"]"#,
+                #"clips[0].mask (path mask): unknown key "area""#
+            ),
+            (
+                #"{ "shape": { "param": "s" }, "points": [[0, 0], [10, 0]] }"#,
+                #"["path"]"#,
+                "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
+            ),
+            (
+                #"{ "shape": { "param": "s" }, "feather": 2 }"#,
+                #"["rect", "ellipse"]"#,
+                "clips[0].mask (rect mask): needs one of area, width, height, position"
+            ),
+            (
+                #"{ "shape": { "param": "s" }, "area": [0, 0, 10, 10], "width": 10 }"#,
+                #"["ellipse"]"#,
+                #"clips[0].mask (ellipse mask): takes only one of "area", "width""#
+            )
+        ]
+    )
+    func checksMaskShapeChoiceWithEachOption(
+        mask: String,
+        options: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": \#(options) } },
+              "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(template: document, place: .root) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test("a mask shape choice of a rect and an ellipse given by an area passes, with its reference taken once")
+    func acceptsMaskShapeChoiceOfBoxShapes() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"] } },
+              "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
+            """#)
+
+        // When
+        let references = try sut.check(template: document, place: .root)
+
+        // Then
+        #expect(references.map(\.name) == ["s"])
+    }
+
     @Test("a shape choice of a rect and an ellipse given by an area passes, with its references taken once")
     func acceptsShapeChoiceOfBoxShapes() throws {
         // Given
