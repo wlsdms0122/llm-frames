@@ -156,7 +156,7 @@ final class AssetVideoWriter {
         guard writer.status == .completed else { throw failure("it cannot be finished") }
     }
 
-    // The sound up to `time`, in chunks of at most a second.
+    // The sound up to `time`.
     private func appendSound(upTo time: CMTime) throws {
         guard let sound, let audio, soundPosition < sound.frameCount else { return }
         let end = min(Int((CMTimeGetSeconds(time) * sound.sampleRate).rounded()), sound.frameCount)
@@ -167,7 +167,7 @@ final class AssetVideoWriter {
         }
     }
 
-    // The next second of sound, when the audio input takes it now. Gives whether it went in.
+    // The next chunk of sound, when the audio input takes it now. Gives whether it went in.
     private func appendSoundAhead() throws -> Bool {
         guard let sound, let audio, soundPosition < sound.frameCount, audio.isReadyForMoreMediaData else { return false }
 

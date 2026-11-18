@@ -9,9 +9,8 @@ import AVFoundation
 import Foundation
 import Frames
 
-// Writes one sound file of AAC with AVAssetWriter, straight to its path, from sound that already fits AAC, in chunks
-// of at most a second. A wait on the writer longer than `deadline` seconds cancels it. A writer that fails cancels and
-// removes its file.
+// Writes one sound file of AAC with AVAssetWriter, straight to its path, from sound that already fits AAC. A wait on
+// the writer longer than `deadline` seconds cancels it. A writer that fails cancels and removes its file.
 final class AssetSoundWriter {
     // MARK: - Property
     private static let soundChunk = 48_000

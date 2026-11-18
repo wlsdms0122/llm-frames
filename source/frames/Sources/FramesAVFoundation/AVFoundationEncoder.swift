@@ -136,7 +136,6 @@ package final class AVFoundationEncoder: Sendable {
         }
     }
 
-    // Whether VideoToolbox lists an encoder for `codecType`.
     private func canEncode(_ codecType: CMVideoCodecType) -> Bool {
         var list: CFArray?
         guard VTCopyVideoEncoderList(nil, &list) == noErr, let encoders = list as? [[String: Any]] else { return false }
@@ -146,7 +145,6 @@ package final class AVFoundationEncoder: Sendable {
         }
     }
 
-    // Whether Core Audio lists an encoder for AAC.
     private func canEncodeAAC() -> Bool {
         var size: UInt32 = 0
         guard AudioFormatGetPropertyInfo(kAudioFormatProperty_EncodeFormatIDs, 0, nil, &size) == noErr else {
