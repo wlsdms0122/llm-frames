@@ -111,6 +111,85 @@ struct FrameDrawerTests {
         expect(bitmap.pixel(x: 20, y: 55), equals: [0, 0, 0, 1])
     }
 
+    @Test("a masked item casts its shadow from the cut picture, and the mask does not cut the shadow")
+    func castsMaskedShadow() throws {
+        // Given
+        // The mask keeps the left half of the square, x 10 to 20, which casts its shadow 10 to the right, outside the
+        // mask. The right half it removes would have cast one at x 30 to 40.
+        let item = DisplayItem(
+            mask: [ItemMask(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 50), radius: 0),
+                transform: .identity,
+                feather: 0,
+                isInverted: false,
+                mode: .add
+            )],
+            content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 0),
+                fill: Self.white,
+                stroke: nil,
+                shadow: DropShadow(radius: 0, offset: Point(x: 10, y: 0), color: Self.black)
+            ))
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: 50, background: "#00000000", items: [item]))
+
+        // Then
+        expect(bitmap.pixel(x: 15, y: 20), equals: [1, 1, 1, 1])
+        expect(bitmap.pixel(x: 25, y: 20), equals: [0, 0, 0, 1])
+        expect(bitmap.pixel(x: 35, y: 20), equals: [0, 0, 0, 0])
+        expect(bitmap.pixel(x: 15, y: 35), equals: [0, 0, 0, 0])
+    }
+
+    @Test("an item's opacity and its mask multiply its alpha once each")
+    func multipliesOpacityByMask() throws {
+        // Given
+        // The feathered edge lies on pixel 20's centre, where the mask is 0.5.
+        let item = DisplayItem(
+            opacity: 0.5,
+            mask: [ItemMask(
+                geometry: .rect(Rectangle(x: -100, y: -100, width: 120.5, height: 240), radius: 0),
+                transform: .identity,
+                feather: 2,
+                isInverted: false,
+                mode: .add
+            )],
+            content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 40, height: 40), color: Self.white))
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: 40, background: "#00000000", items: [item]))
+
+        // Then
+        #expect(abs(bitmap.pixel(x: 20, y: 20)[3] - 0.25) < 0.01)
+        expect(bitmap.pixel(x: 5, y: 20), equals: [0.5, 0.5, 0.5, 0.5])
+        expect(bitmap.pixel(x: 35, y: 20), equals: [0, 0, 0, 0])
+    }
+
+    @Test("a masked item drawn with a blend mode is cut by its mask before it is blended")
+    func masksBlendedItem() throws {
+        // Given
+        let item = DisplayItem(
+            blend: "multiply",
+            mask: [ItemMask(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 40), radius: 0),
+                transform: .identity,
+                feather: 0,
+                isInverted: false,
+                mode: .add
+            )],
+            content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 40, height: 40), color: Self.black))
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: 40, background: "#FF0000", items: [item]))
+
+        // Then
+        expect(bitmap.pixel(x: 10, y: 20), equals: [0, 0, 0, 1])
+        expect(bitmap.pixel(x: 30, y: 20), equals: [1, 0, 0, 1])
+    }
+
     // MARK: - Private
     private func list(
         size: Double,
