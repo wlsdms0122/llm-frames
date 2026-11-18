@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A piece of text set in one character style, in the face its font query found.
 struct TextRun: Equatable, Sendable {
     // MARK: - Property
     let text: String

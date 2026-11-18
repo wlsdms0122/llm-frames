@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The glyphs of one line, its width without the spaces that hang at its end, and its extent: the largest ascent and
-// descent among its runs.
+// `width` leaves out the spaces that hang at the line's end, and `ascent` and `descent` are the largest among its runs.
 struct TextLine: Equatable, Sendable {
     // MARK: - Property
     let glyphs: [StyledGlyph]

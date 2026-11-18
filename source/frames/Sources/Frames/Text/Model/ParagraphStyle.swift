@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A theme style's paragraph attributes as resolve lays a title out in them, which only the clip's style gives: lengths
-// in output pixels, already multiplied by the length scale of the place the text is drawn. `lines` is the most lines
-// the text may take, and nil is no limit.
+// A theme style's paragraph attributes, which only the clip's style gives a title. Lengths are in output pixels,
+// already multiplied by the length scale of the place the text is drawn. `lines` is the most lines the text may take,
+// nil for no limit.
 struct ParagraphStyle: Equatable, Sendable {
     // MARK: - Property
     let lineHeight: Double

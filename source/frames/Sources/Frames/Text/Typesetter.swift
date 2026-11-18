@@ -5,10 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Lays a title's runs out as one text: each run shaped on its own by the shaping provider in its character style,
-// lines broken by UAX #14 over the text of all runs together with words kept whole as `word-break: keep-all` keeps
-// them, at `\n` and at the wrapping width, and placed in a box by the paragraph style's line height, alignment and
-// background.
+// Each run is shaped on its own, and lines break by UAX #14 over the text of all runs together.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider

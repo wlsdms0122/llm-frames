@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The line breaking classes of UAX #14, named in full, as resolve tells them from a scalar. Classes UAX #14 resolves
+// The line breaking classes of UAX #14, named in full, as `init` tells them from a scalar. Classes UAX #14 resolves
 // to others before any rule applies come back resolved: ambiguous, unknown, surrogate, complex context, Hebrew letter
 // and contingent break as alphabetic, conditional Japanese starter as nonstarter, and emoji base as ideographic.
 enum LineBreakClass: Equatable, Sendable {
