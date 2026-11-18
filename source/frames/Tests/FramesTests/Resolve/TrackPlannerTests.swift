@@ -335,6 +335,30 @@ struct TrackPlannerTests {
             """#)
     }
 
+    @Test("a storyline clip with an area crop and a mask follows the area it names, where true on it stops")
+    func followsNamedTargetPastOwnCandidates() throws {
+        // Given
+        let sut = planner()
+        let named = try plan(storyline: #""crop": { "text": "Total" }, "track": { "text": "Total" }"#)
+        let own = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
+        let crops: [PropertyValue<FoundArea>?] = [.value(found(total, at: 1))]
+        let masks: [PropertyValue<[ResolvedMask]>?] = [.value([mask(.ellipse(Rectangle(x: 0, y: 0, width: 50, height: 50)))])]
+
+        // When
+        let plan = try sut.plan(named, crops: crops, storylineMasks: masks, areas: [], masks: [])
+        let error = #expect(throws: ResolveError.self) {
+            try sut.plan(own, crops: crops, storylineMasks: masks, areas: [], masks: [])
+        }
+
+        // Then
+        #expect(plan.storyline[0]?.target == total)
+        #expect(plan.storyline[0]?.mediaTime == 1)
+        #expect(error?.description == #"""
+            storyline[0]#screen.track (video): "track": true follows one of the clip's area, mask and crop, and it has \#
+            "crop" and "mask", so it must name its target
+            """#)
+    }
+
     @Test("true on a box shape does not follow its mask, which is in its own box, so it has nothing to follow")
     func refusesBoxShapeMask() throws {
         // Given

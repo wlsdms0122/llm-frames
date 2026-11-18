@@ -74,14 +74,10 @@ struct TrackPlanner: Sendable {
 
         let start = try self.target(
             target,
-            own: try own(
-                [
-                    ("crop", isArea(written.crop) ? crop : nil),
-                    ("mask", mask.map { self.area(of: $0, on: plan, instant: plan.instant) })
-                ],
-                place: place,
-                kind: kind
-            ),
+            candidates: [
+                ("crop", isArea(written.crop) ? crop : nil),
+                ("mask", mask.map { self.area(of: $0, on: plan, instant: plan.instant) })
+            ],
             in: picture.picture,
             atMediaTime: plan.mediaTime(atSequenceTime: plan.instant),
             place: place,
@@ -138,14 +134,10 @@ struct TrackPlanner: Sendable {
         let ownMask = followsMask ? mask.map { self.area(of: $0, on: parent, instant: plan.instant) } : nil
         let start = try self.target(
             target,
-            own: target == .own ? try own(
-                [
-                    ("area", area),
-                    ("mask", ownMask)
-                ],
-                place: place,
-                kind: kind
-            ) : nil,
+            candidates: [
+                ("area", area),
+                ("mask", ownMask)
+            ],
             in: picture.picture,
             atMediaTime: parent.mediaTime(atSequenceTime: plan.instant),
             place: place,
@@ -207,11 +199,11 @@ struct TrackPlanner: Sendable {
         }
     }
 
-    // The target before padding: for `true` the clip's own area, mask or crop where it starts, else the area it names,
-    // found at the instant.
+    // The target before padding: for `true` the one of the clip's own candidates it has, where it starts, else the
+    // area it names, found at the instant. A named target does not look at the candidates.
     private func target(
         _ target: TrackTarget,
-        own: PropertyValue<FoundArea>?,
+        candidates: [(key: String, value: PropertyValue<FoundArea>?)],
         in picture: Picture,
         atMediaTime time: Double,
         place: Place,
@@ -219,6 +211,7 @@ struct TrackPlanner: Sendable {
     ) throws -> FoundArea {
         switch target {
         case .own:
+            let own = try own(candidates, place: place, kind: kind)
             guard let found = own?.firstValue else { throw ResolveError.trackOwnWithoutArea(place: place, kind: kind) }
 
             return found
