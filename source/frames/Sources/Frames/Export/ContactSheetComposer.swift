@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Lays frames of one size out on a grid, left to right and then top down, each with its time label burnt into its
-// top left corner. The label is set in the face it is given, in one fixed tool style that no theme changes, at a size S
-// that follows the longer side of the frame as drawn. Frames lie S apart with S around them, and S is a whole number of pixels, so every frame
-// starts on a pixel edge and is resampled once, from its source to its cell.
+// Lays frames of one size out on a grid, left to right and then top down, each with its time label burnt into its top
+// left corner. The label is set in the face it is given, in one fixed tool style that no theme changes, at a size S
+// that follows the longer side of the frame as drawn. Frames lie S apart with S around them, and S is a whole number of
+// pixels, so every frame starts on a pixel edge and is resampled once, from its source to its cell.
 struct ContactSheetComposer: Sendable {
     // MARK: - Property
     private static let textColor = Color(written: "#FFFFFFFF")

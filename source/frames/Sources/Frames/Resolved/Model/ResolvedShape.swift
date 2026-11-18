@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A shape entry's own keys (FRAMES-19): its kind and how it is placed, its geometry as the clip wrote it and its
-// `outset` in output pixels, then `radius` and `trim` keyframes, and `fill`, `stroke` and `shadow` with its style
-// applied and its lengths in output pixels. Keyframes are in sequence time.
+// A shape entry's own keys: its kind and how it is placed, its geometry as the clip wrote it and its `outset` in output
+// pixels, then `radius` and `trim` keyframes, and `fill`, `stroke` and `shadow` with its style applied and its lengths
+// in output pixels. Keyframes are in sequence time.
 struct ResolvedShape: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind

@@ -83,13 +83,13 @@ enum ClipKeyTable {
         ]
     )
 
-    // Properties written only in keyframes, so a static value stops (FRAMES-4).
+    // Properties written only in keyframes, so a static value stops.
     static let keyframedOnly = ["timeRemap"]
 
     private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
 
-    // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
-    // for a path. A key a kind does not take stops as an unknown key.
+    // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, points for a path. A
+    // key a kind does not take stops as an unknown key.
     private static let everyShape = [
         "track", "blend", "mask", "trackMatte", "shape", "style", "anchor", "position", "scale", "rotation", "fill",
         "stroke", "trim", "shadow"

@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The animation spans a clip or a label takes, inline: an entrance and an exit by their `seconds`, a loop by its
-// `period`, each nil when it takes none.
+// The animation spans a clip takes, inline: an entrance and an exit by their `seconds`, a loop by its `period`, each
+// nil when it takes none.
 struct ResolvedAnimation: Equatable, Sendable {
     // MARK: - Property
     static let none = ResolvedAnimation(entrance: nil, loop: nil, exit: nil)

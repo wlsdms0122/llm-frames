@@ -11,12 +11,11 @@ extension Double {
     // MARK: - Property
     static let timeResolution = 1e-6
 
-    // The time rounded to the nearest microsecond.
     var roundedTime: Double {
         Double(timeTicks: timeTicks)
     }
 
-    // The time in whole microseconds, rounded to the nearest one.
+    // The time in whole microseconds.
     var timeTicks: Int {
         Int((self * 1_000_000).rounded())
     }

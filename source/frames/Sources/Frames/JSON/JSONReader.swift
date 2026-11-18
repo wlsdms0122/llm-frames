@@ -87,7 +87,7 @@ package struct JSONReader: Sendable {
 
             let keyCursor = cursor
             let key = try readString(&cursor)
-            // A second value for a key would silently win, so it stops like an unknown key.
+            // A second value for a key would silently win over the first.
             guard !members.contains(where: { $0.key == key }) else {
                 throw keyCursor.error("key \"\(key)\" is written twice")
             }

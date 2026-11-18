@@ -8,8 +8,9 @@
 // Reads a resolved document from its JSON text into the model evaluation reads. Its version is checked before anything
 // else, so a document this frames cannot read stops naming both versions. It reads only what resolve writes: a member
 // that is missing or of another type, or a key resolve never writes there, stops naming its place. It does not check
-// resolve's rules again, since the document was resolved, except that each parent names a clip with a picture and no
-// parent chain holds a cycle: evaluation follows every chain to its end.
+// resolve's rules again, since the document was resolved, except the ones evaluation relies on: each parent and track
+// matte names a clip it may name, no parent or track matte chain holds a cycle, and a track pins the media its clip
+// follows.
 package struct ResolvedDocumentReader: Sendable {
     // MARK: - Property
     private let checker: ResolvedDocumentChecker

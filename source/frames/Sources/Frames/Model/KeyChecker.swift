@@ -462,8 +462,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // An empty list stops, since a clip without masks writes no `mask`, as an After Effects layer without masks has
-    // none.
+    // An empty list stops, since a clip without masks writes no `mask`.
     private func checkMasks(
         _ value: JSONValue,
         place: Place,
