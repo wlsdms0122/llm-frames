@@ -39,7 +39,6 @@ package enum RenderError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
-    // A pinned file by the place that pins it.
     private func subject(
         _ path: String,
         _ place: String
