@@ -5,17 +5,10 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// Evaluates a shape clip at an instant into its one `path` item in output pixels of its list, and gives the map its
-// children are carried by (FRAMES-10, FRAMES-20). A shape's box is its box as written, and its outset grows only the
-// outline it draws (FRAMES-11): its anchor point, the space its children see and the fractions of its box its animation
-// moves it by are all taken on the box as written. A shape given by `width` and `height` is drawn in its box's own
-// pixels as a title's box is: its anchor point goes where its parent's map carries its position, it turns by its own
-// rotation and the map's, at its own scale, and its box is `w(t)` by `h(t)`, with the anchor point held where it is, so
-// its lengths stay as written. A shape placed by its geometry is drawn in the coordinates its geometry is written in,
-// carried by its tracked motion and P(t) whole, with its own and its animation's scale and rotation about its anchor
-// point, and its lengths, its outset among them, divided by P(t)'s scale, so that after the transform they are the
-// clip's own times its own and its animation's scale and not its parent's. `reveal` wipes the shape's receiver box from
-// the animation's side.
+// The outset grows only the outline a shape draws: its anchor point, the space its children see and the fractions of
+// its box its animation moves it by are taken on the box as written. A shape placed by its geometry is carried whole by
+// its parent's map, so its lengths (outset, radius, stroke width, shadow) are divided by that map's scale to keep the
+// parent's scale out of them.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -29,8 +22,8 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> [DisplayItem] {
-        // A space at scale 0, a parent entering from 0 or keyed to 0, flattens a shape placed by its geometry to a
-        // point, and its lengths cannot be kept there, so it draws nothing.
+        // A space at scale 0 flattens a shape placed by its geometry to a point, where its lengths cannot be kept, so
+        // it draws nothing.
         guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time) else { return [] }
 
         let trim = shape.trim.value(at: time)
@@ -66,9 +59,7 @@ struct ShapeEvaluator: Sendable {
         )]
     }
 
-    // The map from the space the shape gives its children to output pixels: its box's own pixels for a shape given by
-    // `width` and `height`, and the space its geometry is written in for one placed by its geometry, each carried by
-    // the item's transform. At scale 0 every point of the space lands on one, and the shape's own motion leaves it there.
+    // At a space scale of 0 every point lands on one whatever the shape's own motion, so the space's map stands in.
     func transform(
         of shape: ResolvedShape,
         clip: ResolvedClip,
@@ -81,8 +72,7 @@ struct ShapeEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // The outline in the item's own coordinates, the item's transform and opacity, and the scale the item's lengths
-    // are divided by.
+    // `scale` is what the item's lengths are divided by.
     private func laid(
         _ shape: ResolvedShape,
         clip: ResolvedClip,
@@ -96,7 +86,7 @@ struct ShapeEvaluator: Sendable {
         let placement: GeometryPlacement
         switch shape.geometry {
         case let .box(width, height, outset):
-            // A box shape's entry carries its box (FRAMES-19).
+            // A box shape's entry carries its box.
             return clip.box.map { box in
                 laid(
                     shape,
@@ -129,7 +119,6 @@ struct ShapeEvaluator: Sendable {
             geometry = .polyline(points, isClosed: isClosed)
         }
 
-        // The animation moves the shape in fractions of its box as written (FRAMES-14).
         let motion = sample.animation.motion
         let transform = AffineTransform(
             placing: bounds,
@@ -143,8 +132,7 @@ struct ShapeEvaluator: Sendable {
         return (geometry, transform, sample.opacity * motion.value(of: .opacity), tracked.scale)
     }
 
-    // A box shape keeps its anchor point where it is while its box changes size: the anchor stays the same point of
-    // the box, scaled with it. Its box is `width` by `height`, and its outline that box grown by `outset` on every side.
+    // While the box changes size the anchor point stays the same fraction of it.
     private func laid(
         _ shape: ResolvedShape,
         width: [Keyframe<Double>],
@@ -178,7 +166,6 @@ struct ShapeEvaluator: Sendable {
         return (geometry, presentation.transform, presentation.opacity, 1)
     }
 
-    // What the shape draws, in its own coordinates (FRAMES-14): the box of what its path draws and of its shadow.
     private func receiverBox(of path: PathItem) -> Rectangle {
         let drawn = path.drawnBounds()
         guard let shadow = path.shadow else { return drawn }

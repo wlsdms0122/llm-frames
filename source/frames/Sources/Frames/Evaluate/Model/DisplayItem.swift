@@ -5,12 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One drawing step of a display list. `transform` carries the item's own coordinates into output pixels, `blend` is
-// its blend mode by name, `mask` the masks its alpha is multiplied by after its transform, combined in list order and
-// empty where it has none, `trackMatte` the matte its alpha is multiplied by after its masks, nil for none, and
-// `reveal` a rectangle in its own coordinates, before the transform, outside which nothing of it shows, so a wipe
-// turns with the item. `origin` is the clip that drew it, nil for a transition cover, which no
-// clip draws. A role draws without it.
+// One drawing step of a display list. `transform` carries the item's own coordinates into output pixels. `mask`
+// multiplies its alpha after its transform, its masks combined in list order, and `trackMatte` multiplies it after its
+// masks. `reveal` is a rectangle in its own coordinates, before the transform, outside which nothing of it shows, so a
+// wipe turns with the item. `origin` is the clip that drew it, nil for a transition cover; a role draws without it.
 package struct DisplayItem: Equatable, Sendable {
     // MARK: - Property
     package let transform: AffineTransform
@@ -44,12 +42,10 @@ package struct DisplayItem: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The same item, drawn by `origin`.
     func drawn(by origin: ItemOrigin) -> DisplayItem {
         replacing(origin: origin)
     }
 
-    // The same item, its alpha multiplied by `mask` and then by `trackMatte`.
     func cut(
         by mask: [ItemMask],
         trackMatte: ItemTrackMatte?
@@ -57,7 +53,7 @@ package struct DisplayItem: Equatable, Sendable {
         replacing(mask: mask, trackMatte: trackMatte)
     }
 
-    // The same item drawn as part of a track matte's source, which takes a matte clip's picture without its blend.
+    // A track matte's source takes a matte clip's picture without its blend.
     func normallyBlended() -> DisplayItem {
         replacing(blend: "normal")
     }

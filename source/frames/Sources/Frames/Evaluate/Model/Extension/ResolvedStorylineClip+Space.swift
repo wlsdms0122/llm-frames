@@ -6,9 +6,8 @@
 //
 
 // A storyline entry's map from the space it gives its children and its mask to the frame, before its transition
-// motion (FRAMES-10): its media pixels through its conformed crop scaled to its box, then its own transform. A solid's
-// space is output pixels, carried by its own transform. A chain that reaches the output adds the motion after it, and
-// one that ends inside the entry's own nested list, its mask, does not.
+// motion. A chain that reaches the output adds the motion after it; the entry's own mask, inside its nested list, does
+// not.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer

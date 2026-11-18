@@ -6,9 +6,8 @@
 //
 
 // A region of a picture scaled into a rectangle, filtered, then masked by its matte. `rectangle` is the region of the
-// source, in its media pixels or in a nested list's output pixels, or nil for the whole source, `destination` the
-// rectangle it fills, and `filter` is applied at the destination's size. `radius` rounds the destination's corners,
-// and `border` and `shadow` are drawn when the picture has them.
+// source, in its media pixels or in a nested list's output pixels, or nil for the whole source, and `filter` is
+// applied at the destination's size.
 package struct PictureItem: Equatable, Sendable {
     // MARK: - Property
     package let source: PictureItemSource

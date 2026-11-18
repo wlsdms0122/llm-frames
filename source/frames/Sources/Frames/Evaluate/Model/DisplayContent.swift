@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What a display item draws.
 package enum DisplayContent: Equatable, Sendable {
     case picture(PictureItem)
     case path(PathItem)

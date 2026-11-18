@@ -20,7 +20,6 @@ package struct AffineTransform: Equatable, Sendable {
     package let tx: Double
     package let ty: Double
 
-    // `[a, b, c, d, tx, ty]`, as a display list and a resolved document write it.
     var matrix: [Double] {
         [a, b, c, d, tx, ty]
     }
@@ -85,7 +84,6 @@ package struct AffineTransform: Equatable, Sendable {
         )
     }
 
-    // `degrees` turns clockwise.
     init(rotation degrees: Double, about center: Point) {
         let radians = degrees * .pi / 180
         let cosine = cos(radians)

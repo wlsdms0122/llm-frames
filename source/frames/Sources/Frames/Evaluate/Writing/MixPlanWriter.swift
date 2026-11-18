@@ -5,9 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Writes a mix plan as JSON, `"mixPlan"` first, set to the version of this frames, then its segments in plan order,
-// each with its pinned media under `media`, its envelope as `[time, gain]` points and its pan envelope as `[time, pan]`
-// points, in the layout and number form of a resolved document, so the same plan gives the same bytes.
+// Writes a mix plan in the layout and number form of a resolved document, so the same plan gives the same bytes.
 package struct MixPlanWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()

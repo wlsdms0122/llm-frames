@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The motion of a span at one instant, with the side its span reveals from.
 struct MotionSample: Equatable, Sendable {
     // MARK: - Property
-    // Every property at its default: the thing simply shows.
+    // Every property at its default.
     static let none = MotionSample(motion: Motion(), revealFrom: .left)
 
     let motion: Motion

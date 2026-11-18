@@ -5,13 +5,11 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The track mattes of a resolved sequence (FRAMES-11): which clips are used as mattes, and so draw no item of their
-// own, and the chain a track matte starts, which resolve has checked ends.
+// Resolution rejects a track matte cycle, so the chain a track matte starts ends.
 extension ResolvedSequence {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    // Whether a track matte of the sequence names the clip.
     func isMatte(_ clip: ResolvedClip) -> Bool {
         guard let id = clip.id else { return false }
 

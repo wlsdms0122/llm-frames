@@ -5,14 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Evaluates one clips entry at an instant into the items it draws, bottom first, in output pixels of its list: its
-// keyframes sampled, its animation over its visible window combined on top, its blend, and its parent's map P(t)
-// composed in through its space, after its tracked motion when it follows its parent's media (a media clip tracked in
-// its own media moves its crop and masks instead, FRAMES-12). A title or media clip is drawn in its box's own pixels,
-// its anchor point where that map carries its position, turned by its own rotation and the map's, at its own scale, and
-// so is a shape given by `width` and `height`. A shape placed by its geometry is drawn in its space's coordinates,
-// carried by that map whole, and an adjustment around its masks' bounding box so, or without a mask over the frame. Its
-// masks are in the space it gives its children and are carried by that space's map.
+// Items come bottom first, in output pixels of the list the clip is drawn in. A clip that follows its parent's media
+// takes that tracked motion before its parent's map; a media clip tracked in its own media moves its crop and masks
+// instead.
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -35,10 +30,9 @@ struct ClipEvaluator: Sendable {
         return drawn(clip, in: space, picture: picture, at: time).map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
-    // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media
-    // clip's media pixels through its crop into its box, a box shape's box, and the space a shape's geometry or an
-    // adjustment's mask is written in, each carried by the clip's transform, its tracked motion included.
-    // Opacity and reveal take no part.
+    // The map from the space the clip gives its children to output pixels: a title's text box, a media clip's media
+    // pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in. Opacity
+    // and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -78,7 +72,6 @@ struct ClipEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // The items the clip draws, before its masks.
     private func drawn(
         _ clip: ResolvedClip,
         in space: ClipSpace,
@@ -136,8 +129,7 @@ struct ClipEvaluator: Sendable {
         }
     }
 
-    // A title or media clip's item in its box's own pixels, wiped across `receiver`, what it draws there, from the
-    // animation's side.
+    // `receiver` is what the item draws in its box's own pixels, which the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
@@ -179,8 +171,7 @@ struct ClipEvaluator: Sendable {
         return ItemPresentation(box: box.size, anchor: box.anchor, values: values, motion: sample.animation.motion)
     }
 
-    // An adjustment over the whole list's frame, its reveal wiping across its masks' bounding box (FRAMES-14), or
-    // across the frame without a mask. Its opacity blends the filtered result with what is below.
+    // Its opacity blends the filtered result with what is below.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: [ResolvedFilterOperation],
@@ -199,9 +190,7 @@ struct ClipEvaluator: Sendable {
         )
     }
 
-    // An adjustment's mask is in the clip's space and carried by its tracked motion and P(t), and its animation acts
-    // around the centre of its masks' bounding box (FRAMES-10). Without a mask the adjustment covers the list's frame,
-    // in output pixels, and acts around its centre.
+    // The animation acts about the centre of the masks' bounding box, or of the list's frame without a mask.
     private func adjustPresentation(
         of clip: ResolvedClip,
         sample: ClipSample,
@@ -220,10 +209,8 @@ struct ClipEvaluator: Sendable {
         )
     }
 
-    // A clip's masks at the time on the space it gives its children (FRAMES-11). A title's and a media clip's are in
-    // their own box or media, and so are a box shape's, which a tracked motion carries through their transform, and a
-    // media clip tracked in its own media moves them there. A shape placed by its geometry and an adjustment write
-    // theirs in their parent's space, each keyframe brought back to the instant when tracked, as their geometry is.
+    // A placed shape and an adjustment write their masks in their parent's space, and any other clip in its own box or
+    // media pixels.
     private func masks(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -239,7 +226,6 @@ struct ClipEvaluator: Sendable {
         return masks.map { ItemMask(mask: $0, transform: transform, scale: scale) }
     }
 
-    // The bounding box of a clip's masks at the time in its own space, nil without a mask.
     private func maskBounds(
         of clip: ResolvedClip,
         in space: ClipSpace,

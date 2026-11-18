@@ -5,11 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// An animation at one instant of the visible window `[start, end)` it runs over. The entrance runs at its own length
-// from the start, and the exit over the end, taking its `seconds` or what the entrance leaves, whichever is shorter,
-// so on a short window the entrance runs first and the exit plays whole in the time that is left. The loop repeats
-// every `period` from the end of the entrance to the start of the exit. Outside every span, and outside the window,
-// every property is at its default.
+// On a window shorter than the entrance and the exit, the entrance keeps its own pace and the exit plays whole in the
+// time the entrance leaves.
 struct AnimationSampler: Sendable {
     // MARK: - Property
     private let evaluator = SpanEvaluator()

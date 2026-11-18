@@ -5,11 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A storyline entry's masks at a sequence time as its inner item takes them, empty for none. They are in its media
-// pixels and carried to the frame by its space's map, before its transition motion, which the outer item carries
-// (FRAMES-9, FRAMES-20). A tracked entry's masks are where they are at each keyframe's own time: each keyframe is
-// brought back through the motion at its media time, they are interpolated there, and the motion at the media time
-// shown carries them whole. The feather scales with the entry's own scale.
+// A storyline entry's masks as its inner item takes them: in its media pixels, carried to the frame by its space's map,
+// before its transition motion. A tracked entry's mask keyframes are each brought back through the motion at their own
+// media time and interpolated there, and the motion at the media time shown carries them whole.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
