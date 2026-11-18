@@ -7,9 +7,7 @@
 
 // A shape entry's own keys (FRAMES-19): its kind and how it is placed, its geometry as the clip wrote it and its
 // `outset` in output pixels, then `radius` and `trim` keyframes, and `fill`, `stroke` and `shadow` with its style
-// applied and its lengths in output pixels. A shape placed by its geometry carries `position`, where its anchor point
-// goes when the clip writes one, and `anchor`, the point the clip names of its geometry's box at its instant, nil for
-// the centre of that box at each time. Keyframes are in sequence time.
+// applied and its lengths in output pixels. Keyframes are in sequence time.
 struct ResolvedShape: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind
@@ -19,8 +17,6 @@ struct ResolvedShape: Equatable, Sendable {
     let fill: Color?
     let stroke: PathStroke?
     let shadow: DropShadow?
-    let position: [Keyframe<Point>]?
-    let anchor: NamedPoint?
 
     // MARK: - Initializer
     init(
@@ -30,9 +26,7 @@ struct ResolvedShape: Equatable, Sendable {
         trim: [Keyframe<Trim>],
         fill: Color?,
         stroke: PathStroke?,
-        shadow: DropShadow?,
-        position: [Keyframe<Point>]? = nil,
-        anchor: NamedPoint? = nil
+        shadow: DropShadow?
     ) {
         self.kind = kind
         self.geometry = geometry
@@ -41,8 +35,6 @@ struct ResolvedShape: Equatable, Sendable {
         self.fill = fill
         self.stroke = stroke
         self.shadow = shadow
-        self.position = position
-        self.anchor = anchor
     }
 
     // MARK: - Public

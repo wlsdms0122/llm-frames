@@ -273,7 +273,7 @@ struct ResolvedSequenceReader: Sendable {
 
     // A shape's kind and geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
     // `width` and `height`, and one without by its area. One placed by its geometry carries its position and its
-    // anchor, `{area, point}`.
+    // anchor point.
     private func shape(
         _ clip: PlacedJSONObject,
         isPlacedByBox: Bool
@@ -282,7 +282,8 @@ struct ResolvedSequenceReader: Sendable {
         let geometry: ShapeGeometry = if kind == .path {
             .points(
                 try values.keyframes(clip.member("points")) { points in try points.elements().map(values.point) },
-                isClosed: try clip.member("closed").bool()
+                isClosed: try clip.member("closed").bool(),
+                placement: try placement(of: clip)
             )
         } else if isPlacedByBox {
             .box(
@@ -293,7 +294,8 @@ struct ResolvedSequenceReader: Sendable {
         } else {
             .area(
                 try values.keyframes(clip.member("area"), read: values.rectangle),
-                outset: try clip.member("outset").number()
+                outset: try clip.member("outset").number(),
+                placement: try placement(of: clip)
             )
         }
 
@@ -309,21 +311,14 @@ struct ResolvedSequenceReader: Sendable {
             },
             fill: try clip.member("fill").optional(values.color),
             stroke: try clip.member("stroke").optional(stroke),
-            shadow: try clip.member("shadow").optional(shadow),
-            position: isPlacedByBox ? nil : try clip.member("position").optional { value in
-                try values.keyframes(value, read: values.point)
-            },
-            anchor: isPlacedByBox ? nil : try clip.member("anchor").optional(namedPoint)
+            shadow: try clip.member("shadow").optional(shadow)
         )
     }
 
-    private func namedPoint(_ value: PlacedJSONValue) throws -> NamedPoint {
-        let point = try value.object(keys: ["area", "point"])
-        let names = VocabularyTable.placementNames
-
-        return NamedPoint(
-            area: try values.rectangle(point.member("area")),
-            name: try point.member("point").name(among: names) { name in names.contains(name) ? name : nil }
+    private func placement(of clip: PlacedJSONObject) throws -> GeometryPlacement {
+        GeometryPlacement(
+            position: try clip.member("position").optional { value in try values.keyframes(value, read: values.point) },
+            anchor: try clip.member("anchor").optional(values.point)
         )
     }
 

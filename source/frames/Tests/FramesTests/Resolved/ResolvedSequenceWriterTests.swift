@@ -369,7 +369,8 @@ struct ResolvedSequenceWriterTests {
               "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "shape": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
                 { "shape": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "arrow" }, "at": [0, 1] },
-                { "shape": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] } ] }
+                { "shape": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] },
+                { "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "fill": "accent", "at": [0, 1] } ] }
             """##
         let theme = MergedTheme.base
         let scale = theme.lengthScale(at: 2412)
@@ -415,6 +416,8 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[2]["anchor"] == .array([.number(100 + 10 * scale), .number(50 + 10 * scale)]))
         #expect(clips[2]["fill"] == .string("#00000080"))
         #expect(clips[2]["stroke"] == .null)
+        // A named anchor of a shape placed by its area is a point of its area as written, before its outset.
+        #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
     }
 
     // MARK: - Private

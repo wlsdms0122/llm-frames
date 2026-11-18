@@ -6,22 +6,23 @@
 //
 
 // How a shape entry is placed (FRAMES-11), its keyframes in sequence time: a rect or an ellipse by its box, `width` by
-// `height` in output pixels, or by its `area` in its coordinate space, either grown on every side by `outset` in
-// output pixels when it is drawn, or a path by its `points`, joined back to the first when `isClosed`.
+// `height` in output pixels grown on every side by `outset` in output pixels, or by its `area` in its coordinate
+// space, grown by `outset` when it is drawn, or a path by its `points`, joined back to the first when `isClosed`. A
+// shape placed by its area or its points carries where it goes.
 enum ShapeGeometry: Equatable, Sendable {
     case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: Double)
-    case area([Keyframe<Rectangle>], outset: Double)
-    case points([Keyframe<[Point]>], isClosed: Bool)
+    case area([Keyframe<Rectangle>], outset: Double, placement: GeometryPlacement)
+    case points([Keyframe<[Point]>], isClosed: Bool, placement: GeometryPlacement)
 
     // MARK: - Property
-    // How far the box is grown on every side, in output pixels. A path has no outset.
-    var outset: Double {
+    // Where a shape placed by its geometry goes, nil for one placed by its box.
+    var placement: GeometryPlacement? {
         switch self {
-        case let .box(_, _, outset), let .area(_, outset):
-            outset
+        case .box:
+            nil
 
-        case .points:
-            0
+        case let .area(_, _, placement), let .points(_, _, placement):
+            placement
         }
     }
 
@@ -34,10 +35,10 @@ enum ShapeGeometry: Equatable, Sendable {
         case let .box(width, height, _):
             Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time))
 
-        case let .area(area, _):
+        case let .area(area, _, _):
             area.value(at: time)
 
-        case let .points(points, _):
+        case let .points(points, _, _):
             Rectangle(bounding: points.value(at: time))
         }
     }

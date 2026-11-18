@@ -82,14 +82,19 @@ struct ShapeEvaluatorTests {
         // Given
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
+            geometry: .area(
+                [Keyframe(at: 0, value: Self.area)],
+                outset: 0,
+                placement: GeometryPlacement(
+                    position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
+                    anchor: Point(x: 40, y: 20)
+                )
+            ),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: .whole)],
             fill: Self.red,
             stroke: nil,
-            shadow: nil,
-            position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
-            anchor: NamedPoint(area: Self.area, name: "top-left")
+            shadow: nil
         )
         let clip = clip(shape, box: nil, rotation: 90)
 
@@ -183,24 +188,29 @@ struct ShapeEvaluatorTests {
     }
 
     @Test(
-        "a rect placed by its area keeps its outset in output pixels under a parent's zoom, its named anchor on the grown box",
+        "a rect placed by its area keeps its outset in output pixels under a parent's zoom, its named anchor on its area as written",
         arguments: [0.5, 2.0]
     )
     func keepsOutsetUnderParentZoom(zoom: Double) throws {
         // Given
-        // The outset is 4 output pixels, and the position puts the grown box's top left at (150, 50) in the parent's
-        // space.
+        // The outset is 4 output pixels, and the position puts the area's top left, as written, at (150, 50) in the
+        // parent's space.
         let parent = ClipSpace(frame: Self.frame, transform: AffineTransform(a: zoom, b: 0, c: 0, d: zoom, tx: 10, ty: 0))
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 4),
+            geometry: .area(
+                [Keyframe(at: 0, value: Self.area)],
+                outset: 4,
+                placement: GeometryPlacement(
+                    position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
+                    anchor: Point(x: 40, y: 20)
+                )
+            ),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: .whole)],
             fill: Self.red,
             stroke: nil,
-            shadow: nil,
-            position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
-            anchor: NamedPoint(area: Self.area, name: "top-left")
+            shadow: nil
         )
         let clip = clip(shape, box: nil)
 
@@ -217,7 +227,9 @@ struct ShapeEvaluatorTests {
         let bottomRight = item.transform.apply(to: Point(x: rectangle.maxX, y: rectangle.maxY))
         #expect(abs(bottomRight.x - topLeft.x - (40 * zoom + 8)) < 1e-9)
         #expect(abs(bottomRight.y - topLeft.y - (20 * zoom + 8)) < 1e-9)
-        expect(topLeft, parent.transform.apply(to: Point(x: 150, y: 50)))
+        // The outset grows the box out from the anchor point, 4 output pixels up and left.
+        let anchor = parent.transform.apply(to: Point(x: 150, y: 50))
+        expect(topLeft, Point(x: anchor.x - 4, y: anchor.y - 4))
     }
 
     @Test(
@@ -236,7 +248,7 @@ struct ShapeEvaluatorTests {
         ]))
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: trim)],
             fill: nil,
@@ -264,7 +276,7 @@ struct ShapeEvaluatorTests {
         // Given
         let shape = ResolvedShape(
             kind: .ellipse,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
             radius: [Keyframe(at: 0, value: 0)],
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
             fill: nil,
@@ -342,7 +354,11 @@ struct ShapeEvaluatorTests {
         case "path":
             ResolvedShape(
                 kind: .path,
-                geometry: .points([Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])], isClosed: false),
+                geometry: .points(
+                    [Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])],
+                    isClosed: false,
+                    placement: GeometryPlacement()
+                ),
                 radius: [Keyframe(at: 0, value: 0)],
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: nil,
@@ -353,7 +369,7 @@ struct ShapeEvaluatorTests {
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
-                geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0),
+                geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
                 radius: [Keyframe(at: 0, value: 2)],
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: nil,

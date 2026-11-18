@@ -430,7 +430,11 @@ struct EvaluatorTests {
                 clip(
                     .shape(ResolvedShape(
                         kind: .rect,
-                        geometry: .area([Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))], outset: 0),
+                        geometry: .area(
+                            [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))],
+                            outset: 0,
+                            placement: GeometryPlacement()
+                        ),
                         radius: [Keyframe(at: 0, value: 2)],
                         trim: [Keyframe(at: 0, value: .whole)],
                         fill: nil,

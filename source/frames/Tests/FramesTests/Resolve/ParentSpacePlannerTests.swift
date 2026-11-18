@@ -171,6 +171,34 @@ struct ParentSpacePlannerTests {
         #expect(isClose(anchor, beside), "the title is at \(anchor), the text's right at \(beside)")
     }
 
+    @Test("a title at a point of text under a turned rect with an outset and a named anchor, in a space at half scale, lands beside the text")
+    func placesTextUnderOutsetShapeInZoomedSpace() throws {
+        // Given
+        // The screen is drawn at half its size, so the card's outset of 20 output pixels is 40 of its media pixels
+        // when it is drawn. Its anchor is the top left of its area as written, whatever the outset.
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "scale": 0.5, "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "area": [200, 300, 400, 200],
+                  "outset": 20, "anchor": "top-left", "scale": 1.5, "rotation": 30, "at": [0, 4] },
+                { "title": "a", "style": "title", "parent": "card", "at": [2, 4], "anchor": "left", "position": \#(Self.beside) } ] } ] }
+            """#)
+
+        // When
+        let resolved = try ResolvedSequence(
+            plan: sut.plan(Fixture.planner.plan(document: document)),
+            hashes: FileHashTable()
+        )
+
+        // Then
+        let parents = ParentEvaluator(sequence: resolved)
+        let anchor = Self.anchor(of: resolved.clips[1], by: parents, at: 2)
+        let text = Self.text(at: 2, growth: 0)
+        let beside = parents.space(of: resolved.clips[0], at: 2).transform
+            .apply(to: Point(x: text.x + text.width + Self.padding, y: text.center.y))
+        #expect(isClose(anchor, beside), "the title is at \(anchor), the text's right at \(beside)")
+    }
+
     @Test("an area of text under a turned and scaled shape is the box bounding its four corners carried back, and numbers are kept")
     func bringsAreaBackThroughRotation() throws {
         // Given

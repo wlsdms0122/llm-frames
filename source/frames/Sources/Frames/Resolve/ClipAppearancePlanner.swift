@@ -139,7 +139,7 @@ struct ClipAppearancePlanner: Sendable {
 
         let outset = (shape.outset ?? style["outset"]?.numberValue ?? 0) * scale
         let geometry: ShapeGeometryPlan = if shape.kind == .path {
-            .points(isClosed: shape.isClosed)
+            .points(isClosed: shape.isClosed, anchor: written.anchor)
         } else if let width = shape.width, let height = shape.height {
             .box(
                 width: property(width, plain: 0, clock: plan.clock),
@@ -147,7 +147,7 @@ struct ClipAppearancePlanner: Sendable {
                 outset: outset
             )
         } else {
-            .area(outset: outset)
+            .area(outset: outset, anchor: written.anchor)
         }
         let radius = shape.radius.map { property($0, plain: 0, clock: plan.clock) }
             ?? .value(style["radius"]?.numberValue ?? 0)
@@ -155,7 +155,6 @@ struct ClipAppearancePlanner: Sendable {
         return ShapeAppearance(
             kind: shape.kind,
             geometry: geometry,
-            anchor: shape.width == nil ? written.anchor : nil,
             radius: radius.map { $0 * scale },
             trim: shape.trim.map { property($0, plain: .whole, clock: plan.clock) } ?? .value(.whole),
             fill: fillColor,

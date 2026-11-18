@@ -123,8 +123,7 @@ struct ShapeAppearanceTests {
         // Then
         #expect(shape == ShapeAppearance(
             kind: .rect,
-            geometry: .area(outset: 3),
-            anchor: nil,
+            geometry: .area(outset: 3, anchor: nil),
             radius: .value(9),
             trim: .value(.whole),
             fill: Color(written: "#123456"),
@@ -146,7 +145,7 @@ struct ShapeAppearanceTests {
         #expect(shape.fill == nil)
         #expect(shape.shadow == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         #expect(shape.radius == .value(0))
-        #expect(shape.geometry == .area(outset: 0))
+        #expect(shape.geometry == .area(outset: 0, anchor: nil))
     }
 
     @Test("a shape without a style takes nothing from the theme but colour names, and its stroke the stroke defaults")
@@ -157,8 +156,7 @@ struct ShapeAppearanceTests {
         // Then
         #expect(shape == ShapeAppearance(
             kind: .ellipse,
-            geometry: .area(outset: 0),
-            anchor: nil,
+            geometry: .area(outset: 0, anchor: nil),
             radius: .value(0),
             trim: .value(.whole),
             fill: Color(written: "#123456"),
@@ -196,16 +194,20 @@ struct ShapeAppearanceTests {
         ))
     }
 
-    @Test("a shape placed by its area writes its area as written and its outset in output pixels, and names its anchor on its area")
+    @Test("a shape placed by its area writes its area as written and its outset in output pixels, and its anchor a point of its area before the outset")
     func writesGeometryShape() throws {
         // When
         let shape = try resolvedShape(#"{ "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "position": [500, 300], "fill": "accent" }"#)
 
         // Then
-        let area = Rectangle(x: 100, y: 100, width: 200, height: 100)
-        #expect(shape.geometry == .area([Keyframe(at: 0, value: area)], outset: 10))
-        #expect(shape.anchor == NamedPoint(area: area, name: "bottom-right"))
-        #expect(shape.position == [Keyframe(at: 0, value: Point(x: 500, y: 300))])
+        #expect(shape.geometry == .area(
+            [Keyframe(at: 0, value: Rectangle(x: 100, y: 100, width: 200, height: 100))],
+            outset: 10,
+            placement: GeometryPlacement(
+                position: [Keyframe(at: 0, value: Point(x: 500, y: 300))],
+                anchor: Point(x: 300, y: 200)
+            )
+        ))
     }
 
     @Test("a path's points are found as positions are, a named point of an area found by text in its parent's media")
@@ -226,14 +228,14 @@ struct ShapeAppearanceTests {
             Issue.record("both clips are shapes")
             return
         }
-        guard case let .area(area, _) = rect.geometry, case let .points(points, isClosed) = path.geometry else {
+        guard case let .area(area, _, _) = rect.geometry, case let .points(points, isClosed, placement) = path.geometry else {
             Issue.record("the rect is placed by its area and the path by its points")
             return
         }
         let total = try #require(area.first?.value)
         #expect(points.map(\.value) == [[Point(x: 10, y: 20), total.point(named: "left")]])
         #expect(isClosed)
-        #expect(path.anchor == nil)
+        #expect(placement.anchor == nil)
         #expect(clips[1].box == nil)
     }
 
