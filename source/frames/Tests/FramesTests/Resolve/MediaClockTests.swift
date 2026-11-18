@@ -69,6 +69,38 @@ struct MediaClockTests {
         #expect(file.frameIndex(at: repeated) == 1)
     }
 
+    @Test("a storyline clock plays its remap keys when it writes them, and otherwise its line into the handles")
+    func playsStorylineRemapOverLine() {
+        // Given
+        let line = TimeMap(origin: 0, in: 1, speed: 1)
+        let keys = [Keyframe(at: 0, value: 3.0, ease: .linear), Keyframe(at: 2, value: 1.0, ease: .linear)]
+        let sut = MediaClock(line: line, timeRemap: keys, frames: 0...3.9)
+
+        // When
+        let remapped = sut.mediaTime(atSequenceTime: 0.5)
+        let lined = MediaClock(line: line, timeRemap: nil, frames: 0...3.9).mediaTime(atSequenceTime: -0.5)
+
+        // Then
+        #expect(remapped == 2.5)
+        #expect(lined == 0.5)
+    }
+
+    @Test("frame bounds run from the first to the last frame time, and over a nested sequence's duration on whole microseconds")
+    func boundsFrames() {
+        // Given
+        let frameTimes = [0.5, 0.6, 0.7]
+
+        // When
+        let pinned = ClosedRange(frameTimes: frameTimes)
+        let still = ClosedRange(frameTimes: [])
+        let nested = ClosedRange(sequenceDuration: 2)
+
+        // Then
+        #expect(pinned == 0.5...0.7)
+        #expect(still == nil)
+        #expect(nested == 0...(2 - .timeResolution))
+    }
+
     @Test("a looping sound on the sequence repeats through the window the plan gives it")
     func loopsSequenceSound() throws {
         // Given
