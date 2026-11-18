@@ -141,6 +141,14 @@ struct ResolvedDocumentReaderTests {
             { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
             "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
               { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
+        """#,
+        // A title of runs over two lines with a background, one run in the stroked subtitle style.
+        #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "theme": { "styles": { "card": { "size": 40, "background": { "color": "#000000", "padding": [4, 8], "radius": 6 } } } },
+          "storyline": [ { "solid": "#000000", "duration": 2 } ],
+          "clips": [ { "title": [ { "text": "Big", "style": "subtitle" }, { "text": " news\nToday" } ], "style": "card",
+                       "at": [0, 2], "position": [200, 200] } ] }
         """#
     ]
 
@@ -157,6 +165,22 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(read == document)
+    }
+
+    @Test("a run's stroke reads back with the run, and a run without one reads back without")
+    func readsRunStroke() throws {
+        // Given
+        let text = try written(Self.documents[Self.documents.count - 1])
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.runs.map(\.stroke) == [TextStroke(width: 3, color: Color(written: "#000000")), nil, nil])
     }
 
     @Test(
