@@ -74,6 +74,18 @@ extension MergedTheme {
         written.hasPrefix("#") || value(at: ["colors", written]) != nil
     }
 
+    // A colour a preset names, as a resolved document writes it. `place` is where the preset is chosen, and a name this
+    // theme does not hold stops there.
+    func presetColor(
+        _ written: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> String {
+        guard isColor(written) else { throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written) }
+
+        return color(written).hex
+    }
+
     // A shape style as the theme holds it, its lengths in points, or nil for a name the theme does not hold.
     func shapeStyle(named name: String) -> JSONObject? {
         value(at: ["shapes", name])?.objectValue
