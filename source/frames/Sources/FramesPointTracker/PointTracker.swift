@@ -17,8 +17,11 @@ package struct PointTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
 
-    // Each frame is matched twice, the second time with the features read at the scale and angle the first found.
-    private static let passes = 2
+    // Each frame is matched again with the features read at the scale and angle the pass before found, until a pass
+    // moves no point by more than `settled` pixels or `maximumPasses` have run: a turn the guess missed is closed in a
+    // few passes, and a frame the guess already fits takes one or two.
+    private static let maximumPasses = 5
+    private static let settled = 0.1
     private static let featureMargin = 0.6
 
     private let decoder: any MediaDecoder
@@ -84,7 +87,7 @@ package struct PointTracker: Sendable {
         let starts = points.map(\.point)
         var located = guess
         var matches: [TrackPointMatch] = []
-        for _ in 0..<Self.passes {
+        for _ in 0..<Self.maximumPasses {
             let motion = self.motion(from: starts, to: located)
             let angle = facing.angle + motion.rotation * .pi / 180
             matches = zip(points, located).compactMap { point, expected in
@@ -92,7 +95,10 @@ package struct PointTracker: Sendable {
             }
             guard matches.count == points.count else { return nil }
 
-            located = matches.map(\.point)
+            let found = matches.map(\.point)
+            let step = zip(found, located).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? 0
+            located = found
+            if step <= Self.settled { break }
         }
 
         return TrackEstimate(points: located, correlation: matches.map(\.correlation).min() ?? 0)
