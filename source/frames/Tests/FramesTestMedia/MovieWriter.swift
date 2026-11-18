@@ -20,6 +20,7 @@ import Frames
 package struct MovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
+    private static let deadline: Double = 60
 
     private let size: Size
     private let frameTimes: [Double]
@@ -105,25 +106,26 @@ package struct MovieWriter {
         guard writer.startWriting() else { throw writer.error ?? TestMediaError.unwritable(path) }
         writer.startSession(atSourceTime: mediaTime(start))
 
-        // Sound goes in beside each frame, so the writer can interleave the two.
-        for (index, time) in frameTimes.enumerated() {
-            let buffer = try pixelBuffer(from: adaptor, path: path) { canvas in drawing(canvas, index) }
-            while !video.isReadyForMoreMediaData {
-                try await Task.sleep(nanoseconds: 1_000_000)
-            }
-            guard adaptor.append(buffer, withPresentationTime: mediaTime(time)) else {
-                throw writer.error ?? TestMediaError.unwritable(path)
-            }
-
-            if let audio {
-                let next = index + 1 < frameTimes.count ? frameTimes[index + 1] : end
-                while !audio.isReadyForMoreMediaData {
-                    try await Task.sleep(nanoseconds: 1_000_000)
-                }
-                guard audio.append(try SoundWriter(end: end).tone(from: time, to: next, path: path)) else {
+        do {
+            // Sound goes in beside each frame, so the writer can interleave the two.
+            for (index, time) in frameTimes.enumerated() {
+                try await wait(for: video, of: writer, path: path)
+                let buffer = try pixelBuffer(from: adaptor, path: path) { canvas in drawing(canvas, index) }
+                guard adaptor.append(buffer, withPresentationTime: mediaTime(time)) else {
                     throw writer.error ?? TestMediaError.unwritable(path)
                 }
+
+                if let audio {
+                    let next = index + 1 < frameTimes.count ? frameTimes[index + 1] : end
+                    try await wait(for: audio, of: writer, path: path)
+                    guard audio.append(try SoundWriter(end: end).tone(from: time, to: next, path: path)) else {
+                        throw writer.error ?? TestMediaError.unwritable(path)
+                    }
+                }
             }
+        } catch {
+            writer.cancelWriting()
+            throw error
         }
         video.markAsFinished()
         audio?.markAsFinished()
@@ -140,6 +142,24 @@ package struct MovieWriter {
     // MARK: - Private
     private func mediaTime(_ seconds: Double) -> CMTime {
         CMTime(value: CMTimeValue((seconds * Double(Self.timescale)).rounded()), timescale: Self.timescale)
+    }
+
+    // Waits until `input` takes more data. A writer that has stopped writing, or a wait past the deadline, is an
+    // error: the pixel buffer pool of a writer that has failed is not to be drawn from.
+    private func wait(
+        for input: AVAssetWriterInput,
+        of writer: AVAssetWriter,
+        path: String
+    ) async throws {
+        let start = Date()
+        while !input.isReadyForMoreMediaData {
+            guard writer.status == .writing, Date().timeIntervalSince(start) < Self.deadline else {
+                throw writer.error ?? TestMediaError.unwritable(path)
+            }
+
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
+        guard writer.status == .writing else { throw writer.error ?? TestMediaError.unwritable(path) }
     }
 
     // A frame drawn in display pixels: the context is turned by the inverse of `transform`, between the flips from a
