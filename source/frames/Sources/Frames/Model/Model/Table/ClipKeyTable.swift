@@ -86,7 +86,7 @@ enum ClipKeyTable {
     // Properties written only in keyframes, so a static value stops.
     static let keyframedOnly = ["timeRemap"]
 
-    // The keys of every clip with a picture (FRAMES-7), which each kind's row starts with.
+    // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
         "id", "metadata", "at", "lane", "parent", "opacity", "blend", "mask", "trackMatte", "track", "animation",
         "keyframes"
@@ -98,7 +98,7 @@ enum ClipKeyTable {
         "shape", "style", "position", "anchor", "fill", "stroke", "trim", "shadow", "scale", "rotation"
     ]
 
-    // Each row is FRAMES-7's, in its order.
+    // Each row is the specification's key table row, in its order, so the two are compared line by line.
     private static func keys(
         for kind: ClipKind,
         in place: ClipPlace
