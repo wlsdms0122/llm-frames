@@ -61,7 +61,8 @@ struct ClipEvaluator: Sendable {
 
     // The map from the space the clip gives its children to output pixels at the time: a title's text box, a media
     // clip's media pixels through its crop into its box, a box shape's box, and the space a shape's geometry or an
-    // adjustment's area is written in, each carried by the clip's transform, its tracked motion included. Opacity and reveal take no part.
+    // adjustment's area is written in, each carried by the clip's transform, its tracked motion included.
+    // Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,

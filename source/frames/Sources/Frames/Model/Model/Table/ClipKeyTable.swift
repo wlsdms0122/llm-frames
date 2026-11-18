@@ -48,7 +48,7 @@ enum ClipKeyTable {
         case (_, .title):
             ["position", "scale", "rotation", "opacity"]
 
-        case let (_, .shape(shape)):
+        case (_, .shape):
             ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius"]
                 .filter(keys(for: kind, in: place).contains)
 
