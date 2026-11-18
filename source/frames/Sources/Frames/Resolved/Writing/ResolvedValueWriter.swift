@@ -200,7 +200,6 @@ struct ResolvedValueWriter: Sendable {
 
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
-            JSONMember(key: "lines", value: .number(Double(text.lineCount))),
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))

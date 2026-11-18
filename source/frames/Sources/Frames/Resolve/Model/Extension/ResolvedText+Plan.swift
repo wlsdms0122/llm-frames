@@ -15,7 +15,6 @@ extension ResolvedText {
     ) throws {
         self.init(
             size: layout.size,
-            lineCount: layout.lineCount,
             background: layout.background,
             runs: try layout.runs.map { run in
                 ResolvedGlyphRun(

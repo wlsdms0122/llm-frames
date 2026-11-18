@@ -139,7 +139,6 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "title": {
                 "size": [38.25, 34.3125],
-                "lines": 1,
                 "background": {
                   "color": "#ED2929FF",
                   "padding": [9, 4.5],

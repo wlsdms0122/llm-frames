@@ -211,6 +211,6 @@ struct ResolvedSequencePinnedReferencesTests {
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 16)]
         )
 
-        return ResolvedText(size: size, lineCount: 1, background: nil, runs: [run])
+        return ResolvedText(size: size, background: nil, runs: [run])
     }
 }

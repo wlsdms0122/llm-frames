@@ -126,7 +126,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
-        #expect(title.keys == ["size", "lines", "background", "runs"])
+        #expect(title.keys == ["size", "background", "runs"])
         #expect(run.keys == ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])

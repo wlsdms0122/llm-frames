@@ -259,11 +259,10 @@ struct ResolvedValueReader: Sendable {
     }
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
-        let text = try value.object(keys: ["size", "lines", "background", "runs"])
+        let text = try value.object(keys: ["size", "background", "runs"])
 
         return ResolvedText(
             size: try size(text.member("size")),
-            lineCount: try text.member("lines").integer(),
             background: try text.member("background").optional { value in
                 let background = try value.object(keys: ["color", "padding", "radius"])
 
