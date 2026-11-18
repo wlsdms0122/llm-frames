@@ -110,10 +110,11 @@ frames render /path/to/edit.json -o /path/to/out/edit.mov --deliver /path/to/out
 
 ```
 frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>]
-       [--encoder <name>] [--ocr <name>] [--shaper <name>] [--tracker <name>] <command> ...
+       [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]]
+       <command> ...
 ```
 
-Global options go before the command. `--theme` merges a theme under every document's own theme. The role and provider options pick an implementation by name: the decoder, the mixer and the encoder are `avfoundation`, the renderer `quartz`, the OCR provider `vision`, the shaper `coretext` and the tracker `point`, which are also the defaults.
+Global options go before the command. `--theme` merges a theme under every document's own theme. The role and provider options pick an implementation by name: the decoder, the mixer and the encoder are `avfoundation`, the renderer `quartz`, the OCR provider `vision`, the shaper `coretext` and the tracker `point`, which are also the defaults. `--ocr-languages` gives the OCR provider the recognition languages as BCP 47 tags in order of preference (`ko-KR,en-US`); without it the provider detects the language, so give it for text that mixes scripts, such as Korean with English words and numbers.
 
 Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage and exits with 64. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
 
@@ -145,7 +146,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 | Command | What it reports |
 | --- | --- |
 | `probe <media> [--json]` | the kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha and audio of a file or a directory of PNGs |
-| `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
+| `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
 | `track <video> --at <t> --area <area> [--to <t>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each at most 480 pixels on its longer side and labelled with its time |
