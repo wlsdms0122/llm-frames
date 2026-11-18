@@ -30,11 +30,11 @@ struct SequenceCheckTests {
                   "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
-                  "connected": [ { "at": [19, 22], "shape": "box", "area": { "text": "Sent" }, "animation": "frames/stamp" },
-                                 { "shape": "box", "area": { "text": "Account 110-" }, "track": true } ] },
+                  "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Sent" }, "animation": "frames/stamp" },
+                                 { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Account 110-" }, "track": true } ] },
                 { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
-                  "connected": [ { "shape": "box",
+                  "connected": [ { "shape": "rect", "stroke": { "width": 8 },
                                    "keyframes": [ { "at": 1.2, "area": { "text": "First line" } }, { "at": 1.65, "area": { "text": "Second line" } } ] } ] }
               ],
               "clips": [
@@ -59,13 +59,13 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
               { "media": "/abs/run.mp4" }, { "media": "/abs/run.mp4" },
-              { "media": "/abs/run.mp4", "connected": [ { "shape": "arrow", "area": { "text": "Send" }, "side": "left", "anim": "pop" } ] }
+              { "media": "/abs/run.mp4", "connected": [ { "shape": "path", "points": [[0, 0], [10, 10]], "anim": "pop" } ] }
             ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (arrow): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, shape, area, track, color, blend, side"#)
+        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#)
     }
 
     @Test(
@@ -135,8 +135,8 @@ struct SequenceCheckTests {
             (#"{ "media": "/abs/bgm.m4a", "lane": 2 }"#, "clips", #"clips[0] (audio): unknown key "lane""#),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "loop": true }"#, "clips", #"clips[0] (image): unknown key "loop""#),
             (#"{ "title": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
-            (#"{ "shape": "box", "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (box): unknown key "side""#),
-            (#"{ "shape": "box", "area": [0, 0, 1, 1], "label": "x" }"#, "clips", #"clips[0] (box): unknown key "label""#),
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (rect): unknown key "side""#),
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 1, 1], "label": "x" }"#, "clips", #"clips[0] (rect): unknown key "label""#),
             (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#),
             (#"{ "id": "a", "media": "/abs/run.mp4", "parent": "b" }"#, "storyline", #"storyline[0]#a (video): unknown key "parent""#),
             (##"{ "solid": "#000000", "duration": 2, "parent": "b" }"##, "storyline", #"storyline[0] (solid): unknown key "parent""#),
@@ -194,10 +194,10 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "storyline": [ { "duration": 2 } ] }"#, "storyline[0] (storyline clip): needs one of media, solid"),
             (#"{ "clips": [ { "at": [0, 1] } ] }"#, "clips[0] (clip): needs one of media, title, shape, adjust"),
-            (#"{ "clips": [ { "title": "a", "shape": "box" } ] }"#, #"clips[0] (clip): takes only one of "title", "shape""#),
+            (#"{ "clips": [ { "title": "a", "shape": "rect", "stroke": { "width": 8 } } ] }"#, #"clips[0] (clip): takes only one of "title", "shape""#),
             (#"{ "storyline": [ { "title": "a", "style": "headline" } ] }"#, #"storyline[0] (storyline clip): unknown key "title". Allowed: media, solid"#),
             (##"{ "clips": [ { "solid": "#000000" } ] }"##, #"clips[0] (clip): unknown key "solid". Allowed: media, title, shape, adjust"#),
-            (#"{ "clips": [ { "shape": "circle" } ] }"#, #"clips[0].shape (shape): unknown value "circle". Allowed: box, fill, dim, arrow"#)
+            (#"{ "clips": [ { "shape": "circle" } ] }"#, #"clips[0].shape (shape): unknown value "circle". Allowed: rect, ellipse, path"#)
         ]
     )
     func tellsClipKindsApart(
@@ -222,14 +222,114 @@ struct SequenceCheckTests {
         #expect(error?.description == #"clips[0] (title): missing key "style""#)
     }
 
-    @Test("an arrow names its side")
-    func requiresArrowSide() throws {
+    @Test(
+        "a key a shape kind does not take stops",
+        arguments: [
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "radius": 4 }"#, #"clips[0] (ellipse): unknown key "radius""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "radius": 4 }"#, #"clips[0] (path): unknown key "radius""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "outset": 4 }"#, #"clips[0] (path): unknown key "outset""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "area": [0, 0, 10, 10] }"#, #"clips[0] (path): unknown key "area""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "width": 10 }"#, #"clips[0] (path): unknown key "width""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "height": 10 }"#, #"clips[0] (path): unknown key "height""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "placement": "top" }"#, #"clips[0] (path): unknown key "placement""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 10]] }"#, #"clips[0] (rect): unknown key "points""#),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "closed": true }"#, #"clips[0] (ellipse): unknown key "closed""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "color": "accent" }"#, #"clips[0] (rect): unknown key "color""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 10]], "keyframes": [ { "at": 0, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius""#)
+        ]
+    )
+    func refusesKeyOfOtherShapeKind(
+        clip: String,
+        message: String
+    ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10] } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ \#(clip) ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"clips[0] (arrow): missing key "side""#)
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a shape's appearance keys stop where their form is wrong",
+        arguments: [
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": true }"#, #"clips[0].fill (rect): expected "#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": true }"#, #"clips[0].stroke (rect): expected "#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "accent" } }"#, #"clips[0].stroke (stroke): missing key "width""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } }"#, #"clips[0].stroke.width (stroke): expected a number above 0, found 0"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "join": "square" } }"#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "head": 8 } }"#, #"clips[0].stroke (stroke): unknown key "head""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): expected a list of 2 numbers, each from 0 to 1, found 1.5"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each from 0 to 1"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": "soft" }"#, #"clips[0].shadow (rect): expected "#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": { "blur": 4 } }"#, #"clips[0].shadow (shadow): unknown key "blur""#),
+            (#"{ "shape": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two points"#),
+            (#"{ "shape": "path", "points": [[0, 0], "top"], "fill": "accent" }"#, #"clips[0].points[1] (path): expected "#),
+            (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "closed": 1, "fill": "accent" }"#, #"clips[0].closed (path): expected "#)
+        ]
+    )
+    func refusesWrongShapeForm(
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a shape takes its appearance keys in every form they have",
+        arguments: [
+            #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": -2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
+            ##"{ "shape": "ellipse", "area": [0, 0, 10, 10], "fill": "#FFFFFF80", "stroke": false, "trim": [0.25, 0], "shadow": { "radius": 4 } }"##,
+            #"{ "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "center" }], "closed": true, "style": "outline", "shadow": false }"#,
+            #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [2, 2]], "trim": [0, 0.5], "position": [1, 1], "scale": 2, "rotation": 90 } ] }"#,
+            #"{ "shape": "rect", "fill": "accent", "keyframes": [ { "at": 0, "width": 10, "height": 20, "radius": 2, "area": [0, 0, 1, 1] } ] }"#
+        ]
+    )
+    func takesShapeForms(clip: String) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ \#(clip) ] }"#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a media clip and a storyline clip take a shadow of true, false or an object, and an object with another key stops",
+        arguments: [
+            (#"true"#, nil),
+            (#"false"#, nil),
+            (#"{ "radius": 4, "offset": [0, 2], "color": "accent" }"#, nil),
+            (#"{ "blur": 4 }"#, #"(shadow): unknown key "blur""#),
+            (#""soft""#, #"(image): expected "#)
+        ] as [(String, String?)]
+    )
+    func checksMediaShadow(
+        shadow: String,
+        message: String?
+    ) throws {
+        // Given
+        let clip = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "media": "/abs/log.png", "at": [0, 1], "shadow": \#(shadow) } ] }"#)
+        let storyline = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/log.png", "shadow": \#(shadow) } ] }"#)
+
+        // When, Then
+        guard let message else {
+            try sut.check(document: clip)
+            try sut.check(document: storyline)
+            return
+        }
+        let clipError = #expect(throws: ModelError.self) { try sut.check(document: clip) }
+        let storylineError = #expect(throws: ModelError.self) { try sut.check(document: storyline) }
+        #expect(clipError?.description.hasPrefix("clips[0].shadow \(message)") == true, "\(clipError?.description ?? "no error")")
+        #expect(
+            storylineError?.description.hasPrefix("storyline[0].shadow \(message)") == true,
+            "\(storylineError?.description ?? "no error")"
+        )
     }
 
     @Test("a property written both as a static value and in a keyframe stops")
@@ -249,11 +349,13 @@ struct SequenceCheckTests {
     @Test(
         "a keyframe takes only the keyframable properties of its clip",
         arguments: [
-            (#"{ "shape": "box", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, area, opacity"#),
-            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity"#),
+            (#"{ "adjust": "frames/vivid", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, opacity, mask"#),
+            (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, mask"#),
+            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, opacity, trim, mask"#),
+            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity, mask"#),
             (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop"),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop, mask"#),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop, mask"),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "scale": 1 } ] }"#, #"clips[0].keyframes[0] (keyframe): missing key "at""#)
         ]
     )
@@ -296,23 +398,19 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a storyline clip takes no placement and no parent, a solid takes a transition only, and masks and track mattes are not taken yet",
+        "a storyline clip takes no placement and no parent, and a solid takes a transition only",
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, fadeIn, fadeOut, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
                 #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, connected"#
-            ),
-            (
-                #"{ "media": "/abs/card.png", "duration": 2, "trackMatte": { "clip": "matte" } }"#,
-                #"storyline[0] (image): unknown key "trackMatte". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, radius, border, shadow, keyframes, connected"#
             )
         ]
     )
@@ -353,7 +451,7 @@ struct SequenceCheckTests {
     @Test("an id is a string unique within its document, and a nested document has its own")
     func checksIdentifiers() throws {
         // Given
-        let duplicate = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "id": "a", "title": "x", "style": "s" }, { "id": "a", "shape": "box" } ] }"#)
+        let duplicate = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "id": "a", "title": "x", "style": "s" }, { "id": "a", "shape": "rect", "stroke": { "width": 8 } } ] }"#)
         let nested = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
               { "id": "a", "media": { "kind": "sequence", "storyline": [ { "id": "a", "media": "/abs/run.mp4" } ] } }
@@ -362,15 +460,15 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: duplicate) }
-        #expect(error?.description == #"clips[1]#a (box): id "a" is already used at clips[0]#a"#)
+        #expect(error?.description == #"clips[1]#a (rect): id "a" is already used at clips[0]#a"#)
         try sut.check(document: nested)
     }
 
     @Test("metadata is an object whose contents are not checked")
     func leavesMetadataUnchecked() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "dim", "metadata": { "by": "redactor", "anything": [1, { "param": "x" }] } } ] }"#)
-        let notObject = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "dim", "metadata": "note" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "rect", "metadata": { "by": "redactor", "anything": [1, { "param": "x" }] } } ] }"#)
+        let notObject = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "rect", "metadata": "note" } ] }"#)
 
         // When, Then
         try sut.check(document: document)
@@ -382,14 +480,14 @@ struct SequenceCheckTests {
         arguments: [
             #"{ "clips": [ { "title": "a", "style": "s", "at": 2 } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "parent": true, "position": [0, 0] } ] }"#,
-            #"{ "clips": [ { "shape": "box", "parent": 1 } ] }"#,
-            #"{ "clips": [ { "shape": "box", "lane": 1.5 } ] }"#,
-            ##"{ "clips": [ { "shape": "box", "color": "#12345" } ] }"##,
-            #"{ "clips": [ { "shape": "box", "blend": "add" } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": 1 } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "lane": 1.5 } ] }"#,
+            ##"{ "clips": [ { "shape": "rect", "fill": "#12345" } ] }"##,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "add" } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "placement": "middle" } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": false } ] }"#,
-            #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,
-            #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "seconds": 1 } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", 2] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": "1" } } ] }"#,
@@ -423,11 +521,11 @@ struct SequenceCheckTests {
                 "storyline[0].crop (area): needs one of text, from"
             ),
             (
-                #"{ "clips": [ { "shape": "box", "area": [0, 0, 0, 10] } ] }"#,
-                "clips[0].area[2] (box): expected a number above 0, found 0"
+                #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 0, 10] } ] }"#,
+                "clips[0].area[2] (rect): expected a number above 0, found 0"
             ),
             (
-                #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, -1] } ] } ] }"#,
+                #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "area": [0, 0, 10, -1] } ] } ] }"#,
                 "clips[0].keyframes[0].area[3] (keyframe): expected a number above 0, found -1"
             ),
             (
@@ -489,13 +587,13 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "media": "/abs/run.mp4", "at": 2 } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": "accent", "conform": "fill", "anchor": "top-left" } ] }"#,
             #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" }, "anchor": "right" } ] } ] }"#,
-            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" } }, { "shape": "box", "parent": "run", "area": { "text": "Send" } } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" } }, { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "area": { "text": "Send" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": 1, "padding": 40 }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "padding": 0 }, "track": [0, 0, 0.5, 0.5] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
-            #"{ "clips": [ { "shape": "box", "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
-            #"{ "clips": [ { "shape": "arrow", "area": [0, 0, 10, 10], "side": "left", "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
+            #"{ "clips": [ { "shape": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "arrow" }, "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
             #"{ "format": { "size": { "fit": "content" } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": 0 } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": [8, 16] } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
@@ -513,8 +611,8 @@ struct SequenceCheckTests {
     @Test(
         "a choice written as an object takes both of its keys",
         arguments: [
-            (#"{ "clips": [ { "shape": "box", "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
-            (#"{ "clips": [ { "shape": "box", "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): missing key "seconds""#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): missing key "seconds""#)
         ]
@@ -666,5 +764,203 @@ struct SequenceCheckTests {
 
         // When, Then
         try sut.check(document: document)
+    }
+
+    @Test(
+        "a mask is taken and keyframed by a storyline clip with media, a media clip, a title, every shape kind and an adjustment",
+        arguments: [
+            ("storyline", #""media": "/abs/run.mp4""#),
+            ("storyline", #""media": "/abs/card.png", "duration": 2"#),
+            ("clips", #""media": "/abs/log.png", "at": [0, 2]"#),
+            ("clips", #""title": "a", "style": "headline", "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "width": 100, "height": 50, "at": [0, 2]"#),
+            ("clips", #""shape": "ellipse", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "path", "points": [[0, 0], [100, 100]], "at": [0, 2]"#),
+            ("clips", #""adjust": "frames/vivid", "at": [0, 2]"#)
+        ]
+    )
+    func acceptsMask(
+        list: String,
+        keys: String
+    ) throws {
+        // Given
+        let masks = #"""
+            [ { "shape": "rect", "area": [0, 0, 10, 10], "radius": 2, "feather": 1, "invert": true },
+              { "shape": "ellipse", "width": 10, "height": 10, "position": [5, 5], "mode": "subtract" },
+              { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "mode": "intersect" } ]
+            """#
+        let written = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ { \#(keys), "mask": \#(masks) } ] }"#)
+        let keyframed = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "keyframes": [
+                { "at": 0, "mask": { "shape": "ellipse", "area": [0, 0, 10, 10] } },
+                { "at": 1, "mask": { "shape": "ellipse", "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: written)
+        try sut.check(document: keyframed)
+    }
+
+    @Test(
+        "a mask on a clip with no picture stops as an unknown key, and an adjustment's area is gone",
+        arguments: [
+            (
+                "clips",
+                #"{ "media": "/abs/bgm.m4a", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"#,
+                #"clips[0] (audio): unknown key "mask". Allowed: "#
+            ),
+            (
+                "storyline",
+                ##"{ "solid": "#000000", "duration": 2, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"##,
+                #"storyline[0] (solid): unknown key "mask". Allowed: "#
+            ),
+            (
+                "clips",
+                #"{ "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 10, 10] }"#,
+                #"clips[0] (adjustment): unknown key "area". Allowed: "#
+            )
+        ]
+    )
+    func refusesMaskWithoutPicture(
+        list: String,
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a mask takes only the keys of its shape, and a rect or ellipse exactly one of an area and a whole box",
+        arguments: [
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 0], [5, 10]] }"#, #"clips[0].mask (rect mask): unknown key "points""#),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "radius": 2 }"#, #"clips[0].mask (ellipse mask): unknown key "radius""#),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 0], [5, 10]] }"#, #"clips[0].mask (ellipse mask): unknown key "points""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "area": [0, 0, 10, 10] }"#, #"clips[0].mask (path mask): unknown key "area""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "width": 10 }"#, #"clips[0].mask (path mask): unknown key "width""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "height": 10 }"#, #"clips[0].mask (path mask): unknown key "height""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "position": [5, 5] }"#, #"clips[0].mask (path mask): unknown key "position""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "radius": 2 }"#, #"clips[0].mask (path mask): unknown key "radius""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "outset": 2 }"#, #"clips[0].mask (rect mask): unknown key "outset""#),
+            (#"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "area": [0, 0, 10, 10], "radius": 2 } ]"#, #"clips[0].mask[1] (ellipse mask): unknown key "radius""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "width": 10, "height": 10 }"#, #"clips[0].mask (rect mask): takes only one of "area", "width", "height""#),
+            (#"{ "shape": "ellipse" }"#, "clips[0].mask (ellipse mask): needs one of area, width, height, position"),
+            (#"{ "shape": "rect", "height": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "width""#),
+            (#"{ "shape": "rect", "width": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "height""#),
+            (#"{ "shape": "ellipse", "width": 10, "height": 10 }"#, #"clips[0].mask (ellipse mask): missing key "position""#),
+            (#"{ "shape": "path" }"#, #"clips[0].mask (path mask): missing key "points""#),
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0]] }"#, "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"),
+            (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
+            (#"{ "shape": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 }"#, "clips[0].mask.feather (rect mask): expected a number, 0 or more, found -1"),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
+            (#"{ "shape": "rect", "width": 0, "height": 10, "position": [5, 5] }"#, "clips[0].mask.width (rect mask): expected a number above 0, found 0"),
+            ("[]", "clips[0].mask (adjustment): a mask list holds at least one mask, and a clip without masks writes no mask"),
+            ("true", "clips[0].mask (adjustment): expected a mask or a list of masks, found true")
+        ]
+    )
+    func refusesMaskKeys(
+        mask: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a track matte is taken by a storyline clip with media, a media clip, a title, every shape kind and an adjustment",
+        arguments: [
+            ("storyline", #""media": "/abs/run.mp4""#),
+            ("storyline", #""media": "/abs/card.png", "duration": 2"#),
+            ("clips", #""media": "/abs/log.png", "at": [0, 2]"#),
+            ("clips", #""title": "a", "style": "headline", "at": [0, 2]"#),
+            ("clips", #""shape": "rect", "area": [0, 0, 100, 100], "at": [0, 2]"#),
+            ("clips", #""shape": "ellipse", "width": 100, "height": 50, "at": [0, 2]"#),
+            ("clips", #""shape": "path", "points": [[0, 0], [100, 100]], "at": [0, 2]"#),
+            ("clips", #""adjust": "frames/vivid", "at": [0, 2]"#)
+        ]
+    )
+    func acceptsTrackMatte(
+        list: String,
+        keys: String
+    ) throws {
+        // Given
+        let alpha = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "trackMatte": { "clip": "matte", "mode": "alpha" } } ] }
+            """#)
+        let luma = try Fixture.json(#"""
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "trackMatte": { "clip": "matte", "mode": "luma", "invert": true } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: alpha)
+        try sut.check(document: luma)
+    }
+
+    @Test(
+        "a track matte on a clip with no picture stops as an unknown key, and it is not keyframable",
+        arguments: [
+            (
+                "clips",
+                #"{ "media": "/abs/bgm.m4a", "trackMatte": { "clip": "matte", "mode": "alpha" } }"#,
+                #"clips[0] (audio): unknown key "trackMatte". Allowed: "#
+            ),
+            (
+                "storyline",
+                ##"{ "solid": "#000000", "duration": 2, "trackMatte": { "clip": "matte", "mode": "alpha" } }"##,
+                #"storyline[0] (solid): unknown key "trackMatte". Allowed: "#
+            ),
+            (
+                "clips",
+                #"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "trackMatte": { "clip": "matte", "mode": "alpha" } } ] }"#,
+                #"clips[0].keyframes[0] (keyframe): unknown key "trackMatte". Allowed: "#
+            )
+        ]
+    )
+    func refusesTrackMatteWithoutPicture(
+        list: String,
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ \#(clip) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a track matte needs its clip and mode, takes only clip, mode and invert, and its mode is alpha or luma",
+        arguments: [
+            (#"{ "mode": "alpha" }"#, #"clips[0].trackMatte (track matte): missing key "clip""#),
+            (#"{ "clip": "matte" }"#, #"clips[0].trackMatte (track matte): missing key "mode""#),
+            (#"{ "clip": "matte", "mode": "alpha", "feather": 2 }"#, #"clips[0].trackMatte (track matte): unknown key "feather""#),
+            (#"{ "clip": "matte", "mode": "red" }"#, #"clips[0].trackMatte.mode (track matte): unknown value "red". Allowed: alpha, luma"#),
+            (#"{ "clip": "matte", "mode": "alpha", "invert": 1 }"#, "clips[0].trackMatte.invert (track matte): expected true or false, found 1"),
+            (#""matte""#, #"clips[0].trackMatte (title): expected an object (track matte), found "matte""#)
+        ]
+    )
+    func refusesTrackMatteKeys(
+        matte: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": "a", "style": "headline", "at": [0, 1], "trackMatte": \#(matte) } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
     }
 }

@@ -47,6 +47,46 @@ struct ResolvedValueWriter: Sendable {
         numbers([point.x, point.y])
     }
 
+    // A path item's or a mask's geometry, one member named by its form.
+    func geometry(_ geometry: PathGeometry) -> JSONValue {
+        let form = { (name: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        }
+
+        switch geometry {
+        case let .rect(rectangle, radius):
+            return form("rect", [
+                JSONMember(key: "rect", value: self.rectangle(rectangle)),
+                JSONMember(key: "radius", value: .number(radius))
+            ])
+
+        case let .ellipse(rectangle):
+            return form("ellipse", [JSONMember(key: "rect", value: self.rectangle(rectangle))])
+
+        case let .polyline(points, isClosed):
+            return form("polyline", [
+                JSONMember(key: "points", value: .array(points.map(self.point))),
+                JSONMember(key: "closed", value: .bool(isClosed))
+            ])
+        }
+    }
+
+    // A clip's masks as a keyframe list of mask lists, or `null` for none.
+    func masks(_ keyframes: [Keyframe<[ResolvedMask]>]?) -> JSONValue {
+        guard let keyframes else { return .null }
+
+        return self.keyframes(keyframes) { masks in
+            .array(masks.map { mask in
+                .object(JSONObject(members: [
+                    JSONMember(key: "geometry", value: geometry(mask.geometry)),
+                    JSONMember(key: "feather", value: .number(mask.feather)),
+                    JSONMember(key: "invert", value: .bool(mask.isInverted)),
+                    JSONMember(key: "mode", value: .string(mask.mode.rawValue))
+                ]))
+            })
+        }
+    }
+
     func size(_ size: Size) -> JSONValue {
         numbers([size.width, size.height])
     }

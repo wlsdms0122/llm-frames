@@ -31,12 +31,12 @@ struct BlenderTests {
     func compositesByFormula(mode: BlendMode, pair: (backdrop: String, source: String)) throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 4, height: 4), color: Color(written: pair.source))
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 4, height: 4), color: Color(written: pair.source))
         let list = DisplayList(
             size: Size(width: 4, height: 4),
             background: Color(written: pair.backdrop),
             seed: 0,
-            items: [DisplayItem(blend: mode.rawValue, content: .fill(fill))]
+            items: [DisplayItem(blend: mode.rawValue, content: .path(fill))]
         )
 
         // When

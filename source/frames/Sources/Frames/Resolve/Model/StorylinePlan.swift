@@ -6,7 +6,8 @@
 //
 
 // A storyline clip on the sequence clock. Its edit range lies between its edit points, and its drawn range runs from
-// the start of its incoming transition to the end of its outgoing one. `keyframes` are in sequence time.
+// the start of its incoming transition to the end of its outgoing one. `trackMatte` is its track matte, and
+// `keyframes` are in sequence time.
 struct StorylinePlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -15,6 +16,7 @@ struct StorylinePlan: Equatable, Sendable {
     let edit: TimeRange
     let drawn: TimeRange
     let transition: TransitionPlan?
+    let trackMatte: TrackMatte?
     let keyframes: [KeyframeInstant]
 
     var map: TimeMap {
@@ -34,6 +36,7 @@ struct StorylinePlan: Equatable, Sendable {
         edit: TimeRange,
         drawn: TimeRange,
         transition: TransitionPlan?,
+        trackMatte: TrackMatte?,
         keyframes: [KeyframeInstant]
     ) {
         self.place = place
@@ -42,6 +45,7 @@ struct StorylinePlan: Equatable, Sendable {
         self.edit = edit
         self.drawn = drawn
         self.transition = transition
+        self.trackMatte = trackMatte
         self.keyframes = keyframes
     }
 

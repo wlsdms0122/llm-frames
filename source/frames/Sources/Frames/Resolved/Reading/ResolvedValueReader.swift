@@ -12,6 +12,7 @@ struct ResolvedValueReader: Sendable {
     // The keys of pinned media, which an object holding it carries beside its own.
     static let mediaKeys = ["file", "sha256", "imageSequence", "frames"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
+    static let geometryForms = ["rect", "ellipse", "polyline"]
 
     // MARK: - Initializer
     init() { }
@@ -69,6 +70,93 @@ struct ResolvedValueReader: Sendable {
         let numbers = try value.numbers(count: 2)
 
         return Point(x: numbers[0], y: numbers[1])
+    }
+
+    // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `polyline`, which runs
+    // through at least two points.
+    func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
+        let geometry = try value.object(keys: Self.geometryForms)
+        let written = Self.geometryForms.filter(geometry.contains)
+        guard let name = written.first else {
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
+        }
+        guard written.count == 1 else {
+            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
+        }
+
+        let form = try geometry.member(name)
+        switch name {
+        case "rect":
+            let rect = try form.object(keys: ["rect", "radius"])
+
+            return .rect(try rectangle(rect.member("rect")), radius: try rect.member("radius").number())
+
+        case "ellipse":
+            return .ellipse(try rectangle(form.object(keys: ["rect"]).member("rect")))
+
+        default:
+            let polyline = try form.object(keys: ["points", "closed"])
+            let written = try polyline.member("points")
+            let points = try written.elements().map(point)
+            guard points.count >= 2 else {
+                throw ModelError.invalidValue(
+                    place: written.place,
+                    kind: written.kind,
+                    reason: "a polyline runs through at least two points, found \(points.count)"
+                )
+            }
+
+            return .polyline(points, isClosed: try polyline.member("closed").bool())
+        }
+    }
+
+    // A mask's geometry, in a resolved document and a display list: a path mask is a closed polyline through at least
+    // three points.
+    func maskGeometry(_ value: PlacedJSONValue) throws -> PathGeometry {
+        let geometry = try geometry(value)
+        if case let .polyline(points, isClosed) = geometry {
+            guard isClosed, points.count >= 3 else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "a path mask is a closed polyline through at least three points"
+                )
+            }
+        }
+
+        return geometry
+    }
+
+    // A mask's feather, in a resolved document and a display list: 0 or more.
+    func maskFeather(_ value: PlacedJSONValue) throws -> Double {
+        let feather = try value.number()
+        guard feather >= 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a feather is 0 or more, found \(value.value.written)"
+            )
+        }
+
+        return feather
+    }
+
+    // A clip's masks: `null`, or a keyframe list of lists of at least one mask.
+    func masks(_ value: PlacedJSONValue) throws -> [Keyframe<[ResolvedMask]>]? {
+        try value.optional { value in
+            try keyframes(value) { list in
+                let elements = try list.elements()
+                guard !elements.isEmpty else {
+                    throw ModelError.invalidValue(
+                        place: list.place,
+                        kind: list.kind,
+                        reason: "a mask list holds at least one mask, and a clip without one has null"
+                    )
+                }
+
+                return try elements.map(mask)
+            }
+        }
     }
 
     func size(_ value: PlacedJSONValue) throws -> Size {
@@ -199,6 +287,17 @@ struct ResolvedValueReader: Sendable {
     }
 
     // MARK: - Private
+    private func mask(_ value: PlacedJSONValue) throws -> ResolvedMask {
+        let mask = try value.object(kind: "mask", keys: ["geometry", "feather", "invert", "mode"])
+
+        return ResolvedMask(
+            geometry: try maskGeometry(mask.member("geometry")),
+            feather: try maskFeather(mask.member("feather")),
+            isInverted: try mask.member("invert").bool(),
+            mode: try mask.member("mode").name(among: MaskMode.allCases.map(\.rawValue), MaskMode.init(rawValue:))
+        )
+    }
+
     // A glyph is `[id, x, y]`, its baseline origin in the text's box.
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
         let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "glyphs"])

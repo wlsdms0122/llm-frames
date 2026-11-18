@@ -12,14 +12,14 @@ struct ResolvedMediaAppearance: Equatable, Sendable {
     let conform: Conform
     let radius: Double
     let border: MediaBorder?
-    let shadow: MediaShadow?
+    let shadow: DropShadow?
 
     // MARK: - Initializer
     init(
         conform: Conform,
         radius: Double,
         border: MediaBorder?,
-        shadow: MediaShadow?
+        shadow: DropShadow?
     ) {
         self.conform = conform
         self.radius = radius

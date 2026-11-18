@@ -47,7 +47,7 @@ struct ResolveEndToEndTests {
         #expect(area.lines.map(\.text) == ["Total 12,000원"])
         #expect(isNear(area.target, drawn[0]), "found \(area.target), drawn \(drawn[0])")
 
-        let track = try #require(plan.clips[0].track)
+        let track = try #require(plan.clips[0].track?.track)
         #expect(track.frames.map(\.time) == times)
         for (index, frame) in track.frames.enumerated() {
             let moved = frame.rectangle.center.y - track.target.center.y
@@ -96,7 +96,7 @@ struct ResolveEndToEndTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
+              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
               "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 
@@ -123,9 +123,15 @@ struct ResolveEndToEndTests {
     // The box's stroke carried by its item's transform to output pixels, as the rectangle around its corners.
     private func box(in list: DisplayList) throws -> Rectangle {
         let strokes = list.items.compactMap { item -> Rectangle? in
-            guard case let .stroke(stroke) = item.content else { return nil }
+            guard
+                case let .path(path) = item.content,
+                path.stroke != nil,
+                case let .rect(rectangle, _) = path.geometry
+            else {
+                return nil
+            }
 
-            let corners = item.transform.apply(toCornersOf: stroke.rectangle)
+            let corners = item.transform.apply(toCornersOf: rectangle)
             let xs = corners.map(\.x)
             let ys = corners.map(\.y)
             let minX = xs.min() ?? 0

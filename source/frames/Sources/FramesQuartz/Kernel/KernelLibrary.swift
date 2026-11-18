@@ -8,10 +8,10 @@
 import CoreImage
 import Foundation
 
-// The kernels of the blend, matte and filter sources, handed out by function name. Core Image runs, for every kernel
-// of one Metal library taking as many images, the one of them applied first, so each kernel is compiled into a
-// library of its own: the sources with every other function made plain. A kernel is compiled the first time it is
-// asked for, in about half a second, and kept for the process.
+// The kernels of the blend, matte, filter and track matte sources, handed out by function name. Core Image runs, for
+// every kernel of one Metal library taking as many images, the one of them applied first, so each kernel is compiled
+// into a library of its own: the sources with every other function made plain. A kernel is compiled the first time it
+// is asked for, in about half a second, and kept for the process.
 final class KernelLibrary: @unchecked Sendable {
     // MARK: - Property
     static let shared = KernelLibrary()
@@ -32,7 +32,8 @@ final class KernelLibrary: @unchecked Sendable {
 
     // MARK: - Initializer
     init() {
-        source = [BlendKernelSource.text, MatteKernelSource.text, FilterKernelSource.text].joined(separator: "\n")
+        source = [BlendKernelSource.text, MatteKernelSource.text, FilterKernelSource.text, TrackMatteKernelSource.text]
+            .joined(separator: "\n")
     }
 
     // MARK: - Public

@@ -37,13 +37,25 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case titleWidthUnderContentFit(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
+    case shapeAreaWithBox(place: Place, kind: PlaceKind)
+    case placementWithoutBox(place: Place, kind: PlaceKind)
+    case shapeWithoutGeometry(place: Place, kind: PlaceKind)
+    case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
+    case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
+    case masksDiffer(place: Place, kind: PlaceKind, property: String)
+    case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
+    case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
+    case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
+    case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
     case trackInClipParent(place: Place, kind: PlaceKind, id: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
+    case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
     case unreadableFile(path: String)
@@ -161,6 +173,37 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
                 + "and this clip's coordinates are output pixels"
 
+        case let .shapeAreaWithBox(place, kind):
+            "\(place) (\(kind.label)): a rect or ellipse is given by \"area\" or by \"width\" and \"height\", "
+                + "and this one writes both"
+
+        case let .placementWithoutBox(place, kind):
+            "\(place) (\(kind.label)): \"placement\" places a box given by \"width\" and \"height\", "
+                + "and a shape given by \"area\" is placed by its area"
+
+        case let .shapeWithoutGeometry(place, kind):
+            "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
+
+        case let .maskCountsDiffer(place, kind, counts):
+            "\(place) (\(kind.label)): the keyframes of \"mask\" hold "
+                + counts.map { "\($0)" }.joined(separator: " and ")
+                + " masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"
+
+        case let .masksDiffer(place, kind, property):
+            "\(place) (\(kind.label)): this mask differs from the first keyframe's in its \(property), "
+                + "and a keyframed mask changes only its geometry's values, its radius and its feather"
+
+        case let .textMaskInOwnBox(place, kind):
+            "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
+
+        case let .pointCountsDiffer(place, kind, counts):
+            "\(place) (\(kind.label)): the keyframes of \"points\" hold "
+                + counts.map { "\($0)" }.joined(separator: " and ")
+                + " points, and points interpolate one by one, so every value has the same number"
+
+        case let .shapeDrawsNothing(place, kind):
+            "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"
+
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"
 
@@ -169,6 +212,18 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .parentCycle(place, kind, ids):
             "\(place) (\(kind.label)): the parent chain comes back to itself: "
+                + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .unknownTrackMatte(place, kind, id):
+            "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id)), "
+                + "and a track matte is a clip of the same document"
+
+        case let .trackMatteKind(place, kind, id, matte):
+            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: matte)), "
+                + "and a track matte is a connected or sequence media clip, title or shape"
+
+        case let .trackMatteCycle(place, kind, ids):
+            "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
         case let .trackInClipParent(place, kind, id):
@@ -180,8 +235,12 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and there is none to follow here"
 
         case let .trackOwnWithoutArea(place, kind):
-            "\(place) (\(kind.label)): \"track\": true follows the clip's own area or crop, "
+            "\(place) (\(kind.label)): \"track\": true follows the clip's own area, mask or crop, "
                 + "and it has none given as an area"
+
+        case let .trackOwnAmbiguous(place, kind, keys):
+            "\(place) (\(kind.label)): \"track\": true follows one of the clip's area, mask and crop, and it has "
+                + keys.map { "\"\($0)\"" }.joined(separator: " and ") + ", so it must name its target"
 
         case let .trackOwnOnNamingClip(place, kind):
             "\(place) (\(kind.label)): a title or media clip names the area it tracks, "
@@ -211,6 +270,19 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    private func words(of refusal: TrackMatteRefusal) -> String {
+        switch refusal {
+        case .storyline:
+            "a storyline clip"
+
+        case .adjustment:
+            "an adjustment clip"
+
+        case .audio:
+            "an audio clip"
+        }
+    }
+
     private func quoted(_ string: String) -> String {
         JSONValue.string(string).written
     }

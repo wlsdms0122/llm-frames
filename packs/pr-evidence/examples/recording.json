@@ -5,7 +5,7 @@
   "storyline": [
     { "id": "checkout", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "crop": [0, -222, 1280, 942],
       "connected": [
-        { "shape": "box", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
+        { "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
         { "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] }

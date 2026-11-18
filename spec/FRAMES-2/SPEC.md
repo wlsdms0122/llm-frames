@@ -32,10 +32,10 @@ An area is given in one of these forms, in the coordinate space of the clip that
 
 A text form needs a picture to search. It is allowed only where its coordinate space is the media pixels of a video, an image or an image sequence:
 
-- the `area`, `points`, `position` and `mask` of a clip parented to a storyline clip or media clip whose media is one of those, searched in the parent's media, or to a shape or adjustment clip whose space is that media's pixels (its own parent is such a clip, [FRAMES-10](../FRAMES-10/SPEC.md)), searched in that media;
+- the `area`, `points` and `position` of a clip, and the `mask` of a shape placed by `area` or `points` or of an adjustment clip (whose mask is in its parent's space, [FRAMES-11](../FRAMES-11/SPEC.md)), when the clip is parented to a storyline clip or media clip whose media is one of those, searched in the parent's media, or to a shape or adjustment clip whose space is that media's pixels (its own parent is such a clip, [FRAMES-10](../FRAMES-10/SPEC.md)), searched in that media;
 - the `crop`, `mask` and `track` target of a storyline clip or media clip whose media is one of those, searched in its own media.
 
-A text form anywhere else stops: on an unparented clip, whose coordinates are output pixels; on a clip parented to a title, or to a shape or adjustment clip whose space is output pixels; and on or under a compound clip or a template instance, whose picture is drawn, not read. Text inside a compound clip is named from inside its nested document. Text is recognised only in media files, through the OCR provider ([FRAMES-21](../FRAMES-21/SPEC.md)).
+A text form in the mask of a title or of a shape placed by `width` and `height` stops, since that mask is in the clip's own box and not in media pixels. A text form anywhere else stops: on an unparented clip, whose coordinates are output pixels; on a clip parented to a title, or to a shape or adjustment clip whose space is output pixels; and on or under a compound clip or a template instance, whose picture is drawn, not read. Text inside a compound clip is named from inside its nested document. Text is recognised only in media files, through the OCR provider ([FRAMES-21](../FRAMES-21/SPEC.md)).
 
 ### The search instant
 
@@ -49,7 +49,7 @@ On video and image sequences, the text is searched in the frame at the instant w
 
 The instant is on the clock of the clip that writes the area ([FRAMES-8](../FRAMES-8/SPEC.md)). It is carried to the clip time of the clip whose media is searched, and turned into that media's media time through that clip's time map: its `timeRemap` when it has one, otherwise clip time is media time ([FRAMES-8](../FRAMES-8/SPEC.md)). So a text area on a picture-in-picture clip's crop searches that clip's own frame, and a title parented to a time-remapped clip searches the frame shown at its start. A clip's `track` finds its target at that instant too ([FRAMES-12](../FRAMES-12/SPEC.md)). An image has one frame, and the instant does not matter.
 
-Text found for a clip parented to a shape or adjustment clip is where it lies in the media at its instant, and the clip's coordinates are in the parent's space, which the parent's transform carries to the media ([FRAMES-10](../FRAMES-10/SPEC.md)). So the found value is brought into the parent's space through the inverse of the parent's transform at that instant, without its animation, as `geometry(clip, t)` gives it: a title placed beside text next to a tracked or keyframed box stays beside it. A value written as numbers is in the parent's space already and is not changed.
+Text found for a clip parented to a shape or adjustment clip is where it lies in the media at its instant, and the clip's coordinates are in the parent's space, which the parent's transform carries to the media ([FRAMES-10](../FRAMES-10/SPEC.md)). So the found value is brought into the parent's space through the inverse of the parent's transform at that instant, without its animation, as `geometry(clip, t)` gives it: a title placed beside text next to a tracked or keyframed box stays beside it. An area carried back through a rotation is the axis-aligned rectangle that bounds its four carried corners. A value written as numbers is in the parent's space already and is not changed.
 
 ### Points
 

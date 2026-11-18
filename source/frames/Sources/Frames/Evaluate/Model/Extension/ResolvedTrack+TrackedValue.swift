@@ -45,6 +45,55 @@ extension ResolvedTrack {
         return brought.value(at: time)
     }
 
+    func points(
+        of keyframes: [Keyframe<[Point]>],
+        on entry: ResolvedStorylineClip,
+        at time: Double
+    ) -> [Point] {
+        let brought = keyframes.map { keyframe in
+            let mediaTime = entry.mediaTime(at: keyframe.at)
+            return Keyframe(
+                at: keyframe.at,
+                value: keyframe.value.map { bringBack($0, fromMediaTime: mediaTime) },
+                ease: keyframe.ease
+            )
+        }
+
+        return brought.value(at: time)
+    }
+
+    // Each mask's geometry as an area or points are, its radius by the motion's scale, and its feather, in output
+    // pixels, as it is.
+    func masks(
+        of keyframes: [Keyframe<[ResolvedMask]>],
+        on entry: ResolvedStorylineClip,
+        at time: Double
+    ) -> [ResolvedMask] {
+        let brought = keyframes.map { keyframe in
+            let motion = track.motion(atMediaTime: entry.mediaTime(at: keyframe.at))
+            return Keyframe(
+                at: keyframe.at,
+                value: keyframe.value.map { mask in
+                    let geometry: PathGeometry = switch mask.geometry {
+                    case let .rect(rectangle, radius):
+                        .rect(motion.bringBack(rectangle), radius: radius / motion.scale)
+
+                    case let .ellipse(rectangle):
+                        .ellipse(motion.bringBack(rectangle))
+
+                    case let .polyline(points, isClosed):
+                        .polyline(points.map { motion.bringBack($0) }, isClosed: isClosed)
+                    }
+
+                    return mask.replacing(geometry: geometry)
+                },
+                ease: keyframe.ease
+            )
+        }
+
+        return brought.value(at: time)
+    }
+
     func transform(
         on entry: ResolvedStorylineClip,
         at time: Double

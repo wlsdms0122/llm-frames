@@ -8,9 +8,11 @@
 // A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
 // colour as `solid`. `in`, `out` and `speed` are media time, and `start` and `end` its edit range in sequence time.
 // `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes in sequence
-// time. `box` is the frame the crop fills, placed by its position and anchor, and `opacity`, `scale` and `rotation`
-// are keyframes in sequence time. `blend` is how its storyline picture is drawn over what lies below, and `radius`,
-// `border` and `shadow` how its box is drawn. A solid keeps their plain values.
+// time. `mask` is its masks in the media pixels of its media, nil for none, a keyframe's where it lies at its own
+// time when tracked, and `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed by its
+// position and anchor, and `opacity`, `scale` and `rotation` are keyframes in sequence time. `blend` is how its
+// storyline picture is drawn over what lies below, and `radius`, `border` and `shadow` how its box is drawn. A solid
+// keeps their plain values.
 struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -23,6 +25,8 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let start: Double
     let end: Double
     let crop: [Keyframe<Crop>]
+    let mask: [Keyframe<[ResolvedMask]>]?
+    let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let filter: [ResolvedFilterOperation]
     let box: ResolvedBox
@@ -32,7 +36,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let blend: String
     let radius: Double
     let border: MediaBorder?
-    let shadow: MediaShadow?
+    let shadow: DropShadow?
     let transition: ResolvedTransition?
 
     // MARK: - Initializer
@@ -47,6 +51,8 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         start: Double,
         end: Double,
         crop: [Keyframe<Crop>],
+        mask: [Keyframe<[ResolvedMask]>]?,
+        trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         filter: [ResolvedFilterOperation],
         box: ResolvedBox,
@@ -56,7 +62,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         blend: String,
         radius: Double,
         border: MediaBorder?,
-        shadow: MediaShadow?,
+        shadow: DropShadow?,
         transition: ResolvedTransition?
     ) {
         self.place = place
@@ -69,6 +75,8 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         self.start = start
         self.end = end
         self.crop = crop
+        self.mask = mask
+        self.trackMatte = trackMatte
         self.track = track
         self.filter = filter
         self.box = box

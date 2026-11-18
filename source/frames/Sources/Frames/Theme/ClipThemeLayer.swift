@@ -28,19 +28,7 @@ enum ClipThemeLayer {
             layer = setting(path, to: animation, in: layer)
         }
 
-        if case let .shape(shape) = kind, let color = clip["color"] {
-            layer = setting(["shapes", shape, "color"], to: color, in: layer)
-        }
-
         return .object(layer)
-    }
-
-    static func layer(forOperation operation: JSONObject) -> JSONValue {
-        guard let shape = operation["shape"]?.stringValue, let color = operation["color"] else {
-            return .object(JSONObject())
-        }
-
-        return .object(setting(["shapes", shape, "color"], to: color, in: JSONObject()))
     }
 
     private static func animationPath(

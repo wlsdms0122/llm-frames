@@ -93,8 +93,8 @@ struct ThemeValidatorTests {
             #"{ "image": { "bannerPadding": 40 } }"#,
             #"{ "layout": { "gap": 40, "padding": 40 } }"#,
             #"{ "area": { "padding": 14, "cropPadding": 40 } }"#,
-            #"{ "shapes": { "border": { "width": 3 } } }"#,
-            #"{ "shapes": { "shadow": { "radius": 24 } } }"#
+            ##"{ "shapes": { "box": { "width": 8, "radius": 18, "color": "#ED2929" } } }"##,
+            #"{ "shapes": { "arrow": { "width": 10, "length": 160, "head": 32 } } }"#
         ]
     )
     func refusesRemovedGroup(_ layer: String) throws {

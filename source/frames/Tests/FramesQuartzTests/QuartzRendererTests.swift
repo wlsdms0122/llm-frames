@@ -36,102 +36,12 @@ struct QuartzRendererTests {
         expect(bitmap.pixel(x: 5, y: 3), equals: [0.2 * alpha, 0.4 * alpha, 0.8 * alpha, alpha])
     }
 
-    @Test("a fill covers its rectangle and leaves its hole unfilled")
-    func fillsWithHole() throws {
-        // Given
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(
-            rectangle: Rectangle(x: 0, y: 0, width: 20, height: 20),
-            color: Color(written: "#FF0000"),
-            hole: RoundedRectangle(rectangle: Rectangle(x: 5, y: 5, width: 10, height: 10), radius: 0)
-        )
-        let list = list(size: 20, items: [DisplayItem(content: .fill(fill))])
-
-        // When
-        let bitmap = try sut.frame(of: list)
-
-        // Then
-        expect(bitmap.pixel(x: 2, y: 2), equals: [1, 0, 0, 1])
-        expect(bitmap.pixel(x: 10, y: 10), equals: [1, 1, 1, 1])
-        expect(bitmap.pixel(x: 17, y: 12), equals: [1, 0, 0, 1])
-    }
-
-    // The outline of (10, 10, 80, 40) is 240 long from its top left corner: the top edge to 80, the right edge's middle
-    // at 100, the bottom edge's middle at 160 and the left edge's middle at 220.
-    @Test(
-        "a stroke is drawn from the top left clockwise as far as its trim",
-        arguments: [
-            (0.25, [true, false, false, false]),
-            (0.5, [true, true, false, false]),
-            (1.0, [true, true, true, true])
-        ]
-    )
-    func trimsStroke(trim: Double, inked: [Bool]) throws {
-        // Given
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let stroke = StrokeItem(
-            rectangle: Rectangle(x: 10, y: 10, width: 80, height: 40),
-            radius: 0,
-            width: 4,
-            color: Color(written: "#000000"),
-            trim: trim
-        )
-        let list = DisplayList(
-            size: Size(width: 100, height: 60),
-            background: Color(written: "#00000000"),
-            seed: 0,
-            items: [DisplayItem(content: .stroke(stroke))]
-        )
-
-        // When
-        let bitmap = try sut.frame(of: list)
-
-        // Then
-        let probes = [(40, 10), (89, 30), (50, 49), (10, 30)]
-        let alphas = probes.map { bitmap.pixel(x: $0.0, y: $0.1)[3] }
-        #expect(alphas.map { $0 > 0.99 } == inked)
-        #expect(alphas.allSatisfy { $0 > 0.99 || $0 < 0.01 })
-    }
-
-    @Test("an arrow inks its tail, its shaft and its head up to the tip and nothing past either end")
-    func drawsArrow() throws {
-        // Given
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let arrow = ArrowItem(
-            tail: Point(x: 10, y: 50),
-            head: Point(x: 90, y: 50),
-            width: 4,
-            headSize: 20,
-            color: Color(written: "#000000")
-        )
-        let list = DisplayList(
-            size: Size(width: 100, height: 100),
-            background: Color(written: "#00000000"),
-            seed: 0,
-            items: [DisplayItem(content: .arrow(arrow))]
-        )
-
-        // When
-        let bitmap = try sut.frame(of: list)
-
-        // Then
-        // The shaft is 48 to 52 high, and the head 20 wide at its base at x = 70, narrowing to the tip at x = 90.
-        let alpha = { (x: Int, y: Int) in bitmap.pixel(x: x, y: y)[3] }
-        #expect(alpha(10, 50) > 0.99)
-        #expect(alpha(9, 50) < 0.01)
-        #expect(alpha(40, 50) > 0.99)
-        #expect(alpha(40, 53) < 0.01)
-        #expect(alpha(72, 56) > 0.99)
-        #expect(alpha(85, 50) > 0.99)
-        #expect(alpha(90, 50) < 0.01)
-    }
-
     @Test("opacity composites the item source-over at that alpha")
     func appliesOpacity() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FF0000"))
-        let list = list(size: 10, items: [DisplayItem(opacity: 0.5, content: .fill(fill))])
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FF0000"))
+        let list = list(size: 10, items: [DisplayItem(opacity: 0.5, content: .path(fill))])
 
         // When
         let bitmap = try sut.frame(of: list)
@@ -144,11 +54,11 @@ struct QuartzRendererTests {
     func appliesMask() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FF0000"))
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 10, height: 10), color: Color(written: "#FF0000"))
         let item = DisplayItem(
             transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0),
-            mask: Rectangle(x: 0, y: 0, width: 5, height: 20),
-            content: .fill(fill)
+            mask: mask(Rectangle(x: 0, y: 0, width: 5, height: 20)),
+            content: .path(fill)
         )
         let list = list(size: 20, items: [item])
 
@@ -164,12 +74,12 @@ struct QuartzRendererTests {
     func turnsReveal() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 20, height: 10), color: Color(written: "#FF0000"))
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 20, height: 10), color: Color(written: "#FF0000"))
         // A quarter turn clockwise then 30 to the right: (x, y) goes to (30 - y, x).
         let item = DisplayItem(
             transform: Frames.AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 30, ty: 0),
             reveal: Rectangle(x: 0, y: 0, width: 10, height: 10),
-            content: .fill(fill)
+            content: .path(fill)
         )
         let list = list(size: 40, items: [item])
 
@@ -185,12 +95,12 @@ struct QuartzRendererTests {
     func drawsNestedList() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let half = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 5, height: 10), color: Color(written: "#FF0000"))
+        let half = PathItem(filling: Rectangle(x: 0, y: 0, width: 5, height: 10), color: Color(written: "#FF0000"))
         let nested = DisplayList(
             size: Size(width: 10, height: 10),
             background: Color(written: "#0000FF"),
             seed: 0,
-            items: [DisplayItem(content: .fill(half))]
+            items: [DisplayItem(content: .path(half))]
         )
         let picture = PictureItem(
             source: .displayList(nested),
@@ -208,18 +118,19 @@ struct QuartzRendererTests {
         expect(bitmap.pixel(x: 45, y: 30), equals: [1, 1, 1, 1])
     }
 
-    @Test("an adjustment draws the backdrop under its rectangle through its filter, at its opacity")
+    @Test("an adjustment draws the backdrop inside its mask through its filter, at its opacity")
     func adjustsBackdrop() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 16, height: 16), color: Color(written: "#3399CC"))
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 16, height: 16), color: Color(written: "#3399CC"))
         let adjust = DisplayItem(
             opacity: 0.5,
-            content: .adjust(AdjustItem(rectangle: Rectangle(x: 2, y: 2, width: 8, height: 8), filter: [.saturation(amount: 0)]))
+            mask: mask(Rectangle(x: 2, y: 2, width: 8, height: 8)),
+            content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: 16, items: [DisplayItem(content: .fill(fill)), adjust]))
+        let bitmap = try sut.frame(of: list(size: 16, items: [DisplayItem(content: .path(fill)), adjust]))
 
         // Then
         // Saturation 0 turns the backdrop into its Rec. 709 luma, composited over it at half opacity.
@@ -233,8 +144,8 @@ struct QuartzRendererTests {
     func acceptsBlendModes() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let items = BlendMode.allCases.map { DisplayItem(blend: $0.rawValue, content: .fill(fill)) }
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let items = BlendMode.allCases.map { DisplayItem(blend: $0.rawValue, content: .path(fill)) }
 
         // When
         let checking = { try sut.check(list(size: 1, items: items)) }
@@ -247,8 +158,8 @@ struct QuartzRendererTests {
     func refusesUnknownBlend() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = FillItem(rectangle: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let nested = list(size: 1, items: [DisplayItem(content: .fill(fill)), DisplayItem(blend: "hue", content: .fill(fill))])
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "hue", content: .path(fill))])
         let picture = PictureItem(
             source: .displayList(nested),
             rectangle: nil,
@@ -260,6 +171,23 @@ struct QuartzRendererTests {
 
         // Then
         #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].source.items[1].blend")) {
+            try checking()
+        }
+    }
+
+    @Test("check walks a track matte's source, naming its place there")
+    func refusesUnknownBlendInTrackMatte() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let source = list(size: 1, items: [DisplayItem(blend: "hue", content: .path(fill))])
+        let item = DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: .path(fill))
+
+        // When
+        let checking = { try sut.check(list(size: 1, items: [item])) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].trackMatte.source.items[0].blend")) {
             try checking()
         }
     }
@@ -284,7 +212,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(rectangle: nil, filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
         let nested = list(size: 1, items: [DisplayItem(content: .adjust(adjust))])
         let picture = PictureItem(
             source: .displayList(nested),
@@ -319,7 +247,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(rectangle: nil, filter: [.lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [.lut(file: file, amount: 1)])
         let list = list(size: 4, items: [DisplayItem(content: .adjust(adjust))])
         try sut.check(list)
         try FileManager.default.removeItem(atPath: path)
@@ -332,6 +260,11 @@ struct QuartzRendererTests {
     }
 
     // MARK: - Private
+    // One sharp `add` mask of the rectangle in output pixels.
+    private func mask(_ rectangle: Rectangle) -> [ItemMask] {
+        [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
     private func list(
         size: Double,
         items: [DisplayItem]

@@ -6,9 +6,10 @@
 //
 
 // A storyline clip as written. `media` is nil for a solid, and `solid` its colour as written. Whether media is timed
-// or still is known once it is probed. `crop` and `track` are as written, and keyframes are on the clip's own clock.
-// `filter` is the filter choice as written. `anchor` is the name written, and `position`, `scale`, `rotation`,
-// `opacity`, `blend`, `radius`, `border` and `shadow` are its transform and how its box is drawn, as on a media clip.
+// or still is known once it is probed. `crop`, `mask`, `trackMatte` and `track` are as written, and keyframes are on the
+// clip's own clock. `filter` is the filter choice as written. `anchor` is the name written, and `position`, `scale`,
+// `rotation`, `opacity`, `blend`, `radius`, `border` and `shadow` are its transform and how its box is drawn, as on a
+// media clip.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -19,6 +20,8 @@ struct StorylineClip: Equatable, Sendable {
     let transition: TransitionChoice?
     let keyframes: [KeyframeInstant]
     let crop: PropertyValue<CropForm>?
+    let mask: PropertyValue<[ClipMask]>?
+    let trackMatte: TrackMatte?
     let track: TrackTarget?
     let filter: JSONValue?
     let anchor: String?
@@ -29,7 +32,7 @@ struct StorylineClip: Equatable, Sendable {
     let blend: String?
     let radius: Double?
     let border: BorderForm?
-    let shadow: Bool
+    let shadow: ShadowForm?
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -42,6 +45,8 @@ struct StorylineClip: Equatable, Sendable {
         transition: TransitionChoice?,
         keyframes: [KeyframeInstant],
         crop: PropertyValue<CropForm>? = nil,
+        mask: PropertyValue<[ClipMask]>? = nil,
+        trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
         filter: JSONValue? = nil,
         anchor: String? = nil,
@@ -52,7 +57,7 @@ struct StorylineClip: Equatable, Sendable {
         blend: String? = nil,
         radius: Double? = nil,
         border: BorderForm? = nil,
-        shadow: Bool = false,
+        shadow: ShadowForm? = nil,
         connected: [Clip]
     ) {
         self.place = place
@@ -63,6 +68,8 @@ struct StorylineClip: Equatable, Sendable {
         self.transition = transition
         self.keyframes = keyframes
         self.crop = crop
+        self.mask = mask
+        self.trackMatte = trackMatte
         self.track = track
         self.filter = filter
         self.anchor = anchor

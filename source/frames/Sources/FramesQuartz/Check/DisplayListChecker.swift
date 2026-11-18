@@ -31,6 +31,9 @@ struct DisplayListChecker {
             guard BlendMode(rawValue: item.blend) != nil else {
                 throw QuartzError.unsupportedBlend(name: item.blend, place: "\(itemPlace).blend")
             }
+            if let trackMatte = item.trackMatte {
+                try check(trackMatte.source, place: "\(itemPlace).trackMatte.source.")
+            }
 
             switch item.content {
             case let .picture(picture):
@@ -42,7 +45,7 @@ struct DisplayListChecker {
             case let .adjust(adjust):
                 try check(adjust.filter, place: itemPlace)
 
-            case .fill, .stroke, .arrow, .glyphs:
+            case .path, .glyphs:
                 break
             }
         }

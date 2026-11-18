@@ -91,6 +91,19 @@ package struct AffineTransform: Equatable, Sendable {
         )
     }
 
+    // A clip's own transform about its anchor point: scale, then turn `degrees` clockwise, about `anchor`, then move by
+    // `offset`.
+    init(
+        scale: Double,
+        rotation degrees: Double,
+        about anchor: Point,
+        offset: Point
+    ) {
+        self = AffineTransform(scale: scale, about: anchor)
+            .concatenating(AffineTransform(rotation: degrees, about: anchor))
+            .concatenating(AffineTransform(translation: offset))
+    }
+
     // MARK: - Public
     // The transform that applies this one first and `other` after it.
     func concatenating(_ other: AffineTransform) -> AffineTransform {

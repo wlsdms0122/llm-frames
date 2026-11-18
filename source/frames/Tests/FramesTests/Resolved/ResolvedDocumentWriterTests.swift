@@ -83,6 +83,8 @@ struct ResolvedDocumentWriterTests {
                   "ease": "linear"
                 }
               ],
+              "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {
@@ -162,7 +164,6 @@ struct ResolvedDocumentWriterTests {
               "lane": 1,
               "storyline": null,
               "parent": null,
-              "area": null,
               "size": [38.25, 34.3125],
               "position": [
                 {
@@ -173,6 +174,8 @@ struct ResolvedDocumentWriterTests {
               ],
               "anchor": [19.125, 17.15625],
               "crop": null,
+              "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {
@@ -227,7 +230,6 @@ struct ResolvedDocumentWriterTests {
               "lane": 1,
               "storyline": null,
               "parent": null,
-              "area": null,
               "size": [200, 160],
               "position": [
                 {
@@ -244,6 +246,8 @@ struct ResolvedDocumentWriterTests {
                   "ease": "linear"
                 }
               ],
+              "mask": null,
+              "trackMatte": null,
               "track": null,
               "opacity": [
                 {

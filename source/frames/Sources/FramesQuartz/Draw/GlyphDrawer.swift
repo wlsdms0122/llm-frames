@@ -26,7 +26,7 @@ struct GlyphDrawer {
         in context: CGContext
     ) throws {
         if let background = item.background {
-            context.addPath(RoundedOutline(rectangle: background.rectangle, radius: background.radius).path)
+            context.addPath(PathOutline(.rect(background.rectangle, radius: background.radius)).path)
             context.setFillColor(background.color.cgColor)
             context.fillPath()
         }

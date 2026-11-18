@@ -207,7 +207,7 @@ struct ClipBoxTests {
     @Test("a shape is placed by its area and has no box of its own")
     func leavesShapeWithoutBox() throws {
         // When
-        let box = try box(of: #"{ "shape": "box", "at": [0, 3], "area": [10, 10, 100, 100] }"#)
+        let box = try box(of: #"{ "shape": "rect", "stroke": { "width": 8 }, "at": [0, 3], "area": [10, 10, 100, 100] }"#)
 
         // Then
         #expect(box == nil)

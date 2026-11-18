@@ -13,7 +13,7 @@ enum ThemeKeyTable {
             KeyRule("font", .list(.name)),
             KeyRule("colors", .map(.hexColor, kind: "colors")),
             KeyRule("styles", .map(.object(style), kind: "styles")),
-            KeyRule("shapes", .object(shapes)),
+            KeyRule("shapes", .map(.object(ShapeKeyTable.style), kind: "shapes")),
             KeyRule("placement", .object(group("placement", ["padding"]))),
             KeyRule("border", .object(ObjectTable(
                 kind: "border",
@@ -68,15 +68,6 @@ enum ThemeKeyTable {
             KeyRule("lines", .positiveInteger)
         ]
     )
-    static let shapes = ObjectTable(
-        kind: "shapes",
-        rules: [
-            KeyRule("box", .object(shape("box", ["width", "radius"]))),
-            KeyRule("fill", .object(shape("fill", []))),
-            KeyRule("dim", .object(shape("dim", []))),
-            KeyRule("arrow", .object(shape("arrow", ["width", "length", "head"])))
-        ]
-    )
     static let defaults = ObjectTable(
         kind: "defaults",
         rules: [
@@ -103,12 +94,5 @@ enum ThemeKeyTable {
         _ names: [String]
     ) -> ObjectTable {
         ObjectTable(kind: kind, rules: names.map { KeyRule($0, .number) })
-    }
-
-    private static func shape(
-        _ kind: String,
-        _ lengths: [String]
-    ) -> ObjectTable {
-        ObjectTable(kind: kind, rules: lengths.map { KeyRule($0, .number) } + [KeyRule("color", .color)])
     }
 }

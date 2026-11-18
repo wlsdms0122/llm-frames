@@ -30,9 +30,9 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 | `path` | `points`, a list of at least two points ([FRAMES-2](../FRAMES-2/SPEC.md)), joined by straight segments in order | `closed` (default `false`), which joins the last point to the first |
 
 - A rect or ellipse takes exactly one of `area` (an area in its coordinate space, [FRAMES-2](../FRAMES-2/SPEC.md)) and the pair `width` and `height` (output pixels, both needed). Given `width` and `height`, the box is placed by `placement` or `position` about its `anchor`, as a media clip's box is ([FRAMES-1](../FRAMES-1/SPEC.md)). A shape given by `area` or `points` is placed by its geometry ([FRAMES-1](../FRAMES-1/SPEC.md)).
-- `radius` rounds a rect's corners with circular arcs, cut to half the box's shorter side. `outset` grows the box on every side, before the corners are rounded. Both are theme lengths ([FRAMES-1](../FRAMES-1/SPEC.md)), so they keep their size under a parent's zoom.
+- `radius` rounds a rect's corners with circular arcs, cut to half the box's shorter side. `outset` grows the outline a rect or an ellipse draws on every side, before the corners are rounded, and takes no part in placing it. Both are theme lengths ([FRAMES-1](../FRAMES-1/SPEC.md)), so they keep their size under a parent's zoom.
 - A key a shape kind does not take stops: `radius` on an ellipse or a path, `outset`, `area`, `width` or `height` on a path, `points` or `closed` on a rect or an ellipse.
-- A shape's box ([FRAMES-1](../FRAMES-1/SPEC.md)) is its box grown by `outset` for a rect or an ellipse, and the bounding box of its points for a path.
+- A shape's box ([FRAMES-1](../FRAMES-1/SPEC.md)) is its box as written for a rect or an ellipse, `width` by `height` or its `area`, and the bounding box of its points for a path. `placement`, `position`, `anchor`, the space its children see ([FRAMES-10](../FRAMES-10/SPEC.md)) and an animation's `x` and `y` ([FRAMES-14](../FRAMES-14/SPEC.md)) all take that box. `outset` grows only the outline it draws, and so what it draws: its receiver box and its content-fit extent measure the grown outline.
 
 **Appearance.**
 

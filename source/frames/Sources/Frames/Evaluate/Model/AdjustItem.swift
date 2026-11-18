@@ -5,18 +5,14 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A filter applied to everything drawn below it, inside `rectangle`, or over the whole frame when it is nil.
+// A filter applied to everything drawn below it, over the whole frame of its list, cut only by its item's mask, reveal
+// and opacity.
 package struct AdjustItem: Equatable, Sendable {
     // MARK: - Property
-    package let rectangle: Rectangle?
     package let filter: [ResolvedFilterOperation]
 
     // MARK: - Initializer
-    package init(
-        rectangle: Rectangle?,
-        filter: [ResolvedFilterOperation]
-    ) {
-        self.rectangle = rectangle
+    package init(filter: [ResolvedFilterOperation]) {
         self.filter = filter
     }
 

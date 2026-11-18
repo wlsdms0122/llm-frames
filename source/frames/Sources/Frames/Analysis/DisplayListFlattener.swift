@@ -8,9 +8,10 @@
 // Flattens a display list into what each of its items covers of the output frame, bottom first. A picture of a nested
 // list is replaced by that list's background and items, carried through the picture's source rect, destination and
 // transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
-// covers follows its shape where that is a rectangle: a picture's destination, a fill less its hole, a stroke's band
-// about its edge, an arrow's shaft and head, a glyphs item's box, and an adjustment's rect or its list's frame.
-// Rounded corners, trims and mattes are left out.
+// covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
+// arrowheads, a glyphs item's box, and an adjustment's list frame, each cut to the region its masks bound
+// (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
+// source is not drawn as items of the list, and does not cut what its item covers (FRAMES-23).
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -52,11 +53,30 @@ struct DisplayListFlattener: Sendable {
         state: GraphicsState
     ) -> [FlattenedItem] {
         let own = state.holding(item)
-        guard case let .picture(picture) = item.content else {
-            let coverage = own.covered(shape(of: item.content, frame: frame))
-            return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+        let coverage: ItemCoverage
+        switch item.content {
+        case let .picture(picture):
+            return items(of: picture, own: own)
+
+        case let .path(path):
+            coverage = own.covered(ItemCoverage(path: path))
+
+        case let .glyphs(glyphs):
+            let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
+            coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
+
+        case .adjust:
+            // An adjustment covers its list's frame, which its own transform does not carry.
+            coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
         }
 
+        return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+    }
+
+    private func items(
+        of picture: PictureItem,
+        own: GraphicsState
+    ) -> [FlattenedItem] {
         switch picture.source {
         case let .media(media):
             // Without a source rect the picture shows the whole frame, whose size in pixels is not known here.
@@ -64,7 +84,7 @@ struct DisplayListFlattener: Sendable {
                 own.transform.inverse.map { $0.concatenating(transform(from: picture.destination, onto: rectangle)) }
             }
             let placement = MediaPlacement(frame: media, transform: transform)
-            let coverage = own.covered(shape(of: item.content, frame: frame))
+            let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
             return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage, media: placement)]
 
         case let .displayList(list):
@@ -77,84 +97,6 @@ struct DisplayListFlattener: Sendable {
             )
             return items(of: list, state: nested)
         }
-    }
-
-    // What the item's content covers in its own coordinates.
-    private func shape(
-        of content: DisplayContent,
-        frame: Rectangle
-    ) -> ItemCoverage {
-        switch content {
-        case let .picture(picture):
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)])
-
-        case let .fill(fill):
-            return ItemCoverage(
-                pieces: [ConvexPolygon(rectangle: fill.rectangle)],
-                holes: fill.hole.map { [ConvexPolygon(rectangle: $0.rectangle)] } ?? []
-            )
-
-        case let .stroke(stroke):
-            // Centred on the rectangle's edge, so half its width lies to each side.
-            let half = stroke.width / 2
-            let inner = inset(stroke.rectangle, by: half)
-            return ItemCoverage(
-                pieces: [ConvexPolygon(rectangle: inset(stroke.rectangle, by: -half))],
-                holes: inner.width > 0 && inner.height > 0 ? [ConvexPolygon(rectangle: inner)] : []
-            )
-
-        case let .arrow(arrow):
-            return ItemCoverage(pieces: pieces(of: arrow))
-
-        case let .glyphs(glyphs):
-            let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: box)])
-
-        case let .adjust(adjust):
-            return ItemCoverage(pieces: [ConvexPolygon(rectangle: adjust.rectangle ?? frame)])
-        }
-    }
-
-    // The shaft from the tail to the base of the head, and the head, which shrinks to the arrow's length on an arrow
-    // shorter than it.
-    private func pieces(of arrow: ArrowItem) -> [ConvexPolygon] {
-        let dx = arrow.head.x - arrow.tail.x
-        let dy = arrow.head.y - arrow.tail.y
-        let length = (dx * dx + dy * dy).squareRoot()
-        guard length > 0 else { return [] }
-
-        let along = Point(x: dx / length, y: dy / length)
-        let across = Point(x: -along.y, y: along.x)
-        let headLength = min(arrow.headSize, length)
-        let base = Point(x: arrow.head.x - along.x * headLength, y: arrow.head.y - along.y * headLength)
-        let point = { (origin: Point, distance: Double) in
-            Point(x: origin.x + across.x * distance, y: origin.y + across.y * distance)
-        }
-        let shaft = ConvexPolygon(corners: [
-            point(arrow.tail, arrow.width / 2),
-            point(base, arrow.width / 2),
-            point(base, -arrow.width / 2),
-            point(arrow.tail, -arrow.width / 2)
-        ])
-        let head = ConvexPolygon(corners: [
-            point(base, arrow.headSize / 2),
-            arrow.head,
-            point(base, -arrow.headSize / 2)
-        ])
-
-        return [shaft, head]
-    }
-
-    private func inset(
-        _ rectangle: Rectangle,
-        by distance: Double
-    ) -> Rectangle {
-        Rectangle(
-            x: rectangle.x + distance,
-            y: rectangle.y + distance,
-            width: rectangle.width - 2 * distance,
-            height: rectangle.height - 2 * distance
-        )
     }
 
     // The transform that carries `rectangle` onto `other`.

@@ -10,9 +10,9 @@ import CoreImage
 import Frames
 
 // Draws a picture item in its item's own coordinates: the source region scaled into the destination, filtered at the
-// destination's size, masked by its matte, its corners rounded, its border inside the destination's edge and its
-// shadow below. A picture with no filter, matte or shadow is drawn straight from its source, so it is resampled once
-// on its way to the output.
+// destination's size, masked by its matte, its corners rounded and its border inside the destination's edge. A
+// picture with no filter or matte is drawn straight from its source, so it is resampled once on its way to the
+// output.
 struct PictureDrawer {
     // MARK: - Property
     private let tables: LookUpTableCache
@@ -39,7 +39,7 @@ struct PictureDrawer {
         )
         guard destination.width > 0, destination.height > 0, region.width > 0, region.height > 0 else { return }
 
-        guard !item.filter.isEmpty || item.matte != nil || item.shadow != nil else {
+        guard !item.filter.isEmpty || item.matte != nil else {
             framed(
                 source,
                 placed: placement(of: region, in: destination, size: source),
@@ -72,12 +72,8 @@ struct PictureDrawer {
             destination: local,
             in: finished.context
         )
-        let image = try finished.image()
         let bounds = CGRect(x: destination.x, y: destination.y, width: extent.width, height: extent.height)
-        if let shadow = item.shadow {
-            try draw(shadow, of: image, at: bounds, in: context)
-        }
-        context.drawUpright(image, in: bounds)
+        context.drawUpright(try finished.image(), in: bounds)
     }
 
     // MARK: - Private
@@ -107,54 +103,24 @@ struct PictureDrawer {
         in context: CGContext
     ) {
         context.saveGState()
-        context.addPath(RoundedOutline(rectangle: destination, radius: item.radius).path)
+        context.addPath(PathOutline(.rect(destination, radius: item.radius)).path)
         context.clip()
         context.drawUpright(image, in: placed)
         context.restoreGState()
 
         guard let border = item.border else { return }
 
-        // The border's outer edge follows the rounded corners of the destination.
-        let geometry = StrokeItem(border: destination, width: border.width, color: border.color)
-        let stroke = StrokeItem(
-            rectangle: geometry.rectangle,
-            radius: max(0, item.radius - border.width / 2),
-            width: geometry.width,
-            color: geometry.color
+        // A stroke centred `width / 2` in from the destination's edge, so its outer edge follows the destination's
+        // rounded corners.
+        let half = border.width / 2
+        let edge = Rectangle(
+            x: destination.x + half,
+            y: destination.y + half,
+            width: destination.width - border.width,
+            height: destination.height - border.width
         )
-        ShapeDrawer().draw(stroke, in: context)
-    }
-
-    // The picture's alpha in the shadow's colour, blurred with the shadow's radius as standard deviation and moved by
-    // its offset, drawn below the picture at `bounds`.
-    private func draw(
-        _ shadow: MediaShadow,
-        of image: CGImage,
-        at bounds: CGRect,
-        in context: CGContext
-    ) throws {
-        let shape = CIImage(cgImage: image)
-        let reach = (shadow.radius * 3).rounded(.up) + 1
-        var tinted = CIImage(color: CIColor(cgColor: shadow.color.cgColor))
-            .cropped(to: shape.extent)
-            .applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: shape])
-        if shadow.radius > 0 {
-            tinted = tinted.applyingGaussianBlur(sigma: shadow.radius)
-        }
-        let moved = tinted
-            .cropped(to: shape.extent.insetBy(dx: -reach, dy: -reach))
-            .transformed(by: CGAffineTransform(translationX: shadow.offset.x, y: -shadow.offset.y))
-        let extent = moved.extent.integral
-        let rendered = try FrameContext.cgImage(of: moved, in: extent)
-
-        context.drawUpright(
-            rendered,
-            in: CGRect(
-                x: bounds.minX + extent.minX,
-                y: bounds.minY + shape.extent.maxY - extent.maxY,
-                width: extent.width,
-                height: extent.height
-            )
-        )
+        let stroke = PathStroke(width: border.width, color: border.color, join: .miter, cap: .butt, start: .none, end: .none)
+        let path = PathItem(geometry: .rect(edge, radius: max(0, item.radius - half)), fill: nil, stroke: stroke)
+        PathDrawer().draw(path, in: context)
     }
 }

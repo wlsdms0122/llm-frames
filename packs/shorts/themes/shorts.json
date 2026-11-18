@@ -10,7 +10,7 @@
     "label": { "size": 40, "weight": "bold", "color": "#FFFFFF",
                "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
   },
-  "shapes": { "box": { "width": 10, "color": "accent" }, "arrow": { "color": "accent" } },
+  "shapes": { "outline": { "stroke": { "width": 10, "color": "accent" }, "radius": 18 } },
   "placement": { "padding": 40 },
   "defaults": {
     "transition": { "preset": "frames/push-up", "seconds": 0.3 },

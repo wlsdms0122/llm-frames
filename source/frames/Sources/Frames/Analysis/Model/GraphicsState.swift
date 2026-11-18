@@ -29,11 +29,11 @@ struct GraphicsState: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The state an item of the list drawn in this state is drawn in: its own coordinates, cut by its mask, in the
-    // list's coordinates, and by its reveal, in its own.
+    // The state an item of the list drawn in this state is drawn in: its own coordinates, cut by the region its masks
+    // bound, in the list's coordinates, and by its reveal, in its own.
     func holding(_ item: DisplayItem) -> GraphicsState {
         let transform = item.transform.concatenating(self.transform)
-        let mask = item.mask.map { ConvexPolygon(rectangle: $0, transform: self.transform) }
+        let mask = ConvexPolygon(bounding: item.mask).map { $0.applying(self.transform) }
         let reveal = item.reveal.map { ConvexPolygon(rectangle: $0, transform: transform) }
 
         return GraphicsState(
@@ -76,7 +76,12 @@ struct GraphicsState: Equatable, Sendable {
 
     // What a shape drawn in this state covers of the output.
     func covered(_ shape: ItemCoverage) -> ItemCoverage {
-        clips.reduce(shape.applying(transform)) { coverage, clip in coverage.clipped(to: clip) }
+        cut(shape.applying(transform))
+    }
+
+    // What a shape already in output pixels covers once cut by the clips.
+    func cut(_ coverage: ItemCoverage) -> ItemCoverage {
+        clips.reduce(coverage) { coverage, clip in coverage.clipped(to: clip) }
     }
 
     // MARK: - Private

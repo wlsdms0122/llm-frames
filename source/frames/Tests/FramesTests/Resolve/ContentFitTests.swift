@@ -94,12 +94,29 @@ struct ContentFitTests {
         #expect(plan.format.size == Size(width: (right / 2).rounded(.up) * 2, height: 800))
     }
 
+    @Test("a clip used as a track matte is not drawn, so it is not measured")
+    func skipsTrackMatte() throws {
+        // Given
+        let matte = #"{ "id": "m", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] }"#
+        let rect = ##"{ "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
+        let storyline = #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": "#
+
+        // When
+        let matted = try plan(storyline + #"[ \#(matte), \#(rect), "trackMatte": { "clip": "m", "mode": "alpha" } } ] }"#)
+        let alone = try plan(storyline + #"[ \#(rect) } ] }"#)
+        let drawn = try plan(storyline + #"[ \#(matte), \#(rect) } ] }"#)
+
+        // Then
+        #expect(matted.format.size == alone.format.size)
+        #expect(drawn.format.size.width > alone.format.size.width)
+    }
+
     @Test("a parented child is measured through its parent's geometry, and stays where it is in its parent's space")
     func measuresParentedChild() throws {
         // When
         let plan = try plan(#"""
             { "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 1, "crop": [100, 100, 400, 300],
-              "connected": [ { "shape": "fill", "parent": "page", "area": [50, 50, 100, 100] } ] } ] }
+              "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "page", "area": [50, 50, 100, 100] } ] } ] }
             """#)
 
         // Then
@@ -158,7 +175,7 @@ struct ContentFitTests {
         // When
         let plan = try plan(#"""
             { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ],
-              "clips": [ { "shape": "fill", "area": [-100.5, -50, 50, 50], "at": [0, 1] },
+              "clips": [ { "shape": "rect", "fill": "#FFD43B80", "area": [-100.5, -50, 50, 50], "at": [0, 1] },
                          { "media": "/abs/card.png", "width": 100, "height": 100, "at": [0, 1], "position": [0, 0] } ] }
             """#, margin: "4")
 
@@ -196,7 +213,7 @@ struct ContentFitTests {
         let plan = try plan(##"""
             { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
               { "id": "back", "solid": "#FF0000", "duration": 1,
-                "connected": [ { "shape": "fill", "parent": "back", "area": [-100, -50, 50, 50] } ] } ] }
+                "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "back", "area": [-100, -50, 50, 50] } ] } ] }
             """##, margin: "4")
 
         // When
@@ -216,7 +233,7 @@ struct ContentFitTests {
         let plan = try plan(##"""
             { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
               { "id": "back", "solid": "#FF0000", "duration": 1,
-                "connected": [ { "shape": "fill", "parent": "back", "area": [400, 0, 50, 50] } ] } ] }
+                "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "back", "area": [400, 0, 50, 50] } ] } ] }
             """##)
 
         // Then
@@ -229,16 +246,12 @@ struct ContentFitTests {
         // When
         let plan = try plan(##"""
             { "storyline": [ { "solid": "#FF0000", "duration": 1 }, { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 603, 400] } ],
-              "clips": [ { "shape": "box", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
+              "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [0, 1] } ] }
             """##)
 
         // Then
         let scale = MergedTheme.base.lengthScale(at: 603)
-        #expect(plan.clips[0].appearance.shape == .box(
-            width: MergedTheme.base.boxWidth * scale,
-            radius: MergedTheme.base.boxRadius * scale,
-            color: MergedTheme.base.shapeColor(of: .box)
-        ))
+        #expect(plan.clips[0].appearance.shape?.stroke?.width == 8 * scale)
     }
 
     @Test(
@@ -266,7 +279,7 @@ struct ContentFitTests {
         // Given
         let document = ##"""
             { "storyline": [ { "solid": "#FF0000", "duration": 1 } ],
-              "clips": [ { "shape": "fill", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
+              "clips": [ { "shape": "rect", "fill": "#FFD43B80", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
             """##
 
         // When, Then
@@ -284,6 +297,40 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 310, height: 210))
+    }
+
+    @Test(
+        "a shape is measured by its outline after its transform, grown by half its stroke width, with its arrowheads",
+        arguments: [
+            // The page is 300 wide, so a stroke of 64 is 10 output pixels and its arrowhead 40 long and 40 wide.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            // A whole closed outline has no ends, so its arrowhead is drawn only where a trim leaves part of it undrawn.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            // Ending at the bottom right corner, the head points down from (500, 50), its base corners at (480, 10) and
+            // (520, 10), so nothing of it lies above the stroked outline.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
+            // Ending 1 below the top right corner, the head points down from (500, 1), its base 40 above that, at -39.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 520, height: 240)),
+            // A fifth of the way round from its top, the ellipse's head lies along its curve, a base corner at
+            // (482.0, -28.5).
+            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 230)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
+            (#"{ "shape": "ellipse", "width": 100, "height": 50, "position": [400, 250], "fill": "accent", "at": [0, 1] }"#, Size(width: 450, height: 276))
+        ]
+    )
+    func measuresShape(
+        clip: String,
+        size: Size
+    ) throws {
+        // When
+        let plan = try plan(#"""
+            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ], "clips": [ \#(clip) ] }
+            """#)
+
+        // Then
+        #expect(plan.format.size == size)
     }
 
     // MARK: - Private

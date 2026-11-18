@@ -10,26 +10,22 @@ import Foundation
 // Measures a content-fit frame from a sequence planned in its measuring space, and moves what is written in that
 // space onto the measured frame. Each clip's extent is its geometry at sequence time 0 without animation or transition
 // motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's text
-// box, and a box, fill or arrow shape's outline grown by half its stroke, with its head. A solid fills the frame, an
-// adjustment applies to it, a shape without an area covers it and a dim darkens it, so none of them is measured. The
-// union is rounded outward to whole pixels, the margin is added, and each side is rounded up to an even number.
+// box, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills the frame and an adjustment
+// applies to it, so neither is measured, and nor is a clip used as a track matte, which is not drawn. The union is
+// rounded outward to whole pixels, the margin is added, and each side is rounded up to an even number.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
     private let shapeEvaluator = ShapeEvaluator()
-    private let drawer = ShapeDrawer()
 
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
     // `plan` is planned on a frame the size of its first storyline picture's box, and its storyline has a picture.
-    // `inOutputPixels` says for each clip whether its coordinates are output pixels, which under content fit are the
-    // measuring space, so the clip moves with the content.
     func fitted(
         _ plan: SequencePlan,
-        margin: Margin,
-        inOutputPixels: [Bool]
+        margin: Margin
     ) throws -> SequencePlan {
         let still = try self.still(ResolvedSequence(plan: plan, hashes: PlaceholderHasher()))
         guard let union = extents(of: still).reduce(nil, { union, extent in union?.union(extent) ?? extent }) else {
@@ -59,7 +55,9 @@ struct ContentFitPlanner: Sendable {
             format: format,
             storyline: plan.storyline.map { moved($0, by: offset) },
             clips: plan.clips.indices.map { index in
-                inOutputPixels[index] ? moved(plan.clips[index], by: offset) : plan.clips[index]
+                plan.clips[index].isInOutputPixels
+                    ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset)
+                    : plan.clips[index]
             },
             sound: plan.sound
         )
@@ -82,6 +80,8 @@ struct ContentFitPlanner: Sendable {
                     start: entry.start,
                     end: entry.end,
                     crop: entry.crop,
+                    mask: entry.mask,
+                    trackMatte: entry.trackMatte,
                     track: entry.track,
                     filter: entry.filter,
                     box: entry.box,
@@ -105,9 +105,10 @@ struct ContentFitPlanner: Sendable {
                     lane: clip.lane,
                     storyline: clip.storyline,
                     parent: clip.parent,
-                    area: clip.area,
                     box: clip.box,
                     crop: clip.crop,
+                    mask: clip.mask,
+                    trackMatte: clip.trackMatte,
                     track: clip.track,
                     opacity: clip.opacity,
                     scale: clip.scale,
@@ -127,7 +128,7 @@ struct ContentFitPlanner: Sendable {
             let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
             return bounds(of: box, by: entry.presentation(at: 0).transform)
         }
-        let clips = sequence.clips.compactMap { clip in
+        let clips = sequence.clips.filter { !sequence.isMatte($0) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: 0))
         }
 
@@ -154,45 +155,26 @@ struct ContentFitPlanner: Sendable {
                 ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: drawn, by: transform)
 
-        case let .shape(drawing):
-            return extent(of: drawing, clip: clip, in: space)
+        case let .shape(shape):
+            return extent(of: shape, clip: clip, in: space)
 
         case .adjustment:
             return nil
         }
     }
 
-    // A shape at scale 0 draws nothing, so it is not measured.
+    // What a shape draws after its transform, without its shadow. A shape at scale 0 draws nothing, so it is not
+    // measured.
     private func extent(
-        of drawing: ShapeDrawing,
+        of shape: ResolvedShape,
         clip: ResolvedClip,
         in space: ClipSpace
     ) -> Rectangle? {
-        guard let keyframes = clip.area else { return nil }
-
-        let tracked = space.tracked(by: clip.track, at: 0)
-        guard tracked.scale > 0 else { return nil }
-
-        let area = space.area(of: keyframes, track: clip.track, at: 0)
-        let drawn = drawer.content(of: drawing, on: area, scale: tracked.scale)
-        let outline: Rectangle
-        switch drawn.content {
-        case let .box(rectangle, width, _, _):
-            outline = rectangle.grown(by: width / 2)
-
-        case let .fill(rectangle, _):
-            outline = rectangle
-
-        case .arrow:
-            outline = drawn.box
-
-        case .dim:
-            return nil
-        }
-
         let sample = ClipSample(clip: clip, at: 0)
-        let transform = shapeEvaluator.transform(of: drawing, clip: clip, sample: sample, in: space, at: 0)
-        return bounds(of: outline, by: transform)
+        let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: 0)
+        guard let item = items.first, case let .path(path) = item.content else { return nil }
+
+        return path.drawnBounds(under: item.transform)
     }
 
     private func bounds(
@@ -224,6 +206,7 @@ struct ContentFitPlanner: Sendable {
 
         return StorylineGeometry(
             crop: geometry.crop,
+            mask: geometry.mask,
             track: geometry.track,
             nested: geometry.nested,
             filter: geometry.filter,
@@ -241,8 +224,11 @@ struct ContentFitPlanner: Sendable {
         )
     }
 
+    // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
+    // by its geometry. A title's or a box shape's is in its box and a media clip's in its media.
     private func moved(
         _ geometry: ClipGeometry,
+        in space: OwnSpace,
         by offset: Point
     ) -> ClipGeometry {
         ClipGeometry(
@@ -254,16 +240,39 @@ struct ContentFitPlanner: Sendable {
                     lines: area.lines
                 )
             },
+            points: geometry.points?.map { points in points.map { moved($0, by: offset) } },
             position: geometry.position?.map { moved($0, by: offset) },
             box: geometry.box.map { box in
                 ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
             },
             crop: geometry.crop,
+            mask: space == .parent
+                ? geometry.mask?.map { masks in masks.map { moved($0, by: offset) } }
+                : geometry.mask,
             track: geometry.track,
+            isInOutputPixels: geometry.isInOutputPixels,
             title: geometry.title,
             nested: geometry.nested,
             appearance: geometry.appearance
         )
+    }
+
+    private func moved(
+        _ mask: ResolvedMask,
+        by offset: Point
+    ) -> ResolvedMask {
+        let geometry: PathGeometry = switch mask.geometry {
+        case let .rect(rectangle, radius):
+            .rect(moved(rectangle, by: offset), radius: radius)
+
+        case let .ellipse(rectangle):
+            .ellipse(moved(rectangle, by: offset))
+
+        case let .polyline(points, isClosed):
+            .polyline(points.map { moved($0, by: offset) }, isClosed: isClosed)
+        }
+
+        return mask.replacing(geometry: geometry)
     }
 
     private func moved(

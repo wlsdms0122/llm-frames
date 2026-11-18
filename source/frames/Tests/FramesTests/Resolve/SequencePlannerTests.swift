@@ -9,9 +9,9 @@ import Testing
 
 @testable import Frames
 
-// `/abs/screen.mp4` is 1206 wide, the base theme's `baseWidth`, so its lengths are the theme's points, and "Total" is
-// on every frame. `/abs/short.mp4` is 1080 wide and shows "Send". The fake shaper sets each character half the size
-// wide and a space a quarter.
+// `/abs/screen.mp4` is 1206 wide and "Total" is on every frame. `/abs/short.mp4` is 1080 wide and shows "Send". The base
+// theme's lengths are for a frame 1920 wide. The fake shaper sets each character half the size wide and a space a
+// quarter.
 @Suite("SequencePlanner Tests")
 struct SequencePlannerTests {
     // MARK: - Property
@@ -111,7 +111,7 @@ struct SequencePlannerTests {
     func findsParentedArea() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "box", "area": { "text": "Send", "padding": 14 }, "parent": "short" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "short", "media": "/abs/short.mp4", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send", "padding": 14 }, "parent": "short" } ] } ] }
             """#)
 
         // Then
@@ -128,7 +128,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
-              "clips": [ { "shape": "box", "area": [10, 20, 30, 40], "at": [0, 1] } ] }
+              "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [10, 20, 30, 40], "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -159,8 +159,8 @@ struct SequencePlannerTests {
         arguments: [
             (#"{ "title": "a", "style": "title", "position": { "area": { "text": "Total" }, "point": "left" } }"#, "storyline[0].connected[0].position", "title"),
             (#"{ "title": "a", "style": "title", "keyframes": [ { "at": 0, "position": [0, 0] }, { "at": 1, "position": { "area": { "text": "Total" }, "point": "left" } } ] }"#, "storyline[0].connected[0].keyframes[1].position", "title"),
-            (#"{ "shape": "box", "area": { "text": "Total" } }"#, "storyline[0].connected[0].area", "box"),
-            (#"{ "shape": "box", "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": { "text": "Total" } } ] }"#, "storyline[0].connected[0].keyframes[1].area", "box")
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" } }"#, "storyline[0].connected[0].area", "rect"),
+            (#"{ "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "area": [0, 0, 10, 10] }, { "at": 1, "area": { "text": "Total" } } ] }"#, "storyline[0].connected[0].keyframes[1].area", "rect")
         ]
     )
     func refusesTextAreaWithoutParent(
@@ -195,7 +195,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [
-                { "shape": "box", "at": [0, 1], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -212,7 +212,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1.5, "at": [0, 2], "width": 300 },
-                { "shape": "box", "at": [0, 2], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 2], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -230,7 +230,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "speed": 2, "at": [0, 2], "width": 300 },
-                { "shape": "box", "at": [0.5, 2], "parent": "screen", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0.5, 2], "parent": "screen", "area": { "text": "Total" } } ] }
             """#)
 
         // Then
@@ -243,19 +243,23 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a text form on or under a picture that is drawn, not read, stops: a compound clip and a shape under a compound clip",
+        "a text form on or under a picture that is drawn, not read, stops: a compound clip's crop and mask and a shape under a compound clip",
         arguments: [
             #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
-              "connected": [ { "shape": "box", "parent": "nest", "area": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "nest", "area": { "text": "Total" } } ] } ] }
             """#,
             #"""
             { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
               "crop": { "text": "Total" } } ] }
             """#,
             #"""
+            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
+              "mask": { "shape": "rect", "area": { "text": "Total" } } } ] }
+            """#,
+            #"""
             { "kind": "sequence", "storyline": [ { "id": "nest", "media": { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ] },
-              "connected": [ { "id": "box", "shape": "box", "parent": "nest", "area": [0, 0, 10, 10] },
+              "connected": [ { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "nest", "area": [0, 0, 10, 10] },
                              { "title": "a", "style": "title", "parent": "box", "position": { "area": { "text": "Total" }, "point": "left" } } ] } ] }
             """#
         ]
@@ -272,33 +276,33 @@ struct SequencePlannerTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
                 { "id": "parent", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
         let error = #expect(throws: AreaError.self) { try plan(document) }
-        #expect(error?.description == #"clips[1].area (box): the parent "parent" is a title, whose text box has no picture to read, so it takes no text area"#)
+        #expect(error?.description == #"clips[1].area (rect): the parent "parent" is a title, whose text box has no picture to read, so it takes no text area"#)
     }
 
     @Test(
         "a text area under a shape or adjustment without a parent stops, since their coordinates are output pixels",
         arguments: [
-            #"{ "id": "parent", "shape": "box", "at": [0, 1], "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "area": [0, 0, 100, 100] }"#
+            #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func refusesTextAreaInOutput(parent: String) throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                \#(parent), { "shape": "box", "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
+                \#(parent), { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "parent", "area": { "text": "Total" } } ] }
             """#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "clips").appending(index: 1).appending(key: "area"),
-            kind: .clip(.shape("box"))
+            kind: .clip(.shape("rect"))
         ))
     }
 
@@ -307,7 +311,7 @@ struct SequencePlannerTests {
         // Given
         let document = ##"""
             { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "id": "back", "solid": "#000000", "duration": 1,
-              "connected": [ { "shape": "box", "parent": "back", "area": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "back", "area": { "text": "Total" } } ] } ] }
             """##
 
         // When, Then
@@ -315,7 +319,7 @@ struct SequencePlannerTests {
         #expect(error == .textAreaInOutputPixels(
             place: Place.root.appending(key: "storyline").appending(index: 0, id: "back").appending(key: "connected")
                 .appending(index: 0).appending(key: "area"),
-            kind: .clip(.shape("box"))
+            kind: .clip(.shape("rect"))
         ))
     }
 
@@ -324,7 +328,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "box", "parent": "screen", "area": { "text": "Total" } },
+                { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" } },
                 { "title": "a", "style": "title", "parent": "box", "anchor": "left", "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" } } ] } ] }
             """#)
 
@@ -335,15 +339,15 @@ struct SequencePlannerTests {
     @Test(
         "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
         arguments: [
-            #"{ "id": "parent", "shape": "box", "parent": "screen", "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "area": [0, 0, 100, 100] }"#
+            #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func cutsAreaUnderShape(parent: String) throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                \#(parent), { "shape": "box", "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
+                \#(parent), { "shape": "rect", "stroke": { "width": 8 }, "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
             """#)
 
         // Then
@@ -360,7 +364,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
                 { "id": "name", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "box", "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
             """#)
 
         // Then
@@ -395,12 +399,12 @@ struct SequencePlannerTests {
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } } ] } ] }
             """#)))
 
         // Then
         #expect(plan.storyline[0].track == nil)
-        #expect(plan.clips[0].track?.target == Fixture.total)
+        #expect(plan.clips[0].track?.track.target == Fixture.total)
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1))
     }
 
@@ -410,14 +414,14 @@ struct SequencePlannerTests {
         let sut = planner(followed: 0...1.9)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "box", "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" },
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" },
                                "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
             """#))
 
         // When, Then
         #expect(throws: Never.self) { try Fixture.sequencePlanner.plan(time) }
         let error = #expect(throws: ResolveError.self) { try sut.plan(time) }
-        #expect(error?.description == #"storyline[0]#screen.connected[0].keyframes (box): every keyframe of "opacity" lies outside [0.5, 1), so only one of its values would ever show"#)
+        #expect(error?.description == #"storyline[0]#screen.connected[0].keyframes (rect): every keyframe of "opacity" lies outside [0.5, 1), so only one of its values would ever show"#)
     }
 
     @Test(
@@ -538,7 +542,6 @@ struct SequencePlannerTests {
         #expect(plan.storyline[0].nested == nil)
     }
 
-    // MARK: - Private
     @Test("how each clip is drawn is planned, with keyframes in sequence time and filter lengths scaled")
     func plansAppearance() throws {
         // Given
@@ -548,8 +551,8 @@ struct SequencePlannerTests {
                 { "title": "a", "style": "title", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
-                { "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "adjust": ["mine/grade", "none"], "area": [0, 0, 10, 10], "at": [0, 1] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
+                { "adjust": ["mine/grade", "none"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
             """#
 
         // When
@@ -568,10 +571,21 @@ struct SequencePlannerTests {
         #expect(title.blend == "screen")
         #expect(title.shape == nil)
         #expect(plan.clips[1].appearance.blend == "normal")
-        #expect(plan.clips[1].appearance.shape == .box(
-            width: MergedTheme.base.boxWidth * MergedTheme.base.lengthScale(at: 2160),
-            radius: MergedTheme.base.boxRadius * MergedTheme.base.lengthScale(at: 2160),
-            color: MergedTheme.base.shapeColor(of: .box)
+        #expect(plan.clips[1].appearance.shape == ShapeAppearance(
+            kind: .rect,
+            geometry: .area(outset: 0, anchor: nil),
+            radius: .value(0),
+            trim: .value(.whole),
+            fill: nil,
+            stroke: PathStroke(
+                width: 8 * MergedTheme.base.lengthScale(at: 2160),
+                color: MergedTheme.base.color("accent"),
+                join: .round,
+                cap: .butt,
+                start: .none,
+                end: .none
+            ),
+            shadow: nil
         ))
         #expect(plan.clips[2].appearance.filter == graded)
     }
@@ -596,7 +610,7 @@ struct SequencePlannerTests {
         ))
     }
 
-    @Test("a storyline clip's anchor is named on the frame, its keyframes move to sequence time, and its border and shadow are the theme's")
+    @Test("a storyline clip's anchor is named on the frame, its keyframes move to sequence time, its radius is a theme length, and its border and shadow are the theme's")
     func plansStorylineTransform() throws {
         // Given
         let document = #"""
@@ -628,9 +642,9 @@ struct SequencePlannerTests {
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius == 12)
+        #expect(appearance.radius == 12 * scale)
         #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
-        #expect(appearance.shadow == MediaShadow(
+        #expect(appearance.shadow == DropShadow(
             radius: theme.shadowRadius * scale,
             offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
             color: theme.shadowColor
@@ -662,6 +676,222 @@ struct SequencePlannerTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error == .unknownPreset(place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "filter").appending(index: 1), kind: .clip(.media(.video)), presetKind: "filter", name: "mine/cold"))
+    }
+
+    @Test("each mask geometry form resolves in the clip's space, its feather times the length scale and its keys defaulted")
+    func resolvesMaskForms() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [3840, 2160] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "adjust": "frames/warm", "at": [0, 1], "mask": [
+                    { "shape": "rect", "area": [10, 20, 100, 50], "radius": 6, "feather": 3, "invert": true, "mode": "subtract" },
+                    { "shape": "ellipse", "area": [0, 0, 40, 20] },
+                    { "shape": "rect", "width": 100, "height": 40, "position": [200, 300] },
+                    { "shape": "ellipse", "width": 60, "height": 30, "position": [30, 15], "mode": "intersect" },
+                    { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "feather": 1 } ] } ] }
+            """#)
+
+        // Then
+        #expect(plan.clips[0].mask == .value([
+            ResolvedMask(
+                geometry: .rect(Rectangle(x: 10, y: 20, width: 100, height: 50), radius: 6),
+                feather: 6,
+                isInverted: true,
+                mode: .subtract
+            ),
+            mask(.ellipse(Rectangle(x: 0, y: 0, width: 40, height: 20))),
+            mask(.rect(Rectangle(x: 150, y: 280, width: 100, height: 40), radius: 0)),
+            mask(.ellipse(Rectangle(x: 0, y: 0, width: 60, height: 30)), mode: .intersect),
+            mask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 50, y: 80)], isClosed: true), feather: 2)
+        ]))
+    }
+
+    @Test("a storyline clip's and a media clip's text mask is found in their own media, padding included")
+    func findsMaskInOwnMedia() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [
+                { "media": "/abs/screen.mp4", "mask": { "shape": "rect", "area": { "text": "Total", "padding": 10 } } },
+                { "media": "/abs/short.mp4", "mask": { "shape": "path", "points": [
+                    { "area": { "text": "Send" }, "point": "top-left" }, { "area": { "text": "Send" }, "point": "top-right" }, [500, 1500] ] } } ],
+              "clips": [ { "media": "/abs/screen.mp4", "at": [0, 2], "width": 300,
+                "mask": { "shape": "ellipse", "width": 50, "height": 20, "position": { "area": { "text": "Total" }, "point": "center" } } } ] }
+            """#)
+
+        // Then
+        #expect(plan.storyline[0].mask == .value([mask(.rect(Fixture.total.grown(by: 10), radius: 0))]))
+        #expect(plan.storyline[1].mask == .value([
+            mask(.polyline([Point(x: 400, y: 1200), Point(x: 600, y: 1200), Point(x: 500, y: 1500)], isClosed: true))
+        ]))
+        #expect(plan.clips[0].mask == .value([mask(.ellipse(Rectangle(x: 175, y: 110, width: 50, height: 20)))]))
+    }
+
+    @Test("the text mask of a shape placed by its area or points and of an adjustment is found in the parent's media")
+    func findsMaskInParentMedia() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 500, 500],
+                  "mask": { "shape": "rect", "area": { "text": "Total" }, "radius": 4 } },
+                { "shape": "path", "stroke": { "width": 8 }, "parent": "screen", "points": [[0, 0], [500, 500]],
+                  "mask": { "shape": "path", "points": [{ "area": { "text": "Total" }, "point": "bottom-right" }, [0, 0], [0, 500]] } },
+                { "adjust": "frames/warm", "parent": "screen", "mask": { "shape": "ellipse", "area": { "text": "Total", "padding": 5 } } } ] } ] }
+            """#)
+
+        // Then
+        #expect(plan.clips[0].mask == .value([mask(.rect(Fixture.total, radius: 4))]))
+        #expect(plan.clips[1].mask == .value([
+            mask(.polyline([Point(x: 300, y: 140), Point(x: 0, y: 0), Point(x: 0, y: 500)], isClosed: true))
+        ]))
+        #expect(plan.clips[2].mask == .value([mask(.ellipse(Fixture.total.grown(by: 5)))]))
+    }
+
+    @Test(
+        "a text mask stops in a title's or box shape's own box, and in output pixels on an unparented shape or adjustment",
+        arguments: [
+            (
+                #"{ "title": "a", "style": "title", "parent": "screen", "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
+                "storyline[0]#screen.connected[0].mask (title): a text form is searched in media, and this clip's mask is in its own box"
+            ),
+            (
+                #"""
+                { "title": "a", "style": "title", "parent": "screen", "keyframes": [
+                    { "at": 0, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "shape": "rect", "area": { "text": "Total" } } } ] }
+                """#,
+                "storyline[0]#screen.connected[0].keyframes[1].mask (title): a text form is searched in media, and this clip's mask is in its own box"
+            ),
+            (
+                #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "width": 100, "height": 50, "parent": "screen", "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] },
+                  { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "text": "Total" }, "point": "center" } } ] }
+                """#,
+                "storyline[0]#screen.connected[0].mask[1] (rect): a text form is searched in media, and this clip's mask is in its own box"
+            ),
+            (
+                #"{ "shape": "rect", "stroke": { "width": 8 }, "width": 100, "parent": "screen", "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
+                "storyline[0]#screen.connected[0] (rect): missing key \"height\""
+            ),
+            (
+                #"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
+                "storyline[0]#screen.connected[0].mask (rect): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
+            ),
+            (
+                #"{ "adjust": "frames/warm", "mask": { "shape": "path", "points": [[0, 0], [10, 0], { "area": { "text": "Total" }, "point": "center" }] } }"#,
+                "storyline[0]#screen.connected[0].mask (adjustment): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
+            )
+        ]
+    )
+    func refusesTextMask(
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ \#(clip) ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == message)
+    }
+
+    @Test("keyframed masks resolve to a keyframe list of mask lists in sequence time")
+    func resolvesKeyframedMasks() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "adjust": "frames/warm", "at": [0, 4], "keyframes": [
+                    { "at": 1, "ease": "ease-in", "mask": [ { "shape": "rect", "area": [0, 0, 100, 100], "radius": 4, "feather": 2 },
+                                                             { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "mode": "subtract" } ] },
+                    { "at": 3, "mask": [ { "shape": "rect", "area": [50, 50, 200, 100], "radius": 8, "feather": 6 },
+                                         { "shape": "path", "points": [[0, 10], [10, 10], [5, 20]], "mode": "subtract" } ] } ] } ] }
+            """#)
+
+        // Then
+        let triangle = { (y: Double) in [Point(x: 0, y: y), Point(x: 10, y: y), Point(x: 5, y: y + 10)] }
+        #expect(plan.clips[0].mask == .keyframes([
+            TimedValue(index: 0, at: 1, value: [
+                mask(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4), feather: 2),
+                mask(.polyline(triangle(0), isClosed: true), mode: .subtract)
+            ], ease: .easeIn),
+            TimedValue(index: 1, at: 3, value: [
+                mask(.rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8), feather: 6),
+                mask(.polyline(triangle(10), isClosed: true), mode: .subtract)
+            ], ease: .linear)
+        ]))
+    }
+
+    @Test(
+        "keyframed masks stop where their lists differ in length, or a mask differs in its shape, geometry form, inversion, mode or number of points",
+        arguments: [
+            (
+                "clips",
+                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 20, 20] } ]"#,
+                #"clips[0].keyframes[1].mask (adjustment): the keyframes of "mask" hold 1 and 2 masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"#
+            ),
+            (
+                "clips",
+                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
+                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its shape, and a keyframed mask changes only its geometry's values, its radius and its feather"
+            ),
+            (
+                "clips",
+                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "rect", "width": 10, "height": 10, "position": [5, 5] }"#,
+                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its geometry form, and a keyframed mask changes only its geometry's values, its radius and its feather"
+            ),
+            (
+                "clips",
+                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "rect", "area": [0, 0, 10, 10], "invert": true }"#,
+                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its invert, and a keyframed mask changes only its geometry's values, its radius and its feather"
+            ),
+            (
+                "clips",
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 5, 5] } ]"#,
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 5, 5], "mode": "subtract" } ]"#,
+                "clips[0].keyframes[1].mask[1] (adjustment): this mask differs from the first keyframe's in its mode, and a keyframed mask changes only its geometry's values, its radius and its feather"
+            ),
+            (
+                "clips",
+                #"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] }"#,
+                #"{ "shape": "path", "points": [[0, 0], [10, 0], [10, 10], [0, 10]] }"#,
+                #"clips[0].keyframes[1].mask.points (adjustment): the keyframes of "points" hold 3 and 4 points, and points interpolate one by one, so every value has the same number"#
+            ),
+            (
+                "storyline",
+                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
+                "storyline[0].keyframes[1].mask (video): this mask differs from the first keyframe's in its shape, and a keyframed mask changes only its geometry's values, its radius and its feather"
+            )
+        ]
+    )
+    func refusesDifferingMaskKeyframes(
+        list: String,
+        first: String,
+        second: String,
+        message: String
+    ) throws {
+        // Given
+        let keyframes = #""keyframes": [ { "at": 0, "mask": \#(first) }, { "at": 1, "mask": \#(second) } ]"#
+        let document = list == "clips"
+            ? #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "adjust": "frames/warm", "at": [0, 2], \#(keyframes) } ] }"#
+            : #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(keyframes) } ] }"#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == message)
+    }
+
+    // MARK: - Private
+    private func mask(
+        _ geometry: PathGeometry,
+        feather: Double = 0,
+        mode: MaskMode = .add
+    ) -> ResolvedMask {
+        ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: mode)
     }
 
     private func plan(_ document: String) throws -> SequencePlan {

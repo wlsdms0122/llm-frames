@@ -70,15 +70,65 @@ struct ResolvedDocumentReaderTests {
         // with fades.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "box", "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
-            { "shape": "fill", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
-            { "shape": "arrow", "side": "left", "area": [500, 500, 100, 100], "at": [1, 2], "lane": -1 },
-            { "shape": "dim", "area": [0, 0, 100, 100], "at": [1, 2], "id": "dim" },
-            { "adjust": "mine/grade", "area": [0, 0, 10, 10], "at": [1, 2] },
+            { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
+            { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
+            { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "arrow" }, "at": [1, 2], "lane": -1 },
+            { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
+            { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
               "keyframes": [ { "at": 1, "opacity": 0, "ease": "ease-in" }, { "at": 1.5, "opacity": 1 } ] },
             { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
+        """#,
+        // Each shape kind and form: a rect by its area with a style, outset and a shadow object, a rect by its width
+        // and height keyframed, an ellipse by its box at a position, an ellipse by its area with a named anchor, an
+        // open path with keyframed points and trim, and a closed path, scaled and turned.
+        ##"""
+        { "kind": "sequence",
+          "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+          "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
+          "clips": [
+            { "shape": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 }, "at": [0, 4] },
+            { "shape": "rect", "fill": "accent", "height": 100, "placement": "top", "at": [0, 4],
+              "keyframes": [ { "at": 0, "width": 200, "radius": 4, "ease": "ease-in" }, { "at": 2, "width": 400, "radius": 12 } ] },
+            { "shape": "ellipse", "width": 120, "height": 60, "anchor": "top-left", "position": [100, 100], "outset": 2,
+              "stroke": { "width": 3, "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
+            { "shape": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
+              "shadow": true, "scale": 2, "at": [0, 4] },
+            { "shape": "path", "stroke": { "width": 6, "start": "arrow", "end": "arrow", "color": "#00FF00" }, "at": [0, 4],
+              "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
+                             { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
+            { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
+              "shadow": true, "at": [0, 4] } ] }
+        """##,
+        // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
+        // box, an area and a path, inverted, feathered, in each mode, static and keyframed.
+        #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3,
+            "mask": { "shape": "rect", "area": { "text": "Total", "padding": 4 }, "radius": 6, "feather": 2, "invert": true },
+            "connected": [
+              { "adjust": "mine/grade", "parent": "screen", "mask": [
+                  { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
+                  { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
+              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "keyframes": [
+                  { "at": 0, "ease": "ease-out", "mask": { "shape": "ellipse", "area": { "text": "Total" }, "feather": 1 } },
+                  { "at": 2, "mask": { "shape": "ellipse", "area": [0, 0, 50, 50], "feather": 3 } } ] },
+              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "keyframes": [
+                  { "at": 0, "mask": { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } },
+                  { "at": 1, "mask": { "shape": "path", "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
+        """#,
+        // Track mattes: a storyline clip cut by a title's alpha, a still by a shape's inverted luma, and the shape by
+        // the title in turn, so the title is the matte of two clips and the end of a chain.
+        #"""
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2,
+            "trackMatte": { "clip": "word", "mode": "alpha" },
+            "connected": [
+              { "id": "word", "title": "Hi", "style": "title", "at": [0, 1] },
+              { "media": "/abs/page.png", "at": [0, 1], "trackMatte": { "clip": "bar", "mode": "luma", "invert": true } } ] } ],
+          "clips": [
+            { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
+              "trackMatte": { "clip": "word", "mode": "alpha" } },
+            { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
         """#
     ]
 
@@ -161,16 +211,40 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
-    @Test("scale and rotation are read only for a title or media clip, and blend for anything but an adjustment")
+    @Test("scale, rotation and blend are read for anything drawn, and not for an adjustment")
     func refusesKeyOfAnotherClipKind() throws {
         // Given
-        let text = try replacingFirst(#""shape": "dim","#, with: #""shape": "dim", "scale": [],"#, in: written(Self.documents[2]))
+        let text = try replacingFirst(#""adjust":"#, with: #""scale": [], "adjust":"#, in: written(Self.documents[2]))
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
 
         // Then
-        #expect(error?.description.hasPrefix(#"clips[3] (clip): unknown key "scale""#) == true)
+        #expect(error?.description.hasPrefix(#"clips[4] (clip): unknown key "scale""#) == true)
+    }
+
+    @Test(
+        "a shape entry's member of the wrong form stops, naming its place",
+        arguments: [
+            (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
+            (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
+            (#""end": "none""#, #""end": "dot""#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
+            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, width, join, cap, start, end"#)
+        ]
+    )
+    func refusesShapeMember(
+        written: String,
+        replacement: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacingFirst(written, with: replacement, in: self.written(Self.documents[3]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     @Test(
@@ -193,8 +267,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "id": "a", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
-                         { "id": "b", "shape": "box", "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
+              "clips": [ { "id": "a", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
+                         { "id": "b", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
                          { "id": "sound", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
             """#
         let text = try replacingFirst(written, with: replacement, in: self.written(document))
@@ -218,6 +292,128 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "top level (resolved document): expected an object, found a list of 0")
     }
 
+    @Test(
+        "a mask that is not a closed polyline through three points, has a negative feather or has an unknown mode stops",
+        arguments: [
+            (
+                #"{ "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": false } }"#, "0", #""add""#,
+                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"{ "polyline": { "points": [[0, 0], [10, 0]], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }"#, "-1", #""add""#,
+                "clips[0].mask[0].value[0].feather (mask): a feather is 0 or more, found -1"
+            ),
+            (
+                #"{ "ellipse": { "rect": [0, 0, 10, 10] } }"#, "0", #""multiply""#,
+                #"clips[0].mask[0].value[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+            )
+        ]
+    )
+    func refusesMask(
+        geometry: String,
+        feather: String,
+        mode: String,
+        message: String
+    ) throws {
+        // Given
+        let mask = #"""
+            [ { "at": 0, "value": [ { "geometry": \#(geometry), "feather": \#(feather), "invert": false, "mode": \#(mode) } ], "ease": "linear" } ]
+            """#
+        let text = try replacing("mask", ofClip: 0, with: mask, in: written(Self.documents[4]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a mask list with no mask stops, since a clip without masks has null")
+    func refusesEmptyMaskList() throws {
+        // Given
+        let text = try replacing(
+            "mask",
+            ofClip: 0,
+            with: #"[ { "at": 0, "value": [], "ease": "linear" } ]"#,
+            in: written(Self.documents[4])
+        )
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "clips[0].mask[0].value (clip): a mask list holds at least one mask, and a clip without one has null")
+    }
+
+    @Test(
+        "a track matte that names no clip, a storyline clip or an adjustment, or a chain that comes back to itself, stops",
+        arguments: [
+            (
+                1,
+                #"{ "clip": "ghost", "mode": "alpha", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): no clip in the document has the id "ghost", and a track matte is a clip of the same document"#
+            ),
+            (
+                1,
+                #"{ "clip": "screen", "mode": "alpha", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): "screen" is a storyline clip, and a track matte is a connected or sequence media clip, title or shape"#
+            ),
+            (
+                1,
+                #"{ "clip": "grade", "mode": "luma", "invert": false }"#,
+                #"clips[1].trackMatte.clip (clip): "grade" is an adjustment clip, and a track matte is a connected or sequence media clip, title or shape"#
+            ),
+            (
+                0,
+                #"{ "clip": "bar", "mode": "alpha", "invert": false }"#,
+                #"clips[0].trackMatte.clip (clip): the track matte chain comes back to itself: "word" > "bar" > "word""#
+            )
+        ]
+    )
+    func refusesTrackMatte(
+        clip: Int,
+        matte: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacing("trackMatte", ofClip: clip, with: matte, in: written(Self.documents[5]))
+
+        // When
+        let error = #expect(throws: ResolveError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a track matte with a mode other than alpha or luma, or without invert, stops")
+    func refusesTrackMatteMode() throws {
+        // Given
+        let unknown = try replacing(
+            "trackMatte",
+            ofClip: 1,
+            with: #"{ "clip": "bar", "mode": "red", "invert": false }"#,
+            in: written(Self.documents[5])
+        )
+        let missing = try replacing(
+            "trackMatte",
+            ofClip: 1,
+            with: #"{ "clip": "bar", "mode": "luma" }"#,
+            in: written(Self.documents[5])
+        )
+
+        // When
+        let unknownError = #expect(throws: ModelError.self) { try sut.read(unknown) }
+        let missingError = #expect(throws: ModelError.self) { try sut.read(missing) }
+
+        // Then
+        #expect(unknownError?.description == #"clips[1].trackMatte.mode (track matte): unknown value "red". Allowed: alpha, luma"#)
+        #expect(missingError?.description.hasPrefix("clips[1].trackMatte (track matte): missing") == true)
+    }
+
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
@@ -234,6 +430,20 @@ struct ResolvedDocumentReaderTests {
 
     private func written(_ document: String) throws -> String {
         writer.write(try resolved(document))
+    }
+
+    private func replacing(
+        _ key: String,
+        ofClip index: Int,
+        with value: String,
+        in text: String
+    ) throws -> String {
+        let root = try #require(try JSONReader().read(text).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[index].objectValue)
+        clips[index] = .object(clip.setting(key, to: try Fixture.json(value)))
+
+        return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }
 
     private func replacingFirst(

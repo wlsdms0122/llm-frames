@@ -11,7 +11,7 @@
       "connected": [
         { "at": [0, 1.6], "title": "주문 요약을 열면", "style": "subtitle" },
         { "at": [1.6, 3.5], "title": "**합계**에 배송비가 들어가요", "style": "subtitle" },
-        { "at": [2, 3.5], "shape": "box", "id": "total", "parent": "summary", "area": { "text": "Total", "padding": 14 } },
+        { "at": [2, 3.5], "shape": "rect", "style": "outline", "id": "total", "parent": "summary", "area": { "text": "Total", "padding": 14 } },
         { "at": [2, 3.5], "title": "배송비 포함", "style": "label", "parent": "total",
           "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
       ] },

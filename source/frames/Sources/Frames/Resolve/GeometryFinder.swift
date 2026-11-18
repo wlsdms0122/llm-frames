@@ -77,19 +77,87 @@ struct GeometryFinder: Sendable {
         kind: String
     ) throws -> PropertyValue<Point> {
         try values(property, key: "position", clock: clock, instant: instant, place: place) { form, time, place in
-            switch form {
-            case let .point(point):
-                return point
+            try point(form, in: picture, at: pictureClock.mediaTime(atSequenceTime: time), place: place, kind: kind)
+        }
+    }
 
-            case let .area(area, point):
-                let found = try self.area(
-                    area,
+    // A path's points, each found as a position is, at the place of its index in the list.
+    func points(
+        _ property: PropertyValue<[PositionForm]>,
+        in picture: Picture,
+        pictureClock: PictureClock,
+        clock: TimeMap,
+        instant: Double,
+        place: Place,
+        kind: String
+    ) throws -> PropertyValue<[Point]> {
+        try values(property, key: "points", clock: clock, instant: instant, place: place) { forms, time, place in
+            try forms.enumerated().map { index, form in
+                try point(
+                    form,
                     in: picture,
                     at: pictureClock.mediaTime(atSequenceTime: time),
-                    place: place.appending(key: "area"),
+                    place: place.appending(index: index),
                     kind: kind
                 )
-                return found.rectangle.point(named: point)
+            }
+        }
+    }
+
+    // A clip's masks, each found in the space its geometry is written in. A mask written as numbers is taken as it is,
+    // not cut at the picture's edges, since a mask may reach past them, as a vignette's ellipse does.
+    func masks(
+        _ property: PropertyValue<[ClipMask]>,
+        in picture: Picture,
+        pictureClock: PictureClock,
+        clock: TimeMap,
+        instant: Double,
+        lengthScale: Double,
+        place: Place,
+        kind: String
+    ) throws -> PropertyValue<[ResolvedMask]> {
+        try values(property, key: "mask", clock: clock, instant: instant, place: place) { masks, time, place in
+            let mediaTime = pictureClock.mediaTime(atSequenceTime: time)
+            return try masks.map { mask in
+                let maskPlace = mask.index.map { place.appending(index: $0) } ?? place
+                let geometry: FoundMaskGeometry
+                switch mask.geometry {
+                case let .area(.rectangle(rectangle)):
+                    geometry = .area(rectangle)
+
+                case let .area(area):
+                    let found = try self.area(
+                        area,
+                        in: picture,
+                        at: mediaTime,
+                        place: maskPlace.appending(key: "area"),
+                        kind: kind
+                    )
+                    geometry = .area(found.rectangle)
+
+                case let .box(width, height, position):
+                    let center = try point(
+                        position,
+                        in: picture,
+                        at: mediaTime,
+                        place: maskPlace.appending(key: "position"),
+                        kind: kind
+                    )
+                    geometry = .box(width: width, height: height, position: center)
+
+                case let .points(forms):
+                    geometry = .points(try forms.enumerated().map { index, form in
+                        try point(
+                            form,
+                            in: picture,
+                            at: mediaTime,
+                            place: maskPlace.appending(key: "points").appending(index: index),
+                            kind: kind
+                        )
+                    })
+                }
+
+                return ResolvedMask(mask: mask, geometry: geometry, lengthScale: lengthScale)
             }
         }
     }
@@ -105,6 +173,23 @@ struct GeometryFinder: Sendable {
     }
 
     // MARK: - Private
+    private func point(
+        _ form: PositionForm,
+        in picture: Picture,
+        at mediaTime: Double,
+        place: Place,
+        kind: String
+    ) throws -> Point {
+        switch form {
+        case let .point(point):
+            return point
+
+        case let .area(area, point):
+            let found = try self.area(area, in: picture, at: mediaTime, place: place.appending(key: "area"), kind: kind)
+            return found.rectangle.point(named: point)
+        }
+    }
+
     private func values<Form, Found>(
         _ property: PropertyValue<Form>,
         key: String,

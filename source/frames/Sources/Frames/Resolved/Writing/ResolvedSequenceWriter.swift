@@ -55,6 +55,8 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.point)),
             JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
             JSONMember(key: "crop", value: crops(entry.crop)),
+            JSONMember(key: "mask", value: values.masks(entry.mask)),
+            JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
             JSONMember(key: "scale", value: values.numbers(entry.scale)),
@@ -68,8 +70,9 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // What a clip draws comes after its id, a media clip's timing, filter and appearance with it. Scale and rotation
-    // belong to a title or a media clip, and a blend mode to anything drawn but an adjustment.
+    // What a clip draws comes after its id, a media clip's timing, filter and appearance with it, and a shape's
+    // geometry and appearance. Scale, rotation and a blend mode belong to anything drawn but an adjustment. A shape
+    // placed by its geometry writes its position and anchor where a box would, and its area with its own keys.
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
         let transform = [
@@ -77,12 +80,17 @@ struct ResolvedSequenceWriter: Sendable {
             clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
             clip.blend.map { JSONMember(key: "blend", value: .string($0)) }
         ].compactMap { $0 }
+        let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
+        let placement = shape?.geometry.placement
+        let position = clip.box?.position ?? placement?.position
+        let anchor = clip.box?.anchor ?? placement?.anchor
         let geometry = [
-            JSONMember(key: "area", value: clip.area.map { values.keyframes($0, value: values.rectangle) } ?? .null),
             JSONMember(key: "size", value: clip.box.map { values.size($0.size) } ?? .null),
-            JSONMember(key: "position", value: clip.box.map { values.keyframes($0.position, value: values.point) } ?? .null),
-            JSONMember(key: "anchor", value: clip.box.map { values.point($0.anchor) } ?? .null),
+            JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.point) } ?? .null),
+            JSONMember(key: "anchor", value: anchor.map(values.point) ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
+            JSONMember(key: "mask", value: values.masks(clip.mask)),
+            JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: clip.track.map(track) ?? .null)
         ]
 
@@ -107,8 +115,8 @@ struct ResolvedSequenceWriter: Sendable {
         case let .title(text):
             return [JSONMember(key: "title", value: values.text(text))]
 
-        case let .shape(drawing):
-            return drawn(drawing)
+        case let .shape(shape):
+            return self.shape(shape)
 
         case let .adjustment(operations):
             return [JSONMember(key: "adjust", value: values.filter(operations))]
@@ -130,32 +138,55 @@ struct ResolvedSequenceWriter: Sendable {
         }
     }
 
-    // A shape's name, then how it is drawn on its area, which is written with the geometry.
-    private func drawn(_ drawing: ShapeDrawing) -> [JSONMember] {
-        let shape = { (name: String) in JSONMember(key: "shape", value: .string(name)) }
-        let number = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
-        let color = { (color: Color) in JSONMember(key: "color", value: self.values.color(color)) }
-
-        switch drawing {
-        case let .box(width, radius, stroke):
-            return [shape("box"), number("width", width), number("radius", radius), color(stroke)]
-
-        case let .fill(fill):
-            return [shape("fill"), color(fill)]
-
-        case let .dim(dim):
-            return [shape("dim"), color(dim)]
-
-        case let .arrow(side, length, width, head, stroke):
-            return [
-                shape("arrow"),
-                JSONMember(key: "side", value: .string(side.rawValue)),
-                number("length", length),
-                number("width", width),
-                number("head", head),
-                color(stroke)
-            ]
+    // A shape's kind, its geometry as written and its outset, every key written and null where it has none, and how it
+    // is drawn.
+    private func shape(_ shape: ResolvedShape) -> [JSONMember] {
+        let numbers = { (keyframes: [Keyframe<Double>]) in self.values.numbers(keyframes) }
+        let stroke = shape.stroke.map { stroke in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "color", value: values.color(stroke.color)),
+                JSONMember(key: "width", value: .number(stroke.width)),
+                JSONMember(key: "join", value: .string(stroke.join.rawValue)),
+                JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
+                JSONMember(key: "start", value: .string(stroke.start.rawValue)),
+                JSONMember(key: "end", value: .string(stroke.end.rawValue))
+            ]))
         }
+
+        let geometry: (
+            area: JSONValue,
+            width: JSONValue,
+            height: JSONValue,
+            points: JSONValue,
+            closed: JSONValue,
+            outset: JSONValue
+        ) = switch shape.geometry {
+        case let .box(width, height, outset):
+            (.null, numbers(width), numbers(height), .null, .null, .number(outset))
+
+        case let .area(area, outset, _):
+            (values.keyframes(area, value: values.rectangle), .null, .null, .null, .null, .number(outset))
+
+        case let .points(points, isClosed, _):
+            (.null, .null, .null, values.keyframes(points) { .array($0.map(values.point)) }, .bool(isClosed), .null)
+        }
+
+        return [
+            JSONMember(key: "shape", value: .string(shape.kind.rawValue)),
+            JSONMember(key: "area", value: geometry.area),
+            JSONMember(key: "width", value: geometry.width),
+            JSONMember(key: "height", value: geometry.height),
+            JSONMember(key: "points", value: geometry.points),
+            JSONMember(key: "closed", value: geometry.closed),
+            JSONMember(key: "outset", value: geometry.outset),
+            JSONMember(key: "radius", value: numbers(shape.radius)),
+            JSONMember(key: "trim", value: values.keyframes(shape.trim) { trim in
+                .array([.number(trim.start), .number(trim.end)])
+            }),
+            JSONMember(key: "fill", value: shape.fill.map(values.color) ?? .null),
+            JSONMember(key: "stroke", value: stroke ?? .null),
+            JSONMember(key: "shadow", value: shape.shadow.map(self.shadow) ?? .null)
+        ]
     }
 
     // How a media clip's picture fills its box, its crop aside, which is written with the geometry.
@@ -175,7 +206,7 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    private func shadow(_ shadow: MediaShadow) -> JSONValue {
+    private func shadow(_ shadow: DropShadow) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "radius", value: .number(shadow.radius)),
             JSONMember(key: "offset", value: values.point(shadow.offset)),
@@ -216,6 +247,15 @@ struct ResolvedSequenceWriter: Sendable {
 
     private func crops(_ keyframes: [Keyframe<Crop>]) -> JSONValue {
         values.keyframes(keyframes) { values.rectangle($0.rectangle) }
+    }
+
+    // `clip` is the id of the matte clip, which keeps its own entry.
+    private func trackMatte(_ matte: TrackMatte) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "clip", value: .string(matte.clip)),
+            JSONMember(key: "mode", value: .string(matte.mode.rawValue)),
+            JSONMember(key: "invert", value: .bool(matte.isInverted))
+        ]))
     }
 
     // Track frames are media frames, so they keep the media time of each frame, as `frames` does.

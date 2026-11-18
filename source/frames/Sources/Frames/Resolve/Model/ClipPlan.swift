@@ -5,18 +5,21 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A connected or sequence clip on the sequence clock. `window` is where its `at` puts it, and `visible` is the part of
-// the window it is seen or heard in. `storyline` is the index of the storyline clip a connected clip belongs to,
-// `parent` the clip it names as its parent, and `clock` maps its instants to sequence time. `instant` is where its
-// areas take effect: the start of its window, its storyline clip's `in` when it has no `at`. `keyframes` are in sequence
-// time.
+// A connected or sequence clip on the sequence clock. `space` is its own coordinate space, which its mask is in and
+// which it gives its children. `window` is where its `at` puts it, and `visible` is the part of the window it is seen
+// or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, `parent` the clip it names
+// as its parent, `trackMatte` its track matte, and `clock` maps its instants to sequence time. `instant` is where its
+// areas take effect: the start of its window, its storyline clip's `in` when it has no `at`. `keyframes` are in
+// sequence time.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
     let id: String?
     let kind: ClipKind
+    let space: OwnSpace
     let storyline: Int?
     let parent: ClipParent?
+    let trackMatte: TrackMatte?
     let lane: Int?
     let clock: TimeMap
     let window: TimeRange
@@ -32,8 +35,10 @@ struct ClipPlan: Equatable, Sendable {
         place: Place,
         id: String?,
         kind: ClipKind,
+        space: OwnSpace,
         storyline: Int?,
         parent: ClipParent? = nil,
+        trackMatte: TrackMatte?,
         lane: Int?,
         clock: TimeMap,
         window: TimeRange,
@@ -47,8 +52,10 @@ struct ClipPlan: Equatable, Sendable {
         self.place = place
         self.id = id
         self.kind = kind
+        self.space = space
         self.storyline = storyline
         self.parent = parent
+        self.trackMatte = trackMatte
         self.lane = lane
         self.clock = clock
         self.window = window
@@ -66,8 +73,10 @@ struct ClipPlan: Equatable, Sendable {
             place: place,
             id: id,
             kind: kind,
+            space: space,
             storyline: storyline,
             parent: parent,
+            trackMatte: trackMatte,
             lane: lane,
             clock: clock,
             window: window,
@@ -85,8 +94,10 @@ struct ClipPlan: Equatable, Sendable {
             place: place,
             id: id,
             kind: kind,
+            space: space,
             storyline: storyline,
             parent: parent,
+            trackMatte: trackMatte,
             lane: lane,
             clock: clock,
             window: window,

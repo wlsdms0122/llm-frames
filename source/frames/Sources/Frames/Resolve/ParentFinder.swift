@@ -28,7 +28,7 @@ struct ParentFinder: Sendable {
             return index
         }
         for index in clips.indices {
-            guard let cycle = cycle(from: index, parents: chain) else { continue }
+            guard let cycle = chain.cycle(from: index) else { continue }
 
             let clip = clips[cycle[0]]
             throw ResolveError.parentCycle(
@@ -39,30 +39,6 @@ struct ParentFinder: Sendable {
         }
 
         return parents
-    }
-
-    // The cycle the parent chain from `start` comes back into, as indices among the clips, or nil when the chain ends.
-    // `parents` holds the index of each clip's parent among the same clips, nil where the chain ends: a storyline
-    // parent or none. The cycle starts at its clip that comes first in the document, so every clip on it gives the
-    // same cycle.
-    func cycle(
-        from start: Int,
-        parents: [Int?]
-    ) -> [Int]? {
-        var chain = [start]
-        var next = parents[start]
-        while let index = next {
-            if let repeated = chain.firstIndex(of: index) {
-                let cycle = Array(chain[repeated...])
-                let first = cycle.firstIndex(of: cycle.min() ?? index) ?? 0
-                return Array(cycle[first...] + cycle[..<first])
-            }
-
-            chain.append(index)
-            next = parents[index]
-        }
-
-        return nil
     }
 
     // MARK: - Private

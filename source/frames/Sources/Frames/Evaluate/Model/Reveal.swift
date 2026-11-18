@@ -54,21 +54,5 @@ struct Reveal: Equatable, Sendable {
         }
     }
 
-    // A dim's hole, closing in from all the dim darkens (`room`, nothing darkened) to the area it leaves lit.
-    func hole(
-        closingFrom room: Rectangle,
-        to area: Rectangle
-    ) -> Rectangle {
-        .interpolate(from: room, to: area, progress: amount)
-    }
-
-    // An arrow's head as it grows from its tail.
-    func head(
-        growingFrom tail: Point,
-        to head: Point
-    ) -> Point {
-        .interpolate(from: tail, to: head, progress: amount)
-    }
-
     // MARK: - Private
 }

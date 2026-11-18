@@ -106,7 +106,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
                              { "id": "green", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
-                               "connected": [ { "shape": "fill", "area": [0, 30, 160, 30], "parent": "green", "color": "#FF00FF" } ] } ] }
+                               "connected": [ { "shape": "rect", "area": [0, 30, 160, 30], "parent": "green", "fill": "#FF00FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -137,7 +137,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
               "storyline": [ { "id": "marked", "media": "\#(file)", "duration": 1,
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": { "scale": 2 } } ],
-                               "connected": [ { "shape": "fill", "area": [200, 100, 40, 20], "parent": "marked", "color": "#0000FF" } ] } ] }
+                               "connected": [ { "shape": "rect", "area": [200, 100, 40, 20], "parent": "marked", "fill": "#0000FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -179,10 +179,10 @@ struct ConnectedClipRenderTests {
         let file = directory.file("screen.mov")
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "size": [180, 320] }, "theme": { "shapes": { "box": { "width": 40 } } },
+            { "kind": "sequence", "format": { "size": [180, 320] },
               "storyline": [ { "id": "screen", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "box", "area": { "text": "Total", "padding": 4 }, "parent": "screen", "track": true } ] } ] }
+                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": { "text": "Total", "padding": 4 }, "parent": "screen", "track": true } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -283,6 +283,97 @@ struct ConnectedClipRenderTests {
         }
         #expect(pixels.contains { x, y in isInked(x, y) && !isGlyph(x, y) })
         #expect(far.isEmpty, "the stroke reaches past a round join at \(far.prefix(4))")
+    }
+
+    // The picture is 40 wide, as the theme's base width, so the stroke is 10 output pixels. Each shape reaches past
+    // the outline grown by half its width further right and down than anything else measured: the polyline's miter,
+    // 3.16 widths long under the limit of 4, to x = 135.8, and the diagonal's square cap to (107.07, 100) and
+    // (100, 107.07). The frame is the content with a margin of 4 round it.
+    @Test(
+        "a frame that fits its content holds a sharp miter join and a square cap on a diagonal end whole, its margin left clear",
+        arguments: [
+            ##"{ "shape": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "color": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
+            ##"{ "shape": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "color": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
+        ]
+    )
+    func fitsJoinAndCap(shape: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = try image(in: directory, named: "grey.png", width: 40, height: 40, color: [128, 128, 128])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 4 }, "fps": 10 },
+              "theme": { "baseWidth": 40 },
+              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
+              "clips": [ \#(shape) ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        let isBlank = { (x: Int, y: Int) in frame.isPixel(x: x, y: y, [0, 0, 0], tolerance: self.tolerance) }
+        let pixels = (0..<frame.height).flatMap { y in (0..<frame.width).map { x in (x, y) } }
+        let margin = pixels.filter { x, y in x < 4 || y < 4 || x >= frame.width - 4 || y >= frame.height - 4 }
+        let drawn = margin.filter { x, y in !isBlank(x, y) }
+        #expect(drawn.isEmpty, "\(drawn.count) pixels of the margin are drawn, first \(drawn.prefix(4))")
+        let edge = (4..<frame.height - 4).filter { y in !isBlank(frame.width - 5, y) || !isBlank(frame.width - 6, y) }
+        #expect(!edge.isEmpty, "the shape reaches the frame's right edge inside the margin")
+    }
+
+    @Test("a dark rect over the frame with an inverted mask of a region darkens everything but that region")
+    func darkensAllButRegion() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = try image(in: directory, named: "white.png", width: 160, height: 90, color: [255, 255, 255])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 },
+              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
+              "clips": [ { "shape": "rect", "area": [0, 0, 160, 90], "fill": "#00000080", "at": [0, 1],
+                           "mask": { "shape": "ellipse", "area": [40, 20, 80, 50], "invert": true } } ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        // Half black over white outside the ellipse, untouched inside it, on either side of its left edge at x 40.
+        let dark: [Double] = [127, 127, 127]
+        let untouched: [Double] = [255, 255, 255]
+        let probes = [(4, 4, dark), (155, 85, dark), (80, 4, dark), (36, 45, dark), (80, 45, untouched), (44, 45, untouched)]
+        for (x, y, color) in probes {
+            #expect(frame.isPixel(x: x, y: y, color, tolerance: 2.0 / 255), "(\(x), \(y)) is \(frame.pixel(x: x, y: y))")
+        }
+    }
+
+    @Test("a media clip cut to a feathered ellipse shows inside it, fades across its edge and leaves what lies below outside")
+    func cutsMediaClipToFeatheredEllipse() throws {
+        // Given
+        // The 40 x 40 picture fills an 80 x 80 box centred on (80, 45), so the ellipse written on the whole picture is
+        // the circle of radius 40 about that point, feathered by 2 output pixels at a length scale of 1.
+        let directory = try TemporaryDirectory()
+        let below = try image(in: directory, named: "black.png", width: 160, height: 90, color: [0, 0, 0])
+        let file = try image(in: directory, named: "red.png", width: 40, height: 40, color: [255, 0, 0])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 160 },
+              "storyline": [ { "media": "\#(below)", "duration": 1 } ],
+              "clips": [ { "media": "\#(file)", "width": 80, "position": [80, 45], "at": [0, 1],
+                           "mask": { "shape": "ellipse", "area": [0, 0, 40, 40], "feather": 2 } } ] }
+            """#)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+
+        // Then
+        // Inside the circle the picture shows whole, across its edge in part, and in the box's corner not at all. The
+        // pixel (108, 16) is a third of a pixel outside the circle on its diagonal, inside the box.
+        #expect(frame.isPixel(x: 80, y: 45, [255, 0, 0], tolerance: tolerance))
+        #expect(frame.isPixel(x: 80, y: 20, [255, 0, 0], tolerance: tolerance))
+        #expect(frame.isPixel(x: 44, y: 9, [0, 0, 0], tolerance: tolerance))
+        let edge = frame.pixel(x: 108, y: 16)[0]
+        #expect(edge > 0.2 && edge < 0.8, "the edge is \(edge)")
     }
 
     // MARK: - Private

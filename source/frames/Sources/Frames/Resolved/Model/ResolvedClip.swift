@@ -7,10 +7,12 @@
 
 // A clips entry: a title, shape, adjustment or media clip. `start` and `end` are its visible window, already narrowed.
 // `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and `parent`
-// the id of the clip whose space it is placed in, nil for an unparented clip. `area` and `box` place it, each nil
-// where the other does. `crop` is a media clip's every crop conformed to its box. Keyframes are in sequence time.
-// `scale` and `rotation` belong to a title or media clip and `blend` to anything but an adjustment, and each is nil
-// where its entry has no such key.
+// the id of the clip whose space it is placed in, nil for an unparented clip. `box` places a title, a media clip or a
+// shape given by `width` and `height`, and a shape placed by its geometry carries it in its content. `crop` is a media
+// clip's every crop conformed to its box. `mask` is the clip's masks in its own coordinate space, nil for none, a
+// keyframe's where it lies at its own time when tracked, and `trackMatte` its track matte, nil for none. Keyframes are
+// in sequence time. `scale`, `rotation` and `blend` belong to anything but an adjustment, and each is nil where its
+// entry has no such key.
 struct ResolvedClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -21,15 +23,20 @@ struct ResolvedClip: Equatable, Sendable {
     let lane: Int?
     let storyline: Int?
     let parent: String?
-    let area: [Keyframe<Rectangle>]?
     let box: ResolvedBox?
     let crop: [Keyframe<Crop>]?
+    let mask: [Keyframe<[ResolvedMask]>]?
+    let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let opacity: [Keyframe<Double>]
     let scale: [Keyframe<Double>]?
     let rotation: [Keyframe<Double>]?
     let blend: String?
     let animation: ResolvedAnimation
+    // The clip's own coordinate space, which its mask is in and which it gives its children.
+    var space: OwnSpace {
+        OwnSpace(content: content)
+    }
 
     // MARK: - Initializer
     init(
@@ -41,9 +48,10 @@ struct ResolvedClip: Equatable, Sendable {
         lane: Int?,
         storyline: Int?,
         parent: String?,
-        area: [Keyframe<Rectangle>]?,
         box: ResolvedBox?,
         crop: [Keyframe<Crop>]?,
+        mask: [Keyframe<[ResolvedMask]>]?,
+        trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         opacity: [Keyframe<Double>],
         scale: [Keyframe<Double>]?,
@@ -59,9 +67,10 @@ struct ResolvedClip: Equatable, Sendable {
         self.lane = lane
         self.storyline = storyline
         self.parent = parent
-        self.area = area
         self.box = box
         self.crop = crop
+        self.mask = mask
+        self.trackMatte = trackMatte
         self.track = track
         self.opacity = opacity
         self.scale = scale

@@ -21,8 +21,8 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [
-              { "shape": "box", "area": [0, 0, 10, 10], "parent": "run", "animation": "frames/pulse" },
-              { "shape": "box", "area": [0, 0, 10, 10], "animation": "frames/pulse" },
+              { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run", "animation": "frames/pulse" },
+              { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": "frames/pulse" },
               { "title": "a", "style": "subtitle", "parent": "run", "position": [0, 0], "animation": "frames/pulse" }
             ] } ] }
             """#)
@@ -46,7 +46,7 @@ struct ClipAnimationTests {
               "clips": [
                 { "at": [0, 1], "title": "a", "style": "subtitle" },
                 { "at": [0, 1], "title": "b", "style": "headline" },
-                { "at": [0, 1], "shape": "box", "area": [0, 0, 10, 10] },
+                { "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] },
                 { "at": [0, 1], "media": "/abs/log.png" },
                 { "at": [0, 1], "media": "/abs/log.png", "animation": "none" },
                 { "media": "/abs/bgm.m4a" }

@@ -30,6 +30,30 @@ struct DisplayListReaderTests {
     )
     private static let origin = ItemOrigin(place: "storyline[1]#intro", id: "intro", kind: "video")
     private static let rotation = AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 1080, ty: 0)
+    // One mask of each geometry form and mode, feathered, inverted and carried by a transform.
+    private static let masks = [
+        ItemMask(
+            geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1500), radius: 24),
+            transform: rotation,
+            feather: 0,
+            isInverted: false,
+            mode: .add
+        ),
+        ItemMask(
+            geometry: .ellipse(Rectangle(x: 100, y: 200, width: 300, height: 150)),
+            transform: AffineTransform(a: 1.5, b: 0, c: 0, d: 1.5, tx: -20, ty: 40.5),
+            feather: 12.5,
+            isInverted: true,
+            mode: .subtract
+        ),
+        ItemMask(
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 540, y: 0), Point(x: 270, y: 960)], isClosed: true),
+            transform: .identity,
+            feather: 3,
+            isInverted: false,
+            mode: .intersect
+        )
+    ]
 
     // Items that between them hold every kind and every optional member, set and null.
     private static let items: [DisplayItem] = [
@@ -37,7 +61,7 @@ struct DisplayListReaderTests {
             transform: rotation,
             opacity: 0.5,
             blend: "multiply",
-            mask: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
+            mask: masks,
             reveal: Rectangle(x: 0, y: 0, width: 540, height: 1920),
             content: .picture(PictureItem(
                 source: .media(MediaFrame(media: video, index: 2)),
@@ -47,7 +71,7 @@ struct DisplayListReaderTests {
                 matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
-                shadow: MediaShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "#00000080"))
+                shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "#00000080"))
             )),
             origin: origin
         ),
@@ -57,31 +81,39 @@ struct DisplayListReaderTests {
             destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         ))),
         DisplayItem(
-            content: .fill(FillItem(
-                rectangle: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
-                radius: 0,
-                color: Color(written: "#00000099"),
-                hole: RoundedRectangle(rectangle: Rectangle(x: 100, y: 200, width: 300, height: 120), radius: 16)
+            content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1920), radius: 16),
+                fill: Color(written: "#00000099"),
+                stroke: nil,
+                shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "#00000080"))
             )),
-            origin: ItemOrigin(place: "clips[3]", id: nil, kind: "dim")
+            origin: ItemOrigin(place: "clips[3]", id: nil, kind: "shape")
         ),
-        DisplayItem(content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 1500, width: 1080, height: 420), color: Color(written: "#000000")))),
+        DisplayItem(content: .path(PathItem(
+            filling: Rectangle(x: 0, y: 1500, width: 1080, height: 420),
+            color: Color(written: "#000000")
+        ))),
         DisplayItem(
             transform: AffineTransform(a: 1.2, b: 0, c: 0, d: 1.2, tx: -54, ty: -96),
-            content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 150, y: 150, width: 100, height: 50),
-                radius: 8,
-                width: 6,
-                color: Color(written: "#FF3B30"),
-                trim: 0.625
+            content: .path(PathItem(
+                geometry: .ellipse(Rectangle(x: 150, y: 150, width: 100, height: 50)),
+                fill: nil,
+                stroke: PathStroke(
+                    width: 6,
+                    color: Color(written: "#FF3B30"),
+                    join: .miter,
+                    cap: .square,
+                    start: .none,
+                    end: .none
+                ),
+                trim: Trim(start: 0.125, end: 0.625)
             ))
         ),
-        DisplayItem(content: .arrow(ArrowItem(
-            tail: Point(x: 240, y: 175),
-            head: Point(x: 300, y: 175),
-            width: 6,
-            headSize: 24,
-            color: Color(written: "#FF3B30")
+        DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 240, y: 175), Point(x: 300, y: 175)], isClosed: false),
+            fill: nil,
+            stroke: PathStroke(width: 6, color: Color(written: "#FF3B30"), join: .round, cap: .round, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 0.6)
         ))),
         DisplayItem(
             transform: AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 75.4, ty: 1709.8),
@@ -101,8 +133,14 @@ struct DisplayListReaderTests {
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
         DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], stroke: nil, background: nil))),
-        DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.saturation(amount: 0)]))),
-        DisplayItem(content: .adjust(AdjustItem(rectangle: Rectangle(x: 0, y: 0, width: 10, height: 10), filter: [])))
+        DisplayItem(content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))),
+        DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
+            fill: Color(written: "#3366CC"),
+            stroke: PathStroke(width: 2.5, color: Color(written: "#FFFFFF80"), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
+            trim: Trim(start: 0.75, end: 0.25),
+            shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
+        )))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -144,7 +182,7 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 7,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: filter))),
+                DisplayItem(content: .adjust(AdjustItem(filter: filter))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .media(MediaFrame(media: Self.still, index: 0)),
                     rectangle: nil,
@@ -165,7 +203,7 @@ struct DisplayListReaderTests {
     func readsWrittenBlend(blend: String) throws {
         // Given
         let list = list(items: [
-            DisplayItem(blend: blend, content: .fill(FillItem(rectangle: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FFFFFF"))))
+            DisplayItem(blend: blend, content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FFFFFF"))))
         ])
 
         // When
@@ -181,7 +219,7 @@ struct DisplayListReaderTests {
         let inner = list(
             size: Size(width: 400, height: 300),
             seed: 12,
-            items: [DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
         )
         let nested = list(
             size: Size(width: 1080, height: 1500),
@@ -201,7 +239,7 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 12,
             items: [DisplayItem(
-                mask: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
+                mask: [Self.masks[0]],
                 content: .picture(PictureItem(
                     source: .displayList(nested),
                     rectangle: Rectangle(x: 0, y: 0, width: 1080, height: 1500),
@@ -215,6 +253,63 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(read == list)
+    }
+
+    @Test("a track matte reads back with its source the size of the list holding its item, from a grain only inside it")
+    func readsTrackMatte() throws {
+        // Given
+        let source = list(
+            seed: 7,
+            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+        )
+        let list = list(
+            seed: 7,
+            items: [
+                DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .luma, isInverted: true), content: Self.items[2].content),
+                DisplayItem(trackMatte: ItemTrackMatte(source: list(seed: 7, items: []), mode: .alpha, isInverted: false), content: Self.items[2].content)
+            ]
+        )
+
+        // When
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(read == list)
+    }
+
+    @Test("a track matte is written as {source: {list}, mode, invert} after the mask, and an item without one as null")
+    func writesTrackMatteMembers() throws {
+        // Given
+        let source = list(items: [])
+        let list = list(items: [
+            DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content),
+            Self.items[2]
+        ])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue)
+
+        // Then
+        #expect(items?.first?.keys.prefix(8) == ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
+        #expect(items?.first?["trackMatte"] == (try Fixture.json(#"""
+            { "source": { "list": { "size": [1080, 1920], "background": "#000000FF", "items": [] } }, "mode": "alpha", "invert": false }
+            """#)))
+        #expect(items?.last?["trackMatte"] == .null)
+    }
+
+    @Test("a track matte's source of another size than the list holding its item stops, naming both sizes")
+    func refusesTrackMatteSize() throws {
+        // Given
+        let source = list(size: Size(width: 540, height: 960), items: [])
+        let list = list(items: [
+            DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content)
+        ])
+
+        // When
+        let error = #expect(throws: EvaluateError.self) { try sut.read(writer.write(list)) }
+
+        // Then
+        #expect(error?.description == "items[0].trackMatte.source (path): the track matte's source is 540 by 960, and a track matte's source is the size of the list that holds its item, 1080 by 1920")
     }
 
     @Test("a list with no grain reads with seed 0, since only a grain carries the seed")
@@ -243,17 +338,85 @@ struct DisplayListReaderTests {
         #expect(item?["origin"] == .null)
     }
 
+    @Test("an item without masks writes its mask as null, and each mask holds its geometry in the path's form")
+    func writesMaskMembers() throws {
+        // Given
+        let list = list(items: [Self.items[0], Self.items[1]])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue
+        let masks = items?.first?.objectValue?["mask"]?.arrayValue
+
+        // Then
+        #expect(items?.last?.objectValue?["mask"] == .null)
+        #expect(masks?.count == 3)
+        #expect(masks?.first?.objectValue?.keys == ["geometry", "transform", "feather", "invert", "mode"])
+        #expect(masks?.first == (try Fixture.json(#"""
+            { "geometry": { "rect": { "rect": [0, 0, 1080, 1500], "radius": 24 } }, "transform": [0, 1, -1, 0, 1080, 0],
+              "feather": 0, "invert": false, "mode": "add" }
+            """#)))
+    }
+
+    @Test(
+        "a mask list that is empty, or a mask that is not a closed polyline through three points, has a missing key, a negative feather or an unknown mode stops",
+        arguments: [
+            ("[]", "items[0].mask (path): a mask list holds at least one mask, and an item without one has null"),
+            (
+                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0], [2, 4]], "closed": false } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0]], "closed": true } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
+                #"items[0].mask[0] (path): missing key "mode""#
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": -2, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].feather (path): a feather is 0 or more, found -2"
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "multiply" }]"#,
+                #"items[0].mask[0].mode (path): unknown value "multiply". Allowed: add, subtract, intersect"#
+            ),
+            (
+                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add", "expansion": 2 }]"#,
+                #"items[0].mask[0] (path): unknown key "expansion". Allowed: geometry, transform, feather, invert, mode"#
+            )
+        ]
+    )
+    func refusesUnreadableMask(
+        written: String,
+        message: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
+                "fill": "#FFFFFFFF", "stroke": null, "trim": [0, 1], "shadow": null } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     @Test("a grain with a seed other than the first grain's stops, naming its place")
     func refusesDifferentSeed() throws {
         // Given
         let inner = list(
             seed: 4,
-            items: [DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
         )
         let list = list(
             seed: 3,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(rectangle: nil, filter: [.grain(amount: 0.3, size: 2)]))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .displayList(inner),
                     rectangle: nil,
@@ -294,10 +457,10 @@ struct DisplayListReaderTests {
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
             (#""displayList": "1.0.0","#, "", #"top level (display list): missing key "displayList""#),
-            (#""trim": 0.625"#, #""trimmed": 0.625"#, #"items[4] (stroke): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, reveal, rect, radius, width, color, trim"#),
-            (#""headSize": 24,"#, "", #"items[5] (arrow): missing key "headSize""#),
+            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
+            (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
             (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter"#),
-            (#""item": "arrow""#, #""item": "line""#, #"items[5].item (display item): unknown value "line". Allowed: picture, fill, stroke, arrow, glyphs, adjust"#),
+            (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#)
         ]
@@ -315,6 +478,98 @@ struct DisplayListReaderTests {
 
         // Then
         #expect((error as? CustomStringConvertible)?.description == message)
+    }
+
+    @Test("a path's fill, stroke and shadow are written null where it has none, and its trim as [a, b]")
+    func writesPathMembers() throws {
+        // Given
+        let list = list(items: [Self.items[5]])
+
+        // When
+        let item = try #require(writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(item.keys == [
+            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "geometry", "fill", "stroke",
+            "trim", "shadow"
+        ])
+        #expect(item["item"] == .string("path"))
+        #expect(item["fill"] == .null)
+        #expect(item["shadow"] == .null)
+        #expect(item["trim"] == .array([.number(0), .number(0.6)]))
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end"])
+        #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test(
+        "a path whose geometry, stroke literal or trim is not of the JSON form stops, naming its place",
+        arguments: [
+            (
+                #"{ "polyline": { "points": [[1, 2]], "closed": false } }"#,
+                "geometry",
+                "items[0].geometry.polyline.points (path): a polyline runs through at least two points, found 1"
+            ),
+            (
+                #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
+                "geometry",
+                #"items[0].geometry (path): takes only one of "rect", "ellipse""#
+            ),
+            ("{}", "geometry", "items[0].geometry (path): needs one of rect, ellipse, polyline"),
+            (
+                #"{ "spline": { "points": [[0, 0], [1, 1]] } }"#,
+                "geometry",
+                #"items[0].geometry (path): unknown key "spline". Allowed: rect, ellipse, polyline"#
+            ),
+            (
+                #"{ "ellipse": { "rect": [0, 0, 1, 1], "radius": 2 } }"#,
+                "geometry",
+                #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                "stroke",
+                #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
+            ),
+            (
+                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                "stroke",
+                #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
+            ),
+            ("[0, 1.5]", "trim", "items[0].trim[1] (path): a trim runs from 0 to 1, found 1.5"),
+            ("[-0.25, 1]", "trim", "items[0].trim[0] (path): a trim runs from 0 to 1, found -0.25"),
+            ("[0]", "trim", "items[0].trim (path): expected a list of 2 numbers, found a list of 1")
+        ]
+    )
+    func refusesUnreadablePath(
+        written: String,
+        member: String,
+        message: String
+    ) throws {
+        // Given
+        var members = [
+            "geometry": #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#,
+            "stroke": "null",
+            "trim": "[0, 1]"
+        ]
+        members[member] = written
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
+                "fill": "#FFFFFFFF",
+                "stroke": \#(members["stroke"] ?? ""), "trim": \#(members["trim"] ?? ""), "shadow": null } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     // MARK: - Private

@@ -9,12 +9,13 @@
 // by: its version is checked before anything else, and a member that is missing or of another type, or a key the
 // writer never writes there, stops naming its place. The list keeps one seed for itself and every list nested in it,
 // so the seed of the first `grain` written is taken and a `grain` with another stops. A list with no `grain` reads
-// with seed 0, since only `grain` reads the seed.
+// with seed 0, since only `grain` reads the seed. A track matte's source of another size than the list holding its
+// item stops.
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "items"]
-    private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "reveal"]
-    private static let itemNames = ["picture", "fill", "stroke", "arrow", "glyphs", "adjust"]
+    private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
+    private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
@@ -66,16 +67,24 @@ package struct DisplayListReader: Sendable {
                 place: element.place,
                 kind: element.value.objectValue?["item"]?.stringValue ?? "display item"
             )
-            let nested = (try? values.member("source", of: item, kind: item.kind))
-                .flatMap { try? values.member("list", of: $0, kind: "display list") }
+            let trackMatte = (try? values.member("trackMatte", of: item, kind: item.kind))
+                .flatMap { try? values.member("source", of: $0, kind: "track matte") }
             let filter = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let grain = trackMatte.flatMap(nestedGrain)
+                ?? (try? values.member("source", of: item, kind: item.kind)).flatMap(nestedGrain)
+                ?? filter.first(where: isGrain)
 
-            if let grain = nested.flatMap(firstGrain) ?? filter.first(where: isGrain) {
+            if let grain {
                 return grain
             }
         }
 
         return nil
+    }
+
+    // The first `grain` in the list a source `{list}` holds.
+    private func nestedGrain(in source: PlacedJSONValue) -> PlacedJSONValue? {
+        (try? values.member("list", of: source, kind: "display list")).flatMap(firstGrain)
     }
 
     private func isGrain(_ operation: PlacedJSONValue) -> Bool {
@@ -86,39 +95,36 @@ package struct DisplayListReader: Sendable {
         _ object: PlacedJSONObject,
         seed: Int
     ) throws -> DisplayList {
-        DisplayList(
-            size: try values.size(object.member("size")),
+        let size = try values.size(object.member("size"))
+
+        return DisplayList(
+            size: size,
             background: try values.color(object.member("background")),
             seed: seed,
             items: try object.member("items").elements().map { element in
-                try item(element, seed: seed)
+                try item(element, in: size, seed: seed)
             }
         )
     }
 
-    // `item` names what an item draws, which decides the keys it holds besides those every item has.
+    // `item` names what an item draws, which decides the keys it holds besides those every item has. `size` is the size
+    // of the list that holds it.
     private func item(
         _ value: PlacedJSONValue,
+        in size: Size,
         seed: Int
     ) throws -> DisplayItem {
         let name = try values.member("item", of: value, kind: "display item")
             .name(among: Self.itemNames) { Self.itemNames.contains($0) ? $0 : nil }
         let item = try value.object(kind: name, keys: Self.itemKeys + keys(of: name))
-        let transform = try item.member("transform").numbers(count: 6)
         let blends = VocabularyTable.blendModes
 
         return DisplayItem(
-            transform: AffineTransform(
-                a: transform[0],
-                b: transform[1],
-                c: transform[2],
-                d: transform[3],
-                tx: transform[4],
-                ty: transform[5]
-            ),
+            transform: try transform(item.member("transform")),
             opacity: try item.member("opacity").number(),
             blend: try item.member("blend").name(among: blends) { blends.contains($0) ? $0 : nil },
-            mask: try item.member("mask").optional(values.rectangle),
+            mask: try item.member("mask").optional(masks) ?? [],
+            trackMatte: try item.member("trackMatte").optional { try trackMatte($0, in: size, seed: seed) },
             reveal: try item.member("reveal").optional(values.rectangle),
             content: try content(of: item, name: name, seed: seed),
             origin: try item.member("origin").optional(origin)
@@ -130,21 +136,73 @@ package struct DisplayListReader: Sendable {
         case "picture":
             ["source", "rect", "dest", "filter", "matte", "radius", "border", "shadow"]
 
-        case "fill":
-            ["rect", "radius", "color", "hole"]
-
-        case "stroke":
-            ["rect", "radius", "width", "color", "trim"]
-
-        case "arrow":
-            ["tail", "head", "width", "headSize", "color"]
+        case "path":
+            ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
             ["size", "runs", "stroke", "background"]
 
         default:
-            ["rect", "filter"]
+            ["filter"]
         }
+    }
+
+    private func transform(_ value: PlacedJSONValue) throws -> AffineTransform {
+        let transform = try value.numbers(count: 6)
+
+        return AffineTransform(
+            a: transform[0],
+            b: transform[1],
+            c: transform[2],
+            d: transform[3],
+            tx: transform[4],
+            ty: transform[5]
+        )
+    }
+
+    // An item without masks writes `null`, so a list holds at least one.
+    private func masks(_ value: PlacedJSONValue) throws -> [ItemMask] {
+        let elements = try value.elements()
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a mask list holds at least one mask, and an item without one has null"
+            )
+        }
+
+        return try elements.map(mask)
+    }
+
+    private func mask(_ value: PlacedJSONValue) throws -> ItemMask {
+        let mask = try value.object(keys: ["geometry", "transform", "feather", "invert", "mode"])
+
+        return ItemMask(
+            geometry: try values.maskGeometry(mask.member("geometry")),
+            transform: try transform(mask.member("transform")),
+            feather: try values.maskFeather(mask.member("feather")),
+            isInverted: try mask.member("invert").bool(),
+            mode: try literal(mask.member("mode"))
+        )
+    }
+
+    private func trackMatte(
+        _ value: PlacedJSONValue,
+        in size: Size,
+        seed: Int
+    ) throws -> ItemTrackMatte {
+        let trackMatte = try value.object(keys: ["source", "mode", "invert"])
+        let written = try trackMatte.member("source")
+        let source = try nestedList(written, seed: seed)
+        guard source.size == size else {
+            throw EvaluateError.trackMatteSize(place: written.place, kind: written.kind, size: source.size, listSize: size)
+        }
+
+        return ItemTrackMatte(
+            source: source,
+            mode: try literal(trackMatte.member("mode")),
+            isInverted: try trackMatte.member("invert").bool()
+        )
     }
 
     private func origin(_ value: PlacedJSONValue) throws -> ItemOrigin {
@@ -162,56 +220,18 @@ package struct DisplayListReader: Sendable {
         name: String,
         seed: Int
     ) throws -> DisplayContent {
-        let rectangle = { (key: String) in try values.rectangle(item.member(key)) }
-        let point = { (key: String) in try values.point(item.member(key)) }
-        let number = { (key: String) in try item.member(key).number() }
-        let color = { try values.color(item.member("color")) }
-
         switch name {
         case "picture":
             return .picture(try picture(item, seed: seed))
 
-        case "fill":
-            return .fill(FillItem(
-                rectangle: try rectangle("rect"),
-                radius: try number("radius"),
-                color: try color(),
-                hole: try item.member("hole").optional { value in
-                    let hole = try value.object(keys: ["rect", "radius"])
-
-                    return RoundedRectangle(
-                        rectangle: try values.rectangle(hole.member("rect")),
-                        radius: try hole.member("radius").number()
-                    )
-                }
-            ))
-
-        case "stroke":
-            return .stroke(StrokeItem(
-                rectangle: try rectangle("rect"),
-                radius: try number("radius"),
-                width: try number("width"),
-                color: try color(),
-                trim: try number("trim")
-            ))
-
-        case "arrow":
-            return .arrow(ArrowItem(
-                tail: try point("tail"),
-                head: try point("head"),
-                width: try number("width"),
-                headSize: try number("headSize"),
-                color: try color()
-            ))
+        case "path":
+            return .path(try path(item))
 
         case "glyphs":
             return .glyphs(try glyphs(item))
 
         default:
-            return .adjust(AdjustItem(
-                rectangle: try item.member("rect").optional(values.rectangle),
-                filter: try filter(item.member("filter"), seed: seed)
-            ))
+            return .adjust(AdjustItem(filter: try filter(item.member("filter"), seed: seed)))
         }
     }
 
@@ -243,20 +263,63 @@ package struct DisplayListReader: Sendable {
                     color: try values.color(border.member("color"))
                 )
             },
-            shadow: try item.member("shadow").optional { value in
-                let shadow = try value.object(keys: ["radius", "offset", "color"])
-
-                return MediaShadow(
-                    radius: try shadow.member("radius").number(),
-                    offset: try values.point(shadow.member("offset")),
-                    color: try values.color(shadow.member("color"))
-                )
-            }
+            shadow: try item.member("shadow").optional(shadow)
         )
     }
 
-    // `{media, frame}` for a frame of media and `{list}` for a nested list, which takes the seed of the list holding
-    // it.
+    private func path(_ item: PlacedJSONObject) throws -> PathItem {
+        PathItem(
+            geometry: try values.geometry(item.member("geometry")),
+            fill: try item.member("fill").optional(values.color),
+            stroke: try item.member("stroke").optional { value in
+                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end"])
+
+                return PathStroke(
+                    width: try stroke.member("width").number(),
+                    color: try values.color(stroke.member("color")),
+                    join: try literal(stroke.member("join")),
+                    cap: try literal(stroke.member("cap")),
+                    start: try literal(stroke.member("start")),
+                    end: try literal(stroke.member("end"))
+                )
+            },
+            trim: try trim(item.member("trim")),
+            shadow: try item.member("shadow").optional(shadow)
+        )
+    }
+
+    // `[a, b]`, each from 0 to 1.
+    private func trim(_ value: PlacedJSONValue) throws -> Trim {
+        let numbers = try value.numbers(count: 2)
+        for (element, number) in zip(try value.elements(), numbers) where !(0...1).contains(number) {
+            throw ModelError.invalidValue(
+                place: element.place,
+                kind: element.kind,
+                reason: "a trim runs from 0 to 1, found \(element.value.written)"
+            )
+        }
+
+        return Trim(start: numbers[0], end: numbers[1])
+    }
+
+    private func shadow(_ value: PlacedJSONValue) throws -> DropShadow {
+        let shadow = try value.object(keys: ["radius", "offset", "color"])
+
+        return DropShadow(
+            radius: try shadow.member("radius").number(),
+            offset: try values.point(shadow.member("offset")),
+            color: try values.color(shadow.member("color"))
+        )
+    }
+
+    // A name among the literals a stroke or mask key takes.
+    private func literal<Literal: CaseIterable & RawRepresentable>(
+        _ value: PlacedJSONValue
+    ) throws -> Literal where Literal.RawValue == String {
+        try value.name(among: Literal.allCases.map(\.rawValue), Literal.init(rawValue:))
+    }
+
+    // `{media, frame}` for a frame of media and `{list}` for a nested list.
     private func source(
         _ value: PlacedJSONValue,
         seed: Int
@@ -265,9 +328,17 @@ package struct DisplayListReader: Sendable {
             return .media(try frame(of: value.object(keys: ["media", "frame"]), mediaKey: "media"))
         }
 
+        return .displayList(try nestedList(value, seed: seed))
+    }
+
+    // `{list}`, a list without the version, which takes the seed of the list holding it.
+    private func nestedList(
+        _ value: PlacedJSONValue,
+        seed: Int
+    ) throws -> DisplayList {
         let list = try value.object(keys: ["list"]).member("list").object(kind: "display list", keys: Self.listKeys)
 
-        return .displayList(try self.list(list, seed: seed))
+        return try self.list(list, seed: seed)
     }
 
     // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it.

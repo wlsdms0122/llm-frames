@@ -30,7 +30,7 @@ struct GeometryFinderTests {
     @Test("a static area is found at the clip's instant, in the media time of the storyline clip it is on")
     func findsStaticAreaAtInstant() throws {
         // Given
-        let plan = try plan(#"{ "shape": "box", "parent": "screen", "area": { "text": "Total", "padding": 14 } }"#)
+        let plan = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total", "padding": 14 } }"#)
         let clip = plan.sequence.storyline[0].connected[0]
 
         // When
@@ -49,7 +49,7 @@ struct GeometryFinderTests {
     func findsKeyframesAtTheirTimes() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "box", "parent": "screen", "at": [1, 3],
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [1, 3],
               "keyframes": [ { "at": 1, "area": { "text": "Total" }, "ease": "ease-in-out" }, { "at": 2.5, "area": { "text": "Total" } } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
@@ -73,9 +73,9 @@ struct GeometryFinderTests {
     func findsAtStorylineMediaTime() throws {
         // Given
         let keyframed = try plan(#"""
-            { "shape": "box", "at": [1.5, 3], "keyframes": [ { "at": 1.5, "area": { "text": "Total" } }, { "at": 3, "area": { "text": "Total" } } ] }
+            { "shape": "rect", "stroke": { "width": 8 }, "at": [1.5, 3], "keyframes": [ { "at": 1.5, "area": { "text": "Total" } }, { "at": 3, "area": { "text": "Total" } } ] }
             """#, storylineKeys: #""speed": 2,"#)
-        let still = try plan(#"{ "shape": "box", "at": [2, 3], "area": { "text": "Total" } }"#, storylineKeys: #""speed": 2,"#)
+        let still = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "at": [2, 3], "area": { "text": "Total" } }"#, storylineKeys: #""speed": 2,"#)
         let storyline = keyframed.storyline[0]
 
         // When
@@ -98,7 +98,7 @@ struct GeometryFinderTests {
     func namesKeyframeInStop() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "box", "parent": "screen", "keyframes": [ { "at": 1, "area": { "text": "Total" } }, { "at": 2, "area": { "text": "Cart" } } ] }
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "keyframes": [ { "at": 1, "area": { "text": "Total" } }, { "at": 2, "area": { "text": "Cart" } } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -107,7 +107,7 @@ struct GeometryFinderTests {
             try find(clip.area, plan: plan, instant: plan.clips[0].window.start)
         }
         #expect(error?.description == #"""
-            storyline[0]#screen.connected[0].keyframes[1].area (box): no line of "/abs/screen.mp4" at media second 2 \#
+            storyline[0]#screen.connected[0].keyframes[1].area (rect): no line of "/abs/screen.mp4" at media second 2 \#
             contains "Cart"
             """#)
     }
@@ -236,7 +236,7 @@ struct GeometryFinderTests {
             clock: plan.clips[0].clock,
             instant: instant,
             place: plan.clips[0].place,
-            kind: "box"
+            kind: "rect"
         )
     }
 }

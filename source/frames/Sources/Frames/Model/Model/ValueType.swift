@@ -24,12 +24,18 @@ indirect enum ValueType: Equatable, Sendable {
     case ease
     case literal([String])
     case numbers(Int)
+    // A list of that many numbers, each from 0 to 1.
+    case fractions(Int)
+    // A list of at least two points, each as `position` takes it.
+    case points
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)
     case oneOf([ValueType])
     case area
     case crop
+    // A mask, or a list of at least one mask, each taking the keys of its shape.
+    case masks
     case margin
     case media
     case document

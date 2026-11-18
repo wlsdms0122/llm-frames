@@ -54,6 +54,26 @@ struct ConvexPolygon: Equatable, Sendable {
         self.init(corners: transform.apply(toCornersOf: rectangle))
     }
 
+    // The convex hull of the points by Andrew's monotone chain, which covers all a nonzero fill of them can.
+    init(hullOf points: [Point]) {
+        let sorted = points.sorted { ($0.x, $0.y) < ($1.x, $1.y) }
+        let turnsClockwise = { (chain: [Point], point: Point) in
+            Self.cross(from: chain[chain.count - 2], to: chain[chain.count - 1], point: point) > 0
+        }
+        let chain = { (points: [Point]) in
+            points.reduce(into: [Point]()) { chain, point in
+                while chain.count >= 2, !turnsClockwise(chain, point) {
+                    chain.removeLast()
+                }
+                chain.append(point)
+            }
+        }
+        let lower = chain(sorted)
+        let upper = chain(sorted.reversed())
+
+        self.init(corners: Array(lower.dropLast() + upper.dropLast()))
+    }
+
     // MARK: - Public
     func applying(_ transform: AffineTransform) -> ConvexPolygon {
         ConvexPolygon(corners: corners.map(transform.apply(to:)))

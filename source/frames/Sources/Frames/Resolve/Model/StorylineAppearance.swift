@@ -19,7 +19,7 @@ struct StorylineAppearance: Equatable, Sendable {
     let blend: String
     let radius: Double
     let border: MediaBorder?
-    let shadow: MediaShadow?
+    let shadow: DropShadow?
 
     // MARK: - Initializer
     init(
@@ -30,7 +30,7 @@ struct StorylineAppearance: Equatable, Sendable {
         blend: String,
         radius: Double,
         border: MediaBorder?,
-        shadow: MediaShadow?
+        shadow: DropShadow?
     ) {
         self.box = box
         self.opacity = opacity

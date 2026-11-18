@@ -23,7 +23,32 @@ struct LocationReporterTests {
         frameTimes: [0, 0.5, 1, 1.5]
     )
     private let clip = ItemOrigin(place: "clips[1]#shot", id: "shot", kind: "video")
-    private let box = ItemOrigin(place: "clips[0]", id: nil, kind: "box")
+    private let rect = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")
+
+    // Masks over a fill of the whole frame, a point, and whether the point is under the masked fill.
+    private static let maskCases: [([ItemMask], Point, Bool)] = [
+        ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 20, y: 20), true),
+        ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 100, y: 50), false),
+        ([itemMask(.ellipse(Rectangle(x: 0, y: 0, width: 10, height: 10)), transform: doubled)], Point(x: 60, y: 10), true),
+        ([itemMask(.ellipse(Rectangle(x: 0, y: 0, width: 10, height: 10)), transform: doubled)], Point(x: 40, y: 10), false),
+        ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 10, y: 10), true),
+        ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 90, y: 90), false),
+        ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 20), true),
+        ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 80), false),
+        ([itemMask(square), itemMask(.rect(Rectangle(x: 0, y: 0, width: 5, height: 5), radius: 0), feather: 1)], Point(x: 100, y: 50), true),
+        ([itemMask(.rect(left, radius: 0)), itemMask(.rect(right, radius: 0), mode: .intersect)], Point(x: 25, y: 50), false),
+        ([itemMask(.rect(left, radius: 0)), itemMask(.rect(right, radius: 0), mode: .intersect)], Point(x: 75, y: 50), true),
+        ([itemMask(square, mode: .intersect)], Point(x: 100, y: 50), false),
+        ([itemMask(square, isInverted: true)], Point(x: 100, y: 50), true),
+        ([itemMask(square, feather: 2)], Point(x: 100, y: 50), true),
+        ([itemMask(square, feather: 2, mode: .intersect)], Point(x: 100, y: 50), true),
+        ([itemMask(square, isInverted: true, mode: .intersect)], Point(x: 100, y: 50), true),
+        ([itemMask(square, mode: .subtract)], Point(x: 20, y: 20), true)
+    ]
+    private static let square = PathGeometry.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 0)
+    private static let left = Rectangle(x: 0, y: 0, width: 100, height: 100)
+    private static let right = Rectangle(x: 50, y: 0, width: 150, height: 100)
+    private static let doubled = AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 50, ty: 0)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -104,14 +129,13 @@ struct LocationReporterTests {
         #expect(hit.media?.mediaTime == 0)
     }
 
-    @Test("hits come topmost first, and a point in a fill's hole, a stroke's middle or outside a mask is not under it")
+    @Test("hits come topmost first, and a point beside a fill, in a stroked rect's middle or outside a mask is not under it")
     func listsHitsTopmostFirst() {
         // Given
         let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
-        let outside = DisplayItem(content: .fill(FillItem(
-            rectangle: frame,
-            color: red,
-            hole: RoundedRectangle(rectangle: Rectangle(x: 50, y: 0, width: 100, height: 100), radius: 0)
+        let outside = DisplayItem(content: .path(PathItem(
+            filling: Rectangle(x: 0, y: 0, width: 50, height: 100),
+            color: red
         )))
         let picture = DisplayItem(
             content: .picture(PictureItem(
@@ -122,17 +146,16 @@ struct LocationReporterTests {
             origin: clip
         )
         let stroke = DisplayItem(
-            content: .stroke(StrokeItem(
-                rectangle: Rectangle(x: 80, y: 20, width: 40, height: 40),
-                radius: 0,
-                width: 4,
-                color: red
+            content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 80, y: 20, width: 40, height: 40), radius: 0),
+                fill: nil,
+                stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .none)
             )),
-            origin: box
+            origin: rect
         )
         let masked = DisplayItem(
-            mask: Rectangle(x: 0, y: 0, width: 10, height: 10),
-            content: .fill(FillItem(rectangle: frame, color: red))
+            mask: mask(Rectangle(x: 0, y: 0, width: 10, height: 10)),
+            content: .path(PathItem(filling: frame, color: red))
         )
 
         // When
@@ -141,7 +164,7 @@ struct LocationReporterTests {
         let inMargin = sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 20, y: 40))
 
         // Then
-        #expect(onEdge.hits.map(\.origin) == [box, clip])
+        #expect(onEdge.hits.map(\.origin) == [rect, clip])
         #expect(inMiddle.hits.map(\.origin) == [clip])
         #expect(inMargin.hits.map(\.origin) == [clip, nil])
     }
@@ -164,18 +187,16 @@ struct LocationReporterTests {
         ])
     }
 
-    @Test("an arrow is under the point on its shaft and its head, but not beside the head's tip")
+    @Test("a path with an arrowhead is under the point on its line and its head, but not beside the head's tip")
     func hitsArrowShape() {
         // Given
         let arrow = DisplayItem(
-            content: .arrow(ArrowItem(
-                tail: Point(x: 10, y: 50),
-                head: Point(x: 110, y: 50),
-                width: 4,
-                headSize: 20,
-                color: red
+            content: .path(PathItem(
+                geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
+                fill: nil,
+                stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow)
             )),
-            origin: ItemOrigin(place: "clips[2]", id: nil, kind: "arrow")
+            origin: ItemOrigin(place: "clips[2]", id: nil, kind: "shape")
         )
 
         // When
@@ -185,6 +206,89 @@ struct LocationReporterTests {
 
         // Then
         #expect(hits == [1, 1, 0])
+    }
+
+    @Test("a trimmed path's arrowhead sits at the end of its drawn stroke, and nothing past it is under the point")
+    func hitsTrimmedArrowShape() {
+        // Given
+        // Half of the line is drawn, to x = 60, its head from its base at x = 44 to its tip there.
+        let arrow = DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
+            fill: nil,
+            stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 0.5)
+        )))
+
+        // When
+        let hits = [Point(x: 30, y: 51), Point(x: 50, y: 54), Point(x: 90, y: 50)].map { point in
+            sut.report(of: list([arrow]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 1, 0])
+    }
+
+    @Test("a trimmed rect's arrowhead past its outline is under the point, and nothing beside the head is")
+    func hitsTrimmedRectArrowhead() {
+        // Given
+        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, where the head points down with
+        // its tip at (80, 41) and its base 16 above it, from x = 72 to 88 at y = 25, above the stroked rect's top at 38.
+        let arrow = DisplayItem(content: .path(PathItem(
+            geometry: .rect(Rectangle(x: 20, y: 40, width: 60, height: 40), radius: 0),
+            fill: nil,
+            stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .arrow),
+            trim: Trim(start: 0, end: 61.0 / 200)
+        )))
+
+        // When
+        let hits = [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
+            sut.report(of: list([arrow]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 0])
+    }
+
+    @Test(
+        "a sharp add or intersect mask narrows an item to its geometry, and an inverted, feathered or subtract one does not",
+        arguments: maskCases
+    )
+    func narrowsCoverageByMasks(
+        masks: [ItemMask],
+        point: Point,
+        isHit: Bool
+    ) {
+        // Given
+        let item = DisplayItem(
+            mask: masks,
+            content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 200, height: 100), color: red)),
+            origin: rect
+        )
+
+        // When
+        let report = sut.report(of: list([item]), point: point)
+
+        // Then
+        #expect(report.hits.map(\.origin) == (isHit ? [rect] : []))
+    }
+
+    @Test("an adjustment covers its list's frame, not carried by its own transform, cut by its mask")
+    func coversAdjustmentFrame() {
+        // Given
+        let adjust = DisplayItem(
+            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
+            mask: mask(Rectangle(x: 100, y: 0, width: 100, height: 100)),
+            content: .adjust(AdjustItem(filter: [.blur(radius: 2)])),
+            origin: rect
+        )
+
+        // When
+        let inside = sut.report(of: list([adjust]), point: Point(x: 150, y: 80))
+        let outside = sut.report(of: list([adjust]), point: Point(x: 50, y: 20))
+
+        // Then
+        #expect(inside.hits.map(\.origin) == [rect])
+        #expect(outside.hits.isEmpty)
     }
 
     @Test("a resolved document is located at the time, its storyline media mapped back into the frame it draws")
@@ -215,7 +319,7 @@ struct LocationReporterTests {
     func writesMachineOutput() {
         // Given
         let report = LocationReport(hits: [
-            LocationHit(origin: box, media: nil),
+            LocationHit(origin: rect, media: nil),
             LocationHit(
                 origin: clip,
                 media: LocatedMedia(file: "/abs/run.mp4", mediaTime: 0.5, point: Point(x: 0.1 + 0.2, y: 4))
@@ -234,7 +338,7 @@ struct LocationReporterTests {
                 {
                   "place": "clips[0]",
                   "id": null,
-                  "kind": "box"
+                  "kind": "rect"
                 },
                 {
                   "place": "clips[1]#shot",
@@ -256,6 +360,21 @@ struct LocationReporterTests {
     }
 
     // MARK: - Private
+    private static func itemMask(
+        _ geometry: PathGeometry,
+        transform: AffineTransform = .identity,
+        feather: Double = 0,
+        isInverted: Bool = false,
+        mode: MaskMode = .add
+    ) -> ItemMask {
+        ItemMask(geometry: geometry, transform: transform, feather: feather, isInverted: isInverted, mode: mode)
+    }
+
+    // One sharp `add` mask of the rectangle in output pixels.
+    private func mask(_ rectangle: Rectangle) -> [ItemMask] {
+        [Self.itemMask(.rect(rectangle, radius: 0))]
+    }
+
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
     }

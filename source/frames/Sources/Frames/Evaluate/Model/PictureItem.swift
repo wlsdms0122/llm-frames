@@ -18,7 +18,7 @@ package struct PictureItem: Equatable, Sendable {
     package let matte: PictureMatte?
     package let radius: Double
     package let border: MediaBorder?
-    package let shadow: MediaShadow?
+    package let shadow: DropShadow?
 
     // MARK: - Initializer
     package init(
@@ -29,7 +29,7 @@ package struct PictureItem: Equatable, Sendable {
         matte: PictureMatte? = nil,
         radius: Double = 0,
         border: MediaBorder? = nil,
-        shadow: MediaShadow? = nil
+        shadow: DropShadow? = nil
     ) {
         self.source = source
         self.rectangle = rectangle

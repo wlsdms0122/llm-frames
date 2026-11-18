@@ -57,25 +57,6 @@ struct RevealTests {
         #expect(noneWiped == Rectangle(x: 10, y: 20, width: 0, height: 50))
     }
 
-    @Test("a dim's hole closes in from all it darkens to the area", arguments: [
-        (0.0, Rectangle(x: 0, y: 0, width: 1000, height: 1000)),
-        (0.5, Rectangle(x: 200, y: 150, width: 600, height: 550)),
-        (1.0, Rectangle(x: 400, y: 300, width: 200, height: 100))
-    ])
-    func closesHole(amount: Double, hole: Rectangle) {
-        // Given
-        let sut = Reveal(amount: amount)
-
-        // When
-        let closing = sut.hole(
-            closingFrom: Rectangle(x: 0, y: 0, width: 1000, height: 1000),
-            to: Rectangle(x: 400, y: 300, width: 200, height: 100)
-        )
-
-        // Then
-        #expect(closing == hole)
-    }
-
     @Test("a box's stroke is trimmed to the amount shown")
     func trimsStroke() {
         // Given
