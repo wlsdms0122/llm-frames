@@ -27,7 +27,7 @@ struct SequenceCheckTests {
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],
-                  "connected": [ { "at": [2, 8], "title": "**Emphasis** subtitle", "style": "subtitle" } ] },
+                  "connected": [ { "at": [2, 8], "title": "Subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
                   "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Sent" }, "animation": "frames/stamp" },
@@ -795,6 +795,42 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == "clips[0].width (title): expected a number above 0, found 0")
+    }
+
+    @Test("a title is a list of runs, each its text with a style or without one")
+    func acceptsTitleRuns() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": [ { "text": "Ana Ruiz", "style": "name" }, { "text": "\nDirector" } ],
+              "style": "role", "at": [0, 1] } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a list of runs holds at least one run, and a run is an object of its text and style with its text",
+        arguments: [
+            (#"[]"#, "clips[0].title (title): a list of runs holds at least one run, since a title without one has nothing to show"),
+            (#"[ "Ana" ]"#, #"clips[0].title[0] (title): expected an object (run), found "Ana""#),
+            (##"[ { "text": "Ana", "color": "#FFFFFF" } ]"##, #"clips[0].title[0] (run): unknown key "color". Allowed: text, style"#),
+            (#"[ { "style": "name" } ]"#, #"clips[0].title[0] (run): missing key "text""#),
+            (#"[ { "text": 3 } ]"#, "clips[0].title[0].text (run): expected a string, found 3")
+        ]
+    )
+    func refusesMalformedRuns(
+        title: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "title": \#(title), "style": "role", "at": [0, 1] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test("a media clip's radius of 0 leaves square corners")

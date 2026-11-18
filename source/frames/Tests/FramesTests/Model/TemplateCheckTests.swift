@@ -37,6 +37,25 @@ struct TemplateCheckTests {
         try sut.check(document: document)
     }
 
+    @Test(
+        "a text parameter stands for a whole title and for a run's text, and a choice for a run's style",
+        arguments: [
+            #"{ "title": { "param": "name" }, "style": "s" }"#,
+            #"{ "title": [ { "text": { "param": "name" }, "style": { "param": "look" } }, { "text": " and more" } ], "style": "s" }"#
+        ]
+    )
+    func acceptsRunParameters(clip: String) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "params": { "name": { "type": "text" }, "look": { "type": "choice", "options": ["name", "role"], "default": "name" } },
+              "clips": [ \#(clip), { "title": "x", "style": { "param": "look" } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
     @Test("a media parameter's type picks the media row")
     func picksRowByParameterType() throws {
         // Given
@@ -64,7 +83,9 @@ struct TemplateCheckTests {
             (#"{ "where": { "type": "choice", "options": ["top", "middle"] } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "nam" is not declared in params"#)
+             #"clips[0].title (title): parameter "nam" is not declared in params"#),
+            (#"{ "name": { "type": "text" } }"#, #"{ "title": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
+             #"clips[0].title[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
         ]
     )
     func refusesMisplacedParameter(
