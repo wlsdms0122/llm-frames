@@ -140,7 +140,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "stroke", "background"]
+            ["size", "runs", "background"]
 
         default:
             ["filter"]
@@ -372,14 +372,6 @@ package struct DisplayListReader: Sendable {
         GlyphsItem(
             size: try values.size(item.member("size")),
             runs: try values.runs(item.member("runs")),
-            stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color"])
-
-                return TextStroke(
-                    width: try stroke.member("width").number(),
-                    color: try values.color(stroke.member("color"))
-                )
-            },
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 

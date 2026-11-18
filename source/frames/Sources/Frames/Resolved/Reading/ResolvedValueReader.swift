@@ -259,7 +259,7 @@ struct ResolvedValueReader: Sendable {
     }
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
-        let text = try value.object(keys: ["size", "lines", "background", "stroke", "runs"])
+        let text = try value.object(keys: ["size", "lines", "background", "runs"])
 
         return ResolvedText(
             size: try size(text.member("size")),
@@ -272,11 +272,6 @@ struct ResolvedValueReader: Sendable {
                     padding: try size(background.member("padding")),
                     radius: try background.member("radius").number()
                 )
-            },
-            stroke: try text.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color"])
-
-                return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
             },
             runs: try runs(text.member("runs"))
         )
@@ -300,13 +295,18 @@ struct ResolvedValueReader: Sendable {
 
     // A glyph is `[id, x, y]`, its baseline origin in the text's box.
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
-        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "glyphs"])
+        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
 
         return ResolvedGlyphRun(
             font: try pinned(run),
             face: try run.member("face").string(),
             size: try run.member("size").number(),
             color: try color(run.member("color")),
+            stroke: try run.member("stroke").optional { value in
+                let stroke = try value.object(keys: ["width", "color"])
+
+                return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
+            },
             glyphs: try run.member("glyphs").elements().map { element in
                 let numbers = try element.numbers(count: 3)
                 guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }

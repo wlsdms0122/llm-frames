@@ -187,8 +187,8 @@ struct ResolvedValueWriter: Sendable {
         ]))
     }
 
-    // Glyph runs carry their font file pinned, the face in it, size and colour, and each glyph as `[id, x, y]`, its
-    // baseline origin in the text's box.
+    // Glyph runs carry their font file pinned, the face in it, size, colour and stroke, and each glyph as `[id, x, y]`,
+    // its baseline origin in the text's box.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
@@ -197,18 +197,11 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "radius", value: .number(background.radius))
             ]))
         }
-        let stroke = text.stroke.map { stroke in
-            JSONValue.object(JSONObject(members: [
-                JSONMember(key: "width", value: .number(stroke.width)),
-                JSONMember(key: "color", value: color(stroke.color))
-            ]))
-        }
 
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
             JSONMember(key: "lines", value: .number(Double(text.lineCount))),
             JSONMember(key: "background", value: background ?? .null),
-            JSONMember(key: "stroke", value: stroke ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))
     }
@@ -219,12 +212,20 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "face", value: .string(run.face)),
                 JSONMember(key: "size", value: .number(run.size)),
                 JSONMember(key: "color", value: color(run.color)),
+                JSONMember(key: "stroke", value: run.stroke.map(stroke) ?? .null),
                 JSONMember(key: "glyphs", value: .array(run.glyphs.map { numbers([Double($0.id), $0.x, $0.y]) }))
             ]))
         })
     }
 
     // MARK: - Private
+    private func stroke(_ stroke: TextStroke) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "width", value: .number(stroke.width)),
+            JSONMember(key: "color", value: color(stroke.color))
+        ]))
+    }
+
     private func members(of operation: ResolvedFilterOperation) -> [JSONMember] {
         let kind = { (name: String) in JSONMember(key: "op", value: .string(name)) }
         let value = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }

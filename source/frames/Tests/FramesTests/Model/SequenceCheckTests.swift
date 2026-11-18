@@ -38,7 +38,7 @@ struct SequenceCheckTests {
                                    "keyframes": [ { "at": 1.2, "area": { "text": "First line" } }, { "at": 1.65, "area": { "text": "Second line" } } ] } ] }
               ],
               "clips": [
-                { "at": [0, 30], "title": "Top title\n**emphasis**", "style": "headline", "lane": 2 },
+                { "at": [0, 30], "title": "Top title\nSecond line", "style": "headline", "lane": 2 },
                 { "at": [1, 6], "media": "/abs/log.png", "width": 420, "radius": 24, "shadow": true,
                   "animation": { "entrance": "frames/pop", "exit": "frames/fade" }, "lane": 5,
                   "keyframes": [ { "at": 3, "position": [600, 500], "ease": "ease-in-out" }, { "at": 4, "position": [330, 900], "scale": 1.5 } ] },

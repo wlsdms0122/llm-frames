@@ -142,8 +142,8 @@ struct SequenceReader: Sendable {
         if let kind = object["shape"]?.stringValue.flatMap(ShapeKind.init(rawValue:)) {
             return .shape(shape(kind, of: object))
         }
-        if let title = object["title"]?.stringValue {
-            return .title(text: title, style: object["style"]?.stringValue ?? "")
+        if let title = object["title"] {
+            return .title(runs: TitleRun.runs(in: title), style: object["style"]?.stringValue ?? "")
         }
 
         return .adjust

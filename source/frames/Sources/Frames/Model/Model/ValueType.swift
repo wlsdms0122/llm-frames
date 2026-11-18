@@ -38,6 +38,8 @@ indirect enum ValueType: Equatable, Sendable {
     case crop
     // A mask, or a list of at least one mask, each taking the keys of its shape.
     case masks
+    // A title's text: a string, or a list of at least one run.
+    case runs
     case margin
     case media
     case document

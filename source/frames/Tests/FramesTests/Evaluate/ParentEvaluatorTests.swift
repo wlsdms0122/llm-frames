@@ -30,7 +30,6 @@ struct ParentEvaluatorTests {
         size: Size(width: 100, height: 40),
         lineCount: 1,
         background: nil,
-        stroke: nil,
         runs: []
     )
 

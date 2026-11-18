@@ -207,9 +207,10 @@ struct ResolvedSequencePinnedReferencesTests {
             face: "Font-Bold",
             size: 20,
             color: Color(written: "#FFFFFF"),
+            stroke: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 16)]
         )
 
-        return ResolvedText(size: size, lineCount: 1, background: nil, stroke: nil, runs: [run])
+        return ResolvedText(size: size, lineCount: 1, background: nil, runs: [run])
     }
 }

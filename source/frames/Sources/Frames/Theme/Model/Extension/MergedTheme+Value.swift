@@ -88,33 +88,44 @@ extension MergedTheme {
         value(at: ["styles", name, "offset"])?.numberValue
     }
 
-    // A style with its lengths multiplied by `scale`. A property it leaves out takes the plain value: regular, the
-    // `text` colour, the `accent` colour for emphasis, a line height of 1.25 times its size, left, no stroke, no background and no limit
-    // on lines. A background leaves out the `background` colour, no padding and no radius, and a stroke the `text`
-    // colour. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a name
-    // the theme does not hold.
-    func style(
+    // A style's character attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
+    // value: regular, the `text` colour and no stroke, and a stroke without a colour takes the `text` colour. Every
+    // style has a size, since the merged theme stopped on one without, and the typesetter stopped on a name the theme
+    // does not hold.
+    func characterStyle(
         named name: String,
         scale: Double
-    ) -> TextStyle {
-        let style = value(at: ["styles", name])?.objectValue ?? JSONObject()
-        let size = style["size"]?.numberValue ?? 0
-
+    ) -> CharacterStyle {
+        let style = style(named: name)
         let font = Place(components: [.key("font")])
-        return TextStyle(
+
+        return CharacterStyle(
             families: (value(at: ["font"])?.arrayValue ?? []).compactMap(\.stringValue),
             pack: pack(of: font),
-            size: size * scale,
             weight: style["weight"]?.stringValue.flatMap(FontWeight.init) ?? .regular,
+            size: (style["size"]?.numberValue ?? 0) * scale,
             color: color(style["color"]?.stringValue ?? "text"),
-            emphasis: color(style["emphasis"]?.stringValue ?? "accent"),
-            lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
             stroke: style["stroke"]?.objectValue.map { stroke in
                 TextStroke(
                     width: (stroke["width"]?.numberValue ?? 0) * scale,
                     color: color(stroke["color"]?.stringValue ?? "text")
                 )
-            },
+            }
+        )
+    }
+
+    // A style's paragraph attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
+    // value: a line height of 1.25 times its size, left, no background and no limit on lines. A background leaves out
+    // the `background` colour, no padding and no radius.
+    func paragraphStyle(
+        named name: String,
+        scale: Double
+    ) -> ParagraphStyle {
+        let style = style(named: name)
+        let size = style["size"]?.numberValue ?? 0
+
+        return ParagraphStyle(
+            lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
             background: style["background"]?.objectValue.map { background in
                 let padding = background["padding"]?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
                 return TextBackground(
@@ -131,6 +142,10 @@ extension MergedTheme {
     // MARK: - Private
     private func value(at path: [String]) -> JSONValue? {
         path.reduce(Optional(value)) { value, key in value?.objectValue?[key] }
+    }
+
+    private func style(named name: String) -> JSONObject {
+        value(at: ["styles", name])?.objectValue ?? JSONObject()
     }
 
     private func number(at path: [String]) -> Double {

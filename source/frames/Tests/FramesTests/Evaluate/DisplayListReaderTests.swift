@@ -125,14 +125,14 @@ struct DisplayListReaderTests {
                     face: "Inter-Bold",
                     size: 32,
                     color: Color(written: "#FFFFFF"),
+                    stroke: TextStroke(width: 2, color: Color(written: "#000000")),
                     glyphs: [PositionedGlyph(id: 43, x: 12, y: 36), PositionedGlyph(id: 76, x: 34.5, y: 36)]
                 )],
-                stroke: TextStroke(width: 2, color: Color(written: "#000000")),
                 background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "#111111CC"))
             )),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
-        DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], stroke: nil, background: nil))),
+        DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], background: nil))),
         DisplayItem(content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))),
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
