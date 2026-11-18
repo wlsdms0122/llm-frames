@@ -77,18 +77,17 @@ struct DrawnStrokeTests {
     }
 
     @Test(
-        "a path item's stroke ends in an arrowhead only where its drawn stroke has an end, and reaches half a head's base out",
+        "a path item's stroke ends in an arrowhead only where its drawn stroke has an end",
         arguments: [
-            (PathGeometry.rect(Rectangle(x: 0, y: 0, width: 10, height: 10), radius: 0), Trim.whole, false, 1.0),
-            (PathGeometry.rect(Rectangle(x: 0, y: 0, width: 10, height: 10), radius: 0), Trim(start: 0, end: 0.5), true, 4.0),
-            (PathGeometry.polyline([Point(x: 0, y: 0), Point(x: 10, y: 0)], isClosed: false), Trim.whole, true, 4.0)
+            (PathGeometry.rect(Rectangle(x: 0, y: 0, width: 10, height: 10), radius: 0), Trim.whole, false),
+            (PathGeometry.rect(Rectangle(x: 0, y: 0, width: 10, height: 10), radius: 0), Trim(start: 0, end: 0.5), true),
+            (PathGeometry.polyline([Point(x: 0, y: 0), Point(x: 10, y: 0)], isClosed: false), Trim.whole, true)
         ]
     )
     func knowsArrowhead(
         geometry: PathGeometry,
         trim: Trim,
-        hasArrowhead: Bool,
-        reach: Double
+        hasArrowhead: Bool
     ) throws {
         // Given
         let sut = PathItem(geometry: geometry, fill: nil, stroke: Self.stroke, trim: trim)
@@ -98,7 +97,6 @@ struct DrawnStrokeTests {
 
         // Then
         #expect(result.hasArrowhead == hasArrowhead)
-        #expect(result.reach == reach)
     }
 
     // MARK: - Private

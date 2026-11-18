@@ -10,7 +10,7 @@
 // of the stroke as drawn, so an open outline's stroke has an end at both, and a closed outline's only where its trim
 // leaves part of it undrawn: drawn whole, it has no end and takes no arrowhead. A head is `4 × width` long and as wide
 // at its base, and heads that together are longer than the drawn stroke shrink to share its length. The line runs
-// between the heads' bases.
+// between the heads' bases. Where a head lies is the outline's to say (`PathOutline.arrowheads(of:)`).
 package struct DrawnStroke: Equatable, Sendable {
     // MARK: - Property
     package let isDrawn: Bool
@@ -22,10 +22,6 @@ package struct DrawnStroke: Equatable, Sendable {
     private let width: Double
 
     package var hasArrowhead: Bool { hasStartHead || hasEndHead }
-
-    // How far the stroke and its heads reach outside the outline at most: half the stroke's width, or half a head's
-    // base where it has a head, which lies across the outline at its end.
-    package var reach: Double { hasArrowhead ? 2 * width : width / 2 }
 
     // MARK: - Initializer
     package init(

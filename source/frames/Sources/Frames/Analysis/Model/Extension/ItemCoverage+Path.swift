@@ -48,7 +48,8 @@ extension ItemCoverage {
         )
     }
 
-    // The stroke's segments between its arrowheads and the heads, as `DrawnStroke` lays them along the outline.
+    // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline, and the heads where
+    // the outline lays them.
     private static func pieces(
         of points: [Point],
         isClosed: Bool,
@@ -61,20 +62,13 @@ extension ItemCoverage {
 
         let lineStart = drawn.lineStart(along: length)
         let lineEnd = drawn.lineEnd(along: length)
-        let headLength = drawn.headLength(along: length)
         let line = lineEnd > lineStart
             ? piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
                 band(from: start, to: end, width: stroke.width)
             }
             : []
-        let startHead = drawn.hasStartHead
-            ? head(at: drawn.start(along: length), of: segments, pointing: -1, length: headLength)
-            : nil
-        let endHead = drawn.hasEndHead
-            ? head(at: drawn.end(along: length), of: segments, pointing: 1, length: headLength)
-            : nil
 
-        return line + [startHead, endHead].compactMap { $0 }
+        return line + path.arrowheads.map { ConvexPolygon(corners: $0.corners) }
     }
 
     // The parts of the segments between two distances along them.
@@ -99,35 +93,6 @@ extension ItemCoverage {
         }
 
         return parts
-    }
-
-    // A head whose tip lies at `position` along the segments and whose axis points along them (`direction` 1) or back
-    // (`direction` -1).
-    private static func head(
-        at position: Double,
-        of segments: [(Point, Point)],
-        pointing direction: Double,
-        length: Double
-    ) -> ConvexPolygon? {
-        guard length > 0 else { return nil }
-
-        let around = direction > 0
-            ? piece(of: segments, from: 0, to: position).last
-            : piece(of: segments, from: position, to: .infinity).first
-        guard let around else { return nil }
-
-        let (from, to) = around
-        let size = distance(from: from, to: to)
-        let axis = Point(x: (to.x - from.x) / size * direction, y: (to.y - from.y) / size * direction)
-        let tip = direction > 0 ? to : from
-        let base = Point(x: tip.x - axis.x * length, y: tip.y - axis.y * length)
-        let across = Point(x: -axis.y * length / 2, y: axis.x * length / 2)
-
-        return ConvexPolygon(corners: [
-            Point(x: base.x + across.x, y: base.y + across.y),
-            tip,
-            Point(x: base.x - across.x, y: base.y - across.y)
-        ])
     }
 
     private static func band(

@@ -161,9 +161,8 @@ struct ContentFitPlanner: Sendable {
         }
     }
 
-    // A shape's outline grown by half its stroke width after its transform, with its arrowheads. A path's arrowheads
-    // are measured as drawn, and a rect's or an ellipse's, which only a trim leaving part of it undrawn gives, by
-    // growing its outline by the half width of their base. A shape at scale 0 draws nothing, so it is not measured.
+    // A shape's outline grown by half its stroke width after its transform, united with its arrowheads as drawn. A
+    // shape at scale 0 draws nothing, so it is not measured.
     private func extent(
         of shape: ResolvedShape,
         clip: ResolvedClip,
@@ -174,69 +173,18 @@ struct ContentFitPlanner: Sendable {
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
         let transform = item.transform
-        switch path.geometry {
+        let half = (path.stroke?.width ?? 0) / 2
+        let outline = switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            return bounds(of: rectangle.grown(by: path.drawnStroke?.reach ?? 0), by: transform)
+            bounds(of: rectangle.grown(by: half), by: transform)
 
-        case let .polyline(points, isClosed):
-            let scale = (transform.a * transform.a + transform.b * transform.b).squareRoot()
-            let width = path.stroke?.width ?? 0
-            let outline = Rectangle(bounding: points.map(transform.apply(to:))).grown(by: width / 2 * scale)
-            let heads = arrowheads(of: points, isClosed: isClosed, path: path).map(transform.apply(to:))
-            return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
+        case let .polyline(points, _):
+            Rectangle(bounding: points.map(transform.apply(to:)))
+                .grown(by: half * (transform.a * transform.a + transform.b * transform.b).squareRoot())
         }
-    }
+        let heads = path.arrowheads.flatMap(\.corners).map(transform.apply(to:))
 
-    // The corners of a polyline's arrowheads as `DrawnStroke` lays them (FRAMES-11): each with its tip at its end of
-    // the drawn stroke and its axis along the outline's direction there, as wide at its base as it is long.
-    private func arrowheads(
-        of points: [Point],
-        isClosed: Bool,
-        path: PathItem
-    ) -> [Point] {
-        let vertices = isClosed ? points + [points[0]] : points
-        let segments = Array(zip(vertices, vertices.dropFirst()))
-        let length = segments.reduce(0) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
-        guard let drawn = path.drawnStroke else { return [] }
-
-        // The start's head points back along the outline, the end's forward.
-        let ends = [
-            (drawn.hasStartHead, drawn.start(along: length), -1.0),
-            (drawn.hasEndHead, drawn.end(along: length), 1.0)
-        ].filter(\.0)
-        let head = drawn.headLength(along: length)
-        return ends.flatMap { _, distance, sign -> [Point] in
-            guard let (tip, direction) = place(at: distance, along: segments) else { return [] }
-
-            let axis = Point(x: direction.x * sign, y: direction.y * sign)
-            let base = Point(x: tip.x - axis.x * head, y: tip.y - axis.y * head)
-            return [
-                tip,
-                Point(x: base.x - axis.y * head / 2, y: base.y + axis.x * head / 2),
-                Point(x: base.x + axis.y * head / 2, y: base.y - axis.x * head / 2)
-            ]
-        }
-    }
-
-    // The point at a distance along segments and the unit direction they run there, on the segment that reaches it.
-    private func place(
-        at distance: Double,
-        along segments: [(Point, Point)]
-    ) -> (Point, Point)? {
-        var start = 0.0
-        var last: (Point, Point)?
-        for (from, to) in segments {
-            let length = hypot(to.x - from.x, to.y - from.y)
-            guard length > 0 else { continue }
-
-            let direction = Point(x: (to.x - from.x) / length, y: (to.y - from.y) / length)
-            let along = min(max(distance - start, 0), length)
-            last = (Point(x: from.x + direction.x * along, y: from.y + direction.y * along), direction)
-            guard distance > start + length else { return last }
-
-            start += length
-        }
-        return last
+        return heads.isEmpty ? outline : outline.union(Rectangle(bounding: heads))
     }
 
     private func bounds(

@@ -55,5 +55,26 @@ package struct PathItem: Equatable, Sendable {
         stroke.map { stroke in DrawnStroke(stroke: stroke, trim: trim, isClosed: isClosed) }
     }
 
+    // The stroke's arrowheads where they lie on the outline, the start's first.
+    package var arrowheads: [Arrowhead] {
+        drawnStroke.map { drawn in PathOutline(geometry).arrowheads(of: drawn) } ?? []
+    }
+
+    // The box of what the item draws without its shadow, in its own coordinates: its outline's box grown by half its
+    // stroke width, united with the box of its arrowheads.
+    package var drawnBounds: Rectangle {
+        let outline = switch geometry {
+        case let .rect(rectangle, _), let .ellipse(rectangle):
+            rectangle
+
+        case let .polyline(points, _):
+            Rectangle(bounding: points)
+        }
+        let stroked = outline.grown(by: (stroke?.width ?? 0) / 2)
+        let heads = arrowheads.flatMap(\.corners)
+
+        return heads.isEmpty ? stroked : stroked.union(Rectangle(bounding: heads))
+    }
+
     // MARK: - Private
 }

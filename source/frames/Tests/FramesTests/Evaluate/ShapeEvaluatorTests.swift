@@ -232,16 +232,22 @@ struct ShapeEvaluatorTests {
         expect(topLeft, Point(x: anchor.x - 4, y: anchor.y - 4))
     }
 
+    // The rect is 40 by 20 at (40, 20), so its outline is 120 long. A stroke 4 wide grows the box by half its width,
+    // and an arrowhead 16 long and wide is added where it lies: at the bottom right corner, pointing down, half a trim
+    // along, and 1 below the top right corner, with its base 16 above the tip and so above the box, at 41 / 120.
     @Test(
-        "a closed rect's arrowhead grows its receiver box only where a trim leaves part of its outline undrawn",
-        arguments: [(Trim.whole, 2.0), (Trim(start: 0, end: 0.5), 8.0)]
+        "a closed rect's arrowhead adds its own box to the receiver box only where a trim leaves part of its outline undrawn",
+        arguments: [
+            (Trim.whole, Rectangle(x: 38, y: 18, width: 44, height: 24)),
+            (Trim(start: 0, end: 0.5), Rectangle(x: 38, y: 18, width: 50, height: 24)),
+            (Trim(start: 0, end: 41.0 / 120), Rectangle(x: 38, y: 5, width: 50, height: 37))
+        ]
     )
     func growsReceiverBoxByDrawnArrowheads(
         trim: Trim,
-        growth: Double
+        receiver: Rectangle
     ) throws {
         // Given
-        // A stroke 4 wide grows the box by half its width, and an arrowhead by half its base, 8.
         let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .right, keys: [
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
@@ -262,13 +268,9 @@ struct ShapeEvaluatorTests {
             .first)
 
         // Then
-        let receiver = Self.area.grown(by: growth)
-        #expect(item.reveal == Rectangle(
-            x: receiver.x + receiver.width * 0.75,
-            y: receiver.y,
-            width: receiver.width * 0.25,
-            height: receiver.height
-        ))
+        let reveal = try #require(item.reveal)
+        expect(Point(x: reveal.x, y: reveal.y), Point(x: receiver.x + receiver.width * 0.75, y: receiver.y))
+        expect(Point(x: reveal.maxX, y: reveal.maxY), Point(x: receiver.maxX, y: receiver.maxY))
     }
 
     @Test("a trim keyframed out of 0 to 1 is clamped to it")

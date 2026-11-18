@@ -289,7 +289,14 @@ struct ContentFitTests {
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
             // A whole closed outline has no ends, so its arrowhead is drawn only where a trim leaves part of it undrawn.
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 220)),
+            // Ending at the bottom right corner, the head points down from (500, 50), its base corners at (480, 10) and
+            // (520, 10), so nothing of it lies above the stroked outline.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
+            // Ending 1 below the top right corner, the head points down from (500, 1), its base 40 above that, at -39.
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 520, height: 240)),
+            // A fifth of the way round from its top, the ellipse's head lies along its curve, a base corner at
+            // (482.0, -28.5).
+            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 230)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
