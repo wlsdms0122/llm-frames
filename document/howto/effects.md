@@ -1,6 +1,6 @@
 # Effects
 
-A filter preset combines the filter ops frames has ([FRAMES-15](../../spec/FRAMES-15/SPEC.md)). An effect beyond them, such as particles, a glitch or a shader of your own, is made outside frames and brought in as media. There are two ways, depending on whether the effect adds something over the picture or changes the picture itself.
+A filter preset combines the filter ops frames has ([FRAMES-15](../../spec/FRAMES-15/SPEC.md)). An effect beyond them, such as particles, a glitch or a shader of your own, is made outside frames and brought in as media ([FRAMES-25](../../spec/FRAMES-25/SPEC.md)). There are two ways, depending on whether the effect adds something over the picture or changes the picture itself.
 
 - **Over the picture:** render the effect as its own layer and lay it over with a `blend`.
 - **On the picture:** `extract` the frames of the clip's media over its range, process them, and point the clip's `media` at the result.
@@ -15,7 +15,7 @@ Light leaks, film burns, sparks, dust and particles add light or shapes to whate
 
 - An effect that is light on black needs no alpha. `screen` and `plus-lighter` leave a picture unchanged where the layer is black and brighten it where the layer is lit, which is how light leaks and film burns are delivered.
 - An effect with its own alpha (particles, a frame, a scratch) goes over with the default `normal` blend.
-- Other modes change what the layer does: `multiply` darkens (dust, vignettes of your own), `overlay` and `soft-light` add contrast. The modes are listed in [FRAMES-11](../../spec/FRAMES-11/SPEC.md#blend-modes).
+- Other modes change what the layer does: `multiply` darkens (dust, vignettes of your own), `overlay` and `soft-light` add contrast. The modes are those of W3C Compositing and Blending: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion` and `plus-lighter` ([FRAMES-11](../../spec/FRAMES-11/SPEC.md#blend-modes)).
 - `probe` the file first: `alpha yes` says the alpha came through.
 
 A PNG sequence works the same way and needs no encoder. This Python script (Pillow and NumPy) draws a warm glow that drifts across a 1280 by 720 frame and fades in and out:
@@ -59,7 +59,7 @@ python3 leak.py /path/to/leak 45
 frames still /path/to/work/leak.json --at 0.6,1,1.3,1.9 -o /path/to/out/leak.png
 ```
 
-`screen` shows little over a light screen recording and a lot over a dark shot, so look at the result on the material it goes on. Draw the layer the size of the output, since a media clip without `width` or `height` is fitted to the output frame. To keep the effect on one storyline clip, put it in that clip's `connected`. With `parent: true` it also becomes part of that clip's picture, so a transition carries it along and its blend reaches only that picture.
+`screen` shows little over a light screen recording and a lot over a dark shot, so look at the result on the material it goes on. Draw the layer the size of the output, since a media clip without `width` or `height` is fitted to the frame. To keep the effect on one storyline clip, put it in that clip's `connected`, with `at` on the clip's clip time. With `parent` set to the clip's `id` it also moves with the clip's transform and transition motion ([FRAMES-10](../../spec/FRAMES-10/SPEC.md)). Its blend still reaches everything below it, so to blend it onto that one picture alone, put the picture and the layer together in a compound clip.
 
 ## On the picture
 
@@ -115,14 +115,15 @@ Keep the file names. They carry the order, and the image sequence plays them as 
 
 ### 3. Point the clip at them
 
-The processed range becomes its own storyline clip, a split as [GUIDE.md](../GUIDE.md#editing-without-changing-what-is-shown) teaches, and that part's `media` is the folder:
+The processed range becomes its own storyline clip, a blade as [GUIDE.md](../GUIDE.md#editing-without-changing-what-is-shown) teaches, and that part's `media` is the folder:
 
 ```json
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
     { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 1,
-      "connected": [ { "at": [0.4, 1], "shape": "box", "area": "Total" } ] },
+      "connected": [ { "at": [0.4, 1], "parent": "demo", "shape": "rect", "area": { "text": "Total", "padding": 8 },
+                       "stroke": { "color": "#F59E0B", "width": 4 } } ] },
     { "id": "demo-glitch", "media": { "imageSequence": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
       "connected": [ { "media": "/path/to/recording.mp4", "in": 1, "out": 2, "opacity": 0 } ] },
     { "id": "demo-end", "media": "/path/to/recording.mp4", "in": 2, "out": 3, "transition": "cut" }
@@ -130,12 +131,12 @@ The processed range becomes its own storyline clip, a split as [GUIDE.md](../GUI
 ```
 
 - The image sequence starts at its own media second 0, which is media second 1 of the recording. So the glitched clip takes no `in` and `out` (it plays all 30 frames), and anything connected to it moves its `at` and keyframes back by 1, the old `in`. If you extracted handles, write where the range sits in the folder: `in` is half the transition, and `out` is `in` plus the range's length.
-- An image sequence has no sound. The connected recording over the same media range, with `opacity` 0, keeps the sound playing through the glitch without drawing anything.
+- An image sequence has no sound. The connected recording over the same media range, with `opacity` 0, keeps the sound playing through the glitch without drawing anything. It has no `at`, so it spans its storyline clip.
 - The parts after the first take `"transition": "cut"`, so the theme's default transition does not play inside what was one shot.
 
 ### 4. Check that only the effect changed
 
-Run the same document with the unprocessed folder (`raw` in place of `glitched`). It should draw exactly what the original single clip drew, and comparing stills shows that the range, the rate and the times are right before you look at the effect itself:
+Run the same document with the unprocessed folder (`raw` in place of `glitched`). It should draw exactly what the original single clip drew, and comparing stills shows that the range, the rate and the times are right before you look at the effect itself. `original.json` is the recording as one storyline clip, `in` 0 and `out` 3, with the same ring:
 
 ```sh
 for t in 0.9 1 1.5 1.9667 2 2.5; do
@@ -148,6 +149,6 @@ frames still /path/to/work/glitch.json --at 0.9,1,1.5,1.97,2 -o /path/to/out/gli
 
 ## Notes
 
-- A box or other shape placed by text on a processed clip looks for the text on the processed frames, where a glitch may hide it. Point at it by the rectangle `ocr` reports on the original (`[x, y, w, h]`), or keep the shapes on the parts before and after.
+- A shape placed by text and parented to a processed clip looks for the text in the processed frames, where a glitch may hide it. Point at it by the rectangle `ocr` reports on the original (`[x, y, w, h]`), or keep the shapes on the parts before and after.
 - Processing a whole clip is the same with the whole media range. Extract only what plays, since every frame is a full size PNG.
-- An effect over everything frames draws, titles and boxes included, starts from the document itself: `extract` given a document writes the composite frames at sequence times, as `still` draws them. Process those and make the folder the storyline of a new document, with the first document connected over it at `opacity` 0 for its sound.
+- An effect over everything frames draws, titles and shapes included, starts from the document itself: `extract` given a document writes the composite frames at sequence times, as `still` draws them. Process those and make the folder the storyline of a new document, with the first document connected over it at `opacity` 0 for its sound, or render that first document to a master and use the master as media.
