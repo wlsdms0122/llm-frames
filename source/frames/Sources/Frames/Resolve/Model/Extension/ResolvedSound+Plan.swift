@@ -6,7 +6,7 @@
 //
 
 // A source of sound as resolve planned it. It plays its media, or the sounds of its nested sequence on their own clock,
-// and its volume holds from the start of its range when it has no keyframes.
+// and its volume and pan hold from the start of its range when they have no keyframes.
 extension ResolvedSound {
     // MARK: - Property
     // MARK: - Initializer
@@ -33,6 +33,7 @@ extension ResolvedSound {
             end: plan.range.end,
             audible: plan.audible,
             volume: plan.volume.keyframes(at: plan.range.start) { $0 },
+            pan: plan.pan.keyframes(at: plan.range.start) { $0 },
             fadeIn: plan.fadeIn,
             fadeOut: plan.fadeOut,
             incoming: plan.incoming,

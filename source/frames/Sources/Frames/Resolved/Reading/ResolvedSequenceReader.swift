@@ -352,7 +352,7 @@ struct ResolvedSequenceReader: Sendable {
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
             "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
-            "fadeIn", "fadeOut", "incoming", "outgoing"
+            "pan", "fadeIn", "fadeOut", "incoming", "outgoing"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
 
@@ -369,11 +369,25 @@ struct ResolvedSequenceReader: Sendable {
             end: try sound.member("end").number(),
             audible: try values.range(sound.member("audible")),
             volume: try values.numbers(sound.member("volume")),
+            pan: try values.numbers(sound.member("pan")),
             fadeIn: try range("fadeIn"),
             fadeOut: try range("fadeOut"),
-            incoming: try range("incoming"),
-            outgoing: try range("outgoing")
+            incoming: try sound.member("incoming").optional(crossfade),
+            outgoing: try sound.member("outgoing").optional(crossfade)
         )
+    }
+
+    private func crossfade(_ value: PlacedJSONValue) throws -> Crossfade {
+        let crossfade = try value.object(kind: "crossfade", keys: ["start", "end", "audio"])
+
+        return Crossfade(
+            range: TimeRange(start: try crossfade.member("start").number(), end: try crossfade.member("end").number()),
+            curve: try curve(crossfade.member("audio"))
+        )
+    }
+
+    private func curve(_ value: PlacedJSONValue) throws -> CrossfadeCurve {
+        try value.name(among: CrossfadeCurve.allCases.map(\.rawValue), CrossfadeCurve.init)
     }
 
     // Pinned media, or a nested sequence, which names its `kind`.
@@ -414,13 +428,13 @@ struct ResolvedSequenceReader: Sendable {
     private func transition(_ value: PlacedJSONValue) throws -> ResolvedTransition {
         let transition = try value.object(
             kind: "transition",
-            keys: ["start", "end", "over", "incoming", "outgoing", "cover", "matte"]
+            keys: ["start", "end", "over", "audio", "incoming", "outgoing", "cover", "matte"]
         )
-
         return ResolvedTransition(
             start: try transition.member("start").number(),
             end: try transition.member("end").number(),
             over: try transition.member("over").name(among: ["incoming", "outgoing"], TransitionOrder.init),
+            audio: try curve(transition.member("audio")),
             incoming: try transition.member("incoming").optional(values.span),
             outgoing: try transition.member("outgoing").optional(values.span),
             cover: try transition.member("cover").optional(cover),

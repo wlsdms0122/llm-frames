@@ -8,8 +8,8 @@
 // A source of sound: its pinned media, or nil for a nested sequence whose sounds are `nested`, on their own clock. It
 // plays from `in` at sequence time `origin` at `speed` up to `out` in media time, over `start` to `end` in sequence
 // time, and is heard only over `audible`. `origin` need not be `start`, as when tracking narrowed its clip's window.
-// `volume` is in sequence time, `fadeIn` and `fadeOut` are the ranges it ramps from and to 0 over, and `incoming` and
-// `outgoing` the transitions it crossfades over.
+// `volume` and `pan` are in sequence time, `fadeIn` and `fadeOut` are the ranges it ramps from and to 0 over, and
+// `incoming` and `outgoing` the transitions it crossfades over.
 struct ResolvedSound: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -24,10 +24,11 @@ struct ResolvedSound: Equatable, Sendable {
     let end: Double
     let audible: TimeRange
     let volume: [Keyframe<Double>]
+    let pan: [Keyframe<Double>]
     let fadeIn: TimeRange?
     let fadeOut: TimeRange?
-    let incoming: TimeRange?
-    let outgoing: TimeRange?
+    let incoming: Crossfade?
+    let outgoing: Crossfade?
 
     // MARK: - Initializer
     init(
@@ -43,10 +44,11 @@ struct ResolvedSound: Equatable, Sendable {
         end: Double,
         audible: TimeRange,
         volume: [Keyframe<Double>],
+        pan: [Keyframe<Double>],
         fadeIn: TimeRange?,
         fadeOut: TimeRange?,
-        incoming: TimeRange?,
-        outgoing: TimeRange?
+        incoming: Crossfade?,
+        outgoing: Crossfade?
     ) {
         self.place = place
         self.media = media
@@ -60,6 +62,7 @@ struct ResolvedSound: Equatable, Sendable {
         self.end = end
         self.audible = audible
         self.volume = volume
+        self.pan = pan
         self.fadeIn = fadeIn
         self.fadeOut = fadeOut
         self.incoming = incoming

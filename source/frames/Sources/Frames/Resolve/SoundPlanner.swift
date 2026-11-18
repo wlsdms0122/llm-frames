@@ -59,11 +59,12 @@ struct SoundPlanner: Sendable {
             loop: false,
             range: plan.drawn,
             audible: audible,
-            volume: volume(written?.volume, clock: map),
+            volume: sequenceTime(written?.volume, clock: map, default: 1),
+            pan: sequenceTime(written?.pan, clock: map, default: 0),
             fadeIn: fadeIn(written?.fadeIn, over: plan.drawn),
             fadeOut: fadeOut(written?.fadeOut, over: plan.drawn),
-            incoming: plan.transition?.range,
-            outgoing: outgoing?.range,
+            incoming: plan.transition.map(Crossfade.init(plan:)),
+            outgoing: outgoing.map(Crossfade.init(plan:)),
             nested: nested?.sound ?? []
         )
     }
@@ -98,7 +99,8 @@ struct SoundPlanner: Sendable {
             loop: timing.loop,
             range: plan.visible,
             audible: audible,
-            volume: volume(clipMedia.volume, clock: plan.clock),
+            volume: sequenceTime(clipMedia.volume, clock: plan.clock, default: 1),
+            pan: sequenceTime(clipMedia.pan, clock: plan.clock, default: 0),
             fadeIn: fadeIn(clipMedia.fadeIn, over: plan.visible),
             fadeOut: fadeOut(clipMedia.fadeOut, over: plan.visible),
             incoming: nil,
@@ -107,14 +109,16 @@ struct SoundPlanner: Sendable {
         )
     }
 
-    // Volume keyframes are on the clip's clock, so they move into sequence time.
-    private func volume(
-        _ volume: PropertyValue<Double>?,
-        clock: TimeMap
+    // Volume and pan keyframes are on the clip's clock, so they move into sequence time. A property left unwritten is its
+    // default.
+    private func sequenceTime(
+        _ property: PropertyValue<Double>?,
+        clock: TimeMap,
+        default defaultValue: Double
     ) -> PropertyValue<Double> {
-        switch volume {
+        switch property {
         case nil:
-            return .value(1)
+            return .value(defaultValue)
 
         case let .value(value):
             return .value(value)
