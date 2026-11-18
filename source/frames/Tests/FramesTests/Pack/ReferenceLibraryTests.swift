@@ -69,6 +69,50 @@ struct ReferenceLibraryTests {
         #expect(try sut.hasTemplate(named: "shorts/leak"))
     }
 
+    @Test("a template's declared parameters are read from its params alone, so media it names that is not there does not stop them")
+    func readsTemplateParameters() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "clip": { "type": "video", "default": "shorts/gone.mov", "description": "the clip" } },
+              "storyline": [ { "media": { "param": "clip" } }, { "media": "shorts/gone.mov" } ] }
+            """#,
+            in: "shorts",
+            at: "templates/promo.json"
+        )
+
+        // When
+        let parameters = try sut.templateParameters(named: "shorts/promo")
+        let missing = try sut.templateParameters(named: "shorts/nothing")
+
+        // Then
+        #expect(parameters == [Parameter(name: "clip", type: .video, defaultValue: .string("shorts/gone.mov"), description: "the clip")])
+        #expect(missing == nil)
+        #expect(throws: ModelError.missingMedia(place: Place(file: "shorts/promo", components: [.key("storyline"), .index(1, id: nil), .key("media")]), kind: "storyline clip", reference: "shorts/gone.mov")) {
+            try sut.template(named: "shorts/promo")
+        }
+    }
+
+    @Test("a template's declared parameter without a description stops where it is declared")
+    func stopsOnUndescribedParameter() throws {
+        // Given
+        try directory.write(
+            #"""
+            { "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" } } ] }
+            """#,
+            in: "shorts",
+            at: "templates/promo.json"
+        )
+
+        // When
+        let error = #expect(throws: ModelError.self) {
+            try sut.templateParameters(named: "shorts/promo")
+        }
+
+        // Then
+        #expect(error?.description == "shorts/promo: params.clip (parameter): missing key \"description\"")
+    }
+
     @Test("an error in a template file names the template as it was referred to, with the place in that file")
     func namesTemplateFile() throws {
         // Given

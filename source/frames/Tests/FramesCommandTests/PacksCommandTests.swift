@@ -95,6 +95,54 @@ struct PacksCommandTests {
             """)
     }
 
+    @Test("packs <pack> lists the parameters a template declares when the media it names is not there")
+    func listsTemplateWithoutMedia() throws {
+        // Given
+        let pack = try sut.addPack("shorts")
+        try sut.write(
+            #"""
+            { "kind": "sequence",
+              "params": { "clip": { "type": "video", "default": "shorts/gone.mov", "description": "the clip shown" } },
+              "storyline": [ { "media": { "param": "clip" } }, { "media": "shorts/gone.mov" } ] }
+            """#,
+            to: pack.appendingPathComponent("templates/promo.json")
+        )
+
+        // When
+        let code = sut.run(["packs", "shorts"])
+
+        // Then
+        #expect(code == 0)
+        #expect(sut.standardOutput == """
+            shorts  Shorts  1.2.0  Looks for shorts
+            template  shorts/promo
+              clip  video  "shorts/gone.mov"  the clip shown
+
+            """)
+    }
+
+    @Test("packs <pack> stops on a template parameter without a description, naming the template and the parameter")
+    func stopsOnBrokenTemplateParameter() throws {
+        // Given
+        let pack = try sut.addPack("shorts")
+        try sut.write(
+            #"""
+            { "kind": "sequence",
+              "params": { "name": { "type": "text" } },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "title": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
+            """#,
+            to: pack.appendingPathComponent("templates/intro.json")
+        )
+
+        // When
+        let code = sut.run(["packs", "shorts"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: shorts/intro: params.name (parameter): missing key \"description\"\n")
+    }
+
     @Test("a pack that is not there, or one without a pack.json, stops")
     func stopsOnMissingPack() throws {
         // Given

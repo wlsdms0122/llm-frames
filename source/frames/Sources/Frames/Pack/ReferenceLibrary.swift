@@ -72,6 +72,15 @@ package struct ReferenceLibrary: MediaKindProvider {
             .template(from: value, place: Place(file: name, components: []))
     }
 
+    // The parameters a template declares, as a listing shows them, read from its `params` alone: a template whose
+    // media is not there still publishes them, and a broken declaration stops where it is written.
+    package func templateParameters(named name: String) throws -> [Parameter]? {
+        guard let (_, value) = try value(named: name, in: "templates", pathExtension: "json") else { return nil }
+
+        try KeyChecker(mediaKinds: self).check(declarationsOf: value, place: Place(file: name, components: []))
+        return Parameter.declared(in: value)
+    }
+
     // A document used as media is a `.json` file, by path or in a pack's `media/`.
     func document(named reference: String) throws -> DocumentFile? {
         guard let (file, value) = try value(named: reference, in: "media", pathExtension: nil) else { return nil }

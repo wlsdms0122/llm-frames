@@ -38,7 +38,7 @@ struct PacksCommand: Command {
         let files = try PackFolder.all.flatMap { folder in
             try packs.names(in: folder.folder, of: pack, pathExtension: folder.pathExtension).flatMap { file in
                 let name = folder.isNamed ? "\(pack.name)/\(file)" : file
-                let parameters = folder == .template ? try library.template(named: name)?.parameters ?? [] : []
+                let parameters = folder == .template ? try library.templateParameters(named: name) ?? [] : []
 
                 return ["\(folder.kind)  \(name)"] + parameters.map(line(of:))
             }

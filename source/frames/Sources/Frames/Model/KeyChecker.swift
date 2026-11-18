@@ -55,6 +55,19 @@ struct KeyChecker: Sendable {
         return scope.references
     }
 
+    // The `params` a template declares, checked as they are where they are written and without the rest of it, so
+    // what it publishes can be read while what it holds, its media included, is not.
+    func check(
+        declarationsOf template: JSONValue,
+        place: Place
+    ) throws {
+        let table = DocumentKeyTable.sequence
+        guard let object = template.objectValue else { throw wrongType(template, .document, place, "document") }
+
+        var scope = DocumentScope()
+        try checkDeclarations(of: object, as: table, place: place, scope: &scope)
+    }
+
     // A document named by its file where media is taken, which stands as if written there.
     func check(
         nestedDocument document: JSONValue,
@@ -725,15 +738,7 @@ struct KeyChecker: Sendable {
     ) throws {
         // Declarations are checked before anything refers to them, so a broken one is reported where it is written,
         // and a reference written before `params` still finds its declaration.
-        if let declarations = object["params"], let rule = table.rule(named: "params") {
-            try check(declarations, as: rule.type, place: place.appending(key: "params"), kind: table.kind, scope: &scope)
-            scope.parameters = Dictionary(
-                (declarations.objectValue?.members ?? []).compactMap { member in
-                    member.value.objectValue.map { (member.key, $0) }
-                },
-                uniquingKeysWith: { first, _ in first }
-            )
-        }
+        try checkDeclarations(of: object, as: table, place: place, scope: &scope)
         try checkObject(object, as: table, place: place, skipping: ["params"], scope: &scope)
 
         let parameters = object["params"]?.objectValue?.members ?? []
@@ -741,6 +746,24 @@ struct KeyChecker: Sendable {
         for member in parameters where !scope.usedParameters.contains(member.key) {
             throw ModelError.unusedParameter(place: place.appending(key: "params").appending(key: member.key), name: member.key)
         }
+    }
+
+    // The `params` an object publishes, each checked by its owner's table, and known to the scope by name.
+    private func checkDeclarations(
+        of object: JSONObject,
+        as table: ObjectTable,
+        place: Place,
+        scope: inout DocumentScope
+    ) throws {
+        guard let declarations = object["params"], let rule = table.rule(named: "params") else { return }
+
+        try check(declarations, as: rule.type, place: place.appending(key: "params"), kind: table.kind, scope: &scope)
+        scope.parameters = Dictionary(
+            (declarations.objectValue?.members ?? []).compactMap { member in
+                member.value.objectValue.map { (member.key, $0) }
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     private func checkClip(
