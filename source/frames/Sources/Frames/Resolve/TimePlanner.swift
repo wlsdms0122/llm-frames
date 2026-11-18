@@ -405,7 +405,7 @@ struct TimePlanner: Sendable {
         let window = try self.window(
             of: clip,
             clock: clock,
-            naturalLength: source.played?.naturalLength,
+            naturalLength: source.timing?.played?.naturalLength,
             owner: ownerPlan,
             duration: duration,
             kind: kind
@@ -435,7 +435,7 @@ struct TimePlanner: Sendable {
             instant: window.start,
             animation: try animation(of: clip, kind: kind, defaults: defaults),
             media: source.media,
-            timing: timing(of: source, window: window, clock: clock),
+            timing: source.timing.map { timing(of: $0, window: window, clock: clock) },
             keyframes: keyframes
         )
     }
@@ -458,12 +458,12 @@ struct TimePlanner: Sendable {
                 return ClipSource(
                     kind: kind,
                     media: media,
-                    played: try played(of: clipMedia, media: media, place: clip.place, kind: kind)
+                    timing: .played(try played(of: clipMedia, media: media, place: clip.place, kind: kind))
                 )
             }
 
             try checkRemapped(clipMedia, of: clip, kind: kind)
-            return ClipSource(kind: kind, media: media, timeRemap: timeRemap)
+            return ClipSource(kind: kind, media: media, timing: .remapped(timeRemap))
 
         case .title:
             return ClipSource(kind: .title)
@@ -519,15 +519,15 @@ struct TimePlanner: Sendable {
 
     // The played range starts at the window's start, and `timeRemap` keys on the clip's clock move into sequence time.
     private func timing(
-        of source: ClipSource,
+        of timing: ClipTiming,
         window: TimeRange,
         clock: TimeMap
-    ) -> MediaTiming? {
-        if let played = source.played {
-            return .played(played.starting(at: window.start))
-        }
+    ) -> MediaTiming {
+        switch timing {
+        case let .played(played):
+            .played(played.starting(at: window.start))
 
-        return source.timeRemap.map { timeRemap in
+        case let .remapped(timeRemap):
             .remapped(
                 origin: window.start,
                 timeRemap: timeRemap.inSequenceTime(on: clock).keyframes(at: window.start) { $0 }
