@@ -253,6 +253,106 @@ struct TrackPlannerTests {
         #expect(error?.description == message)
     }
 
+    @Test("true on an adjustment follows the bounding box of its masks without feather, at its first keyframe when the masks are keyframed")
+    func followsOwnMask() throws {
+        // Given
+        let sut = planner()
+        let time = try plan(connected: #"""
+            { "adjust": "frames/warm", "parent": "screen", "track": true, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }
+            """#)
+        let masks = [
+            mask(.rect(Rectangle(x: 10, y: 20, width: 30, height: 40), radius: 4), feather: 50),
+            mask(.polyline([Point(x: 50, y: 60), Point(x: 70, y: 60), Point(x: 60, y: 100)], isClosed: true))
+        ]
+        let later = [mask(.ellipse(total))]
+
+        // When
+        let staticPlan = try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [.value(masks)])
+        let keyframedPlan = try sut.plan(
+            time,
+            crops: [nil],
+            storylineMasks: [nil],
+            areas: [nil],
+            masks: [.keyframes([
+                TimedValue(index: 1, at: 1.2, value: later, ease: .linear),
+                TimedValue(index: 0, at: 0.8, value: masks, ease: .linear)
+            ])]
+        )
+
+        // Then
+        #expect(staticPlan.clips[0]?.target == Rectangle(x: 10, y: 20, width: 60, height: 80))
+        #expect(staticPlan.clips[0]?.mediaTime == 1)
+        #expect(keyframedPlan.clips[0]?.target == Rectangle(x: 10, y: 20, width: 60, height: 80))
+        #expect(keyframedPlan.clips[0]?.mediaTime == 1.8)
+    }
+
+    @Test("true on a storyline clip follows the bounding box of its masks in its own media")
+    func followsStorylineMask() throws {
+        // Given
+        let sut = planner()
+        let time = try plan(storyline: #""track": true"#)
+
+        // When
+        let plan = try sut.plan(
+            time,
+            crops: [nil],
+            storylineMasks: [.value([mask(.ellipse(total)), mask(.rect(Rectangle(x: 300, y: 100, width: 20, height: 100), radius: 0))])],
+            areas: [],
+            masks: []
+        )
+
+        // Then
+        #expect(plan.storyline[0]?.target == Rectangle(x: 100, y: 100, width: 220, height: 100))
+        #expect(plan.storyline[0]?.mediaTime == 1)
+    }
+
+    @Test("true on a clip with more than one of an area, a mask and a crop stops, naming them")
+    func refusesAmbiguousOwnTarget() throws {
+        // Given
+        let sut = planner()
+        let shape = try plan(connected: #"""
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "track": true, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }
+            """#)
+        let storyline = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
+        let masks: PropertyValue<[ResolvedMask]> = .value([mask(.ellipse(total))])
+
+        // When
+        let shapeError = #expect(throws: ResolveError.self) {
+            try sut.plan(shape, crops: [nil], storylineMasks: [nil], areas: [.value(found(total, at: 1))], masks: [masks])
+        }
+        let storylineError = #expect(throws: ResolveError.self) {
+            try sut.plan(storyline, crops: [.value(found(total, at: 1))], storylineMasks: [masks], areas: [], masks: [])
+        }
+
+        // Then
+        #expect(shapeError?.description == #"""
+            storyline[0]#screen.connected[0].track (rect): "track": true follows one of the clip's area, mask and crop, \#
+            and it has "area" and "mask", so it must name its target
+            """#)
+        #expect(storylineError?.description == #"""
+            storyline[0]#screen.track (video): "track": true follows one of the clip's area, mask and crop, and it has \#
+            "crop" and "mask", so it must name its target
+            """#)
+    }
+
+    @Test("true on a box shape does not follow its mask, which is in its own box, so it has nothing to follow")
+    func refusesBoxShapeMask() throws {
+        // Given
+        let sut = planner()
+        let time = try plan(connected: #"""
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "width": 100, "height": 50, "track": true, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) {
+            try sut.plan(time, crops: [nil], storylineMasks: [nil], areas: [nil], masks: [.value([mask(.ellipse(total))])])
+        }
+        #expect(error?.description == #"""
+            storyline[0]#screen.connected[0].track (rect): "track": true follows the clip's own area, mask or crop, and it \#
+            has none given as an area
+            """#)
+    }
+
     // MARK: - Private
     private func planner(followed: ClosedRange<Double>? = nil) -> TrackPlanner {
         TrackPlanner(
@@ -275,6 +375,13 @@ struct TrackPlannerTests {
             { "kind": "sequence", "storyline": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3\#(separator)\#(keys)\#(clips) } ] }
             """#))
+    }
+
+    private func mask(
+        _ geometry: PathGeometry,
+        feather: Double = 0
+    ) -> ResolvedMask {
+        ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)
     }
 
     private func found(
