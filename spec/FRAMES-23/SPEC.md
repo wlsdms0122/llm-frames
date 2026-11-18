@@ -110,6 +110,7 @@ What frames reports about a document or a medium is a contract, so programs outs
 
 - Fields follow [FRAMES-17](../FRAMES-17/SPEC.md): a new field is an addition, and a removed or changed one a major change. The old form is no longer printed ([the principles](../README.md#principles), no legacy keys).
 - Places are those of the messages above.
+- The `kind` of a clip in `timeline`, `evaluate` and `locate` is the clip's kind: `video` (an image sequence included), `image`, `audio`, `compound` (a sequence as media, a template instance included), `title`, `rect`, `ellipse`, `path`, `adjustment` or `solid`. It names what the document wrote, and `item` names what the clip drew ([FRAMES-20](../FRAMES-20/SPEC.md)), so a `title` draws `glyphs`, a `rect` a `path` and an `adjustment` an `adjust` item.
 - Times and lengths are written rounded to the nearest microsecond, in their shortest form (`2.85`, not `2.850000`), so floating point noise is not reported as a fact. A microsecond is far below a frame at any rate, so no frame changes.
 - Positions, sizes and opacities are written rounded to the nearest millionth, for the same reason.
 - The display list and the mix plan are the roles' wire forms ([FRAMES-19](../FRAMES-19/SPEC.md)), not part of this output.
