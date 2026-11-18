@@ -319,9 +319,9 @@ The full table is [FRAMES-7](spec/FRAMES-7/SPEC.md). What each key does: format 
 
 | Choice | Takes |
 | --- | --- |
-| transition | a preset name, `<pack>/<name>`, an absolute path, `"cut"`, or `{preset, seconds}` |
-| animation | a preset name, `<pack>/<name>`, an absolute path, `"none"`, or `{entrance, exit}` |
-| filter | a preset name, `<pack>/<name>`, an absolute path, a list of those, or `"none"` |
+| transition | a preset name, `<pack>/<name>`, an absolute path, `"cut"`, or `{preset, seconds, args}` |
+| animation | a preset name, `<pack>/<name>`, an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, each side a name, `"none"` or `{preset, args}` |
+| filter | a preset name, `<pack>/<name>`, an absolute path, `{preset, args}`, a list of those without `"none"`, or `"none"` |
 
 ### Time
 
