@@ -15,9 +15,12 @@ import Frames
 // axes apart does not stretch it, and drawn back in the item's coordinates.
 // The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
 // where they overlap. Dashes are laid in the item's own distances along the outline, from the start of the stroke as
-// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole.
+// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole. A gradient paints the fill
+// or the stroke's shape through it as a clip, laid in the item's own coordinates.
 struct PathDrawer {
     // MARK: - Property
+    private let gradients = GradientDrawer()
+
     // MARK: - Initializer
     // MARK: - Public
     func draw(
@@ -27,15 +30,12 @@ struct PathDrawer {
     ) {
         let outline = PathOutline(item.geometry)
 
-        if case let .color(fill) = item.fill {
-            context.addPath(outline.fillPath)
-            context.setFillColor(fill.cgColor)
-            context.fillPath(using: .winding)
+        if let fill = item.fill {
+            paint(outline.fillPath, with: fill, in: context)
         }
 
         guard
             let stroke = item.stroke,
-            case let .color(color) = stroke.paint,
             let back = transform.inverse,
             case let (carried, drawn)? = item.carriedStroke(by: transform),
             drawn.isDrawn,
@@ -45,12 +45,30 @@ struct PathDrawer {
         var matrix = CGAffineTransform(back)
         guard let placed = shape.copy(using: &matrix) else { return }
 
-        context.addPath(placed)
-        context.setFillColor(color.cgColor)
-        context.fillPath(using: .winding)
+        paint(placed, with: stroke.paint, in: context)
     }
 
     // MARK: - Private
+    // The inside of `path` by the nonzero rule.
+    private func paint(
+        _ path: CGPath,
+        with paint: Paint,
+        in context: CGContext
+    ) {
+        context.addPath(path)
+        switch paint {
+        case let .color(color):
+            context.setFillColor(color.cgColor)
+            context.fillPath(using: .winding)
+
+        case let .gradient(gradient):
+            context.saveGState()
+            context.clip(using: .winding)
+            gradients.draw(gradient, in: context)
+            context.restoreGState()
+        }
+    }
+
     // The stroke and its arrowheads as one shape, nil where it draws nothing.
     private func shape(
         of stroke: PathStroke,
