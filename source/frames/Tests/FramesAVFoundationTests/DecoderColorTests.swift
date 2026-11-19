@@ -247,9 +247,9 @@ struct DecoderColorTests {
     }
 
     // MARK: - Private
-    // An RGB space of BT.709 primaries and a D65 white whose curve is the gamma 2.4 of BT.1886.
+    // An RGB space of BT.709 primaries whose curve is the gamma 2.4 of BT.1886, given as an ICC profile holds it: the
+    // columns of the BT.709 to XYZ matrix and the white, adapted from D65 to D50 by Bradford.
     private static func rec709Profile() -> CGColorSpace? {
-        // The columns of the BT.709 to XYZ matrix, adapted to D50 by Bradford, as an ICC profile holds its colorants.
         let matrix: [CGFloat] = [
             0.4360, 0.2225, 0.0139,
             0.3851, 0.7169, 0.0971,

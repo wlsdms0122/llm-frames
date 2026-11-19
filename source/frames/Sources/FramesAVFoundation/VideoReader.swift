@@ -69,8 +69,8 @@ final class VideoReader: Sendable {
 
     // MARK: - Public
     // The picture of frame `index` as it is displayed: the last decoded frame presented at or before its presented
-    // time, taken to R'G'B' half floats by the matrix and range the file says, with no colour matched. Asking for the
-    // frame read last decodes nothing.
+    // time, taken to R'G'B' half floats by the matrix and range the file says, with no colour matched, a value beyond
+    // the nominal range kept. Asking for the frame read last decodes nothing.
     func image(
         atFrame index: Int,
         path: String
