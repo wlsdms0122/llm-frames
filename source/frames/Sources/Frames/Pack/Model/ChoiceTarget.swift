@@ -6,9 +6,9 @@
 //
 
 // What a template's choice names where it stands, which resolve looks up there. A preset is the whole preset choice
-// at `choice`, which the reference is, or whose `preset` or one of whose `args` it is.
+// at `choice`, of which the reference stands for `part`.
 enum ChoiceTarget: Equatable, Sendable {
-    case preset(PresetKind, choice: [PlaceComponent])
+    case preset(PresetKind, choice: [PlaceComponent], part: ChoicePart)
     case theme
     case textStyle
     case shapeStyle
@@ -17,7 +17,7 @@ enum ChoiceTarget: Equatable, Sendable {
     // MARK: - Property
     var label: String {
         switch self {
-        case let .preset(kind, _):
+        case let .preset(kind, _, _):
             "\(kind.rawValue) preset"
 
         case .theme:
@@ -92,20 +92,27 @@ enum ChoiceTarget: Equatable, Sendable {
             break
         }
 
+        let part: ChoicePart
         switch Array(rest) {
         case []:
             guard ChoiceKeyTable.presetKind(of: reference.type) == kind else { return nil }
 
+            part = .whole
+
         case [.key("preset")]:
             guard reference.kind.hasSuffix("choice") else { return nil }
 
+            part = .name
+
         case let written where written.count == 2 && written.first == .key("args"):
             guard reference.kind == ChoiceKeyTable.argumentsKind else { return nil }
+
+            part = .argument
 
         default:
             return nil
         }
 
-        return .preset(kind, choice: choice)
+        return .preset(kind, choice: choice, part: part)
     }
 }

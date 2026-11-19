@@ -72,11 +72,11 @@ struct ChoiceOptionChecker: Sendable {
     ) throws {
         let isThere: Bool
         switch target {
-        case let .preset(kind, choice):
+        case let .preset(kind, choice, part):
             let place = Place(file: reference.place.file, components: choice)
             let found = try presetsAreThere(value(at: choice[...], in: document), kind: kind, place: place)
             // An argument is not what names the preset, so a preset that is not there is resolve's to stop on.
-            guard found || reference.place.components.count != choice.count + 2 else { return }
+            guard found || part != .argument else { return }
 
             isThere = found
 
