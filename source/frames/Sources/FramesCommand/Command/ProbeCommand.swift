@@ -12,6 +12,9 @@ import Frames
 struct ProbeCommand: Command {
     // MARK: - Property
     let name = "probe"
+    let synopsis = "<media> [--json]"
+    let summary = "Prints the kind, size, duration, frame rate, alpha, and audio channels and sample rate of a "
+        + "medium. A fact the medium does not have is null."
 
     // MARK: - Initializer
     init() { }

@@ -11,6 +11,11 @@ import Frames
 struct SheetCommand: Command {
     // MARK: - Property
     let name = "sheet"
+    let synopsis = "<video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] "
+        + "[--cols \(SheetOptions.defaultColumns)]"
+    let summary = "Lays frames out in one PNG, each at most 480 pixels on its longer side and labelled with its "
+        + "time, left to right in columns, then top to bottom. A document gives its frames at sequence times "
+        + "as still draws them, and a video the frames shown at media times."
 
     // MARK: - Initializer
     init() { }

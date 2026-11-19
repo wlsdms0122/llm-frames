@@ -12,6 +12,9 @@ import Frames
 struct TrackCommand: Command {
     // MARK: - Property
     let name = "track"
+    let synopsis = "<video> --at <t> --area <area> [--to <t>]"
+    let summary = "Follows an area found at a media time backwards and forwards with the tracker provider, and "
+        + "prints as JSON its quadrilateral there and on every frame followed, with the motion fitted to it."
 
     // MARK: - Initializer
     init() { }

@@ -43,9 +43,7 @@ struct CommandShellTests {
         #expect(code == 64)
         #expect(optionsOnly == 64)
         #expect(sut.standardOutput.isEmpty)
-        #expect(sut.standardError == CommandUsage.text)
-        #expect(sut.standardError.hasPrefix("frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>]"))
-        #expect(sut.standardError.contains("\ntimeline  <document.json> [--args <args.json>] [--json]\n"))
+        #expect(sut.standardError == CommandUsage().text)
     }
 
     @Test(

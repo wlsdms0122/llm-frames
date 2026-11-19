@@ -34,7 +34,7 @@ package struct CommandShell: Sendable {
         do {
             switch try parser.parse(arguments) {
             case .usage:
-                output.writeError(CommandUsage.text)
+                output.writeError(CommandUsage().text)
                 return Self.usageCode
 
             case .version:

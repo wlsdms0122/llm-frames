@@ -11,6 +11,10 @@ import Frames
 struct ExtractCommand: Command {
     // MARK: - Property
     let name = "extract"
+    let synopsis = "<video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]"
+    let summary = "Writes frames as full-size PNG files named by their index, 0000.png, 0001.png and on. A document "
+        + "gives its frames at sequence times as still draws them, and a video the frames shown at media "
+        + "times."
 
     // MARK: - Initializer
     init() { }
