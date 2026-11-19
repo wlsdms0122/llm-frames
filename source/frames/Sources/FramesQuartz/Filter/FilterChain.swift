@@ -8,12 +8,13 @@
 import CoreImage
 import Frames
 
-// Applies a picture's filter entries in order to an image in the working space, each entry its operations in order,
-// each on sRGB-encoded values, its result clamped to 0 to 1 and cropped to the image's extent. Colour operations work
-// on the unpremultiplied colour and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so
-// a transparent pixel weighs nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended
-// outward. An entry's result is its input mixed with its operations' result by its `mix`, premultiplied, and the next
-// entry takes the mixed image.
+// Applies a picture's filter entries in order to an image of working values, each entry its operations in order, each
+// result cropped to the image's extent and clamped nowhere but in alpha. The image is computed in the form its
+// `compositing` names, which every form-free formula takes, and each operation with a home converts to it
+// (`FilterKernelSource`). Colour operations work on the unpremultiplied colour and keep alpha. Blur, sharpen, bloom and
+// pixelate work on the premultiplied image, so a transparent pixel weighs nothing in a neighbour's mean, and blur,
+// sharpen and bloom read the edge pixels extended outward. An entry's result is its input mixed with its operations'
+// result by its `mix`, premultiplied, and the next entry takes the mixed image.
 struct FilterChain: Sendable {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
@@ -30,13 +31,15 @@ struct FilterChain: Sendable {
     // `seed` is the display list's, which every `grain` operation draws its noise from. `scale` is the image's pixels
     // per unit of the operations' lengths. `frame` is the picture the operations stand for, in the image's
     // coordinates, which a vignette centres on and grains and pixelate blocks lie on a grid from, the image's extent
-    // when nil; it differs when the image holds part of the picture at another scale.
+    // when nil; it differs when the image holds part of the picture at another scale. The result is computed in the
+    // form `compositing` names, by the context of that form.
     func apply(
         _ entries: [FilterEntry],
         to image: CIImage,
         seed: Int,
         scale: Double = 1,
-        frame: CGRect? = nil
+        frame: CGRect? = nil,
+        compositing: Compositing
     ) throws -> CIImage {
         let library = KernelLibrary.shared
         let frame = frame ?? image.extent
@@ -50,6 +53,7 @@ struct FilterChain: Sendable {
                     seed: seed,
                     scale: scale,
                     frame: frame,
+                    compositing: compositing,
                     library: library
                 )
                 .cropped(to: image.extent)
@@ -84,47 +88,54 @@ struct FilterChain: Sendable {
         seed: Int,
         scale: Double,
         frame: CGRect,
+        compositing: Compositing,
         library: KernelLibrary
     ) throws -> CIImage {
+        let linear = compositing.kernelArgument
+
         switch operation {
         case let .exposure(ev):
-            return try color("filterExposure", image, [ev], library)
+            return try color("filterExposure", image, [ev, linear], library)
 
         case let .contrast(amount):
-            return try color("filterContrast", image, [amount], library)
+            return try color("filterContrast", image, [amount, linear], library)
 
         case let .saturation(amount):
-            return try color("filterSaturation", image, [amount], library)
+            return try color("filterSaturation", image, [amount, linear], library)
 
         case let .temperature(kelvin):
             let gain = ChannelGain(kelvin: kelvin)
+            let arguments: [Any] = [CIVector(x: gain.red, y: gain.green, z: gain.blue), linear]
 
-            return try color("filterTemperature", image, [CIVector(x: gain.red, y: gain.green, z: gain.blue)], library)
+            return try color("filterTemperature", image, arguments, library)
 
         case let .hue(degrees):
-            return try color("filterHue", image, [degrees], library)
+            return try color("filterHue", image, [degrees, linear], library)
 
         case let .sepia(amount):
-            return try color("filterSepia", image, [amount], library)
+            return try color("filterSepia", image, [amount, linear], library)
 
         case let .levels(input, output):
-            let arguments = [CIVector(x: input[0], y: input[1]), CIVector(x: output[0], y: output[1])]
+            let arguments: [Any] = [CIVector(x: input[0], y: input[1]), CIVector(x: output[0], y: output[1]), linear]
 
             return try color("filterLevels", image, arguments, library)
 
-        case let .lut(file, amount, _):
-            return try lookUp(image, table: try tables.table(of: file), amount: amount, library: library)
+        case let .lut(file, amount, space):
+            let table = try tables.table(of: file)
+
+            return try lookUp(image, table: table, amount: amount, space: space, compositing: compositing, library: library)
 
         case let .blur(radius):
-            return try color("filterClamp", blurred(image, radius: radius * scale), [], library)
+            return try color("filterClampAlpha", blurred(image, radius: radius * scale), [], library)
 
         case let .sharpen(amount, radius):
             return try color("filterSharpen", image, [blurred(image, radius: radius * scale), amount], library)
 
         case let .bloom(amount, radius, tint):
-            let bright = try color("filterBloomBright", image, [], library)
+            let bright = try color("filterBloomBright", image, [linear], library)
             let glow = blurred(bright, radius: radius * scale)
-            let tint = tint.map { CIVector(premultiplied: $0) } ?? CIVector(x: 1, y: 1, z: 1, w: 1)
+            let tint = tint.map { CIVector(premultiplied: $0, compositing: compositing) }
+                ?? CIVector(x: 1, y: 1, z: 1, w: 1)
 
             return try color("filterBloomAdd", image, [glow, amount, tint], library)
 
@@ -137,14 +148,14 @@ struct FilterChain: Sendable {
         case let .pixelate(size):
             let pixelated = try pixelated(image, size: size * scale, frame: frame, library: library)
 
-            return try color("filterClamp", pixelated, [], library)
+            return try color("filterClampAlpha", pixelated, [], library)
 
         case let .grain(amount, size):
             let topLeft = CIVector(x: frame.minX, y: frame.maxY)
             let bits = UInt32(truncatingIfNeeded: seed)
             let seed = CIVector(x: Double(bits & 0xFFFF), y: Double(bits >> 16))
 
-            return try color("filterGrain", image, [amount, size * scale, topLeft, seed], library)
+            return try color("filterGrain", image, [amount, size * scale, topLeft, seed, linear], library)
         }
     }
 
@@ -170,16 +181,41 @@ struct FilterChain: Sendable {
         image.clampedToExtent().applyingGaussianBlur(sigma: radius).cropped(to: image.extent)
     }
 
+    // A LUT built for `srgb` looks the working values up on the encoded form in its kernel. One built for another
+    // space looks up the image converted to that space's encoded values, its colours taken back to working values, and
+    // its result is mixed with the image by `amount`.
     private func lookUp(
         _ image: CIImage,
         table: LookUpTable,
         amount: Double,
+        space: ColorSpace,
+        compositing: Compositing,
+        library: KernelLibrary
+    ) throws -> CIImage {
+        guard space != .srgb else {
+            return try lookUp(image, table: table, amount: amount, linear: compositing.kernelArgument, library: library)
+        }
+
+        let conversion = ColorConversion(space: space)
+        let inSpace = try converted(image, by: conversion.encoded, from: WorkingSpace.encoded, to: nil, compositing)
+        let mapped = try lookUp(inSpace, table: table, amount: 1, linear: 0, library: library)
+        let back: (RGB) -> RGB = { conversion.working($0) }
+        let looked = try converted(mapped, by: back, from: nil, to: WorkingSpace.encoded, compositing)
+
+        return amount < 1 ? try color("filterMix", image, [looked, amount], library) : looked
+    }
+
+    private func lookUp(
+        _ image: CIImage,
+        table: LookUpTable,
+        amount: Double,
+        linear: Double,
         library: KernelLibrary
     ) throws -> CIImage {
         let name = "filterLookUp"
         let kernel = try library.kernel(named: name)
         let tableExtent = table.image.extent
-        let arguments: [Any] = [image, table.image, Double(table.size), table.domainMin, table.domainMax, amount]
+        let arguments: [Any] = [image, table.image, Double(table.size), table.domainMin, table.domainMax, amount, linear]
         guard let result = kernel.apply(
             extent: image.extent,
             roiCallback: { index, rect in index == 0 ? rect : tableExtent },
@@ -190,6 +226,45 @@ struct FilterChain: Sendable {
         }
 
         return result
+    }
+
+    // The image's colours converted pixel by pixel, unpremultiplied, by `conversion` (`convertColors(by:)`): read as
+    // the values of colour space `source`, or as they are where it is nil, and taken as the values of `target`, or as
+    // they are. The image is computed by the context of `compositing`'s form.
+    private func converted(
+        _ image: CIImage,
+        by conversion: (RGB) -> RGB,
+        from source: CGColorSpace?,
+        to target: CGColorSpace?,
+        _ compositing: Compositing
+    ) throws -> CIImage {
+        let extent = image.extent
+        let width = Int(extent.width)
+        let height = Int(extent.height)
+        let rowBytes = width * 4 * MemoryLayout<Float>.size
+        var pixels = [Float](repeating: 0, count: width * height * 4)
+        pixels.withUnsafeMutableBytes { buffer in
+            guard let pointer = buffer.baseAddress else { return }
+
+            WorkingSpace.context(of: compositing).render(
+                image,
+                toBitmap: pointer,
+                rowBytes: rowBytes,
+                bounds: extent,
+                format: .RGBAf,
+                colorSpace: source
+            )
+        }
+        pixels.withUnsafeMutableBufferPointer { $0.convertColors(by: conversion) }
+
+        return CIImage(
+            bitmapData: pixels.withUnsafeBufferPointer { Data(buffer: $0) },
+            bytesPerRow: rowBytes,
+            size: extent.size,
+            format: .RGBAf,
+            colorSpace: target
+        )
+        .transformed(by: CGAffineTransform(translationX: extent.minX, y: extent.minY))
     }
 
     // Square blocks `size` pixels across on a grid from the frame's top left corner, each the mean of the pixels

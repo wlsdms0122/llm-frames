@@ -659,7 +659,7 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": 1 } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "lane": 1.5 } ] }"#,
             ##"{ "clips": [ { "shape": "rect", "fill": "#12345" } ] }"##,
-            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "add" } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "linear-dodge" } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "placement": "middle" } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": false } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,

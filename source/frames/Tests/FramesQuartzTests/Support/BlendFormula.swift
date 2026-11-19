@@ -6,35 +6,62 @@
 //
 
 import Foundation
+import Frames
 @testable import FramesQuartz
 
-// The W3C Compositing and Blending Level 1 formulas on unpremultiplied RGBA from 0 to 1, giving premultiplied RGBA:
-// co = cs (1 - ab) + cb (1 - as) + as ab B(Cb, Cs) and ao = as + ab (1 - as), and for `plus-lighter` the clamped sum
-// of the premultiplied colours. The non-separable modes use W3C's Lum, Sat, SetLum, SetSat and ClipColor.
+// The W3C Compositing and Blending Level 1 formulas as FRAMES-26 reads them, on unpremultiplied encoded RGBA,
+// unbounded, giving premultiplied encoded RGBA: co = cs (1 - ab) + cb (1 - as) + as ab B(Cb, Cs) and
+// ao = as + ab (1 - as) in the form `compositing` names, B computed in that form for a form-free mode and on the
+// encoded form for the others, `add` the unbounded sum of the premultiplied colours and `plus-lighter` their sum
+// bounded by 1. The non-separable modes use W3C's Lum, Sat, SetLum, SetSat and ClipColor.
 struct BlendFormula {
     // MARK: - Property
+    private static let encodedModes: Set<BlendMode> = [
+        .overlay, .hardLight, .softLight, .exclusion, .hue, .saturation, .color, .luminosity
+    ]
+
     // MARK: - Initializer
     // MARK: - Public
     func composite(
         _ mode: BlendMode,
         source: [Double],
-        backdrop: [Double]
+        backdrop: [Double],
+        compositing: Compositing = .encoded
     ) -> [Double] {
+        let linear = compositing == .linear
+        let toForm: (Double) -> Double = { linear ? TransferFunction.sRGB.decode($0) : $0 }
+        let fromForm: (Double) -> Double = { linear ? TransferFunction.sRGB.encode($0) : $0 }
         let sourceAlpha = source[3]
         let backdropAlpha = backdrop[3]
-        guard mode != .plusLighter else {
-            return (0..<3).map { min(1, source[$0] * sourceAlpha + backdrop[$0] * backdropAlpha) }
+        let cs = source.prefix(3).map(toForm)
+        let cb = backdrop.prefix(3).map(toForm)
+
+        let premultiplied: [Double]
+        switch mode {
+        case .plusLighter:
+            premultiplied = (0..<3).map { min(1, cs[$0] * sourceAlpha + cb[$0] * backdropAlpha) }
                 + [min(1, sourceAlpha + backdropAlpha)]
+
+        case .add:
+            premultiplied = (0..<3).map { cs[$0] * sourceAlpha + cb[$0] * backdropAlpha }
+                + [sourceAlpha + backdropAlpha * (1 - sourceAlpha)]
+
+        default:
+            let mixedColor = Self.encodedModes.contains(mode)
+                ? mixed(mode, backdrop: Array(backdrop.prefix(3)), source: Array(source.prefix(3))).map(toForm)
+                : mixed(mode, backdrop: cb, source: cs)
+            let color = (0..<3).map { channel in
+                sourceAlpha * cs[channel] * (1 - backdropAlpha)
+                    + backdropAlpha * cb[channel] * (1 - sourceAlpha)
+                    + sourceAlpha * backdropAlpha * mixedColor[channel]
+            }
+            premultiplied = color + [sourceAlpha + backdropAlpha * (1 - sourceAlpha)]
         }
 
-        let mixedColor = mixed(mode, backdrop: Array(backdrop.prefix(3)), source: Array(source.prefix(3)))
-        let color = (0..<3).map { channel in
-            sourceAlpha * source[channel] * (1 - backdropAlpha)
-                + backdropAlpha * backdrop[channel] * (1 - sourceAlpha)
-                + sourceAlpha * backdropAlpha * mixedColor[channel]
-        }
+        let alpha = premultiplied[3]
+        guard alpha > 0 else { return [0, 0, 0, 0] }
 
-        return color + [sourceAlpha + backdropAlpha * (1 - sourceAlpha)]
+        return premultiplied.prefix(3).map { fromForm($0 / alpha) * alpha } + [alpha]
     }
 
     // MARK: - Private
@@ -67,7 +94,7 @@ struct BlendFormula {
         source cs: Double
     ) -> Double {
         switch mode {
-        case .normal, .plusLighter, .hue, .saturation, .color, .luminosity:
+        case .normal, .plusLighter, .add, .hue, .saturation, .color, .luminosity:
             cs
 
         case .multiply:
@@ -136,10 +163,10 @@ struct BlendFormula {
         let lowest = color.min()!
         let highest = color.max()!
         var clipped = color
-        if lowest < 0 {
+        if lowest < 0, luminance > lowest {
             clipped = clipped.map { luminance + ($0 - luminance) * luminance / (luminance - lowest) }
         }
-        if highest > 1 {
+        if highest > 1, highest > luminance {
             clipped = clipped.map { luminance + ($0 - luminance) * (1 - luminance) / (highest - luminance) }
         }
 

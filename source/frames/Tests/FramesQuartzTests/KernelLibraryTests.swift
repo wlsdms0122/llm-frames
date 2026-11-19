@@ -19,7 +19,7 @@ struct KernelLibraryTests {
     // MARK: - Test
     @Test(
         "the library hands out the kernels of the blend and filter sources by name",
-        arguments: ["blendNormal", "filterClamp"]
+        arguments: ["blendNormal", "filterClampAlpha"]
     )
     func handsOutKernel(name: String) throws {
         // Given
@@ -75,8 +75,9 @@ struct KernelLibraryTests {
         let context = CIContext(options: [.workingColorSpace: colorSpace, .workingFormat: CIFormat.RGBAf])
 
         // When
+        // The last argument, 0, names the encoded form.
         let kernel = try sut.colorKernel(named: "blendNormal")
-        let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop]))
+        let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop, 0]))
         var pixel = [Float](repeating: 0, count: 4)
         context.render(
             image,
@@ -108,7 +109,7 @@ struct KernelLibraryTests {
         // When
         let pixels = try ["blendMultiply", "blendScreen", "blendDarken", "blendMultiply"].map { name in
             let kernel = try sut.colorKernel(named: name)
-            let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop]))
+            let image = try #require(kernel.apply(extent: extent, arguments: [source, backdrop, 0]))
             var pixel = [Float](repeating: 0, count: 4)
             context.render(
                 image,

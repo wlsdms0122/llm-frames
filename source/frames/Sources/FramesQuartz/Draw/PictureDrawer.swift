@@ -14,7 +14,8 @@ import Frames
 // picture with no filter or matte is drawn straight from its source, so it is resampled once on its way to the
 // output. A filtered picture is filtered at the scale the context shows its destination at, its filter's lengths
 // scaled with it, so it is as sharp as the source it is drawn from. `transform` carries the item's coordinates to output
-// pixels, which the border's width is in.
+// pixels, which the border's width is in. Its bitmaps are in the form `compositing` names, its list's, so the picture
+// is resampled, filtered and cut in that form.
 struct PictureDrawer {
     // MARK: - Property
     // The filtered destination's bitmap holds at most this many times the context's pixels, past its own size.
@@ -35,6 +36,7 @@ struct PictureDrawer {
         matte: CGImage?,
         seed: Int,
         carriedBy transform: Frames.AffineTransform,
+        compositing: Compositing,
         in context: CGContext
     ) throws {
         let destination = CGRect(item.destination)
@@ -62,7 +64,7 @@ struct PictureDrawer {
 
         let size = Size(width: destination.width * scale, height: destination.height * scale)
         let local = CGAffineTransform(scaleX: scale, y: scale).translatedBy(x: -destination.minX, y: -destination.minY)
-        let scaled = try FrameContext(holding: size)
+        let scaled = try FrameContext(holding: size, compositing: compositing)
         scaled.context.concatenate(local)
         scaled.context.clip(to: destination)
         if let source {
@@ -73,20 +75,21 @@ struct PictureDrawer {
         var picture = try scaled.ciImage()
         let extent = picture.extent
         picture = try FilterChain(tables: tables)
-            .apply(item.filter, to: picture, seed: seed, scale: scale)
+            .apply(item.filter, to: picture, seed: seed, scale: scale, compositing: compositing)
             .cropped(to: extent)
         if let pictureMatte = item.matte, let matte {
-            picture = try MatteApplier().apply(pictureMatte, frame: matte, to: picture, size: size)
+            picture = try MatteApplier()
+                .apply(pictureMatte, frame: matte, to: picture, size: size)
         }
 
-        let filtered = try FrameContext.cgImage(of: picture, in: extent)
+        let filtered = try FrameContext.cgImage(of: picture, in: extent, compositing: compositing)
         let bounds = CGRect(
             x: destination.minX,
             y: destination.minY,
             width: extent.width / scale,
             height: extent.height / scale
         )
-        let finished = try FrameContext(holding: size)
+        let finished = try FrameContext(holding: size, compositing: compositing)
         finished.context.concatenate(local)
         framed(item, carriedBy: transform, in: finished.context) { context in
             context.drawUpright(filtered, in: bounds)

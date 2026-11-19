@@ -5,13 +5,14 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The Metal function of the track matte kernel, on a premultiplied sRGB-encoded source: its alpha, or the Rec. 709
-// luma of its values, which premultiplied is the luma of the unpremultiplied values times the alpha, so a transparent
-// source gives 0. 1 minus that when inverted. It calls `filterLuma`, so it is joined after the filter source.
+// The Metal function of the track matte kernel, on a premultiplied source on the encoded form: its alpha, or the
+// Rec. 709 luma of its unpremultiplied values clamped to 0 to 1 times its alpha, so a transparent source gives 0 and a
+// part brighter than reference white counts as white. 1 minus that when inverted.
 enum TrackMatteKernelSource {
     static let text = """
         [[stitchable]] float4 trackMatte(sample_t source, float luma, float inverted) {
-            float value = clamp(luma > 0.5 ? filterLuma(source.rgb) : source.a, 0.0, 1.0);
+            float3 color = source.a > 0.0 ? source.rgb / source.a : float3(0.0);
+            float value = luma > 0.5 ? clamp(formLuma(color, 0.0), 0.0, 1.0) * source.a : source.a;
             if (inverted > 0.5) {
                 value = 1.0 - value;
             }

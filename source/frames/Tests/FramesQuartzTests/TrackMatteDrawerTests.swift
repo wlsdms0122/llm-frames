@@ -56,6 +56,29 @@ struct TrackMatteDrawerTests {
         expect(alpha(of: bitmap, x: 30, y: 30), equals: 0)
     }
 
+    @Test(
+        "a luma matte clamps its luma to 0 to 1 before its alpha weighs it, in a source of either compositing",
+        arguments: Compositing.allCases
+    )
+    func clampsLuma(compositing: Compositing) throws {
+        // Given
+        // Luma 1.5 at alpha 0.5 counts as white at half alpha, 0.5, not as the premultiplied 0.75.
+        let source = DisplayList(
+            size: Size(width: Self.size, height: Self.size),
+            background: Color(written: "#00000000"),
+            compositing: compositing,
+            seed: 0,
+            items: [fill(top, color: "color(srgb 1.5 1.5 1.5 / 0.5)")]
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(matte: ItemTrackMatte(source: source, mode: .luma, isInverted: false)))
+
+        // Then
+        expect(alpha(of: bitmap, x: 20, y: 10), equals: 0.5)
+        expect(alpha(of: bitmap, x: 20, y: 30), equals: 0)
+    }
+
     @Test("an inverted matte multiplies by 1 minus its value, so its transparent part shows the item whole in both modes")
     func invertsMatte() throws {
         // Given

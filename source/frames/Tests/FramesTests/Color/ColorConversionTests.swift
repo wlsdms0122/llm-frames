@@ -136,7 +136,8 @@ struct ColorConversionTests {
     @Test("a video tagged with the table's code points is in its space, and an untagged one is srgb")
     func readsCodePoints() {
         // Given
-        let tagged = ColorSpace.allCases.map(\.codePoints)
+        let output = ColorSpace.allCases.filter { $0 != .srgbLinear }
+        let tagged = output.map(\.codePoints)
 
         // When
         let spaces = tagged.map { points in
@@ -146,7 +147,8 @@ struct ColorConversionTests {
         let outside = ColorSpace(colorPrimaries: 9, transferCharacteristics: 13)
 
         // Then
-        #expect(spaces == ColorSpace.allCases)
+        #expect(spaces == output)
+        #expect(ColorSpace(colorPrimaries: 1, transferCharacteristics: 8) == nil)
         #expect(untagged == .srgb)
         #expect(outside == nil)
     }

@@ -62,6 +62,7 @@ struct ColorKeyTests {
         "a colour space or compositing outside the table stops at check",
         arguments: [
             (#""colorSpace": "p3""#, #"format.colorSpace (format): unknown value "p3". Allowed: srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#),
+            (#""colorSpace": "srgb-linear""#, #"format.colorSpace (format): unknown value "srgb-linear". Allowed: srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#),
             (#""compositing": "gamma""#, #"format.compositing (format): unknown value "gamma". Allowed: encoded, linear"#)
         ]
     )
@@ -218,7 +219,8 @@ struct ColorKeyTests {
         let document = #"""
             { "kind": "sequence", "storyline": [
                 { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1 } },
-                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } } ] }
+                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } },
+                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "srgb-linear" } } ] }
             """#
 
         // When
@@ -231,7 +233,7 @@ struct ColorKeyTests {
         }
 
         // Then
-        #expect(spaces == [[.srgb], [.rec2100PQ]])
+        #expect(spaces == [[.srgb], [.rec2100PQ], [.srgbLinear]])
         #expect(try reader.read(writer.write(resolved)) == resolved)
     }
 

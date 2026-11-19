@@ -68,7 +68,7 @@ struct MaskDrawer {
         coverage.withUnsafeMutableBytes { buffer in
             guard let pointer = buffer.baseAddress else { return }
 
-            WorkingSpace.context.render(
+            WorkingSpace.valueContext.render(
                 blurred,
                 toBitmap: pointer,
                 rowBytes: width * MemoryLayout<Float>.size,

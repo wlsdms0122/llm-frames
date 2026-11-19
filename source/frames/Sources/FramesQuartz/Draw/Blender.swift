@@ -6,8 +6,10 @@
 //
 
 import CoreImage
+import Frames
 
-// Composites a layer over its backdrop by a blend mode's W3C kernel, over the backdrop's extent.
+// Composites a layer over its backdrop by a blend mode's kernel, over the backdrop's extent, in the form `compositing`
+// names: the context the result is computed in works in that form.
 struct Blender {
     // MARK: - Property
     // MARK: - Initializer
@@ -15,10 +17,12 @@ struct Blender {
     func composite(
         _ layer: CIImage,
         over backdrop: CIImage,
-        mode: BlendMode
+        mode: BlendMode,
+        compositing: Compositing
     ) throws -> CIImage {
         let kernel = try KernelLibrary.shared.colorKernel(named: mode.kernelName)
-        guard let image = kernel.apply(extent: backdrop.extent, arguments: [layer, backdrop]) else {
+        let arguments: [Any] = [layer, backdrop, compositing.kernelArgument]
+        guard let image = kernel.apply(extent: backdrop.extent, arguments: arguments) else {
             throw QuartzError.kernelFailed(name: mode.kernelName)
         }
 

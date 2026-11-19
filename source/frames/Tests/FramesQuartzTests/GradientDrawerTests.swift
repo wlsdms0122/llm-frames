@@ -43,6 +43,35 @@ struct GradientDrawerTests {
         expect(bitmap, 97, 50, [0, 0, 1, 1])
     }
 
+    @Test(
+        "a gradient interpolates on the encoded form under either compositing, its stops above 1 kept",
+        arguments: Compositing.allCases
+    )
+    func interpolatesOnEncodedForm(compositing: Compositing) throws {
+        // Given
+        // color(srgb-linear 4 4 4) is the encoded 1.8248, so halfway from black it is the encoded 0.9124.
+        let gradient = Gradient(
+            shape: .linear(from: Point(x: 0, y: 0), to: Point(x: 100, y: 0)),
+            stops: stops([(0, "#000000"), (1, "color(srgb-linear 4 4 4)")])
+        )
+        let path = filled(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 0), with: .gradient(gradient))
+        let list = DisplayList(
+            size: Size(width: 100, height: 100),
+            background: Color(written: "#00000000"),
+            compositing: compositing,
+            seed: 0,
+            items: [DisplayItem(content: .path(path))]
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        let middle = bitmap.pixel(x: 49, y: 50)[0] / 2 + bitmap.pixel(x: 50, y: 50)[0] / 2
+        #expect(abs(middle - 0.9124) < 0.005, "\(middle)")
+        #expect(abs(bitmap.pixel(x: 99, y: 50)[0] - 1.8248 * 199 / 200) < 0.01)
+    }
+
     @Test("two stops at one offset make a hard edge, the later stop's colour from there on")
     func drawsHardEdge() throws {
         // Given
