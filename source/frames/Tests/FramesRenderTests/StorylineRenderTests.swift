@@ -18,8 +18,10 @@ import Testing
 @Suite("Storyline Render Tests", .serialized)
 struct StorylineRenderTests {
     // MARK: - Property
-    // A sixteen bit frame reproduces an eight bit colour to within one sixteen bit step.
-    private let exact = 1.0 / 65535
+    // A half float has 11 significant bits, so a value from 0.5 to 1 lies 2^-11 from the next one, the widest step
+    // below 1. Core Graphics takes an eight bit colour into the frame's half floats to within that step, not half of
+    // it, as it does not round to the nearest.
+    private let exact = 1.0 / 2048
     // Resampled and filtered colours keep to within one eight bit step.
     private let tolerance = 1.0 / 255
     private let presets = [
@@ -115,7 +117,8 @@ struct StorylineRenderTests {
                 differences.append((x, y))
             }
         }
-        #expect(differences.isEmpty, "\(differences.count) pixels differ, first at \(differences.prefix(4))")
+        let first = differences.first.map { "\(frame.pixel(x: $0.0, y: $0.1)) for \(patternColor(x: $0.0, y: $0.1))" }
+        #expect(differences.isEmpty, "\(differences.count) pixels differ, first at \(differences.prefix(4)): \(first ?? "")")
     }
 
     @Test("a document evaluated twice at one time gives one display list, and its frame rendered twice the same bytes")
