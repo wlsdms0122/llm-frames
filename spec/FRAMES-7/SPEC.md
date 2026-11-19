@@ -58,7 +58,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 - `storyline` is the primary storyline. Its clips play one after another, and a transition plays across the edit point between two of them.
 - `connected` clips belong to one storyline clip and live on its clip time ([FRAMES-8](../FRAMES-8/SPEC.md)). They move when that clip moves.
 - `clips` are the sequence's clips on the sequence clock.
-- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. A **clip with a picture** is every clip except an audio clip, a media clip whose media holds only sound.
+- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. A **clip with a picture** is every clip except an audio clip: a media clip whose media holds only sound, or one written with `"picture": false` ([FRAMES-13](../FRAMES-13/SPEC.md)).
 
 ### Keys
 
@@ -71,9 +71,10 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
+| audio clip of a video's or a compound clip's sound (`"picture": false`) | every audio clip's, `picture` |
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
@@ -95,7 +96,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 `metadata` is an object that frames does not read: what the programs that read and change a document keep on a clip ([FRAMES-25](../FRAMES-25/SPEC.md)), such as which extension added it and why, as an NLE keeps keywords and notes. Its contents are not checked, and resolve does not carry it into the resolved document.
 
-Which media row applies depends on what the media holds, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
+Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
 Keyframable properties:
 

@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-How clips play sound: volume, pan, fades, keyframed volume and pan, transition crossfades with the transition preset's curve, how gains multiply, and which clips play no sound.
+How clips play sound: volume, pan, fades, keyframed volume and pan, transition crossfades with the transition preset's curve, how gains multiply, which clips play no sound, and a video's sound placed alone as an audio clip.
 
 ## Motivation
 
@@ -28,6 +28,13 @@ An edit's sound is laid like its pictures: a music bed under the whole piece and
 | more than 2 | as stereo, after the mixer mixes the sound down to two channels ([FRAMES-21](../FRAMES-21/SPEC.md)) | | |
 
 A mono sound is placed into both output channels at those gains. A stereo sound keeps its channels apart, each taking its own gain. A `pan` outside -1 to 1 stops, as a value of the wrong type does ([FRAMES-7](../FRAMES-7/SPEC.md)).
+
+### A video's sound alone
+
+A connected or sequence media clip of a video, a compound clip or a sequence template instance takes `"picture": false` to be an audio clip of its media's sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it. It then takes the keys of an audio clip and `picture` ([FRAMES-7](../FRAMES-7/SPEC.md)), and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
+
+- A split edit, a J cut where the next shot's sound comes in before its picture or an L cut where the last shot's sound runs on under the next picture, is an audio clip of that shot's sound beside its storyline clip, with the storyline clip's own `volume` keyframed down where the audio clip takes its sound over. No picture is decoded for it and none is hidden.
+- `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: an image, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
 
 ### Crossfades
 

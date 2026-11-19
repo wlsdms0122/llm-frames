@@ -35,7 +35,7 @@ How it is written, so the same plan gives the same bytes:
 - **One number form.** A number is the shortest decimal that reads back to the same 64-bit floating point value, with no exponent, no fraction when it is whole (`1080`, not `1080.0`), and `0` for negative zero. A string escapes `"`, `\` and control characters only, and writes every other character as itself.
 - **Hashes.** A SHA-256 is 64 lower case hexadecimal digits under `sha256`, next to the absolute `file` it pins. An image sequence is `imageSequence`, its frame files in order, each `{file, sha256}`.
 - **Keyframe lists.** A keyframable property is a list of `{at, value, ease}` in time order, where `ease` shapes the span that starts at its keyframe. A property written without keyframes is one keyframe at the instant its areas take effect, and one not written is its plain value there.
-- **Every key written.** An entry carries every key of its kind, `null` where it has none. Only the outermost document carries `"resolved"`, and a nested one is the same shape without it. Track frames are frames of media, so they keep media time, as `frames` does. An audio clip is drawn by nothing, so it is an audio entry only.
+- **Every key written.** An entry carries every key of its kind, `null` where it has none. Only the outermost document carries `"resolved"`, and a nested one is the same shape without it. Track frames are frames of media, so they keep media time, as `frames` does. An audio clip is drawn by nothing, so it is an audio entry only, a clip written with `"picture": false` included ([FRAMES-13](../FRAMES-13/SPEC.md)).
 
 ### Resolved sequence
 
