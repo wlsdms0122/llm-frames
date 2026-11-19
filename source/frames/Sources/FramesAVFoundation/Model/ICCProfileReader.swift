@@ -108,9 +108,8 @@ struct ICCProfileReader {
     private func curve(at offset: Int) -> ToneCurve? {
         switch signature(at: offset) {
         case "curv":
-            guard let count = uint32(at: offset + 8) else { return nil }
+            guard let count = uint32(at: offset + 8), bytes.count >= offset + 12 + count * 2 else { return nil }
             let entries = (0..<count).compactMap { uint16(at: offset + 12 + $0 * 2) }
-            guard entries.count == count else { return nil }
 
             switch count {
             case 0:
