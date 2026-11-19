@@ -71,7 +71,7 @@ struct TitleGroupTests {
         )
 
         // Then
-        // Each unit's box grows by 2, half its stroke.
+        // Each reveal wipes its unit's box grown by 2, half its stroke.
         let first = text.unitBox(of: 0, at: 0.25)
         let second = text.unitBox(of: 1, at: 0.25)
         #expect(list.items[0].reveal == nil)
@@ -101,7 +101,8 @@ struct TitleGroupTests {
         )
 
         // Then
-        // "ab" has entered, and "cd" is half way.
+        // "ab" has entered, and "cd" is half way. The box of "cd", from 50 to 90 and from 0 to 40, grows by 2 for its
+        // stroke, then to the highlight's padding of 4 above and below and 10 past the piece's end at 90.
         let second = text.unitBox(of: 1, at: 0.75)
         let carried = try #require(highlight(of: list.items[2]))
         let band = try #require(carried.bands?.first)
@@ -113,6 +114,7 @@ struct TitleGroupTests {
             width: band.upperBound - band.lowerBound,
             height: piece.height
         ))
+        #expect(second == Rectangle(x: 48, y: -4, width: 52, height: 48))
         #expect(list.items[1].reveal == nil)
         #expect(list.items[2].reveal == Rectangle(x: drawn.x, y: drawn.y, width: drawn.width / 2, height: drawn.height))
     }
