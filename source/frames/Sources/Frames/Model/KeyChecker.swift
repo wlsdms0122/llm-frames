@@ -790,7 +790,10 @@ struct KeyChecker: Sendable {
 
         let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
-            let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
+            let takesSound = clipPlace != .storyline && object["picture"] == .bool(false)
+                && (clipKind == .media(.video) || clipKind == .media(.sequence))
+            let clipKind = takesSound ? .media(.audio) : clipKind
+            let table = takesSound ? ClipKeyTable.soundTable(in: clipPlace) : ClipKeyTable.table(for: clipKind, in: clipPlace)
             try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
             try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)

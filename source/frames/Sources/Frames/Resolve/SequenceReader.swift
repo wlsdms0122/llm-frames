@@ -188,7 +188,8 @@ struct SequenceReader: Sendable {
             volume: property("volume", of: clip, read: \.numberValue),
             pan: property("pan", of: clip, read: \.numberValue),
             fadeIn: clip["fadeIn"]?.numberValue,
-            fadeOut: clip["fadeOut"]?.numberValue
+            fadeOut: clip["fadeOut"]?.numberValue,
+            picture: clip["picture"]?.boolValue
         )
     }
 

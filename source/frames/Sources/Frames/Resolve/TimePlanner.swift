@@ -450,7 +450,7 @@ struct TimePlanner: Sendable {
                 kind: .genericClip(clip.clipPlace),
                 theme: theme
             )
-            let kind = ClipKind.media(media.kind)
+            let kind = try kind(of: clipMedia, media: media, place: clip.place)
             guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(
@@ -472,6 +472,23 @@ struct TimePlanner: Sendable {
         case .adjust:
             return ClipSource(kind: .adjust)
         }
+    }
+
+    // A clip that takes only its media's sound is an audio clip, and stops where the media holds none.
+    private func kind(
+        of clipMedia: ClipMedia,
+        media: MediaPlan,
+        place: Place
+    ) throws -> ClipKind {
+        guard clipMedia.picture == false else { return .media(media.kind) }
+        guard media.hasSound else {
+            throw ResolveError.pictureOffWithoutSound(
+                place: place.appending(key: "picture"),
+                kind: .clip(.media(media.kind))
+            )
+        }
+
+        return .media(.audio)
     }
 
     // A timed media clip's edit points, with its window's start left at 0 until the window is known.

@@ -26,6 +26,14 @@ enum ClipKeyTable {
     }
 
     // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
+    // A media clip of a video or a compound clip written with `"picture": false`, which takes only its media's sound
+    // and so an audio clip's keys, and `picture`.
+    static func soundTable(in place: ClipPlace) -> ObjectTable {
+        let audio = table(for: .media(.audio), in: place)
+
+        return ObjectTable(kind: audio.kind, rules: audio.rules + [KeyRule("picture", .bool)], group: audio.group)
+    }
+
     static func choice(ofKey name: String) -> ValueType? {
         switch name {
         case "animation":
@@ -165,7 +173,7 @@ enum ClipKeyTable {
 
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
-                "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "placement", "position",
+                "media", "picture", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "placement", "position",
                 "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height", "radius", "border",
                 "shadow"
             ]
@@ -223,7 +231,7 @@ enum ClipKeyTable {
         case "solid":
             .color
 
-        case "loop", "closed":
+        case "loop", "closed", "picture":
             .bool
 
         // A media clip's and a storyline clip's shadow take the same forms as a shape's.
