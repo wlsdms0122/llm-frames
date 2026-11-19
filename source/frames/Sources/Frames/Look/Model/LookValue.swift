@@ -80,7 +80,7 @@ indirect enum LookValue: Equatable, Sendable {
 
         case let (.object(members), _):
             return .object(JSONObject(members: members.compactMap { member in
-                member.value.json(as: Self.structure(of: member.key, in: structure)).map {
+                member.value.json(as: structure.structure(ofMember: member.key)).map {
                     JSONMember(key: member.key, value: $0)
                 }
             }))
@@ -97,22 +97,6 @@ indirect enum LookValue: Equatable, Sendable {
     }
 
     // MARK: - Private
-    private static func structure(
-        of key: String,
-        in structure: ValueStructure
-    ) -> ValueStructure {
-        switch structure {
-        case let .object(object):
-            object.structure(of: key) ?? .anyValue
-
-        case let .map(element):
-            element
-
-        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
-            .anyValue
-        }
-    }
-
     private func choiceJSON(
         name: String,
         body: LookValue

@@ -78,6 +78,20 @@ indirect enum ValueStructure: Sendable {
         return nil
     }
 
+    // The structure of an object's or a map's member, `anyValue` for a key no object declares.
+    func structure(ofMember key: String) -> ValueStructure {
+        switch self {
+        case let .object(object):
+            object.structure(of: key) ?? .anyValue
+
+        case let .map(element):
+            element
+
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
+            .anyValue
+        }
+    }
+
     func structure(ofForm name: String) -> ValueStructure? {
         switch self {
         case let .forms(forms):

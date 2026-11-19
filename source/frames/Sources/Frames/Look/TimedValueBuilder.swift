@@ -84,7 +84,7 @@ struct TimedValueBuilder: Sendable {
             let keys = declared.filter(present.contains) + present.filter { !declared.contains($0) }
             var timed: [TimedMember] = []
             for key in keys where !timed.contains(where: { $0.key == key }) {
-                let child = Self.structure(of: key, in: structure)
+                let child = structure.structure(ofMember: key)
                 let plain = object.plain[key].map { reader.value(of: $0, as: child) }
                 let value = try self.timed(
                     merged[key] ?? plain ?? .unset,
@@ -186,7 +186,7 @@ struct TimedValueBuilder: Sendable {
             return try members.reduce(layer) { merged, member in
                 guard let value = merged[member.key] else { return merged.setting(member.key, to: member.value) }
 
-                let child = Self.structure(of: member.key, in: structure)
+                let child = structure.structure(ofMember: member.key)
                 return merged.setting(
                     member.key,
                     to: try self.layer(value, over: member.value, as: child, place: place.appending(key: member.key))
@@ -278,7 +278,7 @@ struct TimedValueBuilder: Sendable {
 
         case let (.object(members), _):
             return .object(try members.map { member in
-                let child = Self.structure(of: member.key, in: structure)
+                let child = structure.structure(ofMember: member.key)
                 return LookMember(
                     key: member.key,
                     value: try skeleton(of: member.value, as: child, place: place.appending(key: member.key))
@@ -342,7 +342,7 @@ struct TimedValueBuilder: Sendable {
                 }
                 guard let value = layer[member.key] else { continue }
 
-                try checkAgreement(value, member.value, as: Self.structure(of: member.key, in: structure), place: memberPlace)
+                try checkAgreement(value, member.value, as: structure.structure(ofMember: member.key), place: memberPlace)
             }
 
         default:
@@ -357,21 +357,5 @@ struct TimedValueBuilder: Sendable {
         guard case let .list(elements) = value, elements.indices.contains(index) else { return nil }
 
         return elements[index]
-    }
-
-    private static func structure(
-        of key: String,
-        in structure: ValueStructure
-    ) -> ValueStructure {
-        switch structure {
-        case let .object(object):
-            object.structure(of: key) ?? .anyValue
-
-        case let .map(element):
-            element
-
-        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
-            .anyValue
-        }
     }
 }
