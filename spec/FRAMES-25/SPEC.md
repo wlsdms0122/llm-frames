@@ -29,6 +29,8 @@ A how-to (`howto/<name>.md`) teaches a technique that belongs to no form, so it 
 
 A missing look becomes a preset or a pack. A missing capability goes into this specification and the model first, and into the roles only when it needs a new kind of pixel, sound or file work. A form-only feature, or one that serves a purpose rather than editing, is never hidden in either.
 
+A capability belongs in frames when nothing outside it can build it on what frames already has. Packs and extension programs both build outside it, and the test counts both: what a program can make by reading frames' reports and writing documents (text measured and fitted to a box, words timed to a transcript) stays outside. A template is the one place where no program runs, so it must draw rightly for every value its parameters take ([FRAMES-17](../FRAMES-17/SPEC.md)), and what that needs (a box that follows the size of a text argument, [FRAMES-2](../FRAMES-2/SPEC.md)) is a tool of frames for that reason.
+
 ### How an edit is made
 
 An edit is made the way it is made in any NLE, by going round until it holds:

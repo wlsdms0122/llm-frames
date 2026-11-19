@@ -58,7 +58,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 - `storyline` is the primary storyline. Its clips play one after another, and a transition plays across the edit point between two of them.
 - `connected` clips belong to one storyline clip and live on its clip time ([FRAMES-8](../FRAMES-8/SPEC.md)). They move when that clip moves.
 - `clips` are the sequence's clips on the sequence clock.
-- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. A **clip with a picture** is every clip except an audio clip: a media clip whose media holds only sound, or one written with `"picture": false` ([FRAMES-13](../FRAMES-13/SPEC.md)).
+- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. What a media clip takes from its media is the clip's own choice: its picture and its sound, or with `"picture": false` its sound alone, as Final Cut Pro detaches a clip's audio ([FRAMES-13](../FRAMES-13/SPEC.md)). An **audio clip** is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a **clip with a picture** is every other clip.
 
 ### Keys
 
@@ -67,7 +67,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
 | format | `size, fps, background, conform` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected` |
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
@@ -78,7 +78,8 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| stroke | `color, width, join, cap, start, end, dash, dashOffset` |
+| split | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
 | radial gradient | `center, radius, stops` |
@@ -88,7 +89,8 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
 | animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args}`, a list of those, or `"none"` |
+| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args}`, a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
+| filter op | `op`, and the parameters the op table of [FRAMES-15](../FRAMES-15/SPEC.md) gives that op |
 | audio filter choice (`audioFilter`) | an audio preset as `<pack>/<name>` or an absolute path, `{preset, args}`, an audio op, or a list of those ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | audio op | `op`, and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate` |
 | EQ band | `type, frequency, gain, q`, `gain` for `lowShelf`, `highShelf` and `peak` only |
@@ -104,7 +106,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
-Keyframable properties:
+Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key evaluation reads at each instant whose value is built from numbers and colours). The table is written for reference, and where it and the principle differ the principle decides:
 
 | Clip | Properties |
 | --- | --- |
@@ -116,7 +118,7 @@ Keyframable properties:
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
-`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)). In the same way `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border` and `audioFilter` in a keyframe are the clip's whole value of that key at that instant, read as the same value written statically would be, and two keyframes of one key hold the same names in the same places ([FRAMES-4](../FRAMES-4/SPEC.md)).
+`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)). In the same way `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border` and `audioFilter` in a keyframe are the clip's whole value of that key at that instant, merged over its style's value leaf by leaf and read as the same value written statically would be ([FRAMES-11](../FRAMES-11/SPEC.md)), and two keyframes of one key hold the same names in the same places ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
 Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A property written both as a static value and in a keyframe stops, since the static value would never show.
 
