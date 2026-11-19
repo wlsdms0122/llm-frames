@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// The structure of every value of a look, as the theme and the key tables give its keys. A keyframable key is made
-// keyframable by declaring its structure here: its numbers and colours are its timed leaves, and the look merge and
-// timing read nothing else of it.
+// The structure of every value of a look. A keyframable key is made keyframable by declaring its structure here: its
+// numbers and colours are its timed leaves, and the look merge and timing read nothing else of it. The key tables read
+// the keys and domains of the look objects they check from here.
 enum LookStructureTable {
     // A gradient's kind is its form and its number of stops the length of `stops`, both static; its points are
     // fractions of the shape's box, not theme lengths.
@@ -132,13 +132,13 @@ enum LookStructureTable {
         ("background", background)
     ]))
 
-    static let shapeStyle = ValueStructure.object(ObjectStructure([
+    static let shapeStyle = ObjectStructure([
         ("fill", fill),
         ("stroke", stroke),
         ("radius", length),
         ("outset", length),
         ("shadow", shadow)
-    ]))
+    ])
 
     static let transition = ValueStructure.choice(offNames: ["cut"])
 
@@ -189,7 +189,7 @@ enum LookStructureTable {
         ("font", .list(.leaf(.name))),
         ("colors", .map(.leaf(.color))),
         ("styles", .map(textStyle)),
-        ("shapes", .map(shapeStyle)),
+        ("shapes", .map(.object(shapeStyle))),
         ("placement", .object(ObjectStructure([("padding", length)]))),
         ("border", border),
         ("shadow", shadow),
@@ -301,8 +301,8 @@ enum LookStructureTable {
         ("mix", mix)
     ])))
 
-    // An audio op's parameters in the order of the op table, each in its range with its default written. A band's
-    // `frequency` and `q` are heard by their ratio, so they move geometrically.
+    // An audio op's parameters in the order of the op table, each in its range with its default written, and those
+    // with no default required. A band's `frequency` and `q` are heard by their ratio, so they move geometrically.
     static func audioOperation(
         _ name: String,
         mixed: Bool = false
@@ -338,14 +338,20 @@ enum LookStructureTable {
             )
         }
 
+        let required = name == "eq" ? [] : parameters.map(\.name).filter { defaults[$0] == nil }
+
         return mixed
-            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: defaults.merging(["mix": .number(1)]) { $1 }))
-            : .object(ObjectStructure(parameters, plain: defaults))
+            ? .object(ObjectStructure(
+                parameters + [("mix", mix)],
+                required: required,
+                plain: defaults.merging(["mix": .number(1)]) { $1 }
+            ))
+            : .object(ObjectStructure(parameters, required: required, plain: defaults))
     }
 
     // A band is a form by its `type`, each requiring the keys its type takes but `q`, which defaults to 1/√2. A band's
     // `frequency` lies above 0 and below half of 48 kHz.
-    private static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
+    static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
         let keys: [(name: String, structure: ValueStructure)] = [
             ("frequency", .leaf(LeafKind(form: .number, domain: .between(0, 24000), interpolation: .geometric))),
             ("gain", .leaf(.number())),

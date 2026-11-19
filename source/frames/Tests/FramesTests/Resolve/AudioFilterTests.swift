@@ -122,6 +122,55 @@ struct AudioFilterTests {
         }
     }
 
+    @Test("a compressor whose threshold only keyframes write passes the key tables and moves its threshold")
+    func sweepsKeyframedThreshold() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "compressor", "ratio": 4 },
+                "keyframes": [
+                  { "at": 0, "audioFilter": { "threshold": -10 } },
+                  { "at": 2, "audioFilter": { "threshold": -30 } } ] } ] }
+            """#
+        try checker.check(document: Fixture.json(document))
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        let filter = plan.sound[1].audioFilter.sampled(at: 1, as: LookStructureTable.resolvedAudioFilter)
+        guard case let .list(entries) = filter, let entry = entries.first else {
+            Issue.record("expected an entry, got \(filter)")
+            return
+        }
+        let compressor = try #require(operation(of: entry))
+        #expect(compressor.body["threshold"]?.number == -20)
+    }
+
+    @Test("a compressor whose threshold neither the clip nor its keyframes write stops")
+    func refusesCompressorWithoutThreshold() throws {
+        // When, Then
+        #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "threshold", layer: nil)) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "compressor", "ratio": 4 } } ] }
+                """#)
+        }
+    }
+
+    @Test("an op's parameter outside its domain stops at the key check where it is written")
+    func refusesParameterOutsideDomain() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "gate", "threshold": -40, "attack": 0 } } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try checker.check(document: Fixture.json(document)) }
+        #expect(error?.description == "clips[0].audioFilter.attack (gate): expected a number above 0, found 0")
+    }
+
     @Test("a preset entry is its preset's ops with its arguments in place and their defaults written, and its mix")
     func expandsPreset() throws {
         // When

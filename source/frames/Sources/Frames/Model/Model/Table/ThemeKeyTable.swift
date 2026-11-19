@@ -15,21 +15,8 @@ enum ThemeKeyTable {
             KeyRule("styles", .map(.object(style), kind: "styles")),
             KeyRule("shapes", .map(.object(ShapeKeyTable.style), kind: "shapes")),
             KeyRule("placement", .object(group("placement", ["padding"]))),
-            KeyRule("border", .object(ObjectTable(
-                kind: "border",
-                rules: [
-                    KeyRule("width", .number),
-                    KeyRule("color", .color)
-                ]
-            ))),
-            KeyRule("shadow", .object(ObjectTable(
-                kind: "shadow",
-                rules: [
-                    KeyRule("radius", .number),
-                    KeyRule("offset", .numbers(2)),
-                    KeyRule("color", .color)
-                ]
-            ))),
+            KeyRule("border", ValueType(structure: LookStructureTable.border, kind: "border")),
+            KeyRule("shadow", ValueType(structure: LookStructureTable.shadow, kind: "shadow")),
             KeyRule("defaults", .object(defaults))
         ]
     )
@@ -46,49 +33,10 @@ enum ThemeKeyTable {
             KeyRule("baselineShift", .number),
             KeyRule("color", .color),
             KeyRule("lineHeight", .number),
-            KeyRule("stroke", .oneOf([
-                .exactly(.bool(false)),
-                .object(ObjectTable(
-                    kind: "stroke",
-                    rules: [
-                        KeyRule("width", .number),
-                        KeyRule("color", .color)
-                    ]
-                ))
-            ])),
-            KeyRule("background", .oneOf([
-                .exactly(.bool(false)),
-                .object(ObjectTable(
-                    kind: "background",
-                    rules: [
-                        KeyRule("color", .color),
-                        KeyRule("padding", .numbers(2)),
-                        KeyRule("radius", .number)
-                    ]
-                ))
-            ])),
-            KeyRule("highlight", .oneOf([
-                .exactly(.bool(false)),
-                .object(ObjectTable(
-                    kind: "highlight",
-                    rules: [
-                        KeyRule("color", .color),
-                        KeyRule("padding", .numbers(2)),
-                        KeyRule("radius", .number)
-                    ]
-                ))
-            ])),
-            KeyRule("underline", .oneOf([
-                .bool,
-                .object(ObjectTable(
-                    kind: "underline",
-                    rules: [
-                        KeyRule("width", .number),
-                        KeyRule("offset", .number),
-                        KeyRule("color", .color)
-                    ]
-                ))
-            ])),
+            KeyRule("stroke", ValueType(written: LookStructureTable.textStroke, kind: "stroke")),
+            KeyRule("background", ValueType(written: LookStructureTable.background, kind: "background")),
+            KeyRule("highlight", ValueType(written: LookStructureTable.highlight, kind: "highlight")),
+            KeyRule("underline", ValueType(written: LookStructureTable.underline, kind: "underline")),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number),
             KeyRule("align", .literal(["left", "center", "right"])),

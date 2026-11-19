@@ -284,18 +284,19 @@ struct PresetReader: Sendable {
         return AudioPreset(description: object["description"]?.stringValue ?? "", operations: operations)
     }
 
-    // A preset has no keyframes, so a leaf its op's structure requires, a band's `frequency` and `gain`, is written in
-    // the preset.
+    // A preset has no keyframes, so a leaf its op's structure requires, as a compressor's `threshold` or a band's
+    // `frequency`, is written in the preset.
     private func checkRequired(
         of operation: JSONObject,
         as structure: ValueStructure,
-        place: Place
+        place operationPlace: Place
     ) throws {
         do {
             let value = lookReader.value(of: .object(operation), as: structure)
-            try merger.checkRequired(in: value, as: structure, place: place)
+            try merger.checkRequired(in: value, as: structure, place: operationPlace)
         } catch let LookError.missingLeaf(place, key) {
-            throw ModelError.missingKey(place: place, kind: "band", keys: [key])
+            let kind = place == operationPlace ? operation["op"]?.stringValue ?? "audio operation" : "band"
+            throw ModelError.missingKey(place: place, kind: kind, keys: [key])
         }
     }
 

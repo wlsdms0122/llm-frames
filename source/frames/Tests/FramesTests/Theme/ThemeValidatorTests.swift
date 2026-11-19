@@ -138,6 +138,30 @@ struct ThemeValidatorTests {
         #expect(error?.description == "styles.note.lines (style): expected a whole number, 1 or more, found \(lines)")
     }
 
+    @Test(
+        "a theme's look length outside its domain stops where it is written",
+        arguments: [
+            (#"{ "border": { "width": 0 } }"#, "border.width (border): expected a number above 0, found 0"),
+            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius (shadow): expected a number, 0 or more, found -1"),
+            (
+                #"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#,
+                "styles.note.stroke.width (stroke): expected a number above 0, found -2"
+            ),
+            (
+                #"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#,
+                "styles.note.highlight.radius (highlight): expected a number, 0 or more, found -4"
+            )
+        ]
+    )
+    func refusesLookLengthOutsideDomain(theme: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(value: try Fixture.json(theme), place: .root)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
     @Test("a style's lines of 1 passes the key check")
     func acceptsOneLine() throws {
         // Given
