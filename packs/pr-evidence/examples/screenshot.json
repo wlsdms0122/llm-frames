@@ -10,7 +10,7 @@
         { "shape": "rect", "style": "outline", "parent": "checkout", "area": { "from": "Shipping", "to": "4,000", "padding": 16 } },
         { "shape": "rect", "style": "outline", "id": "total", "parent": "checkout",
           "area": { "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 } },
-        { "title": "38,000 + 4,000", "style": "label", "width": 600, "parent": "total",
+        { "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
   ],
