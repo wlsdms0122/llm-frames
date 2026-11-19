@@ -6,12 +6,13 @@
 //
 
 // The clip areas `clip` writes, at an instant, in the space `clip` is drawn in. The named clip's box is taken before
-// its own transform and tracked motion, at the instant held to its window. With the same parent or none, a box of its
-// own keeps its size in output pixels, so its anchor point is carried out to output pixels by the parent's map and the
-// box drawn there is carried back by the map's inverse, bounded where the map turns, and the padding is divided by the
-// map's length factor; a shape placed by its geometry gives its geometry's box. Named as the parent, it is its box in
-// the space it gives its children. Resolve has checked that every id names a clip that may be named and that no cycle holds, so the
-// walk through clip areas the named clip writes ends.
+// its own transform and tracked motion, at the instant held to its window; a title's is its text box with its
+// background at that instant. With the same parent or none, a box of its own keeps its size in output pixels, so its
+// anchor point is carried out to output pixels by the parent's map and the box drawn there is carried back by the
+// map's inverse, bounded where the map turns, and the padding is divided by the map's length factor; a shape placed by
+// its geometry gives its geometry's box. Named as the parent, it is its box in the space it gives its children. Resolve
+// has checked that every id names a clip that may be named and that no cycle holds, so the walk through clip areas the
+// named clip writes ends.
 struct ClipAreaSampler: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -105,13 +106,14 @@ struct ClipAreaSampler: Sendable {
         }
         guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
-        let size = self.size(of: named, box: box, at: time)
-        let anchor = Point(
-            x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
-            y: box.size.height > 0 ? box.anchor.y * size.height / box.size.height : 0
-        )
+        let extent = self.extent(of: named, box: box, at: time)
         let carried = space.transform.apply(to: space.anchor(of: box, track: nil, at: time))
-        let drawn = Rectangle(x: carried.x - anchor.x, y: carried.y - anchor.y, width: size.width, height: size.height)
+        let drawn = Rectangle(
+            x: carried.x + extent.x,
+            y: carried.y + extent.y,
+            width: extent.width,
+            height: extent.height
+        )
         guard let inverse = space.transform.inverse else { return drawn }
 
         return Rectangle(bounding: inverse.apply(toCornersOf: drawn))
@@ -130,8 +132,8 @@ struct ClipAreaSampler: Sendable {
             return crop
         }
 
-        let size = self.size(of: named, box: box, at: time)
-        return Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let extent = self.extent(of: named, box: box, at: time)
+        return Rectangle(x: 0, y: 0, width: extent.width, height: extent.height)
     }
 
     // A shape placed by its geometry's area or the box bounding its points, nil for one placed by its box.
@@ -153,32 +155,41 @@ struct ClipAreaSampler: Sendable {
         }
     }
 
-    // The size of the named clip's box at a time: a box shape's `width` and `height`, and any other clip's box.
-    private func size(
+    // The named clip's box at a time in its own pixels, with its anchor point at the origin: a box shape's `width` and
+    // `height`, its anchor at the same fraction of them; a title's box at the time, about the anchor point resolve
+    // placed, which stays while the box changes; and any other clip's box.
+    private func extent(
         of named: ResolvedClip,
         box: ResolvedBox,
         at time: Double
-    ) -> Size {
+    ) -> Rectangle {
         switch named.content {
         case let .shape(shape):
-            guard case let .box(width, height, _) = shape.geometry else { return box.size }
+            guard case let .box(width, height, _) = shape.geometry else { return extent(of: box) }
 
-            return Size(width: width.value(at: time), height: height.value(at: time))
+            let size = Size(width: width.value(at: time), height: height.value(at: time))
+            return Rectangle(
+                x: box.size.width > 0 ? -box.anchor.x * size.width / box.size.width : 0,
+                y: box.size.height > 0 ? -box.anchor.y * size.height / box.size.height : 0,
+                width: size.width,
+                height: size.height
+            )
 
-        case .title:
-            return textBox(of: box, at: time)
+        case let .title(text):
+            let drawn = text.box(at: time)
+            return Rectangle(
+                x: drawn.x - box.anchor.x,
+                y: drawn.y - box.anchor.y,
+                width: drawn.width,
+                height: drawn.height
+            )
 
         case .media, .adjustment:
-            return box.size
+            return extent(of: box)
         }
     }
 
-    // A title's text box with its background, the box shaped at its static tracking, line height and background
-    // padding.
-    private func textBox(
-        of box: ResolvedBox,
-        at time: Double
-    ) -> Size {
-        box.size
+    private func extent(of box: ResolvedBox) -> Rectangle {
+        Rectangle(x: -box.anchor.x, y: -box.anchor.y, width: box.size.width, height: box.size.height)
     }
 }

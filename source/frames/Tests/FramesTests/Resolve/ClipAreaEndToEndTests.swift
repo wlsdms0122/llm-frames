@@ -154,6 +154,56 @@ struct ClipAreaEndToEndTests {
         #expect(isClose(drawn, Rectangle(x: area.x, y: area.center.y - area.height, width: area.width * 2, height: area.height * 2)))
     }
 
+    @Test(
+        "a bar follows its title's box at each instant as the title's padding, line height or tracking moves",
+        arguments: [
+            ##""paragraph": { "background": { "color": "#FF0000" } }, "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } }, { "at": 2, "paragraph": { "background": { "padding": [10, 20] } } } ]"##,
+            #""keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 2, "paragraph": { "lineHeight": 100 } } ]"#,
+            #""keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 200 } } ]"#
+        ]
+    )
+    func followsKeyframedTitleBox(keys: String) throws {
+        // Given
+        let title = #"""
+            { "id": "name", "title": "Jane\nDoe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+              \#(keys) }
+            """#
+        let sut = try resolved(clips: [title, bar])
+
+        // When
+        let start = try drawn("bar", in: sut, at: 0)
+        let middle = try drawn("bar", in: sut, at: 1)
+
+        // Then
+        let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(isClose(start, try box(of: "name", in: sut, at: 0).grown(by: padding)))
+        #expect(isClose(middle, try box(of: "name", in: sut, at: 1).grown(by: padding)))
+        #expect(!isClose(start, middle))
+    }
+
+    @Test("a bar parented to its title fits the title's box at each instant as its padding grows")
+    func followsParentTitleBox() throws {
+        // Given
+        let title = #"""
+            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+              "paragraph": { "background": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
+                             { "at": 2, "paragraph": { "background": { "padding": [10, 20] } } } ] }
+            """#
+        let bar = ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
+        let sut = try resolved(clips: [title, bar])
+
+        // When
+        let start = try drawn(at: 0, in: sut)
+        let middle = try drawn(at: 1, in: sut)
+
+        // Then
+        let padding = 10 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(isClose(start, try box(of: "name", in: sut, at: 0).grown(by: padding)))
+        #expect(isClose(middle, try box(of: "name", in: sut, at: 1).grown(by: padding)))
+        #expect(middle.width > start.width)
+    }
+
     @Test("outside the named clip's window the area holds the box the clip has at the window's edge")
     func holdsOutsideNamedWindow() throws {
         // Given
@@ -333,6 +383,30 @@ struct ClipAreaEndToEndTests {
         let anchor = box.position[0].value.fixed
 
         return Rectangle(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y, width: box.size.width, height: box.size.height)
+    }
+
+    // An unparented title's box with its background at `time`, in output pixels before its transform: its text box at
+    // that instant about the anchor point resolve placed.
+    private func box(
+        of id: String,
+        in sequence: ResolvedSequence,
+        at time: Double
+    ) throws -> Rectangle {
+        let clip = try #require(sequence.clips.first { $0.id == id })
+        let box = try #require(clip.box)
+        guard case let .title(text) = clip.content else {
+            Issue.record("the clip is a title")
+            return Rectangle(x: 0, y: 0, width: 0, height: 0)
+        }
+
+        let anchor = box.position[0].value.fixed
+        let drawn = text.box(at: time)
+        return Rectangle(
+            x: anchor.x - box.anchor.x + drawn.x,
+            y: anchor.y - box.anchor.y + drawn.y,
+            width: drawn.width,
+            height: drawn.height
+        )
     }
 
     // The rectangle a rect clip draws at `time`, in output pixels.
