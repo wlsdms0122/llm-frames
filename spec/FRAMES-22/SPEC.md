@@ -117,7 +117,7 @@ A title whose style is not in `animation.title` takes `"none"`. A clip whose med
 
 ### A pack's theme
 
-A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle, two shape styles and gentle default motion:
+A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle with a highlight a run can name for one word, two shape styles and gentle default motion:
 
 ```json
 { "font": ["Avenir Next", "Apple SD Gothic Neo"],
@@ -125,7 +125,8 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
   "styles": {
     "subtitle": { "size": 44, "stroke": false, "background": { "color": "#000000B3", "padding": [6, 16], "radius": 6 } },
     "name":     { "size": 56, "weight": "bold", "placement": "bottom-left", "offset": 160 },
-    "role":     { "size": 36, "color": "accent" } },
+    "role":     { "size": 36, "color": "accent", "weight": "medium", "tracking": 40 },
+    "highlight": { "size": 44, "color": "ink", "background": { "color": "accent", "padding": [2, 8], "radius": 4 } } },
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
     "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 } },
