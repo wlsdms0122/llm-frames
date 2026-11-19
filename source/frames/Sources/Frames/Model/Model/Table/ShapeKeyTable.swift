@@ -45,7 +45,7 @@ enum ShapeKeyTable {
                 KeyRule("cap", .literal(StrokeCap.allCases.map(\.rawValue))),
                 KeyRule("start", .literal(StrokeEnd.allCases.map(\.rawValue))),
                 KeyRule("end", .literal(StrokeEnd.allCases.map(\.rawValue))),
-                KeyRule("dash", .dash),
+                KeyRule("dash", .dash(isKeyframed: false)),
                 KeyRule("dashOffset", .number)
             ],
             group: KeyGroup(keys: ["color", "gradient"], isExclusive: true, isOptional: true)

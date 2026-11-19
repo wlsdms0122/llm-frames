@@ -215,13 +215,14 @@ struct KeyChecker: Sendable {
                 }
             }
 
-        case .dash:
+        case let .dash(isKeyframed):
             guard
                 let elements = value.arrayValue,
                 let lengths = Optional(elements.compactMap(\.numberValue)),
-                lengths.count == elements.count,
+                !elements.isEmpty,
+                lengths.count + (isKeyframed ? elements.filter { $0 == .null }.count : 0) == elements.count,
                 lengths.allSatisfy({ $0 >= 0 }),
-                lengths.contains(where: { $0 > 0 })
+                lengths.count < elements.count || lengths.contains(where: { $0 > 0 })
             else {
                 throw wrongType(value, type, place, kind)
             }
@@ -1497,8 +1498,10 @@ struct KeyChecker: Sendable {
         case let .fractions(count):
             "a list of \(count) numbers, each from 0 to 1"
 
-        case .dash:
-            "a list of at least one length, each 0 or more and not all 0"
+        case let .dash(isKeyframed):
+            isKeyframed
+                ? "a list of at least one length or null, each 0 or more and not all 0"
+                : "a list of at least one length, each 0 or more and not all 0"
 
         case let .stops(isKeyframed):
             isKeyframed

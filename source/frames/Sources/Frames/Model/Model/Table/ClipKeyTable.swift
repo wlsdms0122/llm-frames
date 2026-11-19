@@ -379,6 +379,9 @@ enum ClipKeyTable {
         case .stops:
             .stops(isKeyframed: true)
 
+        case .dash:
+            .dash(isKeyframed: true)
+
         default:
             type
         }

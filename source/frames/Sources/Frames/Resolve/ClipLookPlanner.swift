@@ -55,10 +55,14 @@ struct ClipLookPlanner: Sendable {
         let (written, keyframes) = read(property, as: structure)
 
         let lookPlace = LookPlace(clip: self.place, key: key)
-        let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: lookPlace)
-        guard let merged = try merger.merge([below, own], as: structure, place: place), merged != .off else {
-            return .off
-        }
+        let merged = try builder.merged(
+            over: below,
+            written: written,
+            keyframes: keyframes,
+            as: structure,
+            place: lookPlace
+        )
+        guard let merged, merged != .off else { return .off }
 
         do {
             let given = try keyframes.reduce(merged) { given, keyframe in

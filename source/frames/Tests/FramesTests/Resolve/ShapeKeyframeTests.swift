@@ -294,12 +294,11 @@ struct ShapeKeyframeTests {
     }
 
     @Test(
-        "a stop naming a colour the theme lacks, a keyframe with another number of stops or of another kind, and a null stop leaf over a style's stops, which the keyframes' list replaced, stop",
+        "a stop naming a colour the theme lacks, a keyframe of another kind, and a null stop leaf in keyframes giving another number of stops than the style's, whose list replaces the style's, stop",
         arguments: [
             ##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "ink"], [1, "#FFFFFF"]] } }"##,
             ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1, null]] } } }, { "at": 1, "fill": { "linear": { "stops": [[0.5, null], [1, null]] } } } ]"##,
-            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0, 0] } } }, { "at": 1, "fill": { "radial": { "center": [1, 1] } } } ]"##,
-            ##""style": "glow", "keyframes": [ { "at": 0, "fill": { "radial": { "stops": [[0, null], [1, "#FFFFFF"]] } } }, { "at": 1, "fill": { "radial": { "stops": [[0.5, null], [1, "#000000"]] } } } ]"##
+            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0, 0] } } }, { "at": 1, "fill": { "radial": { "center": [1, 1] } } } ]"##
         ]
     )
     func refusesGradient(written: String) throws {
@@ -327,6 +326,50 @@ struct ShapeKeyframeTests {
             GradientStop(offset: 0, color: Color(written: "#808080")),
             GradientStop(offset: 0.75, color: Color(written: "#00000000"))
         ])
+    }
+
+    @Test("keyframes giving as many stops as the style's move one stop and keep the other, a null leaf being the style's")
+    func movesOneStyleStop() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "glow",
+              "keyframes": [ { "at": 0, "fill": { "radial": { "stops": [[null, null], [0.5, "#000000"]] } } },
+                             { "at": 1, "fill": { "radial": { "stops": [[null, null], [1, "#FFFFFF"]] } } } ] }
+            """##)
+
+        // Then
+        let moved = try #require(gradient(shape.fill.fill(at: 0.5, box: Rectangle(x: 0, y: 0, width: 200, height: 100))))
+        #expect(moved.stops == [
+            GradientStop(offset: 0, color: Color(written: "#123456")),
+            GradientStop(offset: 0.75, color: Color(written: "#808080"))
+        ])
+    }
+
+    @Test("keyframes giving as many dash lengths as the style's move one and keep the other, a null leaf being the style's")
+    func movesOneStyleDash() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+              "keyframes": [ { "at": 0, "stroke": { "dash": [null, 5] } }, { "at": 1, "stroke": { "dash": [null, 25] } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0)?.dash == [5, 2.5])
+        #expect(shape.stroke.stroke(at: 0.5)?.dash == [5, 7.5])
+        #expect(shape.stroke.stroke(at: 1)?.dash == [5, 12.5])
+    }
+
+    @Test("keyframes giving another number of dash lengths than the style's replace its dash, so a null leaf there stops")
+    func refusesNullOverOtherDash() throws {
+        // Given
+        let clip = ##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+              "keyframes": [ { "at": 0, "stroke": { "dash": [null, 5, 2] } }, { "at": 1, "stroke": { "dash": [4, 5, 2] } } ] }
+            """##
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolvedShape(clip) }
+        #expect(error.map { "\($0)" } == "clips[0].keyframes[0].stroke.dash[0] (keyframe): null points at the merged value, which holds none here")
     }
 
     @Test("an overshooting ease clamps each sampled offset to 0 to 1 and raises it to the one before it")
