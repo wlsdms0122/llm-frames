@@ -52,7 +52,7 @@ A filter preset is a chain of operations from this table, applied in order. The 
 - A `vignette` radius of 1 leaves every pixel nearer the centre than half the diagonal as it is.
 - A grain is a square `size` pixels across on a grid from the picture's top left corner, and n is one value for the whole grain, drawn from the seed and the grain's place on the grid.
 - The result has the size of the input. Operations that pull in pixels from beyond the edge (blur) read the edge pixels extended outward, and are cropped back to the original size.
-- Every renderer computes these formulas on working values, each in the form [FRAMES-26](../FRAMES-26/SPEC.md#compositing) gives it, which sorts every op by one criterion: what names a constant or a domain whose meaning depends on the form runs on the encoded form, and a sum of light follows the sequence's `compositing`. Pixels differ between renderers only by rounding, and grain by its noise generator, which is the renderer's.
+- Every renderer computes these formulas on working values, each in the form [FRAMES-26](../FRAMES-26/SPEC.md#compositing) gives it: every formula in its home form, the encoded one or for `exposure` and `temperature` the linear one, and every sum of light in the form the sequence's `compositing` names. Above 1 an op at home on the encoded form follows the extended sRGB curve whatever `compositing` is ([FRAMES-26](../FRAMES-26/SPEC.md#working-values)). Pixels differ between renderers only by rounding, and grain by its noise generator, which is the renderer's.
 
 ### Parameters
 
