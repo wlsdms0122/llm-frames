@@ -7,13 +7,15 @@
 
 // Shaped glyphs and their background in the text's own box of `size`. `layer` is nil for an item that draws every step,
 // or the one step a unit's item draws. `unitBox` is a unit's box in the text's box for a unit's item, which holds its
-// stroke and its parts, and nil for an item whose glyphs fill the text's box.
+// stroke and its parts, and `unitGlyphBox` the box its glyphs lie in, which a reveal wipes across; both are nil for an
+// item whose glyphs fill the text's box.
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
     package let runs: [DrawnGlyphRun]
     package let layer: GlyphLayer?
     package let unitBox: Rectangle?
+    package let unitGlyphBox: Rectangle?
     package let background: GlyphBackground?
 
     // MARK: - Initializer
@@ -22,12 +24,14 @@ package struct GlyphsItem: Equatable, Sendable {
         runs: [DrawnGlyphRun],
         layer: GlyphLayer? = nil,
         unitBox: Rectangle? = nil,
+        unitGlyphBox: Rectangle? = nil,
         background: GlyphBackground?
     ) {
         self.size = size
         self.runs = runs
         self.layer = layer
         self.unitBox = unitBox
+        self.unitGlyphBox = unitGlyphBox
         self.background = background
     }
 
@@ -71,12 +75,13 @@ package struct GlyphsItem: Equatable, Sendable {
     }
 
     // A unit's item of `layer` from the whole title's `item`: the unit's `glyphs` in their runs and the pieces its
-    // `parts` name, in its `box`, with no background, its strokes widened by `factor`, the scale factor of the unit's
-    // motion. A run the unit has neither glyphs nor parts of is left out.
+    // `parts` name, in its `box`, its glyphs lying in `glyphBox`, with no background, its strokes widened by `factor`,
+    // the scale factor of the unit's motion. A run the unit has neither glyphs nor parts of is left out.
     init(
         carrying glyphs: [GlyphRange],
         parts: [UnitPart],
         in box: Rectangle,
+        glyphBox: Rectangle,
         of item: GlyphsItem,
         layer: GlyphLayer,
         factor: Double
@@ -92,6 +97,7 @@ package struct GlyphsItem: Equatable, Sendable {
             },
             layer: layer,
             unitBox: box,
+            unitGlyphBox: glyphBox,
             background: nil
         )
     }
@@ -106,16 +112,14 @@ package struct GlyphsItem: Equatable, Sendable {
         [textBox] + pieces()
     }
 
-    // What the item draws, which a reveal wipes across, its glyphs lying in `glyphBox`: a whole title's text box, or a
-    // unit's glyph box. The box grows by half the widest stroke, since a stroke is centred on outlines that reach the
-    // box's edges, and joins every highlight and underline rectangle, each cut to its band where there are bands, a
+    // What the item draws, which a reveal wipes across: the box its glyphs lie in, a unit's glyph box or a whole
+    // title's text box, grown by half the widest stroke, since a stroke is centred on outlines that reach the box's
+    // edges, and joined with every highlight and underline rectangle, each cut to its band where there are bands, a
     // rectangle outside its band left out. A stroke is drawn in output pixels on the outlines `transform` carries, so
     // the disc it sweeps is carried back by the transform's inverse, and is nothing where the transform flattens the
     // plane.
-    package func drawnBounds(
-        around glyphBox: Rectangle,
-        carriedBy transform: AffineTransform
-    ) -> Rectangle {
+    package func drawnBounds(carriedBy transform: AffineTransform) -> Rectangle {
+        let glyphBox = unitGlyphBox ?? textBox
         let half = (runs.compactMap(\.stroke).map(\.width).max() ?? 0) / 2
         let reach = transform.inverse?.reach(ofDisc: half) ?? Size(width: 0, height: 0)
         let stroked = Rectangle(

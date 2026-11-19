@@ -174,7 +174,14 @@ struct DisplayListReaderTests {
                 end: .arrow
             )
         ))),
-        DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], layer: .strokes, background: nil)))
+        DisplayItem(content: .glyphs(GlyphsItem(
+            size: Size(width: 10, height: 10),
+            runs: [],
+            layer: .strokes,
+            unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
+            unitGlyphBox: Rectangle(x: 3, y: 2, width: 4, height: 6),
+            background: nil
+        )))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
