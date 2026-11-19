@@ -51,24 +51,22 @@ package struct MixPlanner: Sendable {
             return [MixPath(layers: layers, heard: heard, clock: composed(path.clock, played))]
         }
 
-        // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends. Before
-        // the first, a sound a split starts early plays the media before `in`.
+        // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends. A
+        // segment keeps its filters' state, so the first repeat starts where the sound does: a sound a split starts
+        // early plays the media before `in` and on into the first repeat, where the media does not jump.
         let period = sound.played.naturalLength
         let boundary = { (index: Int) in played.origin + Double(index) * period }
-        let leading = sound.audible.start < played.origin
-            ? heard.intersection(outermost(TimeRange(start: sound.audible.start, end: played.origin), through: path.clock))
-            : nil
-        let repeats = sequence(first: 0) { $0 + 1 }
+
+        return sequence(first: 0) { $0 + 1 }
             .prefix { index in boundary(index) < sound.audible.end }
             .compactMap { index -> MixPath? in
-                let repeated = TimeRange(start: boundary(index), end: boundary(index + 1))
+                let start = index == 0 ? min(sound.audible.start, boundary(0)) : boundary(index)
+                let repeated = TimeRange(start: start, end: boundary(index + 1))
                 guard let cut = heard.intersection(outermost(repeated, through: path.clock)) else { return nil }
 
-                let repeatClock = sound.played.starting(at: repeated.start).map
+                let repeatClock = sound.played.starting(at: boundary(index)).map
                 return MixPath(layers: layers, heard: cut, clock: composed(path.clock, repeatClock))
             }
-
-        return (leading.map { [MixPath(layers: layers, heard: $0, clock: composed(path.clock, played))] } ?? []) + repeats
     }
 
     // A range on the time a path plays, in outermost sequence time.
