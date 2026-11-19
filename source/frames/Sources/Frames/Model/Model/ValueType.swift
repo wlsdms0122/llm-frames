@@ -37,6 +37,10 @@ indirect enum ValueType: Equatable, Sendable {
     // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke
     // whole, where the patterns beside it draw fine dots.
     case dash
+    // A gradient's stops: a list of at least two `[offset, colour]`, each offset from 0 to 1 and at least the one
+    // before it. In a keyframe an offset or a colour may be `null` and the offsets may be in any order, since sampling
+    // raises each offset to the one before it.
+    case stops(isKeyframed: Bool)
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)

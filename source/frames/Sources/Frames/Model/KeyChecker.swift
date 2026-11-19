@@ -226,6 +226,9 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case let .stops(isKeyframed):
+            try checkStops(value, isKeyframed: isKeyframed, place: place, kind: kind)
+
         case .points:
             guard let elements = value.arrayValue, elements.count >= 2 else {
                 throw wrongType(value, type, place, kind)
@@ -328,10 +331,10 @@ struct KeyChecker: Sendable {
         guard let group = table.group else { return }
 
         let present = group.keys.filter(object.contains)
-        guard !present.isEmpty else {
+        guard !present.isEmpty || group.isOptional else {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: group.keys)
         }
-        guard !group.isExclusive || present.count == 1 else {
+        guard !group.isExclusive || present.count <= 1 else {
             throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: present)
         }
     }
@@ -370,6 +373,32 @@ struct KeyChecker: Sendable {
         }
 
         throw failures[admitting[0]]
+    }
+
+    private func checkStops(
+        _ value: JSONValue,
+        isKeyframed: Bool,
+        place: Place,
+        kind: String
+    ) throws {
+        let type = ValueType.stops(isKeyframed: isKeyframed)
+        guard let stops = value.arrayValue, stops.count >= 2 else { throw wrongType(value, type, place, kind) }
+
+        var last = 0.0
+        for (index, stop) in stops.enumerated() {
+            let stopPlace = place.appending(index: index)
+            guard let pair = stop.arrayValue, pair.count == 2 else { throw wrongType(stop, type, stopPlace, kind) }
+
+            if !(isKeyframed && pair[0] == .null) {
+                guard let offset = pair[0].numberValue, (0...1).contains(offset), isKeyframed || offset >= last else {
+                    throw wrongType(pair[0], type, stopPlace.appending(index: 0), kind)
+                }
+                last = offset
+            }
+            if !(isKeyframed && pair[1] == .null) {
+                try checkColor(pair[1], as: .color, place: stopPlace.appending(index: 1), kind: kind)
+            }
+        }
     }
 
     private func checkColor(
@@ -1204,7 +1233,7 @@ struct KeyChecker: Sendable {
             true
 
         case (.ease, .array), (.ease, .object), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
-             (.clips, .array):
+             (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
         case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
@@ -1299,6 +1328,11 @@ struct KeyChecker: Sendable {
 
         case .dash:
             "a list of at least one length, each 0 or more and not all 0"
+
+        case let .stops(isKeyframed):
+            isKeyframed
+                ? "a list of at least two [offset, colour], each offset from 0 to 1"
+                : "a list of at least two [offset, colour], each offset from 0 to 1 and at least the one before it"
 
         case .points:
             "a list of at least two points"

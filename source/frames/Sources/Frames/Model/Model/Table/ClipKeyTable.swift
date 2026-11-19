@@ -307,7 +307,8 @@ enum ClipKeyTable {
     }
 
     // A look key's type in a keyframe: each leaf may be `null`, and a length may be 0 or less, since timing checks a
-    // leaf two keyframes write against its domain and one a single keyframe writes as a static value.
+    // leaf two keyframes write against its domain and one a single keyframe writes as a static value. A gradient's
+    // offsets may be out of order, since sampling raises each to the one before it.
     private static func keyframed(_ type: ValueType) -> ValueType {
         type == ChoiceKeyTable.filter ? ChoiceKeyTable.filterKeyframe : .oneOf([.exactly(.null), loosened(type)])
     }
@@ -326,6 +327,9 @@ enum ClipKeyTable {
 
         case .positiveNumber, .nonNegativeNumber:
             .number
+
+        case .stops:
+            .stops(isKeyframed: true)
 
         default:
             type

@@ -157,6 +157,49 @@ struct SequenceCheckTests {
         #expect(throws: Never.self) { try sut.check(document: document) }
     }
 
+    @Test(
+        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, both kinds, a static radius of 0, or a stroke with both a colour and a gradient stops",
+        arguments: [
+            (##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"]] } }"##, "fill.linear.stops ("),
+            (##""fill": { "linear": { "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] } }"##, "fill.linear.stops[1][0] ("),
+            (##""fill": { "radial": { "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] } }"##, "fill.radial.stops[1][0] ("),
+            (##""fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] } }"##, "fill.radial.stops[1] ("),
+            (##""fill": { "radial": { "radius": 0 } }"##, "fill.radial.radius ("),
+            (##""fill": { "linear": { }, "radial": { } }"##, "fill (gradient): "),
+            (##""stroke": { "width": 2, "color": "#FFFFFF", "gradient": { "radial": { } } }"##, "stroke (stroke): "),
+            (##""keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1.5, null]] } } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
+        ]
+    )
+    func refusesGradient(
+        written: String,
+        prefix: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], \#(written) } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].\(prefix)") == true, "\(String(describing: error))")
+    }
+
+    @Test("a gradient fill, a stroke gradient, two stops at one offset, and null leaves and offsets out of order in a keyframe's stops are taken")
+    func takesGradient() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1],
+                  "fill": { "linear": { "from": [0, 0], "to": [1, 1], "stops": [[0, "accent"], [0.5, "#FF0000"], [0.5, "#0000FF80"], [1, "#FFFFFF"]] } },
+                  "stroke": { "width": 2, "gradient": { "radial": { "center": [0.5, 0.5], "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } },
+                  "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[null, "#000000"], [0.6, null], [null, null], [0.2, null]] } } } ] } ] } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: Never.self) { try sut.check(document: document) }
+    }
+
     @Test("a number does not stand for a boolean")
     func refusesNumberForBool() throws {
         // Given
