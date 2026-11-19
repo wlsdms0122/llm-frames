@@ -9,8 +9,7 @@
 // `argumentThemes` are the themes media a template instance was given keeps, by its place.
 struct SequenceReader: Sendable {
     // MARK: - Property
-    private static let keyframeKeys: Set<String> = ["at", "ease"]
-
+    private let keyframeReader = KeyframeReader()
     private let argumentThemes: ArgumentThemeTable
 
     // MARK: - Initializer
@@ -73,22 +72,22 @@ struct SequenceReader: Sendable {
             media: object["media"].map { media($0, of: object, place: place.appending(key: "media")) },
             solid: object["solid"]?.stringValue,
             duration: object["duration"]?.numberValue,
-            transition: object["transition"].flatMap { TransitionChoice(value: $0, place: place.appending(key: "transition")) },
+            transition: object["transition"],
             keyframes: keyframes(object["keyframes"]),
             crop: property("crop", of: object, read: CropForm.init(value:)),
-            mask: property("mask", of: object, read: ClipMask.masks(in:)),
+            mask: look("mask", of: object),
             trackMatte: object["trackMatte"].flatMap(TrackMatte.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
-            filter: object["filter"].flatMap { FilterChoice(value: $0, place: place.appending(key: "filter")) },
+            filter: look("filter", of: object),
             anchor: object["anchor"]?.stringValue,
             position: property("position", of: object, read: PositionForm.init(value:)),
-            scale: property("scale", of: object, read: \.numberValue),
+            scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             opacity: property("opacity", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            radius: object["radius"]?.numberValue,
-            border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
+            radius: look("radius", of: object),
+            border: look("border", of: object),
+            shadow: look("shadow", of: object),
             connected: connected
         )
     }
@@ -110,36 +109,26 @@ struct SequenceReader: Sendable {
             parent: object["parent"]?.stringValue,
             placement: object["placement"]?.stringValue,
             anchor: object["anchor"]?.stringValue,
-            animation: object["animation"].flatMap { AnimationChoice(value: $0, place: place.appending(key: "animation")) },
+            animation: object["animation"],
             keyframes: keyframes,
             area: property("area", of: object, read: AreaForm.init(value:)),
             position: property("position", of: object, read: PositionForm.init(value:)),
             crop: property("crop", of: object, read: CropForm.init(value:)),
-            mask: property("mask", of: object, read: ClipMask.masks(in:)),
+            mask: look("mask", of: object),
             trackMatte: object["trackMatte"].flatMap(TrackMatte.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
             width: object["width"]?.numberValue,
             height: object["height"]?.numberValue,
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
-            radius: object["radius"]?.numberValue,
-            border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
+            radius: look("radius", of: object),
+            border: look("border", of: object),
+            shadow: look("shadow", of: object),
             opacity: property("opacity", of: object, read: \.numberValue),
-            scale: property("scale", of: object, read: \.numberValue),
+            scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            filter: filter(of: object, place: place)
+            filter: look("adjust", of: object) ?? look("filter", of: object)
         )
-    }
-
-    // An adjustment clip's `adjust` is its filter choice.
-    private func filter(
-        of object: JSONObject,
-        place: Place
-    ) -> FilterChoice? {
-        let key = object.contains("adjust") ? "adjust" : "filter"
-
-        return object[key].flatMap { FilterChoice(value: $0, place: place.appending(key: key)) }
     }
 
     private func content(
@@ -153,7 +142,12 @@ struct SequenceReader: Sendable {
             return .shape(shape(kind, of: object))
         }
         if let title = object["title"] {
-            return .title(runs: TitleRun.runs(in: title), style: object["style"]?.stringValue ?? "")
+            return .title(ClipTitle(
+                runs: TitleRun.runs(in: title),
+                style: object["style"]?.stringValue ?? "",
+                character: look("character", of: object),
+                paragraph: look("paragraph", of: object)
+            ))
         }
 
         return .adjust
@@ -172,15 +166,15 @@ struct SequenceReader: Sendable {
                 value.arrayValue.map { elements in elements.compactMap(PositionForm.init(value:)) }
             },
             isClosed: clip["closed"]?.boolValue ?? false,
-            radius: property("radius", of: clip, read: \.numberValue),
-            outset: clip["outset"]?.numberValue,
-            fill: clip["fill"].flatMap(FillForm.init(value:)),
-            stroke: clip["stroke"].flatMap(StrokeForm.init(value:)),
+            radius: look("radius", of: clip),
+            outset: look("outset", of: clip),
+            fill: look("fill", of: clip),
+            stroke: look("stroke", of: clip),
             trim: property("trim", of: clip) { value in
                 let ends = value.arrayValue?.compactMap(\.numberValue) ?? []
                 return ends.count == 2 ? Trim(start: ends[0], end: ends[1]) : nil
             },
-            shadow: clip["shadow"].flatMap(ShadowForm.init(value:))
+            shadow: look("shadow", of: clip)
         )
     }
 
@@ -199,7 +193,10 @@ struct SequenceReader: Sendable {
             volume: property("volume", of: clip, read: \.numberValue),
             pan: property("pan", of: clip, read: \.numberValue),
             fadeIn: clip["fadeIn"]?.numberValue,
-            fadeOut: clip["fadeOut"]?.numberValue
+            fadeOut: clip["fadeOut"]?.numberValue,
+            picture: clip["picture"]?.boolValue,
+            audioFilter: look("audioFilter", of: clip),
+            split: clip["split"]?.objectValue.map(SplitEdit.init)
         )
     }
 
@@ -252,10 +249,10 @@ struct SequenceReader: Sendable {
         }
 
         let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
-            element.objectValue.flatMap { keyframe -> TimedValue<Value>? in
+            element.objectValue.flatMap { keyframe -> PropertyKeyframe<Value>? in
                 guard let at = keyframe["at"]?.numberValue, let value = keyframe[key].flatMap(read) else { return nil }
 
-                return TimedValue(
+                return PropertyKeyframe(
                     index: index,
                     at: at,
                     value: value,
@@ -266,6 +263,28 @@ struct SequenceReader: Sendable {
         guard !keyframes.isEmpty else { return nil }
 
         return .keyframes(keyframes)
+    }
+
+    // A key of the look as written, nil where neither the clip nor a keyframe writes it.
+    private func look(
+        _ key: String,
+        of object: JSONObject
+    ) -> LookProperty? {
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
+            element.objectValue.flatMap { keyframe -> PropertyKeyframe<JSONValue>? in
+                guard let at = keyframe["at"]?.numberValue, let value = keyframe[key] else { return nil }
+
+                return PropertyKeyframe(
+                    index: index,
+                    at: at,
+                    value: value,
+                    ease: keyframe["ease"].flatMap(Ease.init(value:)) ?? .linear
+                )
+            }
+        }
+        guard object[key] != nil || !keyframes.isEmpty else { return nil }
+
+        return LookProperty(written: object[key], keyframes: keyframes)
     }
 
     private func window(_ value: JSONValue) -> ClipWindow? {
@@ -286,7 +305,7 @@ struct SequenceReader: Sendable {
             return KeyframeInstant(
                 index: index,
                 at: at,
-                properties: keyframe.keys.filter { !Self.keyframeKeys.contains($0) }
+                leaves: keyframeReader.leaves(of: keyframe)
             )
         }
     }

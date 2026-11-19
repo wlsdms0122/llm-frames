@@ -61,35 +61,22 @@ extension ResolvedTrack {
         return brought.value(at: time)
     }
 
-    // A mask's feather is in output pixels and is not brought back.
+    // A mask's box size and radius are divided by the motion's scale, and its feather is in output pixels and is not
+    // brought back.
     func masks(
-        of keyframes: [Keyframe<[ResolvedMask]>],
+        of masks: [ResolvedMask],
         on clock: MediaClock,
         at time: Double
-    ) -> [ResolvedMask] {
-        let brought = keyframes.map { keyframe in
-            let motion = self.motion(atMediaTime: clock.mediaTime(atSequenceTime: keyframe.at))
-            return Keyframe(
-                at: keyframe.at,
-                value: keyframe.value.map { mask in
-                    let geometry: PathGeometry = switch mask.geometry {
-                    case let .rect(rectangle, radius):
-                        .rect(motion.bringBack(rectangle), radius: radius / motion.scale)
+    ) -> [MaskSample] {
+        let motion = { (time: Double) in self.motion(atMediaTime: clock.mediaTime(atSequenceTime: time)) }
 
-                    case let .ellipse(rectangle):
-                        .ellipse(motion.bringBack(rectangle))
-
-                    case let .polyline(points, isClosed):
-                        .polyline(points.map { motion.bringBack($0) }, isClosed: isClosed)
-                    }
-
-                    return mask.replacing(geometry: geometry)
-                },
-                ease: keyframe.ease
-            )
+        return masks.map { mask in
+            mask.carried(
+                area: { area, time, _ in motion(time).bringBack(area) },
+                point: { point, time, _ in motion(time).bringBack(point) },
+                scale: { time in 1 / motion(time).scale }
+            ).sampled(at: time)
         }
-
-        return brought.value(at: time)
     }
 
     // A crop is an upright region of its media, so it takes the motion's move and scale and not its rotation, and the

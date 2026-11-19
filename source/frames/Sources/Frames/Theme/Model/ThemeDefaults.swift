@@ -6,11 +6,11 @@
 //
 
 // The choices a merged theme gives a clip that names none. `titleAnimations` is keyed by style, and a style it does
-// not list takes none. `filter` is the presets the default filter names in order, none for `none`.
+// not list takes none. The default filter is read from the theme where a clip takes it, since its entries are timed
+// with the clip's keyframes.
 struct ThemeDefaults: Equatable, Sendable {
     // MARK: - Property
     let transition: TransitionChoice
-    let filter: [ThemeFilterPreset]
     let titleAnimations: [String: AnimationChoice]
     let shapeAnimation: AnimationChoice
     let mediaAnimation: AnimationChoice
@@ -19,14 +19,12 @@ struct ThemeDefaults: Equatable, Sendable {
     // MARK: - Initializer
     init(
         transition: TransitionChoice,
-        filter: [ThemeFilterPreset],
         titleAnimations: [String: AnimationChoice],
         shapeAnimation: AnimationChoice,
         mediaAnimation: AnimationChoice,
         adjustAnimation: AnimationChoice
     ) {
         self.transition = transition
-        self.filter = filter
         self.titleAnimations = titleAnimations
         self.shapeAnimation = shapeAnimation
         self.mediaAnimation = mediaAnimation

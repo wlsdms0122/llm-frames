@@ -62,9 +62,13 @@ enum Ease: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // An ease ends on its keyframes, 0 at the start of its span and 1 at its end, which some formulas reach only to
+    // rounding (`back-out` gives 2e-16 at 0), so both ends are given exactly.
     func value(at progress: Double) -> Double {
-        let u = progress
+        guard progress > 0 else { return 0 }
+        guard progress < 1 else { return 1 }
 
+        let u = progress
         switch self {
         case .linear:
             return u
@@ -95,7 +99,64 @@ enum Ease: Equatable, Sendable {
         }
     }
 
+    // The smallest and the largest value the ease takes from progress `start` to `end`, both inside 0 to 1: at the two
+    // ends and at the progresses between them where its formula turns or a piece of it ends, so an overshoot is
+    // counted exactly.
+    func range(
+        from start: Double,
+        to end: Double
+    ) -> ClosedRange<Double> {
+        let values = ([start, end] + turns.filter { $0 > start && $0 < end }).map(value(at:))
+
+        return (values.min() ?? 0)...(values.max() ?? 0)
+    }
+
     // MARK: - Private
+    // The progresses inside 0 to 1 where the slope is 0 or a piece ends. An over-damped or critically damped spring
+    // rises without turning, and an under-damped one turns each half cycle of its damped frequency.
+    private var turns: [Double] {
+        switch self {
+        case .linear, .easeIn, .easeOut, .easeInOut, .step:
+            return []
+
+        case .backOut:
+            return [1 - 2 * 1.70158 / (3 * 2.70158)]
+
+        case .bounceOut:
+            return [1, 1.5, 2, 2.25, 2.5, 2.625].map { $0 / 2.75 }
+
+        case let .cubicBezier(x1, y1, x2, y2):
+            return bezierTurns(y1, y2).map { bezier($0, x1, x2) }
+
+        case let .spring(bounce):
+            guard bounce > 0 else { return [] }
+
+            let damping = 1 - bounce
+            let damped = (1 - damping * damping).squareRoot()
+            let half = 1 / (2 * damped)
+            return Array(stride(from: half, to: 1, by: half))
+        }
+    }
+
+    // The parameters inside 0 to 1 where the curve's y turns: the roots of its derivative, a quadratic in s.
+    private func bezierTurns(
+        _ y1: Double,
+        _ y2: Double
+    ) -> [Double] {
+        let a = 3 * (3 * y1 - 3 * y2 + 1)
+        let b = 6 * (y2 - 2 * y1)
+        let c = 3 * y1
+        let roots: [Double]
+        if abs(a) < 1e-12 {
+            roots = abs(b) < 1e-12 ? [] : [-c / b]
+        } else {
+            let discriminant = b * b - 4 * a * c
+            roots = discriminant < 0 ? [] : [-1, 1].map { sign in (-b + sign * discriminant.squareRoot()) / (2 * a) }
+        }
+
+        return roots.filter { $0 > 0 && $0 < 1 }
+    }
+
     private func bounceOut(_ u: Double) -> Double {
         let n = 7.5625
         let d = 2.75
@@ -144,9 +205,6 @@ enum Ease: Equatable, Sendable {
         x2: Double,
         y2: Double
     ) -> Double {
-        guard u > 0 else { return 0 }
-        guard u < 1 else { return 1 }
-
         let parameter = bezierParameter(forX: u, x1: x1, x2: x2)
         return bezier(parameter, y1, y2)
     }

@@ -34,7 +34,7 @@ extension ResolvedClip {
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
-            mask: geometry.mask?.keyframes(at: instant) { $0 },
+            mask: geometry.mask,
             trackMatte: plan.trackMatte,
             track: try geometry.track.map { try ResolvedTrack(track: $0, hashes: hashes) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },
@@ -55,10 +55,10 @@ extension ResolvedClip {
         hashes: any FileHashProvider
     ) throws -> ResolvedClipContent {
         let appearance = geometry.appearance
-        let filter = try appearance.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) }
+        let filter = try appearance.filter.pinningFiles(hashes: hashes)
 
         if let title = geometry.title {
-            return .title(try ResolvedText(layout: title, hashes: hashes))
+            return .title(try ResolvedText(plan: title, hashes: hashes))
         }
         if let shape = appearance.shape {
             return .shape(ResolvedShape(shape: shape, geometry: geometry, instant: plan.instant))

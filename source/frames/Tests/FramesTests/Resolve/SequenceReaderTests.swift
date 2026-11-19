@@ -45,32 +45,33 @@ struct SequenceReaderTests {
         #expect(sequence.theme == .object(try Fixture.json(#"{ "defaults": { "transition": "frames/push-up" } }"#)))
         #expect(sequence.storyline[0].place.description == "storyline[0]#run")
         #expect(sequence.storyline[0].media == ClipMedia(source: .file("/abs/run.mp4"), in: 2, out: 8, speed: 2))
-        #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, properties: ["crop"])])
+        #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, leaves: [Place.root.appending(key: "crop")])])
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
-        #expect(sequence.storyline[0].connected[0].content == .title(runs: [TitleRun(text: "a", style: nil)], style: "subtitle"))
+        #expect(sequence.storyline[0].connected[0].content == .title(ClipTitle(
+            runs: [TitleRun(text: "a", style: nil)],
+            style: "subtitle",
+            character: nil,
+            paragraph: nil
+        )))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
         #expect(sequence.storyline[0].connected[1].parent == "run")
-        #expect(sequence.storyline[1].transition == .preset(
-            PresetInstance(name: "frames/wipe-right", place: sequence.storyline[1].place.appending(key: "transition")),
-            seconds: 0.5
-        ))
+        #expect(sequence.storyline[1].transition == .object(try Fixture.object(#"{ "preset": "frames/wipe-right", "seconds": 0.5 }"#)))
         #expect(sequence.storyline[1].duration == 2.5)
         #expect(sequence.storyline[2].media == nil)
-        #expect(sequence.storyline[2].transition == .cut)
+        #expect(sequence.storyline[2].transition == .string("cut"))
         #expect(sequence.clips[0].at == .start(1))
         #expect(sequence.clips[0].clipPlace == .sequence)
         #expect(sequence.clips[1].content == .media(ClipMedia(source: .imageSequence(directory: "/abs/frames", fps: 30), loop: true)))
         #expect(sequence.clips[1].lane == -1)
         #expect(sequence.clips[1].parent == "run" && sequence.clips[1].placement == "top")
         #expect(sequence.clips[2].content == .adjust)
-        #expect(sequence.clips[2].animation == .split(
-            entrance: PresetInstance(name: "frames/pop", place: sequence.clips[2].place.appending(key: "animation").appending(key: "entrance")),
-            exit: nil
-        ))
-        #expect(sequence.clips[3].content == .title(
+        #expect(sequence.clips[2].animation == .object(try Fixture.object(#"{ "entrance": "frames/pop", "exit": "none" }"#)))
+        #expect(sequence.clips[3].content == .title(ClipTitle(
             runs: [TitleRun(text: "Ana\n", style: nil), TitleRun(text: "Director", style: "role")],
-            style: "name"
-        ))
+            style: "name",
+            character: nil,
+            paragraph: nil
+        )))
     }
 
     @Test("a nested sequence reads as a compound clip whose places continue the place of the clip that holds it")
@@ -138,7 +139,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(ellipse.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
-        #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: .color("accent"))))
+        #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: LookProperty(written: .string("accent")))))
         #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
@@ -166,27 +167,27 @@ struct SequenceReaderTests {
             style: "outline",
             width: .value(100),
             height: .value(50),
-            radius: .value(8),
-            outset: 4,
-            fill: .off,
-            stroke: .stroke(color: nil, width: 2, join: .bevel, cap: nil, start: nil, end: .arrow),
-            shadow: .shadow(radius: nil, offset: nil, color: nil)
+            radius: LookProperty(written: .number(8)),
+            outset: LookProperty(written: .number(4)),
+            fill: LookProperty(written: .bool(false)),
+            stroke: LookProperty(written: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "arrow" }"#)),
+            shadow: LookProperty(written: .bool(true))
         )))
-        #expect(sequence.clips[0].scale == .value(2))
+        #expect(sequence.clips[0].scale == .value(Scale(2)))
         #expect(sequence.clips[0].rotation == .value(30))
         #expect(sequence.clips[1].content == .shape(ClipShape(
             kind: .path,
             points: .value([.point(Point(x: 0, y: 0)), .area(.rectangle(Rectangle(x: 0, y: 0, width: 10, height: 10)), point: "right")]),
             isClosed: true,
-            fill: .color("#FF0000"),
-            stroke: .off,
+            fill: LookProperty(written: .string("#FF0000")),
+            stroke: LookProperty(written: .bool(false)),
             trim: .keyframes([
-                TimedValue(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
-                TimedValue(index: 1, at: 2, value: .whole, ease: .easeIn)
+                PropertyKeyframe(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
+                PropertyKeyframe(index: 1, at: 2, value: .whole, ease: .easeIn)
             ]),
-            shadow: .shadow(radius: 4, offset: nil, color: "accent")
+            shadow: LookProperty(written: try Fixture.json(#"{ "radius": 4, "color": "accent" }"#))
         )))
-        #expect(sequence.clips[2].content == .shape(ClipShape(kind: .ellipse, shadow: .off)))
+        #expect(sequence.clips[2].content == .shape(ClipShape(kind: .ellipse, shadow: LookProperty(written: .bool(false)))))
     }
 
     @Test(

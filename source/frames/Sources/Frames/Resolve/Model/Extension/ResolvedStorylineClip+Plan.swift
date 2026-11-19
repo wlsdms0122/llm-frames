@@ -20,7 +20,7 @@ extension ResolvedStorylineClip {
     ) throws {
         let appearance = geometry.appearance
         let clipBox = appearance.box
-            ?? ClipBox(size: format.size, position: .value(Point(x: 0, y: 0)), anchor: format.frame.center)
+            ?? ClipBox(size: format.size, position: .value(.point(format.frame.center)), anchor: format.frame.center)
         let conformer = CropConformer()
         let box = Rectangle(x: 0, y: 0, width: clipBox.size.width, height: clipBox.size.height)
         let conform = { (rectangle: Rectangle) in
@@ -43,12 +43,12 @@ extension ResolvedStorylineClip {
             start: plan.edit.start,
             end: plan.edit.end,
             crop: crop,
-            mask: geometry.mask?.keyframes(at: plan.instant) { $0 },
+            mask: geometry.mask,
             trackMatte: plan.trackMatte,
             track: try geometry.track.flatMap { track in
                 try file.map { try ResolvedTrack(track: track, file: $0, hashes: hashes) }
             },
-            filter: try geometry.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) },
+            filter: try geometry.filter.pinningFiles(hashes: hashes),
             box: ResolvedBox(
                 size: clipBox.size,
                 position: clipBox.position.keyframes(at: plan.instant) { $0 },

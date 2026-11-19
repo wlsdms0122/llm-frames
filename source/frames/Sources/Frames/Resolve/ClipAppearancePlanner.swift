@@ -13,6 +13,16 @@ struct ClipAppearancePlanner: Sendable {
     private let filters: FilterResolver
     private let conformer = CropConformer()
     private let cropChecker = CropChecker()
+    private let choices = ClipChoiceMerger()
+    // What a stroke takes where neither the clip nor its style gives it.
+    private static let strokeDefaults = JSONValue.object(JSONObject(members: [
+        JSONMember(key: "color", value: .string("accent")),
+        JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
+        JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
+        JSONMember(key: "start", value: .string(StrokeEnd.none.rawValue)),
+        JSONMember(key: "end", value: .string(StrokeEnd.none.rawValue)),
+        JSONMember(key: "dashOffset", value: .number(0))
+    ]))
 
     // MARK: - Initializer
     init(
@@ -32,7 +42,7 @@ struct ClipAppearancePlanner: Sendable {
     func box(
         of plan: ClipPlan,
         written: Clip,
-        position: PropertyValue<Point>?,
+        position: PropertyValue<GeometryPoint>?,
         crop: PropertyValue<FoundArea>?,
         title: TextLayout?,
         picture: Picture?,
@@ -43,9 +53,9 @@ struct ClipAppearancePlanner: Sendable {
         let size: Size
         let style: String?
         switch written.content {
-        case let .title(_, name):
+        case let .title(written):
             size = title?.size ?? Size(width: 0, height: 0)
-            style = name
+            style = written.style
 
         case .media:
             guard let picture else { return nil }
@@ -84,8 +94,7 @@ struct ClipAppearancePlanner: Sendable {
             }
 
             let anchor = bounds.point(named: written.anchor ?? "center")
-            let placed = position.map { topLeft(of: $0, anchor: anchor) } ?? .value(Point(x: 0, y: 0))
-            return ClipBox(size: size, position: placed, anchor: anchor)
+            return ClipBox(size: size, position: position ?? .value(.point(anchor)), anchor: anchor)
         }
 
         // A title takes its style's placement by default, so a style that gives none leaves it no place.
@@ -96,22 +105,22 @@ struct ClipAppearancePlanner: Sendable {
 
         let placement = named ?? "center"
         let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
-        let placed = position.map { topLeft(of: $0, anchor: anchor) } ?? .value(self.placed(
+        let placed = position ?? .value(.point(self.placed(
             bounds,
+            anchor: anchor,
             at: placement,
             offset: style.flatMap(theme.offset(ofStyle:)),
             format: format,
             theme: theme
-        ))
+        )))
 
         return ClipBox(size: size, position: placed, anchor: anchor)
     }
 
     // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
     // `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds as many points.
-    // Keys written on the clip win over its style's, each whole, and without a style nothing but colour names comes
-    // from the theme. Theme lengths come out in output pixels, so they stay under a parent's zoom, and a stroke takes
-    // the `accent` colour, round joins, butt caps and no arrowheads unless written. A shape with neither a fill nor a
+    // Its `radius`, `outset`, `fill`, `stroke` and `shadow` are timed over its style's by `ClipLookPlanner`, and without
+    // a style nothing but colour names and the theme `shadow` come from the theme. A shape with neither a fill nor a
     // stroke after its style stops.
     func shape(
         of plan: ClipPlan,
@@ -123,19 +132,40 @@ struct ClipAppearancePlanner: Sendable {
 
         let kind = PlaceKind.clip(plan.kind)
         try checkGeometry(of: shape, written: written, kind: kind)
+        if let name = shape.style, theme.shapeStyle(named: name) == nil {
+            throw ThemeError.unknownShapeStyle(
+                place: written.place.appending(key: "style"),
+                kind: kind.label,
+                name: name,
+                styles: theme.shapeStyleNames
+            )
+        }
 
-        try checkColors(of: shape, written: written, kind: kind, theme: theme)
-        let style = try self.style(named: shape.style, written: written, kind: kind, theme: theme)
-        let fill = shape.fill ?? style["fill"].flatMap(FillForm.init(value:))
-        let stroke = shape.stroke ?? style["stroke"].flatMap(StrokeForm.init(value:))
-        let shadow = shape.shadow ?? style["shadow"].flatMap(ShadowForm.init(value:))
-        let fillColor: Color? = if case let .color(color) = fill { theme.color(color) } else { nil }
-        let pathStroke = stroke.flatMap { self.stroke($0, scale: scale, theme: theme) }
-        guard fillColor != nil || pathStroke != nil else {
+        let looks = ClipLookPlanner(
+            place: written.place,
+            kind: kind,
+            clock: plan.clock,
+            instant: plan.instant,
+            scale: scale,
+            theme: theme
+        )
+        let timed = { (key: String, property: LookProperty?, structure: ValueStructure, defaults: JSONValue?) in
+            try looks.timed(
+                property,
+                key: key,
+                as: structure,
+                style: shape.style.map { ["shapes", $0, key] },
+                defaults: defaults
+            )
+        }
+        let fill = try timed("fill", shape.fill, LookStructureTable.fill, nil)
+        let stroke = try timed("stroke", shape.stroke, LookStructureTable.stroke, Self.strokeDefaults)
+        let shadow = try timed("shadow", shape.shadow, LookStructureTable.shadow, theme.value(at: ["shadow"]))
+        guard fill != .off || stroke != .off else {
             throw ResolveError.shapeDrawsNothing(place: written.place, kind: kind)
         }
 
-        let outset = (shape.outset ?? style["outset"]?.numberValue ?? 0) * scale
+        let outset = try timed("outset", shape.outset, LookStructureTable.length, nil)
         let geometry: ShapeGeometryPlan = if shape.isPlacedByBox, let width = shape.width, let height = shape.height {
             .box(
                 width: property(width, plain: 0, clock: plan.clock),
@@ -147,17 +177,15 @@ struct ClipAppearancePlanner: Sendable {
         } else {
             .area(outset: outset, anchor: written.anchor)
         }
-        let radius = shape.radius.map { property($0, plain: 0, clock: plan.clock) }
-            ?? .value(style["radius"]?.numberValue ?? 0)
 
         return ShapeAppearance(
             kind: shape.kind,
             geometry: geometry,
-            radius: radius.map { $0 * scale },
+            radius: try timed("radius", shape.radius, LookStructureTable.length, nil),
             trim: shape.trim.map { property($0, plain: .whole, clock: plan.clock) } ?? .value(.whole),
-            fill: fillColor,
-            stroke: pathStroke,
-            shadow: shadow.flatMap { self.shadow($0, scale: scale, theme: theme) }
+            fill: fill,
+            stroke: stroke,
+            shadow: shadow
         )
     }
 
@@ -171,26 +199,28 @@ struct ClipAppearancePlanner: Sendable {
         picture: Picture?,
         shape: ShapeAppearance?,
         scale: Double,
-        theme: MergedTheme,
-        defaults: ThemeDefaults
+        theme: MergedTheme
     ) throws -> ClipAppearance {
         ClipAppearance(
             opacity: property(written.opacity, plain: 1, clock: plan.clock),
-            scale: property(written.scale, plain: 1, clock: plan.clock),
+            scale: property(written.scale, plain: .identity, clock: plan.clock),
             rotation: property(written.rotation, plain: 0, clock: plan.clock),
             blend: written.blend ?? "normal",
             shape: shape,
             filter: try filter(
                 written.filter,
+                key: plan.kind == .adjust ? "adjust" : "filter",
+                of: written.place,
                 kind: plan.kind,
                 media: media(of: written),
+                clock: plan.clock,
+                instant: plan.instant,
                 scale: scale,
-                theme: theme,
-                defaults: defaults
+                theme: theme
             ),
             media: try mediaAppearance(
-                of: written,
-                kind: plan.kind,
+                of: plan,
+                written: written,
                 box: box,
                 crop: crop,
                 picture: picture,
@@ -218,54 +248,94 @@ struct ClipAppearancePlanner: Sendable {
             return StorylineAppearance(
                 box: nil,
                 opacity: .value(1),
-                scale: .value(1),
+                scale: .value(.identity),
                 rotation: .value(0),
                 blend: "normal",
-                radius: 0,
-                border: nil,
-                shadow: nil
+                radius: .off,
+                border: .off,
+                shadow: .off
             )
         }
 
-        try checkColor(of: written.shadow, place: written.place, kind: plan.source.kind.label, theme: theme)
-        try checkColor(of: written.border, place: written.place, kind: plan.source.kind.label, theme: theme)
+        let looks = ClipLookPlanner(
+            place: written.place,
+            kind: .clip(plan.source.kind),
+            clock: plan.map,
+            instant: plan.instant,
+            scale: scale,
+            theme: theme
+        )
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
-        let placed = position.map { topLeft(of: $0, anchor: anchor) }
-            ?? .value(format.isMeasured ? Point(x: 0, y: 0) : topLeft(of: format.frame.center, anchor: anchor))
+        let placed = position.map { $0.map(GeometryPoint.point) }
+            ?? .value(.point(format.isMeasured ? anchor : format.frame.center))
 
         return StorylineAppearance(
             box: ClipBox(size: box, position: placed, anchor: anchor),
             opacity: property(written.opacity, plain: 1, clock: plan.map),
-            scale: property(written.scale, plain: 1, clock: plan.map),
+            scale: property(written.scale, plain: .identity, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
             blend: written.blend ?? "normal",
-            radius: (written.radius ?? 0) * scale,
-            border: border(written.border, scale: scale, theme: theme),
-            shadow: written.shadow.flatMap { shadow($0, scale: scale, theme: theme) }
+            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.length),
+            border: try border(written.border, looks: looks, theme: theme),
+            shadow: try shadow(written.shadow, looks: looks, theme: theme)
         )
     }
 
-    // A clip applies the filter it writes, or the theme's default when it takes one, and otherwise none. The clip's
-    // stops name its choice, and the default's name the theme.
+    // A clip applies the filter it writes merged over the theme's default when it takes one, the default when it
+    // writes none, and otherwise none, so both are typed by `FilterResolver`. `key` is the clip's key for it on the
+    // clip at `place`. The clip's stops name its choice, and the default's name the theme.
     func filter(
-        _ written: FilterChoice?,
+        _ property: LookProperty?,
+        key: String,
+        of place: Place,
         kind: ClipKind,
         media: ClipMedia?,
+        clock: TimeMap,
+        instant: Double,
         scale: Double,
-        theme: MergedTheme,
-        defaults: ThemeDefaults
-    ) throws -> [FilterOperation] {
-        let operations: [FilterOperation]
-        if let written {
-            operations = try filters.operations(of: written, theme: theme, kind: .clip(kind))
-        } else if takesDefaultFilter(kind, media: media) {
-            operations = try filters.operations(of: defaults.filter, theme: theme)
-        } else {
-            operations = []
+        theme: MergedTheme
+    ) throws -> TimedValue {
+        let defaults = takesDefaultFilter(kind, media: media) ? ["defaults", "filter"] : nil
+        let looks = ClipLookPlanner(
+            place: place,
+            kind: .clip(kind),
+            clock: clock,
+            instant: instant,
+            scale: scale,
+            theme: theme
+        )
+        guard let written = property?.written else {
+            let layer = defaults.map { path in theme.place(of: path.reduce(Place.root) { $0.appending(key: $1) }) }
+            return try filters.timed(
+                property,
+                merged: defaults.flatMap(theme.value(at:)),
+                key: key,
+                place: layer ?? place,
+                looks: looks,
+                theme: theme,
+                kind: .themeDefaults
+            )
         }
 
-        return operations.map { $0.scaled(by: scale) }
+        let choicePlace = place.appending(key: key)
+        let merged = try choices.merged(
+            written,
+            over: defaults,
+            as: LookStructureTable.filter,
+            place: choicePlace,
+            kind: .clip(kind),
+            theme: theme
+        )
+        return try filters.timed(
+            property,
+            merged: merged,
+            key: key,
+            place: choicePlace,
+            looks: looks,
+            theme: theme,
+            kind: .clip(kind)
+        )
     }
 
     // MARK: - Private
@@ -304,11 +374,12 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // The top left of a box placed by name inside the output frame, inset by the placement padding on the edges the
-    // name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is centred on
-    // the whole frame.
+    // Where the anchor point goes of a box placed by name inside the output frame, inset by the placement padding on
+    // the edges the name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is
+    // centred on the whole frame.
     private func placed(
         _ box: Rectangle,
+        anchor: Point,
         at name: String,
         offset: Double?,
         format: FormatPlan,
@@ -325,15 +396,15 @@ struct ClipAppearancePlanner: Sendable {
             ? edge
             : name.hasPrefix("bottom") ? size.height - edge - box.height : (size.height - box.height) / 2
 
-        return Point(x: x, y: y)
+        return Point(x: x + anchor.x, y: y + anchor.y)
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
-    // picture does, so the box holds still while the crop moves. Its radius, border and shadow lengths are theme
-    // lengths, scaled.
+    // picture does, so the box holds still while the crop moves. Its radius, border and shadow are timed by
+    // `ClipLookPlanner`.
     private func mediaAppearance(
-        of written: Clip,
-        kind: ClipKind,
+        of plan: ClipPlan,
+        written: Clip,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
         picture: Picture?,
@@ -342,8 +413,6 @@ struct ClipAppearancePlanner: Sendable {
     ) throws -> MediaAppearance? {
         guard let box, case .media = written.content, let picture else { return nil }
 
-        try checkColor(of: written.shadow, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
-        try checkColor(of: written.border, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         let conform = written.conform ?? .fit
         try cropChecker.check(
             crop,
@@ -352,7 +421,7 @@ struct ClipAppearancePlanner: Sendable {
             conform: conform,
             isTracked: written.track != nil,
             place: written.place.appending(key: "crop"),
-            kind: .clip(kind)
+            kind: .clip(plan.kind)
         )
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
@@ -363,7 +432,7 @@ struct ClipAppearancePlanner: Sendable {
 
         case let .keyframes(keyframes):
             crops = .keyframes(keyframes.map { keyframe in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
                     value: conformed(keyframe.value.rectangle),
@@ -375,28 +444,22 @@ struct ClipAppearancePlanner: Sendable {
             crops = .value(conformed(picture.bounds))
         }
 
+        let looks = ClipLookPlanner(
+            place: written.place,
+            kind: .clip(plan.kind),
+            clock: plan.clock,
+            instant: plan.instant,
+            scale: scale,
+            theme: theme
+        )
+
         return MediaAppearance(
             conform: conform,
             crop: crops,
-            radius: (written.radius ?? 0) * scale,
-            border: border(written.border, scale: scale, theme: theme),
-            shadow: written.shadow.flatMap { shadow($0, scale: scale, theme: theme) }
+            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.length),
+            border: try border(written.border, looks: looks, theme: theme),
+            shadow: try shadow(written.shadow, looks: looks, theme: theme)
         )
-    }
-
-    // Where a box's top left goes when its anchor point goes to each position.
-    private func topLeft(
-        of position: PropertyValue<Point>,
-        anchor: Point
-    ) -> PropertyValue<Point> {
-        position.map { point in topLeft(of: point, anchor: anchor) }
-    }
-
-    private func topLeft(
-        of point: Point,
-        anchor: Point
-    ) -> Point {
-        Point(x: point.x - anchor.x, y: point.y - anchor.y)
     }
 
     // A property not written takes its plain value, and keyframes move from the clip's clock to sequence time.
@@ -463,130 +526,22 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // A colour name written on a shape must be a theme colour. Those of its style were checked with the theme.
-    private func checkColors(
-        of shape: ClipShape,
-        written: Clip,
-        kind: PlaceKind,
-        theme: MergedTheme
-    ) throws {
-        var names: [(name: String, place: Place)] = []
-        if case let .color(color) = shape.fill {
-            names.append((color, written.place.appending(key: "fill")))
-        }
-        if case let .stroke(.some(color), _, _, _, _, _) = shape.stroke {
-            names.append((color, written.place.appending(key: "stroke").appending(key: "color")))
-        }
-        for (name, place) in names where !theme.isColor(name) {
-            throw ThemeError.unknownColor(place: place, kind: kind.label, name: name)
-        }
-        try checkColor(of: shape.shadow, place: written.place, kind: kind.label, theme: theme)
-    }
-
-    // A colour name a clip writes in its `shadow` must be a theme colour.
-    private func checkColor(
-        of shadow: ShadowForm?,
-        place: Place,
-        kind: String,
-        theme: MergedTheme
-    ) throws {
-        guard case let .shadow(_, _, .some(color)) = shadow, !theme.isColor(color) else { return }
-
-        throw ThemeError.unknownColor(
-            place: place.appending(key: "shadow").appending(key: "color"),
-            kind: kind,
-            name: color
-        )
-    }
-
-    // A colour name a clip writes as its `border` must be a theme colour.
-    private func checkColor(
-        of border: BorderForm?,
-        place: Place,
-        kind: String,
-        theme: MergedTheme
-    ) throws {
-        guard case let .color(color) = border, !theme.isColor(color) else { return }
-
-        throw ThemeError.unknownColor(place: place.appending(key: "border"), kind: kind, name: color)
-    }
-
-    // The shape style a shape names, its lengths in points, or nothing without a name. A name the theme does not
-    // hold stops, listing the styles it holds.
-    private func style(
-        named name: String?,
-        written: Clip,
-        kind: PlaceKind,
-        theme: MergedTheme
-    ) throws -> JSONObject {
-        guard let name else { return JSONObject() }
-        guard let style = theme.shapeStyle(named: name) else {
-            throw ThemeError.unknownShapeStyle(
-                place: written.place.appending(key: "style"),
-                kind: kind.label,
-                name: name,
-                styles: theme.shapeStyleNames
-            )
-        }
-
-        return style
-    }
-
-    private func stroke(
-        _ form: StrokeForm,
-        scale: Double,
-        theme: MergedTheme
-    ) -> PathStroke? {
-        guard case let .stroke(color, width, join, cap, start, end) = form else { return nil }
-
-        return PathStroke(
-            width: width * scale,
-            color: theme.color(color ?? "accent"),
-            join: join ?? .round,
-            cap: cap ?? .butt,
-            start: start ?? .none,
-            end: end ?? .none
-        )
-    }
-
-    // A shadow takes what it leaves out from the theme `shadow`, its lengths scaled.
-    private func shadow(
-        _ form: ShadowForm,
-        scale: Double,
-        theme: MergedTheme
-    ) -> DropShadow? {
-        guard case let .shadow(radius, offset, color) = form else { return nil }
-
-        let moved = offset ?? theme.shadowOffset
-        return DropShadow(
-            radius: (radius ?? theme.shadowRadius) * scale,
-            offset: Point(x: moved.x * scale, y: moved.y * scale),
-            color: color.map(theme.color) ?? theme.shadowColor
-        )
-    }
-
-    // A border takes the theme's width, and its colour unless the clip writes one, its width scaled.
+    // A box's border and shadow are drawn only where the clip asks, so the theme's values complete the clip's and do
+    // not lie below it.
     private func border(
-        _ border: BorderForm?,
-        scale: Double,
+        _ property: LookProperty?,
+        looks: ClipLookPlanner,
         theme: MergedTheme
-    ) -> MediaBorder? {
-        border.map { border in
-            MediaBorder(width: theme.borderWidth * scale, color: borderColor(of: border, theme: theme))
-        }
+    ) throws -> TimedValue {
+        try looks.timed(property, key: "border", as: LookStructureTable.border, defaults: theme.value(at: ["border"]))
     }
 
-    private func borderColor(
-        of border: BorderForm,
+    private func shadow(
+        _ property: LookProperty?,
+        looks: ClipLookPlanner,
         theme: MergedTheme
-    ) -> Color {
-        switch border {
-        case .theme:
-            theme.borderColor
-
-        case let .color(written):
-            theme.color(written)
-        }
+    ) throws -> TimedValue {
+        try looks.timed(property, key: "shadow", as: LookStructureTable.shadow, defaults: theme.value(at: ["shadow"]))
     }
 
     // Drawn media takes the theme's filter when it writes none, except a compound clip or a template instance, whose

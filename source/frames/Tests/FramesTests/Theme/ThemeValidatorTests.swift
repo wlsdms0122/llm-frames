@@ -80,15 +80,9 @@ struct ThemeValidatorTests {
             PresetInstance(name: "frames/flash", place: place.appending(key: "transition")),
             seconds: 1
         ))
-        #expect(defaults.filter == [
-            ThemeFilterPreset(
-                preset: FilterPreset(description: "", operations: []),
-                place: place.appending(key: "filter").appending(index: 0)
-            )
-        ])
         let animationPlace = place.appending(key: "animation")
         #expect(defaults.titleAnimations == [
-            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")))
+            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")), by: nil, stagger: nil)
         ])
         #expect(defaults.shapeAnimation == .split(
             entrance: PresetInstance(name: "frames/wipe", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
@@ -144,11 +138,126 @@ struct ThemeValidatorTests {
         #expect(error?.description == "styles.note.lines (style): expected a whole number, 1 or more, found \(lines)")
     }
 
+    @Test(
+        "a theme's length outside its domain stops where it is written",
+        arguments: [
+            (#"{ "border": { "width": 0 } }"#, "border.width (border): 0 is not above 0"),
+            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius (shadow): -1 is not 0 or more"),
+            (#"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#, "styles.note.stroke.width (stroke): -2 is not above 0"),
+            (#"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#, "styles.note.highlight.radius (highlight): -4 is not 0 or more"),
+            (
+                #"{ "styles": { "note": { "highlight": { "padding": [2, -4] } } } }"#,
+                "styles.note.highlight.padding[1] (highlight): -4 is not 0 or more"
+            ),
+            (#"{ "baseWidth": 0 }"#, "baseWidth (theme): 0 is not above 0"),
+            (#"{ "placement": { "padding": -8 } }"#, "placement.padding (placement): -8 is not 0 or more"),
+            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size (style): 0 is not above 0"),
+            (#"{ "styles": { "note": { "lineHeight": -10 } } }"#, "styles.note.lineHeight (style): -10 is not above 0"),
+            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset (style): -1 is not 0 or more")
+        ]
+    )
+    func refusesLookLengthOutsideDomain(theme: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(value: try Fixture.json(theme), place: .root)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a theme's length that is not a number stops naming the domain it takes")
+    func refusesLookLengthOfWrongType() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "highlight": { "padding": [2, "wide"] } } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == #"styles.note.highlight.padding[1] (highlight): expected a number 0 or more, found "wide""#)
+    }
+
     @Test("a style's lines of 1 passes the key check")
     func acceptsOneLine() throws {
         // Given
         let layer = ThemeLayer(
             value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "lines": 1 } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        try sut.checkKeys(of: layer)
+    }
+
+    @Test(
+        "a style's feature that is not a four-character tag, `kern`, or a setting that is not a whole number 0 or more stops",
+        arguments: [
+            (#"{ "kern": 0 }"#, "styles.note.features.kern (features): `kern` is set by `kerning`"),
+            (#"{ "lig": 1 }"#, "styles.note.features.lig (features): a feature tag is four printable ASCII characters"),
+            (#"{ "ligaa": 1 }"#, "styles.note.features.ligaa (features): a feature tag is four printable ASCII characters"),
+            (#"{ "liga": -1 }"#, "styles.note.features.liga (features): expected a whole number, 0 or more, found -1"),
+            (#"{ "liga": 0.5 }"#, "styles.note.features.liga (features): expected a whole number, 0 or more, found 0.5")
+        ]
+    )
+    func refusesBadFeatures(features: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "features": \#(features) } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a style's weight is a whole number from 100 to 900 or a weight name",
+        arguments: [
+            ("50", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 50"),
+            ("950", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 950"),
+            ("450.5", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 450.5"),
+            (#""heavy""#, #"styles.note.weight (style): unknown value "heavy". Allowed: thin, extralight, light, regular, medium, semibold, bold, extrabold, black"#)
+        ]
+    )
+    func refusesBadWeight(weight: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "weight": \#(weight) } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a style's kerning, placement and align outside their names stop where they are written",
+        arguments: [
+            (#""kerning": "auto""#, #"styles.note.kerning (style): unknown value "auto". Allowed: metrics, none"#),
+            (#""align": "justify""#, #"styles.note.align (style): unknown value "justify". Allowed: left, center, right"#)
+        ]
+    )
+    func refusesUnknownName(key: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(value: try Fixture.json(#"{ "styles": { "note": { "size": 20, \#(key) } } }"#), place: .root)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a style's typography keys pass the key check")
+    func acceptsTypography() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"""
+                { "styles": { "note": { "size": 20, "font": ["Inter"], "weight": 350, "italic": true, "tracking": -20,
+                                        "kerning": "none", "features": { "ss01": 2 }, "baselineShift": -4,
+                                        "highlight": false, "underline": { "offset": 3 } } } }
+                """#),
             place: .root
         )
 

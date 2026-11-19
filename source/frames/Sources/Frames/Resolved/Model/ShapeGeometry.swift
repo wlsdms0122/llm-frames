@@ -7,12 +7,12 @@
 
 // How a shape entry is placed, its keyframes in sequence time: a rect or an ellipse by its box, `width` by `height` in
 // output pixels, or by its `area` in its coordinate space, or a path by its `points`, joined back to the first when
-// `isClosed`. A rect's or an ellipse's `outset`, in output pixels, grows only the outline it draws on every side, and
-// its box is as written. A shape placed by its area or its points carries where it goes.
+// `isClosed`. A rect's or an ellipse's `outset`, timed and in output pixels, grows only the outline it draws on every
+// side, and its box is as written. A shape placed by its area or its points carries where it goes.
 enum ShapeGeometry: Equatable, Sendable {
-    case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: Double)
-    case area([Keyframe<Rectangle>], outset: Double, placement: GeometryPlacement)
-    case points([Keyframe<[Point]>], isClosed: Bool, placement: GeometryPlacement)
+    case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: TimedValue)
+    case area([Keyframe<GeometryArea>], outset: TimedValue, placement: GeometryPlacement)
+    case points([Keyframe<[GeometryPoint]>], isClosed: Bool, placement: GeometryPlacement)
 
     // MARK: - Property
     // Where a shape placed by its geometry goes, nil for one placed by its box.
@@ -26,22 +26,26 @@ enum ShapeGeometry: Equatable, Sendable {
         }
     }
 
-    // MARK: - Initializer
-    // MARK: - Public
-    // The box of the geometry as written at a time, before its outset: a box shape's in its own pixels, an area, or the
-    // box bounding the points.
-    func bounds(at time: Double) -> Rectangle {
+    // Whether a keyframe of its area, points or position is a clip area, which only evaluation knows the rectangle of.
+    var holdsClipArea: Bool {
+        let position = placement?.position?.contains { $0.value.clipArea != nil } ?? false
+        return position || geometryHoldsClipArea
+    }
+
+    // Whether a keyframe of its area or points is a clip area, so its geometry's box is known only at each instant.
+    var geometryHoldsClipArea: Bool {
         switch self {
-        case let .box(width, height, _):
-            Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time))
+        case .box:
+            false
 
         case let .area(area, _, _):
-            area.value(at: time)
+            area.contains { $0.value.clipArea != nil }
 
         case let .points(points, _, _):
-            Rectangle(bounding: points.value(at: time))
+            points.contains { $0.value.contains { $0.clipArea != nil } }
         }
     }
 
+    // MARK: - Public
     // MARK: - Private
 }

@@ -27,6 +27,7 @@ extension TimelineReport {
                 "edit \(written(entry.edit))",
                 "drawn \(written(entry.drawn))",
                 "clip \(written(entry.clip))",
+                "sound \(entry.sound.map(written) ?? "-")",
                 entry.isTimeRemapped ? "time-remapped" : "speed \(number(entry.speed))",
                 "transition \(transition)"
             ].joined(separator: "  ")
@@ -41,6 +42,7 @@ extension TimelineReport {
                 "\(indent)\(entry.place)",
                 entry.kind,
                 "visible \(written(entry.visible))",
+                "sound \(entry.sound.map(written) ?? "-")",
                 "lane \(entry.lane.map(String.init) ?? "-")",
                 "parent \(entry.parent ?? "-")",
                 "animation \(animation)"

@@ -14,9 +14,12 @@ struct TimePlanner: Sendable {
     private let reader = SequenceReader()
     private let parentFinder = ParentFinder()
     private let matteFinder = TrackMatteFinder()
+    private let areaFinder = ClipAreaFinder()
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
+    private let choices = ClipChoiceMerger()
+    private let pack: String?
 
     // MARK: - Initializer
     init(
@@ -28,6 +31,7 @@ struct TimePlanner: Sendable {
         self.themes = DocumentThemeResolver(library: library)
         self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
         self.values = PresetValueResolver(library: library)
+        self.pack = library.pack
     }
 
     // MARK: - Public
@@ -69,21 +73,29 @@ struct TimePlanner: Sendable {
             try plan(clip, owner: nil, storyline: storyline, duration: duration, defaults: defaults, theme: merged)
         }
         let planned = connected + clips
-        let parents = try parentFinder.parents(
-            of: planned,
-            written: sequence.storyline.flatMap(\.connected) + sequence.clips,
-            storyline: storyline
+        let written = sequence.storyline.flatMap(\.connected) + sequence.clips
+        let parents = try parentFinder.parents(of: planned, written: written, storyline: storyline)
+        let parented = zip(planned, parents).map { plan, parent in plan.parented(by: parent) }
+        let storylineLinks = storyline.map(TrackMatteLink.init(plan:))
+        let links = planned.map(TrackMatteLink.init(plan:))
+        try matteFinder.check(storylineLinks + links)
+        try areaFinder.check(
+            storyline: sequence.storyline,
+            clips: parented,
+            written: written,
+            links: links,
+            storylineLinks: storylineLinks
         )
-        try matteFinder.check(storyline.map(TrackMatteLink.init(plan:)) + planned.map(TrackMatteLink.init(plan:)))
 
         return TimePlan(
             duration: duration,
             fps: sequence.format.frameRate(of: sources.compactMap(\.media)),
             storyline: storyline,
-            clips: zip(planned, parents).map { plan, parent in plan.parented(by: parent) },
+            clips: parented,
             sequence: sequence,
             theme: merged,
-            defaults: defaults
+            defaults: defaults,
+            pack: pack
         )
     }
 
@@ -158,7 +170,9 @@ struct TimePlanner: Sendable {
             ("volume", clipMedia.volume != nil),
             ("pan", clipMedia.pan != nil),
             ("fadeIn", clipMedia.fadeIn != nil),
-            ("fadeOut", clipMedia.fadeOut != nil)
+            ("fadeOut", clipMedia.fadeOut != nil),
+            ("audioFilter", clipMedia.audioFilter != nil),
+            ("split", clipMedia.split != nil)
         ]
         if let written = sound.first(where: \.isWritten) {
             throw ResolveError.soundWithTimeRemap(
@@ -294,8 +308,21 @@ struct TimePlanner: Sendable {
             return nil
         }
 
+        let place = clip.place.appending(key: "transition")
+        let written = try clip.transition.map { written in
+            let merged = try choices.merged(
+                written,
+                over: ["defaults", "transition"],
+                as: LookStructureTable.transition,
+                place: place,
+                kind: .clip(kind),
+                theme: theme
+            )
+            return TransitionChoice(value: merged, place: place) ?? .cut
+        }
+
         return try transitionPlan(
-            clip.transition ?? defaults.transition,
+            written ?? defaults.transition,
             editPoint: editPoint,
             lengths: [sources[index - 1].duration, sources[index].duration],
             place: clip.place,
@@ -417,7 +444,7 @@ struct TimePlanner: Sendable {
             window: window,
             visible: visible,
             instant: window.start,
-            animation: try animation(of: clip, kind: kind, defaults: defaults),
+            animation: try animation(of: clip, kind: kind, defaults: defaults, theme: theme),
             media: source.media,
             timing: source.timing.map { timing(of: $0, window: window, clock: clock) },
             keyframes: keyframes
@@ -436,7 +463,7 @@ struct TimePlanner: Sendable {
                 kind: .genericClip(clip.clipPlace),
                 theme: theme
             )
-            let kind = ClipKind.media(media.kind)
+            let kind = try kind(of: clipMedia, media: media, place: clip.place)
             guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(
@@ -458,6 +485,23 @@ struct TimePlanner: Sendable {
         case .adjust:
             return ClipSource(kind: .adjust)
         }
+    }
+
+    // A clip that takes only its media's sound is an audio clip, and stops where the media holds none.
+    private func kind(
+        of clipMedia: ClipMedia,
+        media: MediaPlan,
+        place: Place
+    ) throws -> ClipKind {
+        guard clipMedia.picture == false else { return .media(media.kind) }
+        guard media.hasSound else {
+            throw ResolveError.pictureOffWithoutSound(
+                place: place.appending(key: "picture"),
+                kind: .clip(.media(media.kind))
+            )
+        }
+
+        return .media(.audio)
     }
 
     // A timed media clip's edit points, with its window's start left at 0 until the window is known.
@@ -613,25 +657,48 @@ struct TimePlanner: Sendable {
         return lane
     }
 
+    // A clip that names no animation takes the theme's default for its kind, or for a title its style's, and one that
+    // names a choice merges it over that default.
     private func animation(
         of clip: Clip,
         kind: ClipKind,
-        defaults: ThemeDefaults
+        defaults: ThemeDefaults,
+        theme: MergedTheme
     ) throws -> AnimationPlan {
         guard kind != .media(.audio) else { return .none }
+        guard let written = clip.animation else {
+            guard let choice = defaultAnimation(for: clip.content, in: defaults) else { return .none }
 
-        return try animationPlan(of: clip, kind: kind, defaults: defaults)
+            return try animationPlan(choice, of: clip, place: clip.place, kind: kind)
+        }
+
+        let place = clip.place.appending(key: "animation")
+        let merged = try choices.merged(
+            written,
+            over: defaultAnimationPath(for: clip.content),
+            as: LookStructureTable.animation,
+            place: place,
+            kind: .clip(kind),
+            theme: theme
+        )
+
+        return try animationPlan(AnimationChoice(value: merged, place: place) ?? .none, of: clip, place: clip.place, kind: kind)
     }
 
-    // A clip that names no animation takes the theme's default for its kind, or for a title its style's.
-    private func animationPlan(
-        of clip: Clip,
-        kind: ClipKind,
-        defaults: ThemeDefaults
-    ) throws -> AnimationPlan {
-        guard let choice = clip.animation ?? defaultAnimation(for: clip.content, in: defaults) else { return .none }
+    private func defaultAnimationPath(for content: ClipContent) -> [String] {
+        switch content {
+        case let .title(title):
+            ["defaults", "animation", "title", title.style]
 
-        return try animationPlan(choice, place: clip.place, kind: kind)
+        case .shape:
+            ["defaults", "animation", "shape"]
+
+        case .media:
+            ["defaults", "animation", "media"]
+
+        case .adjust:
+            ["defaults", "animation", "adjust"]
+        }
     }
 
     private func defaultAnimation(
@@ -639,8 +706,8 @@ struct TimePlanner: Sendable {
         in defaults: ThemeDefaults
     ) -> AnimationChoice? {
         switch content {
-        case let .title(_, style):
-            defaults.titleAnimations[style]
+        case let .title(title):
+            defaults.titleAnimations[title.style]
 
         case .shape:
             defaults.shapeAnimation
@@ -655,6 +722,7 @@ struct TimePlanner: Sendable {
 
     private func animationPlan(
         _ choice: AnimationChoice,
+        of clip: Clip,
         place: Place,
         kind: ClipKind
     ) throws -> AnimationPlan {
@@ -662,12 +730,20 @@ struct TimePlanner: Sendable {
         case .none:
             return .none
 
-        case let .preset(instance):
+        case let .preset(instance, by, stagger):
             let preset = try animationPreset(instance, place: place, kind: kind)
+            // A theme default the clip takes is not written at the clip, so its stops name the clip.
+            let unitPlace = clip.animation == nil ? place : place.appending(key: "animation")
+            let units = try units(by: by, stagger: stagger, of: clip, place: unitPlace, kind: kind)
+            guard units == nil || preset.entrance != nil || preset.exit != nil else {
+                throw ResolveError.unitsWithoutSpan(place: unitPlace, kind: .clip(kind))
+            }
+
             return AnimationPlan(
                 entrance: preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
                 loop: preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
-                exit: preset.exit.map { PresetSpan(preset: instance.name, span: $0) }
+                exit: preset.exit.map { PresetSpan(preset: instance.name, span: $0) },
+                units: units
             )
 
         case let .split(entrance, exit):
@@ -680,9 +756,28 @@ struct TimePlanner: Sendable {
                 loop: nil,
                 exit: exit.flatMap { instance in
                     exitPreset?.exit.map { PresetSpan(preset: instance.name, span: $0) }
-                }
+                },
+                units: nil
             )
         }
+    }
+
+    // A stagger the choice leaves out is its unit's default.
+    private func units(
+        by: TextUnit?,
+        stagger: Double?,
+        of clip: Clip,
+        place: Place,
+        kind: ClipKind
+    ) throws -> UnitStagger? {
+        guard let by else {
+            guard stagger == nil else { throw ResolveError.staggerWithoutBy(place: place, kind: .clip(kind)) }
+
+            return nil
+        }
+        guard case .title = clip.content else { throw ResolveError.unitsOnNonTitle(place: place, kind: .clip(kind)) }
+
+        return UnitStagger(by: by, stagger: stagger ?? by.defaultStagger)
     }
 
     // The presets a theme default names were found when the theme was validated, so only a clip's own choice stops

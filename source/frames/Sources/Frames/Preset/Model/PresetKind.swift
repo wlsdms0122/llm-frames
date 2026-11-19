@@ -10,4 +10,5 @@ package enum PresetKind: String, CaseIterable, Sendable {
     case transition
     case animation
     case filter
+    case audio
 }

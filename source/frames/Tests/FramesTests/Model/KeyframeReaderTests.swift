@@ -37,7 +37,7 @@ struct KeyframeReaderTests {
         #expect(opacity == nil)
     }
 
-    @Test("an ease on a keyframe that no later keyframe follows for any of its properties stops")
+    @Test("an ease on a keyframe that no later keyframe follows for any of its leaves stops")
     func refusesUnfollowedEase() throws {
         // Given
         let keyframes = try Fixture.json(#"[ { "at": 4, "scale": 2 }, { "at": 3, "position": [0, 0], "ease": "ease-in" } ]"#)
@@ -47,6 +47,25 @@ struct KeyframeReaderTests {
             try sut.checkEases(in: keyframes, place: Place.root.appending(key: "keyframes"))
         }
         #expect(error?.description == #"keyframes[1] (keyframe): "ease" shapes no span, since no later keyframe names position"#)
+    }
+
+    @Test("an ease on a keyframe whose leaves no later keyframe writes stops, though a later one writes another leaf of its key")
+    func refusesEaseFollowedByAnotherLeaf() throws {
+        // Given
+        let keyframes = try Fixture.json(##"[ { "at": 0, "stroke": { "width": 0 }, "ease": "ease-in" }, { "at": 1, "stroke": { "color": "#FF0000" } } ]"##)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkEases(in: keyframes, place: .root) }
+        #expect(error?.description == #"[0] (keyframe): "ease" shapes no span, since no later keyframe names stroke.width"#)
+    }
+
+    @Test("an ease is followed by a later `true` or `null` for the value around its leaf")
+    func acceptsEaseFollowedByWholeValue() throws {
+        // Given
+        let keyframes = try Fixture.json(#"[ { "at": 0, "shadow": { "radius": 0 }, "ease": "ease-in" }, { "at": 1, "shadow": true } ]"#)
+
+        // When, Then
+        try sut.checkEases(in: keyframes, place: .root)
     }
 
     @Test("an ease followed by a later keyframe of one of its properties is kept")

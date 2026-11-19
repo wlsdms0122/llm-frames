@@ -48,8 +48,8 @@ struct ResolvedSequencePinnedReferencesTests {
                 clip("clips[1]", content: .media(ResolvedMediaClip(
                     media: .nested(nested),
                     timing: nil,
-                    filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    filter: .off,
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],
             audio: [sound("clips[2]", media: music)]
@@ -125,7 +125,7 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 1,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: filter,
+            filter: .filter(filter),
             transition: transition,
             filling: size
         )
@@ -203,11 +203,16 @@ struct ResolvedSequencePinnedReferencesTests {
 
     private func text() -> ResolvedText {
         let run = ResolvedGlyphRun(
+            source: 0,
             font: font,
             face: "Font-Bold",
             size: 20,
-            color: Color(written: "#FFFFFF"),
-            stroke: nil,
+            color: .track([Keyframe(at: 0, value: .color(Color(written: "#FFFFFF")))]),
+            stroke: .off,
+            baselineShift: .off,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 16)]
         )
 

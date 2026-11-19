@@ -7,7 +7,7 @@
 
 enum ClipContent: Equatable, Sendable {
     case media(ClipMedia)
-    case title(runs: [TitleRun], style: String)
+    case title(ClipTitle)
     case shape(ClipShape)
     case adjust
 }

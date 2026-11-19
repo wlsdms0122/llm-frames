@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A filter choice as a document, a theme or a template writes it: the presets it applies in turn, the first applied
-// first, and none for `"none"`.
+// The presets a filter choice names, as a document, a theme or a template writes it, in turn, the first applied first:
+// none for `"none"`, and an op written in place names none.
 struct FilterChoice: Equatable, Sendable {
     // MARK: - Property
     let presets: [PresetInstance]
@@ -26,17 +26,15 @@ struct FilterChoice: Equatable, Sendable {
             self.init(presets: [])
 
         case let .array(elements):
-            let presets = elements.enumerated().compactMap { index, element in
+            self.init(presets: elements.enumerated().compactMap { index, element in
                 PresetInstance(value: element, place: place.appending(index: index))
-            }
-            guard presets.count == elements.count else { return nil }
+            })
 
-            self.init(presets: presets)
+        case .object, .string:
+            self.init(presets: PresetInstance(value: value, place: place).map { [$0] } ?? [])
 
         default:
-            guard let instance = PresetInstance(value: value, place: place) else { return nil }
-
-            self.init(presets: [instance])
+            return nil
         }
     }
 

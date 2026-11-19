@@ -67,7 +67,7 @@ struct DisplayListReaderTests {
                 source: .media(MediaFrame(media: video, index: 2)),
                 rectangle: Rectangle(x: 45, y: 97.5, width: 990, height: 1760),
                 destination: Rectangle(x: 10, y: 20, width: 495, height: 880),
-                filter: [.exposure(ev: 0.5), .blur(radius: 2)],
+                filter: [FilterEntry(operations: [.exposure(ev: 0.5), .blur(radius: 2)], mix: 0.5)],
                 matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
@@ -83,7 +83,7 @@ struct DisplayListReaderTests {
         DisplayItem(
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1920), radius: 16),
-                fill: Color(written: "#00000099"),
+                fill: .color(Color(written: "#00000099")),
                 stroke: nil,
                 shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "#00000080"))
             )),
@@ -100,7 +100,7 @@ struct DisplayListReaderTests {
                 fill: nil,
                 stroke: PathStroke(
                     width: 6,
-                    color: Color(written: "#FF3B30"),
+                    paint: .color(Color(written: "#FF3B30")),
                     join: .miter,
                     cap: .square,
                     start: .none,
@@ -112,7 +112,7 @@ struct DisplayListReaderTests {
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 240, y: 175), Point(x: 300, y: 175)], isClosed: false),
             fill: nil,
-            stroke: PathStroke(width: 6, color: Color(written: "#FF3B30"), join: .round, cap: .round, start: .none, end: .arrow),
+            stroke: PathStroke(width: 6, paint: .color(Color(written: "#FF3B30")), join: .round, cap: .round, start: .none, end: .arrow),
             trim: Trim(start: 0, end: 0.6)
         ))),
         DisplayItem(
@@ -120,12 +120,23 @@ struct DisplayListReaderTests {
             opacity: 0.75,
             content: .glyphs(GlyphsItem(
                 size: Size(width: 120, height: 48),
-                runs: [ResolvedGlyphRun(
+                runs: [DrawnGlyphRun(
                     font: PinnedFile(path: "/abs/Inter.ttf", sha256: hash),
                     face: "Inter-Bold",
                     size: 32,
                     color: Color(written: "#FFFFFF"),
                     stroke: TextStroke(width: 2, color: Color(written: "#000000")),
+                    highlight: DrawnHighlight(
+                        rects: [Rectangle(x: 10, y: 4, width: 50, height: 40)],
+                        radius: 4,
+                        color: Color(written: "#F2B705"),
+                        bands: [12...30]
+                    ),
+                    underline: DrawnUnderline(
+                        rects: [Rectangle(x: 12, y: 40, width: 46, height: 2)],
+                        color: Color(written: "#FFFFFF"),
+                        bands: nil
+                    ),
                     glyphs: [PositionedGlyph(id: 43, x: 12, y: 36), PositionedGlyph(id: 76, x: 34.5, y: 36)]
                 )],
                 background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "#111111CC"))
@@ -133,13 +144,43 @@ struct DisplayListReaderTests {
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
         DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], background: nil))),
-        DisplayItem(content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))),
+        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.saturation(amount: 0)])]))),
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
-            fill: Color(written: "#3366CC"),
-            stroke: PathStroke(width: 2.5, color: Color(written: "#FFFFFF80"), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
+            fill: .color(Color(written: "#3366CC")),
+            stroke: PathStroke(width: 2.5, paint: .color(Color(written: "#FFFFFF80")), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
             trim: Trim(start: 0.75, end: 0.25),
             shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
+        ))),
+        DisplayItem(content: .path(PathItem(
+            geometry: .rect(Rectangle(x: 10, y: 20, width: 200, height: 100), radius: 0),
+            fill: .gradient(Gradient(
+                shape: .linear(from: Point(x: 10, y: 20), to: Point(x: 210, y: 20)),
+                stops: [GradientStop(offset: 0, color: Color(written: "#FF000000")), GradientStop(offset: 1, color: Color(written: "#0000FF"))]
+            )),
+            stroke: PathStroke(
+                width: 4,
+                paint: .gradient(Gradient(
+                    shape: .radial(center: Point(x: 110, y: 70), radius: 111.8),
+                    stops: [
+                        GradientStop(offset: 0, color: Color(written: "#FFFFFF")),
+                        GradientStop(offset: 0.5, color: Color(written: "#FFFFFF")),
+                        GradientStop(offset: 0.5, color: Color(written: "#00000080"))
+                    ]
+                )),
+                join: .round,
+                cap: .butt,
+                start: .none,
+                end: .arrow
+            )
+        ))),
+        DisplayItem(content: .glyphs(GlyphsItem(
+            size: Size(width: 10, height: 10),
+            runs: [],
+            layer: .strokes,
+            unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
+            unitGlyphBox: Rectangle(x: 3, y: 2, width: 4, height: 6),
+            background: nil
         )))
     ]
 
@@ -182,12 +223,12 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 7,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(filter: filter))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: filter)]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .media(MediaFrame(media: Self.still, index: 0)),
                     rectangle: nil,
                     destination: Rectangle(x: 0, y: 0, width: 10, height: 10),
-                    filter: filter
+                    filter: [FilterEntry(operations: filter)]
                 )))
             ]
         )
@@ -219,7 +260,7 @@ struct DisplayListReaderTests {
         let inner = list(
             size: Size(width: 400, height: 300),
             seed: 12,
-            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let nested = list(
             size: Size(width: 1080, height: 1500),
@@ -260,7 +301,7 @@ struct DisplayListReaderTests {
         // Given
         let source = list(
             seed: 7,
-            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let list = list(
             seed: 7,
@@ -411,12 +452,12 @@ struct DisplayListReaderTests {
         // Given
         let inner = list(
             seed: 4,
-            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let list = list(
             seed: 3,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)]))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .displayList(inner),
                     rectangle: nil,
@@ -430,7 +471,7 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(error?.description == """
-            items[1].source.list.items[0].filter[0].seed (adjust): seed 4 differs from 3, the seed of the first grain \
+            items[1].source.list.items[0].filter[0].ops[0].seed (adjust): seed 4 differs from 3, the seed of the first grain \
             in the list, and every grain of an output frame takes that frame's number
             """)
     }
@@ -459,10 +500,11 @@ struct DisplayListReaderTests {
             (#""displayList": "1.0.0","#, "", #"top level (display list): missing key "displayList""#),
             (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
             (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
-            (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter"#),
+            (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter, hue, saturation, color, luminosity"#),
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
-            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#)
+            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
+            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#)
         ]
     )
     func refusesUnreadableMember(
@@ -497,8 +539,27 @@ struct DisplayListReaderTests {
         #expect(item["fill"] == .null)
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
-        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end"])
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")
+    func writesPaint() throws {
+        // Given
+        let list = list(items: [Self.items[10]])
+
+        // When
+        let item = try #require(writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(item["fill"] == (try Fixture.json(##"""
+            { "linear": { "from": [10, 20], "to": [210, 20], "stops": [[0, "#FF000000"], [1, "#0000FFFF"]] } }
+            """##)))
+        #expect(item["stroke"]?.objectValue?["paint"] == (try Fixture.json(##"""
+            { "radial": { "center": [110, 70], "radius": 111.8, "stops": [[0, "#FFFFFFFF"], [0.5, "#FFFFFFFF"], [0.5, "#00000080"]] } }
+            """##)))
+        let colored = try #require(writer.document(self.list(items: [Self.items[5]])).objectValue?["items"]?.arrayValue?.first?.objectValue)
+        #expect(colored["stroke"]?.objectValue?["paint"] == .string("#FF3B30FF"))
     }
 
     @Test(
@@ -526,19 +587,29 @@ struct DisplayListReaderTests {
                 #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
                 "stroke",
                 #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
+            ),
+            (
+                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#FFFFFFFF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                "items[0].stroke.paint.linear.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
+            ),
+            (
+                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "#FFFFFFFF"], [0.2, "#000000FF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             ("[0, 1.5]", "trim", "items[0].trim[1] (path): a trim runs from 0 to 1, found 1.5"),
             ("[-0.25, 1]", "trim", "items[0].trim[0] (path): a trim runs from 0 to 1, found -0.25"),

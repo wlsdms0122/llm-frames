@@ -97,12 +97,12 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 },
                 {
                   "at": 3,
-                  "value": 0.5,
+                  "value": [0.5, 0.5],
                   "ease": "linear"
                 }
               ],
@@ -116,18 +116,53 @@ struct ResolvedDocumentWriterTests {
               "blend": "screen",
               "filter": [
                 {
-                  "op": "saturation",
-                  "amount": 1.25
-                },
-                {
-                  "op": "blur",
-                  "radius": 2.25
+                  "ops": [
+                    {
+                      "op": "saturation",
+                      "amount": [
+                        {
+                          "at": 0,
+                          "value": 1.25,
+                          "ease": "linear"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "blur",
+                      "radius": [
+                        {
+                          "at": 0,
+                          "value": 2.25,
+                          "ease": "linear"
+                        }
+                      ]
+                    }
+                  ],
+                  "mix": [
+                    {
+                      "at": 0,
+                      "value": 1,
+                      "ease": "linear"
+                    }
+                  ]
                 }
               ],
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "transition": null
@@ -139,19 +174,66 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "title": {
                 "size": [38.25, 29.25],
+                "textBox": [9, 4.5, 20.25, 20.25],
+                "width": null,
                 "background": {
-                  "color": "#ED2929FF",
-                  "padding": [9, 4.5],
-                  "radius": 6.75
+                  "color": [
+                    {
+                      "at": 0,
+                      "value": "#ED2929FF",
+                      "ease": "linear"
+                    }
+                  ],
+                  "padding": [
+                    {
+                      "at": 0,
+                      "value": [4.5, 9],
+                      "ease": "linear"
+                    }
+                  ],
+                  "radius": [
+                    {
+                      "at": 0,
+                      "value": 6.75,
+                      "ease": "linear"
+                    }
+                  ]
                 },
+                "align": "left",
+                "lineHeight": [
+                  {
+                    "at": 0,
+                    "value": 25.3125,
+                    "ease": "linear"
+                  }
+                ],
+                "lines": null,
+                "units": null,
                 "runs": [
                   {
+                    "source": 0,
                     "file": "/System/Apple SD Gothic Neo.ttc",
                     "sha256": "41aa0c9e5d17",
                     "face": "Apple SD Gothic Neo-bold",
                     "size": 20.25,
-                    "color": "#FFFFFFFF",
+                    "color": [
+                      {
+                        "at": 0,
+                        "value": "#FFFFFFFF",
+                        "ease": "linear"
+                      }
+                    ],
                     "stroke": null,
+                    "baselineShift": [
+                      {
+                        "at": 0,
+                        "value": 0,
+                        "ease": "linear"
+                      }
+                    ],
+                    "tracking": null,
+                    "highlight": null,
+                    "underline": null,
                     "glyphs": [
                       [72, 9, 20.7],
                       [105, 19.125, 20.7]
@@ -168,7 +250,7 @@ struct ResolvedDocumentWriterTests {
               "position": [
                 {
                   "at": 0,
-                  "value": [56.275000000000006, 1695.175],
+                  "value": [75.4, 1709.8],
                   "ease": "linear"
                 }
               ],
@@ -187,7 +269,7 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 }
               ],
@@ -207,7 +289,9 @@ struct ResolvedDocumentWriterTests {
                   "keys": []
                 },
                 "loop": null,
-                "exit": null
+                "exit": null,
+                "by": null,
+                "stagger": null
               }
             },
             {
@@ -217,12 +301,24 @@ struct ResolvedDocumentWriterTests {
                 "file": "/abs/page.png",
                 "sha256": "5d17e0a9b2c4"
               },
-              "filter": [],
+              "filter": null,
               "conform": "fit",
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "start": 0,
@@ -234,7 +330,7 @@ struct ResolvedDocumentWriterTests {
               "position": [
                 {
                   "at": 0,
-                  "value": [440, 880],
+                  "value": [540, 960],
                   "ease": "linear"
                 }
               ],
@@ -259,7 +355,7 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 }
               ],
@@ -274,7 +370,9 @@ struct ResolvedDocumentWriterTests {
               "animation": {
                 "entrance": null,
                 "loop": null,
-                "exit": null
+                "exit": null,
+                "by": null,
+                "stagger": null
               }
             }
           ],
@@ -311,7 +409,8 @@ struct ResolvedDocumentWriterTests {
               "fadeIn": null,
               "fadeOut": null,
               "incoming": null,
-              "outgoing": null
+              "outgoing": null,
+              "audioFilter": null
             },
             {
               "place": "clips[2]",
@@ -355,7 +454,8 @@ struct ResolvedDocumentWriterTests {
               "fadeIn": null,
               "fadeOut": null,
               "incoming": null,
-              "outgoing": null
+              "outgoing": null,
+              "audioFilter": null
             }
           ]
         }

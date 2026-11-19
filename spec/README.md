@@ -60,7 +60,8 @@ every media file is read through the decoder
 ### What frames leaves out
 
 - Effects as code run by a renderer: shaders and scripts. Packs carry data only, so every role can draw them. Filters, LUTs, matte transitions and blend modes cover most of what such effects are bought for, and the rest is made outside and arrives as media (the effects how-to). A per-pixel kernel carried as data in a portable shading language is where a later contract would add them.
-- Stabilisation, audio filters beyond volume and pan, per-character text animation.
+- Stabilisation.
+- Processing a mix of several sounds: audio filters on a compound clip, a bus or the master, a limiter, a loudness target. Each clip's own sound takes audio filters ([FRAMES-13](FRAMES-13/SPEC.md)).
 - Perspective tracking (corner pin). The tracker reports a target's four corners, and the motion fitted from them is a move, a uniform scale and a rotation ([FRAMES-12](FRAMES-12/SPEC.md)). The four corners leave room to add a corner pin later.
 - Curved paths. A path shape is straight segments between its points ([FRAMES-11](FRAMES-11/SPEC.md)).
 - Right-to-left and mixed-direction text. Text is laid out left to right, so `align` names physical sides.

@@ -42,11 +42,15 @@ struct ResolvedDocumentReaderTests {
         ]) { $1 },
         animations: Fixture.presets.animations,
         filters: Fixture.presets.filters.merging([
-            "film": FilterPreset(description: "", operations: [
-                .lut(file: "/abs/film.cube", amount: 0.5),
-                .bloom(amount: 0.5, radius: 4, color: "#FFFFFF"),
-                .levels(input: [0, 1], output: [0.1, 0.9])
-            ])
+            "film": #"""
+                { "description": "", "ops": [ { "op": "lut", "file": "/abs/film.cube", "amount": 0.5 },
+                                             { "op": "bloom", "amount": 0.5, "radius": 4, "color": "#FFFFFF" },
+                                             { "op": "levels", "input": [0, 1], "output": [0.1, 0.9] } ] }
+                """#,
+            "fade": #"""
+                { "description": "", "params": { "black": { "type": "number", "default": 0, "description": "the black" } },
+                  "ops": [ { "op": "levels", "input": [ { "param": "black" }, 1 ], "output": [0, 1] } ] }
+                """#
         ]) { $1 }
     )
 
@@ -114,12 +118,12 @@ struct ResolvedDocumentReaderTests {
               { "adjust": "mine/grade", "parent": "screen", "mask": [
                   { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
                   { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
-              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "keyframes": [
-                  { "at": 0, "ease": "ease-out", "mask": { "shape": "ellipse", "area": { "text": "Total" }, "feather": 1 } },
-                  { "at": 2, "mask": { "shape": "ellipse", "area": [0, 0, 50, 50], "feather": 3 } } ] },
-              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "keyframes": [
-                  { "at": 0, "mask": { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } },
-                  { "at": 1, "mask": { "shape": "path", "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
+              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
+                  { "at": 0, "ease": "ease-out", "mask": { "area": { "text": "Total" }, "feather": 1 } },
+                  { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
+              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
+                  { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
+                  { "at": 1, "mask": { "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
         """#,
         // Track mattes: a storyline clip cut by a title's alpha, a still by a shape's inverted luma, and the shape by
         // the title in turn, so the title is the matte of two clips and the end of a chain.
@@ -134,6 +138,13 @@ struct ResolvedDocumentReaderTests {
               "trackMatte": { "clip": "word", "mode": "alpha" } },
             { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
         """#,
+        // A filter whose preset argument and mix move, beside an op written in place.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            "filter": [ "fade", { "op": "exposure", "ev": 0.5 } ],
+            "keyframes": [ { "at": 0, "filter": [ { "args": { "black": 0 } }, { "mix": 0 } ], "ease": "ease-in" },
+                           { "at": 2, "filter": [ { "args": { "black": 0.2 } }, { "mix": 1 } ] } ] } ] }
+        """#,
         // Time remapping: a storyline clip held, reversed and eased past the end of its media, and a connected media
         // clip remapped over its window, which writes no `in`, `out` or `loop`.
         #"""
@@ -141,6 +152,14 @@ struct ResolvedDocumentReaderTests {
             { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
             "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
               { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
+        """#,
+        // Audio filters: a storyline clip's held entries and a connected sound's band swept by its keyframes.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
+          "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+                       "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
+                                      { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
@@ -188,7 +207,15 @@ struct ResolvedDocumentReaderTests {
             Issue.record("the first clip is not a title")
             return
         }
-        #expect(title.runs.map(\.stroke) == [TextStroke(width: 3, color: Color(written: "#000000")), nil, nil])
+        let black = TimedValue.track([Keyframe(at: 0, value: .color(Color(written: "#000000")))])
+        #expect(title.runs.map(\.stroke) == [
+            .object([
+                TimedMember(key: "width", value: .track([Keyframe(at: 0, value: .number(3))])),
+                TimedMember(key: "color", value: black)
+            ]),
+            .off,
+            .off
+        ])
     }
 
     @Test(
@@ -236,7 +263,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""loop": true,"#,
                 #""loop": true, "scale": [],"#,
-                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing"#
+                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing, audioFilter"#
             )
         ]
     )
@@ -311,7 +338,7 @@ struct ResolvedDocumentReaderTests {
             (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""end": "none""#, #""end": "dot""#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
-            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, width, join, cap, start, end"#)
+            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, join, cap, start, end, dash, dashOffset"#)
         ]
     )
     func refusesShapeMember(
@@ -386,24 +413,31 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "top level (resolved document): expected an object, found a list of 0")
     }
 
+    private static let point = #"[ { "at": 0, "value": [0, 0], "ease": "linear" } ]"#
+    private static let rect = #"[ { "at": 0, "value": [0, 0, 10, 10], "ease": "linear" } ]"#
+
     @Test(
-        "a mask that is not a closed polyline through three points, has a negative feather or has an unknown mode stops",
+        "a mask that is not a closed polyline through three points, has a negative feather, an unknown mode or both a rect and a box stops",
         arguments: [
             (
-                #"{ "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": false } }"#, "0", #""add""#,
-                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
             ),
             (
-                #"{ "polyline": { "points": [[0, 0], [10, 0]], "closed": true } }"#, "0", #""add""#,
-                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
             ),
             (
-                #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }"#, "-1", #""add""#,
-                "clips[0].mask[0].value[0].feather (mask): a feather is 0 or more, found -1"
+                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } }"#, "-1", #""add""#,
+                "clips[0].mask[0].feather[0].value (mask): a feather is 0 or more, found -1"
             ),
             (
-                #"{ "ellipse": { "rect": [0, 0, 10, 10] } }"#, "0", #""multiply""#,
-                #"clips[0].mask[0].value[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""multiply""#,
+                #"clips[0].mask[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+            ),
+            (
+                #"{ "ellipse": { "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] } }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry.ellipse (mask): takes only one of "rect", "width""#
             )
         ]
     )
@@ -415,7 +449,7 @@ struct ResolvedDocumentReaderTests {
     ) throws {
         // Given
         let mask = #"""
-            [ { "at": 0, "value": [ { "geometry": \#(geometry), "feather": \#(feather), "invert": false, "mode": \#(mode) } ], "ease": "linear" } ]
+            [ { "geometry": \#(geometry), "feather": [ { "at": 0, "value": \#(feather), "ease": "linear" } ], "invert": false, "mode": \#(mode) } ]
             """#
         let text = try replacing("mask", ofClip: 0, with: mask, in: written(Self.documents[4]))
 
@@ -432,7 +466,7 @@ struct ResolvedDocumentReaderTests {
         let text = try replacing(
             "mask",
             ofClip: 0,
-            with: #"[ { "at": 0, "value": [], "ease": "linear" } ]"#,
+            with: "[]",
             in: written(Self.documents[4])
         )
 
@@ -440,7 +474,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
 
         // Then
-        #expect(error?.description == "clips[0].mask[0].value (clip): a mask list holds at least one mask, and a clip without one has null")
+        #expect(error?.description == "clips[0].mask (clip): a mask list holds at least one mask, and a clip without one has null")
     }
 
     @Test(

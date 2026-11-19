@@ -13,7 +13,7 @@ package struct PictureItem: Equatable, Sendable {
     package let source: PictureItemSource
     package let rectangle: Rectangle?
     package let destination: Rectangle
-    package let filter: [ResolvedFilterOperation]
+    package let filter: [FilterEntry]
     package let matte: PictureMatte?
     package let radius: Double
     package let border: MediaBorder?
@@ -24,7 +24,7 @@ package struct PictureItem: Equatable, Sendable {
         source: PictureItemSource,
         rectangle: Rectangle?,
         destination: Rectangle,
-        filter: [ResolvedFilterOperation] = [],
+        filter: [FilterEntry] = [],
         matte: PictureMatte? = nil,
         radius: Double = 0,
         border: MediaBorder? = nil,

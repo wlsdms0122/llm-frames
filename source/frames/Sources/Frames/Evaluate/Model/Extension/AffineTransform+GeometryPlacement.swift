@@ -12,13 +12,13 @@ extension AffineTransform {
     // MARK: - Initializer
     init(
         placing box: Rectangle,
-        anchor: Point?,
+        anchor: GeometryAnchor?,
         position: Point?,
-        scale: Double,
+        scale: Scale,
         rotation: Double,
         moved: Point = Point(x: 0, y: 0)
     ) {
-        let anchor = anchor ?? box.center
+        let anchor = anchor?.point(in: box) ?? box.center
         let position = position ?? anchor
 
         self.init(

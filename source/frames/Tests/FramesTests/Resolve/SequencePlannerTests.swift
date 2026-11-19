@@ -132,12 +132,12 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].area == .value(FoundArea(
+        #expect(plan.clips[0].area == .value(.found(FoundArea(
             rectangle: Rectangle(x: 10, y: 20, width: 30, height: 40),
             target: Rectangle(x: 10, y: 20, width: 30, height: 40),
             mediaTime: 0,
             lines: []
-        )))
+        ))))
     }
 
     @Test("a parented position given by a text area is the point it names, padding included")
@@ -150,8 +150,8 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].position == .value(Point(x: 86, y: 120)))
-        #expect(plan.clips[1].position == .value(Point(x: 10, y: 20)))
+        #expect(plan.clips[0].position == .value(.point(Point(x: 86, y: 120))))
+        #expect(plan.clips[1].position == .value(.point(Point(x: 10, y: 20))))
     }
 
     @Test(
@@ -187,7 +187,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].position == .value(Point(x: 110, y: 40)))
+        #expect(plan.clips[0].position == .value(.point(Point(x: 110, y: 40))))
     }
 
     @Test("a sequence clip parented to a storyline clip finds its text area in that clip's picture")
@@ -333,7 +333,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[1].position == .value(Point(x: 314, y: 120)))
+        #expect(plan.clips[1].position == .value(.point(Point(x: 314, y: 120))))
     }
 
     @Test(
@@ -425,11 +425,15 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a property whose keyframes all lie outside the range its clip shows in stops",
+        "a leaf whose keyframes all lie outside the range its clip shows in stops",
         arguments: [
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] } ] }"#,
                 #"storyline[0].keyframes (video): every keyframe of "crop" lies outside [0, 6), so only one of its values would ever show"#
+            ),
+            (
+                ##"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 1, "shadow": { "radius": 2 } }, { "at": 2, "shadow": { "radius": 4 } }, { "at": 9, "shadow": { "color": "#FF0000" } }, { "at": 10, "shadow": { "color": "#000000" } } ] } ] }"##,
+                #"storyline[0].keyframes (video): every keyframe of "shadow.color" lies outside [0, 6), so only one of its values would ever show"#
             ),
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "at": [2, 4], "title": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] } ] } ] }"#,
@@ -464,7 +468,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.lineCount == lineCount)
+        #expect(plan.clips[0].title?.layout.lineCount == lineCount)
     }
 
     @Test("a title is set at the length scale of the output")
@@ -477,8 +481,68 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.size == Size(width: 38, height: 76))
-        #expect(plan.clips[0].title?.runs.first?.size == 76)
+        #expect(plan.clips[0].title?.layout.size == Size(width: 38, height: 76))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 76)
+    }
+
+    @Test("a title's `character` merges over every run's style leaf by leaf and keeps what it does not write")
+    func mergesCharacterOverRuns() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "colors": { "accent": "#FFD43B" },
+                         "styles": { "caption": { "size": 40, "stroke": { "width": 4, "color": "#000000" } },
+                                     "small": { "size": 20 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption",
+                           "character": { "color": "accent", "stroke": { "width": 2 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title)
+        let characters = title.characters.map { $0.sampled(at: 0, as: LookStructureTable.character) }
+        #expect(characters.map { $0["color"]?.color } == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
+        #expect(title.layout.runs.map(\.size) == [40, 20])
+        #expect(characters.map { $0["stroke"]?["width"]?.number } == [2, 2])
+        #expect(characters.map { $0["stroke"]?["color"]?.color } == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+    }
+
+    @Test("a title's `paragraph` merges over its style's paragraph attributes, and its default line height follows `character`")
+    func mergesParagraphOverStyle() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "align": "left",
+                                                  "background": { "color": "#000000", "padding": [10, 20] } } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "a\nb", "style": "caption", "width": 200, "character": { "size": 80 },
+                           "paragraph": { "align": "right", "background": { "radius": 6 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title?.layout)
+        #expect(title.background == TextBackground(
+            color: Color(written: "#000000"),
+            padding: Size(width: 20, height: 10),
+            radius: 6
+        ))
+        #expect(title.runs.map { $0.glyphs.map(\.x) } == [[180], [180]])
+        #expect(title.runs.map { $0.glyphs.map(\.y) } == [[74], [174]])
+    }
+
+    @Test("a title's `character` stroke over a run style without one stops when it gives no width")
+    func refusesCharacterStrokeWithoutWidth() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "title", "character": { "stroke": { "color": "#FF0000" } },
+                           "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        #expect(throws: ResolveError.self) { try plan(document) }
     }
 
     @Test("a title naming a style the theme does not hold stops at its style, listing the styles the theme holds")
@@ -524,7 +588,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let title = try #require(plan.clips[0].title)
+        let title = try #require(plan.clips[0].title?.layout)
         #expect(title.size == Size(width: 40, height: 176))
         #expect(title.background == nil)
         #expect(title.runs.map(\.size) == [80, 60])
@@ -558,7 +622,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.runs.first?.size == 40 * (1206 / 1920.0))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 40 * (1206 / 1920.0))
     }
 
     @Test("a nested document is planned on its own, with its own format, for a storyline clip and another clip")
@@ -595,35 +659,37 @@ struct SequencePlannerTests {
         let plan = try plan(document)
 
         // Then
-        let graded: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))]
+        let graded = [
+            FilterEntry(operations: [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))])
+        ]
         let title = plan.clips[0].appearance
-        #expect(plan.storyline[0].filter == graded)
+        #expect(plan.storyline[0].filter.filter() == graded)
         #expect(title.opacity == .keyframes([
-            TimedValue(index: 0, at: 1, value: 0, ease: .linear),
-            TimedValue(index: 1, at: 2, value: 1, ease: .easeIn)
+            PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
+            PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
         ]))
-        #expect(title.scale == .value(2))
+        #expect(title.scale == .value(Scale(2)))
         #expect(title.rotation == .value(0))
         #expect(title.blend == "screen")
         #expect(title.shape == nil)
         #expect(plan.clips[1].appearance.blend == "normal")
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
-            geometry: .area(outset: 0, anchor: nil),
-            radius: .value(0),
+            geometry: .area(outset: .off, anchor: nil),
+            radius: .off,
             trim: .value(.whole),
-            fill: nil,
-            stroke: PathStroke(
+            fill: .off,
+            stroke: .stroke(PathStroke(
                 width: 8 * MergedTheme.base.lengthScale(at: 2160),
-                color: MergedTheme.base.color("accent"),
+                paint: .color(MergedTheme.base.color("accent")),
                 join: .round,
                 cap: .butt,
                 start: .none,
                 end: .none
-            ),
-            shadow: nil
+            )),
+            shadow: .off
         ))
-        #expect(plan.clips[2].appearance.filter == graded)
+        #expect(plan.clips[2].appearance.filter.filter() == graded)
     }
 
     @Test("a storyline clip that writes none of its transform has the frame as its box and fills it exactly")
@@ -635,14 +701,14 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.storyline[0].appearance == StorylineAppearance(
-            box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 0, y: 0)), anchor: Point(x: 540, y: 960)),
+            box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 540, y: 960)), anchor: Point(x: 540, y: 960)),
             opacity: .value(1),
-            scale: .value(1),
+            scale: .value(.identity),
             rotation: .value(0),
             blend: "normal",
-            radius: 0,
-            border: nil,
-            shadow: nil
+            radius: .off,
+            border: .off,
+            shadow: .off
         ))
     }
 
@@ -666,24 +732,24 @@ struct SequencePlannerTests {
         #expect(appearance.box == ClipBox(
             size: Size(width: 1080, height: 1920),
             position: .keyframes([
-                TimedValue(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
-                TimedValue(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
+                PropertyKeyframe(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
+                PropertyKeyframe(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
             ]),
             anchor: Point(x: 0, y: 0)
         ))
         #expect(appearance.scale == .keyframes([
-            TimedValue(index: 0, at: 1, value: 1, ease: .linear),
-            TimedValue(index: 1, at: 3, value: 0.5, ease: .linear)
+            PropertyKeyframe(index: 0, at: 1, value: Scale(1), ease: .linear),
+            PropertyKeyframe(index: 1, at: 3, value: Scale(0.5), ease: .linear)
         ]))
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius == 12 * scale)
-        #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
-        #expect(appearance.shadow == DropShadow(
-            radius: theme.shadowRadius * scale,
-            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
-            color: theme.shadowColor
+        #expect(appearance.radius.number() == 12 * scale)
+        #expect(appearance.border.border() == MediaBorder(width: 4 * scale, color: theme.color("accent")))
+        #expect(appearance.shadow.shadow() == DropShadow(
+            radius: 32 * scale,
+            offset: Point(x: 0, y: 12 * scale),
+            color: theme.color("shadow")
         ))
     }
 
@@ -728,7 +794,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].mask == .value([
+        #expect(plan.clips[0].mask == [
             ResolvedMask(
                 geometry: .rect(Rectangle(x: 10, y: 20, width: 100, height: 50), radius: 6),
                 feather: 6,
@@ -736,10 +802,10 @@ struct SequencePlannerTests {
                 mode: .subtract
             ),
             mask(.ellipse(Rectangle(x: 0, y: 0, width: 40, height: 20))),
-            mask(.rect(Rectangle(x: 150, y: 280, width: 100, height: 40), radius: 0)),
-            mask(.ellipse(Rectangle(x: 0, y: 0, width: 60, height: 30)), mode: .intersect),
+            box(.rect, width: 100, height: 40, position: Point(x: 200, y: 300)),
+            box(.ellipse, width: 60, height: 30, position: Point(x: 30, y: 15), mode: .intersect),
             mask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 50, y: 80)], isClosed: true), feather: 2)
-        ]))
+        ])
     }
 
     @Test("a storyline clip's and a media clip's text mask is found in their own media, padding included")
@@ -755,11 +821,12 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.storyline[0].mask == .value([mask(.rect(Fixture.total.grown(by: 10), radius: 0))]))
-        #expect(plan.storyline[1].mask == .value([
-            mask(.polyline([Point(x: 400, y: 1200), Point(x: 600, y: 1200), Point(x: 500, y: 1500)], isClosed: true))
-        ]))
-        #expect(plan.clips[0].mask == .value([mask(.ellipse(Rectangle(x: 175, y: 110, width: 50, height: 20)))]))
+        #expect(plan.storyline[0].mask == [mask(.rect(Fixture.total.grown(by: 10), radius: 0))])
+        // A static mask is keyed at its clip's instant, where the second storyline clip starts at 4.
+        #expect(plan.storyline[1].mask == [
+            mask(.polyline([Point(x: 400, y: 1200), Point(x: 600, y: 1200), Point(x: 500, y: 1500)], isClosed: true), at: 4)
+        ])
+        #expect(plan.clips[0].mask == [box(.ellipse, width: 50, height: 20, position: Point(x: 200, y: 120))])
     }
 
     @Test("the text mask of a shape placed by its area or points and of an adjustment is found in the parent's media")
@@ -775,11 +842,11 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].mask == .value([mask(.rect(Fixture.total, radius: 4))]))
-        #expect(plan.clips[1].mask == .value([
+        #expect(plan.clips[0].mask == [mask(.rect(Fixture.total, radius: 4))])
+        #expect(plan.clips[1].mask == [
             mask(.polyline([Point(x: 300, y: 140), Point(x: 0, y: 0), Point(x: 0, y: 500)], isClosed: true))
-        ]))
-        #expect(plan.clips[2].mask == .value([mask(.ellipse(Fixture.total.grown(by: 5)))]))
+        ])
+        #expect(plan.clips[2].mask == [mask(.ellipse(Fixture.total.grown(by: 5)))])
     }
 
     @Test(
@@ -787,21 +854,21 @@ struct SequencePlannerTests {
         arguments: [
             (
                 #"{ "title": "a", "style": "title", "parent": "screen", "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
-                "storyline[0]#screen.connected[0].mask (title): a text form is searched in media, and this clip's mask is in its own box"
+                "storyline[0]#screen.connected[0].mask.area (title): a text form is searched in media, and this clip's mask is in its own box"
             ),
             (
                 #"""
-                { "title": "a", "style": "title", "parent": "screen", "keyframes": [
-                    { "at": 0, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "shape": "rect", "area": { "text": "Total" } } } ] }
+                { "title": "a", "style": "title", "parent": "screen", "mask": { "shape": "rect" }, "keyframes": [
+                    { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "area": { "text": "Total" } } } ] }
                 """#,
-                "storyline[0]#screen.connected[0].keyframes[1].mask (title): a text form is searched in media, and this clip's mask is in its own box"
+                "storyline[0]#screen.connected[0].keyframes[1].mask.area (title): a text form is searched in media, and this clip's mask is in its own box"
             ),
             (
                 #"""
                 { "shape": "rect", "stroke": { "width": 8 }, "width": 100, "height": 50, "parent": "screen", "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] },
                   { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "text": "Total" }, "point": "center" } } ] }
                 """#,
-                "storyline[0]#screen.connected[0].mask[1] (rect): a text form is searched in media, and this clip's mask is in its own box"
+                "storyline[0]#screen.connected[0].mask[1].position (rect): a text form is searched in media, and this clip's mask is in its own box"
             ),
             (
                 #"{ "shape": "rect", "stroke": { "width": 8 }, "width": 100, "parent": "screen", "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
@@ -809,11 +876,11 @@ struct SequencePlannerTests {
             ),
             (
                 #"{ "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "mask": { "shape": "rect", "area": { "text": "Total" } } }"#,
-                "storyline[0]#screen.connected[0].mask (rect): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
+                "storyline[0]#screen.connected[0].mask.area (rect): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
             ),
             (
                 #"{ "adjust": "frames/warm", "mask": { "shape": "path", "points": [[0, 0], [10, 0], { "area": { "text": "Total" }, "point": "center" }] } }"#,
-                "storyline[0]#screen.connected[0].mask (adjustment): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
+                "storyline[0]#screen.connected[0].mask.points[2] (adjustment): a text area is searched in the media of the clip's parent, and this clip's coordinates are output pixels"
             )
         ]
     )
@@ -831,94 +898,117 @@ struct SequencePlannerTests {
         #expect(error?.description == message)
     }
 
-    @Test("keyframed masks resolve to a keyframe list of mask lists in sequence time")
+    @Test("a mask moved only in keyframes takes its geometry from them, each leaf keyed where its keyframes write it")
     func resolvesKeyframedMasks() throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "adjust": "frames/warm", "at": [0, 4], "keyframes": [
-                    { "at": 1, "ease": "ease-in", "mask": [ { "shape": "rect", "area": [0, 0, 100, 100], "radius": 4, "feather": 2 },
-                                                             { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "mode": "subtract" } ] },
-                    { "at": 3, "mask": [ { "shape": "rect", "area": [50, 50, 200, 100], "radius": 8, "feather": 6 },
-                                         { "shape": "path", "points": [[0, 10], [10, 10], [5, 20]], "mode": "subtract" } ] } ] } ] }
+                { "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect" }, { "shape": "path", "mode": "subtract" } ], "keyframes": [
+                    { "at": 1, "ease": "ease-in", "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [10, 0], [5, 10]] } ] },
+                    { "at": 2, "mask": [ { "feather": 2 }, { } ] },
+                    { "at": 3, "mask": [ { "area": [50, 50, 200, 100], "radius": 8 }, { "points": [[0, 10], [10, 10], [5, 20]] } ] } ] } ] }
             """#)
 
         // Then
+        let masks = try #require(plan.clips[0].mask)
         let triangle = { (y: Double) in [Point(x: 0, y: y), Point(x: 10, y: y), Point(x: 5, y: y + 10)] }
-        #expect(plan.clips[0].mask == .keyframes([
-            TimedValue(index: 0, at: 1, value: [
-                mask(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4), feather: 2),
-                mask(.polyline(triangle(0), isClosed: true), mode: .subtract)
-            ], ease: .easeIn),
-            TimedValue(index: 1, at: 3, value: [
-                mask(.rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8), feather: 6),
-                mask(.polyline(triangle(10), isClosed: true), mode: .subtract)
-            ], ease: .linear)
-        ]))
+        #expect(masks.map { $0.sampled(at: 1) } == [
+            MaskSample(
+                geometry: .rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4),
+                feather: 2,
+                isInverted: false,
+                mode: .add
+            ),
+            MaskSample(geometry: .polyline(triangle(0), isClosed: true), feather: 0, isInverted: false, mode: .subtract)
+        ])
+        #expect(masks.map { $0.sampled(at: 3) } == [
+            MaskSample(
+                geometry: .rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8),
+                feather: 2,
+                isInverted: false,
+                mode: .add
+            ),
+            MaskSample(geometry: .polyline(triangle(10), isClosed: true), feather: 0, isInverted: false, mode: .subtract)
+        ])
+        guard case let .rect(.area(area), _) = masks[0].geometry else {
+            Issue.record("expected a rect mask given by its area")
+            return
+        }
+        #expect(area.map(\.at) == [1, 3])
+        #expect(area[0].ease == .easeIn)
+        #expect(masks[0].feather.map(\.at) == [2])
     }
 
     @Test(
-        "keyframed masks stop where their lists differ in length, or a mask differs in its shape, geometry form, inversion, mode or number of points",
+        "a keyframed mask stops on a list of another length, a static leaf, another geometry form or another number of points",
         arguments: [
             (
                 "clips",
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
-                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 20, 20] } ]"#,
-                #"clips[0].keyframes[1].mask (adjustment): the keyframes of "mask" hold 1 and 2 masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"#
+                #"{ "shape": "rect" }"#,
+                #"{ "area": [0, 0, 10, 10] }"#,
+                #"[ { "area": [0, 0, 10, 10] }, { "area": [0, 0, 20, 20] } ]"#,
+                "clips[0].keyframes[1].mask (keyframe): lists of different lengths: 1, 2"
             ),
             (
                 "clips",
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "rect" }"#,
+                #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
-                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its shape, and a keyframed mask changes only its geometry's values, its radius and its feather"
+                "clips[0].keyframes[1].mask.shape (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
             ),
             (
                 "clips",
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
-                #"{ "shape": "rect", "width": 10, "height": 10, "position": [5, 5] }"#,
-                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its geometry form, and a keyframed mask changes only its geometry's values, its radius and its feather"
+                #"{ "shape": "rect" }"#,
+                #"{ "area": [0, 0, 10, 10] }"#,
+                #"{ "width": 10 }"#,
+                "clips[0].keyframes[1].mask.width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
                 "clips",
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "invert": true }"#,
-                "clips[0].keyframes[1].mask (adjustment): this mask differs from the first keyframe's in its invert, and a keyframed mask changes only its geometry's values, its radius and its feather"
+                #"{ "shape": "rect" }"#,
+                #"{ "area": [0, 0, 10, 10] }"#,
+                #"{ "area": [0, 0, 10, 10], "invert": true }"#,
+                "clips[0].keyframes[1].mask.invert (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
             ),
             (
                 "clips",
-                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 5, 5] } ]"#,
-                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "rect", "area": [0, 0, 5, 5], "mode": "subtract" } ]"#,
-                "clips[0].keyframes[1].mask[1] (adjustment): this mask differs from the first keyframe's in its mode, and a keyframed mask changes only its geometry's values, its radius and its feather"
+                #"[ { "shape": "rect" }, { "shape": "rect", "area": [0, 0, 5, 5] } ]"#,
+                #"[ { "area": [0, 0, 10, 10] }, { "feather": 1 } ]"#,
+                #"[ { "area": [0, 0, 10, 10] }, { "mode": "subtract" } ]"#,
+                "clips[0].keyframes[1].mask[1].mode (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
             ),
             (
                 "clips",
-                #"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] }"#,
-                #"{ "shape": "path", "points": [[0, 0], [10, 0], [10, 10], [0, 10]] }"#,
-                #"clips[0].keyframes[1].mask.points (adjustment): the keyframes of "points" hold 3 and 4 points, and points interpolate one by one, so every value has the same number"#
+                #"{ "shape": "path" }"#,
+                #"{ "points": [[0, 0], [10, 0], [5, 10]] }"#,
+                #"{ "points": [[0, 0], [10, 0], [10, 10], [0, 10]] }"#,
+                "clips[0].keyframes[1].mask.points (keyframe): lists of different lengths: 3, 4"
             ),
             (
                 "storyline",
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
-                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
-                "storyline[0].keyframes[1].mask (video): this mask differs from the first keyframe's in its shape, and a keyframed mask changes only its geometry's values, its radius and its feather"
+                #"{ "shape": "rect" }"#,
+                #"{ "area": [0, 0, 10, 10] }"#,
+                #"{ "shape": "ellipse" }"#,
+                "storyline[0].keyframes[1].mask.shape (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
             )
         ]
     )
     func refusesDifferingMaskKeyframes(
         list: String,
+        written: String,
         first: String,
         second: String,
         message: String
     ) throws {
         // Given
-        let keyframes = #""keyframes": [ { "at": 0, "mask": \#(first) }, { "at": 1, "mask": \#(second) } ]"#
+        let keyframes = #""mask": \#(written), "keyframes": [ { "at": 0, "mask": \#(first) }, { "at": 1, "mask": \#(second) } ]"#
         let document = list == "clips"
             ? #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "adjust": "frames/warm", "at": [0, 2], \#(keyframes) } ] }"#
             : #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(keyframes) } ] }"#
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description == message)
+        let error = #expect(throws: (any Error).self) { try plan(document) }
+        #expect(error.map(String.init(describing:)) == message)
     }
 
     @Test(
@@ -969,9 +1059,27 @@ struct SequencePlannerTests {
     private func mask(
         _ geometry: PathGeometry,
         feather: Double = 0,
+        mode: MaskMode = .add,
+        at time: Double = 0
+    ) -> ResolvedMask {
+        ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: mode, at: time)
+    }
+
+    private func box(
+        _ shape: ShapeKind,
+        width: Double,
+        height: Double,
+        position: Point,
         mode: MaskMode = .add
     ) -> ResolvedMask {
-        ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: mode)
+        let box = ResolvedMaskRectangle.box(
+            width: [Keyframe(at: 0, value: width)],
+            height: [Keyframe(at: 0, value: height)],
+            position: [Keyframe(at: 0, value: .point(position))]
+        )
+        let geometry: ResolvedMaskGeometry = shape == .rect ? .rect(box, radius: [Keyframe(at: 0, value: 0)]) : .ellipse(box)
+
+        return ResolvedMask(geometry: geometry, feather: [Keyframe(at: 0, value: 0)], isInverted: false, mode: mode)
     }
 
     private func plan(_ document: String) throws -> SequencePlan {

@@ -98,7 +98,7 @@ struct TrackMatteDrawerTests {
         // Given
         let matte = ItemTrackMatte(source: list([fill(top, color: "#000000FF")]), mode: .alpha, isInverted: false)
         let shadow = DropShadow(radius: 0, offset: Point(x: 10, y: 0), color: Color(written: "#000000FF"))
-        let path = PathItem(geometry: .rect(left, radius: 0), fill: white, stroke: nil, shadow: shadow)
+        let path = PathItem(geometry: .rect(left, radius: 0), fill: .color(white), stroke: nil, shadow: shadow)
         let item = DisplayItem(trackMatte: matte, content: .path(path))
 
         // When

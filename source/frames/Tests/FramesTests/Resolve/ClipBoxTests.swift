@@ -24,14 +24,14 @@ struct ClipBoxTests {
         "a placement sets the box inside the output frame inset by the padding, anchored at the point it names",
         arguments: [
             ("top-left", Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding), Point(x: 0, y: 0)),
-            ("top", Point(x: 453, y: ClipBoxTests.padding), Point(x: 150, y: 0)),
-            ("top-right", Point(x: 1206 - ClipBoxTests.padding - 300, y: ClipBoxTests.padding), Point(x: 300, y: 0)),
-            ("left", Point(x: ClipBoxTests.padding, y: 1123.5), Point(x: 0, y: 187.5)),
-            ("center", Point(x: 453, y: 1123.5), Point(x: 150, y: 187.5)),
-            ("right", Point(x: 1206 - ClipBoxTests.padding - 300, y: 1123.5), Point(x: 300, y: 187.5)),
-            ("bottom-left", Point(x: ClipBoxTests.padding, y: 2622 - ClipBoxTests.padding - 375), Point(x: 0, y: 375)),
-            ("bottom", Point(x: 453, y: 2622 - ClipBoxTests.padding - 375), Point(x: 150, y: 375)),
-            ("bottom-right", Point(x: 1206 - ClipBoxTests.padding - 300, y: 2622 - ClipBoxTests.padding - 375), Point(x: 300, y: 375))
+            ("top", Point(x: 603, y: ClipBoxTests.padding), Point(x: 150, y: 0)),
+            ("top-right", Point(x: 1206 - ClipBoxTests.padding, y: ClipBoxTests.padding), Point(x: 300, y: 0)),
+            ("left", Point(x: ClipBoxTests.padding, y: 1311), Point(x: 0, y: 187.5)),
+            ("center", Point(x: 603, y: 1311), Point(x: 150, y: 187.5)),
+            ("right", Point(x: 1206 - ClipBoxTests.padding, y: 1311), Point(x: 300, y: 187.5)),
+            ("bottom-left", Point(x: ClipBoxTests.padding, y: 2622 - ClipBoxTests.padding), Point(x: 0, y: 375)),
+            ("bottom", Point(x: 603, y: 2622 - ClipBoxTests.padding), Point(x: 150, y: 375)),
+            ("bottom-right", Point(x: 1206 - ClipBoxTests.padding, y: 2622 - ClipBoxTests.padding), Point(x: 300, y: 375))
         ]
     )
     func placesByName(
@@ -55,7 +55,7 @@ struct ClipBoxTests {
         let box = try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300 }"#)
 
         // Then
-        #expect(box?.position == .value(Point(x: 453, y: 1123.5)))
+        #expect(box?.position == .value(.point(Point(x: 603, y: 1311))))
         #expect(box?.anchor == Point(x: 150, y: 187.5))
     }
 
@@ -65,14 +65,14 @@ struct ClipBoxTests {
         let geometry = try geometry(of: #"{ "title": "Hello", "style": "subtitle", "at": [0, 3] }"#)
 
         // Then
-        let size = try #require(geometry.title?.size)
+        let size = try #require(geometry.title?.layout.size)
         #expect(geometry.box?.size == size)
-        #expect(geometry.box?.position == .value(Point(x: (1206 - size.width) / 2, y: 2622 - 108 * (1206 / 1920.0) - size.height)))
+        #expect(geometry.box?.position == .value(.point(Point(x: 603, y: 2622 - 108 * (1206 / 1920.0)))))
         #expect(geometry.box?.anchor == Point(x: size.width / 2, y: size.height))
     }
 
     @Test(
-        "a position puts the anchor point there, and the box's top left is written",
+        "a position puts the anchor point there, the point the anchor names of the box",
         arguments: [
             ("top-left", Point(x: 600, y: 1000)),
             ("top", Point(x: 450, y: 1000)),
@@ -96,11 +96,11 @@ struct ClipBoxTests {
         let box = try box(of: clip)
 
         // Then
-        #expect(box?.position == .value(topLeft))
+        #expect(box?.position == .value(.point(Point(x: 600, y: 1000))))
         #expect(box?.anchor == Point(x: 600 - topLeft.x, y: 1000 - topLeft.y))
     }
 
-    @Test("a keyframed position stays keyframes in sequence time, each value moved to the top left")
+    @Test("a keyframed position stays keyframes in sequence time")
     func movesKeyframedPosition() throws {
         // Given
         let clip = #"""
@@ -113,12 +113,12 @@ struct ClipBoxTests {
 
         // Then
         #expect(box?.position == .keyframes([
-            TimedValue(index: 0, at: 0, value: Point(x: -50, y: 12.5), ease: .linear),
-            TimedValue(index: 1, at: 1, value: Point(x: 150, y: 212.5), ease: .easeIn)
+            PropertyKeyframe(index: 0, at: 0, value: .point(Point(x: 100, y: 200)), ease: .linear),
+            PropertyKeyframe(index: 1, at: 1, value: .point(Point(x: 300, y: 400)), ease: .easeIn)
         ]))
     }
 
-    @Test("a parented clip's top left stays in its parent's space, less its anchor")
+    @Test("a parented clip's position stays in its parent's space")
     func keepsParentedPositionInMedia() throws {
         // Given
         let document = #"""
@@ -131,7 +131,7 @@ struct ClipBoxTests {
         let box = try plan(document).clips[0].box
 
         // Then
-        #expect(box == ClipBox(size: Size(width: 200, height: 100), position: .value(Point(x: 300, y: 500)), anchor: Point(x: 200, y: 100)))
+        #expect(box == ClipBox(size: Size(width: 200, height: 100), position: .value(Point(x: 500, y: 600)), anchor: Point(x: 200, y: 100)))
     }
 
     @Test(
@@ -199,8 +199,8 @@ struct ClipBoxTests {
         // Then
         #expect(media?.conform == conform)
         #expect(media?.crop == .keyframes([
-            TimedValue(index: 0, at: 0, value: Rectangle(x: 0, y: 0, width: 400, height: 200), ease: .linear),
-            TimedValue(index: 1, at: 1, value: second, ease: .linear)
+            PropertyKeyframe(index: 0, at: 0, value: Rectangle(x: 0, y: 0, width: 400, height: 200), ease: .linear),
+            PropertyKeyframe(index: 1, at: 1, value: second, ease: .linear)
         ]))
     }
 
@@ -316,7 +316,7 @@ struct ClipBoxTests {
         let positioned = try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
 
         // Then
-        #expect(placed?.position == .value(Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding)))
+        #expect(placed?.position == .value(.point(Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding))))
         #expect(positioned != nil)
     }
 

@@ -90,8 +90,8 @@ struct DocumentCommandTests {
         #expect(code == 0)
         #expect(sut.standardOutput == """
             duration 1.5
-            storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  speed 1  transition none
-            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  speed 1  transition frames/fade 0.5
+            storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  sound -  speed 1  transition none
+            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  sound -  speed 1  transition frames/fade 0.5
 
             """)
     }
@@ -146,6 +146,33 @@ struct DocumentCommandTests {
         #expect(argued == 0)
         #expect(defaultOutput.hasPrefix("duration 1\n"))
         #expect(sut.standardOutput.hasPrefix("duration 2\n"))
+    }
+
+    @Test("a pack template named <pack>/<name> is read in its pack, so its theme's and its titles' fonts are looked for there first")
+    func findsPackTemplateFonts() throws {
+        // Given
+        let pack = try sut.addPack("shorts")
+        let font = pack.appendingPathComponent("fonts/Courier.ttc")
+        try FileManager.default.createDirectory(at: font.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/System/Library/Fonts/Courier.ttc"), to: font)
+        try sut.write(
+            #"""
+            { "kind": "sequence", "format": { "size": [160, 90] }, "theme": { "font": ["Courier"] },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "title": "a", "style": "title", "position": [80, 45], "at": [0, 1] },
+                         { "title": "b", "style": "title", "character": { "font": ["Courier"] }, "position": [80, 45], "at": [0, 1] } ] }
+            """#,
+            to: pack.appendingPathComponent("templates/card.json")
+        )
+        let output = sut.directory.file("card.resolved.json")
+
+        // When
+        let code = sut.run(["resolve", "shorts/card", "-o", output])
+
+        // Then
+        let text = try String(contentsOfFile: output, encoding: .utf8)
+        #expect(code == 0)
+        #expect(text.components(separatedBy: #""file": "\#(font.path)""#).count == 3)
     }
 
     @Test("render draws the frame of a sequence at --at to one PNG and prints its path and size")

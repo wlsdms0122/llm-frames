@@ -24,7 +24,7 @@ extension ResolvedStorylineClip {
         end: Double,
         crop: [Keyframe<Crop>],
         track: ResolvedTrack?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         transition: ResolvedTransition?,
         filling size: Size
     ) {
@@ -46,16 +46,16 @@ extension ResolvedStorylineClip {
             filter: filter,
             box: ResolvedBox(
                 size: size,
-                position: [Keyframe(at: start, value: Point(x: 0, y: 0))],
+                position: [Keyframe(at: start, value: Point(x: size.width / 2, y: size.height / 2))],
                 anchor: Point(x: size.width / 2, y: size.height / 2)
             ),
             opacity: [Keyframe(at: start, value: 1)],
-            scale: [Keyframe(at: start, value: 1)],
+            scale: [Keyframe(at: start, value: .identity)],
             rotation: [Keyframe(at: start, value: 0)],
             blend: "normal",
-            radius: 0,
-            border: nil,
-            shadow: nil,
+            radius: .off,
+            border: .off,
+            shadow: .off,
             transition: transition
         )
     }

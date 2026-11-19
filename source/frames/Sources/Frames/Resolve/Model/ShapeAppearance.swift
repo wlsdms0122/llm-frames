@@ -6,26 +6,27 @@
 //
 
 // How a shape clip is drawn once its style is applied, its lengths in output pixels and keyframes in sequence time,
-// and how it is placed. `radius` is 0 and `trim` `[0, 1]` when neither is written.
+// and how it is placed. `radius`, `fill`, `stroke` and `shadow` are timed values, `off` where the shape has none, and
+// `trim` is `[0, 1]` when not written.
 struct ShapeAppearance: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind
     let geometry: ShapeGeometryPlan
-    let radius: PropertyValue<Double>
+    let radius: TimedValue
     let trim: PropertyValue<Trim>
-    let fill: Color?
-    let stroke: PathStroke?
-    let shadow: DropShadow?
+    let fill: TimedValue
+    let stroke: TimedValue
+    let shadow: TimedValue
 
     // MARK: - Initializer
     init(
         kind: ShapeKind,
         geometry: ShapeGeometryPlan,
-        radius: PropertyValue<Double>,
+        radius: TimedValue,
         trim: PropertyValue<Trim>,
-        fill: Color?,
-        stroke: PathStroke?,
-        shadow: DropShadow?
+        fill: TimedValue,
+        stroke: TimedValue,
+        shadow: TimedValue
     ) {
         self.kind = kind
         self.geometry = geometry

@@ -78,6 +78,26 @@ struct NestedListDrawingTests {
         #expect(soft.largest > 0.6)
     }
 
+    @Test("a stroke inside a nested list is in the list's own pixels, stretched with the list where it is shown")
+    func stretchesNestedStroke() throws {
+        // Given
+        let transform = Frames.AffineTransform(a: 3, b: 0, c: 0, d: 1.5, tx: -6, ty: 4)
+        let stroke = PathStroke(width: 1.3, paint: .color(Self.white), join: .miter, cap: .butt, start: .none, end: .none)
+        let stroked = PathItem(
+            geometry: .polyline([Point(x: 1.7, y: 18.2), Point(x: 17.9, y: 1.4)], isClosed: false),
+            fill: nil,
+            stroke: stroke
+        )
+        let filled = PathItem(geometry: band(), fill: .color(Self.white), stroke: nil)
+
+        // When
+        let line = try sut.frame(of: list(size: 40, items: [shown(stroked, by: transform)]))
+        let band = try sut.frame(of: list(size: 40, items: [shown(filled, by: transform)]))
+
+        // Then
+        #expect(difference(line, band).largest < 0.03)
+    }
+
     @Test("a nested list's shadow, blur filter, adjustment, feathered mask and track matte shown at 2x, averaged down to 1x, match it shown at 1x")
     func keepsLookAtShownScale() throws {
         // Given
@@ -232,19 +252,15 @@ struct NestedListDrawingTests {
     }
 
     // MARK: - Private
-    // Shapes with edges off the pixel grid in a 20 by 20 list: an ellipse, a thin diagonal stroke and a square.
+    // Shapes with edges off the pixel grid in a 20 by 20 list: an ellipse, a thin diagonal band and a square. The band
+    // is filled, so it is carried by any transform as the list is; a stroke's width would stay in output pixels.
     private func scene() -> DisplayList {
         let ellipse = PathItem(
             geometry: .ellipse(Rectangle(x: 2.3, y: 3.1, width: 12.4, height: 9.7)),
-            fill: Color(written: "#FF0000"),
+            fill: .color(Color(written: "#FF0000")),
             stroke: nil
         )
-        let stroke = PathStroke(width: 1.3, color: Color(written: "#0000FF"), join: .miter, cap: .butt, start: .none, end: .none)
-        let line = PathItem(
-            geometry: .polyline([Point(x: 1.7, y: 18.2), Point(x: 17.9, y: 1.4)], isClosed: false),
-            fill: nil,
-            stroke: stroke
-        )
+        let line = PathItem(geometry: band(), fill: .color(Color(written: "#0000FF")), stroke: nil)
         let square = PathItem(filling: Rectangle(x: 13.2, y: 12.6, width: 5.1, height: 4.3), color: Color(written: "#00FF00"))
 
         return DisplayList(size: Size(width: 20, height: 20), background: Self.clear, seed: 0, items: [
@@ -254,12 +270,30 @@ struct NestedListDrawingTests {
         ])
     }
 
+    // The diagonal from (1.7, 18.2) to (17.9, 1.4) as a closed outline 1.3 wide about it, its ends cut square.
+    private func band() -> PathGeometry {
+        let start = Point(x: 1.7, y: 18.2)
+        let end = Point(x: 17.9, y: 1.4)
+        let length = ((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y)).squareRoot()
+        let normal = Point(x: -(end.y - start.y) / length * 0.65, y: (end.x - start.x) / length * 0.65)
+
+        return .polyline(
+            [
+                Point(x: start.x + normal.x, y: start.y + normal.y),
+                Point(x: end.x + normal.x, y: end.y + normal.y),
+                Point(x: end.x - normal.x, y: end.y - normal.y),
+                Point(x: start.x - normal.x, y: start.y - normal.y)
+            ],
+            isClosed: true
+        )
+    }
+
     // A 40 by 40 list on white whose look depends on lengths in pixels: a shadow, a feathered mask, an adjustment's
     // blur over both, a picture with a blur filter and a border, and a square cut by a track matte.
     private func effects() -> DisplayList {
         let shadowed = PathItem(
             geometry: .rect(Rectangle(x: 6, y: 6, width: 14, height: 10), radius: 0),
-            fill: Color(written: "#FF0000"),
+            fill: .color(Color(written: "#FF0000")),
             stroke: nil,
             shadow: DropShadow(radius: 2, offset: Point(x: 3, y: 2), color: Self.black)
         )
@@ -272,7 +306,7 @@ struct NestedListDrawingTests {
         )
         let ellipse = PathItem(
             geometry: .ellipse(Rectangle(x: 20, y: 18, width: 14, height: 14)),
-            fill: Color(written: "#0000FF"),
+            fill: .color(Color(written: "#0000FF")),
             stroke: nil
         )
         let inner = DisplayList(size: Size(width: 10, height: 10), background: Self.clear, seed: 0, items: [
@@ -282,13 +316,13 @@ struct NestedListDrawingTests {
             source: .displayList(inner),
             rectangle: nil,
             destination: Rectangle(x: 4, y: 24, width: 12, height: 12),
-            filter: [.blur(radius: 1)],
+            filter: [FilterEntry(operations: [.blur(radius: 1)])],
             border: MediaBorder(width: 1, color: Self.black)
         )
         let matteSource = DisplayList(size: Size(width: 40, height: 40), background: Self.clear, seed: 0, items: [
             DisplayItem(content: .path(PathItem(
                 geometry: .ellipse(Rectangle(x: 24, y: 4, width: 12, height: 12)),
-                fill: Self.black,
+                fill: .color(Self.black),
                 stroke: nil
             )))
         ])
@@ -297,7 +331,7 @@ struct NestedListDrawingTests {
         return DisplayList(size: Size(width: 40, height: 40), background: Self.white, seed: 0, items: [
             DisplayItem(content: .path(shadowed)),
             DisplayItem(mask: [feathered], content: .path(ellipse)),
-            DisplayItem(content: .adjust(AdjustItem(filter: [.blur(radius: 1.5)]))),
+            DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 1.5)])]))),
             DisplayItem(content: .picture(filtered)),
             DisplayItem(
                 trackMatte: ItemTrackMatte(source: matteSource, mode: .alpha, isInverted: false),
@@ -312,7 +346,7 @@ struct NestedListDrawingTests {
         list(size: 40, items: [
             DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 16, height: 40), color: Self.black))),
             DisplayItem(content: .path(PathItem(filling: Rectangle(x: 16, y: 0, width: 24, height: 40), color: Self.white))),
-            DisplayItem(content: .adjust(AdjustItem(filter: [.blur(radius: 2)])))
+            DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 2)])])))
         ])
     }
 
@@ -337,6 +371,16 @@ struct NestedListDrawingTests {
         items: [DisplayItem]
     ) -> DisplayList {
         DisplayList(size: Size(width: width, height: height), background: Self.clear, seed: 0, items: items)
+    }
+
+    // A 20 by 20 list holding only the path, shown through `transform`.
+    private func shown(
+        _ path: PathItem,
+        by transform: Frames.AffineTransform
+    ) -> DisplayItem {
+        let nested = list(size: 20, items: [DisplayItem(content: .path(path))])
+
+        return DisplayItem(transform: transform, content: .picture(picture(of: nested)))
     }
 
     // The item with `transform` applied after its own.

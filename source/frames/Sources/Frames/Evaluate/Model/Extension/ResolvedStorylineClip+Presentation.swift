@@ -6,17 +6,20 @@
 //
 
 // A storyline entry's own transform and opacity, which carry its box's own pixels into the frame. The transition
-// motion is not part of it, since the outer item of its storyline picture carries that.
+// motion is not part of it, since the outer item of its storyline picture carries that. A storyline entry's position
+// holds no clip area.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
     func presentation(at time: Double) -> ItemPresentation {
-        ItemPresentation(
+        let anchor = box.position.map { $0.map(\.fixed) }.value(at: time)
+
+        return ItemPresentation(
             box: box.size,
             anchor: box.anchor,
             values: KeyframedValues(
-                position: box.position.value(at: time),
+                position: Point(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y),
                 scale: scale.value(at: time),
                 rotation: rotation.value(at: time),
                 opacity: opacity.opacity(at: time)

@@ -44,9 +44,9 @@ extension ResolvedClip {
     }
 
     // The clip's masks in its own space.
-    func ownMasks(at time: Double) -> [ResolvedMask] {
+    func ownMasks(at time: Double) -> [MaskSample] {
         guard let mask else { return [] }
-        guard let track, let clock = ownMediaClock else { return mask.value(at: time) }
+        guard let track, let clock = ownMediaClock else { return mask.map { $0.sampled(at: time) } }
 
         return track.masks(of: mask, on: clock, at: time)
     }

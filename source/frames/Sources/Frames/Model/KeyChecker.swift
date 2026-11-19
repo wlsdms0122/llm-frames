@@ -142,26 +142,13 @@ struct KeyChecker: Sendable {
         case let .exactly(expected):
             guard value == expected else { throw wrongType(value, type, place, kind) }
 
-        case .anyObject, .bool, .number, .text, .name:
+        case .anyObject, .bool, .text, .name:
             guard admits(type, value) else { throw wrongType(value, type, place, kind) }
 
-        case .positiveNumber:
-            guard let number = value.numberValue, number > 0 else { throw wrongType(value, type, place, kind) }
-
-        case .nonNegativeNumber:
-            guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
-
-        case .fraction:
-            guard let number = value.numberValue, (0...1).contains(number) else { throw wrongType(value, type, place, kind) }
-
-        case .signedFraction:
-            guard let number = value.numberValue, (-1...1).contains(number) else {
-                throw wrongType(value, type, place, kind)
-            }
-
-        case .openSignedFraction:
-            guard let number = value.numberValue, number > -1, number < 1 else {
-                throw wrongType(value, type, place, kind)
+        case let .number(domain):
+            guard let number = value.numberValue else { throw wrongType(value, type, place, kind) }
+            guard domain.contains(number) else {
+                throw ModelError.outsideDomain(place: place, kind: kind, value: number, domain: domain)
             }
 
         case .integer:
@@ -172,11 +159,6 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeInteger:
             guard let number = value.numberValue, let integer = Int(exactly: number), integer >= 0 else {
-                throw wrongType(value, type, place, kind)
-            }
-
-        case .positiveInteger:
-            guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
                 throw wrongType(value, type, place, kind)
             }
 
@@ -195,25 +177,29 @@ struct KeyChecker: Sendable {
                 throw ModelError.unknownValue(place: place, kind: kind, value: string, allowed: names)
             }
 
-        case let .numbers(count):
+        case let .numbers(count, domain):
             guard let elements = value.arrayValue, elements.count == count else {
                 throw wrongType(value, type, place, kind)
             }
 
             for (index, element) in elements.enumerated() {
-                try check(element, as: .number, place: place.appending(index: index), kind: kind, scope: &scope)
+                try check(element, as: .number(domain), place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
-        case let .fractions(count):
-            guard let elements = value.arrayValue, elements.count == count else {
+        case let .dash(isKeyframed):
+            guard
+                let elements = value.arrayValue,
+                let lengths = Optional(elements.compactMap(\.numberValue)),
+                !elements.isEmpty,
+                lengths.count + (isKeyframed ? elements.filter { $0 == .null }.count : 0) == elements.count,
+                lengths.allSatisfy({ $0 >= 0 }),
+                lengths.count < elements.count || lengths.contains(where: { $0 > 0 })
+            else {
                 throw wrongType(value, type, place, kind)
             }
 
-            for (index, element) in elements.enumerated() {
-                guard let number = element.numberValue, (0...1).contains(number) else {
-                    throw wrongType(element, type, place.appending(index: index), kind)
-                }
-            }
+        case let .stops(isKeyframed):
+            try checkStops(value, isKeyframed: isKeyframed, place: place, kind: kind)
 
         case .points:
             guard let elements = value.arrayValue, elements.count >= 2 else {
@@ -291,6 +277,17 @@ struct KeyChecker: Sendable {
 
         case .filterChoice:
             try checkFilterChoice(value, place: place, kind: kind, scope: &scope)
+
+        case .audioFilterChoice:
+            try checkAudioFilterChoice(value, place: place, kind: kind, scope: &scope)
+
+        case .audioOperation:
+            guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
+
+            try checkAudioOperation(object, place: place, mixed: false, scope: &scope)
+
+        case let .leaf(check):
+            try self.check(value, by: check, as: type, place: place, kind: kind)
         }
     }
 
@@ -314,14 +311,24 @@ struct KeyChecker: Sendable {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: [rule.name])
         }
 
-        guard let group = table.group else { return }
-
-        let present = group.keys.filter(object.contains)
-        guard !present.isEmpty else {
+        for group in table.groups where !group.isOptional && !group.keys.contains(where: object.contains) {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: group.keys)
         }
-        guard !group.isExclusive || present.count == 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: present)
+
+        // Exclusive groups that share a key, as a mask's `area` with each key of its box, stop together, naming every
+        // key they hold.
+        let conflicting = table.groups
+            .filter(\.isExclusive)
+            .map { $0.keys.filter(object.contains) }
+            .filter { $0.count > 1 }
+            .flatMap { $0 }
+            .reduce(into: [String]()) { keys, key in
+                if !keys.contains(key) {
+                    keys.append(key)
+                }
+            }
+        guard conflicting.isEmpty else {
+            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: conflicting)
         }
     }
 
@@ -359,6 +366,32 @@ struct KeyChecker: Sendable {
         }
 
         throw failures[admitting[0]]
+    }
+
+    private func checkStops(
+        _ value: JSONValue,
+        isKeyframed: Bool,
+        place: Place,
+        kind: String
+    ) throws {
+        let type = ValueType.stops(isKeyframed: isKeyframed)
+        guard let stops = value.arrayValue, stops.count >= 2 else { throw wrongType(value, type, place, kind) }
+
+        var last = 0.0
+        for (index, stop) in stops.enumerated() {
+            let stopPlace = place.appending(index: index)
+            guard let pair = stop.arrayValue, pair.count == 2 else { throw wrongType(stop, type, stopPlace, kind) }
+
+            if !(isKeyframed && pair[0] == .null) {
+                guard let offset = pair[0].numberValue, (0...1).contains(offset), isKeyframed || offset >= last else {
+                    throw wrongType(pair[0], type, stopPlace.appending(index: 0), kind)
+                }
+                last = offset
+            }
+            if !(isKeyframed && pair[1] == .null) {
+                try checkColor(pair[1], as: .color, place: stopPlace.appending(index: 1), kind: kind)
+            }
+        }
     }
 
     private func checkColor(
@@ -444,17 +477,26 @@ struct KeyChecker: Sendable {
             guard elements.count == 4 else { throw wrongType(value, type, place, kind) }
 
             for (index, element) in elements.enumerated() {
-                let elementType: ValueType = index < 2 ? .number : .positiveNumber
+                let elementType: ValueType = index < 2 ? .number(.any) : .number(.positive)
                 try check(element, as: elementType, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
         case let .object(object):
-            if object.contains("text") {
+            if object.contains("clip") {
+                if let key = AreaKeyTable.textKeys.first(where: object.contains) {
+                    throw ModelError.invalidValue(
+                        place: place.appending(key: key),
+                        kind: kind,
+                        reason: "an area holds the keys of one form, and a clip area takes no text form key"
+                    )
+                }
+                try checkObject(object, as: AreaKeyTable.clip, place: place, scope: &scope)
+            } else if object.contains("text") {
                 try checkObject(object, as: AreaKeyTable.text, place: place, scope: &scope)
             } else if object.contains("from") || object.contains("to") {
                 try checkObject(object, as: AreaKeyTable.range, place: place, scope: &scope)
             } else {
-                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from"])
+                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from", "clip"])
             }
 
         default:
@@ -527,8 +569,8 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape. A rect or an ellipse takes exactly one of `area` and the box `width`,
-    // `height` and `position`, all three together, and a path at least three points, since its path is closed.
+    // A mask takes the keys of its shape, and a path at least three points, since its path is closed. Whether its
+    // geometry is given is checked with its keyframes.
     private func checkMask(
         _ object: JSONObject,
         as shape: ShapeKind,
@@ -544,17 +586,98 @@ struct KeyChecker: Sendable {
             )
         }
         try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
-        guard shape != .path else { return }
+    }
 
-        let box = MaskKeyTable.box.filter(object.contains)
-        if object.contains("area") {
-            guard box.isEmpty else {
-                throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
+    // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
+    // or every key of the box from one or the other, and a path its `points`. A keyframe's mask takes the keys of its
+    // static mask's shape, a path's points at least three. A mask written alone is the first of a list of one.
+    private func checkMaskGeometry(
+        _ object: JSONObject,
+        place: Place,
+        scope: DocumentScope
+    ) throws {
+        guard let written = object["mask"] else { return }
+
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, keyframe in
+            keyframe.objectValue?["mask"].map { (index: index, mask: $0) }
+        }
+        let elements = written.arrayValue ?? [written]
+        for (index, element) in elements.enumerated() {
+            guard let mask = element.objectValue else { continue }
+
+            let maskPlace = written.arrayValue == nil
+                ? place.appending(key: "mask")
+                : place.appending(key: "mask").appending(index: index)
+            let moved = keyframes.compactMap { keyframe -> (place: Place, mask: JSONObject)? in
+                let keyframePlace = place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "mask")
+                if let list = keyframe.mask.arrayValue {
+                    return list.indices.contains(index)
+                        ? list[index].objectValue.map { (keyframePlace.appending(index: index), $0) }
+                        : nil
+                }
+
+                return index == 0 ? keyframe.mask.objectValue.map { (keyframePlace, $0) } : nil
             }
-        } else if box.isEmpty {
-            throw ModelError.missingKey(place: place, kind: table.kind, keys: ["area"] + MaskKeyTable.box)
-        } else if let missing = MaskKeyTable.box.first(where: { !object.contains($0) }) {
-            throw ModelError.missingKey(place: place, kind: table.kind, keys: [missing])
+            let given = Set(([mask] + moved.map(\.mask)).flatMap { mask in
+                mask.members.filter { $0.value != .null }.map(\.key)
+            })
+
+            var trial = scope
+            for shape in try shapes(of: mask, place: maskPlace, kind: "mask", scope: &trial) {
+                let table = MaskKeyTable.table(for: shape)
+                for keyframe in moved {
+                    if let key = keyframe.mask.keys.first(where: { table.rule(named: $0) == nil }) {
+                        throw ModelError.unknownKey(place: keyframe.place, kind: table.kind, key: key, allowed: table.keys)
+                    }
+                    if shape == .path, let points = keyframe.mask["points"]?.arrayValue, points.count < 3 {
+                        throw ModelError.invalidValue(
+                            place: keyframe.place.appending(key: "points"),
+                            kind: table.kind,
+                            reason: "a path mask is closed, so it runs through at least three points, found \(points.count)"
+                        )
+                    }
+                }
+
+                if shape == .path {
+                    guard given.contains("points") else {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: ["points"])
+                    }
+                } else if !given.contains("area") {
+                    guard MaskKeyTable.box.contains(where: given.contains) else {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: ["area"] + MaskKeyTable.box)
+                    }
+                    if let missing = MaskKeyTable.box.first(where: { !given.contains($0) }) {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: [missing])
+                    }
+                }
+            }
+        }
+    }
+
+    // Only a style's `features` has members, and a member's stop is placed at it.
+    private func check(
+        _ value: JSONValue,
+        by check: LeafCheck,
+        as type: ValueType,
+        place: Place,
+        kind: String
+    ) throws {
+        switch check.failure(of: value) {
+        case .none:
+            return
+
+        case let .unknownName(name, allowed):
+            throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: allowed)
+
+        case .wrongValue:
+            throw wrongType(value, type, place, kind)
+
+        case let .invalidMember(key, reason):
+            throw ModelError.invalidValue(place: place.appending(key: key), kind: "features", reason: reason)
+
+        case let .wrongMember(key):
+            let member = value.objectValue?[key] ?? .null
+            throw wrongType(member, .nonNegativeInteger, place.appending(key: key), "features")
         }
     }
 
@@ -644,7 +767,7 @@ struct KeyChecker: Sendable {
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
 
         default:
-            // The shape check lets nothing else through than an image sequence.
+            // The only other value the shape check lets through is an image sequence, which plays as video.
             return .video
         }
     }
@@ -790,10 +913,18 @@ struct KeyChecker: Sendable {
 
         let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
-            let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
-            try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
+            let takesSound = clipPlace != .storyline && object["picture"] == .bool(false)
+                && (clipKind == .media(.video) || clipKind == .media(.sequence))
+            let table = if takesSound, case let .media(media) = clipKind {
+                ClipKeyTable.soundTable(of: media, in: clipPlace)
+            } else {
+                ClipKeyTable.table(for: clipKind, in: clipPlace)
+            }
+            let checkedKind = takesSound ? ClipKind.media(.audio) : clipKind
+            try checkKeyframedOnly(object, kind: checkedKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
-            try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
+            try checkStaticAndKeyframed(object, kind: checkedKind, place: place, in: clipPlace)
+            try checkMaskGeometry(object, place: place, scope: scope)
         }
 
         if let keyframes = object["keyframes"] {
@@ -868,7 +999,7 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let keyframes = object["keyframes"]?.arrayValue else { return }
 
-        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace).filter { !ClipKeyTable.lookKeys.contains($0) }
         for keyframe in keyframes.compactMap(\.objectValue) {
             for property in properties where keyframe.contains(property) && object.contains(property) {
                 throw ModelError.staticAndKeyframed(place: place, kind: kind.label, property: property)
@@ -1035,7 +1166,8 @@ struct KeyChecker: Sendable {
         return mediaKind
     }
 
-    // `"none"` turns the filter off, so it is written alone, and a list applies at least one preset.
+    // `"none"` turns the filter off, so it is written alone, and a list applies at least one entry. An object naming
+    // `op` is an op written in place, which takes `mix` beside its parameters.
     private func checkFilterChoice(
         _ value: JSONValue,
         place: Place,
@@ -1043,14 +1175,14 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let elements = value.arrayValue else {
-            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            try checkFilterEntry(value, place: place, kind: kind, scope: &scope)
             return
         }
         guard !elements.isEmpty else {
             throw ModelError.invalidValue(
                 place: place,
                 kind: ChoiceKeyTable.filterKind,
-                reason: "a filter list holds at least one preset"
+                reason: "a filter list holds at least one entry"
             )
         }
 
@@ -1064,7 +1196,120 @@ struct KeyChecker: Sendable {
                 )
             }
 
-            try check(element, as: ChoiceKeyTable.filterPreset, place: elementPlace, kind: kind, scope: &scope)
+            try checkFilterEntry(element, place: elementPlace, kind: kind, scope: &scope)
+        }
+    }
+
+    private func checkFilterEntry(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let object = value.objectValue, object.contains("op") else {
+            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            return
+        }
+
+        let operation = JSONObject(members: object.members.filter { $0.key != "mix" })
+        try checkFilterOperation(.object(operation), place: place, kind: kind, scope: &scope)
+        if let mix = object["mix"] {
+            let mixPlace = place.appending(key: "mix")
+            try check(mix, as: .number(.range(0...1)), place: mixPlace, kind: ChoiceKeyTable.filterKind, scope: &scope)
+        }
+    }
+
+    // A list applies at least one entry, and an object naming `op` is an op written in place.
+    private func checkAudioFilterChoice(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let elements = value.arrayValue else {
+            try checkAudioFilterEntry(value, place: place, kind: kind, scope: &scope)
+            return
+        }
+        guard !elements.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place,
+                kind: AudioFilterKeyTable.kind,
+                reason: "an audio filter list holds at least one entry"
+            )
+        }
+
+        for (index, element) in elements.enumerated() {
+            try checkAudioFilterEntry(element, place: place.appending(index: index), kind: kind, scope: &scope)
+        }
+    }
+
+    private func checkAudioFilterEntry(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let object = value.objectValue, object.contains("op") else {
+            try check(value, as: ChoiceKeyTable.audioFilterPreset, place: place, kind: kind, scope: &scope)
+            return
+        }
+
+        try checkAudioOperation(object, place: place, mixed: true, scope: &scope)
+    }
+
+    // An op written in place takes `mix` beside its parameters, and a preset's op does not. An `eq` holds at least one
+    // band, each taking the keys of its `type`.
+    private func checkAudioOperation(
+        _ object: JSONObject,
+        place: Place,
+        mixed: Bool,
+        scope: inout DocumentScope
+    ) throws {
+        let operationValue = object["op"] ?? .null
+        guard let operation = operationValue.stringValue else {
+            throw wrongType(operationValue, .name, place.appending(key: "op"), "audio operation")
+        }
+        guard AudioFilterKeyTable.operations.contains(operation) else {
+            throw ModelError.unknownValue(
+                place: place.appending(key: "op"),
+                kind: "audio operation",
+                value: operation,
+                allowed: AudioFilterKeyTable.operations
+            )
+        }
+
+        let parameters = JSONObject(members: object.members.filter { !mixed || $0.key != "mix" })
+        try checkObject(parameters, as: AudioFilterKeyTable.table(for: operation), place: place, scope: &scope)
+        if mixed, let mix = object["mix"] {
+            let mixPlace = place.appending(key: "mix")
+            try check(mix, as: .number(.range(0...1)), place: mixPlace, kind: AudioFilterKeyTable.kind, scope: &scope)
+        }
+
+        let bands = object["bands"]?.arrayValue ?? []
+        guard operation == "eq" else { return }
+        guard !bands.isEmpty else {
+            throw ModelError.invalidValue(
+                place: place.appending(key: "bands"),
+                kind: operation,
+                reason: "an eq holds at least one band"
+            )
+        }
+
+        for (index, band) in bands.enumerated() {
+            let bandPlace = place.appending(key: "bands").appending(index: index)
+            let bandObject = band.objectValue ?? JSONObject()
+            guard let type = bandObject["type"] else {
+                throw ModelError.missingKey(place: bandPlace, kind: "band", keys: ["type"])
+            }
+
+            let types = ValueType.literal(AudioFilterKeyTable.bandTypes)
+            try check(type, as: types, place: bandPlace.appending(key: "type"), kind: "band", scope: &scope)
+            try checkObject(
+                bandObject,
+                as: AudioFilterKeyTable.band(of: type.stringValue ?? ""),
+                place: bandPlace,
+                scope: &scope
+            )
         }
     }
 
@@ -1116,9 +1361,11 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
-             .nonNegativeInteger, .positiveInteger, .margin:
+        case .number, .integer, .nonNegativeInteger, .margin:
             parameterType == "number"
+
+        case let .leaf(check):
+            parameterType == "number" && check.takesNumber
 
         default:
             false
@@ -1164,21 +1411,19 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
-             (.signedFraction, .number),
-             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
+        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.ease, .object), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
-             (.clips, .array):
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.list, .array),
+             (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
         case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
-             (.filterOperation, .object), (.document, .object):
+             (.filterOperation, .object), (.audioOperation, .object), (.document, .object):
             true
 
         case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
@@ -1188,8 +1433,12 @@ struct KeyChecker: Sendable {
              (.runs, .array):
             true
 
-        case (.filterChoice, .string), (.filterChoice, .object), (.filterChoice, .array):
+        case (.filterChoice, .string), (.filterChoice, .object), (.filterChoice, .array),
+             (.audioFilterChoice, .string), (.audioFilterChoice, .object), (.audioFilterChoice, .array):
             true
+
+        case let (.leaf(check), _):
+            check.failure(of: value) != .wrongValue
 
         default:
             false
@@ -1222,32 +1471,14 @@ struct KeyChecker: Sendable {
         case .bool:
             "true or false"
 
-        case .number:
-            "a number"
-
-        case .positiveNumber:
-            "a number above 0"
-
-        case .nonNegativeNumber:
-            "a number, 0 or more"
-
-        case .fraction:
-            "a number from 0 to 1"
-
-        case .signedFraction:
-            "a number from -1 to 1"
-
-        case .openSignedFraction:
-            "a number greater than -1 and less than 1"
+        case let .number(domain):
+            domain == .any ? "a number" : "a number \(domain.description)"
 
         case .integer:
             "a whole number"
 
         case .nonNegativeInteger:
             "a whole number, 0 or more"
-
-        case .positiveInteger:
-            "a whole number, 1 or more"
 
         case .text, .name, .identifier:
             "a string"
@@ -1261,11 +1492,18 @@ struct KeyChecker: Sendable {
         case let .literal(names):
             "one of \(names.joined(separator: ", "))"
 
-        case let .numbers(count):
-            "a list of \(count) numbers"
+        case let .numbers(count, domain):
+            domain == .any ? "a list of \(count) numbers" : "a list of \(count) numbers, each \(domain.description)"
 
-        case let .fractions(count):
-            "a list of \(count) numbers, each from 0 to 1"
+        case let .dash(isKeyframed):
+            isKeyframed
+                ? "a list of at least one length or null, each 0 or more and not all 0"
+                : "a list of at least one length, each 0 or more and not all 0"
+
+        case let .stops(isKeyframed):
+            isKeyframed
+                ? "a list of at least two [offset, colour], each offset from 0 to 1"
+                : "a list of at least two [offset, colour], each offset from 0 to 1 and at least the one before it"
 
         case .points:
             "a list of at least two points"
@@ -1308,6 +1546,15 @@ struct KeyChecker: Sendable {
 
         case .filterChoice:
             "a preset name, {preset, args} or a list of them"
+
+        case .audioFilterChoice:
+            "an audio preset name, {preset, args, mix}, an audio op or a list of them"
+
+        case .audioOperation:
+            "an audio operation"
+
+        case let .leaf(check):
+            check.expectation
         }
     }
 

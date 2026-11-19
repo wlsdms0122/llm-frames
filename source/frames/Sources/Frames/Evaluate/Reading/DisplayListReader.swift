@@ -67,7 +67,10 @@ package struct DisplayListReader: Sendable {
             )
             let trackMatte = (try? values.member("trackMatte", of: item, kind: item.kind))
                 .flatMap { try? values.member("source", of: $0, kind: "track matte") }
-            let filter = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let entries = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let filter = entries.flatMap { entry in
+                (try? values.member("ops", of: entry, kind: "filter entry").elements()) ?? []
+            }
             let grain = trackMatte.flatMap(nestedGrain)
                 ?? (try? values.member("source", of: item, kind: item.kind)).flatMap(nestedGrain)
                 ?? filter.first(where: isGrain)
@@ -136,7 +139,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "background"]
+            ["size", "runs", "layer", "unitBox", "unitGlyphBox", "background"]
 
         default:
             ["filter"]
@@ -257,17 +260,19 @@ package struct DisplayListReader: Sendable {
     private func path(_ item: PlacedJSONObject) throws -> PathItem {
         PathItem(
             geometry: try values.geometry(item.member("geometry")),
-            fill: try item.member("fill").optional(values.color),
+            fill: try item.member("fill").optional(values.paint),
             stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end"])
+                let stroke = try value.object(keys: ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
 
                 return PathStroke(
                     width: try stroke.member("width").number(),
-                    color: try values.color(stroke.member("color")),
+                    paint: try values.paint(stroke.member("paint")),
                     join: try literal(stroke.member("join")),
                     cap: try literal(stroke.member("cap")),
                     start: try literal(stroke.member("start")),
-                    end: try literal(stroke.member("end"))
+                    end: try literal(stroke.member("end")),
+                    dash: try stroke.member("dash").optional { try $0.numbers() },
+                    dashOffset: try stroke.member("dashOffset").number()
                 )
             },
             trim: try trim(item.member("trim")),
@@ -354,7 +359,10 @@ package struct DisplayListReader: Sendable {
     private func glyphs(_ item: PlacedJSONObject) throws -> GlyphsItem {
         GlyphsItem(
             size: try values.size(item.member("size")),
-            runs: try values.runs(item.member("runs")),
+            runs: try values.drawnRuns(item.member("runs")),
+            layer: try item.member("layer").optional { try literal($0) },
+            unitBox: try item.member("unitBox").optional { try values.rectangle($0) },
+            unitGlyphBox: try item.member("unitGlyphBox").optional { try values.rectangle($0) },
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 
@@ -370,10 +378,11 @@ package struct DisplayListReader: Sendable {
     private func filter(
         _ value: PlacedJSONValue,
         seed: Int
-    ) throws -> [ResolvedFilterOperation] {
-        let operations = try values.filter(value, grainKeys: ["seed"])
+    ) throws -> [FilterEntry] {
+        let entries = try values.filter(value, grainKeys: ["seed"])
+        let written = try value.elements().flatMap { try $0.object(keys: ["ops", "mix"]).member("ops").elements() }
 
-        for (element, operation) in zip(try value.elements(), operations) {
+        for (element, operation) in zip(written, entries.flatMap(\.operations)) {
             guard case .grain = operation else { continue }
 
             let written = try values.member("seed", of: element, kind: element.kind)
@@ -383,6 +392,6 @@ package struct DisplayListReader: Sendable {
             }
         }
 
-        return operations
+        return entries
     }
 }

@@ -10,18 +10,9 @@ indirect enum ValueType: Equatable, Sendable {
     case anyObject
     case exactly(JSONValue)
     case bool
-    case number
-    case positiveNumber
-    case nonNegativeNumber
-    // A number from 0 to 1.
-    case fraction
-    // A number from -1 to 1.
-    case signedFraction
-    // A number greater than -1 and less than 1.
-    case openSignedFraction
+    case number(NumberDomain)
     case integer
     case nonNegativeInteger
-    case positiveInteger
     case text
     case name
     case color
@@ -29,11 +20,18 @@ indirect enum ValueType: Equatable, Sendable {
     case identifier
     case ease
     case literal([String])
-    case numbers(Int)
-    // A list of that many numbers, each from 0 to 1.
-    case fractions(Int)
+    // A list of that many numbers, each in the domain.
+    case numbers(Int, NumberDomain)
     // A list of at least two points, each as `position` takes it.
     case points
+    // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke
+    // whole, where the patterns beside it draw fine dots. In a keyframe a length may be `null`, and lengths that are all
+    // 0 with the merged value's in place of each `null` stop when the look is merged.
+    case dash(isKeyframed: Bool)
+    // A gradient's stops: a list of at least two `[offset, colour]`, each offset from 0 to 1 and at least the one
+    // before it. In a keyframe an offset or a colour may be `null` and the offsets may be in any order, since sampling
+    // raises each offset to the one before it.
+    case stops(isKeyframed: Bool)
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)
@@ -56,5 +54,10 @@ indirect enum ValueType: Equatable, Sendable {
     case presetArgument
     // A preset name, `{preset, args}`, or a list of at least one of those without `"none"`.
     case filterChoice
+    // An audio preset name, `{preset, args, mix}`, an audio op, or a list of at least one of those.
+    case audioFilterChoice
     case filterOperation
+    case audioOperation
+    // A value its leaf's named check takes.
+    case leaf(LeafCheck)
 }

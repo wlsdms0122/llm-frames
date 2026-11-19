@@ -5,27 +5,27 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `index` is the keyframe's place in the clip's `keyframes`.
+// `index` is the keyframe's place in the clip's `keyframes`, and `leaves` the leaves it writes, by their paths below it.
 struct KeyframeInstant: Equatable, Sendable {
     // MARK: - Property
     let index: Int
     let at: Double
-    let properties: [String]
+    let leaves: [Place]
 
     // MARK: - Initializer
     init(
         index: Int,
         at: Double,
-        properties: [String]
+        leaves: [Place]
     ) {
         self.index = index
         self.at = at
-        self.properties = properties
+        self.leaves = leaves
     }
 
     // MARK: - Public
     func moved(to at: Double) -> KeyframeInstant {
-        KeyframeInstant(index: index, at: at, properties: properties)
+        KeyframeInstant(index: index, at: at, leaves: leaves)
     }
 
     // MARK: - Private

@@ -82,6 +82,65 @@ struct ClipAnimationTests {
         #expect(plan.clips[1].animation.exit?.span.length == 0.25)
     }
 
+    @Test("a title's `{\"by\": \"word\"}` plays its default animation by word, and a written `stagger` replaces the unit's default")
+    func playsByUnit() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [
+                { "at": [0, 1], "title": "a", "style": "subtitle", "animation": { "by": "word" } },
+                { "at": [0, 1], "title": "b", "style": "headline", "animation": { "preset": "frames/fade", "by": "character", "stagger": 0.1 } },
+                { "at": [0, 1], "title": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "line" } },
+                { "at": [0, 1], "title": "d", "style": "headline", "animation": "frames/fade" }
+              ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips[0].animation.entrance?.preset == "frames/pop")
+        #expect(plan.clips.map(\.animation.units) == [
+            UnitStagger(by: .word, stagger: 0.12),
+            UnitStagger(by: .character, stagger: 0.1),
+            UnitStagger(by: .line, stagger: 0.3),
+            nil
+        ])
+    }
+
+    @Test(
+        "`by` on a clip that is not a title, `stagger` without `by` and `by` over a preset with neither an entrance nor an exit stop",
+        arguments: [
+            (
+                #"{ "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "preset": "frames/fade", "by": "word" } }"#,
+                "clips[0].animation (rect): `by` plays a title's animation by unit, and this clip is not a title"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "stagger": 0.1 } }"#,
+                "clips[0].animation (title): `stagger` spaces a title's units, and the choice names no unit with `by`"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/none", "by": "word" } }"#,
+                "clips[0].animation (title): `by` plays the entrance and the exit by unit, and the choice has neither"
+            )
+        ]
+    )
+    func refusesUnits(
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clip) ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
+        #expect(error?.description == message)
+    }
+
     @Test("an animation preset that is not there stops")
     func refusesUnknownAnimation() throws {
         // Given

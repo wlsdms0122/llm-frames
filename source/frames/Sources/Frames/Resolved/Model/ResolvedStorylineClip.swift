@@ -28,18 +28,18 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let start: Double
     let end: Double
     let crop: [Keyframe<Crop>]
-    let mask: [Keyframe<[ResolvedMask]>]?
+    let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
-    let filter: [ResolvedFilterOperation]
+    let filter: TimedValue
     let box: ResolvedBox
     let opacity: [Keyframe<Double>]
-    let scale: [Keyframe<Double>]
+    let scale: [Keyframe<Scale>]
     let rotation: [Keyframe<Double>]
     let blend: String
-    let radius: Double
-    let border: MediaBorder?
-    let shadow: DropShadow?
+    let radius: TimedValue
+    let border: TimedValue
+    let shadow: TimedValue
     let transition: ResolvedTransition?
 
     // The media time it shows at a sequence time, nil for a solid: `in` at `start`, at `speed`, on the same line in the
@@ -64,18 +64,18 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         start: Double,
         end: Double,
         crop: [Keyframe<Crop>],
-        mask: [Keyframe<[ResolvedMask]>]?,
+        mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         box: ResolvedBox,
         opacity: [Keyframe<Double>],
-        scale: [Keyframe<Double>],
+        scale: [Keyframe<Scale>],
         rotation: [Keyframe<Double>],
         blend: String,
-        radius: Double,
-        border: MediaBorder?,
-        shadow: DropShadow?,
+        radius: TimedValue,
+        border: TimedValue,
+        shadow: TimedValue,
         transition: ResolvedTransition?
     ) {
         self.place = place

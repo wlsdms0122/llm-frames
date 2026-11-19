@@ -16,6 +16,7 @@ package struct PresetLibrary: PresetProvider {
     private let transitions = PresetCache<TransitionPreset>()
     private let animations = PresetCache<AnimationPreset>()
     private let filters = PresetCache<FilterPreset>()
+    private let audios = PresetCache<AudioPreset>()
 
     // MARK: - Initializer
     package init(packs: PackLibrary) {
@@ -33,6 +34,26 @@ package struct PresetLibrary: PresetProvider {
 
     func filter(_ instance: PresetInstance) throws -> FilterPreset? {
         try publishedFilter(named: instance.name).map { try reader.filter($0, instance: instance) }
+    }
+
+    func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
+        try filters.preset(named: name) {
+            try value(named: name, kind: "filter").map { value in
+                try reader.publishedFilter(from: value, place: Place(file: name, components: []))
+            }
+        }
+    }
+
+    func audio(_ instance: PresetInstance) throws -> AudioPreset? {
+        try publishedAudio(named: instance.name).map { try reader.audio($0, instance: instance) }
+    }
+
+    func publishedAudio(named name: String) throws -> PublishedPreset<AudioPreset>? {
+        try audios.preset(named: name) {
+            try value(named: name, kind: PresetKind.audio.rawValue).map { value in
+                try reader.publishedAudio(from: value, place: Place(file: name, components: []))
+            }
+        }
     }
 
     // MARK: - Public
@@ -90,6 +111,11 @@ package struct PresetLibrary: PresetProvider {
             try publishedFilter(named: name).map { preset in
                 PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
             }
+
+        case .audio:
+            try publishedAudio(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
         }
     }
 
@@ -105,14 +131,6 @@ package struct PresetLibrary: PresetProvider {
         try animations.preset(named: name) {
             try value(named: name, kind: "animation").map { value in
                 try reader.publishedAnimation(from: value, place: Place(file: name, components: []))
-            }
-        }
-    }
-
-    private func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
-        try filters.preset(named: name) {
-            try value(named: name, kind: "filter").map { value in
-                try reader.publishedFilter(from: value, place: Place(file: name, components: []))
             }
         }
     }

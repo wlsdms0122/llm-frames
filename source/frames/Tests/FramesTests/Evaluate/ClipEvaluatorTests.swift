@@ -32,7 +32,8 @@ struct ClipEvaluatorTests {
             SpanKey(t: 1, values: [.scale: 2])
         ])),
         loop: nil,
-        exit: nil
+        exit: nil,
+        units: nil
     )
 
     // MARK: - Initializer
@@ -45,10 +46,10 @@ struct ClipEvaluatorTests {
             SpanKey(t: 1, values: [.scale: 1, .opacity: 1, .reveal: 1])
         ]))
         let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
-        let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil), opacity: 0.8)
+        let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil), opacity: 0.8)
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, at: 0.5)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, seed: 0, at: 0.5)
 
         // Then
         // Halfway the scale is 0.75 about the bottom centre (50, 40) of the box, which stays at (100, 200), so the top
@@ -57,7 +58,7 @@ struct ClipEvaluatorTests {
             transform: AffineTransform(a: 0.75, b: 0, c: 0, d: 0.75, tx: 62.5, ty: 170),
             opacity: 0.4,
             reveal: Rectangle(x: 0, y: 20, width: 100, height: 20),
-            content: .glyphs(GlyphsItem(text: text))
+            content: .glyphs(GlyphsItem(text: text, factor: 1, at: 0.5))
         )])
     }
 
@@ -71,13 +72,13 @@ struct ClipEvaluatorTests {
         let appearance = ResolvedMediaAppearance(
             conform: .fit,
             radius: 0,
-            border: MediaBorder(width: 4, color: white),
-            shadow: DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white)
+            border: .border(MediaBorder(width: 4, color: white)),
+            shadow: .shadow(DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white))
         )
         let clip = ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: [], appearance: appearance)),
+            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
             start: 0,
             end: 4,
             lane: 1,
@@ -89,14 +90,14 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: [Keyframe(at: 0, value: 1)],
+            scale: [Keyframe(at: 0, value: .identity)],
             rotation: [Keyframe(at: 0, value: 0)],
             blend: "normal",
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, at: 0.5)
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, seed: 0, at: 0.5)
 
         // Then
         // The shadow is the 80 x 40 box moved by (4, 6) and grown by three times its radius, (-2, 0) to (90, 52), and
@@ -116,7 +117,7 @@ struct ClipEvaluatorTests {
         let clip = title(text, animation: .none, opacity: 1, scale: 2, rotation: 90)
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, at: 1)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, seed: 0, at: 1)
 
         // Then
         // Doubled and turned a quarter clockwise about (50, 40), which stays at (100, 200) once the box sits at
@@ -145,7 +146,7 @@ struct ClipEvaluatorTests {
         let space = ClipSpace(frame: Rectangle(x: 0, y: 0, width: 200, height: 200), transform: transform)
 
         // When
-        let items = sut.items(of: clip, in: space, picture: nil, trackMatte: nil, at: 1)
+        let items = sut.items(of: clip, in: space, picture: nil, trackMatte: nil, seed: 0, at: 1)
 
         // Then
         let item = try #require(items.first)
@@ -183,8 +184,8 @@ struct ClipEvaluatorTests {
                 .media(ResolvedMediaClip(
                     media: .pinned(media),
                     timing: nil,
-                    filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    filter: .off,
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20)),
@@ -202,11 +203,11 @@ struct ClipEvaluatorTests {
                         height: [Keyframe(at: 0, value: 20)],
                         outset: 0
                     ),
-                    radius: [Keyframe(at: 0, value: 0)],
+                    radius: 0,
                     trim: [Keyframe(at: 0, value: .whole)],
-                    fill: white,
-                    stroke: nil,
-                    shadow: nil
+                    fill: .fill(white),
+                    stroke: .off,
+                    shadow: .off
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 40, height: 20), at: Point(x: 40, y: 20), anchor: Point(x: 20, y: 10))
@@ -222,12 +223,12 @@ struct ClipEvaluatorTests {
 
         default:
             geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
-            clip = masked(.adjustment([.blur(radius: 2)]), mask: geometry, animation: doubling)
+            clip = masked(.adjustment(.filter([.blur(radius: 2)])), mask: geometry, animation: doubling)
             expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 50, y: 20))]
         }
 
         // When
-        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, at: 1)
+        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, seed: 0, at: 1)
 
         // Then
         let item = try #require(items.first)
@@ -260,7 +261,7 @@ struct ClipEvaluatorTests {
             .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white))
 
         default:
-            .adjustment([.blur(radius: 2)])
+            .adjustment(.filter([.blur(radius: 2)]))
         }
         let isAdjustment = kind == "adjustment"
         let clip = masked(
@@ -273,7 +274,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: parent, picture: nil, trackMatte: nil, at: 1)
+        let items = sut.items(of: clip, in: parent, picture: nil, trackMatte: nil, seed: 0, at: 1)
 
         // Then
         // The mask is carried with what it cuts, at the parent's scale for a shape and an adjustment, whose geometry is
@@ -288,20 +289,14 @@ struct ClipEvaluatorTests {
     @Test("between two keyframes a mask interpolates its geometry, its corner radius and its feather")
     func interpolatesKeyframedMask() throws {
         // Given
-        let mask = [
-            Keyframe(at: 0, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 10), radius: 2),
-                feather: 2,
-                isInverted: true,
-                mode: .subtract
-            )]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 20, y: 10, width: 40, height: 30), radius: 6),
-                feather: 6,
-                isInverted: true,
-                mode: .subtract
-            )])
-        ]
+        let mask = [ResolvedMask(
+            samples: [
+                (at: 0, geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 10), radius: 2), feather: 2),
+                (at: 2, geometry: .rect(Rectangle(x: 20, y: 10, width: 40, height: 30), radius: 6), feather: 6)
+            ],
+            isInverted: true,
+            mode: .subtract
+        )]
         let clip = masked(
             .title(text()),
             mask: mask,
@@ -309,7 +304,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, at: 1)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, seed: 0, at: 1)
 
         // Then
         let item = try #require(items.first)
@@ -342,7 +337,7 @@ struct ClipEvaluatorTests {
             parent: nil,
             box: ResolvedBox(
                 size: text.size,
-                position: [Keyframe(at: 0, value: Point(x: 50, y: 160))],
+                position: [Keyframe(at: 0, value: Point(x: 100, y: 200))],
                 anchor: Point(x: 50, y: 40)
             ),
             crop: nil,
@@ -350,7 +345,7 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: opacity)],
-            scale: [Keyframe(at: 0, value: scale)],
+            scale: [Keyframe(at: 0, value: Scale(scale))],
             rotation: [Keyframe(at: 0, value: rotation)],
             blend: "normal",
             animation: animation
@@ -370,9 +365,7 @@ struct ClipEvaluatorTests {
     ) -> ResolvedClip {
         masked(
             content,
-            mask: [Keyframe(at: 0, value: [
-                ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)
-            ])],
+            mask: [ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)],
             box: box,
             crop: crop,
             scale: scale,
@@ -383,7 +376,7 @@ struct ClipEvaluatorTests {
 
     private func masked(
         _ content: ResolvedClipContent,
-        mask: [Keyframe<[ResolvedMask]>],
+        mask: [ResolvedMask],
         box: ResolvedBox? = nil,
         crop: Rectangle? = nil,
         scale: Double? = nil,
@@ -407,19 +400,24 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: isAdjustment ? nil : [Keyframe(at: 0, value: scale ?? 1)],
+            scale: isAdjustment ? nil : [Keyframe(at: 0, value: Scale(scale ?? 1))],
             rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
             blend: "normal",
             animation: animation
         )
     }
 
+    // A box whose top left is at `topLeft`.
     private func box(
         size: Size,
-        at position: Point,
+        at topLeft: Point,
         anchor: Point
     ) -> ResolvedBox {
-        ResolvedBox(size: size, position: [Keyframe(at: 0, value: position)], anchor: anchor)
+        ResolvedBox(
+            size: size,
+            position: [Keyframe(at: 0, value: Point(x: topLeft.x + anchor.x, y: topLeft.y + anchor.y))],
+            anchor: anchor
+        )
     }
 
     private func text() -> ResolvedText {

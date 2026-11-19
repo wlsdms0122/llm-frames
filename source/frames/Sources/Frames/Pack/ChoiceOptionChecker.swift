@@ -162,6 +162,9 @@ struct ChoiceOptionChecker: Sendable {
 
             case .filter:
                 return try presets.filter(instance) != nil
+
+            case .audio:
+                return try presets.audio(instance) != nil
             }
         }
     }

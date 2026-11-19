@@ -51,17 +51,20 @@ package struct MixPlanner: Sendable {
             return [MixPath(layers: layers, heard: heard, clock: composed(path.clock, played))]
         }
 
-        // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends.
+        // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends. A
+        // segment keeps its filters' state, so the first repeat starts where the sound does: a sound a split starts
+        // early plays the media before `in` and on into the first repeat, where the media does not jump.
         let period = sound.played.naturalLength
         let boundary = { (index: Int) in played.origin + Double(index) * period }
 
         return sequence(first: 0) { $0 + 1 }
             .prefix { index in boundary(index) < sound.audible.end }
-            .compactMap { index in
-                let repeated = TimeRange(start: boundary(index), end: boundary(index + 1))
+            .compactMap { index -> MixPath? in
+                let start = index == 0 ? min(sound.audible.start, boundary(0)) : boundary(index)
+                let repeated = TimeRange(start: start, end: boundary(index + 1))
                 guard let cut = heard.intersection(outermost(repeated, through: path.clock)) else { return nil }
 
-                let repeatClock = sound.played.starting(at: repeated.start).map
+                let repeatClock = sound.played.starting(at: boundary(index)).map
                 return MixPath(layers: layers, heard: cut, clock: composed(path.clock, repeatClock))
             }
     }

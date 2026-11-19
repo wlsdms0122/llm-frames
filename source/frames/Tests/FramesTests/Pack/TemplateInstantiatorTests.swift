@@ -128,17 +128,12 @@ struct TemplateInstantiatorTests {
             (
                 #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
                 #"{ "p": -5 }"#,
-                "clips[0].width (title): expected a number above 0, found -5"
+                "clips[0].width (title): -5 is not above 0"
             ),
             (
                 #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
-            ),
-            (
-                #"{ "p": { "type": "number", "default": -1, "description": "the p" } }, "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ]"#,
-                "{}",
-                "clips[0].radius (image): expected a number, 0 or more, found -1"
             ),
             (
                 #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
@@ -148,7 +143,7 @@ struct TemplateInstantiatorTests {
             (
                 #"{ "w": { "type": "number", "description": "the w" } }, "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
                 #"{ "w": 0 }"#,
-                "storyline[0].crop[2] (video): expected a number above 0, found 0"
+                "storyline[0].crop[2] (video): 0 is not above 0"
             )
         ]
     )
@@ -162,6 +157,19 @@ struct TemplateInstantiatorTests {
         #expect(error?.description == "shorts/leak: \(message)")
     }
 
+    @Test("a look length given as a parameter stops outside its domain at that place, as a written one does")
+    func refusesLookLengthOutsideDomain() throws {
+        // Given
+        let template = try template(#"""
+            { "kind": "sequence", "params": { "p": { "type": "number", "default": -1, "description": "the p" } },
+              "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
+        #expect(error?.description == "shorts/leak: clips[0].radius (image): -1 is not 0 or more")
+    }
+
     @Test("a crop scale given as a parameter stops at 0, as a written one does")
     func refusesCropScaleOfZero() throws {
         // Given
@@ -173,7 +181,7 @@ struct TemplateInstantiatorTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
-        #expect(error?.description == "shorts/leak: storyline[0].crop.scale (crop): expected a number above 0, found 0")
+        #expect(error?.description == "shorts/leak: storyline[0].crop.scale (crop): 0 is not above 0")
     }
 
     @Test("a value that every place of its parameter takes fills them all")

@@ -126,7 +126,7 @@ struct QuartzRendererTests {
         let adjust = DisplayItem(
             opacity: 0.5,
             mask: mask(Rectangle(x: 2, y: 2, width: 8, height: 8)),
-            content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.saturation(amount: 0)])]))
         )
 
         // When
@@ -159,7 +159,7 @@ struct QuartzRendererTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "hue", content: .path(fill))])
+        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "add", content: .path(fill))])
         let picture = PictureItem(
             source: .displayList(nested),
             rectangle: nil,
@@ -170,7 +170,7 @@ struct QuartzRendererTests {
         let checking = { try sut.check(list(size: 1, items: [DisplayItem(content: .picture(picture))])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].source.items[1].blend")) {
+        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].source.items[1].blend")) {
             try checking()
         }
     }
@@ -180,14 +180,14 @@ struct QuartzRendererTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let source = list(size: 1, items: [DisplayItem(blend: "hue", content: .path(fill))])
+        let source = list(size: 1, items: [DisplayItem(blend: "add", content: .path(fill))])
         let item = DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: .path(fill))
 
         // When
         let checking = { try sut.check(list(size: 1, items: [item])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].trackMatte.source.items[0].blend")) {
+        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].trackMatte.source.items[0].blend")) {
             try checking()
         }
     }
@@ -212,7 +212,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.exposure(ev: 1), .lut(file: file, amount: 1)])])
         let nested = list(size: 1, items: [DisplayItem(content: .adjust(adjust))])
         let picture = PictureItem(
             source: .displayList(nested),
@@ -230,7 +230,7 @@ struct QuartzRendererTests {
             Issue.record("expected a malformed cube, got \(String(describing: error))")
             return
         }
-        #expect(place == "items[0].source.items[0].filter[1]")
+        #expect(place == "items[0].source.items[0].filter[0].ops[1]")
         #expect(errorFile == path && errorLine == line)
     }
 
@@ -247,7 +247,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(filter: [.lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.lut(file: file, amount: 1)])])
         let list = list(size: 4, items: [DisplayItem(content: .adjust(adjust))])
         try sut.check(list)
         try FileManager.default.removeItem(atPath: path)

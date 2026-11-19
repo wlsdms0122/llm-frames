@@ -53,6 +53,9 @@ struct AreaFinder: Sendable {
             }
 
             return textArea(ends + between, atMediaTime: time, padding: padding)
+
+        case .clip:
+            throw AreaError.clipAreaInPicture(place: place, kind: kind)
         }
     }
 

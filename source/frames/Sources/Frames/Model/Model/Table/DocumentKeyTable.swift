@@ -21,8 +21,8 @@ enum DocumentKeyTable {
     static let format = ObjectTable(
         kind: "format",
         rules: [
-            KeyRule("size", .oneOf([.numbers(2), .object(contentFit)])),
-            KeyRule("fps", .positiveNumber),
+            KeyRule("size", .oneOf([.numbers(2, .any), .object(contentFit)])),
+            KeyRule("fps", .number(.positive)),
             KeyRule("background", .color),
             KeyRule("conform", .literal(VocabularyTable.conforms))
         ]

@@ -19,45 +19,51 @@ struct CoreTextShaperTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "the machine's face of a family is found in its weight, with a font file that exists",
+        "the machine's faces of a family are listed with their OS/2 weight, width and style and a font file that exists",
         arguments: [
-            ("Helvetica", FontWeight.regular, "Helvetica"),
-            ("Helvetica", .bold, "Helvetica-Bold"),
-            ("Apple SD Gothic Neo", .regular, "AppleSDGothicNeo-Regular"),
-            ("Apple SD Gothic Neo", .bold, "AppleSDGothicNeo-Bold")
+            ("Helvetica", "Helvetica", 400),
+            ("Helvetica", "Helvetica-Bold", 700),
+            ("Apple SD Gothic Neo", "AppleSDGothicNeo-Regular", 400),
+            ("Apple SD Gothic Neo", "AppleSDGothicNeo-Bold", 700)
         ]
     )
-    func findsInstalledFace(family: String, weight: FontWeight, name: String) throws {
+    func listsInstalledFaces(family: String, name: String, weight: Int) throws {
         // Given
         let files = FileManager.default
 
         // When
-        let face = try #require(sut.installedFace(family: family, weight: weight))
+        let face = try #require(sut.installedFaces(family: family).first { $0.name == name })
 
         // Then
-        #expect(face.name == name)
+        #expect(face.weight == FontWeight(weight))
+        #expect(face.width == 5)
+        #expect(face.style == .upright)
         #expect(files.fileExists(atPath: face.file))
         #expect(face.ascent > 0 && face.ascent < 1.5)
         #expect(face.descent > 0 && face.descent < 1)
+        #expect(face.underlineOffset > 0 && face.underlineOffset < 0.5)
+        #expect(face.underlineThickness > 0 && face.underlineThickness < 0.2)
     }
 
-    @Test(
-        "a family with condensed faces gives its normal width face, from the machine and from its file",
-        arguments: [(FontWeight.regular, "HelveticaNeue"), (.bold, "HelveticaNeue-Bold")]
-    )
-    func prefersNormalWidth(weight: FontWeight, name: String) throws {
+    @Test("a family's condensed and italic faces are listed with their width and style, from the machine and its file")
+    func listsWidthsAndStyles() throws {
         // Given
         let family = "Helvetica Neue"
         let file = "/System/Library/Fonts/HelveticaNeue.ttc"
 
         // When
-        let installed = try #require(sut.installedFace(family: family, weight: weight))
-        let inFile = try #require(sut.face(family: family, weight: weight, in: [file]))
+        let installed = sut.installedFaces(family: family)
+        let inFile = sut.faces(family: family, in: [file])
 
         // Then
-        #expect(installed.name == name)
-        #expect(inFile.name == name)
-        #expect(inFile.file == file)
+        #expect(Set(installed.map(\.name)) == Set(inFile.map(\.name)))
+        #expect(inFile.allSatisfy { $0.file == file })
+        let condensed = try #require(inFile.first { $0.name == "HelveticaNeue-CondensedBold" })
+        #expect(condensed.width < 5)
+        #expect(condensed.weight == .bold)
+        let italic = try #require(inFile.first { $0.name == "HelveticaNeue-Italic" })
+        #expect(italic.style == .italic)
+        #expect(italic.weight == .regular)
     }
 
     @Test("the face time labels are set in is found by its PostScript name in its file, and a name the file lacks is not")
@@ -72,82 +78,61 @@ struct CoreTextShaperTests {
         // Then
         #expect(face.name == "HelveticaNeue-Medium")
         #expect(face.file == file)
-        #expect(face.ascent > 0 && face.ascent < 1.5)
-        #expect(face.descent > 0 && face.descent < 1)
+        #expect(face.weight == FontWeight(500))
         #expect(missing == nil)
-        #expect(try sut.shape("0.5s", face: face, size: 48).allSatisfy { $0.face == face })
+        #expect(try shape("0.5s", [face]).allSatisfy { $0.face == face })
     }
 
-    // Skia's one normal width face weighs 0.2, and condensed faces of it weigh 0 and 0.35.
-    @Test(
-        "where only condensed faces have the weight asked for, the normal width face of the nearest weight wins",
-        arguments: [FontWeight.regular, .bold]
-    )
-    func narrowsByWidthFirst(weight: FontWeight) throws {
-        // Given
-        let family = "Skia"
-
-        // When
-        let face = try #require(sut.installedFace(family: family, weight: weight))
-
-        // Then
-        #expect(face.name == "Skia-Regular")
-    }
-
-    @Test("a family the machine does not have has no face")
+    @Test("a family the machine does not have has no faces")
     func findsNoMissingFamily() {
         // Given
         let family = "No Such Family"
 
         // When
-        let face = sut.installedFace(family: family, weight: .regular)
+        let faces = sut.installedFaces(family: family)
 
         // Then
-        #expect(face == nil)
+        #expect(faces.isEmpty)
     }
 
-    @Test("a family whose weights lie in separate files gives the face of the weight asked for, whatever the file order")
-    func choosesAmongFiles() throws {
+    @Test("a family whose weights lie in separate files lists the faces of every file")
+    func listsAmongFiles() throws {
         // Given
         let regular = "/System/Library/Fonts/Supplemental/Arial.ttf"
         let bold = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
         // When
-        let boldFace = sut.face(family: "Arial", weight: .bold, in: [regular, bold])
-        let regularFace = sut.face(family: "Arial", weight: .regular, in: [bold, regular])
+        let faces = sut.faces(family: "Arial", in: [regular, bold])
 
         // Then
-        #expect(boldFace?.name == "Arial-BoldMT")
-        #expect(boldFace?.file == bold)
-        #expect(regularFace?.name == "ArialMT")
-        #expect(regularFace?.file == regular)
+        #expect(faces.first { $0.name == "Arial-BoldMT" }?.file == bold)
+        #expect(faces.first { $0.name == "ArialMT" }?.file == regular)
     }
 
-    @Test("a face of a family is found in the font files given, and a family they do not hold is not")
-    func findsFaceInFiles() throws {
+    @Test("the faces of a family are found in the font files given, and a family they do not hold has none")
+    func listsFacesInFiles() throws {
         // Given
-        let installed = try #require(sut.installedFace(family: "Apple SD Gothic Neo", weight: .regular))
+        let installed = try face("Apple SD Gothic Neo", "AppleSDGothicNeo-Regular")
 
         // When
-        let bold = sut.face(family: "Apple SD Gothic Neo", weight: .bold, in: [installed.file])
-        let other = sut.face(family: "Helvetica", weight: .regular, in: [installed.file])
+        let faces = sut.faces(family: "Apple SD Gothic Neo", in: [installed.file])
+        let other = sut.faces(family: "Helvetica", in: [installed.file])
 
         // Then
-        #expect(bold?.name == "AppleSDGothicNeo-Bold")
-        #expect(bold?.file == installed.file)
-        #expect(other == nil)
+        #expect(faces.contains { $0.name == "AppleSDGothicNeo-Bold" && $0.file == installed.file })
+        #expect(other.isEmpty)
     }
 
     @Test(
         "a run's advances sum to CoreText's typographic width of the line",
-        arguments: [("Hello, World", "Helvetica"), ("안녕하세요 세계", "Apple SD Gothic Neo")]
+        arguments: [("Hello, World", "Helvetica", "Helvetica"), ("안녕하세요 세계", "Apple SD Gothic Neo", "AppleSDGothicNeo-Regular")]
     )
-    func sumsAdvancesToLineWidth(text: String, family: String) throws {
+    func sumsAdvancesToLineWidth(text: String, family: String, name: String) throws {
         // Given
-        let face = try #require(sut.installedFace(family: family, weight: .regular))
+        let face = try face(family, name)
 
         // When
-        let runs = try sut.shape(text, face: face, size: 48)
+        let runs = try shape(text, [face])
 
         // Then
         #expect(runs.map(\.face) == [face])
@@ -156,29 +141,48 @@ struct CoreTextShaperTests {
         #expect(runs.flatMap(\.glyphs).map(\.offset) == Array(0..<text.unicodeScalars.count))
     }
 
-    @Test("kerning and ligatures are applied as CoreText applies them by default")
+    @Test("kerning and ligatures are applied by default, and `kern` and `liga` at 0 turn them off")
     func kernsAndLigates() throws {
         // Given
-        let face = try #require(sut.installedFace(family: "Helvetica", weight: .regular))
+        let face = try face("Helvetica", "Helvetica")
+        let off = [FontFeature(tag: "kern", value: 0), FontFeature(tag: "liga", value: 0)]
 
         // When
-        let pair = try sut.shape("AV", face: face, size: 48).flatMap(\.glyphs)
-        let apart = try ["A", "V"].flatMap { try sut.shape($0, face: face, size: 48).flatMap(\.glyphs) }
-        let ligature = try sut.shape("fit", face: face, size: 48).flatMap(\.glyphs)
+        let pair = try shape("AV", [face]).flatMap(\.glyphs)
+        let apart = try ["A", "V"].flatMap { try shape($0, [face]).flatMap(\.glyphs) }
+        let ligature = try shape("fit", [face]).flatMap(\.glyphs)
+        let unkerned = try shape("AV", [face], features: off).flatMap(\.glyphs)
+        let unligated = try shape("fit", [face], features: off).flatMap(\.glyphs)
 
         // Then
         #expect(pair[0].advance < apart[0].advance)
         #expect(pair[1].advance == apart[1].advance)
         #expect(ligature.map(\.offset) == [0, 2])
+        #expect(unkerned[0].advance == apart[0].advance)
+        #expect(unligated.map(\.offset) == [0, 1, 2])
     }
 
-    @Test("characters the face lacks are set in a face found on the machine, which names its file")
-    func fallsBack() throws {
+    @Test("characters the first face lacks are set in the later faces given, in order")
+    func cascades() throws {
         // Given
-        let face = try #require(sut.installedFace(family: "Helvetica", weight: .regular))
+        let latin = try face("Helvetica", "Helvetica")
+        let hangul = try face("Apple SD Gothic Neo", "AppleSDGothicNeo-Regular")
 
         // When
-        let runs = try sut.shape("Send 보내기", face: face, size: 48)
+        let runs = try shape("Send 보내기", [latin, hangul])
+
+        // Then
+        #expect(runs.map(\.face) == [latin, hangul])
+        #expect(runs.last?.glyphs.map(\.offset) == [5, 6, 7])
+    }
+
+    @Test("characters no face given has are set in a face found on the machine, which names its file")
+    func fallsBack() throws {
+        // Given
+        let face = try face("Helvetica", "Helvetica")
+
+        // When
+        let runs = try shape("Send 보내기", [face])
 
         // Then
         #expect(runs.count == 2)
@@ -193,17 +197,42 @@ struct CoreTextShaperTests {
     @Test("a face its file does not hold stops")
     func stopsOnFaceNotInFile() throws {
         // Given
-        let installed = try #require(sut.installedFace(family: "Helvetica", weight: .regular))
-        let face = FontFace(file: installed.file, name: "NoSuchFace", ascent: 0.8, descent: 0.2)
+        let installed = try face("Helvetica", "Helvetica")
+        let face = FontFace(
+            file: installed.file,
+            name: "NoSuchFace",
+            weight: .regular,
+            width: 5,
+            style: .upright,
+            ascent: 0.8,
+            descent: 0.2,
+            underlineOffset: 0.1,
+            underlineThickness: 0.05
+        )
 
         // When
-        let error = #expect(throws: ShapingError.self) { try sut.shape("Send", face: face, size: 48) }
+        let error = #expect(throws: ShapingError.self) { try shape("Send", [face]) }
 
         // Then
         #expect(error?.description == "font file \(installed.file) holds no face NoSuchFace")
     }
 
     // MARK: - Private
+    private func face(
+        _ family: String,
+        _ name: String
+    ) throws -> FontFace {
+        try #require(sut.installedFaces(family: family).first { $0.name == name })
+    }
+
+    private func shape(
+        _ text: String,
+        _ faces: [FontFace],
+        features: [FontFeature] = []
+    ) throws -> [ShapedRun] {
+        try sut.shape(text, faces: faces, size: 48, features: features, weight: .regular, italic: false)
+    }
+
     private func lineWidth(
         _ text: String,
         face name: String,

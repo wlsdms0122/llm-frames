@@ -34,10 +34,14 @@ package struct TimelineReporter: Sendable {
         return TimelineReport(
             duration: time.duration,
             storyline: time.storyline.indices.map { index in
-                entry(of: time.storyline[index], geometry: plan.storyline[index])
+                let clip = time.storyline[index]
+                return entry(of: clip, geometry: plan.storyline[index], sound: sound(at: clip.place, in: plan))
             },
             clips: time.clips.indices.map { index in
-                entry(of: time.clips[index], geometry: plan.clips[index], time: time)
+                let clip = time.clips[index]
+                let isVisualMedia = if case let .media(kind) = clip.kind { kind != .audio } else { false }
+                let range = isVisualMedia ? sound(at: clip.place, in: plan) : nil
+                return entry(of: clip, geometry: plan.clips[index], sound: range, time: time)
             }
         )
     }
@@ -48,16 +52,28 @@ package struct TimelineReporter: Sendable {
         return TimelineReport(
             duration: sequence.format.duration,
             storyline: storyline.indices.map { index in
-                entry(of: storyline[index], outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil)
+                entry(
+                    of: storyline[index],
+                    outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil,
+                    sound: sound(at: storyline[index].place, in: sequence)
+                )
             },
             clips: sequence.clips.map { entry(of: $0, sequence: sequence) }
         )
     }
 
     // MARK: - Private
+    private func sound(
+        at place: Place,
+        in plan: SequencePlan
+    ) -> TimeRange? {
+        plan.sound.first { $0.place == place }?.range
+    }
+
     private func entry(
         of clip: StorylinePlan,
-        geometry: StorylineGeometry
+        geometry: StorylineGeometry,
+        sound: TimeRange?
     ) -> TimelineStorylineEntry {
         TimelineStorylineEntry(
             place: clip.place.description,
@@ -66,6 +82,7 @@ package struct TimelineReporter: Sendable {
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,
+            sound: sound,
             speed: clip.source.speed,
             isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
@@ -76,6 +93,7 @@ package struct TimelineReporter: Sendable {
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
+        sound: TimeRange?,
         time: TimePlan
     ) -> TimelineClipEntry {
         let animation = clip.animation
@@ -95,6 +113,7 @@ package struct TimelineReporter: Sendable {
             id: clip.id,
             kind: clip.kind.label,
             visible: clip.visible,
+            sound: sound,
             lane: clip.lane,
             storyline: clip.storyline.map { time.storyline[$0].place.description },
             parent: parent,
@@ -103,7 +122,8 @@ package struct TimelineReporter: Sendable {
                 : TimelineAnimation(
                     entrance: animation.entrance.map(span),
                     loop: animation.loop.map(span),
-                    exit: animation.exit.map(span)
+                    exit: animation.exit.map(span),
+                    units: animation.units
                 ),
             nested: geometry.nested.map { report(of: $0) }
         )
@@ -113,10 +133,19 @@ package struct TimelineReporter: Sendable {
         TimelineSpan(preset: span.preset, length: span.span.length)
     }
 
+    // A resolved document holds an audio clip only as sound, so every clip it draws from media is visual media.
+    private func sound(
+        at place: String,
+        in sequence: ResolvedSequence
+    ) -> TimeRange? {
+        sequence.audio.first { $0.place == place }.map { TimeRange(start: $0.start, end: $0.end) }
+    }
+
     // A clip is drawn from the start of its incoming transition to the end of its outgoing one.
     private func entry(
         of clip: ResolvedStorylineClip,
-        outgoing: ResolvedStorylineClip?
+        outgoing: ResolvedStorylineClip?,
+        sound: TimeRange?
     ) -> TimelineStorylineEntry {
         let edit = TimeRange(start: clip.start, end: clip.end)
         let drawn = TimeRange(
@@ -131,6 +160,7 @@ package struct TimelineReporter: Sendable {
             edit: edit,
             drawn: drawn,
             clip: TimeRange(start: clip.in, end: clip.out),
+            sound: sound,
             speed: clip.speed,
             isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: nil, seconds: $0.end - $0.start) },
@@ -153,6 +183,7 @@ package struct TimelineReporter: Sendable {
             id: clip.id,
             kind: kind(of: clip.content),
             visible: TimeRange(start: clip.start, end: clip.end),
+            sound: media == nil ? nil : sound(at: clip.place, in: sequence),
             lane: clip.lane,
             storyline: clip.storyline.map { sequence.storyline[$0].place },
             parent: parent,
@@ -161,7 +192,8 @@ package struct TimelineReporter: Sendable {
                 : TimelineAnimation(
                     entrance: animation.entrance.map(span),
                     loop: animation.loop.map(span),
-                    exit: animation.exit.map(span)
+                    exit: animation.exit.map(span),
+                    units: animation.units
                 ),
             nested: media.flatMap(nestedReport(of:))
         )

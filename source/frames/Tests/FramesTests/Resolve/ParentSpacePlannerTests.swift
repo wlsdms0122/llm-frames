@@ -136,8 +136,8 @@ struct ParentSpacePlannerTests {
         let beside = Point(x: total.x + total.width + Self.padding, y: total.center.y)
         let numbers = try #require(positions.first)
         let text = try #require(positions.last)
-        #expect(numbers.value == Point(x: 300, y: 100))
-        #expect(isClose(text.value, beside), "the text keyframe is at \(text.value), the text's right at \(beside)")
+        #expect(numbers.value == .point(Point(x: 300, y: 100)))
+        #expect(isClose(text.value.fixed, beside), "the text keyframe is at \(text.value), the text's right at \(beside)")
     }
 
     @Test(
@@ -265,6 +265,23 @@ struct ParentSpacePlannerTests {
         #expect(numbers.rectangle == Rectangle(x: 300, y: 100, width: 50, height: 50))
     }
 
+    @Test("text found under a shape whose scale is 0 on an axis at the value's instant stops, naming the clip and the instant")
+    func stopsUnderFlatParent() throws {
+        // Given
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": [200, 300, 400, 200],
+                  "scale": [2, 0] },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "area": { "text": "Total" } } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(Fixture.planner.plan(document: document)) }
+        #expect(error?.description == "storyline[0]#screen.connected[1].area (rect): found by text at 2, where its parent's "
+            + "transform has a scale of 0 on an axis and cannot be undone to bring it into the parent's space")
+    }
+
     @Test("a path's point of text under a turned and scaled shape is carried back into its space, and a point of numbers is kept")
     func bringsPointsBackThroughRotation() throws {
         // Given
@@ -287,9 +304,9 @@ struct ParentSpacePlannerTests {
             return
         }
         let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
-        let expected = try #require(card.inverse).apply(to: onScreen[0])
-        #expect(isClose(underCard[0], expected), "the point is \(underCard[0]), carried back \(expected)")
-        #expect(underCard[1] == Point(x: 0, y: 0))
+        let expected = try #require(card.inverse).apply(to: onScreen[0].fixed)
+        #expect(isClose(underCard[0].fixed, expected), "the point is \(underCard[0]), carried back \(expected)")
+        #expect(underCard[1] == .point(Point(x: 0, y: 0)))
     }
 
     @Test("a chain of 64 shapes, each finding its area by text under the one before, resolves and evaluates in place")

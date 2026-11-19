@@ -18,7 +18,7 @@ struct ShapeEvaluatorTests {
     private static let red = Color(written: "#FF0000")
     private static let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
     private static let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
-    private static let stroke = PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none)
+    private static let stroke = PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
     private static let shadow = DropShadow(radius: 6, offset: Point(x: 2, y: 4), color: red)
 
     private let sut = ShapeEvaluator()
@@ -39,7 +39,7 @@ struct ShapeEvaluatorTests {
             SpanKey(t: 0, values: [.scale: 2]),
             SpanKey(t: 1, values: [.scale: 2])
         ]))
-        let clip = clip(placedBy: placement, scale: 3, entrance: entrance)
+        let clip = clip(placedBy: placement, scale: Scale(3), entrance: entrance)
         let shape = try #require(resolvedShape(of: clip))
 
         // When
@@ -51,13 +51,43 @@ struct ShapeEvaluatorTests {
             Issue.record("a shape draws one path item")
             return
         }
-        let scale = (item.transform.a * item.transform.a + item.transform.b * item.transform.b).squareRoot()
-        #expect(abs(try #require(path.stroke).width * scale - 4 * 6) < 1e-9)
+        // Widths are in output pixels; the radius and the shadow's offset are carried by the transform.
+        let factor = item.transform.lengthFactor
+        #expect(abs(try #require(path.stroke).width - 4 * 6) < 1e-9)
         if case let .rect(_, radius) = path.geometry {
-            #expect(abs(radius * scale - 2 * 6) < 1e-9)
+            #expect(abs(radius * factor - 2 * 6) < 1e-9)
         }
-        #expect(abs(try #require(path.shadow).radius * scale - 6 * 6) < 1e-9)
-        #expect(abs(try #require(path.shadow).offset.y * scale - 4 * 6) < 1e-9)
+        #expect(abs(try #require(path.shadow).radius - 6 * 6) < 1e-9)
+        #expect(abs(try #require(path.shadow).offset.y * factor - 4 * 6) < 1e-9)
+    }
+
+    @Test(
+        "a shape at scale [2, 1] draws its stroke at the geometric mean and its corners carried, 2r wide and r tall",
+        arguments: ["rect by area", "rect by width and height"]
+    )
+    func carriesCornersUnderPerAxisScale(placement: String) throws {
+        // Given
+        let clip = clip(placedBy: placement, scale: Scale(x: 2, y: 1))
+        let shape = try #require(resolvedShape(of: clip))
+
+        // When
+        let items = sut.items(
+            of: shape,
+            clip: clip,
+            sample: ClipSample(clip: clip, at: 1),
+            in: ClipSpace(frame: Self.frame),
+            at: 1
+        )
+
+        // Then
+        let item = try #require(items.first)
+        guard case let .path(path) = item.content, case let .rect(_, radius) = path.geometry else {
+            Issue.record("a rect draws one path item with a rect geometry")
+            return
+        }
+        #expect(abs(try #require(path.stroke).width - 4 * 2.0.squareRoot()) < 1e-9)
+        #expect(abs(radius * item.transform.a - 2 * 2) < 1e-9)
+        #expect(abs(radius * item.transform.d - 2) < 1e-9)
     }
 
     @Test("a shape placed by its area turns about the centre of its geometry's box by default")
@@ -83,18 +113,18 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: Self.area)],
+                [Keyframe(at: 0, value: .rectangle(Self.area))],
                 outset: 0,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
                     anchor: Point(x: 40, y: 20)
                 )
             ),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: Self.red,
-            stroke: nil,
-            shadow: nil
+            fill: .fill(Self.red),
+            stroke: .off,
+            shadow: .off
         )
         let clip = clip(shape, box: nil, rotation: 90)
 
@@ -114,7 +144,7 @@ struct ShapeEvaluatorTests {
         // The anchor is the box's bottom right, at (80, 40).
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 80, y: 40))],
             anchor: Point(x: 40, y: 20)
         )
         let shape = boxShape(kind: .rect, width: [Keyframe(at: 0, value: 40)])
@@ -140,7 +170,7 @@ struct ShapeEvaluatorTests {
         // The anchor is the middle of the box's right side, at (80, 30), and the width goes from 40 to 80.
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 80, y: 30))],
             anchor: Point(x: 40, y: 10)
         )
         let shape = boxShape(kind: .ellipse, width: [Keyframe(at: 0, value: 40), Keyframe(at: 2, value: 80)])
@@ -199,18 +229,18 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: Self.area)],
+                [Keyframe(at: 0, value: .rectangle(Self.area))],
                 outset: 4,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
                     anchor: Point(x: 40, y: 20)
                 )
             ),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: Self.red,
-            stroke: nil,
-            shadow: nil
+            fill: .fill(Self.red),
+            stroke: .off,
+            shadow: .off
         )
         let clip = clip(shape, box: nil)
 
@@ -254,12 +284,12 @@ struct ShapeEvaluatorTests {
         ]))
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-            radius: [Keyframe(at: 0, value: 0)],
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            radius: 0,
             trim: [Keyframe(at: 0, value: trim)],
-            fill: nil,
-            stroke: PathStroke(width: 4, color: Self.red, join: .round, cap: .butt, start: .none, end: .arrow),
-            shadow: nil
+            fill: .off,
+            stroke: .stroke(PathStroke(width: 4, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .arrow)),
+            shadow: .off
         )
         let clip = clip(shape, box: nil, entrance: entrance)
 
@@ -273,17 +303,59 @@ struct ShapeEvaluatorTests {
         expect(Point(x: reveal.maxX, y: reveal.maxY), Point(x: receiver.maxX, y: receiver.maxY))
     }
 
+    @Test(
+        "dash lengths and the dash offset are carried with the outline, an odd list taken twice over, and the width is not",
+        arguments: [
+            (Scale(1), [3.0], [3.0, 3], 1.0),
+            (Scale(x: 2, y: 0.5), [3.0, 1, 2], [3.0, 1, 2, 3, 1, 2], 1.0),
+            (Scale(4), [3.0, 1], [3.0, 1], 4.0)
+        ]
+    )
+    func carriesDash(
+        scale: Scale,
+        written: [Double],
+        dash: [Double],
+        factor: Double
+    ) throws {
+        // Given
+        // The shape's transform is its own scale, whose length factor is its scale factor, so a carried length is
+        // written as it is.
+        let stroke = PathStroke(width: 2, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
+        let shape = ResolvedShape(
+            kind: .rect,
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            radius: 0,
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: .off,
+            stroke: .stroke(stroke),
+            shadow: .off
+        )
+        let clip = clip(shape, box: nil, scale: scale)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1).first)
+
+        // Then
+        guard case let .path(path) = item.content, let drawn = path.stroke else {
+            Issue.record("the shape is a stroked path")
+            return
+        }
+        #expect(drawn.dash == dash)
+        #expect(drawn.dashOffset == 5)
+        #expect(abs(drawn.width - 2 * factor) < 1e-9)
+    }
+
     @Test("a trim keyframed out of 0 to 1 is clamped to it")
     func clampsTrim() throws {
         // Given
         let shape = ResolvedShape(
             kind: .ellipse,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-            radius: [Keyframe(at: 0, value: 0)],
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            radius: 0,
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
-            fill: nil,
-            stroke: Self.stroke,
-            shadow: nil
+            fill: .off,
+            stroke: .stroke(Self.stroke),
+            shadow: .off
         )
         let clip = clip(shape, box: nil)
 
@@ -337,13 +409,13 @@ struct ShapeEvaluatorTests {
     // A stroked shape with a shadow, corners of radius 2, by each placement.
     private func clip(
         placedBy placement: String,
-        scale: Double? = nil,
+        scale: Scale? = nil,
         rotation: Double? = nil,
         entrance: AnimationSpan? = nil
     ) -> ResolvedClip {
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 60, y: 30))],
             anchor: Point(x: 20, y: 10)
         )
         let shape = switch placement {
@@ -357,26 +429,26 @@ struct ShapeEvaluatorTests {
             ResolvedShape(
                 kind: .path,
                 geometry: .points(
-                    [Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])],
+                    [Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])],
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),
-                radius: [Keyframe(at: 0, value: 0)],
+                radius: 0,
                 trim: [Keyframe(at: 0, value: .whole)],
-                fill: nil,
-                stroke: Self.stroke,
-                shadow: Self.shadow
+                fill: .off,
+                stroke: .stroke(Self.stroke),
+                shadow: .shadow(Self.shadow)
             )
 
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
-                geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-                radius: [Keyframe(at: 0, value: 2)],
+                geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+                radius: 2,
                 trim: [Keyframe(at: 0, value: .whole)],
-                fill: nil,
-                stroke: Self.stroke,
-                shadow: Self.shadow
+                fill: .off,
+                stroke: .stroke(Self.stroke),
+                shadow: .shadow(Self.shadow)
             )
         }
 
@@ -397,18 +469,18 @@ struct ShapeEvaluatorTests {
         ResolvedShape(
             kind: kind,
             geometry: .box(width: width, height: [Keyframe(at: 0, value: 20)], outset: 0),
-            radius: [Keyframe(at: 0, value: 2)],
+            radius: 2,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: nil,
-            stroke: Self.stroke,
-            shadow: shadow
+            fill: .off,
+            stroke: .stroke(Self.stroke),
+            shadow: .shadow(shadow)
         )
     }
 
     private func clip(
         _ shape: ResolvedShape,
         box: ResolvedBox?,
-        scale: Double? = nil,
+        scale: Scale? = nil,
         rotation: Double? = nil,
         entrance: AnimationSpan? = nil
     ) -> ResolvedClip {
@@ -430,7 +502,7 @@ struct ShapeEvaluatorTests {
             scale: scale.map { [Keyframe(at: 0, value: $0)] },
             rotation: rotation.map { [Keyframe(at: 0, value: $0)] },
             blend: "normal",
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }
 }

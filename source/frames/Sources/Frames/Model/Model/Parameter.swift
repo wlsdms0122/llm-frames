@@ -24,7 +24,7 @@ package struct Parameter: Equatable, Sendable {
             .color
 
         case .number:
-            .number
+            .number(.any)
 
         case .choice:
             // Names read best as a list of names, and an option of any other form is matched as written.

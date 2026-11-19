@@ -32,7 +32,7 @@ struct AnimationSamplerTests {
     @Test("the entrance runs for its seconds from the window start, revealing from its own side")
     func runsEntrance() {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: 2.25)
@@ -50,7 +50,7 @@ struct AnimationSamplerTests {
     )
     func repeatsLoop(time: Double, scale: Double) {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: time)
@@ -63,7 +63,7 @@ struct AnimationSamplerTests {
     @Test("the exit runs for the last seconds of the window, and the loop stops at its start")
     func runsExit() {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: 5.75)
@@ -76,7 +76,7 @@ struct AnimationSamplerTests {
     @Test("on a short window the entrance runs first and the exit plays whole in the time that is left")
     func shortWindowShortensExit() {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit, units: nil)
         let window = TimeRange(start: 0, end: 0.8)
 
         // When
@@ -91,7 +91,7 @@ struct AnimationSamplerTests {
     @Test("a window shorter than the entrance cuts the entrance at its end and leaves the exit no time")
     func windowShorterThanEntrance() {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 0, end: 0.4), at: 0.3)
@@ -104,7 +104,7 @@ struct AnimationSamplerTests {
     func easesSpan() {
         // Given
         let eased = AnimationSpan(length: 1, span: Span(ease: .easeIn, keys: entrance.span.keys))
-        let animation = ResolvedAnimation(entrance: eased, loop: nil, exit: nil)
+        let animation = ResolvedAnimation(entrance: eased, loop: nil, exit: nil, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 0, end: 4), at: 0.5)
@@ -119,7 +119,7 @@ struct AnimationSamplerTests {
     )
     func showsOutsideSpans(time: Double) {
         // Given
-        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit)
+        let animation = ResolvedAnimation(entrance: entrance, loop: nil, exit: exit, units: nil)
 
         // When
         let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: time)

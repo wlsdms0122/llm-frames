@@ -18,6 +18,12 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveSpeed(place: Place, kind: PlaceKind, speed: Double)
     case speedWithTimeRemap(place: Place, kind: PlaceKind)
     case soundWithTimeRemap(place: Place, kind: PlaceKind, key: String)
+    case pictureOffWithoutSound(place: Place, kind: PlaceKind)
+    case audioFilterWithoutSound(place: Place, kind: PlaceKind)
+    case splitWithoutSound(place: Place, kind: PlaceKind)
+    // `place` names the edge, `split.before` or `split.after`.
+    case splitPastMedia(place: Place, kind: PlaceKind)
+    case splitOutsideSequence(place: Place, kind: PlaceKind)
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
@@ -35,7 +41,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case placementWithPosition(place: Place, kind: PlaceKind)
     case parentWithoutPosition(place: Place, kind: PlaceKind)
     case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
-    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
+    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, leaf: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
     case placementUnderContentFit(place: Place, kind: PlaceKind)
@@ -46,8 +52,13 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
-    case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
-    case masksDiffer(place: Place, kind: PlaceKind, property: String)
+    // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
+    case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
+    case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
+    case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
+    case unitsOnNonTitle(place: Place, kind: PlaceKind)
+    case staggerWithoutBy(place: Place, kind: PlaceKind)
+    case unitsWithoutSpan(place: Place, kind: PlaceKind)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
@@ -55,12 +66,19 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
     case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
+    case unknownClipArea(place: Place, kind: PlaceKind, id: String)
+    case clipAreaKind(place: Place, kind: PlaceKind, id: String, named: TrackMatteRefusal)
+    case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
+    case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
+    case clipAreaOnStoryline(place: Place, kind: PlaceKind)
+    case textUnderClipArea(place: Place, kind: PlaceKind, parent: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
     case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
+    case flatParent(place: Place, kind: PlaceKind, instant: Double)
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
@@ -106,6 +124,22 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .soundWithTimeRemap(place, kind, key):
             "\(place) (\(kind.label)): a clip with \"timeRemap\" plays no sound, so \"\(key)\" would do nothing. "
                 + "Place the shot's sound as an audio clip of its own"
+
+        case let .pictureOffWithoutSound(place, kind):
+            "\(place) (\(kind.label)): \"picture\": false takes only the media's sound, and this media holds none, so "
+                + "the clip would play nothing"
+
+        case let .audioFilterWithoutSound(place, kind):
+            "\(place) (\(kind.label)): this clip plays no sound, so \"audioFilter\" would do nothing"
+
+        case let .splitWithoutSound(place, kind):
+            "\(place) (\(kind.label)): this clip plays no sound, so a split has no sound to move"
+
+        case let .splitPastMedia(place, kind):
+            "\(place) (\(kind.label)): the split moves the clip's sound past where its media holds sound"
+
+        case let .splitOutsideSequence(place, kind):
+            "\(place) (\(kind.label)): the split moves the clip's sound outside the sequence"
 
         case let .rangeWithTimeRemap(place, kind, key):
             "\(place) (\(kind.label)): a media clip with \"timeRemap\" takes no \"\(key)\", since its keys give the "
@@ -169,8 +203,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): style \(quoted(style)) gives no placement, so the title needs \"placement\" or "
                 + "\"position\""
 
-        case let .keyframesOutsideVisibleRange(place, kind, property, visible):
-            "\(place) (\(kind.label)): every keyframe of \(quoted(property)) lies outside \(written(visible)), "
+        case let .keyframesOutsideVisibleRange(place, kind, leaf, visible):
+            "\(place) (\(kind.label)): every keyframe of \(quoted(leaf)) lies outside \(written(visible)), "
                 + "so only one of its values would ever show"
 
         case let .missingFormatSize(place, kind):
@@ -203,15 +237,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
 
-        case let .maskCountsDiffer(place, kind, counts):
-            "\(place) (\(kind.label)): the keyframes of \"mask\" hold "
-                + counts.map { "\($0)" }.joined(separator: " and ")
-                + " masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"
-
-        case let .masksDiffer(place, kind, property):
-            "\(place) (\(kind.label)): this mask differs from the first keyframe's in its \(property), "
-                + "and a keyframed mask changes only its geometry's values, its radius and its feather"
-
         case let .textMaskInOwnBox(place, kind):
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
 
@@ -219,6 +244,30 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the keyframes of \"points\" hold "
                 + counts.map { "\($0)" }.joined(separator: " and ")
                 + " points, and points interpolate one by one, so every value has the same number"
+
+        case let .missingLookLeaf(place, kind, key, .some(layer)):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and its theme turns off (\(layer))"
+
+        case let .missingLookLeaf(place, kind, key, .none):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and no theme layer gives"
+
+        case let .partialChoiceOverNone(place, kind, .some(layer)):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, which is none here (\(layer))"
+
+        case let .partialChoiceOverNone(place, kind, .none):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, and this clip takes none"
+
+        case let .partialChoiceOverList(place, kind, layer):
+            "\(place) (\(kind.label)): a choice without a preset over the theme's default list (\(layer)), where which entry it changes is ambiguous"
+
+        case let .unitsOnNonTitle(place, kind):
+            "\(place) (\(kind.label)): `by` plays a title's animation by unit, and this clip is not a title"
+
+        case let .staggerWithoutBy(place, kind):
+            "\(place) (\(kind.label)): `stagger` spaces a title's units, and the choice names no unit with `by`"
+
+        case let .unitsWithoutSpan(place, kind):
+            "\(place) (\(kind.label)): `by` plays the entrance and the exit by unit, and the choice has neither"
 
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"
@@ -245,6 +294,31 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
+        case let .unknownClipArea(place, kind, id):
+            "\(place) (\(kind.label)): no clip of this document has the id \(quoted(id))"
+
+        case let .clipAreaKind(place, kind, id, named):
+            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), "
+                + "and a clip area names a connected or sequence media clip, title or shape"
+
+        case let .clipAreaAcrossSpaces(place, kind, id, parent, namedParent):
+            "\(place) (\(kind.label)): this clip's parent is \(parent.map(quoted) ?? "none") and the parent of "
+                + "\(quoted(id)) is \(namedParent.map(quoted) ?? "none"), so its box is in another coordinate space. "
+                + "A clip area names a clip with the same parent, or with none where this clip has none, or this "
+                + "clip's own parent"
+
+        case let .clipAreaCycle(place, kind, ids):
+            "\(place) (\(kind.label)): the clip areas come back to the box they start from: "
+                + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .clipAreaOnStoryline(place, kind):
+            "\(place) (\(kind.label)): a storyline clip is placed by the storyline in output pixels, so it takes "
+                + "no clip area"
+
+        case let .textUnderClipArea(place, kind, parent):
+            "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "
+                + "resolved, and its geometry or position holds a clip area, whose box is known only when evaluated"
+
         case let .trackWithoutVideo(place, kind):
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "
                 + "and there is none to follow here"
@@ -268,6 +342,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .neverFollowed(place, kind, visible):
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
+
+        case let .flatParent(place, kind, instant):
+            "\(place) (\(kind.label)): found by text at \(number(instant)), where its parent's transform has a scale "
+                + "of 0 on an axis and cannot be undone to bring it into the parent's space"
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"

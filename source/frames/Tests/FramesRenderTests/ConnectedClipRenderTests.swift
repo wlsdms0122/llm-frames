@@ -241,12 +241,14 @@ struct ConnectedClipRenderTests {
                     content: .glyphs(GlyphsItem(
                         size: glyphs.size,
                         runs: glyphs.runs.map { run in
-                            ResolvedGlyphRun(
+                            DrawnGlyphRun(
                                 font: run.font,
                                 face: run.face,
                                 size: run.size,
                                 color: run.color,
                                 stroke: nil,
+                                highlight: nil,
+                                underline: nil,
                                 glyphs: run.glyphs
                             )
                         },

@@ -106,6 +106,101 @@ struct SequenceCheckTests {
         #expect(error?.description == #"storyline[0].in (video): expected a number, found "2""#)
     }
 
+    @Test("a scale is a number or a pair, in a keyframe as in a static value")
+    func checksScale() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "fill": "accent", "area": [0, 0, 10, 10], "at": [0, 1], "scale": [2, 1],
+                  "keyframes": [ { "at": 0, "scale": 0.5 }, { "at": 1, "scale": [1, 2, 3] } ] } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].keyframes[1].scale (") == true)
+    }
+
+    @Test(
+        "a dash that is empty, holds a negative length or holds only zeros stops, in a keyframe as in a static value",
+        arguments: [
+            (#""stroke": { "dash": [] }"#, "stroke.dash"),
+            (#""stroke": { "dash": [4, -1] }"#, "stroke.dash"),
+            (#""stroke": { "dash": [0, 0] }"#, "stroke.dash"),
+            (#""keyframes": [ { "at": 0, "stroke": { "dash": [0] } } ]"#, "keyframes[0].stroke.dash"),
+            (#""keyframes": [ { "at": 0, "stroke": { "dash": [null, -1] } } ]"#, "keyframes[0].stroke.dash")
+        ]
+    )
+    func refusesDash(
+        stroke: String,
+        key: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], \#(stroke) } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].\(key) (") == true)
+        #expect(error?.description.contains("each 0 or more and not all 0") == true)
+    }
+
+    @Test("a dash with gaps of 0, a negative dash offset and a keyframe dash of zeros and null lengths are taken")
+    func takesDash() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], "stroke": { "width": 2, "dash": [4, 0], "dashOffset": -3 },
+                  "keyframes": [ { "at": 0, "stroke": { "dash": [0, null] } } ] } ] } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: Never.self) { try sut.check(document: document) }
+    }
+
+    @Test(
+        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, both kinds, or a stroke with both a colour and a gradient stops",
+        arguments: [
+            (##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"]] } }"##, "fill.linear.stops ("),
+            (##""fill": { "linear": { "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] } }"##, "fill.linear.stops[1][0] ("),
+            (##""fill": { "radial": { "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] } }"##, "fill.radial.stops[1][0] ("),
+            (##""fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] } }"##, "fill.radial.stops[1] ("),
+            (##""fill": { "linear": { }, "radial": { } }"##, "fill (gradient): "),
+            (##""stroke": { "width": 2, "color": "#FFFFFF", "gradient": { "radial": { } } }"##, "stroke (stroke): "),
+            (##""keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1.5, null]] } } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
+        ]
+    )
+    func refusesGradient(
+        written: String,
+        prefix: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], \#(written) } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].\(prefix)") == true, "\(String(describing: error))")
+    }
+
+    @Test("a gradient fill, a stroke gradient, two stops at one offset, and null leaves and offsets out of order in a keyframe's stops are taken")
+    func takesGradient() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1],
+                  "fill": { "linear": { "from": [0, 0], "to": [1, 1], "stops": [[0, "accent"], [0.5, "#FF0000"], [0.5, "#0000FF80"], [1, "#FFFFFF"]] } },
+                  "stroke": { "width": 2, "gradient": { "radial": { "center": [0.5, 0.5], "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } },
+                  "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[null, "#000000"], [0.6, null], [null, null], [0.2, null]] } } } ] } ] } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: Never.self) { try sut.check(document: document) }
+    }
+
     @Test("a number does not stand for a boolean")
     func refusesNumberForBool() throws {
         // Given
@@ -255,13 +350,11 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": true }"#, #"clips[0].fill (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": true }"#, #"clips[0].stroke (rect): expected "#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "accent" } }"#, #"clips[0].stroke (stroke): missing key "width""#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } }"#, #"clips[0].stroke.width (stroke): expected a number above 0, found 0"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "join": "square" } }"#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "head": 8 } }"#, #"clips[0].stroke (stroke): unknown key "head""#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): expected a list of 2 numbers, each from 0 to 1, found 1.5"#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each from 0 to 1"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): 1.5 is not within 0 to 1"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each within 0 to 1"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": "soft" }"#, #"clips[0].shadow (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": { "blur": 4 } }"#, #"clips[0].shadow (shadow): unknown key "blur""#),
             (#"{ "shape": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two points"#),
@@ -282,9 +375,50 @@ struct SequenceCheckTests {
     }
 
     @Test(
+        "a look number outside its leaf's domain stops where it is written, naming the domain",
+        arguments: [
+            (
+                #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } } ] }"#,
+                "clips[0].stroke.width (stroke): 0 is not above 0"
+            ),
+            (
+                ##"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"##,
+                "clips[0].outset (rect): -1 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": { "radial": { "radius": 0 } } } ] }"#,
+                "clips[0].fill.radial.radius (radial gradient): 0 is not above 0"
+            ),
+            (
+                #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "radius": -8 } ] }"#,
+                "clips[0].radius (image): -8 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 } } ] }"#,
+                "clips[0].mask.feather (rect mask): -1 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "width": 0, "height": 10, "position": [5, 5] } } ] }"#,
+                "clips[0].mask.width (rect mask): 0 is not above 0"
+            )
+        ]
+    )
+    func refusesLookNumberOutsideDomain(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
         "a shape takes its appearance keys in every form they have",
         arguments: [
-            #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": -2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
+            #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": 2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
             ##"{ "shape": "ellipse", "area": [0, 0, 10, 10], "fill": "#FFFFFF80", "stroke": false, "trim": [0.25, 0], "shadow": { "radius": 4 } }"##,
             #"{ "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "center" }], "closed": true, "style": "outline", "shadow": false }"#,
             #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [2, 2]], "trim": [0, 0.5], "position": [1, 1], "scale": 2, "rotation": 90 } ] }"#,
@@ -349,13 +483,13 @@ struct SequenceCheckTests {
     @Test(
         "a keyframe takes only the keyframable properties of its clip",
         arguments: [
-            (#"{ "adjust": "frames/vivid", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, opacity, mask"#),
-            (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, mask"#),
-            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, opacity, trim, mask"#),
-            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity, mask"#),
-            (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop, mask"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop, mask"),
+            (#"{ "adjust": "frames/vivid", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, opacity, mask, adjust"#),
+            (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, fill, stroke, shadow, mask"#),
+            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, opacity, trim, outset, fill, stroke, shadow, mask"#),
+            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity, mask, character, paragraph"#),
+            (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan, audioFilter"#),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow"#),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow"),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "scale": 1 } ] }"#, #"clips[0].keyframes[0] (keyframe): missing key "at""#)
         ]
     )
@@ -406,7 +540,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "clips[0].pan (audio): expected a number from -1 to 1, found 1.5")
+        #expect(error?.description == "clips[0].pan (audio): 1.5 is not within -1 to 1")
     }
 
     @Test("a still takes no `pan`, since it plays no sound")
@@ -444,7 +578,7 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
@@ -530,7 +664,7 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": false } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "seconds": 1 } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/flash" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", 2] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": "1" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a" } } ] }"#,
@@ -551,6 +685,17 @@ struct SequenceCheckTests {
         #expect(throws: ModelError.self) { try sut.check(document: document) }
     }
 
+    @Test("a clip takes the non-separable blend modes", arguments: ["hue", "saturation", "color", "luminosity"])
+    func acceptsNonSeparableBlend(mode: String) throws {
+        // Given
+        let document = try Fixture.json(
+            #"{ "kind": "sequence", "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "\#(mode)" } ] }"#
+        )
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
     @Test(
         "an area written in a removed form, or with a size or padding it cannot take, stops where it is written",
         arguments: [
@@ -560,19 +705,19 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "Total" } } } ] }"#,
-                "storyline[0].crop (area): needs one of text, from"
+                "storyline[0].crop (area): needs one of text, from, clip"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 0, 10] } ] }"#,
-                "clips[0].area[2] (rect): expected a number above 0, found 0"
+                "clips[0].area[2] (rect): 0 is not above 0"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "area": [0, 0, 10, -1] } ] } ] }"#,
-                "clips[0].keyframes[0].area[3] (keyframe): expected a number above 0, found -1"
+                "clips[0].keyframes[0].area[3] (keyframe): -1 is not above 0"
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "text": "a", "padding": -1 } } ] }"#,
-                "storyline[0].track.padding (text area): expected a number, 0 or more, found -1"
+                "storyline[0].track.padding (text area): -1 is not 0 or more"
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "toNth": -1 } } ] }"#,
@@ -662,13 +807,15 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
-            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "args""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): needs one of args, by, stagger"#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation choice): missing key "args""#),
-            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args"#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, by, stagger"#),
+            (#"{ "clips": [ { "title": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): -0.1 is not 0 or more"#),
+            (#"{ "theme": { "defaults": { "animation": { "shape": { "preset": "frames/pop", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args"#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
-            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): missing key "args""#),
-            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one preset"#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
+            (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one entry"#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
         ]
     )
@@ -716,9 +863,9 @@ struct SequenceCheckTests {
     @Test(
         "a spring ease with a bounce outside its range or another key stops where it is written",
         arguments: [
-            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1"),
-            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found -1"),
-            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found "0.5""#),
+            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): 1 is not above -1 and below 1"),
+            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): -1 is not above -1 and below 1"),
+            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number above -1 and below 1, found "0.5""#),
             (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
             (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
         ]
@@ -765,15 +912,15 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 0 } } ] }"#,
-                "storyline[0].media.fps (image sequence): expected a number above 0, found 0"
+                "storyline[0].media.fps (image sequence): 0 is not above 0"
             ),
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": -24 } } ] }"#,
-                "storyline[0].media.fps (image sequence): expected a number above 0, found -24"
+                "storyline[0].media.fps (image sequence): -24 is not above 0"
             ),
             (
                 #"{ "kind": "sequence", "format": { "fps": 0 }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                "format.fps (format): expected a number above 0, found 0"
+                "format.fps (format): 0 is not above 0"
             )
         ]
     )
@@ -812,17 +959,16 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "storyline[1].transition.seconds (transition choice): expected a number above 0, found 0")
+        #expect(error?.description == "storyline[1].transition.seconds (transition choice): 0 is not above 0")
     }
 
     @Test(
-        "a media clip's width and height are above 0 and its radius 0 or more",
+        "a media clip's width and height are above 0",
         arguments: [
-            (#""width": 0"#, "clips[0].width (image): expected a number above 0, found 0"),
-            (#""width": -300"#, "clips[0].width (image): expected a number above 0, found -300"),
-            (#""height": 0"#, "clips[0].height (image): expected a number above 0, found 0"),
-            (#""width": 300, "height": -1"#, "clips[0].height (image): expected a number above 0, found -1"),
-            (#""radius": -8"#, "clips[0].radius (image): expected a number, 0 or more, found -8")
+            (#""width": 0"#, "clips[0].width (image): 0 is not above 0"),
+            (#""width": -300"#, "clips[0].width (image): -300 is not above 0"),
+            (#""height": 0"#, "clips[0].height (image): 0 is not above 0"),
+            (#""width": 300, "height": -1"#, "clips[0].height (image): -1 is not above 0")
         ]
     )
     func refusesEmptyMediaBox(
@@ -848,7 +994,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "clips[0].width (title): expected a number above 0, found 0")
+        #expect(error?.description == "clips[0].width (title): 0 is not above 0")
     }
 
     @Test("a title is a list of runs, each its text with a style or without one")
@@ -924,9 +1070,9 @@ struct SequenceCheckTests {
             """#
         let written = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ { \#(keys), "mask": \#(masks) } ] }"#)
         let keyframed = try Fixture.json(#"""
-            { "kind": "sequence", "\#(list)": [ { \#(keys), "keyframes": [
-                { "at": 0, "mask": { "shape": "ellipse", "area": [0, 0, 10, 10] } },
-                { "at": 1, "mask": { "shape": "ellipse", "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "mask": { "shape": "ellipse" }, "keyframes": [
+                { "at": 0, "mask": { "area": [0, 0, 10, 10] } },
+                { "at": 1, "mask": { "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
             """#)
 
         // When, Then
@@ -1008,9 +1154,7 @@ struct SequenceCheckTests {
             (#"{ "shape": "path", "points": [[0, 0], [10, 0]] }"#, "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"),
             (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
             (#"{ "shape": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 }"#, "clips[0].mask.feather (rect mask): expected a number, 0 or more, found -1"),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
-            (#"{ "shape": "rect", "width": 0, "height": 10, "position": [5, 5] }"#, "clips[0].mask.width (rect mask): expected a number above 0, found 0"),
             ("[]", "clips[0].mask (adjustment): a mask list holds at least one mask, and a clip without masks writes no mask"),
             ("true", "clips[0].mask (adjustment): expected a mask or a list of masks, found true")
         ]
@@ -1021,6 +1165,71 @@ struct SequenceCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a mask's geometry is given by the clip's mask and its keyframes together",
+        arguments: [
+            (#"{ "shape": "rect" }"#, #"[ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "area": [0, 0, 20, 20] } } ]"#),
+            (#"{ "shape": "ellipse", "width": 10 }"#, #"[ { "at": 0, "mask": { "height": 10, "position": [5, 5] } }, { "at": 1, "mask": { "width": 20 } } ]"#),
+            (#"{ "shape": "path" }"#, #"[ { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } } ]"#),
+            (
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "path" } ]"#,
+                #"[ { "at": 0, "mask": [ { "radius": 2 }, { "points": [[0, 0], [10, 0], [5, 10]] } ] } ]"#
+            )
+        ]
+    )
+    func acceptsMaskGeometryInKeyframes(
+        mask: String,
+        keyframes: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 2], "mask": \#(mask), "keyframes": \#(keyframes) } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a mask's geometry missing from the clip's mask and its keyframes stops at the clip's mask, and a keyframe's mask takes its static mask's keys",
+        arguments: [
+            (
+                #"{ "shape": "rect" }"#,
+                #"[ { "at": 0, "mask": { "feather": 2 } } ]"#,
+                "clips[0].mask (rect mask): needs one of area, width, height, position"
+            ),
+            (
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10 } ]"#,
+                #"[ { "at": 0, "mask": [ { }, { "height": 10 } ] } ]"#,
+                #"clips[0].mask[1] (ellipse mask): missing key "position""#
+            ),
+            (
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
+                #"[ { "at": 0, "mask": { "radius": 2 } } ]"#,
+                #"clips[0].keyframes[0].mask (ellipse mask): unknown key "radius""#
+            ),
+            (
+                #"{ "shape": "path" }"#,
+                #"[ { "at": 0, "mask": { "points": [[0, 0], [10, 0]] } } ]"#,
+                "clips[0].keyframes[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
+            )
+        ]
+    )
+    func refusesMaskGeometryInKeyframes(
+        mask: String,
+        keyframes: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 2], "mask": \#(mask), "keyframes": \#(keyframes) } ] }
+            """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }

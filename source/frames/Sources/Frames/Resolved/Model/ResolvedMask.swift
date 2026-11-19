@@ -5,22 +5,44 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// One mask of a clip at a keyframe: its geometry in the clip's own coordinate space, a path mask a closed polyline and
-// a box mask its rect, its feather in output pixels, whether it is inverted, and how it combines with the masks before
-// it. Between keyframes the geometry interpolates per component and the feather as a number. Resolve stops on
-// keyframes whose masks differ in shape, geometry form, number of points, inversion or mode, so those are the same at
-// both ends.
-struct ResolvedMask: Interpolable {
+// One mask of a clip: its geometry in the clip's own coordinate space and its feather in output pixels, each number
+// a keyframe list in sequence time, and whether it is inverted and how it combines with the masks before it, which
+// are static.
+struct ResolvedMask: Equatable, Sendable {
     // MARK: - Property
-    let geometry: PathGeometry
-    let feather: Double
+    let geometry: ResolvedMaskGeometry
+    let feather: [Keyframe<Double>]
     let isInverted: Bool
     let mode: MaskMode
 
+    // The time of every keyframe of its geometry.
+    var geometryTimes: [Double] {
+        let rectangle = { (rectangle: ResolvedMaskRectangle) -> [Double] in
+            switch rectangle {
+            case let .area(area):
+                area.map(\.at)
+
+            case let .box(width, height, position):
+                (width.map(\.at) + height.map(\.at) + position.map(\.at))
+            }
+        }
+
+        return switch geometry {
+        case let .rect(box, radius):
+            rectangle(box) + radius.map(\.at)
+
+        case let .ellipse(box):
+            rectangle(box)
+
+        case let .polyline(points):
+            points.flatMap { $0.map(\.at) }
+        }
+    }
+
     // MARK: - Initializer
     init(
-        geometry: PathGeometry,
-        feather: Double,
+        geometry: ResolvedMaskGeometry,
+        feather: [Keyframe<Double>],
         isInverted: Bool,
         mode: MaskMode
     ) {
@@ -31,23 +53,67 @@ struct ResolvedMask: Interpolable {
     }
 
     // MARK: - Public
-    static func interpolate(
-        from start: ResolvedMask,
-        to end: ResolvedMask,
-        progress: Double
-    ) -> ResolvedMask {
-        ResolvedMask(
-            geometry: .interpolate(from: start.geometry, to: end.geometry, progress: progress),
-            feather: .interpolate(from: start.feather, to: end.feather, progress: progress),
-            isInverted: start.isInverted,
-            mode: start.mode
+    // A feather sampled below 0 by an ease that overshoots is 0.
+    func sampled(at time: Double) -> MaskSample {
+        MaskSample(
+            geometry: geometry.sampled(at: time),
+            feather: max(feather.value(at: time), 0),
+            isInverted: isInverted,
+            mode: mode
         )
     }
 
-    // The same mask with its geometry in another space; its feather, inversion and mode go with it.
-    func replacing(geometry: PathGeometry) -> ResolvedMask {
-        ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)
+    // The same mask with each keyframe of its geometry carried to another space at its own time: an area, a box's
+    // centre and each point by `area` and `point`, and a box's size and a rect's radius by the factor `scale` gives.
+    // A clip area is in the space the clip is drawn in, so it stays, and the feather is in output pixels and stays.
+    func carried(
+        area: (Rectangle, Double, MaskLeaf) throws -> Rectangle,
+        point: (Point, Double, MaskLeaf) throws -> Point,
+        scale: (Double) throws -> Double
+    ) rethrows -> ResolvedMask {
+        let geometry: ResolvedMaskGeometry = switch self.geometry {
+        case let .rect(box, radius):
+            .rect(
+                try carried(box, area: area, point: point, scale: scale),
+                radius: try carried(radius) { try $0 * scale($1) }
+            )
+
+        case let .ellipse(box):
+            .ellipse(try carried(box, area: area, point: point, scale: scale))
+
+        case let .polyline(points):
+            .polyline(try points.enumerated().map { index, keyframes in
+                try carried(keyframes) { value, time in try value.map { try point($0, time, .point(index)) } }
+            })
+        }
+
+        return ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)
     }
 
     // MARK: - Private
+    private func carried(
+        _ rectangle: ResolvedMaskRectangle,
+        area: (Rectangle, Double, MaskLeaf) throws -> Rectangle,
+        point: (Point, Double, MaskLeaf) throws -> Point,
+        scale: (Double) throws -> Double
+    ) rethrows -> ResolvedMaskRectangle {
+        switch rectangle {
+        case let .area(keyframes):
+            .area(try carried(keyframes) { value, time in try value.map { try area($0, time, .area) } })
+
+        case let .box(width, height, position):
+            .box(
+                width: try carried(width) { try $0 * scale($1) },
+                height: try carried(height) { try $0 * scale($1) },
+                position: try carried(position) { value, time in try value.map { try point($0, time, .position) } }
+            )
+        }
+    }
+
+    private func carried<Value>(
+        _ keyframes: [Keyframe<Value>],
+        by carry: (Value, Double) throws -> Value
+    ) rethrows -> [Keyframe<Value>] {
+        try keyframes.map { Keyframe(at: $0.at, value: try carry($0.value, $0.at), ease: $0.ease) }
+    }
 }

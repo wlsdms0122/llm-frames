@@ -90,12 +90,12 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: nil,
-                filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                filter: .off,
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -132,7 +132,7 @@ struct ParentEvaluatorTests {
                 area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
                 fill: Color(written: "#FF0000")
             )),
-            .adjustment([.blur(radius: 3)])
+            .adjustment(.filter([.blur(radius: 3)]))
         ]
     )
     func mapsAreaParent(content: ResolvedClipContent) {
@@ -148,7 +148,7 @@ struct ParentEvaluatorTests {
             id: "bar",
             content: content,
             parent: "shot",
-            mask: isShape ? nil : [Keyframe(at: 0, value: [mask])]
+            mask: isShape ? nil : [mask]
         )
         let child = fill(parent: "bar")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
@@ -209,12 +209,12 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
-                filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                filter: .off,
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -224,7 +224,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -234,7 +234,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, seed: 0, at: time)
 
         // Then
         let item = try #require(items.first)
@@ -258,13 +258,13 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
-                filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                filter: .off,
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             end: 1,
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20)), Keyframe(at: 2, value: Point(x: 50, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40)), Keyframe(at: 2, value: Point(x: 90, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -274,7 +274,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -318,7 +318,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "shot",
             track: track
@@ -328,7 +328,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, seed: 0, at: time)
 
         // Then
         let item = try #require(items.first)
@@ -409,7 +409,7 @@ struct ParentEvaluatorTests {
                     end: 2,
                     crop: crop ?? [Keyframe(at: 0, value: Crop(whole))],
                     track: nil,
-                    filter: [],
+                    filter: .off,
                     transition: nil,
                     filling: size
                 ),
@@ -425,7 +425,7 @@ struct ParentEvaluatorTests {
                     end: 4,
                     crop: [],
                     track: nil,
-                    filter: [],
+                    filter: .off,
                     transition: ResolvedTransition(
                         start: 1.5,
                         end: 2.5,
@@ -467,7 +467,7 @@ struct ParentEvaluatorTests {
             parent: parent,
             box: ResolvedBox(
                 size: Size(width: 100, height: 40),
-                position: [Keyframe(at: 0, value: position)],
+                position: [Keyframe(at: 0, value: Point(x: position.x + 50, y: position.y + 40))],
                 anchor: Point(x: 50, y: 40)
             ),
             scale: scale
@@ -480,7 +480,7 @@ struct ParentEvaluatorTests {
         start: Double = 0,
         end: Double = 4,
         parent: String? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,
@@ -501,7 +501,7 @@ struct ParentEvaluatorTests {
             trackMatte: nil,
             track: track,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: Scale(scale))],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: "normal",
             animation: .none

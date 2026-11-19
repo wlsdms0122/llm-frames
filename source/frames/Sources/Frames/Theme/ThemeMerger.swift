@@ -5,10 +5,14 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Merges theme layers from weakest to strongest: the base theme, a --theme file, a document's theme, the keys on a clip.
+// Merges theme layers from weakest to strongest by the look merge: the base theme, a --theme file, a document's
+// theme. The merged theme's values are checked against their structure, so resolve reads only values it takes. A stop
+// names the layer that writes the value it names, or the base theme where none does.
 struct ThemeMerger: Sendable {
     // MARK: - Property
     private let validator = ThemeValidator()
+    private let reader = LookReader()
+    private let merger = LookMerger()
 
     // MARK: - Initializer
     init() { }
@@ -22,29 +26,25 @@ struct ThemeMerger: Sendable {
             try validator.checkKeys(of: layer)
         }
 
-        let value = layers.reduce(base.value) { under, over in
-            merge(under, over.value, rule: .theme)
+        let structure = LookStructureTable.theme
+        let all = base.layers + layers
+        var value = reader.value(of: base.value, as: structure)
+        do {
+            for layer in layers {
+                value = try merger.merge(value, reader.value(of: layer.value, as: structure), as: structure, place: .root)
+            }
+            try merger.checkRequired(in: value, as: structure, place: .root)
+            try structure.checkDomains(of: value.json(as: structure) ?? .null, place: .root)
+        } catch let error as LookError {
+            let written = MergedTheme(value: value.json(as: structure) ?? .null, layers: all)
+            throw error.placed { written.place(of: $0) }
         }
-        let merged = MergedTheme(value: value, layers: base.layers + layers)
+
+        let merged = MergedTheme(value: value.json(as: structure) ?? .object(JSONObject()), layers: all)
         try validator.checkReferences(in: merged)
 
         return merged
     }
 
     // MARK: - Private
-    private func merge(
-        _ under: JSONValue,
-        _ over: JSONValue,
-        rule: ThemeMergeRule
-    ) -> JSONValue {
-        guard case .byKey = rule, case let .object(underObject) = under, case let .object(overObject) = over else {
-            return over
-        }
-
-        let merged = overObject.members.reduce(underObject) { object, member in
-            let value = object[member.key].map { merge($0, member.value, rule: rule.rule(for: member.key)) } ?? member.value
-            return object.setting(member.key, to: value)
-        }
-        return .object(merged)
-    }
 }

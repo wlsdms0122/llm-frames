@@ -19,13 +19,13 @@ extension ResolvedShape {
             kind: shape.kind,
             geometry: ShapeGeometry(
                 plan: shape.geometry,
-                area: found.area?.keyframes(at: instant) { $0.rectangle },
+                area: found.area?.keyframes(at: instant) { $0.geometry },
                 points: found.points?.keyframes(at: instant) { $0 },
                 position: found.position?.keyframes(at: instant) { $0 },
                 instant: instant,
                 track: found.track
             ),
-            radius: shape.radius.keyframes(at: instant) { $0 },
+            radius: shape.radius,
             trim: shape.trim.keyframes(at: instant) { $0 },
             fill: shape.fill,
             stroke: shape.stroke,

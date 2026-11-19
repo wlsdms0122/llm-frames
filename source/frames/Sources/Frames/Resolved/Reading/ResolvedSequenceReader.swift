@@ -221,19 +221,19 @@ struct ResolvedSequenceReader: Sendable {
             mask: try values.masks(entry.member("mask")),
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
-            filter: try values.filter(entry.member("filter")),
+            filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
             box: ResolvedBox(
                 size: try values.size(entry.member("size")),
-                position: try values.keyframes(entry.member("position"), read: values.point),
+                position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
                 anchor: try values.point(entry.member("anchor"))
             ),
             opacity: try values.numbers(entry.member("opacity")),
-            scale: try values.numbers(entry.member("scale")),
+            scale: try values.scales(entry.member("scale")),
             rotation: try values.numbers(entry.member("rotation")),
             blend: try entry.member("blend").string(),
-            radius: try entry.member("radius").number(),
-            border: try entry.member("border").optional(border),
-            shadow: try entry.member("shadow").optional(shadow),
+            radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
+            border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
+            shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow"),
             transition: try entry.member("transition").optional(transition)
         )
     }
@@ -257,11 +257,7 @@ struct ResolvedSequenceReader: Sendable {
         let box: ResolvedBox? = if size.isNull && (isShape || position.isNull && anchor.isNull) {
             nil
         } else {
-            ResolvedBox(
-                size: try values.size(size),
-                position: try values.keyframes(position, read: values.point),
-                anchor: try values.point(anchor)
-            )
+            try box(size: size, position: position, anchor: anchor)
         }
 
         return ResolvedClip(
@@ -279,7 +275,7 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try clip.member("trackMatte").optional(trackMatte),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
-            scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
+            scale: isTransformed ? try values.scales(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
             blend: try clip.member("blend").string(),
             animation: try values.animation(clip.member("animation"))
@@ -317,7 +313,7 @@ struct ResolvedSequenceReader: Sendable {
             return .shape(try shape(clip, isPlacedByBox: isPlacedByBox))
         }
         if clip.contains("adjust") {
-            return .adjustment(try values.filter(clip.member("adjust")))
+            return .adjustment(try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter))
         }
 
         let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
@@ -325,33 +321,14 @@ struct ResolvedSequenceReader: Sendable {
         return .media(ResolvedMediaClip(
             media: try media(clip.member("media")),
             timing: timing,
-            filter: try values.filter(clip.member("filter")),
+            filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
-                radius: try clip.member("radius").number(),
-                border: try clip.member("border").optional(border),
-                shadow: try clip.member("shadow").optional(shadow)
+                radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
+                border: try values.timed(clip.member("border"), as: LookStructureTable.border, kind: "border"),
+                shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
             )
         ))
-    }
-
-    private func border(_ value: PlacedJSONValue) throws -> MediaBorder {
-        let border = try value.object(keys: ["width", "color"])
-
-        return MediaBorder(
-            width: try border.member("width").number(),
-            color: try values.color(border.member("color"))
-        )
-    }
-
-    private func shadow(_ value: PlacedJSONValue) throws -> DropShadow {
-        let shadow = try value.object(keys: ["radius", "offset", "color"])
-
-        return DropShadow(
-            radius: try shadow.member("radius").number(),
-            offset: try values.point(shadow.member("offset")),
-            color: try values.color(shadow.member("color"))
-        )
     }
 
     // A shape's kind and geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
@@ -364,7 +341,9 @@ struct ResolvedSequenceReader: Sendable {
         let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
-                try values.keyframes(clip.member("points")) { points in try points.elements().map(values.point) },
+                try values.keyframes(clip.member("points")) { points in
+                    try points.elements().map { try values.geometryPoint($0) }
+                },
                 isClosed: try clip.member("closed").bool(),
                 placement: try placement(of: clip)
             )
@@ -372,12 +351,12 @@ struct ResolvedSequenceReader: Sendable {
             .box(
                 width: try values.numbers(clip.member("width")),
                 height: try values.numbers(clip.member("height")),
-                outset: try clip.member("outset").number()
+                outset: try values.timed(clip.member("outset"), as: LookStructureTable.length)
             )
         } else {
             .area(
-                try values.keyframes(clip.member("area"), read: values.rectangle),
-                outset: try clip.member("outset").number(),
+                try values.keyframes(clip.member("area"), read: values.geometryArea),
+                outset: try values.timed(clip.member("outset"), as: LookStructureTable.length),
                 placement: try placement(of: clip)
             )
         }
@@ -385,39 +364,37 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedShape(
             kind: kind,
             geometry: geometry,
-            radius: try values.numbers(clip.member("radius")),
+            radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
             trim: try values.keyframes(clip.member("trim")) { value in
                 let ends = try value.numbers()
                 guard ends.count == 2 else { throw value.wrongType("[a, b]") }
 
                 return Trim(start: ends[0], end: ends[1])
             },
-            fill: try clip.member("fill").optional(values.color),
-            stroke: try clip.member("stroke").optional(stroke),
-            shadow: try clip.member("shadow").optional(shadow)
+            fill: try values.timed(clip.member("fill"), as: LookStructureTable.fill),
+            stroke: try values.timed(clip.member("stroke"), as: LookStructureTable.stroke, kind: "stroke"),
+            shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
+        )
+    }
+
+    private func box(
+        size: PlacedJSONValue,
+        position: PlacedJSONValue,
+        anchor: PlacedJSONValue
+    ) throws -> ResolvedBox {
+        ResolvedBox(
+            size: try values.size(size),
+            position: try values.keyframes(position) { try values.geometryPoint($0) },
+            anchor: try values.point(anchor)
         )
     }
 
     private func placement(of clip: PlacedJSONObject) throws -> GeometryPlacement {
         GeometryPlacement(
-            position: try clip.member("position").optional { value in try values.keyframes(value, read: values.point) },
-            anchor: try clip.member("anchor").optional(values.point)
-        )
-    }
-
-    private func stroke(_ value: PlacedJSONValue) throws -> PathStroke {
-        let stroke = try value.object(kind: "stroke", keys: ["color", "width", "join", "cap", "start", "end"])
-        let end = { (key: String) in
-            try stroke.member(key).name(among: StrokeEnd.allCases.map(\.rawValue), StrokeEnd.init)
-        }
-
-        return PathStroke(
-            width: try stroke.member("width").number(),
-            color: try values.color(stroke.member("color")),
-            join: try stroke.member("join").name(among: StrokeJoin.allCases.map(\.rawValue), StrokeJoin.init),
-            cap: try stroke.member("cap").name(among: StrokeCap.allCases.map(\.rawValue), StrokeCap.init),
-            start: try end("start"),
-            end: try end("end")
+            position: try clip.member("position").optional { value in
+                try values.keyframes(value) { try values.geometryPoint($0) }
+            },
+            anchor: try clip.member("anchor").optional(values.geometryAnchor)
         )
     }
 
@@ -438,7 +415,7 @@ struct ResolvedSequenceReader: Sendable {
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
             "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
-            "pan", "fadeIn", "fadeOut", "incoming", "outgoing"
+            "pan", "fadeIn", "fadeOut", "incoming", "outgoing", "audioFilter"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
 
@@ -463,7 +440,8 @@ struct ResolvedSequenceReader: Sendable {
             fadeIn: try range("fadeIn"),
             fadeOut: try range("fadeOut"),
             incoming: try sound.member("incoming").optional(crossfade),
-            outgoing: try sound.member("outgoing").optional(crossfade)
+            outgoing: try sound.member("outgoing").optional(crossfade),
+            audioFilter: try values.timed(sound.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
         )
     }
 

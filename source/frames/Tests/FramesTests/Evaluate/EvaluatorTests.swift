@@ -275,7 +275,7 @@ struct EvaluatorTests {
             end: 2,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: [],
+            filter: .off,
             transition: nil,
             filling: size
         )
@@ -450,7 +450,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let sequence = sequence(
@@ -558,15 +558,15 @@ struct EvaluatorTests {
                     .shape(ResolvedShape(
                         kind: .rect,
                         geometry: .area(
-                            [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))],
+                            [Keyframe(at: 0, value: .rectangle(Rectangle(x: 150, y: 75, width: 40, height: 20)))],
                             outset: 0,
                             placement: GeometryPlacement()
                         ),
-                        radius: [Keyframe(at: 0, value: 2)],
+                        radius: 2,
                         trim: [Keyframe(at: 0, value: .whole)],
-                        fill: nil,
-                        stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none),
-                        shadow: nil
+                        fill: .off,
+                        stroke: .stroke(PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)),
+                        shadow: .off
                     )),
                     storyline: 0,
                     parent: "shot"
@@ -590,7 +590,7 @@ struct EvaluatorTests {
         }
         let corners = item.transform.apply(toCornersOf: rectangle)
         #expect(isClose(corners, area))
-        #expect(abs(stroke.width * item.transform.a - 4) < 1e-9)
+        #expect(stroke.width == 4)
         #expect(abs(radius * item.transform.a - 2) < 1e-9)
     }
 
@@ -607,7 +607,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let sequence = sequence(
@@ -623,7 +623,112 @@ struct EvaluatorTests {
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
-        #expect(item.content == .glyphs(GlyphsItem(text: text)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: time)))
+    }
+
+    @Test(
+        "a title on a flipped parent is never mirrored: upright under a horizontal flip, a half turn under a vertical one",
+        arguments: [(Scale(x: -1, y: 1), [1.0, 0, 0, 1]), (Scale(x: 1, y: -1), [-1.0, 0, 0, -1])]
+    )
+    func keepsTitleUnmirroredOnFlippedParent(
+        flip: Scale,
+        linear: [Double]
+    ) throws {
+        // Given
+        let text = text(Size(width: 60, height: 20))
+        let box = ResolvedBox(
+            size: Size(width: 60, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
+            anchor: Point(x: 30, y: 10)
+        )
+        let title = clip(.title(text), storyline: 0, parent: "shot", box: box)
+        let shot = transformed(
+            storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
+            scale: [Keyframe(at: 0, value: flip)]
+        )
+        let sequence = sequence([shot], clips: [title])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // The anchor point (160, 75) in the picture follows the parent's whole map.
+        let item = try #require(list.items.last)
+        let transform = item.transform
+        let parent = ParentEvaluator(sequence: sequence).space(of: title, at: 1).transform
+        #expect(zip([transform.a, transform.b, transform.c, transform.d], linear).allSatisfy { abs($0 - $1) < 1e-9 })
+        #expect(isClose(transform.apply(to: Point(x: 30, y: 10)), parent.apply(to: Point(x: 160, y: 75))))
+    }
+
+    @Test("a rect placed by its area under a turned shape on a picture stretched along x is skewed by the whole map, its stroke not")
+    func skewsGeometryThroughParent() throws {
+        // Given
+        let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .none)
+        let card = geometryClip(
+            id: "card",
+            parent: "shot",
+            shape: ResolvedShape(area: [Keyframe(at: 0, value: Rectangle(x: 100, y: 50, width: 80, height: 40))], fill: red),
+            rotation: 30
+        )
+        let child = geometryClip(
+            id: "child",
+            parent: "card",
+            shape: ResolvedShape(area: [Keyframe(at: 0, value: Rectangle(x: 10, y: 10, width: 20, height: 10))], fill: nil, stroke: stroke),
+            rotation: 0
+        )
+        let shot = transformed(
+            storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
+            scale: [Keyframe(at: 0, value: Scale(x: 2, y: 1))]
+        )
+        let sequence = sequence([shot], clips: [card, child])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let item = try #require(list.items.last)
+        guard case let .path(path) = item.content, let drawn = path.stroke else {
+            Issue.record("the child is a stroked path")
+            return
+        }
+        let parent = ParentEvaluator(sequence: sequence).space(of: child, at: 1).transform
+        let transform = item.transform
+        #expect(zip(transform.matrix, parent.matrix).allSatisfy { abs($0 - $1) < 1e-9 })
+        // The images of the x and y axes are not at right angles.
+        #expect(abs(transform.a * transform.c + transform.b * transform.d) > 0.1)
+        #expect(drawn.width == 4)
+    }
+
+    @Test("under a parent at scale 0 a rect placed by its area draws nothing, and a title keeps its size, upright")
+    func collapsesUnderFlatParent() throws {
+        // Given
+        let text = text(Size(width: 60, height: 20))
+        let box = ResolvedBox(
+            size: Size(width: 60, height: 20),
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
+            anchor: Point(x: 30, y: 10)
+        )
+        let shape = geometryClip(
+            id: "child",
+            parent: "shot",
+            shape: ResolvedShape(area: [Keyframe(at: 0, value: Rectangle(x: 10, y: 10, width: 20, height: 10))], fill: red),
+            rotation: 0
+        )
+        let title = clip(.title(text), storyline: 0, parent: "shot", box: box)
+        let shot = transformed(
+            storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
+            scale: [Keyframe(at: 0, value: Scale(0))]
+        )
+
+        // When
+        let list = sut.displayList(of: sequence([shot], clips: [shape, title]), at: 1)
+
+        // Then
+        let paths = list.items.filter { item in if case .path = item.content { true } else { false } }
+        let item = try #require(list.items.last)
+        #expect(paths.isEmpty)
+        #expect([item.transform.a, item.transform.b, item.transform.c, item.transform.d] == [1, 0, 0, 1])
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: 1)))
     }
 
     @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")
@@ -702,7 +807,7 @@ struct EvaluatorTests {
         let media = mediaClip(
             timing: nil,
             filter: [.blur(radius: 2)],
-            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: border, shadow: shadow),
+            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: .border(border), shadow: .shadow(shadow)),
             blend: "screen"
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
@@ -719,7 +824,7 @@ struct EvaluatorTests {
                 source: .media(MediaFrame(media: second, index: 0)),
                 rectangle: Rectangle(x: 0, y: 0, width: 400, height: 200),
                 destination: Rectangle(x: 0, y: 0, width: 80, height: 40),
-                filter: [.blur(radius: 2)],
+                filter: [FilterEntry(operations: [.blur(radius: 2)])],
                 radius: 6,
                 border: border,
                 shadow: shadow
@@ -735,7 +840,7 @@ struct EvaluatorTests {
         let shadow = DropShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            scale: [Keyframe(at: 0, value: 0.5)],
+            scale: [Keyframe(at: 0, value: Scale(0.5))],
             opacity: 0.5,
             blend: "screen",
             radius: 8,
@@ -747,14 +852,15 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence([entry]), at: 1)
 
         // Then
-        // Half size about the centre of the frame, which is its anchor.
+        // Half size about the centre of the frame, which is its anchor. The border width and the shadow radius are
+        // in output pixels at that scale; the radius and the shadow offset are carried by the transform.
         let picture = PictureItem(
             source: .media(MediaFrame(media: first, index: 4)),
             rectangle: whole,
             destination: frame,
             radius: 8,
-            border: border,
-            shadow: shadow
+            border: MediaBorder(width: 1, color: white),
+            shadow: DropShadow(radius: 2, offset: Point(x: 0, y: 2), color: background)
         )
         let inner = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 50, ty: 25),
@@ -770,8 +876,8 @@ struct EvaluatorTests {
         // Given
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            position: [Keyframe(at: 0, value: Point(x: 0, y: 0)), Keyframe(at: 2, value: Point(x: 100, y: 0))],
-            scale: [Keyframe(at: 0, value: 1), Keyframe(at: 2, value: 0.5)]
+            topLeft: [Keyframe(at: 0, value: Point(x: 0, y: 0)), Keyframe(at: 2, value: Point(x: 100, y: 0))],
+            scale: [Keyframe(at: 0, value: Scale(1)), Keyframe(at: 2, value: Scale(0.5))]
         )
 
         // When
@@ -803,7 +909,7 @@ struct EvaluatorTests {
             storylineClip(.pinned(first), in: 1, start: 0, end: 2),
             transformed(
                 storylineClip(.pinned(second), in: 1, start: 2, end: 4, transition: transition),
-                scale: [Keyframe(at: 2, value: 0.5)],
+                scale: [Keyframe(at: 2, value: Scale(0.5))],
                 blend: "multiply"
             )
         ])
@@ -836,8 +942,8 @@ struct EvaluatorTests {
         let area = Rectangle(x: 0, y: 0, width: 20, height: 20)
         let entry = transformed(
             storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
-            position: [Keyframe(at: 0, value: Point(x: 20, y: 10))],
-            scale: [Keyframe(at: 0, value: 0.5)]
+            topLeft: [Keyframe(at: 0, value: Point(x: 20, y: 10))],
+            scale: [Keyframe(at: 0, value: Scale(0.5))]
         )
         let sequence = sequence([entry], clips: [fillClip(area, lane: 1, storyline: 0, parent: "shot")])
 
@@ -909,15 +1015,15 @@ struct EvaluatorTests {
     func carriesParentedAdjustment() throws {
         // Given
         let adjustment = clip(
-            .adjustment([.blur(radius: 3)]),
+            .adjustment(.filter([.blur(radius: 3)])),
             storyline: 0,
             parent: "shot",
-            mask: [Keyframe(at: 0, value: [ResolvedMask(
+            mask: [ResolvedMask(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 200, height: 100), radius: 0),
                 feather: 0,
                 isInverted: false,
                 mode: .add
-            )])],
+            )],
             opacity: 0.5
         )
         let sequence = sequence([storylineClip(.pinned(first), id: "shot", start: 0, end: 4)], clips: [adjustment])
@@ -937,7 +1043,7 @@ struct EvaluatorTests {
                 isInverted: false,
                 mode: .add
             )],
-            content: .adjust(AdjustItem(filter: [.blur(radius: 3)])),
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 3)])])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
         let picture = storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry)
@@ -952,9 +1058,9 @@ struct EvaluatorTests {
             SpanKey(t: 1, values: [.reveal: 1])
         ]))
         let adjustment = clip(
-            .adjustment([.blur(radius: 2)]),
+            .adjustment(.filter([.blur(radius: 2)])),
             storyline: 0,
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
 
@@ -965,7 +1071,7 @@ struct EvaluatorTests {
         // Halfway through its entrance the wipe shows the left half of the 200 x 100 frame.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
-            content: .adjust(AdjustItem(filter: [.blur(radius: 2)])),
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 2)])])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         ))
     }
@@ -976,8 +1082,8 @@ struct EvaluatorTests {
         let mask = ResolvedMask(geometry: .ellipse(whole), feather: 4, isInverted: false, mode: .add)
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            scale: [Keyframe(at: 0, value: 0.5)],
-            mask: [Keyframe(at: 0, value: [mask])]
+            scale: [Keyframe(at: 0, value: Scale(0.5))],
+            mask: [mask]
         )
 
         // When
@@ -1015,7 +1121,7 @@ struct EvaluatorTests {
             storylineClip(.pinned(first), in: 1, start: 0, end: 2),
             transformed(
                 storylineClip(.pinned(second), in: 1, start: 2, end: 4, transition: transition),
-                mask: [Keyframe(at: 2, value: [mask])]
+                mask: [mask]
             )
         ])
 
@@ -1041,17 +1147,10 @@ struct EvaluatorTests {
             TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 35, y: -5, width: 20, height: 20))
         ])
-        let mask = [
-            Keyframe(at: 0, value: [
-                ResolvedMask(geometry: .ellipse(target), feather: 2, isInverted: false, mode: .add)
-            ]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .ellipse(Rectangle(x: 55, y: -5, width: 20, height: 20)),
-                feather: 2,
-                isInverted: false,
-                mode: .add
-            )])
-        ]
+        let mask = [ResolvedMask(samples: [
+            (at: 0, geometry: .ellipse(target), feather: 2),
+            (at: 2, geometry: .ellipse(Rectangle(x: 55, y: -5, width: 20, height: 20)), feather: 2)
+        ])]
         let entry = transformed(storylineClip(.pinned(first), start: 0, end: 4, track: track), mask: mask)
 
         // When
@@ -1079,17 +1178,10 @@ struct EvaluatorTests {
             TrackedFrame(time: 1, rectangle: Rectangle(x: 100, y: 60, width: 40, height: 20)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 100, y: 20, width: 40, height: 20))
         ])
-        let mask = [
-            Keyframe(at: 0, value: [
-                ResolvedMask(geometry: .rect(target, radius: 0), feather: 0, isInverted: false, mode: .add)
-            ]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 140, y: 20, width: 40, height: 20), radius: 0),
-                feather: 0,
-                isInverted: false,
-                mode: .add
-            )])
-        ]
+        let mask = [ResolvedMask(samples: [
+            (at: 0, geometry: .rect(target, radius: 0), feather: 0),
+            (at: 2, geometry: .rect(Rectangle(x: 140, y: 20, width: 40, height: 20), radius: 0), feather: 0)
+        ])]
         let shape = ResolvedShape(area: [Keyframe(at: 0, value: whole)], fill: red)
         let sequence = sequence(
             [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
@@ -1168,22 +1260,22 @@ struct EvaluatorTests {
             end: end,
             crop: crop,
             track: track,
-            filter: filter,
+            filter: .filter(filter),
             transition: transition,
             filling: frame ?? size
         )
     }
 
     // `entry` with its own transform, opacity, blend, box drawing and masks in place of the ones that fill the frame,
-    // its anchor still the centre of the frame.
+    // its anchor still the centre of the frame and its box's top left at `topLeft`.
     private func transformed(
         _ entry: ResolvedStorylineClip,
-        position: [Keyframe<Point>]? = nil,
-        scale: [Keyframe<Double>]? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        topLeft: [Keyframe<Point>]? = nil,
+        scale: [Keyframe<Scale>]? = nil,
+        mask: [ResolvedMask]? = nil,
         opacity: Double = 1,
         blend: String = "normal",
-        radius: Double = 0,
+        radius: TimedValue = .off,
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
@@ -1203,14 +1295,20 @@ struct EvaluatorTests {
             trackMatte: nil,
             track: entry.track,
             filter: entry.filter,
-            box: ResolvedBox(size: entry.box.size, position: position ?? entry.box.position, anchor: entry.box.anchor),
+            box: ResolvedBox(
+                size: entry.box.size,
+                position: topLeft.map { keyframes in
+                    keyframes.map { $0.map { .point(Point(x: $0.x + entry.box.anchor.x, y: $0.y + entry.box.anchor.y)) } }
+                } ?? entry.box.position,
+                anchor: entry.box.anchor
+            ),
             opacity: [Keyframe(at: entry.start, value: opacity)],
             scale: scale ?? entry.scale,
             rotation: entry.rotation,
             blend: blend,
             radius: radius,
-            border: border,
-            shadow: shadow,
+            border: .border(border),
+            shadow: .shadow(shadow),
             transition: entry.transition
         )
     }
@@ -1259,7 +1357,7 @@ struct EvaluatorTests {
         lane: Int = 1,
         storyline: Int? = nil,
         parent: String? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,
@@ -1282,10 +1380,39 @@ struct EvaluatorTests {
             trackMatte: nil,
             track: track,
             opacity: [Keyframe(at: 0, value: opacity)],
-            scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: .identity)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: blend,
             animation: animation
+        )
+    }
+
+    // A shape placed by its geometry on storyline 0, at scale 1 and turned by `rotation` about its anchor point.
+    private func geometryClip(
+        id: String,
+        parent: String,
+        shape: ResolvedShape,
+        rotation: Double
+    ) -> ResolvedClip {
+        ResolvedClip(
+            place: "clips[0]",
+            id: id,
+            content: .shape(shape),
+            start: 0,
+            end: 4,
+            lane: 1,
+            storyline: 0,
+            parent: parent,
+            box: nil,
+            crop: nil,
+            mask: nil,
+            trackMatte: nil,
+            track: nil,
+            opacity: [Keyframe(at: 0, value: 1)],
+            scale: [Keyframe(at: 0, value: .identity)],
+            rotation: [Keyframe(at: 0, value: rotation)],
+            blend: "normal",
+            animation: .none
         )
     }
 
@@ -1294,14 +1421,14 @@ struct EvaluatorTests {
         timing: MediaTiming?,
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
-        appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
+        appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off),
         blend: String = "normal",
         track: ResolvedTrack? = nil
     ) -> ResolvedClip {
-        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: filter, appearance: appearance)
+        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: .filter(filter), appearance: appearance)
         let box = ResolvedBox(
             size: Size(width: 80, height: 40),
-            position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
             anchor: Point(x: 40, y: 20)
         )
 
@@ -1398,7 +1525,7 @@ struct EvaluatorTests {
             source: .media(MediaFrame(media: media, index: frame)),
             rectangle: whole,
             destination: destination ?? self.frame,
-            filter: filter
+            filter: filter.isEmpty ? [] : [FilterEntry(operations: filter)]
         )
 
         return DisplayItem(content: .picture(picture), origin: origin ?? videoEntry)
@@ -1406,11 +1533,16 @@ struct EvaluatorTests {
 
     private func run() -> ResolvedGlyphRun {
         ResolvedGlyphRun(
+            source: 0,
             font: PinnedFile(path: "/abs/font.ttf", sha256: String(repeating: "0", count: 64)),
             face: "Font-Bold",
             size: 30,
-            color: white,
-            stroke: nil,
+            color: .track([Keyframe(at: 0, value: .color(white))]),
+            stroke: .off,
+            baselineShift: .off,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 8, y: 34)]
         )
     }

@@ -7,8 +7,9 @@
 
 // A connected or sequence clip as written, its keyframes on the clip's clock. `parent` is the id the clip names.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` and
-// `shadow` are a media clip's; a shape's own keys are in its content. `filter` is a media clip's `filter` or an
-// adjustment's `adjust`.
+// `shadow` are a media clip's; a shape's own keys are in its content. `animation` and `filter` are preset choices
+// as written, which resolve merges over the theme's defaults, `filter` with its keyframes; `filter` is a media clip's
+// `filter` or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -20,25 +21,25 @@ struct Clip: Equatable, Sendable {
     let parent: String?
     let placement: String?
     let anchor: String?
-    let animation: AnimationChoice?
+    let animation: JSONValue?
     let keyframes: [KeyframeInstant]
     let area: PropertyValue<AreaForm>?
     let position: PropertyValue<PositionForm>?
     let crop: PropertyValue<CropForm>?
-    let mask: PropertyValue<[ClipMask]>?
+    let mask: LookProperty?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
     let width: Double?
     let height: Double?
     let conform: Conform?
-    let radius: Double?
-    let border: BorderForm?
-    let shadow: ShadowForm?
+    let radius: LookProperty?
+    let border: LookProperty?
+    let shadow: LookProperty?
     let opacity: PropertyValue<Double>?
-    let scale: PropertyValue<Double>?
+    let scale: PropertyValue<Scale>?
     let rotation: PropertyValue<Double>?
     let blend: String?
-    let filter: FilterChoice?
+    let filter: LookProperty?
 
     // MARK: - Initializer
     init(
@@ -51,25 +52,25 @@ struct Clip: Equatable, Sendable {
         parent: String? = nil,
         placement: String? = nil,
         anchor: String? = nil,
-        animation: AnimationChoice?,
+        animation: JSONValue?,
         keyframes: [KeyframeInstant],
         area: PropertyValue<AreaForm>? = nil,
         position: PropertyValue<PositionForm>? = nil,
         crop: PropertyValue<CropForm>? = nil,
-        mask: PropertyValue<[ClipMask]>? = nil,
+        mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,
-        radius: Double? = nil,
-        border: BorderForm? = nil,
-        shadow: ShadowForm? = nil,
+        radius: LookProperty? = nil,
+        border: LookProperty? = nil,
+        shadow: LookProperty? = nil,
         opacity: PropertyValue<Double>? = nil,
-        scale: PropertyValue<Double>? = nil,
+        scale: PropertyValue<Scale>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        filter: FilterChoice? = nil
+        filter: LookProperty? = nil
     ) {
         self.place = place
         self.id = id

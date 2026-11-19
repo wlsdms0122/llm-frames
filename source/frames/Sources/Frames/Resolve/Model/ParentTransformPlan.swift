@@ -9,19 +9,20 @@
 // entry holds it, in its own parent's space, and every keyframe is in sequence time. `transform(at:)` maps the space
 // its children are written in to that of its own parent, without its animation and its tracked motion, and must lay
 // the shape out as evaluation does: a tracked shape's keyframes are brought back to the instant first. Its outset
-// takes no part.
+// takes no part. ParentSpacePlanner takes no transform of a shape whose geometry or position holds a clip area, which
+// only evaluation knows the box of.
 struct ParentTransformPlan: Equatable, Sendable {
     // MARK: - Property
     let geometry: ShapeGeometry
     let track: TrackedMedia?
-    let scale: [Keyframe<Double>]
+    let scale: [Keyframe<Scale>]
     let rotation: [Keyframe<Double>]
 
     // MARK: - Initializer
     init(
         geometry: ShapeGeometry,
         track: TrackedMedia?,
-        scale: [Keyframe<Double>],
+        scale: [Keyframe<Scale>],
         rotation: [Keyframe<Double>]
     ) {
         self.geometry = geometry
@@ -36,7 +37,9 @@ struct ParentTransformPlan: Equatable, Sendable {
         return AffineTransform(
             placing: bounds(at: time),
             anchor: placement?.anchor,
-            position: placement?.position.map { position in (track?.position(position) ?? position).value(at: time) },
+            position: placement?.position.map { position in
+                (track?.position(position) ?? position).map { $0.map(\.fixed) }.value(at: time)
+            },
             scale: scale.value(at: time),
             rotation: rotation.value(at: time)
         )
@@ -45,14 +48,14 @@ struct ParentTransformPlan: Equatable, Sendable {
     // MARK: - Private
     private func bounds(at time: Double) -> Rectangle {
         switch geometry {
-        case .box:
-            geometry.bounds(at: time)
+        case let .box(width, height, _):
+            Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time))
 
         case let .area(area, _, _):
-            (track?.area(area) ?? area).value(at: time)
+            (track?.area(area) ?? area).map { $0.map(\.fixed) }.value(at: time)
 
         case let .points(points, _, _):
-            Rectangle(bounding: (track?.points(points) ?? points).value(at: time))
+            Rectangle(bounding: (track?.points(points) ?? points).map { $0.map { $0.map(\.fixed) } }.value(at: time))
         }
     }
 }

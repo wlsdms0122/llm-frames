@@ -10,7 +10,7 @@ extension ResolvedAnimation {
     // MARK: - Property
     // MARK: - Initializer
     init(plan: AnimationPlan) {
-        self.init(entrance: plan.entrance?.span, loop: plan.loop?.span, exit: plan.exit?.span)
+        self.init(entrance: plan.entrance?.span, loop: plan.loop?.span, exit: plan.exit?.span, units: plan.units)
     }
 
     // MARK: - Public

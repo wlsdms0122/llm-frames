@@ -82,7 +82,9 @@ struct ChoiceArgumentTests {
         // Then
         let json = try Fixture.object(text)
         let storyline = json["storyline"]?.arrayValue ?? []
-        let filter = storyline.first?.objectValue?["filter"]?.arrayValue?.compactMap { $0.objectValue?["amount"] }
+        let filter = storyline.first?.objectValue?["filter"]?.arrayValue?.compactMap { entry in
+            entry.objectValue?["ops"]?.arrayValue?.first?.objectValue?["amount"]?.arrayValue?.first?.objectValue?["value"]
+        }
         let transition = storyline.last?.objectValue?["transition"]?.objectValue
         let entrance = json["clips"]?.arrayValue?.first?.objectValue?["animation"]?.objectValue?["entrance"]?.objectValue
         #expect(filter == [.number(0.05), .number(0.02)])

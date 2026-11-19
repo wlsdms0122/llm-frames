@@ -21,6 +21,10 @@ enum BlendMode: String, CaseIterable, Sendable {
     case difference
     case exclusion
     case plusLighter = "plus-lighter"
+    case hue
+    case saturation
+    case color
+    case luminosity
 
     // MARK: - Property
     var kernelName: String {
@@ -63,6 +67,18 @@ enum BlendMode: String, CaseIterable, Sendable {
 
         case .plusLighter:
             "blendPlusLighter"
+
+        case .hue:
+            "blendHue"
+
+        case .saturation:
+            "blendSaturation"
+
+        case .color:
+            "blendColor"
+
+        case .luminosity:
+            "blendLuminosity"
         }
     }
 

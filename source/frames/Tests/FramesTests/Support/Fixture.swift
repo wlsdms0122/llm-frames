@@ -100,6 +100,7 @@ enum Fixture {
             "mine/same-take": transition(seconds: 1, audio: .constantGain)
         ],
         animations: [
+            "frames/none": AnimationPreset(description: "", entrance: nil, loop: nil, exit: nil),
             "frames/pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
             "frames/fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
             "frames/stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
@@ -107,8 +108,21 @@ enum Fixture {
             "frames/pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
         ],
         filters: [
-            "frames/warm": FilterPreset(description: "", operations: []),
-            "mine/grade": FilterPreset(description: "", operations: [.saturation(amount: 1.25), .blur(radius: 4)])
+            "frames/warm": #"{"description": "", "ops": []}"#,
+            "mine/grade": #"{"description": "", "ops": [{"op": "saturation", "amount": 1.25}, {"op": "blur", "radius": 4}]}"#
+        ],
+        audio: [
+            "mine/voice": #"""
+                { "description": "", "params": {
+                    "cut": { "type": "number", "default": 80, "description": "the rumble cut" },
+                    "squash": { "type": "number", "default": 3, "description": "the ratio" } },
+                  "ops": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": { "param": "cut" } } ] },
+                           { "op": "compressor", "threshold": -18, "ratio": { "param": "squash" } } ] }
+                """#,
+            "mine/gate": #"""
+                { "description": "", "params": { "attack": { "type": "number", "default": 0.01, "description": "the attack" } },
+                  "ops": [ { "op": "gate", "threshold": -40, "attack": { "param": "attack" } } ] }
+                """#
         ]
     )
 

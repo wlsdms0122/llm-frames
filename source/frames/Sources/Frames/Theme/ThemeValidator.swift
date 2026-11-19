@@ -69,14 +69,10 @@ struct ThemeValidator: Sendable {
         let titlePlace = animationPlace.appending(key: "title")
         let titles = animation["title"]?.objectValue ?? JSONObject()
 
+        try checkFilter(defaults["filter"], place: place.appending(key: "filter"), theme: theme, presets: presets)
+
         return ThemeDefaults(
             transition: try transitionChoice(in: defaults, place: place, theme: theme, presets: presets),
-            filter: try filterPresets(
-                defaults["filter"],
-                place: place.appending(key: "filter"),
-                theme: theme,
-                presets: presets
-            ),
             titleAnimations: Dictionary(
                 try titles.members.map { member in
                     let choice = try animationChoice(
@@ -145,16 +141,17 @@ struct ThemeValidator: Sendable {
         return choice
     }
 
-    // `none` names no preset.
-    private func filterPresets(
+    // `none` names no preset. A clip that takes the default reads it from the theme, as one that merges a choice over
+    // it does.
+    private func checkFilter(
         _ value: JSONValue?,
         place: Place,
         theme: MergedTheme,
         presets: any PresetProvider
-    ) throws -> [ThemeFilterPreset] {
+    ) throws {
         let choice = value.flatMap { FilterChoice(value: $0, place: theme.place(of: place)) } ?? FilterChoice(presets: [])
 
-        return try choice.presets.map { instance in
+        for instance in choice.presets {
             guard let preset = try presets.filter(instance) else {
                 throw ThemeError.unknownPreset(
                     place: instance.place,
@@ -167,8 +164,6 @@ struct ThemeValidator: Sendable {
             for case let .bloom(_, _, .some(color)) in preset.operations {
                 _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
             }
-
-            return ThemeFilterPreset(preset: preset, place: instance.place)
         }
     }
 
@@ -193,7 +188,7 @@ struct ThemeValidator: Sendable {
         case .none:
             []
 
-        case let .preset(instance):
+        case let .preset(instance, _, _):
             [instance]
 
         case let .split(entrance, exit):

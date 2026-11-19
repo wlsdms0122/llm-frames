@@ -31,22 +31,29 @@ struct TrackedMedia: Equatable, Sendable {
         track.motion(atMediaTime: clock.mediaTime(atSequenceTime: time))
     }
 
-    func area(_ keyframes: [Keyframe<Rectangle>]) -> [Keyframe<Rectangle>] {
-        keyframes.map { keyframe in
-            Keyframe(at: keyframe.at, value: motion(at: keyframe.at).bringBack(keyframe.value), ease: keyframe.ease)
-        }
-    }
-
-    func position(_ keyframes: [Keyframe<Point>]) -> [Keyframe<Point>] {
-        keyframes.map { keyframe in
-            Keyframe(at: keyframe.at, value: motion(at: keyframe.at).bringBack(keyframe.value), ease: keyframe.ease)
-        }
-    }
-
-    func points(_ keyframes: [Keyframe<[Point]>]) -> [Keyframe<[Point]>] {
+    // A clip area is the named clip's box at each instant evaluated, so it is not brought back.
+    func area(_ keyframes: [Keyframe<GeometryArea>]) -> [Keyframe<GeometryArea>] {
         keyframes.map { keyframe in
             let motion = self.motion(at: keyframe.at)
             return Keyframe(at: keyframe.at, value: keyframe.value.map { motion.bringBack($0) }, ease: keyframe.ease)
+        }
+    }
+
+    func position(_ keyframes: [Keyframe<GeometryPoint>]) -> [Keyframe<GeometryPoint>] {
+        keyframes.map { keyframe in
+            let motion = self.motion(at: keyframe.at)
+            return Keyframe(at: keyframe.at, value: keyframe.value.map { motion.bringBack($0) }, ease: keyframe.ease)
+        }
+    }
+
+    func points(_ keyframes: [Keyframe<[GeometryPoint]>]) -> [Keyframe<[GeometryPoint]>] {
+        keyframes.map { keyframe in
+            let motion = self.motion(at: keyframe.at)
+            return Keyframe(
+                at: keyframe.at,
+                value: keyframe.value.map { point in point.map { motion.bringBack($0) } },
+                ease: keyframe.ease
+            )
         }
     }
 

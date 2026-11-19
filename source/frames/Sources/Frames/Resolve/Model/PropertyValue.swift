@@ -9,11 +9,11 @@
 // stopped at the key tables.
 enum PropertyValue<Value: Equatable & Sendable>: Equatable, Sendable {
     case value(Value)
-    case keyframes([TimedValue<Value>])
+    case keyframes([PropertyKeyframe<Value>])
 
     // MARK: - Property
     // The earliest keyframe, the first written of those at one instant, and nil for a static value.
-    var first: TimedValue<Value>? {
+    var first: PropertyKeyframe<Value>? {
         switch self {
         case .value:
             nil
@@ -37,7 +37,7 @@ enum PropertyValue<Value: Equatable & Sendable>: Equatable, Sendable {
     // MARK: - Public
     // MARK: - Private
     // A property is read with keyframes only where at least one keyframe writes it, so the list is never empty.
-    private static func earliest(of keyframes: [TimedValue<Value>]) -> TimedValue<Value> {
+    private static func earliest(of keyframes: [PropertyKeyframe<Value>]) -> PropertyKeyframe<Value> {
         keyframes.dropFirst().reduce(keyframes[0]) { earliest, keyframe in
             keyframe.at < earliest.at ? keyframe : earliest
         }
