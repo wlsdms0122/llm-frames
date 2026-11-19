@@ -79,7 +79,7 @@ struct PictureDrawer {
             .cropped(to: extent)
         if let pictureMatte = item.matte, let matte {
             picture = try MatteApplier()
-                .apply(pictureMatte, frame: matte, to: picture, size: size, compositing: compositing)
+                .apply(pictureMatte, frame: matte, to: picture, size: size)
         }
 
         let filtered = try FrameContext.cgImage(of: picture, in: extent, compositing: compositing)
