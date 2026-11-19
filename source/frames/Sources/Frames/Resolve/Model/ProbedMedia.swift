@@ -8,7 +8,8 @@
 // The probed facts of one media file. `frames` holds a video's frame timestamps and `duration` its length, both in
 // media time: the file's presentation timeline, which its picture and its sound share. A time before the first frame
 // shows the first frame. `size` is the picture's, nil for sound, and `hasAlpha` says whether the picture carries
-// alpha. `sound` is the format of the file's first sound track, nil when it has none.
+// alpha. `colorSpace` is the picture's colour facts, nil for sound. `sound` is the format of the file's first sound
+// track, nil when it has none.
 package struct ProbedMedia: Equatable, Sendable {
     // MARK: - Property
     package let kind: MediaKind
@@ -17,6 +18,7 @@ package struct ProbedMedia: Equatable, Sendable {
     package let frames: [Double]
     package let size: Size?
     package let hasAlpha: Bool
+    package let colorSpace: ProbedColorSpace?
     package let sound: ProbedSound?
 
     package var hasSound: Bool {
@@ -31,6 +33,7 @@ package struct ProbedMedia: Equatable, Sendable {
         frames: [Double] = [],
         size: Size? = nil,
         hasAlpha: Bool = false,
+        colorSpace: ProbedColorSpace? = nil,
         sound: ProbedSound? = nil
     ) {
         self.kind = kind
@@ -39,6 +42,7 @@ package struct ProbedMedia: Equatable, Sendable {
         self.frames = frames
         self.size = size
         self.hasAlpha = hasAlpha
+        self.colorSpace = colorSpace
         self.sound = sound
     }
 

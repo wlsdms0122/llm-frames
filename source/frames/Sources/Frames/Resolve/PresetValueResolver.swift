@@ -6,7 +6,7 @@
 //
 
 // Resolves the names a preset holds to the values a resolved document carries: a LUT, matte or cover file to its
-// absolute path, and a theme colour to `#RRGGBBAA` in the theme where the preset is chosen. A preset names files as
+// absolute path, and a theme colour to its value in the theme where the preset is chosen. A preset names files as
 // anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
 // installed, and an absolute path stays as it is.
 struct PresetValueResolver: Sendable {
@@ -27,8 +27,8 @@ struct PresetValueResolver: Sendable {
         kind: PlaceKind
     ) throws -> FilterOperation {
         switch operation {
-        case let .lut(file, amount):
-            .lut(file: try lutFile(file, place: place, kind: kind), amount: amount)
+        case let .lut(file, amount, space):
+            .lut(file: try lutFile(file, place: place, kind: kind), amount: amount, space: space)
 
         case let .bloom(amount, radius, color):
             .bloom(
@@ -63,12 +63,17 @@ struct PresetValueResolver: Sendable {
                 Cover(source: .color(try theme.presetColor(color, place: place, kind: kind)), span: cover.span)
 
             case let .media(media):
-                Cover(source: .media(try mediaFile(media, place: place, kind: kind)), span: cover.span)
+                Cover(
+                    source: .media(try mediaFile(media, place: place, kind: kind)),
+                    colorSpace: cover.colorSpace,
+                    span: cover.span
+                )
             }
         }
         let matte = try preset.matte.map { matte in
             Matte(
                 media: try mediaFile(matte.media, place: place, kind: kind),
+                colorSpace: matte.colorSpace,
                 softness: matte.softness,
                 isInverted: matte.isInverted,
                 ease: matte.ease

@@ -24,11 +24,11 @@ A value means one thing only when its unit and origin are fixed. A document is w
 | Area padding | by the area's form ([FRAMES-2](../FRAMES-2/SPEC.md)). A text form's padding is in pixels of the picture searched, since how far it reaches past its text is a choice about a place in the media. A clip area's padding is a theme length, since how far a bar reaches past its title is part of the look, as a title background's padding is |
 | Animation offsets `x`, `y` | multiples of the animated thing's own size, its box before any scale. In a transition, multiples of the frame |
 | Angles | degrees, clockwise positive |
-| Colours | `#RRGGBB`, `#RRGGBBAA`, or the name of a theme colour |
+| Colours | a colour value: `#RRGGBB`, `#RRGGBBAA`, `color(<space> r g b / a)`, or the name of a theme colour, as [FRAMES-26](../FRAMES-26/SPEC.md) gives them |
 
 A clip's own size is that of its box: a title's box (its text box, `width` wide or fitted to its text, with its background, [FRAMES-11](../FRAMES-11/SPEC.md)), a media clip's box, a storyline picture's box (the frame, which its conformed crop fills, [FRAMES-9](../FRAMES-9/SPEC.md)), a rect or ellipse shape's box, and the bounding box of a path's points. Scale and rotation act around the clip's anchor point ([Placement](#placement)).
 
-Media time, in media seconds, is a media file's presentation timeline after its edit list, with 0 at the first presented frame. The decoder converts pictures to sRGB and tone maps HDR sources. Everything that reads media reads it by these definitions.
+Media time, in media seconds, is a media file's presentation timeline after its edit list, with 0 at the first presented frame. The decoder converts pictures to working values, and tone maps an HDR picture whose source peak is above the sequence's peak to that peak where the clip's `toneMap` is true ([FRAMES-26](../FRAMES-26/SPEC.md)). Everything that reads media reads it by these definitions.
 
 The length scale is `width / baseWidth`, where width is the width of the frame the clip is drawn on: the sequence's output frame, or the compound clip's own frame for a clip inside a compound clip. A sequence whose size is measured from its content ([FRAMES-6](../FRAMES-6/SPEC.md)) has no width yet when its lengths are needed, so its length scale is the width of its first storyline picture's box over `baseWidth`, and a content-fit sequence with no storyline clip that has a picture of its own (every storyline clip a solid) stops.
 
@@ -64,7 +64,7 @@ Skew is not a key. Every linear map of the plane is a rotation, a scale per axis
 
 ## Interactions
 
-Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md). Parented coordinates are [FRAMES-10](../FRAMES-10/SPEC.md). A storyline picture's box and conform are [FRAMES-9](../FRAMES-9/SPEC.md). The theme lengths come from [FRAMES-22](../FRAMES-22/SPEC.md). A content-fit frame and what it does to placement are [FRAMES-6](../FRAMES-6/SPEC.md). Transition offsets are applied as [FRAMES-14](../FRAMES-14/SPEC.md) says.
+Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md). Parented coordinates are [FRAMES-10](../FRAMES-10/SPEC.md). A storyline picture's box and conform are [FRAMES-9](../FRAMES-9/SPEC.md). The theme lengths come from [FRAMES-22](../FRAMES-22/SPEC.md). A content-fit frame and what it does to placement are [FRAMES-6](../FRAMES-6/SPEC.md). Transition offsets are applied as [FRAMES-14](../FRAMES-14/SPEC.md) says. Colour values and what the decoder does with a picture's colours are [FRAMES-26](../FRAMES-26/SPEC.md).
 
 ## Alternatives considered
 

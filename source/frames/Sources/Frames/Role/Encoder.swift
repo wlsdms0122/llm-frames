@@ -18,9 +18,12 @@ package protocol Encoder: Sendable {
 
     func check(_ target: SoundTarget) throws
 
-    // A PNG tagged sRGB.
-    func writeImage(
-        _ bitmap: Bitmap,
+    // The analysis picture of `frame`, working values of a sequence whose output `output` encodes, as an 8-bit PNG
+    // tagged sRGB: each channel clipped to 0 to 1, a frame of an HDR space encoded as its output and tone mapped from
+    // its peak first (FRAMES-26).
+    func writeAnalysisPicture(
+        of frame: Bitmap,
+        in output: ColorConversion,
         to path: String
     ) throws
 

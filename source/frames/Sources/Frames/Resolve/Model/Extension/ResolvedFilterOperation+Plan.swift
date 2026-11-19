@@ -35,8 +35,8 @@ extension ResolvedFilterOperation {
         case let .levels(input, output):
             self = .levels(input: input, output: output)
 
-        case let .lut(file, amount):
-            self = .lut(file: try PinnedFile(path: file, hashes: hashes), amount: amount)
+        case let .lut(file, amount, space):
+            self = .lut(file: try PinnedFile(path: file, hashes: hashes), amount: amount, space: space)
 
         case let .blur(radius):
             self = .blur(radius: radius)

@@ -68,7 +68,9 @@ struct AreaFinder: Sendable {
     ) throws -> [RecognisedLine] {
         switch picture.source {
         case let .mediaFile(file):
-            let lines = try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages) }
+            let lines = try Result {
+                try ocr.lines(in: file, atMediaTime: time, languages: languages, colorSpace: picture.colorSpace)
+            }
                 .mapError { error in
                     ProviderError.failed(
                         provider: .ocr,

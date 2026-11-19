@@ -440,6 +440,7 @@ struct TitleKeyframeTests {
             in: ClipSpace(frame: Rectangle(x: 0, y: 0, width: 1920, height: 1080)),
             picture: nil,
             trackMatte: nil,
+            compositing: .encoded,
             seed: 0,
             at: 1
         )

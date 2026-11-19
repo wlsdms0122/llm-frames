@@ -47,9 +47,9 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
-        #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.count == 9)
+        #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.hasPrefix("color(srgb ") == true)
     }
 
     @Test("a storyline entry keeps media time for in, out and speed, and sequence time for start and end")
@@ -238,12 +238,12 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["radius"] == held(.number(6.75)))
         #expect(clip["border"] == .object(JSONObject(members: [
             JSONMember(key: "width", value: held(.number(2.25))),
-            JSONMember(key: "color", value: held(.string("#FFFFFFFF")))
+            JSONMember(key: "color", value: held(.string("color(srgb 1 1 1 / 1)")))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
             JSONMember(key: "radius", value: held(.number(18))),
             JSONMember(key: "offset", value: held(.array([.number(0), .number(6.75)]))),
-            JSONMember(key: "color", value: held(.string("#00000080")))
+            JSONMember(key: "color", value: held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
         ])))
     }
 
@@ -263,10 +263,10 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let colors = clips.map { $0.objectValue?["border"]?.objectValue?["color"] }
-        #expect(colors == [held(.string("#101418FF")), held(.string("#FF0000FF"))])
+        #expect(colors == [held(.string("color(srgb 0.06274509803921569 0.0784313725490196 0.09411764705882353 / 1)")), held(.string("color(srgb 1 0 0 / 1)"))])
     }
 
-    @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")
+    @Test("a solid storyline clip carries its colour as color(srgb r g b / a), a theme colour by its value")
     func writesSolidColor() throws {
         // Given
         let document = #"""
@@ -277,7 +277,7 @@ struct ResolvedSequenceWriterTests {
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == .string("#00000080"))
+        #expect(storyline.first?.objectValue?["solid"] == .string("color(srgb 0 0 0 / 0.5019607843137255)"))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 
@@ -300,11 +300,11 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["end"] == .number(3.5))
         #expect(incoming["ease"] == .string("ease-out"))
         #expect(incoming["keys"]?.arrayValue?.first?.objectValue?.keys == ["t", "opacity", "scale"])
-        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "duration", "ease", "revealFrom", "keys"])
+        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "colorSpace", "duration", "ease", "revealFrom", "keys"])
         #expect(transition["cover"]?.objectValue?["sha256"] == .string("sha256-of-/abs/leak.mov"))
         #expect(transition["cover"]?.objectValue?["frames"] == .array([0, 0.5, 1, 1.5].map(JSONValue.number)))
         #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
-        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
+        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "colorSpace", "duration", "softness", "invert", "ease"])
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
         let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
         #expect(entry?.keys == ["ops", "mix"])
@@ -447,7 +447,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
-            JSONMember(key: "color", value: held(.string("#ED2929FF"))),
+            JSONMember(key: "color", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
             JSONMember(key: "width", value: held(.number(8 * scale))),
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
@@ -462,7 +462,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
-        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").hex)))
+        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").resolvedForm)))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
         #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
@@ -472,7 +472,7 @@ struct ResolvedSequenceWriterTests {
         // draws.
         #expect(clips[2]["size"] == .array([.number(200), .number(100)]))
         #expect(clips[2]["anchor"] == .array([.number(100), .number(50)]))
-        #expect(clips[2]["fill"] == held(.string("#00000080")))
+        #expect(clips[2]["fill"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
         #expect(clips[2]["stroke"] == .null)
         // A named anchor of a shape placed by its area is a point of its area as written, whatever its outset.
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))

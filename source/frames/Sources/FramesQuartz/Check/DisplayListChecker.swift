@@ -71,7 +71,7 @@ struct DisplayListChecker {
         place: String
     ) throws {
         switch operation {
-        case let .lut(file, _):
+        case let .lut(file, _, _):
             do {
                 _ = try tables.table(of: file)
             } catch let error as FilterError {

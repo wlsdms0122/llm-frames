@@ -45,8 +45,11 @@ struct ResolvedDocumentWriterTests {
             "size": [1080, 1920],
             "fps": 30,
             "duration": 3,
-            "background": "#000000FF",
-            "conform": "fit"
+            "background": "color(srgb 0 0 0 / 1)",
+            "conform": "fit",
+            "colorSpace": "srgb",
+            "peak": null,
+            "compositing": "encoded"
           },
           "storyline": [
             {
@@ -57,6 +60,8 @@ struct ResolvedDocumentWriterTests {
                 "sha256": "9f2c41d07b3e"
               },
               "solid": null,
+              "colorSpace": null,
+              "toneMap": true,
               "in": 2,
               "out": 8,
               "speed": 2,
@@ -159,7 +164,7 @@ struct ResolvedDocumentWriterTests {
                 "color": [
                   {
                     "at": 0,
-                    "value": "#FFFFFFFF",
+                    "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
                 ]
@@ -180,7 +185,7 @@ struct ResolvedDocumentWriterTests {
                   "color": [
                     {
                       "at": 0,
-                      "value": "#ED2929FF",
+                      "value": "color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)",
                       "ease": "linear"
                     }
                   ],
@@ -219,7 +224,7 @@ struct ResolvedDocumentWriterTests {
                     "color": [
                       {
                         "at": 0,
-                        "value": "#FFFFFFFF",
+                        "value": "color(srgb 1 1 1 / 1)",
                         "ease": "linear"
                       }
                     ],
@@ -303,6 +308,8 @@ struct ResolvedDocumentWriterTests {
               },
               "filter": null,
               "conform": "fit",
+              "colorSpace": null,
+              "toneMap": true,
               "radius": null,
               "border": {
                 "width": [
@@ -315,7 +322,7 @@ struct ResolvedDocumentWriterTests {
                 "color": [
                   {
                     "at": 0,
-                    "value": "#FFFFFFFF",
+                    "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
                 ]

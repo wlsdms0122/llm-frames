@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import AVFoundation
 import CoreVideo
 import Foundation
 import Frames
@@ -25,7 +26,7 @@ struct FrameConverterTests {
     )
     func copiesSixteenBitRGBA(keepsAlpha: Bool) throws {
         // Given
-        let sut = FrameConverter(keepsAlpha: keepsAlpha)
+        let sut = FrameConverter(keepsAlpha: keepsAlpha, output: ColorConversion(space: .srgb))
         let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBALE)
 
         // When
@@ -49,7 +50,7 @@ struct FrameConverterTests {
     @Test("a BGRA buffer takes each component rounded to eight bits, opaque, which is the colour over black")
     func copiesOverBlackToBGRA() throws {
         // Given
-        let sut = FrameConverter(keepsAlpha: false)
+        let sut = FrameConverter(keepsAlpha: false, output: ColorConversion(space: .srgb))
         let buffer = try pixelBuffer(format: kCVPixelFormatType_32BGRA)
 
         // When
@@ -58,6 +59,31 @@ struct FrameConverterTests {
         // Then
         let grey = UInt8((30_000.0 * 255 / 65_535).rounded())
         #expect(read(buffer, as: UInt8.self, count: 12) == [0, 0, 128, 255, 0, 0, 0, 255, grey, grey, grey, 255])
+    }
+
+    @Test(
+        "a half float buffer takes each component encoded in the output's HDR space and its code points",
+        arguments: [(ColorSpace.rec2100PQ, 0.5806), (.rec2100HLG, 0.75)]
+    )
+    func copiesHighDynamicRangeToHalfFloat(
+        space: ColorSpace,
+        white: Double
+    ) throws {
+        // Given
+        let sut = FrameConverter(keepsAlpha: false, output: ColorConversion(space: space))
+        let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBAHalf)
+
+        // When
+        sut.copy(bitmap([65_535, 65_535, 65_535, 65_535, 0, 0, 0, 0, 0, 0, 0, 65_535]), into: buffer)
+
+        // Then
+        let components = read(buffer, as: Float16.self, count: 4).map(Double.init)
+        #expect(components.prefix(3).allSatisfy { abs($0 - white) < 0.002 })
+        #expect(components[3] == 1)
+        let properties = space.videoColorProperties
+        #expect(attachment(kCVImageBufferColorPrimariesKey, of: buffer) == properties[AVVideoColorPrimariesKey])
+        #expect(attachment(kCVImageBufferTransferFunctionKey, of: buffer) == properties[AVVideoTransferFunctionKey])
+        #expect(attachment(kCVImageBufferYCbCrMatrixKey, of: buffer) == properties[AVVideoYCbCrMatrixKey])
     }
 
     // MARK: - Private

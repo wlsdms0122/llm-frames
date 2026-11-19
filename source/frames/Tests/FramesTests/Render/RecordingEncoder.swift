@@ -43,11 +43,12 @@ struct RecordingEncoder: Encoder {
         guard !refuses else { throw RoleRefusal.encoder }
     }
 
-    func writeImage(
-        _ bitmap: Bitmap,
+    func writeAnalysisPicture(
+        of frame: Bitmap,
+        in output: ColorConversion,
         to path: String
     ) throws {
-        log.record(.writeImage(path: path, frame: bitmap.frame))
+        log.record(.writeAnalysisPicture(path: path, frame: frame.frame, output: output))
     }
 
     func writeImage(
@@ -75,10 +76,10 @@ struct RecordingEncoder: Encoder {
         log.record(.videoWriter(target, size: size, fps: fps, sound: sound))
 
         switch target {
-        case let .master(path, _), let .delivery(path):
+        case let .master(path, _, _), let .delivery(path, _):
             return RecordingVideoWriter(path: path, log: log)
 
-        case let .compressed(path, _, _, _):
+        case let .compressed(path, _, _, _, _):
             return RecordingVideoWriter(path: path, log: log, writesFile: true)
         }
     }

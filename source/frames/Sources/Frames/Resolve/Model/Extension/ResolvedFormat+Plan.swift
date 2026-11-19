@@ -14,7 +14,10 @@ extension ResolvedFormat {
             fps: plan.fps,
             duration: plan.duration,
             background: plan.background,
-            conform: plan.conform
+            conform: plan.conform,
+            colorSpace: plan.colorSpace,
+            peak: plan.peak,
+            compositing: plan.compositing
         )
     }
 

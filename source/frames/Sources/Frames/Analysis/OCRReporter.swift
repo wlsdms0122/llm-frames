@@ -7,7 +7,7 @@
 
 // Recognises the lines of an image or of video frames with the OCR provider in the recognition languages, nil where
 // the provider detects them, and reports them as `ocr` prints them, in reading order, the order a text area's `nth`
-// counts them in. Each frame is the one shown at its media time.
+// counts them in. Each frame is the one shown at its media time, read in `colorSpace` where `--color-space` names one.
 package struct OCRReporter: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
@@ -29,14 +29,16 @@ package struct OCRReporter: Sendable {
     // MARK: - Public
     package func report(
         of path: String,
-        at selection: TimeSelection = .start
+        at selection: TimeSelection = .start,
+        colorSpace: ColorSpace? = nil
     ) throws -> OCRReport {
         guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
         guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
 
         let file = MediaFile(path: path, probed: probed)
         let frames = try times(selection, in: probed, file: path).map { time in
-            OCRFrame(time: time, lines: order.sorted(try lines(in: file, atMediaTime: time, asked: selection)))
+            let lines = try lines(in: file, atMediaTime: time, asked: selection, colorSpace: colorSpace)
+            return OCRFrame(time: time, lines: order.sorted(lines))
         }
 
         return OCRReport(size: size, languages: languages, frames: frames)
@@ -47,7 +49,8 @@ package struct OCRReporter: Sendable {
     private func lines(
         in file: MediaFile,
         atMediaTime time: Double,
-        asked selection: TimeSelection
+        asked selection: TimeSelection,
+        colorSpace: ColorSpace?
     ) throws -> [RecognisedLine] {
         let option = switch selection {
         case .start:
@@ -60,7 +63,7 @@ package struct OCRReporter: Sendable {
             "--from"
         }
 
-        return try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages) }
+        return try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages, colorSpace: colorSpace) }
             .mapError { error in
                 ProviderError.failed(
                     provider: .ocr,

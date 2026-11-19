@@ -31,7 +31,7 @@ struct QuartzRendererTests {
         let bitmap = try sut.frame(of: list)
 
         // Then
-        #expect(bitmap.width == 6 && bitmap.height == 4 && bitmap.depth == .sixteen)
+        #expect(bitmap.width == 6 && bitmap.height == 4 && bitmap.depth == .halfFloat)
         let alpha = 128.0 / 255
         expect(bitmap.pixel(x: 5, y: 3), equals: [0.2 * alpha, 0.4 * alpha, 0.8 * alpha, alpha])
     }
@@ -154,12 +154,28 @@ struct QuartzRendererTests {
         #expect(throws: Never.self) { try checking() }
     }
 
-    @Test("check refuses a blend mode it has no kernel for, naming its place in the nested list")
-    func refusesUnknownBlend() throws {
+    @Test(
+        "check accepts a list of either compositing and a LUT built for any space",
+        arguments: LookUpTableSpace.allCases
+    )
+    func acceptsColorKeys(space: LookUpTableSpace) throws {
         // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("identity.cube")
+        let contents = "LUT_3D_SIZE 2\n" + (0..<8).map { index in
+            (0..<3).map { axis in index >> axis & 1 == 1 ? "1" : "0" }.joined(separator: " ")
+        }.joined(separator: "\n")
+        try contents.write(toFile: path, atomically: true, encoding: .utf8)
+        let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "add", content: .path(fill))])
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.lut(file: file, amount: 1, space: space)])])
+        let nested = DisplayList(
+            size: Size(width: 1, height: 1),
+            background: Color(written: "#00000000"),
+            compositing: .linear,
+            seed: 0,
+            items: [DisplayItem(blend: "add", content: .adjust(adjust))]
+        )
         let picture = PictureItem(
             source: .displayList(nested),
             rectangle: nil,
@@ -170,7 +186,26 @@ struct QuartzRendererTests {
         let checking = { try sut.check(list(size: 1, items: [DisplayItem(content: .picture(picture))])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].source.items[1].blend")) {
+        #expect(throws: Never.self) { try checking() }
+    }
+
+    @Test("check refuses a blend mode it has no kernel for, naming its place in the nested list")
+    func refusesUnknownBlend() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "linear-dodge", content: .path(fill))])
+        let picture = PictureItem(
+            source: .displayList(nested),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1, height: 1)
+        )
+
+        // When
+        let checking = { try sut.check(list(size: 1, items: [DisplayItem(content: .picture(picture))])) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedBlend(name: "linear-dodge", place: "items[0].source.items[1].blend")) {
             try checking()
         }
     }
@@ -180,14 +215,14 @@ struct QuartzRendererTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let source = list(size: 1, items: [DisplayItem(blend: "add", content: .path(fill))])
+        let source = list(size: 1, items: [DisplayItem(blend: "linear-dodge", content: .path(fill))])
         let item = DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: .path(fill))
 
         // When
         let checking = { try sut.check(list(size: 1, items: [item])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].trackMatte.source.items[0].blend")) {
+        #expect(throws: QuartzError.unsupportedBlend(name: "linear-dodge", place: "items[0].trackMatte.source.items[0].blend")) {
             try checking()
         }
     }
@@ -232,6 +267,35 @@ struct QuartzRendererTests {
         }
         #expect(place == "items[0].source.items[0].filter[0].ops[1]")
         #expect(errorFile == path && errorLine == line)
+    }
+
+    @Test("a media picture is read as working values in its frame's colour space, tone mapped to its target peak")
+    func readsMediaFrameReading() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
+        let media = PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: "")))
+        let picture = PictureItem(
+            source: .media(MediaFrame(
+                media: media,
+                index: 0,
+                reading: .working(colorSpace: .rec2100HLG, targetPeak: 203)
+            )),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4)
+        )
+        let list = DisplayList(
+            size: Size(width: 4, height: 4),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(content: .picture(picture))]
+        )
+
+        // When
+        _ = try sut.frame(of: list)
+
+        // Then
+        #expect(decoder.readings(of: "/picture.png") == [.working(colorSpace: .rec2100HLG, targetPeak: 203)])
     }
 
     @Test("a LUT read by check is drawn from the renderer's cache without reading its cube again")

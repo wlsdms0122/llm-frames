@@ -15,6 +15,7 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case noFrame(file: String, index: Int, count: Int)
     case frameCount(file: String, pinned: Int, counted: Int)
     case noSound(file: String)
+    case unconvertibleColor(file: String, reason: String)
 
     // MARK: - Property
     package var description: String {
@@ -39,6 +40,10 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .noSound(file):
             "media \(file) has no sound track"
+
+        case let .unconvertibleColor(file, reason):
+            "media \(file) cannot be read: \(reason), which no fixed formula converts. Write the colorSpace it is in "
+                + "where it is named, or convert it with transcode"
         }
     }
 

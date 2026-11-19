@@ -10,6 +10,7 @@ import Frames
 package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case unencodable(file: String, codec: String)
     case unwritable(file: String, reason: String)
+    case highDynamicRange(file: String, codec: String, colorSpace: ColorSpace)
     case frameSize(file: String, index: Int, size: Size, video: Size)
     case undownmixable(file: String)
 
@@ -21,6 +22,9 @@ package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unwritable(file, reason):
             "encoder avfoundation cannot write \(file): \(reason)"
+
+        case let .highDynamicRange(file, codec, colorSpace):
+            "encoder avfoundation cannot write \(file): \(codec) holds 8 bits and cannot carry \(colorSpace.rawValue)"
 
         case let .frameSize(file, index, size, video):
             "frame \(index) of \(file) is \(written(size)), where the video is \(written(video))"

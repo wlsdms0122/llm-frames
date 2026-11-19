@@ -96,11 +96,12 @@ A transition plays across the edit point between two storyline clips. It moves t
 | `over` | which picture is on top: `incoming` (default) or `outgoing` |
 | `audio` | the curve of the sound crossfade: `constant-power` (default) or `constant-gain`. It runs at an even pace, and `ease` does not bend it |
 | `incoming`, `outgoing` | spans of the two storyline pictures. Each reads opacity, scale, x, y, rotation and reveal |
-| `cover` | `{color, keys}` or `{media, keys}`: a colour or an image or video with alpha over both pictures, stretched over the frame. Its keys take `t` and `opacity` only |
-| `matte` | `{media, softness, invert}`: a luma wipe from a greyscale image or video |
+| `cover` | `{color, keys}` or `{media, colorSpace, keys}`: a colour or an image or video with alpha over both pictures, stretched over the frame. Its keys take `t` and `opacity` only |
+| `matte` | `{media, colorSpace, softness, invert}`: a luma wipe from a greyscale image or video |
 
 - The motion acts after the picture's own transform: scale and rotation about the centre of the frame, x and y in multiples of the frame, so `"x": -1` moves a picture exactly out to the left.
 - Spans in a transition take no `seconds` or `period`, since a transition's time is its length.
+- A cover's or a matte's `colorSpace` names the colour space of its media over what the file says, as a media clip's does. A cover's HDR media are tone mapped as a clip's with `toneMap` true are, and a matte is read as an SDR picture whatever the sequence's colour space, so a wipe is the same for every output ([FRAMES-14](../spec/FRAMES-14/SPEC.md), [FRAMES-26](../spec/FRAMES-26/SPEC.md#media)).
 - In a sequence the transition belongs to the clip it brings in and is centred on the edit point. It lasts the shorter of its seconds and the two clips' durations, and it does not change the sequence's length. During it the outgoing clip plays on past its `out` and the incoming one starts before its `in`, so trim with media to spare on both sides ([FRAMES-8](../spec/FRAMES-8/SPEC.md)).
 
 **A dip.** A cover hides the change. Keep the incoming picture invisible until the cover is opaque, then cut it in with two keys at the same `t`. `studio/dip` publishes the colour and the pace as parameters ([Parameters](#parameters)):
@@ -198,7 +199,7 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 | `hue` | `degrees` |
 | `sepia` | `amount` (0 to 1) |
 | `levels` | `input: [black, white]`, `output: [black, white]` (0 to 1) |
-| `lut` | `file` (`<pack>/<name>` for a pack's `luts/<name>.cube`, or an absolute path), `amount` (0 to 1) |
+| `lut` | `file` (`<pack>/<name>` for a pack's `luts/<name>.cube`, or an absolute path), `amount` (0 to 1), `space` (the colour space the LUT was built for, `srgb` by default) |
 | `blur` | `radius` |
 | `sharpen` | `amount`, `radius` |
 | `bloom` | `amount`, `radius`, `color` optional |
@@ -209,7 +210,7 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 - Order matters: a sharpen after a blur sharpens the blurred picture, and a blur after a sharpen softens the sharpened one.
 - `radius` and `size` are theme lengths, so a blur of 8 looks the same on a 1080 and a 2160 wide output.
 - An unknown op or a value out of range stops when the preset is read.
-- A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/`.
+- A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/`, and give `space` when the LUT was not built for sRGB: `srgb-linear` for one built on linear sRGB, or the HDR or wide gamut space it was made in ([FRAMES-26](../spec/FRAMES-26/SPEC.md#colour-spaces)).
 
 A filter goes on a storyline clip or a media clip as `filter`, and on everything below an adjustment clip as `adjust`.
 
@@ -229,7 +230,7 @@ Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's t
 | `color` | a cover `color`, a `bloom` `color` |
 | `choice` | a span's or a transition's `ease` |
 
-It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`) or for a file (`media`, a `lut` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
+It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`, a `colorSpace`, a `lut` `space`) or for a file (`media`, a `lut` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
 
 ## Passing arguments
 

@@ -262,15 +262,13 @@ struct ResolvedValueReader: Sendable {
         return TimeRange(start: numbers[0], end: numbers[1])
     }
 
-    // `#RRGGBBAA`, the one form a resolved document writes a colour in.
+    // `color(srgb r g b / a)`, the one form a resolved document and a display list write a colour in.
     func color(_ value: PlacedJSONValue) throws -> Color {
-        let string = try value.string()
-        let digits = string.dropFirst()
-        guard string.first == "#", digits.count == 8, digits.allSatisfy(\.isHexDigit) else {
-            throw value.wrongType("a colour as #RRGGBBAA")
+        guard let color = Color(resolvedForm: try value.string()) else {
+            throw value.wrongType("a colour as color(srgb r g b / a)")
         }
 
-        return Color(written: string)
+        return color
     }
 
     func ease(_ value: PlacedJSONValue) throws -> Ease {
@@ -766,7 +764,7 @@ struct ResolvedValueReader: Sendable {
             "bloom", "vignette", "pixelate", "grain"
         ]
         let name = try value.object(keys: ["op", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
-                                            "radius", "color", "size"] + grainKeys)
+                                            "space", "radius", "color", "size"] + grainKeys)
             .member("op")
             .name(among: names) { names.contains($0) ? $0 : nil }
         let keys = { (keys: [String]) in try value.object(keys: ["op"] + keys) }
@@ -805,8 +803,13 @@ struct ResolvedValueReader: Sendable {
             )
 
         case "lut":
-            let operation = try keys(["file", "sha256", "amount"])
-            return .lut(file: try pinned(operation), amount: try number(operation, "amount"))
+            let operation = try keys(["file", "sha256", "amount", "space"])
+            return .lut(
+                file: try pinned(operation),
+                amount: try number(operation, "amount"),
+                space: try operation.member("space")
+                    .name(among: VocabularyTable.lookUpTableSpaces, LookUpTableSpace.init)
+            )
 
         case "blur":
             let operation = try keys(["radius"])

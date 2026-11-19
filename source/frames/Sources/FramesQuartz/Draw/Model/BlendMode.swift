@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The blend modes of W3C Compositing and Blending Level 1 by their names in a display list, each with the colour
-// kernel that composites it.
+// The blend modes of W3C Compositing and Blending Level 1 and `add` (FRAMES-11) by their names in a display list, each
+// with the colour kernel that composites it.
 enum BlendMode: String, CaseIterable, Sendable {
     case normal
     case multiply
@@ -25,6 +25,7 @@ enum BlendMode: String, CaseIterable, Sendable {
     case saturation
     case color
     case luminosity
+    case add
 
     // MARK: - Property
     var kernelName: String {
@@ -79,6 +80,9 @@ enum BlendMode: String, CaseIterable, Sendable {
 
         case .luminosity:
             "blendLuminosity"
+
+        case .add:
+            "blendAdd"
         }
     }
 

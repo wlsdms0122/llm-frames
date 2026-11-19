@@ -35,7 +35,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.time) == times)
@@ -52,7 +52,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(box(at: 10)), in: media, atMediaTime: times[10], over: 0...end, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.time) == Array(times[5..<13]))
@@ -70,7 +70,8 @@ struct PointTrackerTests {
             Quad(box(at: 10)),
             in: media,
             atMediaTime: times[10] + 0.01,
-            over: times[8]...times[13]
+            over: times[8]...times[13],
+            colorSpace: nil
         )
 
         // Then
@@ -92,7 +93,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.time) == times)
@@ -117,7 +118,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.time) == times)
@@ -152,7 +153,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end)
+        let frames = try sut.track(Quad(lines[10]), in: media, atMediaTime: times[10], over: 0...end, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.time) == times)
@@ -177,7 +178,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...1)
+        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...1, colorSpace: nil)
 
         // Then
         #expect(frames.count == rotation.frameCount)
@@ -201,7 +202,7 @@ struct PointTrackerTests {
         let sut = PointTracker(decoder: decoder)
 
         // When
-        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...2)
+        let frames = try sut.track(target, in: media, atMediaTime: 0, over: 0...2, colorSpace: nil)
 
         // Then
         let last = try #require(frames.last)

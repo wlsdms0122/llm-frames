@@ -10,14 +10,11 @@ import Frames
 
 extension Color {
     // MARK: - Property
-    // The colour's sRGB components from its `#RRGGBBAA` digits, as Core Graphics draws them.
+    // The encoded working value's red, green, blue and alpha, unbounded, as Core Graphics draws them in either form.
     var cgColor: CGColor {
-        let digits = Array(hex.dropFirst())
-        let components = stride(from: 0, to: 8, by: 2).map { start in
-            CGFloat(Int(String(digits[start..<start + 2]), radix: 16) ?? 0) / 255
-        }
+        let components = [red, green, blue, alpha].map { CGFloat($0) }
 
-        return CGColor(colorSpace: WorkingSpace.colorSpace, components: components)!
+        return CGColor(colorSpace: WorkingSpace.encoded, components: components)!
     }
 
     // MARK: - Initializer

@@ -11,7 +11,8 @@ import Foundation
 // side at full size, `sheet` lays frames out on a grid, and `extract` writes each frame to a PNG of its own, named by
 // its index. Everything that can refuse does before the first file is written, in this order: the output, the times,
 // every pinned file's hash and the decoder on every pinned media (for a video, the decoder on it), and the renderer on
-// every list it draws.
+// every list it draws. Every file is an analysis picture (FRAMES-26), an 8-bit sRGB PNG whatever the sequence's colour
+// space, and a label lies on the analysis picture of its frame.
 package struct FrameExporter: Sendable {
     // MARK: - Property
     // The longest side of a sheet's cell, so a sheet of many frames stays a picture one can open and read.
@@ -79,7 +80,14 @@ package struct FrameExporter: Sendable {
         }
 
         let frames = try frames(of: sequence, at: times)
-        try draw(frames, size: frames.size, columns: times.count, labelFace: labelFace, to: output)
+        try draw(
+            frames,
+            in: sequence.format.output,
+            size: frames.size,
+            columns: times.count,
+            labelFace: labelFace,
+            to: output
+        )
     }
 
     // The frames over `range` on a grid of `columns`, each scaled so its longer side is at most 480 pixels, never
@@ -101,7 +109,7 @@ package struct FrameExporter: Sendable {
             width: max((size.width * scale).rounded(), 1),
             height: max((size.height * scale).rounded(), 1)
         )
-        try draw(frames, size: cell, columns: columns, labelFace: labelFace, to: output)
+        try draw(frames, in: self.output(of: source), size: cell, columns: columns, labelFace: labelFace, to: output)
     }
 
     // The frames over `range` at full size and without labels, as `0000.png`, `0001.png` and on in time order in
@@ -123,31 +131,62 @@ package struct FrameExporter: Sendable {
         }
 
         let folder = URL(fileURLWithPath: directory, isDirectory: true)
+        let output = output(of: source)
         return try frames.enumerated().map { index, frame in
             let path = folder.appendingPathComponent(String(format: "%04d.png", index)).path
-            try encoder.writeImage(try bitmap(of: frame.picture), to: path)
+            try encoder.writeAnalysisPicture(of: try bitmap(of: frame.picture), in: output, to: path)
 
             return path
         }
     }
 
     // MARK: - Private
+    // A sequence frame of a colour space other than `srgb` is first written as its analysis picture to a folder of its
+    // own, removed after, and drawn on the sheet from there, so its label lies on the analysis picture. An `srgb`
+    // frame's analysis picture is its working values clipped, which the sheet's output clips. A video's frame is read as
+    // its analysis picture.
     private func draw(
         _ frames: SampledFrames,
+        in sequenceOutput: ColorConversion,
         size: Size,
         columns: Int,
         labelFace: FontFace,
         to output: String
     ) throws {
+        let lists = frames.frames.compactMap { frame -> DisplayList? in
+            guard case let .displayList(list) = frame.picture else { return nil }
+
+            return list
+        }
+        let isAnalyzed = sequenceOutput.space != .srgb && !lists.isEmpty
+        for list in lists where isAnalyzed {
+            try renderer.check(list)
+        }
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        if isAnalyzed {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        let cells = try frames.frames.enumerated().map { index, frame in
+            guard isAnalyzed, case let .displayList(list) = frame.picture else { return ContactSheetCell(frame) }
+
+            let path = folder.appendingPathComponent("\(index).png").path
+            try encoder.writeAnalysisPicture(of: renderer.frame(of: list), in: sequenceOutput, to: path)
+            let media = try PinnedMedia(file: MediaFile(path: path, size: frames.size), hashes: hasher)
+
+            let picture = MediaFrame(media: media, index: 0, reading: .analysis(colorSpace: nil))
+            return ContactSheetCell(SampledFrame(time: frame.time, picture: .media(picture)))
+        }
         let sheet = try composer.sheet(
-            of: frames.frames.map(ContactSheetCell.init),
+            of: cells,
             size: size,
             columns: columns,
             face: labelFace
         )
         try renderer.check(sheet)
 
-        try encoder.writeImage(try renderer.frame(of: sheet), to: output)
+        try encoder.writeAnalysisPicture(of: try renderer.frame(of: sheet), in: ColorConversion(space: .srgb), to: output)
     }
 
     private func frames(
@@ -180,7 +219,8 @@ package struct FrameExporter: Sendable {
         )
     }
 
-    // The frames shown at media times, as a storyline clip shows them, once the decoder has checked the file.
+    // The frames shown at media times, as a storyline clip shows them, each read as an analysis picture, once the
+    // decoder has checked it reads the file's pictures so.
     private func frames(
         ofVideo path: String,
         range: FrameRange
@@ -192,25 +232,41 @@ package struct FrameExporter: Sendable {
 
         let times = try range.times(end: probed.duration, kind: "video")
         let file = MediaFile(path: path, fps: probed.fps, size: size, frameTimes: probed.frames)
-        try decoder.check(file)
+        try decoder.check(file, reading: .analysis(colorSpace: nil))
 
         let media = try PinnedMedia(file: file, hashes: hasher)
         return SampledFrames(
             size: size,
             frames: times.map { time in
-                SampledFrame(time: time, picture: .media(MediaFrame(media: media, mediaTime: time)))
+                SampledFrame(
+                    time: time,
+                    picture: .media(MediaFrame(media: media, mediaTime: time, reading: .analysis(colorSpace: nil)))
+                )
             }
         )
     }
 
-    // A media frame as the decoder reads it, so it is not resampled, and a display list as the renderer draws it.
+    // A media frame as the decoder reads it, an analysis picture not resampled, and a display list as the renderer
+    // draws it.
     private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.picture(of: MediaFile(media: frame.media), atFrame: frame.index)
+            try decoder.picture(of: frame)
 
         case let .displayList(list):
             try renderer.frame(of: list)
+        }
+    }
+
+    // The output a source's frames are written by: a sequence's, and `srgb` for a video's, which the decoder reads as
+    // analysis pictures.
+    private func output(of source: FrameSource) -> ColorConversion {
+        switch source {
+        case .video:
+            ColorConversion(space: .srgb)
+
+        case let .document(sequence):
+            sequence.format.output
         }
     }
 

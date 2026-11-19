@@ -109,11 +109,14 @@ struct TimePlanner: Sendable {
             return StorylineSource(kind: .solid, media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
-        let media = try resolver.media(
-            of: clipMedia.source,
-            place: clip.place.appending(key: "media"),
-            kind: .genericClip(.storyline),
-            theme: theme
+        let place = clip.place.appending(key: "media")
+        let media = try resolver.media(of: clipMedia.source, place: place, kind: .genericClip(.storyline), theme: theme)
+            .read(by: clipMedia)
+        try resolver.checkColor(
+            of: media,
+            colorSpace: clipMedia.colorSpace,
+            place: place,
+            kind: .genericClip(.storyline)
         )
         let kind = ClipKind.media(media.kind)
         guard media.kind != .image else {
@@ -366,11 +369,16 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> TransitionPlan {
         let length = lengths.reduce(seconds, min)
-        let media = { (path: String) in
-            try resolver.transitionMedia(at: path, place: place.appending(key: "transition"), kind: .clip(kind))
+        let media = { (path: String, colorSpace: ColorSpace?) in
+            try resolver.transitionMedia(
+                at: path,
+                place: place.appending(key: "transition"),
+                kind: .clip(kind),
+                colorSpace: colorSpace
+            )
         }
         let cover: TransitionMedia? = if case let .media(path) = definition.cover?.source {
-            try media(path)
+            try media(path, definition.cover?.colorSpace)
         } else {
             nil
         }
@@ -381,7 +389,7 @@ struct TimePlanner: Sendable {
             range: TimeRange(start: editPoint - length / 2, end: editPoint + length / 2),
             definition: definition,
             coverMedia: cover,
-            matteMedia: try definition.matte.map { try media($0.media) }
+            matteMedia: try definition.matte.map { try media($0.media, $0.colorSpace) }
         )
     }
 
@@ -457,13 +465,24 @@ struct TimePlanner: Sendable {
     ) throws -> ClipSource {
         switch clip.content {
         case let .media(clipMedia):
+            let place = clip.place.appending(key: "media")
             let media = try resolver.media(
                 of: clipMedia.source,
-                place: clip.place.appending(key: "media"),
+                place: place,
                 kind: .genericClip(clip.clipPlace),
                 theme: theme
             )
+            .read(by: clipMedia)
             let kind = try kind(of: clipMedia, media: media, place: clip.place)
+            // An audio clip reads no picture of its media.
+            if kind != .media(.audio) {
+                try resolver.checkColor(
+                    of: media,
+                    colorSpace: clipMedia.colorSpace,
+                    place: place,
+                    kind: .genericClip(clip.clipPlace)
+                )
+            }
             guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(

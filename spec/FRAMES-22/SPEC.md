@@ -63,7 +63,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
 | --- | --- |
 | `baseWidth` | the frame width at which theme lengths are written. The length scale is the frame width over it ([FRAMES-1](../FRAMES-1/SPEC.md)) |
 | `font` | font families in the order they are tried, for every text style that has no `font` of its own ([FRAMES-5](../FRAMES-5/SPEC.md)) |
-| `colors` | named colours, which any colour value may name ([FRAMES-1](../FRAMES-1/SPEC.md)). `text` is the default text colour and `background` the default format background ([FRAMES-9](../FRAMES-9/SPEC.md)) |
+| `colors` | named colours, each a hex colour or a `color()` value as [FRAMES-26](../FRAMES-26/SPEC.md) gives them, which any colour value may name ([FRAMES-1](../FRAMES-1/SPEC.md)). `text` is the default text colour and `background` the default format background ([FRAMES-9](../FRAMES-9/SPEC.md)) |
 | `styles` | text styles ([Styles](#styles)) |
 | `shapes` | shape styles ([Shape styles](#shape-styles)) |
 | `placement.padding` | the title safe margin: the distance of every placement name from the edges of the frame ([FRAMES-1](../FRAMES-1/SPEC.md)). 96 is 5% of 1920 |
@@ -152,7 +152,7 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
 
 ## Interactions
 
-Themes come from packs ([FRAMES-17](../FRAMES-17/SPEC.md)). Its values are versioned as [FRAMES-18](../FRAMES-18/SPEC.md) says. A template's theme is [FRAMES-17](../FRAMES-17/SPEC.md). Theme lengths and the length scale are [FRAMES-1](../FRAMES-1/SPEC.md). Runs and line limits are laid out by [FRAMES-5](../FRAMES-5/SPEC.md). Shape, border and shadow keys on clips are [FRAMES-11](../FRAMES-11/SPEC.md). The resolved document writes the theme out as values ([FRAMES-19](../FRAMES-19/SPEC.md)).
+Themes come from packs ([FRAMES-17](../FRAMES-17/SPEC.md)). Its values are versioned as [FRAMES-18](../FRAMES-18/SPEC.md) says. A template's theme is [FRAMES-17](../FRAMES-17/SPEC.md). Theme lengths and the length scale are [FRAMES-1](../FRAMES-1/SPEC.md), and colour values [FRAMES-26](../FRAMES-26/SPEC.md). Runs and line limits are laid out by [FRAMES-5](../FRAMES-5/SPEC.md). Shape, border and shadow keys on clips are [FRAMES-11](../FRAMES-11/SPEC.md). The resolved document writes the theme out as values ([FRAMES-19](../FRAMES-19/SPEC.md)).
 
 ## Alternatives considered
 

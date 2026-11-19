@@ -20,7 +20,12 @@ struct MediaResolverTests {
     @Test("a video keeps its probed frame timestamps, which the resolved document pins")
     func keepsVideoFrameTimes() throws {
         // When
-        let media = try sut.media(of: .file("/abs/screen.mp4"), place: .root, kind: .sequence, theme: .base)
+        let media = try sut.media(
+            of: .file("/abs/screen.mp4"),
+            place: .root,
+            kind: .sequence,
+            theme: .base
+        )
 
         // Then
         let file = try #require(media.file)
@@ -80,5 +85,141 @@ struct MediaResolverTests {
         ))
     }
 
+    @Test("a picture no fixed formula converts stops at the place that names it and writes no colour space")
+    func refusesUnconvertibleColor() throws {
+        // Given
+        let sut = MediaResolver(mediaFacts: unconvertibleFacts, presets: Fixture.presets, library: Fixture.library)
+        let place = Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])
+
+        let media = try sut.media(of: .file("/abs/print.jpg"), place: place, kind: .genericClip(.storyline), theme: .base)
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.checkColor(of: media, colorSpace: nil, place: place, kind: .genericClip(.storyline))
+        }
+
+        // Then
+        #expect(error == .unconvertibleMediaColor(
+            place: place,
+            kind: .genericClip(.storyline),
+            reference: "/abs/print.jpg"
+        ))
+        #expect(error?.description.contains("colorSpace") == true)
+        #expect(error?.description.contains("transcode") == true)
+    }
+
+    @Test("a transition's cover or matte no fixed formula converts stops where its preset writes no colour space")
+    func refusesUnconvertibleTransitionColor() throws {
+        // Given
+        let sut = MediaResolver(mediaFacts: unconvertibleFacts, presets: Fixture.presets, library: Fixture.library)
+        let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("transition")])
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.transitionMedia(at: "/abs/print.jpg", place: place, kind: .clip(.media(.video)), colorSpace: nil)
+        }
+
+        // Then
+        #expect(error == .unconvertibleMediaColor(place: place, kind: .clip(.media(.video)), reference: "/abs/print.jpg"))
+    }
+
+    @Test("a picture no fixed formula converts is read where its place writes the colour space it is in")
+    func readsUnconvertibleColorInWrittenSpace() throws {
+        // Given
+        let sut = MediaResolver(mediaFacts: unconvertibleFacts, presets: Fixture.presets, library: Fixture.library)
+
+        let media = try sut.media(of: .file("/abs/print.jpg"), place: .root, kind: .genericClip(.storyline), theme: .base)
+
+        // When
+        try sut.checkColor(of: media, colorSpace: .srgb, place: .root, kind: .genericClip(.storyline))
+        let matte = try sut.transitionMedia(
+            at: "/abs/print.jpg",
+            place: .root,
+            kind: .clip(.media(.video)),
+            colorSpace: .srgb
+        )
+
+        // Then
+        #expect(media.file?.path == "/abs/print.jpg")
+        #expect(matte.file.path == "/abs/print.jpg")
+    }
+
+    @Test("a clip that takes only the sound of a video no fixed formula converts needs no colour space")
+    func takesSoundOfUnconvertibleColor() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "media": "/abs/reserved.mov", "picture": false, "at": 1, "out": 2 } ] }
+            """#)
+
+        // When
+        let time = try planner.plan(document: document)
+
+        // Then
+        #expect(time.clips[0].kind == .media(.audio))
+    }
+
+    @Test(
+        "a clip that shows the picture of a video no fixed formula converts stops where it writes no colour space",
+        arguments: [#", "picture": true"#, ""]
+    )
+    func refusesPictureOfUnconvertibleColor(picture: String) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
+            """#)
+
+        // When
+        let error = #expect(throws: ResolveError.self) { try planner.plan(document: document) }
+
+        // Then
+        #expect(error == .unconvertibleMediaColor(
+            place: Place(components: [.key("clips"), .index(0, id: nil), .key("media")]),
+            kind: .genericClip(.sequence),
+            reference: "/abs/reserved.mov"
+        ))
+    }
+
     // MARK: - Private
+    // `/abs/print.jpg` is an image whose ICC profile is LUT-based, and `/abs/reserved.mov` a video with sound whose code
+    // points no formula defines. `/abs/run.mp4` is converted by the formulas.
+    private var unconvertibleFacts: MediaFactTable {
+        MediaFactTable(files: [
+            "/abs/print.jpg": ProbedMedia(
+                kind: .image,
+                size: Size(width: 40, height: 30),
+                colorSpace: platformColor
+            ),
+            "/abs/reserved.mov": ProbedMedia(
+                kind: .video,
+                duration: 4,
+                fps: 30,
+                size: Size(width: 1920, height: 1080),
+                colorSpace: platformColor,
+                sound: ProbedSound(channels: 2, sampleRate: 48000)
+            ),
+            "/abs/run.mp4": ProbedMedia(
+                kind: .video,
+                duration: 30,
+                fps: 30,
+                size: Size(width: 1080, height: 1920)
+            )
+        ])
+    }
+
+    private var planner: TimePlanner {
+        TimePlanner(mediaFacts: unconvertibleFacts, presets: Fixture.presets, library: Fixture.library)
+    }
+
+    private var platformColor: ProbedColorSpace {
+        ProbedColorSpace(
+            reading: .platform,
+            primaries: nil,
+            transfer: nil,
+            matrix: nil,
+            bitDepth: 8,
+            isHighDynamicRange: false
+        )
+    }
 }

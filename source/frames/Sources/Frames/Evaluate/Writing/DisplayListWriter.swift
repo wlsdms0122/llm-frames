@@ -6,7 +6,7 @@
 //
 
 // Writes a display list in the layout and number form of a resolved document, so the same list gives the same bytes.
-// A nested list has the same shape without the version.
+// A nested list has the same shape without the version and the colour space, which only the outermost carries.
 package struct DisplayListWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -31,8 +31,11 @@ package struct DisplayListWriter: Sendable {
         [
             JSONMember(key: "size", value: values.size(list.size)),
             JSONMember(key: "background", value: values.color(list.background)),
+            list.colorSpace.map { JSONMember(key: "colorSpace", value: .string($0.rawValue)) },
+            list.colorSpace.map { _ in JSONMember(key: "peak", value: list.peak.map { .number($0) } ?? .null) },
+            JSONMember(key: "compositing", value: .string(list.compositing.rawValue)),
             JSONMember(key: "items", value: .array(list.items.map { item(of: $0, seed: list.seed) }))
-        ]
+        ].compactMap { $0 }
     }
 
     private func item(
@@ -127,6 +130,7 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
                 JSONMember(key: "frame", value: .number(Double(matte.frame.index))),
+                JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
                 JSONMember(key: "softness", value: .number(matte.softness)),
                 JSONMember(key: "invert", value: .bool(matte.isInverted))
@@ -201,7 +205,9 @@ package struct DisplayListWriter: Sendable {
         case let .media(frame):
             .object(JSONObject(members: [
                 JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
-                JSONMember(key: "frame", value: .number(Double(frame.index)))
+                JSONMember(key: "frame", value: .number(Double(frame.index))),
+                JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
+                JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))
             ]))
 
         case let .displayList(list):
@@ -213,5 +219,18 @@ package struct DisplayListWriter: Sendable {
 
     private func rectangle(_ rectangle: Rectangle?) -> JSONValue {
         rectangle.map(values.rectangle) ?? .null
+    }
+
+    // The space a picture is read in, null where its file's tags apply.
+    private func colorSpace(of reading: PictureReading) -> JSONValue {
+        reading.colorSpace.map { .string($0.rawValue) } ?? .null
+    }
+
+    // The peak a working read tone maps an HDR picture to, null where it takes it as display light. A matte, read as
+    // an analysis picture, writes none.
+    private func targetPeak(of reading: PictureReading) -> JSONValue {
+        guard case let .working(_, targetPeak?) = reading else { return .null }
+
+        return .number(targetPeak)
     }
 }

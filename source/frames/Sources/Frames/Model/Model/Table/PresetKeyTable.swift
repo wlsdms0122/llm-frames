@@ -62,6 +62,7 @@ enum PresetKeyTable {
         rules: [
             KeyRule("color", .color),
             KeyRule("media", .name),
+            KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("ease", .ease),
             KeyRule("keys", .list(.object(ObjectTable(
                 kind: "cover key",
@@ -71,12 +72,17 @@ enum PresetKeyTable {
                 ]
             ))))
         ],
-        groups: [KeyGroup(keys: ["color", "media"], isExclusive: true)]
+        // Only a media cover is read in a colour space.
+        groups: [
+            KeyGroup(keys: ["color", "media"], isExclusive: true),
+            KeyGroup(keys: ["color", "colorSpace"], isExclusive: true, isOptional: true)
+        ]
     )
     private static let matte = ObjectTable(
         kind: "matte",
         rules: [
             KeyRule("media", .name, isRequired: true),
+            KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("softness", .number(.range(0...1))),
             KeyRule("invert", .bool),
             KeyRule("ease", .ease)

@@ -73,14 +73,14 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "format": { "inset": [10, 10, 10, 10] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                #"format (format): unknown key "inset". Allowed: size, fps, background, conform"#
+                #"format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
             ),
             (
                 #"""
                 { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "format": { "size": [640, 480], "inset": [10, 10, 10, 10] },
                   "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
                 """#,
-                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform"#
+                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
             )
         ]
     )
@@ -578,11 +578,11 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
@@ -659,7 +659,7 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": 1 } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "lane": 1.5 } ] }"#,
             ##"{ "clips": [ { "shape": "rect", "fill": "#12345" } ] }"##,
-            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "add" } ] }"#,
+            #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "linear-dodge" } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "placement": "middle" } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": false } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,

@@ -26,7 +26,7 @@ struct MediaKeyframeTests {
 
         // Then
         for look in looks {
-            #expect(look.border.border(at: 0.5) == MediaBorder(width: 4, color: Color(written: "#800080")))
+            #expect(look.border.border(at: 0.5) == MediaBorder(width: 4, color: Color(written: "color(srgb 0.5 0 0.5)")))
         }
     }
 

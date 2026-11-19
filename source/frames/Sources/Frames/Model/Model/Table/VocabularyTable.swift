@@ -16,9 +16,13 @@ enum VocabularyTable {
     static let blendModes = [
         "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge",
         "color-burn", "hard-light", "soft-light", "difference", "exclusion", "plus-lighter",
-        "hue", "saturation", "color", "luminosity"
+        "hue", "saturation", "color", "luminosity", "add"
     ]
     static let conforms = ["fit", "fill"]
+    // The spaces a sequence, media, a cover and a matte name, and the ones a `lut` names, `srgb-linear` among them.
+    static let colorSpaces = ColorSpace.allCases.map(\.rawValue)
+    static let lookUpTableSpaces = LookUpTableSpace.allCases.map(\.rawValue)
+    static let compositings = Compositing.allCases.map(\.rawValue)
     static let parameterTypes = ["video", "sequence", "image", "audio", "text", "color", "number", "choice"]
     static let easeNames = ["linear", "ease-in", "ease-out", "ease-in-out", "back-out", "bounce-out", "step"]
 }

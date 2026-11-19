@@ -221,14 +221,14 @@ struct ThemeMergerTests {
         #expect("\(error.map { "\($0)" } ?? "no error")" == message)
     }
 
-    @Test("a colour in colors is written in hexadecimal")
+    @Test("a colour in colors is written out, as a hex colour or a color() value")
     func refusesNamedColourInColors() throws {
         // Given
         let file = try Fixture.json(#"{ "colors": { "brand": "accent" } }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == #"colors.brand (colors): "accent" is not #RRGGBB or #RRGGBBAA"#)
+        #expect(error?.description == #"colors.brand (colors): "accent" is not #RRGGBB, #RRGGBBAA or color(<space> r g b / a), with finite components and an alpha from 0 to 1, in srgb, srgb-linear, display-p3 or rec2020"#)
     }
 
     @Test("a default transition of 0 seconds or less stops at its place in the theme")

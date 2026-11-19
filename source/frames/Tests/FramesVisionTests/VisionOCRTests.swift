@@ -51,8 +51,8 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
-        let again = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
+        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+        let again = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         #expect(Set(lines.map(\.text)) == Set(drawn.keys))
@@ -80,7 +80,7 @@ struct VisionOCRTests {
 
         // When
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages)
+        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         #expect(probed.size == Size(width: 720, height: 1280))
@@ -104,7 +104,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let texts = try [0, 0.49, 0.5, 0.9].map { try sut.lines(in: media, atMediaTime: $0, languages: Self.languages).map(\.text) }
+        let texts = try [0, 0.49, 0.5, 0.9].map { try sut.lines(in: media, atMediaTime: $0, languages: Self.languages, colorSpace: nil).map(\.text) }
 
         // Then
         #expect(texts == [["First"], ["First"], ["Second"], ["Second"]])
@@ -137,7 +137,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages)
+        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         let line = try #require(lines.first)
@@ -162,7 +162,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages)
+        let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         let line = try #require(lines.first)

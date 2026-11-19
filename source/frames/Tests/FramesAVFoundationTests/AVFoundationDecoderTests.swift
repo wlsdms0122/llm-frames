@@ -51,7 +51,15 @@ struct AVFoundationDecoderTests {
             duration: 1,
             fps: 30,
             frames: evenTimes,
-            size: size
+            size: size,
+            colorSpace: ProbedColorSpace(
+                reading: .formulas(.srgb),
+                primaries: 1,
+                transfer: 13,
+                matrix: 1,
+                bitDepth: 8,
+                isHighDynamicRange: false
+            )
         ))
     }
 
@@ -73,7 +81,7 @@ struct AVFoundationDecoderTests {
 
         // Then
         #expect(pictures.map(code) == Array(evenTimes.indices))
-        #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .eight })
+        #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .halfFloat })
     }
 
     @Test("a video written at uneven times keeps its real timestamps, and its frames are read by them")
@@ -272,14 +280,15 @@ struct AVFoundationDecoderTests {
         let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0)
 
         // Then
-        #expect(probed == ProbedMedia(kind: .image, size: Size(width: 200, height: 100), hasAlpha: true))
+        #expect(probed.kind == .image && probed.size == Size(width: 200, height: 100) && probed.hasAlpha)
+        #expect(probed.colorSpace?.name == .srgb)
         #expect(picture.width == 200 && picture.height == 100)
         #expect(code(in: picture) == 37)
         let error = #expect(throws: DecoderError.self) { try sut.picture(of: MediaFile(path: file), atFrame: 1) }
         #expect(error?.description == "media \(file) has no frame 1: it has 1")
     }
 
-    @Test("pictures are sRGB with premultiplied alpha, a 16 bit still read at 16 bits")
+    @Test("pictures are working values with premultiplied alpha, a 16 bit still read as half floats")
     func convertsToWorkingSpace() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -308,7 +317,7 @@ struct AVFoundationDecoderTests {
         #expect(zip(videoPixel, [200, 120, 40, 255]).allSatisfy { abs($0 - $1) <= 3 }, "\(videoPixel)")
         #expect(pixel(in: stillPicture, x: 160, y: 120) == [200, 120, 40, 255])
         #expect(pixel(in: stillPicture, x: 5, y: 235) == [0, 0, 0, 0])
-        #expect(deepPicture.depth == .sixteen)
+        #expect(deepPicture.depth == .halfFloat)
         #expect(deepPicture.bytesPerRow == 320 * 8)
     }
 
@@ -419,14 +428,14 @@ struct AVFoundationDecoderTests {
 
         // When
         let error = #expect(throws: DecoderError.self) {
-            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]))
+            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]), reading: .tagged)
         }
 
         // Then
         #expect(
             error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
         )
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes)) }
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes), reading: .tagged) }
     }
 
     @Test("checking a file passes one with only sound, and still refuses one that is no media")
@@ -440,10 +449,10 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken)) }
+        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken), reading: nil) }
 
         // Then
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound)) }
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound), reading: nil) }
         #expect(error?.description.hasPrefix("media \(broken) cannot be read") == true, "\(String(describing: error))")
     }
 
@@ -599,14 +608,21 @@ struct AVFoundationDecoderTests {
         }
     }
 
-    // The 8 bit RGBA components at a pixel.
+    // The RGBA components at a pixel, each as its nearest 8 bit code value.
     private func pixel(
         in picture: Bitmap,
         x: Int,
         y: Int
     ) -> [Int] {
-        let start = y * picture.bytesPerRow + x * 4
+        guard picture.depth == .halfFloat else {
+            let start = y * picture.bytesPerRow + x * 4
 
-        return picture.pixels[start..<start + 4].map(Int.init)
+            return picture.pixels[start..<start + 4].map(Int.init)
+        }
+
+        let start = y * picture.bytesPerRow + x * 8
+        return picture.pixels[start..<start + 8].withUnsafeBytes { bytes in
+            bytes.bindMemory(to: Float16.self).map { Int((Double($0) * 255).rounded()) }
+        }
     }
 }

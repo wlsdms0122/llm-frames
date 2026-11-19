@@ -11,9 +11,13 @@ import Foundation
 // probe, read through the decoder and written with the encoder. An image goes to a JPEG, HEIC or PNG, a sound to AAC
 // in an .m4a, and a video to H.264 or HEVC in an .mp4, .mov or .m4v with its sound in AAC, or to its sound alone in an
 // .m4a. Pictures are taken as the decoder displays them, turned, and nothing else of the input is carried over.
-// Everything that can stop does before anything is written, in this order: `--max`, the input, the paths, the output
-// extension, `--codec`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, and the
-// encoder on the target and on the sound read for it. An existing output file is removed only then.
+// A picture is written in the source's colour space when a sequence can be output in it, in `srgb` otherwise, or in the
+// one `--color-space` names: read as a sequence of that space reads a media clip with `toneMap` true, so an HDR source
+// is tone mapped to the space's peak where its own is above it, or, where the decoder's reading is the platform's, read
+// once by the platform's colour management into that space (FRAMES-23). Everything that can stop does before anything
+// is written, in this order: `--max`, the input, the paths, the output extension, `--codec` and `--color-space`, a
+// video's sound or frame rate, the size `--max` gives a video, the decoder on the input, an HDR colour space for H.264
+// or JPEG, and the encoder on the target and on the sound read for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -79,20 +83,29 @@ package struct Transcoder: Sendable {
 
         let file = MediaFile(path: request.input, size: size)
         let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: false)
+        try decoder.check(file, reading: nil)
+        let reading = try decoder.colorReading(of: file)
+        let output = output(of: reading, for: request)
+        if request.outputExtension == "jpg", output.space.isHighDynamicRange {
+            throw TranscodeError.highDynamicRangeJPEG(path: request.output, colorSpace: output.space)
+        }
+
+        let picture = try decoder.picture(of: file, atFrame: 0, reading: pictureReading(of: reading, for: output))
+        // A PNG keeps the bit depth the source probes at, and takes 16 bits in an HDR colour space.
+        let sourceDepth = BitDepth(holding: media.colorSpace?.bitDepth ?? 8)
+        let depth: BitDepth = output.space.isHighDynamicRange ? .sixteen : sourceDepth
         let target: ImageTarget = switch request.outputExtension {
         case "jpg":
-            .jpeg(path: request.output, size: fitted, quality: request.quality)
+            .jpeg(path: request.output, size: fitted, quality: request.quality, output: output)
 
         case "heic":
-            .heic(path: request.output, size: fitted, quality: request.quality)
+            .heic(path: request.output, size: fitted, quality: request.quality, output: output)
 
         default:
-            .png(path: request.output, size: fitted)
+            .png(path: request.output, size: fitted, depth: depth, output: output)
         }
-        try decoder.check(file)
         try encoder.check(target)
 
-        let picture = try decoder.picture(of: file, atFrame: 0)
         try removeExisting(request.output)
         try encoder.writeImage(picture, for: target)
 
@@ -105,6 +118,7 @@ package struct Transcoder: Sendable {
     ) throws -> TranscodeFormat {
         try checkExtension(of: request, kind: .audio, allowed: Self.soundExtensions)
         try checkNoCodec(in: request)
+        try checkNoColorSpace(in: request)
 
         try writeSound(of: MediaFile(path: request.input), duration: media.duration, for: request)
 
@@ -121,6 +135,7 @@ package struct Transcoder: Sendable {
 
         if request.outputExtension == "m4a" {
             try checkNoCodec(in: request)
+            try checkNoColorSpace(in: request)
             guard media.hasSound else { throw TranscodeError.noSound(path: request.output, input: request.input) }
 
             try writeSound(of: file, duration: media.duration, for: request)
@@ -130,14 +145,20 @@ package struct Transcoder: Sendable {
 
         guard let fps = media.fps, fps > 0 else { throw TranscodeError.noFrameRate(path: request.input) }
         try checkVideoSize(of: size, for: request)
-        let codec = request.codec ?? .h264
+        try decoder.check(file, reading: nil)
+        let reading = try decoder.colorReading(of: file)
+        let output = output(of: reading, for: request)
+        let codec = request.codec ?? (output.space.isHighDynamicRange ? .hevc : .h264)
+        if codec == .h264, output.space.isHighDynamicRange {
+            throw TranscodeError.highDynamicRangeCodec(path: request.output, colorSpace: output.space)
+        }
         let target = EncodeTarget.compressed(
             path: request.output,
             codec: codec,
             quality: request.quality,
-            size: outputSize(of: size, maximumSide: request.maximumSide, isVideo: true)
+            size: outputSize(of: size, maximumSide: request.maximumSide, isVideo: true),
+            output: output
         )
-        try decoder.check(file)
         let frameCount = frameCount(duration: media.duration, fps: fps)
         let sound = media.hasSound ? try decoder.sound(of: file, from: 0, to: Double(frameCount) / fps) : nil
         try encoder.check(target)
@@ -157,8 +178,10 @@ package struct Transcoder: Sendable {
 
         // A writer let go before it finishes, as when a frame cannot be read, cancels and removes its file.
         let writer = try encoder.videoWriter(for: target, size: size, fps: fps, sound: sound)
+        let pictureReading = pictureReading(of: reading, for: output)
         for index in 0..<frameCount {
-            try writer.append(decoder.picture(of: file, atFrame: file.frameIndex(at: Double(index) / fps)))
+            let frame = file.frameIndex(at: Double(index) / fps)
+            try writer.append(decoder.picture(of: file, atFrame: frame, reading: pictureReading))
         }
         try writer.finish()
 
@@ -170,7 +193,7 @@ package struct Transcoder: Sendable {
         duration: Double,
         for request: TranscodeRequest
     ) throws {
-        try decoder.check(file)
+        try decoder.check(file, reading: nil)
         let sound = try decoder.sound(of: file, from: 0, to: duration)
         let target = SoundTarget(
             path: request.output,
@@ -231,6 +254,42 @@ package struct Transcoder: Sendable {
 
     private func checkNoCodec(in request: TranscodeRequest) throws {
         guard request.codec == nil else { throw TranscodeError.codecWithoutVideo(path: request.output) }
+    }
+
+    private func checkNoColorSpace(in request: TranscodeRequest) throws {
+        guard request.colorSpace == nil else { throw TranscodeError.colorSpaceWithoutPicture(path: request.output) }
+    }
+
+    // The output's colour space: the one `--color-space` names, else the source's when it is a table row, else `srgb`,
+    // at the space's own peak.
+    private func output(
+        of reading: ColorReading,
+        for request: TranscodeRequest
+    ) -> ColorConversion {
+        let source: ColorSpace? = switch reading {
+        case let .formulas(space):
+            space
+
+        case .platform:
+            nil
+        }
+
+        return ColorConversion(space: request.colorSpace ?? source ?? .srgb)
+    }
+
+    // The source read as a sequence of the output's space reads a clip with `toneMap` true, or by the platform's
+    // colour management into that space where no formula reads it.
+    private func pictureReading(
+        of reading: ColorReading,
+        for output: ColorConversion
+    ) -> PictureReading {
+        switch reading {
+        case .formulas:
+            .working(colorSpace: nil, targetPeak: output.peak)
+
+        case .platform:
+            .platform(colorSpace: output.space)
+        }
     }
 
     // A video's side is at least 2 pixels, the least even number, so a source or a cap that rounds a side below it

@@ -7,8 +7,9 @@
 
 import Foundation
 
-// One transcode: the file to read, the file to write, how hard to shrink it, the cap on a picture's longer side, and
-// the codec of a video output, H.264 when none is given.
+// One transcode: the file to read, the file to write, how hard to shrink it, the cap on a picture's longer side, the
+// codec of a video output, H.264 in an SDR colour space and HEVC in an HDR one when none is given, and the colour space
+// of a picture output, the source's when none is given.
 package struct TranscodeRequest: Equatable, Sendable {
     // MARK: - Property
     package let input: String
@@ -16,6 +17,7 @@ package struct TranscodeRequest: Equatable, Sendable {
     package let quality: EncodeQuality
     package let maximumSide: Int?
     package let codec: VideoCodec?
+    package let colorSpace: ColorSpace?
 
     var outputExtension: String {
         URL(fileURLWithPath: output).pathExtension.lowercased()
@@ -27,13 +29,15 @@ package struct TranscodeRequest: Equatable, Sendable {
         output: String,
         quality: EncodeQuality = .medium,
         maximumSide: Int? = nil,
-        codec: VideoCodec? = nil
+        codec: VideoCodec? = nil,
+        colorSpace: ColorSpace? = nil
     ) {
         self.input = input
         self.output = output
         self.quality = quality
         self.maximumSide = maximumSide
         self.codec = codec
+        self.colorSpace = colorSpace
     }
 
     // MARK: - Public

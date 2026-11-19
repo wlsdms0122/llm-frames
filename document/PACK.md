@@ -181,7 +181,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 | Type | A value is | In a preset | In a template |
 | --- | --- | --- | --- |
 | `number` | a number | yes | yes |
-| `color` | a colour: `#RRGGBB`, `#RRGGBBAA` or the name of a theme colour | yes | yes |
+| `color` | a colour: `#RRGGBB`, `#RRGGBBAA`, `color(<space> r g b)` or `color(<space> r g b / a)` with `srgb`, `srgb-linear`, `display-p3` or `rec2020`, or the name of a theme colour ([FRAMES-26](../spec/FRAMES-26/SPEC.md#colour-values)) | yes | yes |
 | `choice` | one of its `options` | yes, with eases as options | yes |
 | `text` | a string | no | yes |
 | `video` | a video, or an image sequence | no | yes |

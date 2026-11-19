@@ -47,6 +47,9 @@ struct ContentFitPlanner: Sendable {
             background: plan.format.background,
             fps: plan.format.fps,
             duration: plan.format.duration,
+            colorSpace: plan.format.colorSpace,
+            peak: plan.format.peak,
+            compositing: plan.format.compositing,
             margin: margin
         )
 
@@ -74,6 +77,8 @@ struct ContentFitPlanner: Sendable {
                     id: entry.id,
                     media: entry.media,
                     solid: entry.solid,
+                    colorSpace: entry.colorSpace,
+                    isToneMapped: entry.isToneMapped,
                     in: entry.in,
                     out: entry.out,
                     speed: entry.speed,

@@ -161,7 +161,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     func color(_ color: Color) -> JSONValue {
-        .string(color.hex)
+        .string(color.resolvedForm)
     }
 
     func ease(_ ease: Ease) -> JSONValue {
@@ -525,8 +525,11 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "output", value: numbers(output))
             ]
 
-        case let .lut(file, amount):
-            return [kind("lut")] + pinned(file) + [value("amount", amount)]
+        case let .lut(file, amount, space):
+            return [kind("lut")] + pinned(file) + [
+                value("amount", amount),
+                JSONMember(key: "space", value: .string(space.rawValue))
+            ]
 
         case let .blur(radius):
             return [kind("blur"), value("radius", radius)]

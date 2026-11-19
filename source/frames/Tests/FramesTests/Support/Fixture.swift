@@ -33,7 +33,7 @@ enum Fixture {
         templates: ["pack/intro", "pack/card"]
     )
 
-    // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent.
+    // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent. `/abs/card.png` is tagged sRGB.
     static let mediaFacts = MediaFactTable(
         files: [
             "/abs/run.mp4": ProbedMedia(
@@ -52,7 +52,18 @@ enum Fixture {
             ),
             "/abs/light-leak.mov": ProbedMedia(kind: .video, duration: 4, fps: 23.976, size: Size(width: 1920, height: 1080)),
             "/abs/halfway.mp4": ProbedMedia(kind: .video, duration: 4, fps: 27.5, size: Size(width: 1079, height: 1919)),
-            "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
+            "/abs/card.png": ProbedMedia(
+                kind: .image,
+                size: Size(width: 1080, height: 1350),
+                colorSpace: ProbedColorSpace(
+                    reading: .formulas(.srgb),
+                    primaries: 1,
+                    transfer: 13,
+                    matrix: nil,
+                    bitDepth: 8,
+                    isHighDynamicRange: false
+                )
+            ),
             "/abs/log.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1350)),
             "/abs/bgm.m4a": ProbedMedia(
                 kind: .audio,

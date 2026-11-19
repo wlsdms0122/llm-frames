@@ -8,8 +8,9 @@
 import CoreMedia
 import Foundation
 
-// What AVFoundation loads of a video's picture track and its file. `edits` map the times the track's samples carry
-// onto the file's presentation timeline, without the empty edits, and `duration` is the file's on that timeline.
+// What AVFoundation loads of a video's picture track and its file, the colour its format is tagged with among it.
+// `edits` map the times the track's samples carry onto the file's presentation timeline, without the empty edits, and
+// `duration` is the file's on that timeline.
 struct TrackFacts: Sendable {
     // MARK: - Property
     let storedSize: CGSize
@@ -17,6 +18,7 @@ struct TrackFacts: Sendable {
     let nominalFrameRate: Float
     let bitsPerComponent: Int
     let hasAlpha: Bool
+    let taggedColor: TaggedColor
     let edits: [CMTimeMapping]
     let duration: CMTime
     let hasSound: Bool
@@ -28,6 +30,7 @@ struct TrackFacts: Sendable {
         nominalFrameRate: Float,
         bitsPerComponent: Int,
         hasAlpha: Bool,
+        taggedColor: TaggedColor,
         edits: [CMTimeMapping],
         duration: CMTime,
         hasSound: Bool
@@ -37,6 +40,7 @@ struct TrackFacts: Sendable {
         self.nominalFrameRate = nominalFrameRate
         self.bitsPerComponent = bitsPerComponent
         self.hasAlpha = hasAlpha
+        self.taggedColor = taggedColor
         self.edits = edits
         self.duration = duration
         self.hasSound = hasSound

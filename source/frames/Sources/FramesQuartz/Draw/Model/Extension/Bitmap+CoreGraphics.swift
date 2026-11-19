@@ -13,10 +13,20 @@ extension Bitmap {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    // The bitmap's pixels as a Core Graphics image in the working space, without copying them.
+    // The bitmap's pixels as a Core Graphics image of encoded working values, without copying them. A half float
+    // bitmap holds them unbounded, and an eight or sixteen bit one from 0 to 1.
     func cgImage() throws -> CGImage {
         let bitsPerComponent = depth.bitsPerComponent
-        let bitmapInfo = depth == .sixteen ? WorkingSpace.bitmapInfo : CGImageAlphaInfo.premultipliedLast.rawValue
+        let bitmapInfo = switch depth {
+        case .eight:
+            CGImageAlphaInfo.premultipliedLast.rawValue
+
+        case .sixteen:
+            CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder16Little.rawValue
+
+        case .halfFloat:
+            WorkingSpace.bitmapInfo
+        }
         guard
             let provider = CGDataProvider(data: pixels as CFData),
             let image = CGImage(
@@ -25,7 +35,7 @@ extension Bitmap {
                 bitsPerComponent: bitsPerComponent,
                 bitsPerPixel: bitsPerComponent * 4,
                 bytesPerRow: bytesPerRow,
-                space: WorkingSpace.colorSpace,
+                space: WorkingSpace.encoded,
                 bitmapInfo: CGBitmapInfo(rawValue: bitmapInfo),
                 provider: provider,
                 decode: nil,

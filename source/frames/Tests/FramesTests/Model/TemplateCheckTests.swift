@@ -66,7 +66,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(

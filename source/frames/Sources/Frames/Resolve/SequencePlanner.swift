@@ -234,6 +234,7 @@ struct SequencePlanner: Sendable {
         crops: [PropertyValue<FoundArea>?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
+        let colorSpace = format.colorSpace ?? .srgb
         let size: Size
         let margin: Margin?
         switch format.size {
@@ -266,6 +267,9 @@ struct SequencePlanner: Sendable {
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
             duration: time.duration,
+            colorSpace: colorSpace,
+            peak: colorSpace == .rec2100PQ ? format.peak ?? colorSpace.peakLuminance : nil,
+            compositing: format.compositing ?? .encoded,
             margin: margin
         )
     }
@@ -365,7 +369,12 @@ struct SequencePlanner: Sendable {
             throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: reference)
         }
 
-        return Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size)
+        return Picture(
+            name: media.reference ?? file.path,
+            source: .mediaFile(file),
+            size: size,
+            colorSpace: media.colorSpace
+        )
     }
 
     // A drawn media clip's picture, which its crop, its box and how it fills it are all found in. Audio is drawn by

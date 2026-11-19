@@ -12,7 +12,7 @@ import Frames
 struct TrackCommand: Command {
     // MARK: - Property
     let name = "track"
-    let synopsis = "<video> --at <t> --area <area> [--to <t>]"
+    let synopsis = "<video> --at <t> --area <area> [--to <t>] [--color-space <name>]"
     let summary = "Follows an area found at a media time backwards and forwards with the tracker provider, and "
         + "prints as JSON its quadrilateral there and on every frame followed, with the motion fitted to it."
 
@@ -31,7 +31,13 @@ struct TrackCommand: Command {
             languages: context.options.ocrLanguages,
             tracker: roles.tracker
         )
-        let report = try reporter.report(of: options.video, area: options.area, at: options.time, to: options.end)
+        let report = try reporter.report(
+            of: options.video,
+            area: options.area,
+            at: options.time,
+            to: options.end,
+            colorSpace: options.colorSpace
+        )
 
         context.output.write(JSONWriter().write(report.machineOutput))
     }

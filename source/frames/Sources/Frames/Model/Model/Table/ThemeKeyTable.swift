@@ -5,15 +5,15 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A theme's keys and a text style's, read from their look structures. A theme's `colors` are written as hex, and its
-// `styles`, `shapes` and `defaults` have tables of their own.
+// A theme's keys and a text style's, read from their look structures. A theme's `colors` are written out, as hex or
+// `color()`, and its `styles`, `shapes` and `defaults` have tables of their own.
 enum ThemeKeyTable {
     static let theme = ObjectTable(
         kind: "theme",
         rules: [
             KeyRule("baseWidth", look("baseWidth")),
             KeyRule("font", look("font")),
-            KeyRule("colors", .map(.hexColor, kind: "colors")),
+            KeyRule("colors", .map(.unnamedColor, kind: "colors")),
             KeyRule("styles", .map(.object(style), kind: "styles")),
             KeyRule("shapes", .map(.object(ShapeKeyTable.style), kind: "shapes")),
             KeyRule("placement", look("placement")),

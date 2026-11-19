@@ -8,7 +8,8 @@
 import Foundation
 import Frames
 
-// Reading a rendered sixteen bit bitmap back as premultiplied components from 0 to 1.
+// Reading a rendered bitmap back as premultiplied components: a half float one as it holds them, unbounded, and an
+// eight or sixteen bit one from 0 to 1.
 extension Bitmap {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,13 +20,24 @@ extension Bitmap {
         y: Int
     ) -> [Double] {
         pixels.withUnsafeBytes { buffer in
-            let row = buffer.baseAddress!.advanced(by: y * bytesPerRow).assumingMemoryBound(to: UInt16.self)
+            let row = buffer.baseAddress!.advanced(by: y * bytesPerRow)
 
-            return (0..<4).map { component in Double(UInt16(littleEndian: row[x * 4 + component])) / 65535 }
+            return (0..<4).map { component in
+                switch depth {
+                case .eight:
+                    Double(row.assumingMemoryBound(to: UInt8.self)[x * 4 + component]) / 255
+
+                case .sixteen:
+                    Double(UInt16(littleEndian: row.assumingMemoryBound(to: UInt16.self)[x * 4 + component])) / 65535
+
+                case .halfFloat:
+                    Double(row.assumingMemoryBound(to: Float16.self)[x * 4 + component])
+                }
+            }
         }
     }
 
-    // The raw sixteen bit components of the pixel, for comparing pixels exactly.
+    // The raw sixteen bit components of the pixel, half float or integer, for comparing pixels exactly.
     func components(
         x: Int,
         y: Int

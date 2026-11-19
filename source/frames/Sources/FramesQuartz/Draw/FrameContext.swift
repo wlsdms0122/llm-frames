@@ -10,13 +10,15 @@ import CoreImage
 import Foundation
 import Frames
 
-// A transparent sixteen bit premultiplied sRGB bitmap context of whole pixels, set up as the display list's
-// coordinates: origin at the top left, y pointing down.
+// A transparent half float premultiplied bitmap context of whole pixels in the form of the working values its list's
+// `compositing` names, set up as the display list's coordinates: origin at the top left, y pointing down. What is
+// drawn into it is converted to its form, and what Core Image computes for it is computed in that form.
 final class FrameContext {
     // MARK: - Property
     let context: CGContext
     let width: Int
     let height: Int
+    let compositing: Compositing
 
     var bounds: CGRect {
         CGRect(x: 0, y: 0, width: width, height: height)
@@ -25,7 +27,8 @@ final class FrameContext {
     // MARK: - Initializer
     init(
         width: Int,
-        height: Int
+        height: Int,
+        compositing: Compositing
     ) throws {
         guard
             width > 0,
@@ -36,7 +39,7 @@ final class FrameContext {
                 height: height,
                 bitsPerComponent: 16,
                 bytesPerRow: 0,
-                space: WorkingSpace.colorSpace,
+                space: WorkingSpace.colorSpace(of: compositing),
                 bitmapInfo: WorkingSpace.bitmapInfo
             )
         else {
@@ -56,10 +59,18 @@ final class FrameContext {
         self.context = context
         self.width = width
         self.height = height
+        self.compositing = compositing
     }
 
-    convenience init(holding size: Size) throws {
-        try self.init(width: Int(size.width.rounded(.up)), height: Int(size.height.rounded(.up)))
+    convenience init(
+        holding size: Size,
+        compositing: Compositing
+    ) throws {
+        try self.init(
+            width: Int(size.width.rounded(.up)),
+            height: Int(size.height.rounded(.up)),
+            compositing: compositing
+        )
     }
 
     // MARK: - Public
@@ -76,7 +87,7 @@ final class FrameContext {
 
     // Replaces every pixel with the image's over the context's bounds.
     func replace(with image: CIImage) throws {
-        let rendered = try Self.cgImage(of: image, in: bounds)
+        let rendered = try Self.cgImage(of: image, in: bounds, compositing: compositing)
 
         context.saveGState()
         context.resetClip()
@@ -85,29 +96,31 @@ final class FrameContext {
         context.restoreGState()
     }
 
-    func bitmap() -> Bitmap {
-        let length = context.bytesPerRow * height
+    // The frame as a bitmap of encoded working values: the context's own pixels in the encoded form, and in the
+    // linear form converted to the encoded one.
+    func bitmap() throws -> Bitmap {
+        guard compositing == .linear else { return Self.bitmap(of: context) }
 
-        return Bitmap(
-            width: width,
-            height: height,
-            depth: .sixteen,
-            bytesPerRow: context.bytesPerRow,
-            pixels: Data(bytes: context.data!, count: length)
-        )
+        let encoded = try FrameContext(width: width, height: height, compositing: .encoded)
+        encoded.context.setBlendMode(.copy)
+        encoded.context.drawUpright(try image(), in: bounds)
+
+        return Self.bitmap(of: encoded.context)
     }
 
-    // The image's pixels inside `extent`, in Core Image's coordinates, rendered in the working space.
+    // The image's pixels inside `extent`, in Core Image's coordinates, computed in the form `compositing` names and
+    // held in it.
     static func cgImage(
         of image: CIImage,
-        in extent: CGRect
+        in extent: CGRect,
+        compositing: Compositing
     ) throws -> CGImage {
         guard
-            let rendered = WorkingSpace.context.createCGImage(
+            let rendered = WorkingSpace.context(of: compositing).createCGImage(
                 image,
                 from: extent,
-                format: .RGBA16,
-                colorSpace: WorkingSpace.colorSpace
+                format: .RGBAh,
+                colorSpace: WorkingSpace.colorSpace(of: compositing)
             )
         else {
             throw QuartzError.unrenderedImage
@@ -117,4 +130,13 @@ final class FrameContext {
     }
 
     // MARK: - Private
+    private static func bitmap(of context: CGContext) -> Bitmap {
+        Bitmap(
+            width: context.width,
+            height: context.height,
+            depth: .halfFloat,
+            bytesPerRow: context.bytesPerRow,
+            pixels: Data(bytes: context.data!, count: context.bytesPerRow * context.height)
+        )
+    }
 }

@@ -223,7 +223,7 @@ struct AVFoundationEncoderTests {
         #expect(!FileManager.default.fileExists(atPath: abandoned))
     }
 
-    @Test("this machine can encode every target")
+    @Test("this machine can encode every target, HDR ones included")
     func checksTargets() throws {
         // Given
         let sut = AVFoundationEncoder()
@@ -232,10 +232,14 @@ struct AVFoundationEncoderTests {
             .master(path: "b.mov", alpha: true),
             .delivery(path: "c.mp4"),
             .compressed(path: "d.mp4", codec: .h264, quality: .medium, size: size),
-            .compressed(path: "e.mp4", codec: .hevc, quality: .medium, size: size)
+            .compressed(path: "e.mp4", codec: .hevc, quality: .medium, size: size),
+            .master(path: "j.mov", alpha: false, output: ColorConversion(space: .rec2100PQ)),
+            .delivery(path: "k.mp4", output: ColorConversion(space: .rec2100HLG)),
+            .compressed(path: "l.mp4", codec: .hevc, quality: .medium, size: size, output: ColorConversion(space: .rec2100PQ))
         ]
         let images: [ImageTarget] = [
             .png(path: "f.png", size: size),
+            .png(path: "m.png", size: size, depth: .sixteen, output: ColorConversion(space: .rec2100PQ)),
             .jpeg(path: "g.jpg", size: size, quality: .medium),
             .heic(path: "h.heic", size: size, quality: .medium)
         ]
@@ -278,7 +282,7 @@ struct AVFoundationEncoderTests {
     }
 
     @Test(
-        "a PNG has the bitmap's bit depth, an sRGB chunk, and its premultiplied colour as straight alpha",
+        "a PNG has its target's bit depth, an sRGB chunk, and its premultiplied colour as straight alpha",
         arguments: [BitDepth.sixteen, BitDepth.eight]
     )
     func writesImage(depth: BitDepth) throws {
@@ -292,7 +296,7 @@ struct AVFoundationEncoderTests {
         let bitmap = Bitmap(width: 2, height: 1, depth: depth, bytesPerRow: pixels.count, pixels: pixels)
 
         // When
-        try sut.writeImage(bitmap, to: path)
+        try sut.writeImage(bitmap, for: .png(path: path, size: Size(width: 2, height: 1), depth: depth))
 
         // Then
         let chunks = try pngChunks(at: path)
@@ -317,7 +321,7 @@ struct AVFoundationEncoderTests {
 
         // When
         #expect(throws: EncoderError.self) {
-            try sut.writeImage(frame(), to: path)
+            try sut.writeAnalysisPicture(of: frame(), in: ColorConversion(space: .srgb), to: path)
         }
 
         // Then
@@ -676,6 +680,9 @@ struct AVFoundationEncoderTests {
 
                 case .eight:
                     Double(row.assumingMemoryBound(to: UInt8.self)[x * 4 + component]) / 255
+
+                case .halfFloat:
+                    Double(row.assumingMemoryBound(to: Float16.self)[x * 4 + component])
                 }
             }
         }

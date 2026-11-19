@@ -24,7 +24,7 @@ extension ResolvedSequence {
     }
 
     private func references(of entry: ResolvedStorylineClip) -> [PinnedReference] {
-        let media = entry.media.map { references(of: $0, place: entry.place) } ?? []
+        let media = entry.media.map { references(of: $0, place: entry.place, colorSpace: entry.colorSpace) } ?? []
         let transition = entry.transition.map { references(of: $0, place: entry.place) } ?? []
 
         return media + references(of: entry.filter, place: entry.place) + transition
@@ -35,11 +35,13 @@ extension ResolvedSequence {
         place: String
     ) -> [PinnedReference] {
         let cover: [PinnedReference] = if case let .media(media) = transition.cover?.source {
-            [.media(media.media, place: place)]
+            [.media(media.media, place: place, colorSpace: media.colorSpace)]
         } else {
             []
         }
-        let matte = transition.matte.map { [PinnedReference.media($0.media.media, place: place)] } ?? []
+        let matte = transition.matte.map {
+            [PinnedReference.media($0.media.media, place: place, colorSpace: $0.media.colorSpace)]
+        } ?? []
 
         return cover + matte
     }
@@ -56,24 +58,25 @@ extension ResolvedSequence {
             return references(of: filter, place: clip.place)
 
         case let .media(media):
-            return references(of: media.media, place: clip.place)
+            return references(of: media.media, place: clip.place, colorSpace: media.colorSpace)
                 + references(of: media.filter, place: clip.place)
         }
     }
 
     private func references(of sound: ResolvedSound) -> [PinnedReference] {
-        let media = sound.media.map { [PinnedReference.media($0, place: sound.place)] } ?? []
+        let media = sound.media.map { [PinnedReference.sound($0, place: sound.place)] } ?? []
 
         return media + sound.nested.flatMap(references(of:))
     }
 
     private func references(
         of media: ResolvedMediaContent,
-        place: String
+        place: String,
+        colorSpace: ColorSpace?
     ) -> [PinnedReference] {
         switch media {
         case let .pinned(media):
-            [.media(media, place: place)]
+            [.media(media, place: place, colorSpace: colorSpace)]
 
         case let .nested(sequence):
             references(of: sequence)
@@ -86,7 +89,7 @@ extension ResolvedSequence {
         place: String
     ) -> [PinnedReference] {
         FilterEntry.entries(of: filter, at: 0).flatMap(\.operations).compactMap { operation in
-            guard case let .lut(file, _) = operation else { return nil }
+            guard case let .lut(file, _, _) = operation else { return nil }
 
             return .file(file, place: place)
         }

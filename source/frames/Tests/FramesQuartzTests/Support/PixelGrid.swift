@@ -8,15 +8,24 @@
 import CoreGraphics
 import CoreImage
 import Foundation
+import Frames
+@testable import FramesQuartz
 
-// A small test picture of float RGBA with premultiplied alpha, sRGB encoded, rows top first, which a test builds
-// pixel by pixel and reads back from an image Core Image renders.
+// A small test picture of float RGBA with premultiplied alpha, encoded working values, unbounded, rows top first,
+// which a test builds pixel by pixel and reads back from an image Core Image renders in either form of the working
+// values, in 32 bit floats.
 struct PixelGrid {
     // MARK: - Property
-    static let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    static let colorSpace = WorkingSpace.encoded
 
-    // The quartz renderer's working space: sRGB encoded, in floats.
-    static let context = CIContext(options: [.workingColorSpace: colorSpace, .workingFormat: CIFormat.RGBAf])
+    private static let encodedContext = CIContext(options: [
+        .workingColorSpace: WorkingSpace.encoded,
+        .workingFormat: CIFormat.RGBAf
+    ])
+    private static let linearContext = CIContext(options: [
+        .workingColorSpace: WorkingSpace.linear,
+        .workingFormat: CIFormat.RGBAf
+    ])
 
     let width: Int
     let height: Int
@@ -54,13 +63,17 @@ struct PixelGrid {
         self.init(width: width, height: height, pixels: Array([[Float]](repeating: premultiplied, count: width * height).joined()))
     }
 
-    // Renders `image` over its extent.
-    init(rendering image: CIImage) {
+    // Renders `image` over its extent, computed in the form `compositing` names.
+    init(
+        rendering image: CIImage,
+        compositing: Compositing = .encoded
+    ) {
         let extent = image.extent
         let width = Int(extent.width)
         let height = Int(extent.height)
         var pixels = [Float](repeating: 0, count: width * height * 4)
-        Self.context.render(
+        let context = compositing == .linear ? Self.linearContext : Self.encodedContext
+        context.render(
             image,
             toBitmap: &pixels,
             rowBytes: width * 16,

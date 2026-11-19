@@ -34,8 +34,7 @@ struct DisplayListFlattener: Sendable {
         let frame = Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
         // A list is drawn at its own size, so nothing of it shows outside its frame.
         let state = state.clipped(to: frame)
-        // `#RRGGBBAA`, so a transparent background ends in an alpha of 00.
-        let background = list.background.hex.hasSuffix("00")
+        let background = list.background.isTransparent
             ? []
             : [FlattenedItem(
                 origin: state.origin,

@@ -62,6 +62,7 @@ struct EvaluatorTests {
         #expect(list == DisplayList(
             size: size,
             background: background,
+            colorSpace: .srgb,
             seed: seed,
             items: [storylineItem([mediaItem(media, frame: frame)], seed: seed)]
         ))
@@ -200,13 +201,17 @@ struct EvaluatorTests {
         // Then
         // Progress 0.25: the stinger at 0.5 of its 2 seconds, the wipe at 0.25 of its 1, and 0.25 eased in is 0.25^3.
         let pictureMatte = PictureMatte(
-            frame: MediaFrame(media: wipe, index: 2),
+            frame: MediaFrame(media: wipe, index: 2, reading: .analysis(colorSpace: nil)),
             progress: 0.015625,
             softness: 0.1,
             isInverted: true
         )
         let coverPicture = PictureItem(
-            source: .media(MediaFrame(media: stinger, index: 1)),
+            source: .media(MediaFrame(
+                media: stinger,
+                index: 1,
+                reading: .working(colorSpace: nil, targetPeak: 203)
+            )),
             rectangle: nil,
             destination: frame
         )

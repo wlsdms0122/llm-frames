@@ -27,16 +27,18 @@ struct MatteApplierTests {
 
     // MARK: - Test
     @Test(
-        "the picture's alpha is multiplied by clamp((p (1 + s) - L) / s, 0, 1) of the matte stretched over it",
+        "the picture's alpha is multiplied by clamp((p (1 + s) - L) / s, 0, 1) of the matte stretched over it, L its encoded luma in either form",
         arguments: [
-            (0.0, 0.0, false),
-            (1.0, 0.0, false),
-            (0.5, 0.0, false),
-            (0.5, 0.2, false),
-            (0.5, 0.2, true)
+            (0.0, 0.0, false, Compositing.encoded),
+            (1.0, 0.0, false, .encoded),
+            (0.5, 0.0, false, .encoded),
+            (0.5, 0.2, false, .encoded),
+            (0.5, 0.2, true, .encoded),
+            (0.5, 0.2, false, .linear),
+            (0.5, 0.2, true, .linear)
         ]
     )
-    func masksByLuma(progress: Double, softness: Double, isInverted: Bool) throws {
+    func masksByLuma(progress: Double, softness: Double, isInverted: Bool, compositing: Compositing) throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let picture = PictureItem(
@@ -48,6 +50,7 @@ struct MatteApplierTests {
         let list = DisplayList(
             size: Size(width: 40, height: 10),
             background: Color(written: "#00000000"),
+            compositing: compositing,
             seed: 0,
             items: [DisplayItem(content: .picture(picture))]
         )
@@ -62,6 +65,32 @@ struct MatteApplierTests {
             let alpha = bitmap.pixel(x: band * 10 + 5, y: 5)[3]
             #expect(abs(alpha - expected) <= 1.0 / 255, "band \(band): \(alpha) is not \(expected)")
         }
+    }
+
+    @Test("a transition matte is read as an analysis picture in its source's colour space")
+    func readsAnalysisPicture() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
+        let matte = MediaFrame(media: pinned(at: "/matte.png"), index: 0, reading: .analysis(colorSpace: .rec2100PQ))
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: pinned(at: "/picture.png"), index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4),
+            matte: PictureMatte(frame: matte, progress: 0.5, softness: 0, isInverted: false)
+        )
+        let list = DisplayList(
+            size: Size(width: 4, height: 4),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(content: .picture(picture))]
+        )
+
+        // When
+        _ = try sut.frame(of: list)
+
+        // Then
+        #expect(decoder.readings(of: "/matte.png") == [.analysis(colorSpace: .rec2100PQ)])
     }
 
     // MARK: - Private
@@ -99,6 +128,10 @@ struct MatteApplierTests {
     }
 
     private func frame(at path: String) -> MediaFrame {
-        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))), index: 0)
+        MediaFrame(media: pinned(at: path), index: 0)
+    }
+
+    private func pinned(at path: String) -> PinnedMedia {
+        PinnedMedia(source: .file(PinnedFile(path: path, sha256: "")))
     }
 }

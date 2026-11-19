@@ -15,18 +15,27 @@ struct SequenceFormat: Equatable, Sendable {
     let size: FormatSize?
     let conform: Conform?
     let background: String?
+    let colorSpace: ColorSpace?
+    let peak: Double?
+    let compositing: Compositing?
 
     // MARK: - Initializer
     init(
         fps: Double? = nil,
         size: FormatSize? = nil,
         conform: Conform? = nil,
-        background: String? = nil
+        background: String? = nil,
+        colorSpace: ColorSpace? = nil,
+        peak: Double? = nil,
+        compositing: Compositing? = nil
     ) {
         self.fps = fps
         self.size = size
         self.conform = conform
         self.background = background
+        self.colorSpace = colorSpace
+        self.peak = peak
+        self.compositing = compositing
     }
 
     // MARK: - Public

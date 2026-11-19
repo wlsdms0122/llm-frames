@@ -9,6 +9,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
     case missingMedia(place: Place, kind: PlaceKind, reference: String)
     case unreadableMedia(place: Place, kind: PlaceKind, reference: String, reason: String)
+    case unconvertibleMediaColor(place: Place, kind: PlaceKind, reference: String)
     case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
     case nonPositiveDuration(place: Place, kind: PlaceKind, duration: Double)
@@ -82,6 +83,14 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
+    case mediaColorSpaces(
+        place: String,
+        kind: String,
+        other: String,
+        file: String,
+        colorSpace: ColorSpace?,
+        otherColorSpace: ColorSpace?
+    )
 
     // MARK: - Property
     var description: String {
@@ -94,6 +103,11 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind.label)): media \(quoted(reference)) cannot be probed: \(reason)"
+
+        case let .unconvertibleMediaColor(place, kind, reference):
+            "\(place) (\(kind.label)): media \(quoted(reference)) is tagged with a LUT-based ICC profile or a code "
+                + "point H.273 reserves, which no fixed formula converts. Write the colorSpace it is in here, or "
+                + "convert it with transcode"
 
         case let .unknownTheme(place, kind, name):
             "\(place) (\(kind.label)): unknown theme \(quoted(name)). "
@@ -357,6 +371,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .optionOnResolved(place, kind, option):
             "\(place) (\(kind)): a resolved document has its theme and arguments written in, so it takes no \(option)"
+
+        case let .mediaColorSpaces(place, kind, other, file, colorSpace, otherColorSpace):
+            "\(place) (\(kind)): \(quoted(file)) is read \(read(in: colorSpace)) here and \(read(in: otherColorSpace)) "
+                + "at \(other), and every place that names a file reads it in one colour space"
         }
     }
 
@@ -374,6 +392,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case .audio:
             "an audio clip"
         }
+    }
+
+    private func read(in colorSpace: ColorSpace?) -> String {
+        colorSpace.map { "as \(quoted($0.rawValue))" } ?? "as its tags say"
     }
 
     private func quoted(_ string: String) -> String {

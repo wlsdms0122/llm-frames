@@ -27,7 +27,8 @@ struct OCRTable: OCRProvider {
     func lines(
         in file: MediaFile,
         atMediaTime time: Double,
-        languages: [LanguageTag]?
+        languages: [LanguageTag]?,
+        colorSpace: ColorSpace?
     ) throws -> [RecognisedLine] {
         (files[file.path] ?? []).last { $0.from <= time }?.lines ?? []
     }

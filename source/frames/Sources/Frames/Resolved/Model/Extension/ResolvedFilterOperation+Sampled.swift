@@ -39,7 +39,11 @@ extension ResolvedFilterOperation {
 
         case "lut":
             let file = PinnedFile(path: body["file"]?.name ?? "", sha256: body["sha256"]?.name ?? "")
-            self = .lut(file: file, amount: number("amount"))
+            self = .lut(
+                file: file,
+                amount: number("amount"),
+                space: body["space"]?.name.flatMap(LookUpTableSpace.init) ?? .srgb
+            )
 
         case "blur":
             self = .blur(radius: number("radius"))

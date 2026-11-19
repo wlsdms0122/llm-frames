@@ -11,13 +11,15 @@ import Frames
 import ImageIO
 import UniformTypeIdentifiers
 
-// A still image file, opened once: its size as it is displayed, its bit depth, whether it carries alpha, and its
-// picture. An orientation that turns it a quarter swaps width and height.
+// A still image file, opened once: its size as it is displayed, its bit depth, whether it carries alpha, the colour its
+// ICC profile names with its mastering display's peak, and its picture. An orientation that turns it a quarter swaps
+// width and height. An image without a profile is untagged, and one with an sRGB chunk is given the sRGB profile.
 struct StillReader {
     // MARK: - Property
     let displaySize: Size
-    let depth: BitDepth
+    let bitDepth: Int
     let hasAlpha: Bool
+    let isTagged: Bool
 
     private let source: CGImageSource
     private let orientation: CGImagePropertyOrientation
@@ -48,19 +50,42 @@ struct StillReader {
         self.displaySize = orientation.rawValue >= 5
             ? Size(width: height, height: width)
             : Size(width: width, height: height)
-        self.depth = BitDepth(holding: properties[kCGImagePropertyDepth] as? Int ?? 8)
+        self.bitDepth = properties[kCGImagePropertyDepth] as? Int ?? 8
         self.hasAlpha = properties[kCGImagePropertyHasAlpha] as? Bool ?? false
+        self.isTagged = properties[kCGImagePropertyProfileName] != nil
     }
 
     // MARK: - Public
-    // The picture as it is displayed, tagged with the colour space the file gives.
+    // The picture as it is displayed, its samples as the file stores them, with no colour matched.
     func image(path: String) throws -> CIImage {
+        CIImage(cgImage: try cgImage(path: path), options: [.colorSpace: NSNull()]).oriented(orientation)
+    }
+
+    // The picture as it is displayed, tagged with its file's colour space, which Core Image's colour management
+    // converts from.
+    func taggedImage(path: String) throws -> CIImage {
+        CIImage(cgImage: try cgImage(path: path)).oriented(orientation)
+    }
+
+    func taggedColor(path: String) throws -> TaggedColor {
+        let profile = isTagged ? try cgImage(path: path).colorSpace?.copyICCData() : nil
+        guard let file = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else {
+            throw DecoderError.unreadable(file: path)
+        }
+
+        return TaggedColor(
+            profile: profile.map { ICCProfileReader(data: $0 as Data) },
+            bitDepth: bitDepth,
+            masteringDisplayPeak: MasteringDisplayReader(data: file).peak()
+        )
+    }
+
+    // MARK: - Private
+    private func cgImage(path: String) throws -> CGImage {
         guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
             throw DecoderError.unreadable(file: path)
         }
 
-        return CIImage(cgImage: image).oriented(orientation)
+        return image
     }
-
-    // MARK: - Private
 }

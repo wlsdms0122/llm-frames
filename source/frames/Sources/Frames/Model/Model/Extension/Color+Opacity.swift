@@ -8,7 +8,11 @@
 extension Color {
     // MARK: - Property
     var isOpaque: Bool {
-        hex.hasSuffix("FF")
+        alpha >= 1
+    }
+
+    var isTransparent: Bool {
+        alpha <= 0
     }
 
     // MARK: - Initializer
