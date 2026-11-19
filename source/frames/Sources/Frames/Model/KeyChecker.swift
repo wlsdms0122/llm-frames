@@ -652,7 +652,7 @@ struct KeyChecker: Sendable {
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
 
         default:
-            // The shape check lets nothing else through than an image sequence.
+            // The only other value the shape check lets through is an image sequence, which plays as video.
             return .video
         }
     }

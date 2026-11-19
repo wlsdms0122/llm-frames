@@ -146,7 +146,8 @@ struct SoundPlanner: Sendable {
         )
     }
 
-    // A clip that plays no sound takes no audio filter and no split. A remapped clip's stop where its time is planned.
+    // A clip that plays no sound takes no audio filter and no split. A remapped clip's stop earlier, where its time is
+    // planned.
     private func checkSilent(
         _ media: ClipMedia?,
         place: Place,
