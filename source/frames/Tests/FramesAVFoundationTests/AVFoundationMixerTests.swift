@@ -36,6 +36,23 @@ struct AVFoundationMixerTests {
         (false, .constantGain, -3.0103)
     ]
 
+    // A compressor that takes a tone at -6 dBFS down by about 9 dB within a few milliseconds and lets it go slowly.
+    private static let compressorFilter = [
+        MixFilterEntry(
+            operations: [
+                .compressor(MixCompressor(
+                    threshold: .constant(-18),
+                    ratio: .constant(4),
+                    knee: .constant(0),
+                    attack: .constant(0.002),
+                    release: .constant(0.5),
+                    makeup: .constant(0)
+                ))
+            ],
+            mix: .constant(1)
+        )
+    ]
+
     // 16 bit rounding of the written tone, and of a gain applied after it.
     private let tolerance: Float = 2.0 / 32_768
     private let rate = 48_000
@@ -404,6 +421,73 @@ struct AVFoundationMixerTests {
         }
     }
 
+    @Test("a segment's filter runs before its envelope, so a fade fades the compressed sound")
+    func filtersBeforeFade() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        let writer = SoundWriter(end: 1, levels: [0.5])
+        try await writer.write(to: file)
+        let fade = [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 1, value: 1)]
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let faded = try sut.mix(
+            MixPlan(segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter, envelope: fade)]),
+            duration: 1
+        )
+        let held = try sut.mix(MixPlan(segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter)]), duration: 1)
+
+        // Then
+        let deviation = (0..<rate).map { frame in
+            abs(faded.samples[frame * 2] - Float(frame) / Float(rate) * held.samples[frame * 2])
+        }.max()!
+        #expect(deviation < 1e-6, "\(deviation)")
+        #expect(peak(of: held, channel: 0, frames: 24_000..<rate) < 0.5 * centre * 0.9)
+    }
+
+    @Test("each segment starts its filter at rest, so the repeats of a loop sound the same")
+    func startsFilterAtRestPerSegment() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        let writer = SoundWriter(end: 1, levels: [0.5])
+        try await writer.write(to: file)
+        let plan = MixPlan(segments: [
+            segment(of: file, from: 0, to: 0.5, filter: Self.compressorFilter),
+            segment(of: file, from: 0.5, to: 1, filter: Self.compressorFilter)
+        ])
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(plan, duration: 1)
+
+        // Then
+        let repeated = (0..<24_000).allSatisfy { frame in
+            mixed.samples[frame * 2] == mixed.samples[(24_000 + frame) * 2]
+        }
+        #expect(repeated)
+        #expect(peak(of: mixed, channel: 0, frames: 24_000..<24_048) > 1.5 * peak(of: mixed, channel: 0, frames: 12_000..<24_000))
+    }
+
+    @Test("a filter at `mix` 0 leaves the segment's sound as it is without one")
+    func passesDryAtZeroMix() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        let writer = SoundWriter(end: 1, levels: [0.25, 0.1])
+        try await writer.write(to: file)
+        let dry = MixFilterEntry(operations: Self.compressorFilter[0].operations, mix: .constant(0))
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let filtered = try sut.mix(MixPlan(segments: [segment(of: file, from: 0, to: 1, filter: [dry])]), duration: 1)
+        let plain = try sut.mix(MixPlan(segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+
+        // Then
+        #expect(filtered.samples == plain.samples)
+    }
+
     // MARK: - Private
     private func segment(
         of file: String,
@@ -411,6 +495,7 @@ struct AVFoundationMixerTests {
         speed: Double = 1,
         from start: Double,
         to end: Double,
+        filter: [MixFilterEntry] = [],
         envelope: [EnvelopePoint]? = nil,
         pan: Double = 0
     ) -> MixSegment {
@@ -420,6 +505,7 @@ struct AVFoundationMixerTests {
             speed: speed,
             start: start,
             end: end,
+            filter: filter,
             envelope: envelope ?? [EnvelopePoint(time: start, value: 1), EnvelopePoint(time: end, value: 1)],
             pan: [EnvelopePoint(time: start, value: pan), EnvelopePoint(time: end, value: pan)]
         )
