@@ -95,6 +95,7 @@ struct PathDrawer {
             .truncatingRemainder(dividingBy: period)
         var position = first - (behind < 0 ? behind + period : behind)
         let dashes = CGMutablePath()
+        var dots = [CGPath]()
         for index in 0... {
             guard position < last else { break }
 
@@ -103,11 +104,49 @@ struct PathDrawer {
             let to = min(next, last)
             if index.isMultiple(of: 2), to > from {
                 dashes.addPath(outline.piece(from: own.distance(from, onto: outline), to: own.distance(to, onto: outline)))
+            } else if index.isMultiple(of: 2), next == position, position >= first,
+                let dot = dot(of: stroke, at: own.distance(position, onto: outline), along: outline) {
+                dots.append(dot)
             }
             position = next
         }
+        let parts = (dashes.isEmpty ? [] : [stroked(dashes, by: stroke)]) + dots
+        guard let base = parts.first else { return nil }
 
-        return dashes.isEmpty ? nil : stroked(dashes, by: stroke)
+        return parts.dropFirst().reduce(base) { shape, dot in shape.union(dot, using: .winding) }
+    }
+
+    // A dash of no length, as SVG draws it: its caps alone, a circle for `round` and a square along the outline's
+    // direction for `square`, and nothing for `butt`.
+    private func dot(
+        of stroke: PathStroke,
+        at distance: Double,
+        along outline: PathOutline
+    ) -> CGPath? {
+        let center = outline.point(at: distance)
+        let half = stroke.width / 2
+        switch stroke.cap {
+        case .butt:
+            return nil
+
+        case .round:
+            return CGPath(ellipseIn: CGRect(x: center.x - half, y: center.y - half, width: 2 * half, height: 2 * half), transform: nil)
+
+        case .square:
+            let along = outline.direction(at: distance, leaving: true)
+            let across = Point(x: -along.y, y: along.x)
+            let corners = [(1.0, 1.0), (1.0, -1.0), (-1.0, -1.0), (-1.0, 1.0)].map { forward, side in
+                CGPoint(
+                    x: center.x + (forward * along.x + side * across.x) * half,
+                    y: center.y + (forward * along.y + side * across.y) * half
+                )
+            }
+            let path = CGMutablePath()
+            path.addLines(between: corners)
+            path.closeSubpath()
+
+            return path
+        }
     }
 
     private func stroked(

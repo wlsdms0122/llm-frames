@@ -25,6 +25,7 @@ enum LookStructureTable {
             ("dashOffset", .leaf(.length(.any)))
         ],
         required: ["width"],
+        nonZero: ["dash"],
         exclusive: [["color", "gradient"]]
     ))
 

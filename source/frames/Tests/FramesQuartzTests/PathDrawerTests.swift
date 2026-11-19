@@ -445,6 +445,8 @@ struct PathDrawerTests {
             (Trim.whole, 5.0, Frames.AffineTransform.identity, [12, 28], [18, 38]),
             // Trimmed from x = 30, the pattern starts there: 30 to 40, 50 to 60.
             (Trim(start: 0.25, end: 1), 0.0, Frames.AffineTransform.identity, [35, 55], [15, 45]),
+            // Drawn on to x = 35, the dashes stay where the whole stroke has them: 10 to 20, 30 to 35.
+            (Trim(start: 0, end: 0.3125), 0.0, Frames.AffineTransform.identity, [15, 32], [25, 38]),
             // The line drawn at half its length, scaled 2 along x: each dash stays 10 long on the output.
             (Trim.whole, 0.0, Frames.AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: -10, ty: 0), [15, 35], [25, 45])
         ]
@@ -499,6 +501,50 @@ struct PathDrawerTests {
         expect(bitmap, at: [(10, 50), (30, 50), (42, 50), (60, 50), (78, 50), (85, 50), (80, 53)], inked: [
             true, false, true, false, true, true, true
         ])
+    }
+
+    // Dots of no length every 20 from x = 10, 10 wide: a round one is a circle of radius 5, a square one a square
+    // reaching 5 each way, whose corner pixel (34, 54) lies past the circle.
+    @Test(
+        "a dash of no length draws its caps alone, a dot for round and a square for square, and nothing for butt",
+        arguments: [
+            (StrokeCap.butt, [false, false, false]),
+            (StrokeCap.round, [true, false, false]),
+            (StrokeCap.square, [true, true, false])
+        ]
+    )
+    func drawsZeroLengthDash(
+        cap: StrokeCap,
+        inked: [Bool]
+    ) throws {
+        // Given
+        let stroke = PathStroke(width: 10, color: Self.black, join: .miter, cap: cap, start: .none, end: .none, dash: [0, 20])
+        let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(30, 50), (34, 54), (40, 50)], inked: inked)
+    }
+
+    // A circle of radius 20 about (50, 50), stretched 2 along x about its centre into an ellipse 40 by 20. Dashes of a
+    // quarter of the circle's length from its top, clockwise, fall on the top right and bottom left quarters.
+    @Test("dashes on an ellipse stretched along x follow the outline as carried, longer along the stretched axis")
+    func carriesDashesOnStretchedEllipse() throws {
+        // Given
+        let quarter = Double.pi * 10
+        let stroke = PathStroke(width: 4, color: Self.black, join: .miter, cap: .butt, start: .none, end: .none, dash: [quarter, quarter])
+        let path = PathItem(geometry: .ellipse(Rectangle(x: 30, y: 30, width: 40, height: 40)), fill: nil, stroke: stroke)
+        let item = DisplayItem(transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: -50, ty: 0), content: .path(path))
+        let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        // The points of the ellipse halfway along each quarter.
+        expect(bitmap, at: [(78, 35), (78, 64), (21, 64), (21, 35)], inked: [true, false, true, false])
     }
 
     // MARK: - Private

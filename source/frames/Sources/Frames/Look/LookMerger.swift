@@ -76,7 +76,8 @@ struct LookMerger: Sendable {
         }
     }
 
-    // Every key the structure requires, wherever the value holds an object of it, has a value after the merge.
+    // Every key the structure requires, wherever the value holds an object of it, has a value after the merge, and no
+    // list of lengths it keeps from zeros holds only zeros.
     func checkRequired(
         in value: LookValue,
         as structure: ValueStructure,
@@ -86,6 +87,15 @@ struct LookMerger: Sendable {
         case let (.object(members), .object(object)):
             for key in object.required where (value[key] ?? .unset) == .unset {
                 throw LookError.missingLeaf(place: place, key: key)
+            }
+            for key in object.nonZero {
+                guard
+                    case let .list(elements)? = value[key],
+                    !elements.isEmpty,
+                    elements.allSatisfy({ element in element == .leaf(.number(0)) })
+                else { continue }
+
+                throw LookError.allZero(place: place.appending(key: key))
             }
             for member in members {
                 guard let child = object.structure(of: member.key) else { continue }

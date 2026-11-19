@@ -11,7 +11,7 @@ import Testing
 
 // Shapes are sequence clips over `/abs/screen.mp4` in a 960 by 540 frame, so theme lengths are half their written
 // size, and each is checked by the key tables before it is planned. The theme holds the shape style `bar`, a stroke 8
-// wide in `#ED2929` with a shadow 10 wide.
+// wide in `#ED2929` with a shadow 10 wide, and `dashed`, a stroke 4 wide dashed `[10, 5]`.
 @Suite("Shape keyframe Tests")
 struct ShapeKeyframeTests {
     // MARK: - Property
@@ -179,6 +179,56 @@ struct ShapeKeyframeTests {
         #expect(error.map { "\($0)" } == message)
     }
 
+    @Test("dash lengths and the dash offset are theme lengths, scaled to output pixels")
+    func scalesDash() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [8, 4, 2], "dashOffset": 6 } }
+            """##)
+
+        // Then
+        let stroke = try #require(shape.stroke.stroke())
+        #expect(stroke.dash == [4, 2, 1, 4, 2, 1])
+        #expect(stroke.dashOffset == 3)
+    }
+
+    @Test("a static dash with a keyframed dash offset marches the style's dashes along the outline")
+    func marchesDashes() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+              "keyframes": [ { "at": 0, "stroke": { "dashOffset": 0 } }, { "at": 1, "stroke": { "dashOffset": 100 } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0.5)?.dash == [5, 2.5])
+        #expect(shape.stroke.stroke(at: 0.5)?.dashOffset == 25)
+    }
+
+    @Test("a clip's dash of zeros over its style's dashes stops, as the merged dash holds only zeros")
+    func refusesMergedZeroDash() throws {
+        // Given
+        let clip = #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed", "stroke": { "dash": [0, 0] } }"#
+
+        // When, Then
+        #expect(throws: (any Error).self) { try resolvedShape(clip) }
+    }
+
+    @Test("a dash an overshooting ease carries to all zeros draws the stroke whole at that instant")
+    func drawsSampledZeroDashWhole() throws {
+        // When
+        // back-out peaks at about 1.1 near 0.58, carrying 20 towards 1 past 0.
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2 },
+              "keyframes": [ { "at": 0, "stroke": { "dash": [20, 20] }, "ease": "back-out" }, { "at": 1, "stroke": { "dash": [1, 1] } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0.58)?.dash == nil)
+        #expect(shape.stroke.stroke(at: 0.58)?.width == 1)
+        #expect(shape.stroke.stroke(at: 1)?.dash == [0.5, 0.5])
+    }
+
     @Test("a shape's timed values read back from its resolved entry as they were written")
     func roundTripsTimedValues() throws {
         // Given
@@ -213,7 +263,8 @@ struct ShapeKeyframeTests {
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "colors": { "brand": "#123456" },
                          "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
-                         "shapes": { "bar": { "stroke": { "width": \#(width), "color": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } } } },
+                         "shapes": { "bar": { "stroke": { "width": \#(width), "color": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } },
+                                     "dashed": { "stroke": { "width": 4, "dash": [10, 5] } } } },
               "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 1] } ] }
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
