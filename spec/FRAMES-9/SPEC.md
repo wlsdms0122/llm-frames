@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-The format of the output (size, rate, background, conform, colour space, compositing), how a storyline clip shows its crop in the frame and takes a transform, how a window smaller than the frame is made, and how lanes stack every clip with a picture.
+The format of the output (size, rate, background, conform, colour space, peak, compositing), how a storyline clip shows its crop in the frame and takes a transform, how a window smaller than the frame is made, and how lanes stack every clip with a picture.
 
 ## Motivation
 
@@ -14,14 +14,14 @@ Every picture in an edit is placed in one frame: the main shot, a punch in on it
 
 ### Format
 
-`format` holds `size`, `fps`, `background`, `conform`, `colorSpace` and `compositing`. Everything a sequence measures on its frame is measured on this frame: the output frame of the sequence, or of the compound clip it plays in.
+`format` holds `size`, `fps`, `background`, `conform`, `colorSpace`, `peak` and `compositing`. Everything a sequence measures on its frame is measured on this frame: the output frame of the sequence, or of the compound clip it plays in.
 
 - `size` is `[w, h]`, a content fit object ([FRAMES-6](../FRAMES-6/SPEC.md)), or omitted. Omitted, it is the size of the first video clip on the storyline, or of the first storyline clip when there is no video. Width and height round to even numbers.
 - When `size` is omitted, there is no video and the first storyline clip is a solid, which has no size of its own, the format stops.
 - `fps` defaults to the nominal frame rate of the first video clip on the storyline, rounded to the nearest of 24, 25, 30, 50 and 60. A rate exactly halfway between two of them rounds to the lower one. It is 30 when that clip has no nominal rate (some variable-rate recordings) or there is no video. A written `fps` is above 0, and 0 or less stops.
 - `background` defaults to the theme `background` colour, black in the base theme ([FRAMES-22](../FRAMES-22/SPEC.md)). It is a working value like any other colour ([FRAMES-26](../FRAMES-26/SPEC.md)). It fills the frame below everything, and shows wherever nothing above it covers the frame. A background that is not opaque gives a master with alpha ([FRAMES-21](../FRAMES-21/SPEC.md)).
 - `conform` is `fit` (show the whole crop, and leave the rest of the frame transparent) or `fill` (fill the frame and cut what overflows), as an NLE's spatial conform. The default is `fit`.
-- `colorSpace` is the sequence's colour space, which decides how its output is encoded and clipped and, with each media clip's `toneMap`, whether HDR media are tone mapped, and `compositing` (`encoded` or `linear`) the form its weighted sums of colours are taken in. Their values and defaults are [FRAMES-26](../FRAMES-26/SPEC.md). Inside another sequence a compound clip's `compositing` applies within its frame and its `colorSpace` does not apply ([FRAMES-3](../FRAMES-3/SPEC.md)).
+- `colorSpace` is the sequence's colour space, which decides how its output is encoded and clipped and, by its peak and with each media clip's `toneMap`, whether HDR media are tone mapped and to which peak, `peak` the mastering peak of a `rec2100-pq` sequence in cd/m², and `compositing` (`encoded` or `linear`) the form its form-free formulas are taken in. Their values and defaults are [FRAMES-26](../FRAMES-26/SPEC.md). Inside another sequence a compound clip's `compositing` applies within its frame and its `colorSpace` and `peak` do not apply ([FRAMES-3](../FRAMES-3/SPEC.md)).
 
 ### Storyline clips
 
