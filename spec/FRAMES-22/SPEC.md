@@ -14,7 +14,7 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 `theme` prints the base theme, and that output is also the list of every group a theme can hold. The keys of a text style and of a shape style are the tables below. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles`, `shapes` and `defaults.animation.title` (keyed by text style name) are open maps: any name may be added. A name that is referred to must exist: a colour, a text style, a shape style, or a `title` key that names no text style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. So does a theme colour such a preset names with the default's arguments applied (a cover or a bloom `color`) that the merged theme, its own colours and those it is merged over, does not hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
-Merging goes key by key through the theme's own structure: the top-level groups, each key of `placement`, `border` and `shadow`, each colour, each text style and its properties, each shape style and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a shape style's `shadow` object, a preset choice like `{preset, seconds}`, a list such as `font`.
+Merging goes key by key through the theme's own structure: the top-level groups, each key of `placement`, `border` and `shadow`, each colour, each text style and its properties, each shape style and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a shape style's `shadow` object, a preset choice like `{preset, seconds}`, a style's `features`, a list such as `font`.
 
 Precedence, from weakest:
 
@@ -52,7 +52,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
 | Group | Meaning |
 | --- | --- |
 | `baseWidth` | the frame width at which theme lengths are written. The length scale is the frame width over it ([FRAMES-1](../FRAMES-1/SPEC.md)) |
-| `font` | font families in the order they are tried ([FRAMES-5](../FRAMES-5/SPEC.md)) |
+| `font` | font families in the order they are tried, for every text style that has no `font` of its own ([FRAMES-5](../FRAMES-5/SPEC.md)) |
 | `colors` | named colours, which any colour value may name ([FRAMES-1](../FRAMES-1/SPEC.md)). `text` is the default text colour and `background` the default format background ([FRAMES-9](../FRAMES-9/SPEC.md)) |
 | `styles` | text styles ([Styles](#styles)) |
 | `shapes` | shape styles ([Shape styles](#shape-styles)) |
@@ -67,8 +67,14 @@ A text style is a named set of text properties. Any name is allowed. A run's sty
 
 | Property | Kind | Meaning |
 | --- | --- | --- |
+| `font` | character | font families in the order they are tried ([FRAMES-5](../FRAMES-5/SPEC.md)). The default is the theme `font` |
 | `size` | character | font size. Every style has one |
-| `weight` | character | `regular` or `bold`. The default is `regular` |
+| `weight` | character | a whole number from 100 to 900, as CSS `font-weight`, or its name: `thin` 100, `extralight` 200, `light` 300, `regular` 400, `medium` 500, `semibold` 600, `bold` 700, `extrabold` 800, `black` 900, the names of the OpenType weight classes. The default is `regular` |
+| `italic` | character | `true` for the family's italic face, `false` for its upright one ([FRAMES-5](../FRAMES-5/SPEC.md)). The default is `false` |
+| `tracking` | character | space added after each character, in thousandths of an em, as After Effects' Tracking and CSS `letter-spacing` ([FRAMES-5](../FRAMES-5/SPEC.md)). Negative tightens. The default is 0 |
+| `kerning` | character | `metrics`, the font's own kerning, or `none`, as CSS `font-kerning`. The default is `metrics` |
+| `features` | character | OpenType feature settings, each a feature tag (four printable ASCII characters, as OpenType writes tags, and any other key stops) to a whole number 0 or more, as CSS `font-feature-settings`: `{"tnum": 1, "liga": 0}`. 0 turns a feature off, 1 on, and a larger number picks an alternate. `kern` is set by `kerning` and stops here. The default is `{}`, the features the font's script turns on |
+| `baselineShift` | character | a theme length the run's glyphs are raised by, up positive, as After Effects' Baseline Shift. The default is 0 |
 | `color` | character | text colour. The default is the `text` colour |
 | `stroke` | character | `{width, color}`: an outline with round joins, where strokes never show overlapping, or `false`. `width` is required, since a stroke is written to be seen. Without `color` it takes the `text` colour. Absent means none |
 | `lineHeight` | paragraph | distance between baselines. The default is 1.25 × size |
