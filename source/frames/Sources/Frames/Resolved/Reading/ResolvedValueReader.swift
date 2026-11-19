@@ -500,10 +500,11 @@ struct ResolvedValueReader: Sendable {
             },
             units: try text.member("units").optional { value in
                 try value.elements().map { element in
-                    let unit = try element.object(keys: ["box", "glyphs", "parts"])
+                    let unit = try element.object(keys: ["box", "glyphBox", "glyphs", "parts"])
 
                     return PlacedUnit(
                         glyphs: try unit.member("glyphs").elements().map(glyphRange),
+                        glyphBox: try rectangle(unit.member("glyphBox")),
                         box: try rectangle(unit.member("box")),
                         parts: try unit.member("parts").elements().map(unitPart)
                     )

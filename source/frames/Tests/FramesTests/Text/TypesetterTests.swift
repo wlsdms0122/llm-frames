@@ -496,16 +496,19 @@ struct TypesetterTests {
         #expect(layout.units == [
             PlacedUnit(
                 glyphs: [GlyphRange(run: 0, first: 0, count: 1)],
+                glyphBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
                 box: Rectangle(x: 0, y: 0, width: 40, height: 40),
                 parts: []
             ),
             PlacedUnit(
                 glyphs: [GlyphRange(run: 0, first: 2, count: 1)],
+                glyphBox: Rectangle(x: 50, y: 0, width: 20, height: 40),
                 box: Rectangle(x: 50, y: 0, width: 20, height: 40),
                 parts: []
             ),
             PlacedUnit(
                 glyphs: [GlyphRange(run: 1, first: 0, count: 2)],
+                glyphBox: Rectangle(x: 0, y: 50, width: 40, height: 40),
                 box: Rectangle(x: 0, y: 50, width: 40, height: 40),
                 parts: []
             )

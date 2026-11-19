@@ -102,7 +102,7 @@ struct ClipEvaluator: Sendable {
                 in: space,
                 content: .glyphs(glyphs),
                 at: time
-            ) { glyphs.drawnBounds(carriedBy: $0) }
+            ) { glyphs.drawnBounds(around: glyphs.textBox, carriedBy: $0) }
             guard let schedule = sample.schedule, let units = text.units else { return [item] }
 
             return [group(
@@ -194,7 +194,10 @@ struct ClipEvaluator: Sendable {
             }
             let reveal = reveal(
                 of: sample.reveal.rectangle(
-                    wiping: layers[0].drawnBounds(carriedBy: presentation.transform),
+                    wiping: layers[0].drawnBounds(
+                        around: text.glyphBox(of: index, at: time),
+                        carriedBy: presentation.transform
+                    ),
                     from: sample.revealFrom
                 ),
                 within: item.reveal

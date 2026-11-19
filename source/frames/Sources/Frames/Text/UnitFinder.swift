@@ -32,16 +32,13 @@ struct UnitFinder: Sendable {
                 guard let first = members.first, let last = members.last else { continue }
 
                 let extent = extents[line]
-                units.append((line, PlacedUnit(
-                    glyphs: glyphs(of: members),
-                    box: Rectangle(
-                        x: first.start,
-                        y: extent.lowerBound,
-                        width: last.end - first.start,
-                        height: extent.upperBound - extent.lowerBound
-                    ),
-                    parts: []
-                )))
+                let box = Rectangle(
+                    x: first.start,
+                    y: extent.lowerBound,
+                    width: last.end - first.start,
+                    height: extent.upperBound - extent.lowerBound
+                )
+                units.append((line, PlacedUnit(glyphs: glyphs(of: members), glyphBox: box, box: box, parts: [])))
             }
         }
 
@@ -60,15 +57,15 @@ struct UnitFinder: Sendable {
                 }
 
                 for (order, unit) in carriers.enumerated() {
-                    let start = order == 0 ? span.lowerBound : units[unit].unit.box.x
-                    let end = order == carriers.count - 1 ? span.upperBound : units[carriers[order + 1]].unit.box.x
+                    let start = order == 0 ? span.lowerBound : units[unit].unit.glyphBox.x
+                    let end = order == carriers.count - 1 ? span.upperBound : units[carriers[order + 1]].unit.glyphBox.x
                     parts[unit].append(UnitPart(run: index, piece: piece, span: start...end))
                 }
             }
         }
 
         return zip(units, parts).map { element, parts in
-            PlacedUnit(glyphs: element.unit.glyphs, box: element.unit.box, parts: parts)
+            PlacedUnit(glyphs: element.unit.glyphs, glyphBox: element.unit.glyphBox, box: element.unit.box, parts: parts)
         }
     }
 

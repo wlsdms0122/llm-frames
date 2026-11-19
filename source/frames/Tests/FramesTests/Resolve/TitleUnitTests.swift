@@ -17,7 +17,7 @@ struct TitleUnitTests {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a title by word carries its units, each box holding its stroke and its parts at their widest, read back whole")
+    @Test("a title by word carries its units, each with its glyph box and its box holding its stroke and its parts at their widest, read back whole")
     func resolvesUnits() throws {
         // Given
         let text = try resolvedText(#"""
@@ -37,11 +37,13 @@ struct TitleUnitTests {
         #expect(text.units == [
             PlacedUnit(
                 glyphs: [GlyphRange(run: 0, first: 0, count: 2)],
+                glyphBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
                 box: Rectangle(x: -10, y: -8, width: 60, height: 56),
                 parts: [UnitPart(run: 0, piece: 0, span: 0...50)]
             ),
             PlacedUnit(
                 glyphs: [GlyphRange(run: 0, first: 3, count: 2)],
+                glyphBox: Rectangle(x: 50, y: 0, width: 40, height: 40),
                 box: Rectangle(x: 48, y: -8, width: 52, height: 56),
                 parts: [UnitPart(run: 0, piece: 0, span: 50...90)]
             )
