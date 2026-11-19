@@ -49,6 +49,7 @@ struct PresetsCommandTests {
               frames/pop  pops in
             filter
               demo/warm  warms the picture
+            audio
 
             """)
     }
@@ -101,7 +102,7 @@ struct PresetsCommandTests {
     @Test(
         "an unknown kind or preset stops",
         arguments: [
-            (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter"#),
+            (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter, audio"#),
             (["presets", "transition", "frames/dissolve"], #"presets: unknown transition preset "frames/dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
             (["presets", "transition", "flash"], #"presets: unknown transition preset "flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
             (["presets", "animation", "frames/flash"], #"presets: unknown animation preset "frames/flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
