@@ -766,17 +766,14 @@ struct SequencePlanner: Sendable {
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
-        guard case let .title(runs, style) = written.content else { return nil }
+        guard case let .title(title) = written.content else { return nil }
 
-        let scale = theme.lengthScale(at: format.size.width)
-        return try self.text.layout(
-            runs,
-            style: style,
-            stylePlace: written.place.appending(key: "style"),
+        return try text.layout(
+            title,
+            clip: written.place,
             width: written.width,
             theme: theme,
-            scale: scale,
-            place: written.place.appending(key: "title"),
+            scale: theme.lengthScale(at: format.size.width),
             kind: ClipKind.title.label
         )
     }

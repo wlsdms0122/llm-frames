@@ -177,7 +177,10 @@ enum ClipKeyTable {
             ]
 
         case (_, .title):
-            return everyClip + ["title", "style", "width", "placement", "position", "anchor", "scale", "rotation"]
+            return everyClip + [
+                "title", "style", "character", "paragraph", "width", "placement", "position", "anchor", "scale",
+                "rotation"
+            ]
 
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
@@ -275,6 +278,12 @@ enum ClipKeyTable {
 
         case "title":
             .runs
+
+        case "character":
+            .object(ThemeKeyTable.character)
+
+        case "paragraph":
+            .object(ThemeKeyTable.paragraph)
 
         case "style", "parent":
             .name

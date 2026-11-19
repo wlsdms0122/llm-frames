@@ -142,7 +142,12 @@ struct SequenceReader: Sendable {
             return .shape(shape(kind, of: object))
         }
         if let title = object["title"] {
-            return .title(runs: TitleRun.runs(in: title), style: object["style"]?.stringValue ?? "")
+            return .title(ClipTitle(
+                runs: TitleRun.runs(in: title),
+                style: object["style"]?.stringValue ?? "",
+                character: look("character", of: object),
+                paragraph: look("paragraph", of: object)
+            ))
         }
 
         return .adjust

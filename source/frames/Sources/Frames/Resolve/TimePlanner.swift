@@ -657,8 +657,8 @@ struct TimePlanner: Sendable {
 
     private func defaultAnimationPath(for content: ClipContent) -> [String] {
         switch content {
-        case let .title(_, style):
-            ["defaults", "animation", "title", style]
+        case let .title(title):
+            ["defaults", "animation", "title", title.style]
 
         case .shape:
             ["defaults", "animation", "shape"]
@@ -676,8 +676,8 @@ struct TimePlanner: Sendable {
         in defaults: ThemeDefaults
     ) -> AnimationChoice? {
         switch content {
-        case let .title(_, style):
-            defaults.titleAnimations[style]
+        case let .title(title):
+            defaults.titleAnimations[title.style]
 
         case .shape:
             defaults.shapeAnimation

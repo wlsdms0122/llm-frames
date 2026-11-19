@@ -52,9 +52,9 @@ struct ClipAppearancePlanner: Sendable {
         let size: Size
         let style: String?
         switch written.content {
-        case let .title(_, name):
+        case let .title(written):
             size = title?.size ?? Size(width: 0, height: 0)
-            style = name
+            style = written.style
 
         case .media:
             guard let picture else { return nil }

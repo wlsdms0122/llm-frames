@@ -91,6 +91,29 @@ enum LookStructureTable {
         ("lines", .leaf(.number(.positive)))
     ]))
 
+    // A title's character attributes: those that decide faces, shaping and line breaks are static.
+    static let character = ValueStructure.object(ObjectStructure([
+        ("font", .list(.leaf(.name))),
+        ("size", .leaf(LeafKind(form: .staticNumber, domain: .positive, isLength: true))),
+        ("weight", .leaf(.name)),
+        ("italic", .leaf(.boolean)),
+        ("tracking", .leaf(.number())),
+        ("kerning", .leaf(.name)),
+        ("features", .map(.leaf(.staticNumber))),
+        ("baselineShift", .leaf(.length(.any))),
+        ("color", .leaf(.color)),
+        ("stroke", textStroke),
+        ("highlight", highlight),
+        ("underline", underline)
+    ]))
+
+    // A title's paragraph attributes: `align` is static.
+    static let paragraph = ValueStructure.object(ObjectStructure([
+        ("align", .leaf(.name)),
+        ("lineHeight", .leaf(.length(.positive))),
+        ("background", background)
+    ]))
+
     static let shapeStyle = ValueStructure.object(ObjectStructure([
         ("fill", fill),
         ("stroke", stroke),

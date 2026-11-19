@@ -485,6 +485,67 @@ struct SequencePlannerTests {
         #expect(plan.clips[0].title?.runs.first?.size == 76)
     }
 
+    @Test("a title's `character` merges over every run's style leaf by leaf and keeps what it does not write")
+    func mergesCharacterOverRuns() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "colors": { "accent": "#FFD43B" },
+                         "styles": { "caption": { "size": 40, "stroke": { "width": 4, "color": "#000000" } },
+                                     "small": { "size": 20 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption",
+                           "character": { "color": "accent", "stroke": { "width": 2 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let runs = try #require(plan.clips[0].title?.runs)
+        #expect(runs.map(\.color) == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
+        #expect(runs.map(\.size) == [40, 20])
+        #expect(runs.map(\.stroke) == [
+            TextStroke(width: 2, color: Color(written: "#000000")),
+            TextStroke(width: 2, color: Color(written: "#FFFFFF"))
+        ])
+    }
+
+    @Test("a title's `paragraph` merges over its style's paragraph attributes, and its default line height follows `character`")
+    func mergesParagraphOverStyle() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "align": "left",
+                                                  "background": { "color": "#000000", "padding": [10, 20] } } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "a\nb", "style": "caption", "width": 200, "character": { "size": 80 },
+                           "paragraph": { "align": "right", "background": { "radius": 6 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title)
+        #expect(title.background == TextBackground(
+            color: Color(written: "#000000"),
+            padding: Size(width: 20, height: 10),
+            radius: 6
+        ))
+        #expect(title.runs.map { $0.glyphs.map(\.x) } == [[180], [180]])
+        #expect(title.runs.map { $0.glyphs.map(\.y) } == [[74], [174]])
+    }
+
+    @Test("a title's `character` stroke over a run style without one stops when it gives no width")
+    func refusesCharacterStrokeWithoutWidth() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "title", "character": { "stroke": { "color": "#FF0000" } },
+                           "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        #expect(throws: ResolveError.self) { try plan(document) }
+    }
+
     @Test("a title naming a style the theme does not hold stops at its style, listing the styles the theme holds")
     func refusesUnknownTitleStyle() throws {
         // Given

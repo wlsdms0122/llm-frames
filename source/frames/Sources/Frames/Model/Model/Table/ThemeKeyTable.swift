@@ -95,6 +95,20 @@ enum ThemeKeyTable {
             KeyRule("lines", .positiveInteger)
         ]
     )
+    // A title's `character` and `paragraph`: the keys of a text style it merges over its runs' styles and over its
+    // style's paragraph attributes.
+    static let character = ObjectTable(
+        kind: "character",
+        rules: style.rules.filter { characterKeys.contains($0.name) }
+    )
+    static let paragraph = ObjectTable(
+        kind: "paragraph",
+        rules: style.rules.filter { ["align", "lineHeight", "background"].contains($0.name) }
+    )
+    static let characterKeys = [
+        "font", "size", "weight", "italic", "tracking", "kerning", "features", "baselineShift", "color", "stroke",
+        "highlight", "underline"
+    ]
     static let defaults = ObjectTable(
         kind: "defaults",
         rules: [

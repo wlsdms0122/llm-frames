@@ -87,11 +87,20 @@ extension MergedTheme {
         named name: String,
         scale: Double
     ) -> CharacterStyle {
-        let style = style(named: name)
+        characterStyle(of: style(named: name), named: name, scale: scale)
+    }
+
+    // `style` is the style `name` with a title's `character` merged over it. Its fonts are looked for in the pack of
+    // the theme that wrote the style's font list.
+    func characterStyle(
+        of style: JSONObject,
+        named name: String,
+        scale: Double
+    ) -> CharacterStyle {
         let font = fontPath(ofStyle: name)
 
         return CharacterStyle(
-            families: (value(at: font.components.compactMap(\.key))?.arrayValue ?? []).compactMap(\.stringValue),
+            families: (style["font"] ?? value(at: ["font"]))?.arrayValue?.compactMap(\.stringValue) ?? [],
             pack: pack(of: font),
             weight: style["weight"].flatMap(FontWeight.init(written:)) ?? .regular,
             italic: style["italic"]?.boolValue ?? false,
@@ -122,7 +131,17 @@ extension MergedTheme {
         scale: Double
     ) -> ParagraphStyle {
         let style = style(named: name)
-        let size = style["size"]?.numberValue ?? 0
+
+        return paragraphStyle(of: style, size: style["size"]?.numberValue ?? 0, scale: scale)
+    }
+
+    // `style` is a style with a title's `paragraph` merged over it, and `size` the size its default line height
+    // follows, in points.
+    func paragraphStyle(
+        of style: JSONObject,
+        size: Double,
+        scale: Double
+    ) -> ParagraphStyle {
 
         return ParagraphStyle(
             lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
@@ -130,6 +149,11 @@ extension MergedTheme {
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
             lines: style["lines"]?.numberValue.map { Int($0) }
         )
+    }
+
+    // A style as the theme holds it, its lengths in points, empty for a name it does not hold.
+    func style(named name: String) -> JSONObject {
+        value(at: ["styles", name])?.objectValue ?? JSONObject()
     }
 
     // The value at a path of keys, as the theme holds it, its lengths in points.
@@ -144,9 +168,6 @@ extension MergedTheme {
         return style(named: name)["font"] == nil ? Place(components: [.key("font")]) : path
     }
 
-    private func style(named name: String) -> JSONObject {
-        value(at: ["styles", name])?.objectValue ?? JSONObject()
-    }
 
     // A highlight or a background: without `color` the `background` colour, without `padding` or `radius` 0.
     private func box(
