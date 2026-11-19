@@ -15,7 +15,7 @@ struct OCROptions: CommandOptions, Equatable {
         OptionRule(
             "--at",
             value: "<t>",
-            help: "The media time of the frame of a video read, in [0, duration). Default: 0."
+            help: "The media time a video is read at, in [0, duration). Default: 0."
         ),
         OptionRule.from,
         OptionRule.to,

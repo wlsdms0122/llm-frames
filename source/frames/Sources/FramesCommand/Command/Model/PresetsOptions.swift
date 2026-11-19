@@ -13,7 +13,7 @@ struct PresetsOptions: CommandOptions, Equatable {
     static let positionals = [
         PositionalRule(
             "<kind>",
-            help: "Lists one kind: \(PresetKind.allCases.map(\.rawValue).joined(separator: ", ")). Default: every kind."
+            help: "Lists one kind (\(PresetKind.allCases.map(\.rawValue).joined(separator: ", "))). Default: every kind."
         ),
         PositionalRule(
             "<name>",

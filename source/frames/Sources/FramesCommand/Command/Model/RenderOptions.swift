@@ -21,7 +21,7 @@ struct RenderOptions: CommandOptions, Equatable {
         OptionRule(
             "--deliver",
             value: "<out.mp4>",
-            help: "An .mp4 delivery also written from the same frames. Only with a .mov."
+            help: "Also writes an .mp4 delivery from the same frames. Only with a .mov."
         ),
         OptionRule.arguments
     ]
