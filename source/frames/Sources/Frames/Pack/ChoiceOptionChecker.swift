@@ -14,8 +14,8 @@ struct ChoiceOptionChecker: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
     private let library: ReferenceLibrary
+    private let themes: DocumentThemeResolver
     private let filler = ParameterFiller(checker: KeyChecker())
-    private let merger = ThemeMerger()
 
     // MARK: - Initializer
     init(
@@ -24,6 +24,7 @@ struct ChoiceOptionChecker: Sendable {
     ) {
         self.presets = presets
         self.library = library
+        self.themes = DocumentThemeResolver(library: library)
     }
 
     // MARK: - Public
@@ -176,18 +177,14 @@ struct ChoiceOptionChecker: Sendable {
     ) throws -> MergedTheme? {
         var theme = theme
         if let object = value.objectValue, object.contains("kind"), let written = object["theme"] {
-            guard written.objectValue?["param"] == nil else { return nil }
-
-            switch ThemeReference(value: written) {
-            case let .named(name):
-                guard let layer = try library.theme(named: name) else { return nil }
-
-                theme = try merger.merge([layer], over: theme)
-
-            case let .object(layer):
-                let layer = ThemeLayer(value: layer, place: place.appending(key: "theme"), pack: library.pack)
-                theme = try merger.merge([layer], over: theme)
+            guard
+                written.objectValue?["param"] == nil,
+                let merged = try themes.theme(ThemeReference(value: written), of: place, over: theme)
+            else {
+                return nil
             }
+
+            theme = merged
         }
         guard let component = components.first else { return theme }
 

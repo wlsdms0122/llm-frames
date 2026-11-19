@@ -11,6 +11,13 @@ enum ThemeReference: Equatable, Sendable {
     case object(JSONValue)
 
     // MARK: - Property
+    // The theme file it names, nil for a theme written in place.
+    var name: String? {
+        guard case let .named(name) = self else { return nil }
+
+        return name
+    }
+
     // MARK: - Initializer
     init(value: JSONValue) {
         guard let name = value.stringValue else {

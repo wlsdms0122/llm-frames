@@ -24,19 +24,35 @@ struct DocumentThemeResolver: Sendable {
         kind: PlaceKind,
         over theme: MergedTheme
     ) throws -> MergedTheme {
-        let place = place.appending(key: "theme")
+        guard let merged = try self.theme(reference, of: place, over: theme) else {
+            // Only a named theme can be missing.
+            throw ResolveError.unknownTheme(
+                place: place.appending(key: "theme"),
+                kind: kind,
+                name: reference?.name ?? ""
+            )
+        }
 
+        return merged
+    }
+
+    // Nil where the reference names a theme that is not there.
+    func theme(
+        _ reference: ThemeReference?,
+        of place: Place,
+        over theme: MergedTheme
+    ) throws -> MergedTheme? {
         switch reference {
         case nil:
             return theme
 
         case let .object(layer):
-            return try merger.merge([ThemeLayer(value: layer, place: place, pack: library.pack)], over: theme)
+            let layer = ThemeLayer(value: layer, place: place.appending(key: "theme"), pack: library.pack)
+
+            return try merger.merge([layer], over: theme)
 
         case let .named(name):
-            guard let layer = try library.theme(named: name) else {
-                throw ResolveError.unknownTheme(place: place, kind: kind, name: name)
-            }
+            guard let layer = try library.theme(named: name) else { return nil }
 
             return try merger.merge([layer], over: theme)
         }
