@@ -312,7 +312,7 @@ enum ClipKeyTable {
             .literal(VocabularyTable.blendModes)
 
         case "border":
-            .oneOf([.exactly(.bool(true)), .color])
+            ValueType(shorthandsOf: LookStructureTable.border)
 
         case "title":
             .runs
@@ -333,16 +333,12 @@ enum ClipKeyTable {
         case "scale":
             .oneOf([.number, .numbers(2)])
 
-        // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
+        // A box is drawn or wraps text, so it has some size.
         case "width", "height":
             .positiveNumber
 
-        case "radius":
-            .nonNegativeNumber
-
-        // An outset grows the outline a shape draws around its geometry, and a smaller outline is a smaller geometry.
-        case "outset":
-            .nonNegativeNumber
+        case "radius", "outset":
+            ValueType(structure: LookStructureTable.length, kind: name)
 
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":

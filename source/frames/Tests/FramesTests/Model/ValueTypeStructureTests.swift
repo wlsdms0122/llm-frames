@@ -223,6 +223,19 @@ struct ValueTypeStructureTests {
         ))
     }
 
+    @Test("a clip's border takes only the border's shorthands, and its radius and outset are lengths 0 or more")
+    func readsClipLooks() {
+        // When
+        let media = ClipKeyTable.table(for: .media(.video), in: .sequence)
+        let rect = ClipKeyTable.table(for: .shape("rect"), in: .sequence)
+
+        // Then
+        #expect(media.rule(named: "border")?.type == .oneOf([.exactly(.bool(true)), .color]))
+        #expect(media.rule(named: "radius")?.type == .nonNegativeNumber)
+        #expect(rect.rule(named: "radius")?.type == .nonNegativeNumber)
+        #expect(rect.rule(named: "outset")?.type == .nonNegativeNumber)
+    }
+
     // MARK: - Private
     private static let gradient = ValueType.object(ObjectTable(
         kind: "gradient",

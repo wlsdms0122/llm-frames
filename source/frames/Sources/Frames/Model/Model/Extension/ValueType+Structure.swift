@@ -70,8 +70,8 @@ extension ValueType {
         switch structure {
         case let .object(object):
             let on = object.shorthands.contains(.on)
-            let color = object.shorthands.contains { if case .color = $0 { true } else { false } }
-            self = .oneOf([on ? .bool : .exactly(.bool(false))] + (color ? [.color] : []) + forms)
+            let shorthands = object.shorthands.filter { $0 != .on }.map(Self.type(of:))
+            self = .oneOf([on ? .bool : .exactly(.bool(false))] + shorthands + forms)
 
         case .forms:
             self = .oneOf([.exactly(.bool(false))] + forms)
@@ -81,8 +81,25 @@ extension ValueType {
         }
     }
 
+    // A look object a clip writes only by its shorthands, as a media clip's `border` is.
+    init(shorthandsOf structure: ValueStructure) {
+        let shorthands = if case let .object(object) = structure { object.shorthands } else { [ObjectShorthand]() }
+        self = .oneOf(shorthands.map(Self.type(of:)))
+    }
+
     // MARK: - Public
     // MARK: - Private
+    // `true` for the value below, and a colour for its colour.
+    private static func type(of shorthand: ObjectShorthand) -> ValueType {
+        switch shorthand {
+        case .on:
+            .exactly(.bool(true))
+
+        case .color:
+            .color
+        }
+    }
+
     // A range from 0 to 1 is a fraction, and any other range is checked by resolve.
     private static func type(
         of leaf: LeafKind,

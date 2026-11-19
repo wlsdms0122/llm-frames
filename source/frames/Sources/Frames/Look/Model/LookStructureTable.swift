@@ -61,6 +61,8 @@ enum LookStructureTable {
         shorthands: [.on, .color(key: "color")]
     ))
 
+    // A box's `radius` and a shape's `outset`: a corner cannot curve inwards, and an outset grows the outline a shape
+    // draws around its geometry, where a smaller outline is a smaller geometry.
     static let length = ValueStructure.leaf(.length())
 
     static let textStroke = ValueStructure.object(ObjectStructure(
