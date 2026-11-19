@@ -33,11 +33,14 @@ extension ShapeGeometry {
         case let .area(outset, anchor):
             let area = area ?? []
             let box = { (track?.area(area) ?? area).map { $0.map(\.fixed) }.value(at: instant) }
-            let geometry = ShapeGeometry.area(area, outset: outset, placement: GeometryPlacement())
+            let holdsClipArea = area.contains { $0.value.clipArea != nil }
             self = .area(
                 area,
                 outset: outset,
-                placement: GeometryPlacement(position: position, anchor: anchor.map { geometry.anchor(named: $0, in: box) })
+                placement: GeometryPlacement(
+                    position: position,
+                    anchor: anchor.map { Self.anchor(named: $0, holdsClipArea: holdsClipArea, in: box) }
+                )
             )
 
         case let .points(isClosed, anchor):
@@ -45,21 +48,25 @@ extension ShapeGeometry {
             let box = {
                 Rectangle(bounding: (track?.points(points) ?? points).map { $0.map { $0.map(\.fixed) } }.value(at: instant))
             }
-            let geometry = ShapeGeometry.points(points, isClosed: isClosed, placement: GeometryPlacement())
+            let holdsClipArea = points.contains { $0.value.contains { $0.clipArea != nil } }
             self = .points(
                 points,
                 isClosed: isClosed,
-                placement: GeometryPlacement(position: position, anchor: anchor.map { geometry.anchor(named: $0, in: box) })
+                placement: GeometryPlacement(
+                    position: position,
+                    anchor: anchor.map { Self.anchor(named: $0, holdsClipArea: holdsClipArea, in: box) }
+                )
             )
         }
     }
 
     // MARK: - Public
     // MARK: - Private
-    private func anchor(
+    private static func anchor(
         named name: String,
+        holdsClipArea: Bool,
         in box: () -> Rectangle
     ) -> GeometryAnchor {
-        geometryHoldsClipArea ? .named(name) : .point(box().point(named: name))
+        holdsClipArea ? .named(name) : .point(box().point(named: name))
     }
 }
