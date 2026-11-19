@@ -17,7 +17,7 @@ struct LeafKind: Equatable, Sendable {
     static let staticNumber = LeafKind(form: .staticNumber)
 
     let form: LeafForm
-    let domain: LeafDomain
+    let domain: NumberDomain
     let isLength: Bool
     let names: [String]?
     let interpolation: LeafInterpolation
@@ -27,7 +27,7 @@ struct LeafKind: Equatable, Sendable {
     // MARK: - Initializer
     init(
         form: LeafForm,
-        domain: LeafDomain = .any,
+        domain: NumberDomain = .any,
         isLength: Bool = false,
         names: [String]? = nil,
         interpolation: LeafInterpolation = .linear
@@ -44,24 +44,24 @@ struct LeafKind: Equatable, Sendable {
         LeafKind(form: .name, names: names)
     }
 
-    static func number(_ domain: LeafDomain = .any) -> LeafKind {
+    static func number(_ domain: NumberDomain = .any) -> LeafKind {
         LeafKind(form: .number, domain: domain)
     }
 
-    static func length(_ domain: LeafDomain = .nonNegative) -> LeafKind {
+    static func length(_ domain: NumberDomain = .nonNegative) -> LeafKind {
         LeafKind(form: .number, domain: domain, isLength: true)
     }
 
     static func lengths(
         count: Int,
-        domain: LeafDomain = .any
+        domain: NumberDomain = .any
     ) -> LeafKind {
         LeafKind(form: .numbers(count: count), domain: domain, isLength: true)
     }
 
     static func numbers(
         count: Int,
-        domain: LeafDomain = .any
+        domain: NumberDomain = .any
     ) -> LeafKind {
         LeafKind(form: .numbers(count: count), domain: domain)
     }

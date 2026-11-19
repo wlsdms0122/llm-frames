@@ -20,7 +20,7 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
     case nullWithoutValue(place: Place)
     case staticAndKeyframed(place: Place)
     // `domain` is the one the value was checked against, a leaf's sampled domain where two keyframes or more write it.
-    case outsideDomain(place: Place, value: Double, domain: LeafDomain)
+    case outsideDomain(place: Place, value: Double, domain: NumberDomain)
     case failedCheck(place: Place, check: LeafCheck, failure: LeafCheckFailure)
 
     // MARK: - Property

@@ -10,7 +10,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingKey(place: Place, kind: String, keys: [String])
     case conflictingKeys(place: Place, kind: String, keys: [String])
     case wrongType(place: Place, kind: String, expected: String, found: String)
-    case outsideDomain(place: Place, kind: String, value: Double, domain: LeafDomain)
+    case outsideDomain(place: Place, kind: String, value: Double, domain: NumberDomain)
     case unknownValue(place: Place, kind: String, value: String, allowed: [String])
     case invalidValue(place: Place, kind: String, reason: String)
     case duplicateIdentifier(place: Place, kind: String, id: String, first: Place)

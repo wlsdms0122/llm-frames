@@ -10,7 +10,7 @@ indirect enum ValueType: Equatable, Sendable {
     case anyObject
     case exactly(JSONValue)
     case bool
-    case number(LeafDomain)
+    case number(NumberDomain)
     case integer
     case nonNegativeInteger
     case text
@@ -21,7 +21,7 @@ indirect enum ValueType: Equatable, Sendable {
     case ease
     case literal([String])
     // A list of that many numbers, each in the domain.
-    case numbers(Int, LeafDomain)
+    case numbers(Int, NumberDomain)
     // A list of at least two points, each as `position` takes it.
     case points
     // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke
