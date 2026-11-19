@@ -17,7 +17,7 @@ extension MediaFile {
             fps: probed.fps,
             size: probed.size,
             frameTimes: probed.frames,
-            taggedColorSpace: probed.colorSpace?.name
+            colorReading: probed.colorSpace?.reading
         )
     }
 

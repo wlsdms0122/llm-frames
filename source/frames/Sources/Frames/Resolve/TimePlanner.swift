@@ -109,14 +109,15 @@ struct TimePlanner: Sendable {
             return StorylineSource(kind: .solid, media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
-        let media = try resolver.media(
-            of: clipMedia.source,
-            place: clip.place.appending(key: "media"),
-            kind: .genericClip(.storyline),
-            theme: theme,
-            colorSpace: clipMedia.colorSpace
+        let place = clip.place.appending(key: "media")
+        let media = try resolver.media(of: clipMedia.source, place: place, kind: .genericClip(.storyline), theme: theme)
+            .read(by: clipMedia)
+        try resolver.checkColor(
+            of: media,
+            colorSpace: clipMedia.colorSpace,
+            place: place,
+            kind: .genericClip(.storyline)
         )
-        .read(by: clipMedia)
         let kind = ClipKind.media(media.kind)
         guard media.kind != .image else {
             let duration = try stillDuration(of: clip, kind: kind)
@@ -464,15 +465,24 @@ struct TimePlanner: Sendable {
     ) throws -> ClipSource {
         switch clip.content {
         case let .media(clipMedia):
+            let place = clip.place.appending(key: "media")
             let media = try resolver.media(
                 of: clipMedia.source,
-                place: clip.place.appending(key: "media"),
+                place: place,
                 kind: .genericClip(clip.clipPlace),
-                theme: theme,
-                colorSpace: clipMedia.colorSpace
+                theme: theme
             )
             .read(by: clipMedia)
             let kind = try kind(of: clipMedia, media: media, place: clip.place)
+            // An audio clip reads no picture of its media.
+            if kind != .media(.audio) {
+                try resolver.checkColor(
+                    of: media,
+                    colorSpace: clipMedia.colorSpace,
+                    place: place,
+                    kind: .genericClip(clip.clipPlace)
+                )
+            }
             guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(

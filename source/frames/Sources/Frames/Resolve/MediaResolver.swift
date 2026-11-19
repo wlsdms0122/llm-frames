@@ -30,15 +30,12 @@ struct MediaResolver: Sendable {
     }
 
     // MARK: - Public
-    // `theme` is the theme in effect where the media is written, which a nested document's own theme merges over, and
-    // `colorSpace` the one written there for its pictures. A picture no fixed formula converts stops where no
-    // `colorSpace` is written for it (FRAMES-26 Media).
+    // `theme` is the theme in effect where the media is written, which a nested document's own theme merges over.
     func media(
         of source: MediaSource,
         place: Place,
         kind: PlaceKind,
-        theme: MergedTheme,
-        colorSpace: ColorSpace?
+        theme: MergedTheme
     ) throws -> MediaPlan {
         switch source {
         case let .file(reference) where library.isDocument(reference):
@@ -53,13 +50,6 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
-            try checkColor(
-                of: probed.colorSpace,
-                colorSpace: colorSpace,
-                place: place,
-                kind: kind,
-                reference: reference
-            )
 
             return MediaPlan(
                 kind: probed.kind,
@@ -78,14 +68,6 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
-            try checkColor(
-                of: probed.colorSpace,
-                colorSpace: colorSpace,
-                place: place,
-                kind: kind,
-                reference: reference
-            )
-
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
             let duration = Double(probed.files.count) / fps
             let file = MediaFile(
@@ -94,7 +76,7 @@ struct MediaResolver: Sendable {
                 size: probed.size,
                 frameTimes: probed.files.indices.map { Double($0) / fps },
                 frameFiles: probed.files,
-                taggedColorSpace: probed.colorSpace?.name
+                colorReading: probed.colorSpace?.reading
             )
             return MediaPlan(
                 kind: .video,
@@ -117,12 +99,33 @@ struct MediaResolver: Sendable {
             )
 
         case let .argument(source, argumentTheme):
-            return try media(of: source, place: place, kind: kind, theme: argumentTheme, colorSpace: colorSpace)
+            return try media(of: source, place: place, kind: kind, theme: argumentTheme)
         }
     }
 
+    // A picture only the platform's colour management reads stops at the place that names it, unless that place writes
+    // the colour space it is read in (FRAMES-26 Media). `place` is one that reads the pictures of `media`. A nested
+    // sequence's own clips are checked where they are planned.
+    func checkColor(
+        of media: MediaPlan,
+        colorSpace: ColorSpace?,
+        place: Place,
+        kind: PlaceKind
+    ) throws {
+        guard case let .file(file) = media.source else { return }
+
+        try checkColor(
+            of: file.colorReading,
+            colorSpace: colorSpace,
+            place: place,
+            kind: kind,
+            reference: media.reference ?? file.path
+        )
+    }
+
     // A transition's cover or matte file, by the absolute path its preset was resolved to, with the `colorSpace` its
-    // preset writes for it. A preset names a file, so it is never an image sequence or a document.
+    // preset writes for it. A preset names a file, so it is never an image sequence or a document. A transition always
+    // reads its picture, so its colour is checked here.
     func transitionMedia(
         at path: String,
         place: Place,
@@ -134,7 +137,13 @@ struct MediaResolver: Sendable {
         else {
             throw ResolveError.missingMedia(place: place, kind: kind, reference: path)
         }
-        try checkColor(of: probed.colorSpace, colorSpace: colorSpace, place: place, kind: kind, reference: path)
+        try checkColor(
+            of: probed.colorSpace?.reading,
+            colorSpace: colorSpace,
+            place: place,
+            kind: kind,
+            reference: path
+        )
 
         return TransitionMedia(
             file: MediaFile(path: path, probed: probed),
@@ -214,16 +223,14 @@ struct MediaResolver: Sendable {
         TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
     }
 
-    // A picture only the platform's colour management reads stops at the place that names it, unless that place writes
-    // the colour space it is read in.
     private func checkColor(
-        of probed: ProbedColorSpace?,
+        of reading: ColorReading?,
         colorSpace: ColorSpace?,
         place: Place,
         kind: PlaceKind,
         reference: String
     ) throws {
-        guard colorSpace == nil, probed?.reading == .platform else { return }
+        guard colorSpace == nil, reading == .platform else { return }
 
         throw ResolveError.unconvertibleMediaColor(place: place, kind: kind, reference: reference)
     }
