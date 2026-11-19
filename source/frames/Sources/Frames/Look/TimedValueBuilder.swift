@@ -25,13 +25,17 @@ struct TimedValueBuilder: Sendable {
         as structure: ValueStructure,
         place: LookPlace
     ) throws -> LookValue? {
+        // The merge keeps no key a skeleton writes `unset`, so each keyframe is also checked against the earlier
+        // skeletons, which hold the forms the keyframes give.
         var layer = written
+        var skeletons: [LookValue] = []
         for keyframe in keyframes {
             let keyframePlace = place.keyframe(keyframe.index)
             let skeleton = try self.skeleton(of: keyframe.value, as: structure, place: keyframePlace)
-            if let layer {
-                try checkAgreement(layer, skeleton, place: keyframePlace)
+            for earlier in [layer].compactMap({ $0 }) + skeletons {
+                try checkAgreement(earlier, skeleton, as: structure, place: keyframePlace)
             }
+            skeletons.append(skeleton)
             layer = try merger.merge(skeleton, layer ?? .unset, as: structure, place: keyframePlace)
         }
 
@@ -234,10 +238,12 @@ struct TimedValueBuilder: Sendable {
         }
     }
 
-    // The clip's forms and list lengths agree with each keyframe's.
+    // The clip's forms and list lengths agree with each keyframe's. Keys of one exclusive group are forms of one leaf,
+    // so a keyframe writing one where the clip writes another stops.
     private func checkAgreement(
         _ layer: LookValue,
         _ skeleton: LookValue,
+        as structure: ValueStructure,
         place: Place
     ) throws {
         switch (layer, skeleton) {
@@ -247,13 +253,13 @@ struct TimedValueBuilder: Sendable {
         case let (.form(name, body), .form(other, inner)):
             guard name == other else { throw LookError.formsDiffer(place: place, forms: [name, other]) }
 
-            try checkAgreement(body, inner, place: place)
+            try checkAgreement(body, inner, as: structure.structure(ofForm: name) ?? .anyValue, place: place)
 
         case (.unset, _), (_, .unset):
             return
 
-        case let (.form(_, body), .object):
-            try checkAgreement(body, skeleton, place: place)
+        case let (.form(name, body), .object):
+            try checkAgreement(body, skeleton, as: structure.structure(ofForm: name) ?? .anyValue, place: place)
 
         case (.list, .object):
             throw LookError.partialOverList(place: place)
@@ -266,15 +272,21 @@ struct TimedValueBuilder: Sendable {
                 throw LookError.lengthsDiffer(place: place, counts: [elements.count, others.count])
             }
 
+            let element = Self.element(of: structure)
             for (index, pair) in zip(elements, others).enumerated() {
-                try checkAgreement(pair.0, pair.1, place: place.appending(index: index))
+                try checkAgreement(pair.0, pair.1, as: element, place: place.appending(index: index))
             }
 
         case let (.object, .object(members)):
+            let object = if case let .object(object) = structure { object } else { ObjectStructure([]) }
             for member in members {
+                let memberPlace = place.appending(key: member.key)
+                if let partner = object.partners(of: member.key).first(where: { layer[$0] != nil }) {
+                    throw LookError.formsDiffer(place: memberPlace, forms: [partner, member.key])
+                }
                 guard let value = layer[member.key] else { continue }
 
-                try checkAgreement(value, member.value, place: place.appending(key: member.key))
+                try checkAgreement(value, member.value, as: Self.structure(of: member.key, in: structure), place: memberPlace)
             }
 
         default:
