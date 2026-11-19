@@ -5,14 +5,16 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `lane` is nil for a sound, `storyline` is the place of the storyline clip a connected clip belongs to, and `parent`
-// is the place of the clip whose space a parented clip is placed in.
+// `sound` is the range a visual media clip's sound plays over, its split applied, nil for every other clip and for one
+// that plays no sound. `lane` is nil for a sound, `storyline` is the place of the storyline clip a connected clip
+// belongs to, and `parent` is the place of the clip whose space a parented clip is placed in.
 struct TimelineClipEntry: Equatable, Sendable {
     // MARK: - Property
     let place: String
     let id: String?
     let kind: String
     let visible: TimeRange
+    let sound: TimeRange?
     let lane: Int?
     let storyline: String?
     let parent: String?
@@ -25,6 +27,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         id: String?,
         kind: String,
         visible: TimeRange,
+        sound: TimeRange?,
         lane: Int?,
         storyline: String?,
         parent: String?,
@@ -35,6 +38,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         self.id = id
         self.kind = kind
         self.visible = visible
+        self.sound = sound
         self.lane = lane
         self.storyline = storyline
         self.parent = parent

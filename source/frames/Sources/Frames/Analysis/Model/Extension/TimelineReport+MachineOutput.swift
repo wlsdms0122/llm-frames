@@ -35,6 +35,7 @@ extension TimelineReport {
             JSONMember(key: "edit", value: output(entry.edit)),
             JSONMember(key: "drawn", value: output(entry.drawn)),
             JSONMember(key: "clip", value: output(entry.clip)),
+            JSONMember(key: "sound", value: entry.sound.map(output) ?? .null),
             JSONMember(key: "speed", value: .number(entry.speed)),
             JSONMember(key: "timeRemap", value: .bool(entry.isTimeRemapped)),
             JSONMember(key: "transition", value: transition ?? .null)
@@ -56,6 +57,7 @@ extension TimelineReport {
             JSONMember(key: "id", value: text(entry.id)),
             JSONMember(key: "kind", value: .string(entry.kind)),
             JSONMember(key: "visible", value: output(entry.visible)),
+            JSONMember(key: "sound", value: entry.sound.map(output) ?? .null),
             JSONMember(key: "lane", value: entry.lane.map { .number(Double($0)) } ?? .null),
             JSONMember(key: "storyline", value: text(entry.storyline)),
             JSONMember(key: "parent", value: text(entry.parent)),
