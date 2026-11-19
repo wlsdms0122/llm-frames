@@ -106,7 +106,7 @@ struct PresetLibraryTests {
             (#"{ "color": 3 }"#, "storyline[1].transition.args.color (preset arguments): expected a colour, found 3"),
             (#"{ "curve": "step" }"#, #"storyline[1].transition.args.curve (preset arguments): unknown value "step". Allowed: linear, ease-in-out"#),
             (#"{ "length": 0 }"#, #"storyline[1].transition (transition choice): its arguments give "studio/dip" a value it does not take: studio/dip: seconds (transition): a span runs for more than 0 seconds, found 0"#),
-            (#"{ "peak": 1.5 }"#, #"storyline[1].transition (transition choice): its arguments give "studio/dip" a value it does not take: studio/dip: cover.keys[1].opacity (cover key): expected a number from 0 to 1, found 1.5"#)
+            (#"{ "peak": 1.5 }"#, #"storyline[1].transition (transition choice): its arguments give "studio/dip" a value it does not take: studio/dip: cover.keys[1].opacity (cover key): 1.5 is not within 0 to 1"#)
         ]
     )
     func refusesBrokenArguments(

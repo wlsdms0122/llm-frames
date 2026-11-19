@@ -238,7 +238,7 @@ struct ThemeMergerTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == "defaults.transition.seconds (transition choice): expected a number above 0, found 0")
+        #expect(error?.description == "defaults.transition.seconds (transition choice): 0 is not above 0")
     }
 
     @Test(
@@ -247,13 +247,13 @@ struct ThemeMergerTests {
             (
                 ##"{ "styles": { "note": { "size": 20, "highlight": { "color": "#FF0000", "padding": [-4, 0] } } } }"##,
                 #"{ "styles": { "note": { "highlight": { "padding": [4, 2] } } } }"#,
-                "theme.json: styles.note.highlight.padding[0]: -4 is not 0 or more"
+                "theme.json: styles.note.highlight.padding[0] (highlight): -4 is not 0 or more"
             ),
-            (#"{ "baseWidth": 0 }"#, #"{ "baseWidth": 1080 }"#, "theme.json: baseWidth: 0 is not above 0"),
+            (#"{ "baseWidth": 0 }"#, #"{ "baseWidth": 1080 }"#, "theme.json: baseWidth (theme): 0 is not above 0"),
             (
                 #"{ "shapes": { "card": { "stroke": { "width": -2 } } } }"#,
                 #"{ "shapes": { "card": { "stroke": { "width": 4 } } } }"#,
-                "theme.json: shapes.card.stroke.width: -2 is not above 0"
+                "theme.json: shapes.card.stroke.width (stroke): -2 is not above 0"
             )
         ]
     )
@@ -270,7 +270,7 @@ struct ThemeMergerTests {
         )
 
         // When, Then
-        let error = #expect(throws: LookError.self) { try sut.merge([file, document]) }
+        let error = #expect(throws: ModelError.self) { try sut.merge([file, document]) }
         #expect(error?.description == message)
     }
 }

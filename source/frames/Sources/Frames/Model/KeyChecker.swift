@@ -142,26 +142,13 @@ struct KeyChecker: Sendable {
         case let .exactly(expected):
             guard value == expected else { throw wrongType(value, type, place, kind) }
 
-        case .anyObject, .bool, .number, .text, .name:
+        case .anyObject, .bool, .text, .name:
             guard admits(type, value) else { throw wrongType(value, type, place, kind) }
 
-        case .positiveNumber:
-            guard let number = value.numberValue, number > 0 else { throw wrongType(value, type, place, kind) }
-
-        case .nonNegativeNumber:
-            guard let number = value.numberValue, number >= 0 else { throw wrongType(value, type, place, kind) }
-
-        case .fraction:
-            guard let number = value.numberValue, (0...1).contains(number) else { throw wrongType(value, type, place, kind) }
-
-        case .signedFraction:
-            guard let number = value.numberValue, (-1...1).contains(number) else {
-                throw wrongType(value, type, place, kind)
-            }
-
-        case .openSignedFraction:
-            guard let number = value.numberValue, number > -1, number < 1 else {
-                throw wrongType(value, type, place, kind)
+        case let .number(domain):
+            guard let number = value.numberValue else { throw wrongType(value, type, place, kind) }
+            guard domain.contains(number) else {
+                throw ModelError.outsideDomain(place: place, kind: kind, value: number, domain: domain)
             }
 
         case .integer:
@@ -190,38 +177,13 @@ struct KeyChecker: Sendable {
                 throw ModelError.unknownValue(place: place, kind: kind, value: string, allowed: names)
             }
 
-        case let .numbers(count):
+        case let .numbers(count, domain):
             guard let elements = value.arrayValue, elements.count == count else {
                 throw wrongType(value, type, place, kind)
             }
 
             for (index, element) in elements.enumerated() {
-                try check(element, as: .number, place: place.appending(index: index), kind: kind, scope: &scope)
-            }
-
-        case let .leafNumber(domain):
-            guard admits(type, value) else { throw wrongType(value, type, place, kind) }
-
-            try domain.check(value, place: place)
-
-        case let .leafNumbers(count, domain):
-            guard let elements = value.arrayValue, elements.count == count else {
-                throw wrongType(value, type, place, kind)
-            }
-
-            for (index, element) in elements.enumerated() {
-                try check(element, as: .leafNumber(domain), place: place.appending(index: index), kind: kind, scope: &scope)
-            }
-
-        case let .fractions(count):
-            guard let elements = value.arrayValue, elements.count == count else {
-                throw wrongType(value, type, place, kind)
-            }
-
-            for (index, element) in elements.enumerated() {
-                guard let number = element.numberValue, (0...1).contains(number) else {
-                    throw wrongType(element, type, place.appending(index: index), kind)
-                }
+                try check(element, as: .number(domain), place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
         case let .dash(isKeyframed):
@@ -515,7 +477,7 @@ struct KeyChecker: Sendable {
             guard elements.count == 4 else { throw wrongType(value, type, place, kind) }
 
             for (index, element) in elements.enumerated() {
-                let elementType: ValueType = index < 2 ? .number : .positiveNumber
+                let elementType: ValueType = index < 2 ? .number(.any) : .number(.positive)
                 try check(element, as: elementType, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
@@ -1252,7 +1214,8 @@ struct KeyChecker: Sendable {
         let operation = JSONObject(members: object.members.filter { $0.key != "mix" })
         try checkFilterOperation(.object(operation), place: place, kind: kind, scope: &scope)
         if let mix = object["mix"] {
-            try check(mix, as: .fraction, place: place.appending(key: "mix"), kind: ChoiceKeyTable.filterKind, scope: &scope)
+            let mixPlace = place.appending(key: "mix")
+            try check(mix, as: .number(.range(0...1)), place: mixPlace, kind: ChoiceKeyTable.filterKind, scope: &scope)
         }
     }
 
@@ -1319,7 +1282,7 @@ struct KeyChecker: Sendable {
         try checkObject(parameters, as: AudioFilterKeyTable.table(for: operation), place: place, scope: &scope)
         if mixed, let mix = object["mix"] {
             let mixPlace = place.appending(key: "mix")
-            try check(mix, as: .fraction, place: mixPlace, kind: AudioFilterKeyTable.kind, scope: &scope)
+            try check(mix, as: .number(.range(0...1)), place: mixPlace, kind: AudioFilterKeyTable.kind, scope: &scope)
         }
 
         let bands = object["bands"]?.arrayValue ?? []
@@ -1398,8 +1361,7 @@ struct KeyChecker: Sendable {
         case .color:
             parameterType == "color"
 
-        case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
-             .nonNegativeInteger, .leafNumber, .margin:
+        case .number, .integer, .nonNegativeInteger, .margin:
             parameterType == "number"
 
         case let .leaf(check):
@@ -1449,17 +1411,14 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
-             (.signedFraction, .number),
-             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.leafNumber, .number):
+        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.ease, .object), (.numbers, .array), (.leafNumbers, .array),
-             (.fractions, .array), (.points, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.list, .array),
              (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
@@ -1512,23 +1471,8 @@ struct KeyChecker: Sendable {
         case .bool:
             "true or false"
 
-        case .number:
-            "a number"
-
-        case .positiveNumber:
-            "a number above 0"
-
-        case .nonNegativeNumber:
-            "a number, 0 or more"
-
-        case .fraction:
-            "a number from 0 to 1"
-
-        case .signedFraction:
-            "a number from -1 to 1"
-
-        case .openSignedFraction:
-            "a number greater than -1 and less than 1"
+        case let .number(domain):
+            domain == .any ? "a number" : "a number \(domain.description)"
 
         case .integer:
             "a whole number"
@@ -1548,17 +1492,8 @@ struct KeyChecker: Sendable {
         case let .literal(names):
             "one of \(names.joined(separator: ", "))"
 
-        case let .numbers(count):
-            "a list of \(count) numbers"
-
-        case let .leafNumber(domain):
-            domain == .any ? "a number" : "a number \(domain.description)"
-
-        case let .leafNumbers(count, domain):
+        case let .numbers(count, domain):
             domain == .any ? "a list of \(count) numbers" : "a list of \(count) numbers, each \(domain.description)"
-
-        case let .fractions(count):
-            "a list of \(count) numbers, each from 0 to 1"
 
         case let .dash(isKeyframed):
             isKeyframed

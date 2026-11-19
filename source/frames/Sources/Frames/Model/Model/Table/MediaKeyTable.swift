@@ -12,7 +12,7 @@ enum MediaKeyTable {
         kind: "image sequence",
         rules: [
             KeyRule("imageSequence", .name, isRequired: true),
-            KeyRule("fps", .positiveNumber, isRequired: true)
+            KeyRule("fps", .number(.positive), isRequired: true)
         ]
     )
     // An object holding none of them is a value, such as a choice's `{preset, args}` or an ease.

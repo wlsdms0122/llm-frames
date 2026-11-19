@@ -39,7 +39,7 @@ enum LeafValue: Interpolable {
     }
 
     // The value a sampled leaf takes where it is used, clamped to its domain; a colour is clamped per channel.
-    func clamped(to domain: LeafDomain) -> LeafValue {
+    func clamped(to domain: NumberDomain) -> LeafValue {
         switch self {
         case let .number(number):
             .number(domain.clamped(number))

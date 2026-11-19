@@ -23,7 +23,7 @@ enum PresetKeyTable {
         rules: [
             KeyRule("description", .text, isRequired: true),
             KeyRule("params", .parameters(ParameterKeyTable.preset)),
-            KeyRule("seconds", .number, isRequired: true),
+            KeyRule("seconds", .number(.any), isRequired: true),
             KeyRule("ease", .ease),
             KeyRule("over", .literal(["incoming", "outgoing"])),
             KeyRule("audio", .literal(CrossfadeCurve.allCases.map(\.rawValue))),
@@ -51,8 +51,8 @@ enum PresetKeyTable {
     )
     static let spanKey = ObjectTable(
         kind: "span key",
-        rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { property in
-            KeyRule(property, ["opacity", "reveal"].contains(property) ? .fraction : .number)
+        rules: [KeyRule("t", .number(.any), isRequired: true)] + motionProperties.map { property in
+            KeyRule(property, ["opacity", "reveal"].contains(property) ? .number(.range(0...1)) : .number(.any))
         }
     )
 
@@ -66,8 +66,8 @@ enum PresetKeyTable {
             KeyRule("keys", .list(.object(ObjectTable(
                 kind: "cover key",
                 rules: [
-                    KeyRule("t", .number, isRequired: true),
-                    KeyRule("opacity", .fraction)
+                    KeyRule("t", .number(.any), isRequired: true),
+                    KeyRule("opacity", .number(.range(0...1)))
                 ]
             ))))
         ],
@@ -77,7 +77,7 @@ enum PresetKeyTable {
         kind: "matte",
         rules: [
             KeyRule("media", .name, isRequired: true),
-            KeyRule("softness", .fraction),
+            KeyRule("softness", .number(.range(0...1))),
             KeyRule("invert", .bool),
             KeyRule("ease", .ease)
         ]
@@ -90,7 +90,7 @@ enum PresetKeyTable {
         ObjectTable(
             kind: kind,
             rules: [
-                KeyRule(length, .number, isRequired: true),
+                KeyRule(length, .number(.any), isRequired: true),
                 KeyRule("ease", .ease),
                 revealFrom,
                 KeyRule("keys", .list(.object(spanKey)))

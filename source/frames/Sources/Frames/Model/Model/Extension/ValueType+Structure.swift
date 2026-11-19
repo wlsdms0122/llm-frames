@@ -7,8 +7,8 @@
 
 // The key check's type of a look value, read from its structure, so the key check and the look merge read one
 // declaration of its keys and domains. `kind` names the value in messages. A number leaf, and each number of a list
-// leaf, takes its leaf's domain, which the key check stops through `LeafDomain.check` in the layer that writes it, as
-// timing and the theme merge do where they build the value: a theme layer's value that a stronger layer replaces
+// leaf, takes its leaf's domain, which the key check stops in the layer that writes it, as timing and the theme merge
+// stop through `NumberDomain.check` where they build the value: a theme layer's value that a stronger layer replaces
 // reaches neither, so only the key check stops it. A keyframe's number takes any number here (`ClipKeyTable`), since
 // timing checks it against its domain or, where two keyframes or more write the leaf, its sampled domain. Without
 // `checksDomains` every number is any number: a filter op's parameters are checked by `PresetReader.checkRanges` and
@@ -125,10 +125,10 @@ extension ValueType {
             return .name
 
         case let .numbers(count):
-            return domain == .any ? .numbers(count) : .leafNumbers(count, domain)
+            return .numbers(count, domain)
 
         case .number, .staticNumber:
-            return domain == .any ? .number : .leafNumber(domain)
+            return .number(domain)
         }
     }
 }
