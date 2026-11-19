@@ -17,10 +17,11 @@ struct ClipShape: Equatable, Sendable {
     let isClosed: Bool
     let radius: PropertyValue<Double>?
     let outset: Double?
-    let fill: FillForm?
-    let stroke: StrokeForm?
+    // `fill`, `stroke` and `shadow` are as written, since they merge over the style before they take a form.
+    let fill: JSONValue?
+    let stroke: JSONValue?
     let trim: PropertyValue<Trim>?
-    let shadow: ShadowForm?
+    let shadow: JSONValue?
 
     // A rect or an ellipse given by `width` and `height` is placed by its box, a path or a shape given by `area` by its
     // geometry. A rect missing one of the two is neither and stops when its geometry is planned.
@@ -36,10 +37,10 @@ struct ClipShape: Equatable, Sendable {
         isClosed: Bool = false,
         radius: PropertyValue<Double>? = nil,
         outset: Double? = nil,
-        fill: FillForm? = nil,
-        stroke: StrokeForm? = nil,
+        fill: JSONValue? = nil,
+        stroke: JSONValue? = nil,
         trim: PropertyValue<Trim>? = nil,
-        shadow: ShadowForm? = nil
+        shadow: JSONValue? = nil
     ) {
         self.kind = kind
         self.style = style

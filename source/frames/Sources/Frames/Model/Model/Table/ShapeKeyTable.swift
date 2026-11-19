@@ -15,7 +15,7 @@ enum ShapeKeyTable {
             kind: "stroke",
             rules: [
                 KeyRule("color", .color),
-                KeyRule("width", .positiveNumber, isRequired: true),
+                KeyRule("width", .positiveNumber),
                 KeyRule("join", .literal(StrokeJoin.allCases.map(\.rawValue))),
                 KeyRule("cap", .literal(StrokeCap.allCases.map(\.rawValue))),
                 KeyRule("start", .literal(StrokeEnd.allCases.map(\.rawValue))),

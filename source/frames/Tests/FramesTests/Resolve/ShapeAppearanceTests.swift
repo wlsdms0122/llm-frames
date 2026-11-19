@@ -132,8 +132,8 @@ struct ShapeAppearanceTests {
         ))
     }
 
-    @Test("a key on the clip wins over its style's whole: a stroke replaces the style's, and false turns one off")
-    func letsClipKeyWinWhole() throws {
+    @Test("a key on the clip merges over its style's leaf by leaf, and false turns one off")
+    func mergesClipKeyOverStyle() throws {
         // When
         let shape = try appearance(#"""
             { "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "width": 2 }, "fill": false,
@@ -141,11 +141,35 @@ struct ShapeAppearanceTests {
             """#)
 
         // Then
-        #expect(shape.stroke == PathStroke(width: 1, color: MergedTheme.base.color("accent"), join: .round, cap: .butt, start: .none, end: .none))
+        #expect(shape.stroke == PathStroke(width: 1, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow))
         #expect(shape.fill == nil)
         #expect(shape.shadow == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         #expect(shape.radius == .value(0))
         #expect(shape.geometry == .area(outset: 0, anchor: nil))
+    }
+
+    @Test("a stroke colour over a style whose stroke a stronger theme turns off stops, naming the clip and that theme")
+    func refusesPartialStrokeOverOff() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence", "format": { "size": [960, 540] },
+              "theme": { "shapes": { "bar": { "stroke": false, "fill": "#FFFFFF" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "color": "#FF0000" }, "at": [0, 1] } ] }
+            """##
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try plan(document) }
+        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and its theme does not give (theme.shapes.bar.stroke)"#)
+    }
+
+    @Test("a stroke colour on a shape without a style stands alone and stops without a width")
+    func refusesPartialStrokeWithoutStyle() throws {
+        // When, Then
+        let error = #expect(throws: (any Error).self) {
+            try plan(document(##"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
+        }
+        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width""#)
     }
 
     @Test("a shape without a style takes nothing from the theme but colour names, and its stroke the stroke defaults")

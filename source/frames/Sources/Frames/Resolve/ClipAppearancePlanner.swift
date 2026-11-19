@@ -13,6 +13,8 @@ struct ClipAppearancePlanner: Sendable {
     private let filters: FilterResolver
     private let conformer = CropConformer()
     private let cropChecker = CropChecker()
+    private let reader = LookReader()
+    private let merger = LookMerger()
 
     // MARK: - Initializer
     init(
@@ -109,8 +111,8 @@ struct ClipAppearancePlanner: Sendable {
 
     // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
     // `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds as many points.
-    // Keys written on the clip win over its style's, each whole, and without a style nothing but colour names comes
-    // from the theme. Theme lengths come out in output pixels, so they stay under a parent's zoom, and a stroke takes
+    // Its `fill`, `stroke` and `shadow` merge over its style's by the look merge, and without a style nothing but colour
+    // names and the theme `shadow` come from the theme. Theme lengths come out in output pixels, so they stay under a parent's zoom, and a stroke takes
     // the `accent` colour, round joins, butt caps and no arrowheads unless written. A shape with neither a fill nor a
     // stroke after its style stops.
     func shape(
@@ -124,11 +126,23 @@ struct ClipAppearancePlanner: Sendable {
         let kind = PlaceKind.clip(plan.kind)
         try checkGeometry(of: shape, written: written, kind: kind)
 
-        try checkColors(of: shape, written: written, kind: kind, theme: theme)
         let style = try self.style(named: shape.style, written: written, kind: kind, theme: theme)
-        let fill = shape.fill ?? style["fill"].flatMap(FillForm.init(value:))
-        let stroke = shape.stroke ?? style["stroke"].flatMap(StrokeForm.init(value:))
-        let shadow = shape.shadow ?? style["shadow"].flatMap(ShadowForm.init(value:))
+        let merge = { (key: String, value: JSONValue?, structure: ValueStructure) in
+            try self.merged(
+                value,
+                over: style[key],
+                as: structure,
+                key: key,
+                style: shape.style,
+                written: written,
+                kind: kind,
+                theme: theme
+            )
+        }
+        let fill = try merge("fill", shape.fill, LookStructureTable.fill).flatMap(FillForm.init(value:))
+        let stroke = try merge("stroke", shape.stroke, LookStructureTable.stroke).flatMap(StrokeForm.init(value:))
+        let shadow = try merge("shadow", shape.shadow, LookStructureTable.shadow).flatMap(ShadowForm.init(value:))
+        try checkColors(fill: fill, stroke: stroke, shadow: shadow, written: written, kind: kind, theme: theme)
         let fillColor: Color? = if case let .color(color) = fill { theme.color(color) } else { nil }
         let pathStroke = stroke.flatMap { self.stroke($0, scale: scale, theme: theme) }
         guard fillColor != nil || pathStroke != nil else {
@@ -463,24 +477,55 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // A colour name written on a shape must be a theme colour. Those of its style were checked with the theme.
+    // A clip's value merged over its style's value for the same key, as JSON again for its form to read, nil where
+    // neither writes it. A key the merged value requires and lacks stops, naming the clip and the theme layer that
+    // writes the style's value.
+    private func merged(
+        _ value: JSONValue?,
+        over style: JSONValue?,
+        as structure: ValueStructure,
+        key: String,
+        style name: String?,
+        written: Clip,
+        kind: PlaceKind,
+        theme: MergedTheme
+    ) throws -> JSONValue? {
+        let place = written.place.appending(key: key)
+        let layers = [style, value].map { $0.map { reader.value(of: $0, as: structure) } }
+        do {
+            guard let merged = try merger.merge(layers, as: structure, place: place) else { return nil }
+
+            try merger.checkRequired(in: merged, as: structure, place: place)
+            return merged.json(as: structure)
+        } catch let LookError.missingLeaf(_, missing) {
+            guard let name else { throw ResolveError.missingKey(place: place, kind: kind, key: missing) }
+
+            let path = Place.root.appending(key: "shapes").appending(key: name).appending(key: key)
+            throw ResolveError.missingLookLeaf(place: place, kind: kind, key: missing, layer: theme.place(of: path))
+        }
+    }
+
+    // A colour name a shape's merged value holds must be a theme colour. Those of its style were checked with the
+    // theme, so a name that is not one is the clip's.
     private func checkColors(
-        of shape: ClipShape,
+        fill: FillForm?,
+        stroke: StrokeForm?,
+        shadow: ShadowForm?,
         written: Clip,
         kind: PlaceKind,
         theme: MergedTheme
     ) throws {
         var names: [(name: String, place: Place)] = []
-        if case let .color(color) = shape.fill {
+        if case let .color(color) = fill {
             names.append((color, written.place.appending(key: "fill")))
         }
-        if case let .stroke(.some(color), _, _, _, _, _) = shape.stroke {
+        if case let .stroke(.some(color), _, _, _, _, _) = stroke {
             names.append((color, written.place.appending(key: "stroke").appending(key: "color")))
         }
         for (name, place) in names where !theme.isColor(name) {
             throw ThemeError.unknownColor(place: place, kind: kind.label, name: name)
         }
-        try checkColor(of: shape.shadow, place: written.place, kind: kind.label, theme: theme)
+        try checkColor(of: shadow, place: written.place, kind: kind.label, theme: theme)
     }
 
     // A colour name a clip writes in its `shadow` must be a theme colour.

@@ -174,13 +174,13 @@ struct SequenceReader: Sendable {
             isClosed: clip["closed"]?.boolValue ?? false,
             radius: property("radius", of: clip, read: \.numberValue),
             outset: clip["outset"]?.numberValue,
-            fill: clip["fill"].flatMap(FillForm.init(value:)),
-            stroke: clip["stroke"].flatMap(StrokeForm.init(value:)),
+            fill: clip["fill"],
+            stroke: clip["stroke"],
             trim: property("trim", of: clip) { value in
                 let ends = value.arrayValue?.compactMap(\.numberValue) ?? []
                 return ends.count == 2 ? Trim(start: ends[0], end: ends[1]) : nil
             },
-            shadow: clip["shadow"].flatMap(ShadowForm.init(value:))
+            shadow: clip["shadow"]
         )
     }
 
