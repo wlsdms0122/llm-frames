@@ -10,8 +10,8 @@ import Foundation
 import VideoToolbox
 import Frames
 
-// How AVFoundation writes an encode target. H.264 and HEVC take 8-bit BGRA, which their hardware encoders read
-// natively, since 16-bit RGBA handed to them can fault the hardware encoder.
+// How AVFoundation writes an encode target, tagged with its output's colour space. H.264 and HEVC take 8-bit BGRA,
+// which their hardware encoders read natively, since 16-bit RGBA handed to them can fault the hardware encoder.
 struct TargetFormat: Equatable, Sendable {
     // MARK: - Property
     private static let sampleRate = 48_000
@@ -30,11 +30,7 @@ struct TargetFormat: Equatable, Sendable {
     let size: Size?
 
     var colorProperties: [String: String] {
-        [
-            AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
-            AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
-            AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2
-        ]
+        target.output.space.videoColorProperties
     }
 
     // A master's or a delivery's sound settings, the same for any sound, so the encoder's check tries them before a
@@ -73,7 +69,7 @@ struct TargetFormat: Equatable, Sendable {
         self.target = target
 
         switch target {
-        case let .master(path, alpha):
+        case let .master(path, alpha, _):
             self.path = path
             fileType = .mov
             codec = alpha ? .proRes4444 : .proRes422HQ
@@ -83,7 +79,7 @@ struct TargetFormat: Equatable, Sendable {
             pixelFormat = kCVPixelFormatType_64RGBALE
             size = nil
 
-        case let .delivery(path):
+        case let .delivery(path, _):
             self.path = path
             fileType = .mp4
             codec = .h264
@@ -93,7 +89,7 @@ struct TargetFormat: Equatable, Sendable {
             pixelFormat = kCVPixelFormatType_32BGRA
             size = nil
 
-        case let .compressed(path, videoCodec, _, size):
+        case let .compressed(path, videoCodec, _, size, _):
             self.path = path
             fileType = Self.fileType(of: path)
             codec = videoCodec == .hevc ? .hevc : .h264
@@ -109,7 +105,7 @@ struct TargetFormat: Equatable, Sendable {
     // The settings for `sound`, which a compressed target has fitted to AAC already.
     func audioSettings(for sound: SoundBuffer) -> [String: Any] {
         switch target {
-        case let .compressed(_, _, quality, _):
+        case let .compressed(_, _, quality, _, _):
             AACSettings(
                 sampleRate: sound.sampleRate,
                 channels: sound.channels,
@@ -126,7 +122,7 @@ struct TargetFormat: Equatable, Sendable {
         height: Int
     ) -> [String: Any] {
         let compression: [String: Any] = switch target {
-        case .master(_, alpha: true):
+        case .master(_, alpha: true, _):
             [kVTCompressionPropertyKey_AlphaChannelMode as String: kVTAlphaChannelMode_PremultipliedAlpha as String]
 
         case .master:
@@ -135,7 +131,7 @@ struct TargetFormat: Equatable, Sendable {
         case .delivery:
             [AVVideoQualityKey: 1.0]
 
-        case let .compressed(_, _, quality, _):
+        case let .compressed(_, _, quality, _, _):
             [AVVideoQualityKey: videoQuality(of: quality)]
         }
 

@@ -75,10 +75,10 @@ struct RecordingEncoder: Encoder {
         log.record(.videoWriter(target, size: size, fps: fps, sound: sound))
 
         switch target {
-        case let .master(path, _), let .delivery(path):
+        case let .master(path, _, _), let .delivery(path, _):
             return RecordingVideoWriter(path: path, log: log)
 
-        case let .compressed(path, _, _, _):
+        case let .compressed(path, _, _, _, _):
             return RecordingVideoWriter(path: path, log: log, writesFile: true)
         }
     }

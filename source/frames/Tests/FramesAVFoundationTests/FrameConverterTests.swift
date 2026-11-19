@@ -25,7 +25,7 @@ struct FrameConverterTests {
     )
     func copiesSixteenBitRGBA(keepsAlpha: Bool) throws {
         // Given
-        let sut = FrameConverter(keepsAlpha: keepsAlpha)
+        let sut = FrameConverter(keepsAlpha: keepsAlpha, output: ColorConversion(space: .srgb))
         let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBALE)
 
         // When
@@ -49,7 +49,7 @@ struct FrameConverterTests {
     @Test("a BGRA buffer takes each component rounded to eight bits, opaque, which is the colour over black")
     func copiesOverBlackToBGRA() throws {
         // Given
-        let sut = FrameConverter(keepsAlpha: false)
+        let sut = FrameConverter(keepsAlpha: false, output: ColorConversion(space: .srgb))
         let buffer = try pixelBuffer(format: kCVPixelFormatType_32BGRA)
 
         // When

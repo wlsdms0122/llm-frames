@@ -222,7 +222,7 @@ extension AVFoundationEncoder: Encoder {
         case .png:
             [:]
 
-        case let .jpeg(_, _, quality), let .heic(_, _, quality):
+        case let .jpeg(_, _, quality, _), let .heic(_, _, quality, _):
             [kCGImageDestinationLossyCompressionQuality: quality.imageQuality]
         }
 
