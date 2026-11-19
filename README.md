@@ -346,7 +346,7 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 | `{"text": "Flat white", "nth": 0, "padding": 8}` | the recognised line that contains the text, compared without whitespace. More than one match stops and lists them, and `nth` picks one, counted from 0, top to bottom and left to right |
 | `{"from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around both lines and every line between them |
 
-`padding` grows a found area on every side, in pixels of the picture searched. A text form needs a picture to search, so it is allowed where the coordinates are a video's, an image's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
+`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, an image's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
 
 ### Titles and runs
 
