@@ -22,15 +22,14 @@ struct MixPlannerTests {
     @Test("a segment carries its sound's audio filter: a held leaf as a number, a moving frequency sampled in log space")
     func carriesAudioFilter() throws {
         // Given
-        let band = TimedValue.object([
-            TimedMember(key: "type", value: .fixed(.string("peak"))),
+        let band = TimedValue.form("type:peak", .object([
             TimedMember(key: "frequency", value: .track([
                 Keyframe(at: 0, value: .number(100)),
                 Keyframe(at: 2, value: .number(10000))
             ])),
             TimedMember(key: "gain", value: .track([Keyframe(at: 0, value: .number(6))])),
             TimedMember(key: "q", value: .track([Keyframe(at: 0, value: .number(0.7071))]))
-        ])
+        ]))
         let entry = TimedValue.object([
             TimedMember(key: "ops", value: .list([.form("op:eq", .object([TimedMember(key: "bands", value: .list([band]))]))])),
             TimedMember(key: "mix", value: .track([Keyframe(at: 0, value: .number(1))]))

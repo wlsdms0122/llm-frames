@@ -53,6 +53,19 @@ struct AudioPresetReaderTests {
         }
     }
 
+    @Test("a band whose type takes a gain stops where the preset leaves it out")
+    func refusesBandWithoutGain() throws {
+        // Given
+        let preset = #"""
+            { "description": "", "ops": [ { "op": "eq", "bands": [ { "type": "peak", "frequency": 3000 } ] } ] }
+            """#
+
+        // When, Then
+        #expect(throws: ModelError.missingKey(place: file.appending(key: "ops").appending(index: 0).appending(key: "bands").appending(index: 0), kind: "band", keys: ["gain"])) {
+            try sut.publishedAudio(from: json(preset), place: file)
+        }
+    }
+
     @Test(
         "a colour or choice parameter, an op's mix and an unknown op stop",
         arguments: [

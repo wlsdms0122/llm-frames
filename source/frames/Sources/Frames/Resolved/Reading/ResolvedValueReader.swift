@@ -257,7 +257,7 @@ struct ResolvedValueReader: Sendable {
             return .fixed(value.value)
 
         case let .choice(_, forms) where !forms.isEmpty:
-            return try choice(value, forms: forms, kind: kind)
+            return try choice(value, forms: forms, as: structure, kind: kind)
 
         case .anyValue, .choice:
             return .fixed(value.value)
@@ -293,16 +293,17 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    // A form of a choice as the writer writes it: `preset` or `op` naming it, beside the keys of its body.
+    // A form of a choice as the writer writes it: its form key naming it, beside the keys of its body.
     private func choice(
         _ value: PlacedJSONValue,
         forms: [(name: String, structure: ValueStructure)],
+        as structure: ValueStructure,
         kind: String?
     ) throws -> TimedValue {
-        let object = try value.object(kind: kind, keys: ["preset", "op"] + forms.flatMap { form in
+        let object = try value.object(kind: kind, keys: structure.formKeys + forms.flatMap { form in
             if case let .object(body) = form.structure { body.keys.map(\.name) } else { [String]() }
         })
-        let prefix = object.object.contains("op") ? "op" : "preset"
+        let prefix = structure.formKeys.first(where: object.object.contains) ?? structure.formKeys[0]
         let names = forms.map(\.name).filter { $0.hasPrefix(prefix + ":") }.map { String($0.dropFirst(prefix.count + 1)) }
         let name = try object.member(prefix).name(among: names) { names.contains($0) ? $0 : nil }
         guard let form = forms.first(where: { $0.name == prefix + ":" + name }), case let .object(body) = form.structure

@@ -259,15 +259,20 @@ enum LookStructureTable {
             : .object(ObjectStructure(parameters, plain: defaults))
     }
 
-    // A band's `frequency` lies above 0 and below half of 48 kHz, and its `q` defaults to 1/√2.
-    private static let band = ValueStructure.object(ObjectStructure(
-        [
-            ("type", .leaf(.name(among: AudioFilterKeyTable.bandTypes))),
+    // A band is a form by its `type`, each requiring the keys its type takes but `q`, which defaults to 1/√2. A band's
+    // `frequency` lies above 0 and below half of 48 kHz.
+    private static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
+        let keys: [(name: String, structure: ValueStructure)] = [
             ("frequency", .leaf(LeafKind(form: .number, domain: .between(0, 24000), interpolation: .geometric))),
             ("gain", .leaf(.number())),
             ("q", .leaf(.ratio))
-        ],
-        required: ["frequency"],
-        plain: ["q": .number(0.7071)]
-    ))
+        ]
+        let taken = keys.filter { $0.name != "gain" || type.takesGain }
+        let body = ObjectStructure(
+            taken,
+            required: taken.map(\.name).filter { $0 != "q" },
+            plain: ["q": .number(0.7071)]
+        )
+        return ("type:" + type.rawValue, .object(body))
+    })
 }

@@ -6,12 +6,12 @@
 //
 
 // The keys of an audio op and of an `eq` band, by the op or the band's `type`. Ranges are the look structure's
-// (`LookStructureTable.audioOperation`), which resolve checks, and so is a band's required `frequency`, which
-// keyframes may give in place of the clip.
+// (`LookStructureTable.audioOperation`), which resolve checks, and so are a band's required `frequency` and `gain`,
+// which keyframes may give in place of the clip.
 enum AudioFilterKeyTable {
     static let kind = "audio filter choice"
     static let operations = ["eq", "compressor", "gate"]
-    static let bandTypes = ["lowShelf", "highShelf", "peak", "lowPass", "highPass"]
+    static let bandTypes = MixBandType.allCases.map(\.rawValue)
 
     static func table(for operation: String) -> ObjectTable {
         ObjectTable(
@@ -22,7 +22,7 @@ enum AudioFilterKeyTable {
 
     // A pass filter has no gain, so a `gain` on one stops as a key its type does not take.
     static func band(of type: String) -> ObjectTable {
-        let gain = ["lowShelf", "highShelf", "peak"].contains(type) ? [KeyRule("gain", .number, isRequired: true)] : []
+        let gain = MixBandType(rawValue: type)?.takesGain == true ? [KeyRule("gain", .number)] : []
 
         return ObjectTable(
             kind: "band",

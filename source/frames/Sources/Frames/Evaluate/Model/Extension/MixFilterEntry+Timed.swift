@@ -44,8 +44,7 @@ extension MixFilterEntry {
 
         switch form {
         case "op:eq":
-            guard case let .list(bands) = body["bands"], case let .list(.object(band)) = structure.structure(of: "bands")
-            else {
+            guard case let .list(bands) = body["bands"], case let .list(band) = structure.structure(of: "bands") else {
                 return nil
             }
 
@@ -89,15 +88,21 @@ extension MixFilterEntry {
 
     private static func band(
         _ value: TimedValue,
-        structure: ObjectStructure,
+        structure: ValueStructure,
         sampler: MixValueSampler
     ) -> MixBand? {
-        guard case let .fixed(.string(name)) = value["type"], let type = MixBandType(rawValue: name) else { return nil }
+        guard
+            case let .form(form, body) = value,
+            let type = MixBandType(rawValue: String(form.dropFirst("type:".count))),
+            case let .object(band) = structure.structure(ofForm: form)
+        else {
+            return nil
+        }
 
         let number = { (key: String) -> MixValue? in
-            guard case let .leaf(kind) = structure.structure(of: key) else { return nil }
+            guard case let .leaf(kind) = band.structure(of: key) else { return nil }
 
-            return sampler.value(value[key], as: kind)
+            return sampler.value(body[key], as: kind)
         }
 
         guard let frequency = number("frequency"), let q = number("q") else { return nil }
@@ -105,6 +110,6 @@ extension MixFilterEntry {
         let gain = number("gain")
         guard !type.takesGain || gain != nil else { return nil }
 
-        return MixBand(type: type, frequency: frequency, gain: type.takesGain ? gain : nil, q: q)
+        return MixBand(type: type, frequency: frequency, gain: gain, q: q)
     }
 }

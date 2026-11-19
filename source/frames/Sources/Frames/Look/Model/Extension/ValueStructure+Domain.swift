@@ -22,6 +22,11 @@ extension ValueStructure {
                 try child.checkDomains(of: member, place: place.appending(key: key), sampled: sampled)
             }
 
+        case let (.object(object), .choice):
+            guard let form = form(of: object), let structure = structure(ofForm: form.name) else { return }
+
+            try structure.checkDomains(of: .object(form.body), place: place, sampled: sampled)
+
         case let (.array(elements), .list(element)):
             for (index, value) in elements.enumerated() {
                 try element.checkDomains(of: value, place: place.appending(index: index), sampled: sampled)

@@ -47,7 +47,7 @@ struct LookReader: Sendable {
             return self.forms(json, as: forms)
 
         case let .choice(offNames, forms):
-            return choice(json, offNames: offNames, forms: forms)
+            return choice(json, offNames: offNames, forms: forms, as: structure)
         }
     }
 
@@ -103,23 +103,20 @@ struct LookReader: Sendable {
     private func choice(
         _ json: JSONValue,
         offNames: [String],
-        forms: [(name: String, structure: ValueStructure)]
+        forms: [(name: String, structure: ValueStructure)],
+        as structure: ValueStructure
     ) -> LookValue {
         switch json {
         case let .string(name):
             return offNames.contains(name) ? .off : .form("preset:" + name, .object([]))
 
         case let .array(elements):
-            return .list(elements.map { choice($0, offNames: offNames, forms: forms) })
+            return .list(elements.map { choice($0, offNames: offNames, forms: forms, as: structure) })
 
         case let .object(object):
-            for key in ["preset", "op"] {
-                guard let name = object[key]?.stringValue else { continue }
-
-                let form = key + ":" + name
-                let body = JSONValue.object(JSONObject(members: object.members.filter { $0.key != key }))
-                let structure = forms.first { $0.name == form }?.structure ?? .anyValue
-                return .form(form, value(of: body, as: structure))
+            if let form = structure.form(of: object) {
+                let body = structure.structure(ofForm: form.name) ?? .anyValue
+                return .form(form.name, value(of: .object(form.body), as: body))
             }
             guard !object.contains("entrance"), !object.contains("exit") else {
                 return .form("sides", free(json))

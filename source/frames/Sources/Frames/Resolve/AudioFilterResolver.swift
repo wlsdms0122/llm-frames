@@ -172,6 +172,21 @@ struct AudioFilterResolver: Sendable {
                 return TimedMember(key: key, value: timed)
             })
 
+        case let (.object(object), .choice):
+            guard let form = structure.form(of: object), let body = structure.structure(ofForm: form.name) else {
+                return .fixed(value)
+            }
+
+            let timed = try self.timed(
+                .object(form.body),
+                as: body,
+                at: place,
+                references: references,
+                arguments: arguments,
+                looks: looks
+            )
+            return .form(form.name, timed)
+
         case let (.array(elements), .list(element)):
             return .list(try elements.enumerated().map { index, value in
                 try timed(

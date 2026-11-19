@@ -14,6 +14,8 @@ struct PresetReader: Sendable {
     private let reader = JSONReader()
     private let checker = KeyChecker()
     private let filler: ParameterFiller
+    private let lookReader = LookReader()
+    private let merger = LookMerger()
 
     // MARK: - Initializer
     init() {
@@ -266,9 +268,25 @@ struct PresetReader: Sendable {
             let structure = LookStructureTable.audioOperation(operation["op"]?.stringValue ?? "")
             let operationPlace = place.appending(key: "ops").appending(index: index)
             try structure.checkDomains(of: .object(operation), place: operationPlace, sampled: sampled)
+            try checkRequired(of: operation, as: structure, place: operationPlace)
         }
 
         return AudioPreset(description: object["description"]?.stringValue ?? "", operations: operations)
+    }
+
+    // A preset has no keyframes, so a leaf its op's structure requires, a band's `frequency` and `gain`, is written in
+    // the preset.
+    private func checkRequired(
+        of operation: JSONObject,
+        as structure: ValueStructure,
+        place: Place
+    ) throws {
+        do {
+            let value = lookReader.value(of: .object(operation), as: structure)
+            try merger.checkRequired(in: value, as: structure, place: place)
+        } catch let LookError.missingLeaf(place, key) {
+            throw ModelError.missingKey(place: place, kind: "band", keys: [key])
+        }
     }
 
     private func animationSpan(

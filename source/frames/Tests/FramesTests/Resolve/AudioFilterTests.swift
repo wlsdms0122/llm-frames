@@ -43,14 +43,18 @@ struct AudioFilterTests {
         #expect(entries[1]["mix"]?.number == 0.5)
         let eq = try #require(operation(of: entries[0]))
         #expect(eq.name == "op:eq")
-        guard case let .list(bands) = eq.body["bands"] else {
-            Issue.record("expected a list of bands")
+        guard case let .list(bands) = eq.body["bands"], bands.count == 2,
+            case let .form(firstType, first) = bands[0], case let .form(secondType, second) = bands[1]
+        else {
+            Issue.record("expected two bands, each a form by its type")
             return
         }
-        #expect(bands[0]["type"]?.name == "highPass")
-        #expect(bands[0]["frequency"]?.number == 80)
-        #expect(bands[0]["q"]?.number == 0.7071)
-        #expect(bands[1]["gain"]?.number == 3)
+        #expect(firstType == "type:highPass")
+        #expect(first["frequency"]?.number == 80)
+        #expect(first["q"]?.number == 0.7071)
+        #expect(first["gain"] == nil)
+        #expect(secondType == "type:peak")
+        #expect(second["gain"]?.number == 3)
         let compressor = try #require(operation(of: entries[1]))
         #expect(compressor.name == "op:compressor")
         #expect(compressor.body["knee"]?.number == 0)
@@ -85,6 +89,39 @@ struct AudioFilterTests {
         #expect(band["gain"]?.number == 6)
     }
 
+    @Test("a peak band whose gain only keyframes write passes the key tables and sweeps its gain")
+    func sweepsKeyframedGain() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0,
+                "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "frequency": 1000 } ] },
+                "keyframes": [
+                  { "at": 0, "audioFilter": { "bands": [ { "gain": 0 } ] } },
+                  { "at": 2, "audioFilter": { "bands": [ { "gain": 6 } ] } } ] } ] }
+            """#
+        try checker.check(document: Fixture.json(document))
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        let band = try #require(band(of: plan.sound[1].audioFilter, at: 1))
+        #expect(band["gain"]?.number == 3)
+        #expect(band["frequency"]?.number == 1000)
+    }
+
+    @Test("a shelf band whose gain neither the clip nor its keyframes write stops")
+    func refusesBandWithoutGain() throws {
+        // When, Then
+        #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "gain", layer: nil)) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowShelf", "frequency": 200 } ] } } ] }
+                """#)
+        }
+    }
+
     @Test("a preset entry is its preset's ops with its arguments in place and their defaults written, and its mix")
     func expandsPreset() throws {
         // When
@@ -103,13 +140,13 @@ struct AudioFilterTests {
         #expect(entries[1]["mix"]?.number == 0.5)
         guard case let .list(operations) = entries[1]["ops"], operations.count == 2,
             case let .form("op:eq", eq) = operations[0], case let .form("op:compressor", compressor) = operations[1],
-            case let .list(bands) = eq["bands"]
+            case let .list(bands) = eq["bands"], case let .form(_, highPass) = bands.first
         else {
             Issue.record("expected an eq and a compressor, got \(entries[1])")
             return
         }
-        #expect(bands[0]["frequency"]?.number == 120)
-        #expect(bands[0]["q"]?.number == 0.7071)
+        #expect(highPass["frequency"]?.number == 120)
+        #expect(highPass["q"]?.number == 0.7071)
         #expect(compressor["ratio"]?.number == 3)
         #expect(compressor["knee"]?.number == 0)
         let first = try #require(band(of: plan.sound[1].audioFilter, at: 0))
@@ -285,11 +322,12 @@ struct AudioFilterTests {
             case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedAudioFilter),
             let entry = entries.first,
             let operation = operation(of: entry),
-            case let .list(bands) = operation.body["bands"]
+            case let .list(bands) = operation.body["bands"],
+            case let .form(_, band) = bands.first
         else {
             return nil
         }
 
-        return bands.first
+        return band
     }
 }
