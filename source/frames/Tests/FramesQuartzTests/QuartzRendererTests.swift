@@ -154,8 +154,11 @@ struct QuartzRendererTests {
         #expect(throws: Never.self) { try checking() }
     }
 
-    @Test("check accepts a list of either compositing and a LUT built for any space", arguments: ColorSpace.allCases)
-    func acceptsColorKeys(space: ColorSpace) throws {
+    @Test(
+        "check accepts a list of either compositing and a LUT built for any space",
+        arguments: LookUpTableSpace.allCases
+    )
+    func acceptsColorKeys(space: LookUpTableSpace) throws {
         // Given
         let directory = try TemporaryDirectory()
         let path = directory.file("identity.cube")
