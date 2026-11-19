@@ -76,9 +76,10 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
 | audio clip of a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's but `audioFilter`, and `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| title clip | every clip with a picture's, `title, style, character, width, placement, position, anchor, scale, rotation` |
+| title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
+| paragraph (a title's `paragraph`) | `align, lineHeight, background`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
@@ -100,7 +101,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | template instance | `template, args` |
 | parameter | `type, default, description`, and `options` for a choice |
 
-Which keys each shape kind takes, the forms of masks and track mattes, and `radius`, `border` and `shadow`, which act on a media clip's box and on a storyline picture's box alike, are [FRAMES-11](../FRAMES-11/SPEC.md). Every length a clip draws with (a stroke `width`, the `radius` of a shape or a box, `outset`, a mask's `feather`, a border's width, a shadow's sizes and the lengths of a title's `character`) is a theme length, the unit of the style it overrides ([FRAMES-1](../FRAMES-1/SPEC.md)), and positions, areas and points are in the clip's coordinate space. How a preset choice passes its arguments is [FRAMES-14](../FRAMES-14/SPEC.md): an unknown argument name stops, an argument of the wrong type stops, and a missing one takes its parameter's default.
+Which keys each shape kind takes, the forms of masks and track mattes, and `radius`, `border` and `shadow`, which act on a media clip's box and on a storyline picture's box alike, are [FRAMES-11](../FRAMES-11/SPEC.md). Every length a clip draws with (a stroke `width`, the `radius` of a shape or a box, `outset`, a mask's `feather`, a border's width, a shadow's sizes and the lengths of a title's `character` and `paragraph`) is a theme length, the unit of the style it overrides ([FRAMES-1](../FRAMES-1/SPEC.md)), and positions, areas and points are in the clip's coordinate space. How a preset choice passes its arguments is [FRAMES-14](../FRAMES-14/SPEC.md): an unknown argument name stops, an argument of the wrong type stops, and a missing one takes its parameter's default.
 
 `id` names a clip for whatever reads or changes the document, inside it and outside it ([FRAMES-25](../FRAMES-25/SPEC.md)), since a place like `storyline[1].connected[0]` moves when clips are added. It is a string, unique within its document (a nested document has its own), and a duplicate stops. `parent` ([FRAMES-10](../FRAMES-10/SPEC.md)) and a track matte's `clip` ([FRAMES-11](../FRAMES-11/SPEC.md)) name a clip by its `id`. Messages and machine output give it with the place.
 
@@ -108,7 +109,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
-Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key whose value is built from numbers and colours and whose change reflows nothing resolve lays out). The table is written for reference, and where it and the principle differ the principle decides:
+Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key whose value is built from numbers and colours and whose change alters no decision resolve makes once). The table is written for reference, and where it and the principle differ the principle decides:
 
 | Clip | Properties |
 | --- | --- |
@@ -116,11 +117,11 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 | storyline clip, solid | `solid` |
 | media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | audio clip | `volume, pan`, and `audioFilter` where it takes one |
-| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline` |
+| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline`, and in `paragraph` its `lineHeight` and `background` |
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
-`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character` and `audioFilter` in a keyframe write the numbers and colours they change, over the clip's static value merged over its style's, whose names and structure are static, and a leaf written `null` is that value below at that instant.
+`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` in a keyframe write the numbers and colours they change, timed over the merged value (the clip's static value, with the structure its keyframes give, merged over its style's), whose names and structure are static, and a leaf written `null` is the merged value at that instant.
 
 Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A leaf written statically and given a value in every keyframe that writes it stops, since the static value would never show ([FRAMES-4](../FRAMES-4/SPEC.md)).
 

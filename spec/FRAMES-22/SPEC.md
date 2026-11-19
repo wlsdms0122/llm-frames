@@ -14,11 +14,12 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 `theme` prints the base theme, and that output is also the list of every group a theme can hold. The keys of a text style and of a shape style are the tables below. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles`, `shapes` and `defaults.animation.title` (keyed by text style name) are open maps: any name may be added. A name that is referred to must exist: a colour, a text style, a shape style, or a `title` key that names no text style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. So does a theme colour such a preset names with the default's arguments applied (a cover or a bloom `color`) that the merged theme, its own colours and those it is merged over, does not hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
-**Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's keys over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), a title's `character` over its runs' styles ([FRAMES-11](../FRAMES-11/SPEC.md)), a clip's choice over the theme's default choice ([Defaults](#defaults)), and a keyframe over the value below it ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
+**Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's choice over the theme's default choice ([Defaults](#defaults)), a clip's own layer over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), and a title's `character` and `paragraph` over its runs' styles and its clip style's paragraph attributes ([FRAMES-11](../FRAMES-11/SPEC.md)). A clip's own layer is its static value together with the structure its keyframes give, and keyframes are no layer: they time the leaves of the merged value ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
 
 - An object takes the upper layer's keys over the lower one's, key by key and inside nested objects: the top-level groups, each colour, each text style and shape style and each of their properties, a `stroke`, a `shadow`, a `background`, a `highlight`, an `underline`, a style's `features`, each entry of `defaults` and of `defaults.animation`, and each style in its `title` map. So a stronger theme that writes `{"stroke": {"color": "red"}}` for a shape style keeps the weaker theme's stroke `width`.
 - Every other value replaces the one under it: a number, a colour, a name, a list such as `font`, a `dash` or a gradient's `stops`.
-- A value of another form replaces the one under it whole: a colour over a gradient, a linear gradient over a radial one, `true` over a shadow or underline object, a preset name over a preset choice object, and a choice of one preset over a choice of another, whose arguments are another preset's parameters. Over `false`, or where the layer below has no value, the upper value stands alone.
+- **A shorthand expands to the leaves it names, over the value below, and nothing more**, statically and in a keyframe alike, before it merges and before its structure is compared ([FRAMES-4](../FRAMES-4/SPEC.md)). `true` names every leaf of its value as the value below, each leaf `null`, so it turns a `shadow`, a `border` or an `underline` on with the look's leaves: over a style's shadow object it is that shadow, and over `false` or no value its leaves are the value's defaults (the theme `shadow`, the theme `border`, the face's underline in the run's colour). A media clip's `border` colour names only `color`, as `{"color": "#F00"}`, over the theme's border.
+- A value of another form replaces the one under it whole: a colour over a gradient, a linear gradient over a radial one, a preset name over a preset choice object, and a choice of one preset over a choice of another, whose arguments are another preset's parameters. Over `false`, or where the layer below has no value, the upper value stands alone.
 - A stroke's `color` and `gradient` are one paint leaf: writing either replaces the other.
 - `false` turns the value below off.
 - A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops. **A clip's partial value over a layer that gives none (`false`, or no value) stands alone, and a leaf it requires that is still missing stops, naming the clip and the theme layer that gave none**, since a value that cannot do what it says stops (README): a stroke recoloured where the look has no stroke has no stroke to recolour, and a width frames chose for it would draw a line the look does not hold. So a rect that writes `stroke: {"color": "red"}` over a shape style whose stroke a `--theme` file turns `false` stops under that theme, naming the clip and the file.
@@ -29,7 +30,7 @@ Precedence, from weakest:
 base theme < --theme file < document theme < keys on the clip
 ```
 
-The keys on the clip are a shape's appearance keys over its shape style, a media clip's `border` and `shadow` over the theme's, a title's `character` over its runs' styles, and a clip's `transition`, `animation` and `filter` over the theme's `defaults`.
+The keys on the clip are a shape's appearance keys over its shape style, a media clip's `border` and `shadow` over the theme's, a title's `character` over its runs' styles and its `paragraph` over its clip style's paragraph attributes, and a clip's `transition`, `animation` and `filter` over the theme's `defaults`.
 
 A document inside another starts from the theme in effect where it is written: a compound clip from its document's, and a document given as a template argument from the caller's, not the template's. A template starts from the base theme ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
@@ -72,7 +73,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
 
 ### Styles
 
-A text style is a named set of text properties. Any name is allowed. A run's style gives that run its character properties, and the clip's style gives the paragraph properties ([FRAMES-5](../FRAMES-5/SPEC.md)). A title's `character` merges over every run's style ([FRAMES-11](../FRAMES-11/SPEC.md)).
+A text style is a named set of text properties. Any name is allowed. A run's style gives that run its character properties, and the clip's style gives the paragraph properties ([FRAMES-5](../FRAMES-5/SPEC.md)). A title's `character` merges over every run's style, and its `paragraph` over the paragraph attributes of its clip style ([FRAMES-11](../FRAMES-11/SPEC.md)).
 
 | Property | Kind | Meaning |
 | --- | --- | --- |
@@ -87,7 +88,7 @@ A text style is a named set of text properties. Any name is allowed. A run's sty
 | `color` | character | text colour. The default is the `text` colour |
 | `stroke` | character | `{width, color}`: an outline with round joins, where strokes never show overlapping, or `false`. `width` is required, since a stroke is written to be seen. Without `color` it takes the `text` colour. Absent means none |
 | `highlight` | character | `{color, padding, radius}`, or `false`: a box behind the run's glyphs on each line it occupies, as a highlighter marks text on a page and CSS draws the background of an inline box ([FRAMES-5](../FRAMES-5/SPEC.md)). `padding` is `[vertical, horizontal]`, in the order CSS writes two values, and it takes no part in layout. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
-| `underline` | character | `true`, `{width, offset, color}` or `false`: a line under the run's glyphs ([FRAMES-5](../FRAMES-5/SPEC.md)). `width` is its thickness and `offset` the distance from the baseline down to its top edge, both theme lengths, as CSS `text-decoration-thickness` and `text-underline-offset`. `true`, and a key the object leaves out, take the face's own underline thickness and position and the run's colour. Absent means none |
+| `underline` | character | `true`, `{width, offset, color}` or `false`: a line under the run's glyphs ([FRAMES-5](../FRAMES-5/SPEC.md)). `width` is its thickness and `offset` the distance from the baseline down to its top edge, both theme lengths, as CSS `text-decoration-thickness` and `text-underline-offset`. `true` turns it on with the leaves below it ([Rules](#rules)), and a key that no layer gives takes the face's own underline thickness and position and the run's colour. Absent means none |
 | `lineHeight` | paragraph | distance between baselines. The default is 1.25 × size |
 | `background` | paragraph | `{color, padding, radius}`: a box behind the text box, which grows the title's box by its padding ([FRAMES-5](../FRAMES-5/SPEC.md)), or `false`. `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `placement`, `offset` | paragraph | default placement, and the distance from the top or bottom edge that replaces `placement.padding` there ([FRAMES-1](../FRAMES-1/SPEC.md)) |
@@ -98,7 +99,7 @@ A style without `size` stops when the theme is merged, wherever it is written, s
 
 ### Shape styles
 
-A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. A key written on the clip merges over its style's value leaf by leaf, statically and in each keyframe, and `false` turns it off ([FRAMES-11](../FRAMES-11/SPEC.md)). Themes merge over each other by the same rule ([above](#rules)).
+A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. A key written on the clip, its static value with the structure its keyframes give, merges over its style's value leaf by leaf, and `false` turns it off ([FRAMES-11](../FRAMES-11/SPEC.md)); its keyframes time the leaves of the merged value ([FRAMES-4](../FRAMES-4/SPEC.md)). Themes merge over each other by the same rule ([above](#rules)).
 
 | Property | Form |
 | --- | --- |
@@ -106,7 +107,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | `stroke` | `{color, gradient, width, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, or `false` for none |
 | `radius` | a theme length: the corner radius of a `rect` |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
-| `shadow` | `true` for the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
+| `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
 
 What each property draws, and its defaults, are [FRAMES-11](../FRAMES-11/SPEC.md). A shape style with another key stops. A shape whose style and keys give it neither a fill nor a stroke stops ([FRAMES-11](../FRAMES-11/SPEC.md)).
 
