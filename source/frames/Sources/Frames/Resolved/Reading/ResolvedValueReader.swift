@@ -287,6 +287,12 @@ struct ResolvedValueReader: Sendable {
         case let .list(element):
             return .list(try value.elements().map { try timed($0, as: element) })
 
+        case let .tuple(structures):
+            let elements = try value.elements()
+            guard elements.count == structures.count else { throw value.wrongType("a list of \(structures.count) values") }
+
+            return .list(try zip(elements, structures).map { try timed($0, as: $1) })
+
         case let .forms(forms):
             if let object = value.value.objectValue, object.members.count == 1,
                 let form = forms.first(where: { $0.name == object.members[0].key }) {

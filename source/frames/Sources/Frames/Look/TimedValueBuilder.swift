@@ -89,13 +89,12 @@ struct TimedValueBuilder: Sendable {
             return .object(timed)
 
         case let (.list(elements), _):
-            let element = Self.element(of: structure)
             return .list(try elements.enumerated().map { index, value in
                 try timed(
                     value,
                     written: written.flatMap { Self.element(index, of: $0) },
                     keyframes: keyframes.compactMap { keyframe in Self.element(index, of: keyframe.value).map(keyframe.with) },
-                    as: element,
+                    as: Self.element(index, of: structure),
                     instant: instant,
                     place: place.appending(index: index),
                     leaf: leaf
@@ -224,9 +223,8 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.list(elements), _):
-            let element = Self.element(of: structure)
             return .list(try elements.enumerated().map { index, value in
-                try skeleton(of: value, as: element, place: place.appending(index: index))
+                try skeleton(of: value, as: Self.element(index, of: structure), place: place.appending(index: index))
             })
 
         case let (.form(name, body), _):
@@ -291,11 +289,18 @@ struct TimedValueBuilder: Sendable {
         return elements[index]
     }
 
-    // A list of choices is a list whose every element is that choice.
-    private static func element(of structure: ValueStructure) -> ValueStructure {
+    // The structure of a list's element at `index`, a tuple's own at that place. A list of choices is a list whose
+    // every element is that choice.
+    private static func element(
+        _ index: Int,
+        of structure: ValueStructure
+    ) -> ValueStructure {
         switch structure {
         case let .list(element):
             element
+
+        case let .tuple(structures):
+            structures.indices.contains(index) ? structures[index] : .anyValue
 
         case .choice:
             structure
@@ -316,7 +321,7 @@ struct TimedValueBuilder: Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

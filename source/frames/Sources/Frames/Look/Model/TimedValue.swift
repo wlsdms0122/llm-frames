@@ -57,6 +57,9 @@ indirect enum TimedValue: Equatable, Sendable {
         case let (.list(elements), .list(element)):
             return .list(elements.map { $0.sampled(at: time, as: element) })
 
+        case let (.list(elements), .tuple(structures)):
+            return .list(zip(elements, structures).map { $0.sampled(at: time, as: $1) })
+
         case let (.list(elements), _):
             return .list(elements.map { $0.sampled(at: time, as: .anyValue) })
 
@@ -77,7 +80,7 @@ indirect enum TimedValue: Equatable, Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

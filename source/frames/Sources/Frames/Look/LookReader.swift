@@ -43,6 +43,11 @@ struct LookReader: Sendable {
 
             return .list(elements.map { value(of: $0, as: element) })
 
+        case let .tuple(structures):
+            guard let elements = json.arrayValue, elements.count == structures.count else { return .leaf(json) }
+
+            return .list(zip(elements, structures).map { value(of: $0, as: $1) })
+
         case let .forms(forms):
             return self.forms(json, as: forms)
 

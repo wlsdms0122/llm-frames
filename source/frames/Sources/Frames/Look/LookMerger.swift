@@ -131,7 +131,9 @@ struct LookMerger: Sendable {
         try over.members.reduce(under) { merged, member in
             let child = childStructure(of: member.key, in: structure)
             let partners = if case let .object(object) = structure { object.partners(of: member.key) } else { [String]() }
-            let cleared = member.value == .unset ? merged : partners.reduce(merged) { $0.setting($1, to: nil) }
+            // A leaf only keyframes write is `unset` in the clip's own layer and still replaces its partners, so
+            // keyframes of a stroke's `color` take a colour paint over a style's gradient.
+            let cleared = partners.reduce(merged) { $0.setting($1, to: nil) }
             let value = try merge(cleared[member.key], member.value, as: child, place: place.appending(key: member.key))
 
             return cleared.setting(member.key, to: value)
@@ -149,7 +151,7 @@ struct LookMerger: Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

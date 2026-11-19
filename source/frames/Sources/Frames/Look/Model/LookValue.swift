@@ -72,6 +72,9 @@ indirect enum LookValue: Equatable, Sendable {
         case let (.list(elements), .list(element)):
             return .array(elements.compactMap { $0.json(as: element) })
 
+        case let (.list(elements), .tuple(structures)):
+            return .array(zip(elements, structures).compactMap { $0.json(as: $1) })
+
         case let (.list(elements), _):
             return .array(elements.compactMap { $0.json(as: structure) })
 
@@ -105,7 +108,7 @@ indirect enum LookValue: Equatable, Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

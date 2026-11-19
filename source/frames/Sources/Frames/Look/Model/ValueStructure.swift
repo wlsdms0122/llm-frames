@@ -13,13 +13,15 @@
 // object naming neither is partial and merges over the form below, and `offNames` turn it off. A form's other keys
 // are its body, whose structure `forms` declares for the forms that are timed, such as a filter's presets and ops,
 // and is otherwise `anyValue`: a value whose structure is not declared, which merges key by key at every depth and is
-// never timed.
+// never timed. A `tuple` is a list of a fixed length whose elements each have their own structure, as a gradient
+// stop `[offset, colour]`.
 indirect enum ValueStructure: Sendable {
     case anyValue
     case leaf(LeafKind)
     case object(ObjectStructure)
     case map(ValueStructure)
     case list(ValueStructure)
+    case tuple([ValueStructure])
     case forms([(name: String, structure: ValueStructure)])
     case choice(offNames: [String], forms: [(name: String, structure: ValueStructure)] = [])
 
@@ -37,7 +39,7 @@ indirect enum ValueStructure: Sendable {
         case let .choice(_, forms):
             forms.first { $0.name == name }?.structure ?? .anyValue
 
-        case .anyValue, .leaf, .object, .map, .list:
+        case .anyValue, .leaf, .object, .map, .list, .tuple:
             nil
         }
     }
