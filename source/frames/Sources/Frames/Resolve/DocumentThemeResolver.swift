@@ -24,16 +24,13 @@ struct DocumentThemeResolver: Sendable {
         kind: PlaceKind,
         over theme: MergedTheme
     ) throws -> MergedTheme {
-        guard let merged = try self.theme(reference, of: place, over: theme) else {
-            // Only a named theme can be missing.
-            throw ResolveError.unknownTheme(
-                place: place.appending(key: "theme"),
-                kind: kind,
-                name: reference?.name ?? ""
-            )
-        }
+        switch try lookup(reference, of: place, over: theme) {
+        case let .merged(merged):
+            return merged
 
-        return merged
+        case let .missing(name):
+            throw ResolveError.unknownTheme(place: place.appending(key: "theme"), kind: kind, name: name)
+        }
     }
 
     // Nil where the reference names a theme that is not there.
@@ -42,21 +39,40 @@ struct DocumentThemeResolver: Sendable {
         of place: Place,
         over theme: MergedTheme
     ) throws -> MergedTheme? {
-        switch reference {
-        case nil:
-            return theme
+        switch try lookup(reference, of: place, over: theme) {
+        case let .merged(merged):
+            return merged
 
-        case let .object(layer):
-            let layer = ThemeLayer(value: layer, place: place.appending(key: "theme"), pack: library.pack)
-
-            return try merger.merge([layer], over: theme)
-
-        case let .named(name):
-            guard let layer = try library.theme(named: name) else { return nil }
-
-            return try merger.merge([layer], over: theme)
+        case .missing:
+            return nil
         }
     }
 
     // MARK: - Private
+    private func lookup(
+        _ reference: ThemeReference?,
+        of place: Place,
+        over theme: MergedTheme
+    ) throws -> ThemeLookup {
+        switch reference {
+        case nil:
+            return .merged(theme)
+
+        case let .object(layer):
+            let layer = ThemeLayer(value: layer, place: place.appending(key: "theme"), pack: library.pack)
+
+            return try .merged(merger.merge([layer], over: theme))
+
+        case let .named(name):
+            guard let layer = try library.theme(named: name) else { return .missing(name: name) }
+
+            return try .merged(merger.merge([layer], over: theme))
+        }
+    }
 }
+
+private enum ThemeLookup {
+    case merged(MergedTheme)
+    case missing(name: String)
+}
+
