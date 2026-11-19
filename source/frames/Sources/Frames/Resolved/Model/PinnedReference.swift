@@ -5,16 +5,18 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Something a resolved document pins for a role to open: media, which the decoder reads, or a single file, a font or a
-// LUT. `place` is the entry that names it.
+// Something a resolved document pins for a role to open: media whose pictures the decoder reads, in the `colorSpace`
+// written where it is named or as its tags say where that is nil, media only its sound is read from, or a single file,
+// a font or a LUT. `place` is the entry that names it.
 enum PinnedReference: Equatable, Sendable {
-    case media(PinnedMedia, place: String)
+    case media(PinnedMedia, place: String, colorSpace: ColorSpace?)
+    case sound(PinnedMedia, place: String)
     case file(PinnedFile, place: String)
 
     // MARK: - Property
     var place: String {
         switch self {
-        case let .media(_, place), let .file(_, place):
+        case let .media(_, place, _), let .sound(_, place), let .file(_, place):
             place
         }
     }
@@ -22,7 +24,7 @@ enum PinnedReference: Equatable, Sendable {
     // Every file it pins, an image sequence's frame files in frame order.
     var files: [PinnedFile] {
         switch self {
-        case let .media(media, _):
+        case let .media(media, _, _), let .sound(media, _):
             switch media.source {
             case let .file(file):
                 [file]

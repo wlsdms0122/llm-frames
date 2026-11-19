@@ -111,6 +111,16 @@ package final class AVFoundationDecoder: Sendable {
         }
     }
 
+    // A file's colour that no fixed formula converts stops a reading that names no colour space.
+    private func checkColor(
+        _ tagged: TaggedColor,
+        path: String
+    ) throws {
+        guard case let .failure(refusal) = tagged.color else { return }
+
+        throw DecoderError.unconvertibleColor(file: path, reason: refusal.reason)
+    }
+
     // The PNG files in a directory in natural order, so `frame2` comes before `frame10`.
     private func frameFiles(in directory: String) throws -> [String] {
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else {
@@ -213,9 +223,7 @@ extension AVFoundationDecoder: MediaDecoder {
             throw DecoderError.noFrame(file: file.path, index: index, count: count)
         }
 
-        if reading.colorSpace == nil, case let .failure(refusal) = video.taggedColor.color {
-            throw DecoderError.unconvertibleColor(file: file.path, reason: refusal.reason)
-        }
+        if reading.colorSpace == nil { try checkColor(video.taggedColor, path: file.path) }
         let image = if case .platform = reading {
             try video.taggedImage(atFrame: index, path: file.path)
         } else {
@@ -233,15 +241,25 @@ extension AVFoundationDecoder: MediaDecoder {
         return video.taggedColor.colorReading
     }
 
-    package func check(_ file: MediaFile) throws {
+    package func check(
+        _ file: MediaFile,
+        reading: PictureReading?
+    ) throws {
+        // A reading with a colour space of its own converts any picture.
+        let checksColor = reading != nil && reading?.colorSpace == nil
         if !file.frameFiles.isEmpty {
             for path in file.frameFiles {
-                guard try StillReader(path: path) != nil else { throw DecoderError.unreadable(file: path) }
+                guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+                if checksColor { try checkColor(try still.taggedColor(path: path), path: path) }
             }
 
             return
         }
-        if try StillReader(path: file.path) != nil { return }
+        if let still = try StillReader(path: file.path) {
+            if checksColor { try checkColor(try still.taggedColor(path: file.path), path: file.path) }
+
+            return
+        }
 
         // A file without a picture track is sound, or no media at all.
         guard let video = try video(at: file.path) else {
@@ -252,6 +270,7 @@ extension AVFoundationDecoder: MediaDecoder {
         guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
         }
+        if checksColor { try checkColor(video.taggedColor, path: file.path) }
     }
 
     package func sound(

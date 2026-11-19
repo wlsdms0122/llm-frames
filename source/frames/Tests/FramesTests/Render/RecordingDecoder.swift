@@ -8,7 +8,8 @@
 @testable import Frames
 
 // Gives each file the colour reading `colorReading` names and every picture as the bitmap of its frame index. A picture
-// read other than tagged is recorded.
+// read other than tagged is recorded. A check of pictures read in no colour space refuses a `platform` reading, as a
+// decoder refuses a picture no fixed formula converts.
 struct RecordingDecoder: MediaDecoder {
     // MARK: - Property
     let log: RoleCallLog
@@ -43,9 +44,13 @@ struct RecordingDecoder: MediaDecoder {
         colorReading
     }
 
-    func check(_ file: MediaFile) throws {
+    func check(
+        _ file: MediaFile,
+        reading: PictureReading?
+    ) throws {
         log.record(.checkMedia(path: file.path))
         guard !refuses else { throw RoleRefusal.decoder }
+        if let reading, reading.colorSpace == nil, colorReading == .platform { throw RoleRefusal.decoder }
     }
 
     func sound(

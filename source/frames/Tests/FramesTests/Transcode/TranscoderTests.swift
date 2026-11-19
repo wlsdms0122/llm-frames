@@ -195,7 +195,7 @@ struct TranscoderTests {
         let input = try source(in: directory, name: "in.png")
         let output = directory.file("out.png")
         let probed = ProbedColorSpace(
-            name: .srgb,
+            reading: .formulas(.srgb),
             primaries: nil,
             transfer: nil,
             matrix: nil,

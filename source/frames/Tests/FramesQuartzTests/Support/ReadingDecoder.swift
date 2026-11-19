@@ -33,7 +33,10 @@ final class ReadingDecoder: MediaDecoder {
         .formulas(.srgb)
     }
 
-    func check(_ file: MediaFile) throws {}
+    func check(
+        _ file: MediaFile,
+        reading: PictureReading?
+    ) throws {}
 
     func sound(
         of file: MediaFile,

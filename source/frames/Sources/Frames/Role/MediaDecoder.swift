@@ -22,8 +22,13 @@ package protocol MediaDecoder: Sendable {
     func colorReading(of file: MediaFile) throws -> ColorReading
 
     // Refuses, before any frame is read, a file it cannot read or a video whose frames count differently from the
-    // pinned `frameTimes`.
-    func check(_ file: MediaFile) throws
+    // pinned `frameTimes`, and, where `reading` is how its pictures are to be read, a picture that reading would stop
+    // at: one no fixed formula converts, with no colour space named. `reading` is nil where no picture is read, or
+    // where the caller reads it as `colorReading(of:)` says.
+    func check(
+        _ file: MediaFile,
+        reading: PictureReading?
+    ) throws
 
     // The first sound track of `file` over media time [start, end) on the file's presentation timeline, at the file's
     // sample rate and channels. A range running past the end of the sound gives the frames there are, and an empty one

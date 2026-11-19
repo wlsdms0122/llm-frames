@@ -53,7 +53,7 @@ struct AVFoundationDecoderTests {
             frames: evenTimes,
             size: size,
             colorSpace: ProbedColorSpace(
-                name: .srgb,
+                reading: .formulas(.srgb),
                 primaries: 1,
                 transfer: 13,
                 matrix: 1,
@@ -428,14 +428,14 @@ struct AVFoundationDecoderTests {
 
         // When
         let error = #expect(throws: DecoderError.self) {
-            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]))
+            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]), reading: .tagged)
         }
 
         // Then
         #expect(
             error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
         )
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes)) }
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes), reading: .tagged) }
     }
 
     @Test("checking a file passes one with only sound, and still refuses one that is no media")
@@ -449,10 +449,10 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken)) }
+        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken), reading: nil) }
 
         // Then
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound)) }
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound), reading: nil) }
         #expect(error?.description.hasPrefix("media \(broken) cannot be read") == true, "\(String(describing: error))")
     }
 

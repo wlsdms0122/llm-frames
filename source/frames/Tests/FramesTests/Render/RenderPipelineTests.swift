@@ -93,6 +93,34 @@ struct RenderPipelineTests {
         #expect(log.calls.isEmpty)
     }
 
+    @Test("a picture no fixed formula converts, read where no colour space is written, is refused before a frame is drawn")
+    func refusesUnconvertibleColor() {
+        // Given
+        let log = RoleCallLog()
+        let sut = pipeline(log: log, colorReading: .platform)
+
+        // When
+        #expect(throws: RoleRefusal.decoder) {
+            try sut.render(sequence(fps: 2, duration: 1), to: master, at: nil, delivery: nil)
+        }
+
+        // Then
+        #expect(log.calls == [.checkMedia(path: "/abs/run.mp4")])
+    }
+
+    @Test("a picture no fixed formula converts is rendered where its place writes the colour space it is in")
+    func rendersUnconvertibleColorInWrittenSpace() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = pipeline(log: log, colorReading: .platform)
+
+        // When
+        try sut.render(sequence(fps: 2, duration: 1, mediaColorSpace: .rec709), to: master, at: nil, delivery: nil)
+
+        // Then
+        #expect(log.calls.contains(.finish(path: master)))
+    }
+
     @Test("a file changed on disk since it was resolved is refused")
     func refusesChangedFile() throws {
         // Given
@@ -329,10 +357,11 @@ struct RenderPipelineTests {
     private func pipeline(
         log: RoleCallLog,
         refusal: RoleRefusal? = nil,
-        hasher: any FileHashProvider = FileHashTable()
+        hasher: any FileHashProvider = FileHashTable(),
+        colorReading: ColorReading = .formulas(.srgb)
     ) -> RenderPipeline {
         RenderPipeline(
-            decoder: RecordingDecoder(log: log, refuses: refusal == .decoder),
+            decoder: RecordingDecoder(log: log, refuses: refusal == .decoder, colorReading: colorReading),
             renderer: RecordingRenderer(log: log, refuses: refusal == .renderer),
             mixer: RecordingMixer(log: log, refuses: refusal == .mixer),
             encoder: RecordingEncoder(log: log, refuses: refusal == .encoder),
@@ -360,6 +389,7 @@ struct RenderPipelineTests {
         duration: Double,
         background: Color = Color(written: "#000000"),
         media: PinnedMedia? = nil,
+        mediaColorSpace: ColorSpace? = nil,
         audio: [ResolvedSound] = [],
         colorSpace: ColorSpace = .srgb,
         peak: Double? = nil
@@ -369,6 +399,7 @@ struct RenderPipelineTests {
             id: nil,
             media: .pinned(media ?? video),
             solid: nil,
+            colorSpace: mediaColorSpace,
             in: 0,
             out: duration,
             speed: 1,

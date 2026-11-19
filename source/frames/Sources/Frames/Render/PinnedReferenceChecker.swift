@@ -6,8 +6,16 @@
 //
 
 // Checks what a resolved document pins before any role opens it: every pinned file's hash, each file once at the
-// first place that pins it, then the decoder on each media once, so a changed file stops before a frame is drawn.
+// first place that pins it, then the decoder on each media once, and again for each other colour space its pictures
+// are read in, so a changed file, or a picture no fixed formula converts read with no colour space written, stops
+// before a frame is drawn.
 struct PinnedReferenceChecker: Sendable {
+    // A media file whose pictures the decoder checked, and the colour space they are read in.
+    private struct CheckedPictures: Hashable {
+        let path: String
+        let colorSpace: ColorSpace?
+    }
+
     // MARK: - Property
     private let decoder: any MediaDecoder
     private let hasher: any FileHashProvider
@@ -31,11 +39,28 @@ struct PinnedReferenceChecker: Sendable {
         }
 
         var checked: Set<String> = []
-        for case let .media(media, _) in references {
-            let file = MediaFile(media: media)
-            guard checked.insert(file.path).inserted else { continue }
+        var checkedPictures: Set<CheckedPictures> = []
+        for reference in references {
+            switch reference {
+            case let .media(media, _, colorSpace):
+                let file = MediaFile(media: media)
+                guard checkedPictures.insert(CheckedPictures(path: file.path, colorSpace: colorSpace)).inserted else {
+                    continue
+                }
+                checked.insert(file.path)
 
-            try decoder.check(file)
+                // The check of a picture's colour depends only on the colour space it is read in.
+                try decoder.check(file, reading: .working(colorSpace: colorSpace, targetPeak: nil))
+
+            case let .sound(media, _):
+                let file = MediaFile(media: media)
+                guard checked.insert(file.path).inserted else { continue }
+
+                try decoder.check(file, reading: nil)
+
+            case .file:
+                continue
+            }
         }
     }
 

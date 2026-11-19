@@ -229,6 +229,7 @@ struct DecoderColorTests {
 
         // Then
         #expect(probed.colorSpace?.name == nil)
+        #expect(probed.colorSpace?.reading == .platform)
         let error = #expect(throws: DecoderError.self) {
             try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
         }
@@ -237,6 +238,32 @@ struct DecoderColorTests {
             return
         }
         #expect(refused == file)
+    }
+
+    @Test("a check of a still with a LUT-based profile stops a reading that names no colour space, and no other")
+    func checksLUTProfile() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("print.jpg")
+        try ColorImageWriter(size: size, colorSpace: try #require(CGColorSpace(name: CGColorSpace.genericCMYK)))
+            .write(to: file, codeValues: [0, 255, 255, 0])
+        let sut = AVFoundationDecoder()
+
+        // When
+        let error = #expect(throws: DecoderError.self) {
+            try sut.check(MediaFile(path: file), reading: .analysis(colorSpace: nil))
+        }
+
+        // Then
+        guard case let .unconvertibleColor(refused, _)? = error else {
+            Issue.record("\(String(describing: error))")
+            return
+        }
+        #expect(refused == file)
+        #expect(throws: Never.self) {
+            try sut.check(MediaFile(path: file), reading: .working(colorSpace: .srgb, targetPeak: nil))
+        }
+        #expect(throws: Never.self) { try sut.check(MediaFile(path: file), reading: nil) }
     }
 
     @Test("a probe reports the colour facts a video and a still are tagged with")
@@ -259,7 +286,7 @@ struct DecoderColorTests {
 
         // Then
         #expect(pqFacts == ProbedColorSpace(
-            name: .rec2100PQ,
+            reading: .formulas(.rec2100PQ),
             primaries: 9,
             transfer: 16,
             matrix: 9,
@@ -267,7 +294,7 @@ struct DecoderColorTests {
             isHighDynamicRange: true
         ))
         #expect(srgbFacts == ProbedColorSpace(
-            name: .srgb,
+            reading: .formulas(.srgb),
             primaries: 1,
             transfer: 13,
             matrix: 1,
@@ -275,7 +302,7 @@ struct DecoderColorTests {
             isHighDynamicRange: false
         ))
         #expect(stillFacts == ProbedColorSpace(
-            name: .displayP3,
+            reading: .formulas(.displayP3),
             primaries: 12,
             transfer: 13,
             matrix: nil,

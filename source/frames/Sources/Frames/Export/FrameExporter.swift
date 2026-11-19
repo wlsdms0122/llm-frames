@@ -217,7 +217,8 @@ package struct FrameExporter: Sendable {
         )
     }
 
-    // The frames shown at media times, as a storyline clip shows them, once the decoder has checked the file.
+    // The frames shown at media times, as a storyline clip shows them, once the decoder has checked it reads the file's
+    // pictures as its tags say.
     private func frames(
         ofVideo path: String,
         range: FrameRange
@@ -229,7 +230,7 @@ package struct FrameExporter: Sendable {
 
         let times = try range.times(end: probed.duration, kind: "video")
         let file = MediaFile(path: path, fps: probed.fps, size: size, frameTimes: probed.frames)
-        try decoder.check(file)
+        try decoder.check(file, reading: .analysis(colorSpace: nil))
 
         let media = try PinnedMedia(file: file, hashes: hasher)
         return SampledFrames(

@@ -30,12 +30,15 @@ struct MediaResolver: Sendable {
     }
 
     // MARK: - Public
-    // `theme` is the theme in effect where the media is written, which a nested document's own theme merges over.
+    // `theme` is the theme in effect where the media is written, which a nested document's own theme merges over, and
+    // `colorSpace` the one written there for its pictures. A picture no fixed formula converts stops where no
+    // `colorSpace` is written for it (FRAMES-26 Media).
     func media(
         of source: MediaSource,
         place: Place,
         kind: PlaceKind,
-        theme: MergedTheme
+        theme: MergedTheme,
+        colorSpace: ColorSpace?
     ) throws -> MediaPlan {
         switch source {
         case let .file(reference) where library.isDocument(reference):
@@ -50,6 +53,13 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
+            try checkColor(
+                of: probed.colorSpace,
+                colorSpace: colorSpace,
+                place: place,
+                kind: kind,
+                reference: reference
+            )
 
             return MediaPlan(
                 kind: probed.kind,
@@ -68,6 +78,13 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
+            try checkColor(
+                of: probed.colorSpace,
+                colorSpace: colorSpace,
+                place: place,
+                kind: kind,
+                reference: reference
+            )
 
             // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
             let duration = Double(probed.files.count) / fps
@@ -100,22 +117,24 @@ struct MediaResolver: Sendable {
             )
 
         case let .argument(source, argumentTheme):
-            return try media(of: source, place: place, kind: kind, theme: argumentTheme)
+            return try media(of: source, place: place, kind: kind, theme: argumentTheme, colorSpace: colorSpace)
         }
     }
 
-    // A transition's cover or matte file, by the absolute path its preset was resolved to. A preset names a file, so
-    // it is never an image sequence or a document.
+    // A transition's cover or matte file, by the absolute path its preset was resolved to, with the `colorSpace` its
+    // preset writes for it. A preset names a file, so it is never an image sequence or a document.
     func transitionMedia(
         at path: String,
         place: Place,
-        kind: PlaceKind
+        kind: PlaceKind,
+        colorSpace: ColorSpace?
     ) throws -> TransitionMedia {
         guard
             let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
         else {
             throw ResolveError.missingMedia(place: place, kind: kind, reference: path)
         }
+        try checkColor(of: probed.colorSpace, colorSpace: colorSpace, place: place, kind: kind, reference: path)
 
         return TransitionMedia(
             file: MediaFile(path: path, probed: probed),
@@ -193,6 +212,20 @@ struct MediaResolver: Sendable {
     // A planner holds a resolver, so the one for nested documents is made when it is needed.
     private func planner(library: ReferenceLibrary) -> TimePlanner {
         TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
+    }
+
+    // A picture only the platform's colour management reads stops at the place that names it, unless that place writes
+    // the colour space it is read in.
+    private func checkColor(
+        of probed: ProbedColorSpace?,
+        colorSpace: ColorSpace?,
+        place: Place,
+        kind: PlaceKind,
+        reference: String
+    ) throws {
+        guard colorSpace == nil, probed?.reading == .platform else { return }
+
+        throw ResolveError.unconvertibleMediaColor(place: place, kind: kind, reference: reference)
     }
 
     // What the probe gives, a failure of it stopping at the place the media is named.

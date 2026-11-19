@@ -9,6 +9,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
     case missingMedia(place: Place, kind: PlaceKind, reference: String)
     case unreadableMedia(place: Place, kind: PlaceKind, reference: String, reason: String)
+    case unconvertibleMediaColor(place: Place, kind: PlaceKind, reference: String)
     case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
     case nonPositiveDuration(place: Place, kind: PlaceKind, duration: Double)
@@ -102,6 +103,11 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind.label)): media \(quoted(reference)) cannot be probed: \(reason)"
+
+        case let .unconvertibleMediaColor(place, kind, reference):
+            "\(place) (\(kind.label)): media \(quoted(reference)) is tagged with a LUT-based ICC profile or a code "
+                + "point H.273 reserves, which no fixed formula converts. Write the colorSpace it is in here, or "
+                + "convert it with transcode"
 
         case let .unknownTheme(place, kind, name):
             "\(place) (\(kind.label)): unknown theme \(quoted(name)). "

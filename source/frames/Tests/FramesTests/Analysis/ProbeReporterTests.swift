@@ -31,7 +31,7 @@ struct ProbeReporterTests {
                 fps: 29.97,
                 size: Size(width: 1080, height: 1920),
                 colorSpace: ProbedColorSpace(
-                    name: .rec2100PQ,
+                    reading: .formulas(.rec2100PQ),
                     primaries: 9,
                     transfer: 16,
                     matrix: 9,
@@ -132,7 +132,7 @@ struct ProbeReporterTests {
         }
         let sut = ProbeReporter(mediaFacts: AVFoundationDecoder())
         let taggedSRGB = ProbedColorSpace(
-            name: .srgb,
+            reading: .formulas(.srgb),
             primaries: 1,
             transfer: 13,
             matrix: nil,
@@ -153,7 +153,7 @@ struct ProbeReporterTests {
             fps: 2,
             hasAlpha: false,
             colorSpace: ProbedColorSpace(
-                name: .srgb,
+                reading: .formulas(.srgb),
                 primaries: 1,
                 transfer: 13,
                 matrix: 1,

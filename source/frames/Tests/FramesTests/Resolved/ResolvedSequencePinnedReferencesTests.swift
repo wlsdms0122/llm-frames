@@ -28,7 +28,7 @@ struct ResolvedSequencePinnedReferencesTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a sequence lists its media, LUTs, transition media, fonts and sounds, each at the entry that names it")
+    @Test("a sequence lists its media in their written colour spaces, LUTs, fonts and sounds, each where it is named")
     func listsSequenceReferences() {
         // Given
         let nested = ResolvedSequence(
@@ -40,7 +40,7 @@ struct ResolvedSequencePinnedReferencesTests {
         let sut = ResolvedSequence(
             format: format(),
             storyline: [
-                entry("storyline[0]", media: .pinned(video), filter: [.lut(file: lut, amount: 1)]),
+                entry("storyline[0]", media: .pinned(video), colorSpace: .rec709, filter: [.lut(file: lut, amount: 1)]),
                 entry("storyline[1]", media: .pinned(frames), transition: transition())
             ],
             clips: [
@@ -60,22 +60,22 @@ struct ResolvedSequencePinnedReferencesTests {
 
         // Then
         #expect(references == [
-            .media(video, place: "storyline[0]"),
+            .media(video, place: "storyline[0]", colorSpace: .rec709),
             .file(lut, place: "storyline[0]"),
-            .media(frames, place: "storyline[1]"),
-            .media(stinger, place: "storyline[1]"),
-            .media(wipe, place: "storyline[1]"),
+            .media(frames, place: "storyline[1]", colorSpace: nil),
+            .media(stinger, place: "storyline[1]", colorSpace: nil),
+            .media(wipe, place: "storyline[1]", colorSpace: .displayP3),
             .file(font, place: "clips[0]"),
-            .media(card, place: "clips[1].media.storyline[0]"),
+            .media(card, place: "clips[1].media.storyline[0]", colorSpace: nil),
             .file(font, place: "clips[1].media.clips[0]"),
-            .media(music, place: "clips[2]")
+            .sound(music, place: "clips[2]")
         ])
     }
 
     @Test("an image sequence pins each of its frame files in frame order")
     func listsImageSequenceFiles() {
         // Given
-        let sut = PinnedReference.media(frames, place: "storyline[0]")
+        let sut = PinnedReference.media(frames, place: "storyline[0]", colorSpace: nil)
 
         // When
         let files = sut.files
@@ -110,6 +110,7 @@ struct ResolvedSequencePinnedReferencesTests {
     private func entry(
         _ place: String,
         media: ResolvedMediaContent,
+        colorSpace: ColorSpace? = nil,
         filter: [ResolvedFilterOperation] = [],
         transition: ResolvedTransition? = nil
     ) -> ResolvedStorylineClip {
@@ -118,6 +119,7 @@ struct ResolvedSequencePinnedReferencesTests {
             id: nil,
             media: media,
             solid: nil,
+            colorSpace: colorSpace,
             in: 0,
             out: 1,
             speed: 1,
@@ -142,7 +144,7 @@ struct ResolvedSequencePinnedReferencesTests {
             outgoing: nil,
             cover: ResolvedCover(source: .media(ResolvedTransitionMedia(media: stinger, duration: 1)), span: span),
             matte: ResolvedMatte(
-                media: ResolvedTransitionMedia(media: wipe, duration: 0),
+                media: ResolvedTransitionMedia(media: wipe, colorSpace: .displayP3, duration: 0),
                 softness: 0,
                 isInverted: false,
                 ease: .linear

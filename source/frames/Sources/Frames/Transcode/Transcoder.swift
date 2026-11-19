@@ -83,7 +83,7 @@ package struct Transcoder: Sendable {
 
         let file = MediaFile(path: request.input, size: size)
         let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: false)
-        try decoder.check(file)
+        try decoder.check(file, reading: nil)
         let reading = try decoder.colorReading(of: file)
         let output = output(of: reading, for: request)
         if request.outputExtension == "jpg", output.space.isHighDynamicRange {
@@ -145,7 +145,7 @@ package struct Transcoder: Sendable {
 
         guard let fps = media.fps, fps > 0 else { throw TranscodeError.noFrameRate(path: request.input) }
         try checkVideoSize(of: size, for: request)
-        try decoder.check(file)
+        try decoder.check(file, reading: nil)
         let reading = try decoder.colorReading(of: file)
         let output = output(of: reading, for: request)
         let codec = request.codec ?? (output.space.isHighDynamicRange ? .hevc : .h264)
@@ -193,7 +193,7 @@ package struct Transcoder: Sendable {
         duration: Double,
         for request: TranscodeRequest
     ) throws {
-        try decoder.check(file)
+        try decoder.check(file, reading: nil)
         let sound = try decoder.sound(of: file, from: 0, to: duration)
         let target = SoundTarget(
             path: request.output,

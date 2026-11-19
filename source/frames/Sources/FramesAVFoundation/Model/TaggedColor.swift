@@ -19,13 +19,7 @@ struct TaggedColor: Equatable, Sendable {
     // How the file's pictures are taken to working values: by the formulas of what it names, or by the platform's
     // colour management where no fixed formula converts it.
     var colorReading: ColorReading {
-        switch color {
-        case let .success(color):
-            .formulas(color.colorSpace)
-
-        case .failure:
-            .platform
-        }
+        Self.reading(of: color)
     }
 
     // MARK: - Initializer
@@ -52,13 +46,14 @@ struct TaggedColor: Equatable, Sendable {
             transferCharacteristics: transfer ?? 2,
             matrixCoefficients: matrix ?? 2
         )
-        let color = MediaColor(codePoints: codePoints)
+        let color: Result<MediaColor, ColorRefusal> = MediaColor(codePoints: codePoints)
+            .map { .success($0) } ?? .failure(.reservedCodePoints(codePoints))
 
         self.init(
-            color: color.map { .success($0) } ?? .failure(.reservedCodePoints(codePoints)),
+            color: color,
             masteringDisplayPeak: masteringDisplayPeak,
             probed: ProbedColorSpace(
-                name: color?.colorSpace,
+                reading: Self.reading(of: color),
                 primaries: primaries,
                 transfer: transfer,
                 matrix: matrix,
@@ -75,8 +70,7 @@ struct TaggedColor: Equatable, Sendable {
         masteringDisplayPeak: Double?
     ) {
         let color = profile?.color() ?? .success(.space(.srgb))
-        let space = try? color.get().colorSpace
-        let row = profile == nil ? nil : space?.codePoints
+        let row = profile == nil ? nil : (try? color.get().colorSpace)?.codePoints
         let isHighDynamicRange: Bool = switch try? color.get() {
         case let .space(space)?:
             space.isHighDynamicRange
@@ -92,7 +86,7 @@ struct TaggedColor: Equatable, Sendable {
             color: color,
             masteringDisplayPeak: masteringDisplayPeak,
             probed: ProbedColorSpace(
-                name: space,
+                reading: Self.reading(of: color),
                 primaries: row?.colorPrimaries,
                 transfer: row?.transferCharacteristics,
                 matrix: nil,
@@ -104,4 +98,13 @@ struct TaggedColor: Equatable, Sendable {
 
     // MARK: - Public
     // MARK: - Private
+    private static func reading(of color: Result<MediaColor, ColorRefusal>) -> ColorReading {
+        switch color {
+        case let .success(color):
+            .formulas(color.colorSpace)
+
+        case .failure:
+            .platform
+        }
+    }
 }
