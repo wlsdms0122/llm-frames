@@ -382,7 +382,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(document)
 
         // Then
-        let title = try #require(plan.storyline[0].nested?.clips[0].title)
+        let title = try #require(plan.storyline[0].nested?.clips[0].title?.layout)
         #expect(title.runs.map(\.face.file) == [font])
     }
 
@@ -404,7 +404,7 @@ struct DocumentPlannerTests {
         let plan = try sut.plan(styled)
 
         // Then
-        #expect(plan.clips[0].title?.runs.map(\.face.file) == [font])
+        #expect(plan.clips[0].title?.layout.runs.map(\.face.file) == [font])
         let error = #expect(throws: TextError.self) { try sut.plan(document) }
         #expect(error?.description == #"""
             clips[0].character.font (title): no family of "Inter" is in its pack or on the machine

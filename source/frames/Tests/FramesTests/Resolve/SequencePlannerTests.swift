@@ -468,7 +468,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.lineCount == lineCount)
+        #expect(plan.clips[0].title?.layout.lineCount == lineCount)
     }
 
     @Test("a title is set at the length scale of the output")
@@ -481,8 +481,8 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.size == Size(width: 38, height: 76))
-        #expect(plan.clips[0].title?.runs.first?.size == 76)
+        #expect(plan.clips[0].title?.layout.size == Size(width: 38, height: 76))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 76)
     }
 
     @Test("a title's `character` merges over every run's style leaf by leaf and keeps what it does not write")
@@ -500,7 +500,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let runs = try #require(plan.clips[0].title?.runs)
+        let runs = try #require(plan.clips[0].title?.layout.runs)
         #expect(runs.map(\.color) == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
         #expect(runs.map(\.size) == [40, 20])
         #expect(runs.map(\.stroke) == [
@@ -523,7 +523,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let title = try #require(plan.clips[0].title)
+        let title = try #require(plan.clips[0].title?.layout)
         #expect(title.background == TextBackground(
             color: Color(written: "#000000"),
             padding: Size(width: 20, height: 10),
@@ -589,7 +589,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let title = try #require(plan.clips[0].title)
+        let title = try #require(plan.clips[0].title?.layout)
         #expect(title.size == Size(width: 40, height: 176))
         #expect(title.background == nil)
         #expect(title.runs.map(\.size) == [80, 60])
@@ -623,7 +623,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.runs.first?.size == 40 * (1206 / 1920.0))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 40 * (1206 / 1920.0))
     }
 
     @Test("a nested document is planned on its own, with its own format, for a storyline clip and another clip")

@@ -12,7 +12,7 @@ struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
     private let tracker: TrackPlanner
-    private let text: ThemeTypesetter
+    private let titles: TitlePlanner
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
     private let contentFit = ContentFitPlanner()
@@ -29,7 +29,7 @@ struct SequencePlanner: Sendable {
     ) {
         self.finder = GeometryFinder(ocr: ocr, languages: languages)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr, languages: languages)
-        self.text = ThemeTypesetter(shaper: shaper, library: library)
+        self.titles = TitlePlanner(shaper: shaper, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
 
@@ -164,14 +164,14 @@ struct SequencePlanner: Sendable {
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
-            let title = try title(of: written[index], format: format, time: time)
+            let title = try title(of: tracked.time.clips[index], written: written[index], scale: lengthScale, time: time)
             let shape = shapes[index]
             let box = try appearances.box(
                 of: tracked.time.clips[index],
                 written: written[index],
                 position: placed[index].position,
                 crop: placed[index].crop,
-                title: title,
+                title: title?.layout,
                 picture: clipPictures[index],
                 shape: shape,
                 format: format,
@@ -762,21 +762,22 @@ struct SequencePlanner: Sendable {
     }
 
     private func title(
-        of written: Clip,
-        format: FormatPlan,
+        of plan: ClipPlan,
+        written: Clip,
+        scale: Double,
         time: TimePlan
-    ) throws -> TextLayout? {
+    ) throws -> TitlePlan? {
         guard case let .title(title) = written.content else { return nil }
 
-        return try text.layout(
-            title,
-            clip: written.place,
-            pack: time.pack,
-            width: written.width,
-            theme: time.theme,
-            scale: time.theme.lengthScale(at: format.size.width),
-            kind: ClipKind.title.label
+        let looks = ClipLookPlanner(
+            place: written.place,
+            kind: .clip(plan.kind),
+            clock: plan.clock,
+            instant: plan.instant,
+            scale: scale,
+            theme: time.theme
         )
+        return try titles.plan(title, looks: looks, pack: time.pack, width: written.width, theme: time.theme)
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
