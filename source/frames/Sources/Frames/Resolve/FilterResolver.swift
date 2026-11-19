@@ -7,15 +7,16 @@
 
 // Resolves a filter choice, merged over the theme's default, to the timed filter a clip draws: an entry for each
 // entry of the choice, the ops of its preset or the one op written in place, and its `mix`. Each preset is read with
-// the arguments the choice writes, and again with each keyframe's over them, so a stop names the choice or the
-// keyframe. A preset's op parameter that an argument fills takes that argument's keyframes, and the rest of its
+// the arguments the choice writes, and again with each keyframe's over them, and an op in place is checked by the same
+// rules, so a stop names the choice or the keyframe. A preset's op parameter that an argument fills takes that argument's keyframes, and the rest of its
 // parameters are one keyframe at the clip's instant. Lengths are output pixels at the planner's scale, a LUT is its
 // absolute path, and colours are values in `theme`.
 struct FilterResolver: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
     private let values: PresetValueResolver
-    private let reader = LookReader()
+    private let lookReader = LookReader()
+    private let reader = PresetReader()
 
     // MARK: - Initializer
     init(
@@ -55,8 +56,8 @@ struct FilterResolver: Sendable {
         let structure = LookStructureTable.filter(
             presets: published.keys.sorted().compactMap { name in published[name].map { (name, $0.parameters) } }
         )
-        let timed = try looks.timed(property, key: key, over: reader.value(of: merged, as: structure), as: structure)
-        try checkKeyframedArguments(of: property, entries: entries, key: key, looks: looks, theme: theme, kind: kind)
+        try checkRanges(of: property, entries: entries, isList: isList, place: place, looks: looks, key: key, theme: theme)
+        let timed = try looks.timed(property, key: key, over: lookReader.value(of: merged, as: structure), as: structure)
 
         let elements = if case let .list(elements) = timed { elements } else { [timed] }
 
@@ -90,41 +91,53 @@ struct FilterResolver: Sendable {
         return published
     }
 
-    // A keyframe's arguments are values the preset takes, so each keyframe is checked as the preset with them over
-    // the merged arguments, its stops naming the keyframe. Where two keyframes or more write an entry's arguments
-    // they are sampled values, so a length they fill may be 0.
-    private func checkKeyframedArguments(
+    // An entry's op parameters are checked by the rules of a preset's ops, statically for an op written in place and
+    // with each keyframe's values over the merged ones, so a keyframe's stop names the keyframe and the clip. A value two
+    // keyframes or more write is one end of a change, so a length or size it fills may be 0 there; one a single
+    // keyframe writes is checked as a static value.
+    private func checkRanges(
         of property: LookProperty?,
         entries: [JSONValue],
-        key: String,
+        isList: Bool,
+        place: Place,
         looks: ClipLookPlanner,
-        theme: MergedTheme,
-        kind: PlaceKind
+        key: String,
+        theme: MergedTheme
     ) throws {
         let keyframes = property?.keyframes ?? []
         for (index, entry) in entries.enumerated() {
-            guard let instance = PresetInstance(value: entry, place: looks.place) else { continue }
+            let operation = entry.objectValue.flatMap { $0["op"] == nil ? nil : $0 }
+            let instance = PresetInstance(value: entry, place: looks.place)
+            if let operation {
+                try reader.checkRanges(of: operation, place: isList ? place.appending(index: index) : place)
+            }
 
-            let written = keyframes.compactMap { keyframe -> (place: Place, arguments: JSONObject)? in
+            let written = keyframes.compactMap { keyframe -> (place: Place, values: JSONObject)? in
                 let values = keyframe.value.arrayValue ?? [keyframe.value]
-                guard index < values.count, let arguments = values[index].objectValue?["args"]?.objectValue else {
-                    return nil
-                }
+                guard index < values.count, let object = values[index].objectValue else { return nil }
+
+                let given = operation == nil
+                    ? object["args"]?.objectValue ?? JSONObject()
+                    : JSONObject(members: object.members.filter { $0.key != "op" && $0.key != "mix" })
+                guard !given.members.isEmpty else { return nil }
 
                 let place = looks.place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: key)
-                return (keyframe.value.arrayValue == nil ? place : place.appending(index: index), arguments)
+                return (keyframe.value.arrayValue == nil ? place : place.appending(index: index), given)
             }
-            for (place, arguments) in written {
-                let merged = arguments.members.filter { $0.value != .null }.reduce(instance.arguments) { merged, member in
-                    merged.setting(member.key, to: member.value)
+            let names = written.flatMap { $0.values.members.map(\.key) }
+            let sampled = Set(names.filter { name in names.filter { $0 == name }.count > 1 })
+            for (place, values) in written {
+                let given = values.members.filter { $0.value != .null }
+                if let operation {
+                    let merged = given.reduce(operation) { merged, member in merged.setting(member.key, to: member.value) }
+                    try reader.checkRanges(of: merged, place: place, sampled: sampled)
+                } else if let instance {
+                    let arguments = given.reduce(instance.arguments) { merged, member in
+                        merged.setting(member.key, to: member.value)
+                    }
+                    let keyframed = PresetInstance(name: instance.name, arguments: arguments, place: place, sampled: sampled)
+                    _ = try preset(keyframed, theme: theme, kind: looks.kind)
                 }
-                let sampled = PresetInstance(
-                    name: instance.name,
-                    arguments: merged,
-                    place: place,
-                    isSampled: written.count > 1
-                )
-                _ = try preset(sampled, theme: theme, kind: kind)
             }
         }
     }

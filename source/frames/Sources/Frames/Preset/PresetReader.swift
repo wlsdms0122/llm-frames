@@ -98,8 +98,30 @@ struct PresetReader: Sendable {
         _ preset: PublishedPreset<FilterPreset>,
         instance: PresetInstance
     ) throws -> FilterPreset {
-        try read(preset, instance: instance, kind: "filter choice") { value in
-            try plainFilter(from: value, place: preset.place, isSampled: instance.isSampled)
+        let sampled = preset.references.filter { instance.sampled.contains($0.name) }.map(\.place)
+        return try read(preset, instance: instance, kind: "filter choice") { value in
+            try plainFilter(from: value, place: preset.place, sampled: Set(sampled))
+        }
+    }
+
+    // An op's parameters in their ranges, a preset's and one written in place alike. A parameter named in `sampled`
+    // is one keyframe's value of a parameter two keyframes or more write, so a length or size may be 0 there.
+    func checkRanges(
+        of operation: JSONObject,
+        place: Place,
+        sampled: Set<String> = []
+    ) throws {
+        let name = operation["op"]?.stringValue ?? ""
+        for (parameter, written) in FilterRangeTable.ranges(of: name) {
+            let range = sampled.contains(parameter) ? written.sampled : written
+            guard let value = operation[parameter], !range.contains(value) else { continue }
+
+            throw PresetError.parameterOutOfRange(
+                place: place.appending(key: parameter),
+                kind: name,
+                value: value.written,
+                range: range.description
+            )
         }
     }
 
@@ -192,17 +214,20 @@ struct PresetReader: Sendable {
         )
     }
 
+    // `sampled` holds the places of the op parameters that sampled arguments fill.
     private func plainFilter(
         from value: JSONValue,
         place: Place,
-        isSampled: Bool = false
+        sampled: Set<Place> = []
     ) throws -> FilterPreset {
         try checker.check(value, as: PresetKeyTable.filter, place: place)
 
         let object = value.objectValue ?? JSONObject()
         let objects = (object["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
         for (index, operation) in objects.enumerated() {
-            try checkRanges(of: operation, place: place.appending(key: "ops").appending(index: index), isSampled: isSampled)
+            let operationPlace = place.appending(key: "ops").appending(index: index)
+            let parameters = operation.keys.filter { sampled.contains(operationPlace.appending(key: $0)) }
+            try checkRanges(of: operation, place: operationPlace, sampled: Set(parameters))
         }
 
         let operations = objects.map(operation)
@@ -280,25 +305,6 @@ struct PresetReader: Sendable {
             isInverted: object["invert"]?.boolValue ?? false,
             ease: object["ease"].flatMap(Ease.init(value:)) ?? ease
         )
-    }
-
-    private func checkRanges(
-        of operation: JSONObject,
-        place: Place,
-        isSampled: Bool
-    ) throws {
-        let name = operation["op"]?.stringValue ?? ""
-        for (parameter, written) in FilterRangeTable.ranges(of: name) {
-            let range = isSampled ? written.sampled : written
-            guard let value = operation[parameter], !range.contains(value) else { continue }
-
-            throw PresetError.parameterOutOfRange(
-                place: place.appending(key: parameter),
-                kind: name,
-                value: value.written,
-                range: range.description
-            )
-        }
     }
 
     private func operation(_ object: JSONObject) -> FilterOperation {

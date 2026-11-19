@@ -17,7 +17,7 @@ struct ClipLookPlanner: Sendable {
     private let builder = TimedValueBuilder()
 
     let place: Place
-    private let kind: PlaceKind
+    let kind: PlaceKind
     private let clock: TimeMap
     private let instant: Double
     // Output pixels per theme length.

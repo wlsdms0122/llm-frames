@@ -11,7 +11,8 @@ import Testing
 
 // The theme's default filter is `grade`. `soften` blurs by its `blur` argument, a theme length, `vignette` darkens to
 // its `soft` argument, a radius within 0 to 1, and `fade` lifts black and lowers white by its `black` and `white`
-// arguments, the elements of a `levels` input. The output is 1080 wide, so a theme length is scaled by 1080 / 1920.
+// arguments, the elements of a `levels` input. `crisp` blurs by its `blur` argument and pixelates by its `size`, both
+// theme lengths, and `glow` blooms in its `tint` colour. The output is 1080 wide, so a theme length is scaled by 1080 / 1920.
 @Suite("FilterKeyframe Tests")
 struct FilterKeyframeTests {
     // MARK: - Property
@@ -34,6 +35,16 @@ struct FilterKeyframeTests {
                   "params": { "black": { "type": "number", "default": 0, "description": "the black" },
                               "white": { "type": "number", "default": 1, "description": "the white" } },
                   "ops": [ { "op": "levels", "input": [ { "param": "black" }, { "param": "white" } ], "output": [0, 1] } ] }
+                """#,
+            "crisp": #"""
+                { "description": "",
+                  "params": { "blur": { "type": "number", "default": 4, "description": "the blur" },
+                              "size": { "type": "number", "default": 8, "description": "the size" } },
+                  "ops": [ { "op": "blur", "radius": { "param": "blur" } }, { "op": "pixelate", "size": { "param": "size" } } ] }
+                """#,
+            "glow": #"""
+                { "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "the tint" } },
+                  "ops": [ { "op": "bloom", "amount": 1, "radius": 4, "color": { "param": "tint" } } ] }
                 """#
         ]) { $1 }
     )
@@ -141,7 +152,7 @@ struct FilterKeyframeTests {
     }
 
     @Test(
-        "a keyframe's preset argument is checked against the ranges of the op parameters it fills, naming the keyframe",
+        "a keyframe's preset arguments are checked by the preset's rules, argument by argument, naming the keyframe",
         arguments: [
             (
                 #"[ { "at": 0, "filter": { "args": { "soft": 0.5 } } }, { "at": 2, "filter": { "args": { "soft": 1.5 } } } ]"#,
@@ -152,6 +163,16 @@ struct FilterKeyframeTests {
                 #"[ { "at": 0, "filter": { "args": { "blur": 0 } } } ]"#,
                 "soften",
                 "storyline[0].keyframes[0].filter (filter choice): its arguments give \"soften\" a value it does not take: soften: ops[0].radius (blur): 0 is not above 0"
+            ),
+            (
+                #"[ { "at": 0, "filter": { "args": { "blur": 0 } } }, { "at": 2, "filter": { "args": { "blur": 4, "size": 0 } } } ]"#,
+                "crisp",
+                "storyline[0].keyframes[1].filter (filter choice): its arguments give \"crisp\" a value it does not take: crisp: ops[1].size (pixelate): 0 is not above 0"
+            ),
+            (
+                #"[ { "at": 0, "filter": { "args": { "tint": "nope" } } } ]"#,
+                "glow",
+                "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors"
             )
         ]
     )
@@ -166,6 +187,66 @@ struct FilterKeyframeTests {
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(clip) }
         #expect(error.map { "\($0)" } == message)
+    }
+
+    @Test(
+        "an op written in place is checked by a preset op's rules, statically and in each keyframe",
+        arguments: [
+            (
+                #"{ "op": "levels", "input": [0.8, 0.2], "output": [0, 1] }"#,
+                "[]",
+                "storyline[0].filter.input (levels): [0.8, 0.2] is not within 0 to 1 with black below white"
+            ),
+            (
+                #"{ "op": "levels", "input": [0, 1], "output": [0, 1] }"#,
+                #"[ { "at": 1, "filter": { "input": [0.6, 0.4] } } ]"#,
+                "storyline[0].keyframes[0].filter.input (levels): [0.6, 0.4] is not within 0 to 1 with black below white"
+            ),
+            (
+                #"{ "op": "blur", "radius": 4 }"#,
+                #"[ { "at": 1, "filter": { "radius": 0 } } ]"#,
+                "storyline[0].keyframes[0].filter.radius (blur): 0 is not above 0"
+            )
+        ]
+    )
+    func refusesOperationInPlaceOutOfRange(
+        filter: String,
+        keyframes: String,
+        message: String
+    ) throws {
+        // Given
+        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(filter), "keyframes": \#(keyframes) }"#
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try plan(clip) }
+        #expect(error.map { "\($0)" } == message)
+    }
+
+    @Test("an in-place blur radius two keyframes write, one of them null, may be 0 at the other")
+    func movesOperationInPlaceFromZero() throws {
+        // Given
+        let clip = #"""
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 4 },
+              "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": null } } ] }
+            """#
+
+        // When
+        let plan = try plan(clip)
+
+        // Then
+        #expect(plan.storyline[0].filter.filter(at: 1) == [FilterEntry(operations: [.blur(radius: 2 * scale)])])
+    }
+
+    @Test("a keyframe's stop over the theme's default names the clip, not the theme")
+    func refusesKeyframeOverDefault() throws {
+        // Given
+        let clip = #"""
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "keyframes": [ { "at": 0, "filter": { "args": { "tint": "nope" } } } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try plan(clip, defaults: #""glow""#) }
+        #expect(error.map { "\($0)" } == "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors")
     }
 
     @Test(
