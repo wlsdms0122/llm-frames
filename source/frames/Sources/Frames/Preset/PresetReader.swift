@@ -410,7 +410,7 @@ struct PresetReader: Sendable {
             return .lut(
                 file: object["file"]?.stringValue ?? "",
                 amount: number("amount"),
-                space: object["space"]?.stringValue.flatMap(ColorSpace.init) ?? .srgb
+                space: object["space"]?.stringValue.flatMap(LookUpTableSpace.init) ?? .srgb
             )
 
         case "blur":

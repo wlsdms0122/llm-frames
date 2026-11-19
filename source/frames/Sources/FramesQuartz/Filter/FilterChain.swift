@@ -182,13 +182,13 @@ struct FilterChain: Sendable {
     }
 
     // A LUT built for `srgb` looks the working values up on the encoded form in its kernel. One built for another
-    // space looks up the image converted to that space's encoded values, its colours taken back to working values, and
-    // its result is mixed with the image by `amount`.
+    // space looks up the image converted to the values that space gives the LUT, its colours taken back to working
+    // values, and its result is mixed with the image by `amount`.
     private func lookUp(
         _ image: CIImage,
         table: LookUpTable,
         amount: Double,
-        space: ColorSpace,
+        space: LookUpTableSpace,
         compositing: Compositing,
         library: KernelLibrary
     ) throws -> CIImage {
@@ -196,11 +196,9 @@ struct FilterChain: Sendable {
             return try lookUp(image, table: table, amount: amount, linear: compositing.kernelArgument, library: library)
         }
 
-        let conversion = ColorConversion(space: space)
-        let inSpace = try converted(image, by: conversion.encoded, from: WorkingSpace.encoded, to: nil, compositing)
+        let inSpace = try converted(image, by: space.encoded, from: WorkingSpace.encoded, to: nil, compositing)
         let mapped = try lookUp(inSpace, table: table, amount: 1, linear: 0, library: library)
-        let back: (RGB) -> RGB = { conversion.working($0) }
-        let looked = try converted(mapped, by: back, from: nil, to: WorkingSpace.encoded, compositing)
+        let looked = try converted(mapped, by: space.working, from: nil, to: WorkingSpace.encoded, compositing)
 
         return amount < 1 ? try color("filterMix", image, [looked, amount], library) : looked
     }

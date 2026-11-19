@@ -62,9 +62,6 @@ package struct ColorMovieWriter {
                 kCVImageBufferTransferFunction_ITU_R_2100_HLG,
                 kCVImageBufferYCbCrMatrix_ITU_R_2020
             )
-
-        case .srgbLinear:
-            preconditionFailure("srgb-linear is a LUT's space and no video is written in it")
         }
     }
 

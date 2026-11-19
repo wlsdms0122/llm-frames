@@ -48,9 +48,6 @@ extension ColorSpace {
 
         case .rec2100HLG:
             Self.rec2100HLGImageSpace
-
-        case .srgbLinear:
-            Self.srgbLinearImageSpace
         }
     }
 
@@ -60,7 +57,6 @@ extension ColorSpace {
     private static let rec709ImageSpace = bt1886Space(of: ColorSpace.rec709.primaries)
     private static let rec2100PQImageSpace = CGColorSpace(name: CGColorSpace.itur_2100_PQ)!
     private static let rec2100HLGImageSpace = CGColorSpace(name: CGColorSpace.itur_2100_HLG)!
-    private static let srgbLinearImageSpace = CGColorSpace(name: CGColorSpace.linearSRGB)!
 
     // MARK: - Initializer
     // The space of the table an image tagged with `imageSpace` is read in, by its ICC profile as the decoder reads

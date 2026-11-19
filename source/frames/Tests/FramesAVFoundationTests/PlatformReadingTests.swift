@@ -23,7 +23,7 @@ struct PlatformReadingTests {
     // MARK: - Test
     @Test(
         "a PNG the encoder writes in a colour space is read by the formulas of that space",
-        arguments: ColorSpace.allCases.filter { $0 != .srgbLinear }
+        arguments: ColorSpace.allCases
     )
     func readsWrittenSpace(space: ColorSpace) throws {
         // Given

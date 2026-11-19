@@ -49,7 +49,19 @@ struct CommandArgumentTests {
             #"transcode: --quality "best" is not one of high, medium, low"#
         ),
         (["transcode", "/abs/in.mov", "-o", "/abs/out.mp4", "--codec", "av1"], #"transcode: --codec "av1" is not one of h264, hevc"#),
-        (["transcode", "/abs/in.png", "-o", "/abs/out.jpg", "--max", "1.5"], #"transcode: --max "1.5" is not a whole number"#)
+        (["transcode", "/abs/in.png", "-o", "/abs/out.jpg", "--max", "1.5"], #"transcode: --max "1.5" is not a whole number"#),
+        (
+            ["transcode", "/abs/in.png", "-o", "/abs/out.png", "--color-space", "srgb-linear"],
+            #"transcode: --color-space "srgb-linear" is not one of srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#
+        ),
+        (
+            ["ocr", "/abs/clip.mov", "--at", "1", "--color-space", "srgb-linear"],
+            #"ocr: --color-space "srgb-linear" is not one of srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#
+        ),
+        (
+            ["track", "/abs/clip.mov", "--at", "0", "--area", "[0, 0, 1, 1]", "--color-space", "srgb-linear"],
+            #"track: --color-space "srgb-linear" is not one of srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#
+        )
     ] as [([String], String)])
     func stopsOnArgument(
         arguments: [String],

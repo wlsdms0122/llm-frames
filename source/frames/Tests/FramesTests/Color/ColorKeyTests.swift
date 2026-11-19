@@ -226,14 +226,14 @@ struct ColorKeyTests {
         // When
         let resolved = try resolved(document)
         let spaces = resolved.storyline.map { entry in
-            FilterEntry.entries(of: entry.filter, at: 0).flatMap(\.operations).compactMap { operation -> ColorSpace? in
+            FilterEntry.entries(of: entry.filter, at: 0).flatMap(\.operations).compactMap { operation -> LookUpTableSpace? in
                 guard case let .lut(_, _, space) = operation else { return nil }
                 return space
             }
         }
 
         // Then
-        #expect(spaces == [[.srgb], [.rec2100PQ], [.srgbLinear]])
+        #expect(spaces == [[.srgb], [.colorSpace(.rec2100PQ)], [.srgbLinear]])
         #expect(try reader.read(writer.write(resolved)) == resolved)
     }
 

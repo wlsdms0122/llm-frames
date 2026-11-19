@@ -15,7 +15,7 @@ package enum ResolvedFilterOperation: Equatable, Sendable {
     case hue(degrees: Double)
     case sepia(amount: Double)
     case levels(input: [Double], output: [Double])
-    case lut(file: PinnedFile, amount: Double, space: ColorSpace = .srgb)
+    case lut(file: PinnedFile, amount: Double, space: LookUpTableSpace = .srgb)
     case blur(radius: Double)
     case sharpen(amount: Double, radius: Double)
     case bloom(amount: Double, radius: Double, color: Color?)

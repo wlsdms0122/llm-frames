@@ -35,7 +35,7 @@ struct ColorOutputTests {
     // MARK: - Test
     @Test(
         "a 16-bit PNG in each colour space holds the working values written, encoded and tagged with the space",
-        arguments: ColorSpace.allCases.filter { $0 != .srgbLinear }
+        arguments: ColorSpace.allCases
     )
     func roundTripsPNG(space: ColorSpace) throws {
         // Given
@@ -82,7 +82,7 @@ struct ColorOutputTests {
 
     @Test(
         "a PNG takes an sRGB chunk in srgb and an ICC profile of its space in every other, at its target's depth",
-        arguments: ColorSpace.allCases.filter { $0 != .srgbLinear },
+        arguments: ColorSpace.allCases,
         [BitDepth.eight, .sixteen]
     )
     func tagsPNG(

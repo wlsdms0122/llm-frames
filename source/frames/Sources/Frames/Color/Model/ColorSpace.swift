@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/20/26.
 //
 
-// A colour space a sequence is output in, media are read in and a LUT is built for, by its name in a document. Every
-// space has the D65 white point. `srgb-linear` is the linear form of the working values, which only a LUT is built for.
+// A colour space of the table (FRAMES-26 Colour spaces), which a sequence is output in, media are read in and a LUT is
+// built for, by its name in a document. Every space has the D65 white point.
 package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
     case srgb
     case displayP3 = "display-p3"
@@ -14,7 +14,6 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
     case rec709
     case rec2100PQ = "rec2100-pq"
     case rec2100HLG = "rec2100-hlg"
-    case srgbLinear = "srgb-linear"
 
     // MARK: - Property
     // The `format.peak` of a `rec2100-pq` sequence that writes none.
@@ -22,7 +21,7 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
 
     package var primaries: ColorPrimaries {
         switch self {
-        case .srgb, .rec709, .srgbLinear:
+        case .srgb, .rec709:
             .bt709
 
         case .displayP3:
@@ -42,9 +41,6 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
         case .rec2020, .rec709:
             .bt1886
 
-        case .srgbLinear:
-            .linear
-
         case .rec2100PQ, .rec2100HLG:
             nil
         }
@@ -58,7 +54,7 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
     // HLG's OOTF, and the default `format.peak` for PQ, whose sequence names its own.
     package var peakLuminance: Double {
         switch self {
-        case .srgb, .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .srgb, .displayP3, .rec2020, .rec709:
             ColorConversion.referenceWhite
 
         case .rec2100PQ:
@@ -72,7 +68,7 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
     // The display light an HDR space's transfer names, in cd/m², nil for an SDR space.
     package var transferRange: ClosedRange<Double>? {
         switch self {
-        case .srgb, .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .srgb, .displayP3, .rec2020, .rec709:
             nil
 
         case .rec2100PQ:
@@ -83,8 +79,7 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
         }
     }
 
-    // The code points a video in this space is tagged with. `srgb-linear` is never output, and its pair, BT.709
-    // primaries with the linear transfer of H.273, is not read back as a space.
+    // The code points a video in this space is tagged with.
     package var codePoints: CodePoints {
         switch self {
         case .srgb:
@@ -104,9 +99,6 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
 
         case .rec2100HLG:
             CodePoints(colorPrimaries: 9, transferCharacteristics: 18, matrixCoefficients: 9)
-
-        case .srgbLinear:
-            CodePoints(colorPrimaries: 1, transferCharacteristics: 8, matrixCoefficients: 1)
         }
     }
 

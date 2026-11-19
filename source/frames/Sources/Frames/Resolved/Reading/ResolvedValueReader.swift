@@ -807,7 +807,8 @@ struct ResolvedValueReader: Sendable {
             return .lut(
                 file: try pinned(operation),
                 amount: try number(operation, "amount"),
-                space: try operation.member("space").name(among: VocabularyTable.lookUpTableSpaces, ColorSpace.init)
+                space: try operation.member("space")
+                    .name(among: VocabularyTable.lookUpTableSpaces, LookUpTableSpace.init)
             )
 
         case "blur":

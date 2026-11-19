@@ -42,7 +42,7 @@ extension ResolvedFilterOperation {
             self = .lut(
                 file: file,
                 amount: number("amount"),
-                space: body["space"]?.name.flatMap(ColorSpace.init) ?? .srgb
+                space: body["space"]?.name.flatMap(LookUpTableSpace.init) ?? .srgb
             )
 
         case "blur":

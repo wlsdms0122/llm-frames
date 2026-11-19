@@ -624,9 +624,9 @@ struct FilterChainTests {
 
     @Test(
         "lut in a space looks up the colour converted to it, clipped to the domain, and converts the result back",
-        arguments: [ColorSpace.srgbLinear, .rec2100PQ, .displayP3]
+        arguments: [LookUpTableSpace.srgbLinear, .colorSpace(.rec2100PQ), .colorSpace(.displayP3)]
     )
-    func looksUpInSpace(space: ColorSpace) throws {
+    func looksUpInSpace(space: LookUpTableSpace) throws {
         // Given
         // An identity cube over [0, 4]: every value inside the domain maps to itself, so the colour comes back as it
         // was, and one past it comes back from the domain's edge.
@@ -650,12 +650,11 @@ struct FilterChainTests {
         let result = PixelGrid(rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
-        let conversion = ColorConversion(space: space)
         for (column, color) in colors.enumerated() {
             let working = RGB(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]))
-            let inSpace = conversion.encoded(working)
+            let inSpace = space.encoded(working)
             let clipped = RGB(red: min(inSpace.red, 4), green: min(inSpace.green, 4), blue: min(inSpace.blue, 4))
-            let expected = conversion.working(clipped)
+            let expected = space.working(clipped)
             let pixel = result.pixel(column: column, row: 0)
             #expect(abs(pixel[3] - color[3]) < tolerance)
             for (channel, want) in [expected.red, expected.green, expected.blue].enumerated() {

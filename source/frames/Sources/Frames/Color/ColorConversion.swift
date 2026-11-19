@@ -43,7 +43,7 @@ package struct ColorConversion: Equatable, Sendable {
         case .srgb:
             return working
 
-        case .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .displayP3, .rec2020, .rec709:
             return transferFunction.encode(toSpace.applied(to: TransferFunction.sRGB.decode(working)))
 
         case .rec2100PQ, .rec2100HLG:
@@ -59,7 +59,7 @@ package struct ColorConversion: Equatable, Sendable {
         case .srgb:
             return working.clipped(to: 0...1)
 
-        case .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .displayP3, .rec2020, .rec709:
             let linear = toSpace.applied(to: TransferFunction.sRGB.decode(working))
             return transferFunction.encode(linear.clipped(to: 0...1))
 
@@ -86,7 +86,7 @@ package struct ColorConversion: Equatable, Sendable {
         case .srgb:
             return encoded
 
-        case .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .displayP3, .rec2020, .rec709:
             return TransferFunction.sRGB.encode(fromSpace.applied(to: transferFunction.decode(encoded)))
 
         case .rec2100PQ, .rec2100HLG:
@@ -104,7 +104,7 @@ package struct ColorConversion: Equatable, Sendable {
         case .rec2100HLG:
             HybridLogGamma().displayLight(encoded: encoded)
 
-        case .srgb, .displayP3, .rec2020, .rec709, .srgbLinear:
+        case .srgb, .displayP3, .rec2020, .rec709:
             Self.toBT2020.applied(to: TransferFunction.sRGB.decode(working(encoded))).scaled(by: Self.referenceWhite)
         }
     }
