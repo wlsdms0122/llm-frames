@@ -92,7 +92,7 @@ struct PresetValueResolverTests {
         #expect(error == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "wipe.png"))
     }
 
-    @Test("a cover colour named in a preset is written as the theme's value, #RRGGBBAA")
+    @Test("a cover colour named in a preset is written as the theme's value, color(srgb r g b / a)")
     func resolvesCoverColor() throws {
         // Given
         let sut = PresetValueResolver(library: directory.library())
@@ -111,12 +111,16 @@ struct PresetValueResolverTests {
         let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
 
         // Then
-        #expect(resolved.cover?.source == .color("#00000080"))
+        #expect(resolved.cover?.source == .color("color(srgb 0 0 0 / 0.5019607843137255)"))
     }
 
     @Test(
-        "a bloom colour is written as #RRGGBBAA, a theme colour by its value",
-        arguments: [("shadow", "#00000080"), ("#ffffff", "#FFFFFFFF"), ("#00000080", "#00000080")]
+        "a bloom colour is written as color(srgb r g b / a), a theme colour by its value",
+        arguments: [
+            ("shadow", "color(srgb 0 0 0 / 0.5019607843137255)"),
+            ("#ffffff", "color(srgb 1 1 1 / 1)"),
+            ("color(srgb 0.5 0.25 2 / 0.5)", "color(srgb 0.5 0.25 2 / 0.5)")
+        ]
     )
     func resolvesBloomColor(
         written: String,

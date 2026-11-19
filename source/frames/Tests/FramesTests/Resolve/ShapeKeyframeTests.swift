@@ -31,7 +31,7 @@ struct ShapeKeyframeTests {
         // Then
         #expect(shape.stroke.stroke(at: 0.5) == PathStroke(
             width: 4,
-            paint: .color(Color(written: "#808080")),
+            paint: .color(Color(written: "color(srgb 0.5 0.5 0.5)")),
             join: .round,
             cap: .butt,
             start: .none,
@@ -80,7 +80,7 @@ struct ShapeKeyframeTests {
             """##)
 
         // Then
-        #expect(moved.fill.fill(at: 0.5) == .color(Color(written: "#800080")))
+        #expect(moved.fill.fill(at: 0.5) == .color(Color(written: "color(srgb 0.5 0 0.5)")))
     }
 
     @Test("shadow true in a keyframe is the merged shadow, so a shadow moves from a written radius to the style's")
@@ -349,7 +349,7 @@ struct ShapeKeyframeTests {
         let moved = try #require(gradient(shape.fill.fill(at: 0.5, box: Rectangle(x: 0, y: 0, width: 200, height: 100))))
         #expect(moved.shape == .radial(center: Point(x: 100, y: 50), radius: (100.0 * 100 + 50 * 50).squareRoot()))
         #expect(moved.stops == [
-            GradientStop(offset: 0, color: Color(written: "#808080")),
+            GradientStop(offset: 0, color: Color(written: "color(srgb 0.5 0.5 0.5)")),
             GradientStop(offset: 0.75, color: Color(written: "#00000000"))
         ])
     }
@@ -367,7 +367,7 @@ struct ShapeKeyframeTests {
         let moved = try #require(gradient(shape.fill.fill(at: 0.5, box: Rectangle(x: 0, y: 0, width: 200, height: 100))))
         #expect(moved.stops == [
             GradientStop(offset: 0, color: Color(written: "#123456")),
-            GradientStop(offset: 0.75, color: Color(written: "#808080"))
+            GradientStop(offset: 0.75, color: Color(written: "color(srgb 0.5 0.5 0.5)"))
         ])
     }
 
@@ -429,8 +429,8 @@ struct ShapeKeyframeTests {
 
         // Then
         #expect(painted.fill.fill() == .color(Color(written: "#FF0000")))
-        #expect(keyed.fill.fill(at: 0.5) == .color(Color(written: "#808080")))
-        #expect(keyed.stroke.stroke(at: 0.5)?.paint == .color(Color(written: "#808080")))
+        #expect(keyed.fill.fill(at: 0.5) == .color(Color(written: "color(srgb 0.5 0.5 0.5)")))
+        #expect(keyed.stroke.stroke(at: 0.5)?.paint == .color(Color(written: "color(srgb 0.5 0.5 0.5)")))
         #expect(keyed.stroke.stroke(at: 0.5)?.width == 1)
     }
 

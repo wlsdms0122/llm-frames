@@ -42,20 +42,21 @@ extension MergedTheme {
         width / baseWidth
     }
 
-    // A colour is written as `#RRGGBB`, `#RRGGBBAA` or the name of a theme colour, which the reference checks found.
+    // A colour is written as a hex colour, a `color()` value or the name of a theme colour, which the reference checks
+    // found, and a theme colour is written out.
     func color(_ written: String) -> Color {
-        guard !written.hasPrefix("#") else { return Color(written: written) }
+        guard !Self.isWrittenOut(written) else { return Color(written: written) }
 
-        return Color(written: value(at: ["colors", written])?.stringValue ?? "#000000")
+        return value(at: ["colors", written])?.stringValue.map(Color.init(written:)) ?? .black
     }
 
     // Whether a colour written outside the theme, as in a preset, is a value or names a colour the theme holds.
     func isColor(_ written: String) -> Bool {
-        written.hasPrefix("#") || value(at: ["colors", written]) != nil
+        Self.isWrittenOut(written) || value(at: ["colors", written]) != nil
     }
 
-    // A colour a preset names, as a resolved document writes it. `place` is where the preset is chosen, and a name this
-    // theme does not hold stops there.
+    // A colour a preset names, written out as `color(srgb r g b / a)`, which reads back to the same working value.
+    // `place` is where the preset is chosen, and a name this theme does not hold stops there.
     func presetColor(
         _ written: String,
         place: Place,
@@ -63,7 +64,7 @@ extension MergedTheme {
     ) throws -> String {
         guard isColor(written) else { throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written) }
 
-        return color(written).hex
+        return color(written).resolvedForm
     }
 
     // A shape style as the theme holds it, its lengths in points, or nil for a name the theme does not hold.
@@ -154,6 +155,11 @@ extension MergedTheme {
     }
 
     // MARK: - Private
+    // A hex colour or a `color()` value, where any other string names a theme colour.
+    private static func isWrittenOut(_ written: String) -> Bool {
+        written.hasPrefix("#") || written.hasPrefix("color(")
+    }
+
     private func fontPath(ofStyle name: String) -> Place {
         let path = Place(components: [.key("styles"), .key(name), .key("font")])
 

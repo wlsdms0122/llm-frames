@@ -161,7 +161,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     func color(_ color: Color) -> JSONValue {
-        .string(color.hex)
+        .string(color.resolvedForm)
     }
 
     func ease(_ ease: Ease) -> JSONValue {

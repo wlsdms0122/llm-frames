@@ -16,7 +16,8 @@ indirect enum ValueType: Equatable, Sendable {
     case text
     case name
     case color
-    case hexColor
+    // A colour written out, a hex colour or a `color()` value, and not a theme colour's name.
+    case unnamedColor
     case identifier
     case ease
     case literal([String])

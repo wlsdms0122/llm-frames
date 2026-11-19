@@ -7,7 +7,7 @@
 
 // A timed leaf's value once resolved: a number, a colour, numbers moved as one (a point, an offset, a padding), or a
 // clip area or the point a placement name gives of one, whose numbers only evaluation knows. Numbers interpolate
-// linearly and per component, and a colour per channel, straight.
+// linearly and per component, and a colour per channel, straight, on the encoded form.
 enum LeafValue: Interpolable {
     case number(Double)
     case color(Color)
@@ -31,14 +31,15 @@ enum LeafValue: Interpolable {
             .numbers(.interpolate(from: start, to: end, progress: progress))
 
         case let (.color(start), .color(end)):
-            .color(Color(channels: .interpolate(from: start.channels, to: end.channels, progress: progress)))
+            .color(.interpolate(from: start, to: end, progress: progress))
 
         default:
             progress < 1 ? start : end
         }
     }
 
-    // The value a sampled leaf takes where it is used, clamped to its domain; a colour is clamped per channel.
+    // The value a sampled leaf takes where it is used, clamped to its domain. A colour is held to its range as it is
+    // interpolated, since that range depends on the span's keyframes.
     func clamped(to domain: NumberDomain) -> LeafValue {
         switch self {
         case let .number(number):

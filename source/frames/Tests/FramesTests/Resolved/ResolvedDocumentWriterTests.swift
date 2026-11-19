@@ -45,7 +45,7 @@ struct ResolvedDocumentWriterTests {
             "size": [1080, 1920],
             "fps": 30,
             "duration": 3,
-            "background": "#000000FF",
+            "background": "color(srgb 0 0 0 / 1)",
             "conform": "fit"
           },
           "storyline": [
@@ -159,7 +159,7 @@ struct ResolvedDocumentWriterTests {
                 "color": [
                   {
                     "at": 0,
-                    "value": "#FFFFFFFF",
+                    "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
                 ]
@@ -180,7 +180,7 @@ struct ResolvedDocumentWriterTests {
                   "color": [
                     {
                       "at": 0,
-                      "value": "#ED2929FF",
+                      "value": "color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)",
                       "ease": "linear"
                     }
                   ],
@@ -219,7 +219,7 @@ struct ResolvedDocumentWriterTests {
                     "color": [
                       {
                         "at": 0,
-                        "value": "#FFFFFFFF",
+                        "value": "color(srgb 1 1 1 / 1)",
                         "ease": "linear"
                       }
                     ],
@@ -315,7 +315,7 @@ struct ResolvedDocumentWriterTests {
                 "color": [
                   {
                     "at": 0,
-                    "value": "#FFFFFFFF",
+                    "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
                 ]

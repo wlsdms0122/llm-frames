@@ -88,7 +88,7 @@ struct ChoiceArgumentTests {
         let transition = storyline.last?.objectValue?["transition"]?.objectValue
         let entrance = json["clips"]?.arrayValue?.first?.objectValue?["animation"]?.objectValue?["entrance"]?.objectValue
         #expect(filter == [.number(0.05), .number(0.02)])
-        #expect(transition?["cover"]?.objectValue?["color"] == .string("#1B3A6BFF"))
+        #expect(transition?["cover"]?.objectValue?["color"] == .string("color(srgb 0.10588235294117647 0.22745098039215686 0.4196078431372549 / 1)"))
         #expect(transition.map { ($0["end"]?.numberValue ?? 0) - ($0["start"]?.numberValue ?? 0) } == 1)
         #expect(entrance?["ease"] == (try Fixture.json(#"{ "spring": { "bounce": 0.4 } }"#)))
         #expect(!text.contains("params") && !text.contains("param\""))
@@ -115,7 +115,7 @@ struct ChoiceArgumentTests {
 
         // Then
         let transition = try #require(plan.time.storyline.last?.transition)
-        #expect(transition.definition.cover?.source == .color("#00FF00FF"))
+        #expect(transition.definition.cover?.source == .color("color(srgb 0 1 0 / 1)"))
         #expect(transition.definition.seconds == 0.7)
     }
 
@@ -139,8 +139,8 @@ struct ChoiceArgumentTests {
         let error = #expect(throws: ModelError.self) { try planner().plan(template, arguments: red) }
 
         // Then
-        #expect(defaults.time.storyline.last?.transition?.definition.cover?.source == .color("#000000FF"))
-        #expect(given.time.storyline.last?.transition?.definition.cover?.source == .color("#1B3A6BFF"))
+        #expect(defaults.time.storyline.last?.transition?.definition.cover?.source == .color("color(srgb 0 0 0 / 1)"))
+        #expect(given.time.storyline.last?.transition?.definition.cover?.source == .color("color(srgb 0.10588235294117647 0.22745098039215686 0.4196078431372549 / 1)"))
         #expect(error?.description.hasPrefix("/abs/args.json: look (template arguments): expected ") == true, "\(error?.description ?? "no error")")
     }
 
@@ -161,7 +161,7 @@ struct ChoiceArgumentTests {
         let error = #expect(throws: PresetError.self) { try planner().plan(broken) }
 
         // Then
-        #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("#1B3A6BFF"))
+        #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("color(srgb 0.10588235294117647 0.22745098039215686 0.4196078431372549 / 1)"))
         #expect(error?.description.hasPrefix(#"theme.defaults.transition (transition choice): its arguments give "studio/dip" a value it does not take"#) == true, "\(error?.description ?? "no error")")
     }
 
@@ -179,7 +179,7 @@ struct ChoiceArgumentTests {
         let plan = try planner().plan(document)
 
         // Then
-        #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("#1B3A6BFF"))
+        #expect(plan.time.storyline.last?.transition?.definition.cover?.source == .color("color(srgb 0.10588235294117647 0.22745098039215686 0.4196078431372549 / 1)"))
     }
 
     @Test(

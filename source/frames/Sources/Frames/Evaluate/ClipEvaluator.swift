@@ -220,7 +220,7 @@ struct ClipEvaluator: Sendable {
         let passes = GlyphLayer.allCases.indices.flatMap { layer in unitItems.map { $0[layer] } }
         let list = DisplayList(
             size: Size(width: space.frame.width, height: space.frame.height),
-            background: Color(written: "#00000000"),
+            background: .transparent,
             seed: seed,
             items: [background] + passes
         )

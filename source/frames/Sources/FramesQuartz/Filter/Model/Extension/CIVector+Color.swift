@@ -11,17 +11,13 @@ import Frames
 extension CIVector {
     // MARK: - Property
     // MARK: - Initializer
-    // The colour premultiplied by its alpha, each component from 0 to 1 as written, sRGB encoded. `Color` holds
-    // eight hexadecimal digits.
+    // The encoded working value premultiplied by its alpha.
     convenience init(premultiplied color: Color) {
-        let value = UInt32(color.hex.dropFirst(), radix: 16)!
-        let alpha = Double(value & 0xFF) / 255
-
         self.init(
-            x: Double(value >> 24 & 0xFF) / 255 * alpha,
-            y: Double(value >> 16 & 0xFF) / 255 * alpha,
-            z: Double(value >> 8 & 0xFF) / 255 * alpha,
-            w: alpha
+            x: color.red * color.alpha,
+            y: color.green * color.alpha,
+            z: color.blue * color.alpha,
+            w: color.alpha
         )
     }
 

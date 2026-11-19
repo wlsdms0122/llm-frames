@@ -62,7 +62,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
             font: run.font,
             face: run.face,
             size: run.size,
-            color: run.color.sampled(at: time, as: .leaf(.color)).color ?? Color(written: "#000000"),
+            color: run.color.sampled(at: time, as: .leaf(.color)).color ?? .black,
             stroke: stroke["width"]?.number.flatMap { width in
                 stroke["color"]?.color.map { TextStroke(width: width * factor, color: $0) }
             },

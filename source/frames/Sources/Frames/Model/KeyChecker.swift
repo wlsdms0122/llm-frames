@@ -8,6 +8,9 @@
 struct KeyChecker: Sendable {
     // MARK: - Property
     private let mediaKinds: any MediaKindProvider
+    private static let colorForms = "#RRGGBB, #RRGGBBAA or color(<space> r g b / a), with finite components and an alpha "
+        + "from 0 to 1, in srgb, srgb-linear, display-p3 or rec2020"
+
     private let keyframeReader = KeyframeReader()
 
     // MARK: - Initializer
@@ -162,7 +165,7 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
-        case .color, .hexColor:
+        case .color, .unnamedColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
         case .identifier:
@@ -402,15 +405,15 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let string = value.stringValue else { throw wrongType(value, type, place, kind) }
 
-        let isHex = string.hasPrefix("#")
-        if case .hexColor = type, !isHex {
-            throw ModelError.invalidValue(place: place, kind: kind, reason: "\"\(string)\" is not #RRGGBB or #RRGGBBAA")
+        // A string that starts as neither form is a theme colour's name, which the reference checks find.
+        let isWritten = string.hasPrefix("#") || string.hasPrefix("color(")
+        if case .unnamedColor = type, !isWritten {
+            throw ModelError.invalidValue(place: place, kind: kind, reason: "\"\(string)\" is not \(Self.colorForms)")
         }
-        guard isHex else { return }
+        guard isWritten else { return }
 
-        let digits = string.dropFirst()
-        guard [6, 8].contains(digits.count), digits.allSatisfy(\.isHexDigit) else {
-            throw ModelError.invalidValue(place: place, kind: kind, reason: "\"\(string)\" is not #RRGGBB or #RRGGBBAA")
+        guard Color(parsing: string) != nil else {
+            throw ModelError.invalidValue(place: place, kind: kind, reason: "\"\(string)\" is not \(Self.colorForms)")
         }
     }
 
@@ -1414,7 +1417,7 @@ struct KeyChecker: Sendable {
         case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number):
             true
 
-        case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
+        case (.text, .string), (.name, .string), (.color, .string), (.unnamedColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
@@ -1483,7 +1486,7 @@ struct KeyChecker: Sendable {
         case .text, .name, .identifier:
             "a string"
 
-        case .color, .hexColor:
+        case .color, .unnamedColor:
             "a colour"
 
         case .ease:

@@ -55,11 +55,8 @@ struct BlenderTests {
 
     // MARK: - Private
     private func components(of written: String) -> [Double] {
-        let hex = Color(written: written).hex.dropFirst()
+        let color = Color(written: written)
 
-        return stride(from: 0, to: 8, by: 2).map { start in
-            let digits = hex.dropFirst(start).prefix(2)
-            return Double(Int(digits, radix: 16)!) / 255
-        }
+        return [color.red, color.green, color.blue, color.alpha]
     }
 }

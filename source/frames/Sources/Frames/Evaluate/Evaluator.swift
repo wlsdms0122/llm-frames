@@ -5,13 +5,11 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed. A clip used
-// as a track matte draws no item of its own, and its children are drawn as usual.
+// Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed, and a
+// storyline picture's and a track matte's a transparent background, so what such a list leaves uncovered shows what
+// lies below its picture. A clip used as a track matte draws no item of its own, and its children are drawn as usual.
 package struct Evaluator: Sendable {
     // MARK: - Property
-    // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
-    private static let transparent = Color(written: "#00000000")
-
     private let clipEvaluator = ClipEvaluator()
     private let seeder = GrainSeeder()
     private let transitionSampler = TransitionSampler()
@@ -97,7 +95,7 @@ package struct Evaluator: Sendable {
                 : []
             let source = DisplayList(
                 size: sequence.format.size,
-                background: Self.transparent,
+                background: .transparent,
                 seed: seed,
                 items: items.map { $0.normallyBlended() }
             )
@@ -176,7 +174,7 @@ package struct Evaluator: Sendable {
         let entry = sequence.storyline[index]
         let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
         let items = innerItems(of: entry, trackMatte: trackMatte, at: time, seed: seed)
-        let list = DisplayList(size: sequence.format.size, background: Self.transparent, seed: seed, items: items)
+        let list = DisplayList(size: sequence.format.size, background: .transparent, seed: seed, items: items)
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
         let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)

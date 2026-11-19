@@ -6,7 +6,7 @@
 //
 
 // Resolves the names a preset holds to the values a resolved document carries: a LUT, matte or cover file to its
-// absolute path, and a theme colour to `#RRGGBBAA` in the theme where the preset is chosen. A preset names files as
+// absolute path, and a theme colour to its value in the theme where the preset is chosen. A preset names files as
 // anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
 // installed, and an absolute path stays as it is.
 struct PresetValueResolver: Sendable {

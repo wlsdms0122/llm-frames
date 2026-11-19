@@ -49,31 +49,28 @@ package struct Gradient: Equatable, Sendable {
         }
     }
 
-    // Straight red, green, blue and alpha at a position: the first stop's at or below its offset, the last stop's at
-    // or past its offset, and between two neighbouring stops their colours interpolated with premultiplied alpha, so a
-    // transparent stop adds no colour of its own. Where two stops share an offset the later one's colour starts there.
+    // Straight red, green, blue and alpha of the encoded form at a position: the first stop's at or below its offset,
+    // the last stop's at or past its offset, and between two neighbouring stops their colours interpolated on the
+    // encoded form with premultiplied alpha, so a transparent stop adds no colour of its own. Where two stops share an
+    // offset the later one's colour starts there.
     package func channels(at position: Double) -> [Double] {
         guard let first = stops.first, let last = stops.last else { return [0, 0, 0, 0] }
-        guard position > first.offset else { return first.color.channels }
+        guard position > first.offset else { return Self.channels(of: first.color) }
         guard let index = stops.indices.dropFirst().first(where: { position < stops[$0].offset }) else {
-            return last.color.channels
+            return Self.channels(of: last.color)
         }
 
         let lower = stops[index - 1]
         let upper = stops[index]
         let progress = (position - lower.offset) / (upper.offset - lower.offset)
-        let mixed = zip(premultiplied(lower.color), premultiplied(upper.color)).map { start, end in
-            start + (end - start) * progress
-        }
-        let alpha = mixed[3]
-        guard alpha > 0 else { return [0, 0, 0, 0] }
+        let mixed = zip(lower.color.premultiplied, upper.color.premultiplied)
+            .map { start, end in start + (end - start) * progress }
 
-        return [mixed[0] / alpha, mixed[1] / alpha, mixed[2] / alpha, alpha]
+        return Self.channels(of: Color(premultiplied: mixed))
     }
 
     // MARK: - Private
-    private func premultiplied(_ color: Color) -> [Double] {
-        let channels = color.channels
-        return [channels[0] * channels[3], channels[1] * channels[3], channels[2] * channels[3], channels[3]]
+    private static func channels(of color: Color) -> [Double] {
+        [color.red, color.green, color.blue, color.alpha]
     }
 }

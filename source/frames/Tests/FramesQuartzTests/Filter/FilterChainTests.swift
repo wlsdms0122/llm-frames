@@ -617,10 +617,7 @@ struct FilterChainTests {
     }
 
     private func components(_ color: Color) -> [Float] {
-        let value = UInt32(color.hex.dropFirst(), radix: 16)!
-        let alpha = Float(value & 0xFF) / 255
-
-        return [value >> 24, value >> 16, value >> 8].map { Float($0 & 0xFF) / 255 * alpha }
+        [color.red, color.green, color.blue].map { Float($0 * color.alpha) }
     }
 
     // A one row image, black left of `width` / 2 and white from it.

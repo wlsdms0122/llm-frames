@@ -71,7 +71,7 @@ struct DisplayListReaderTests {
                 matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
-                shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "#00000080"))
+                shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "color(srgb 0 0 0 / 0.5019607843137255)"))
             )),
             origin: origin
         ),
@@ -83,9 +83,9 @@ struct DisplayListReaderTests {
         DisplayItem(
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1920), radius: 16),
-                fill: .color(Color(written: "#00000099")),
+                fill: .color(Color(written: "color(srgb 0 0 0 / 0.6)")),
                 stroke: nil,
-                shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "#00000080"))
+                shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "color(srgb 0 0 0 / 0.5019607843137255)"))
             )),
             origin: ItemOrigin(place: "clips[3]", id: nil, kind: "shape")
         ),
@@ -139,7 +139,7 @@ struct DisplayListReaderTests {
                     ),
                     glyphs: [PositionedGlyph(id: 43, x: 12, y: 36), PositionedGlyph(id: 76, x: 34.5, y: 36)]
                 )],
-                background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "#111111CC"))
+                background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "color(srgb 0.06666666666666667 0.06666666666666667 0.06666666666666667 / 0.8)"))
             )),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
@@ -148,7 +148,7 @@ struct DisplayListReaderTests {
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
             fill: .color(Color(written: "#3366CC")),
-            stroke: PathStroke(width: 2.5, paint: .color(Color(written: "#FFFFFF80")), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
+            stroke: PathStroke(width: 2.5, paint: .color(Color(written: "color(srgb 1 1 1 / 0.5019607843137255)")), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
             trim: Trim(start: 0.75, end: 0.25),
             shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
         ))),
@@ -156,7 +156,7 @@ struct DisplayListReaderTests {
             geometry: .rect(Rectangle(x: 10, y: 20, width: 200, height: 100), radius: 0),
             fill: .gradient(Gradient(
                 shape: .linear(from: Point(x: 10, y: 20), to: Point(x: 210, y: 20)),
-                stops: [GradientStop(offset: 0, color: Color(written: "#FF000000")), GradientStop(offset: 1, color: Color(written: "#0000FF"))]
+                stops: [GradientStop(offset: 0, color: Color(written: "color(srgb 1 0 0 / 0)")), GradientStop(offset: 1, color: Color(written: "#0000FF"))]
             )),
             stroke: PathStroke(
                 width: 4,
@@ -165,7 +165,7 @@ struct DisplayListReaderTests {
                     stops: [
                         GradientStop(offset: 0, color: Color(written: "#FFFFFF")),
                         GradientStop(offset: 0.5, color: Color(written: "#FFFFFF")),
-                        GradientStop(offset: 0.5, color: Color(written: "#00000080"))
+                        GradientStop(offset: 0.5, color: Color(written: "color(srgb 0 0 0 / 0.5019607843137255)"))
                     ]
                 )),
                 join: .round,
@@ -333,7 +333,7 @@ struct DisplayListReaderTests {
         // Then
         #expect(items?.first?.keys.prefix(8) == ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
         #expect(items?.first?["trackMatte"] == (try Fixture.json(#"""
-            { "source": { "list": { "size": [1080, 1920], "background": "#000000FF", "items": [] } }, "mode": "alpha", "invert": false }
+            { "source": { "list": { "size": [1080, 1920], "background": "color(srgb 0 0 0 / 1)", "items": [] } }, "mode": "alpha", "invert": false }
             """#)))
         #expect(items?.last?["trackMatte"] == .null)
     }
@@ -434,10 +434,10 @@ struct DisplayListReaderTests {
     ) throws {
         // Given
         let text = #"""
-            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
-                "fill": "#FFFFFFFF", "stroke": null, "trim": [0, 1], "shadow": null } ] }
+                "fill": "color(srgb 1 1 1 / 1)", "stroke": null, "trim": [0, 1], "shadow": null } ] }
             """#
 
         // When
@@ -553,13 +553,13 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(item["fill"] == (try Fixture.json(##"""
-            { "linear": { "from": [10, 20], "to": [210, 20], "stops": [[0, "#FF000000"], [1, "#0000FFFF"]] } }
+            { "linear": { "from": [10, 20], "to": [210, 20], "stops": [[0, "color(srgb 1 0 0 / 0)"], [1, "color(srgb 0 0 1 / 1)"]] } }
             """##)))
         #expect(item["stroke"]?.objectValue?["paint"] == (try Fixture.json(##"""
-            { "radial": { "center": [110, 70], "radius": 111.8, "stops": [[0, "#FFFFFFFF"], [0.5, "#FFFFFFFF"], [0.5, "#00000080"]] } }
+            { "radial": { "center": [110, 70], "radius": 111.8, "stops": [[0, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 0 0 0 / 0.5019607843137255)"]] } }
             """##)))
         let colored = try #require(writer.document(self.list(items: [Self.items[5]])).objectValue?["items"]?.arrayValue?.first?.objectValue)
-        #expect(colored["stroke"]?.objectValue?["paint"] == .string("#FF3B30FF"))
+        #expect(colored["stroke"]?.objectValue?["paint"] == .string("color(srgb 1 0.23137254901960785 0.18823529411764706 / 1)"))
     }
 
     @Test(
@@ -587,27 +587,27 @@ struct DisplayListReaderTests {
                 #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
             ),
             (
-                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
             ),
             (
-                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
                 "stroke",
                 #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
             ),
             (
-                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#FFFFFFFF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 "items[0].stroke.paint.linear.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             (
-                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "#FFFFFFFF"], [0.2, "#000000FF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
@@ -629,10 +629,10 @@ struct DisplayListReaderTests {
         ]
         members[member] = written
         let text = #"""
-            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "#000000FF", "items": [
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
-                "fill": "#FFFFFFFF",
+                "fill": "color(srgb 1 1 1 / 1)",
                 "stroke": \#(members["stroke"] ?? ""), "trim": \#(members["trim"] ?? ""), "shadow": null } ] }
             """#
 
