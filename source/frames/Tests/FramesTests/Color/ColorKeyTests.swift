@@ -265,6 +265,44 @@ struct ColorKeyTests {
         ])
     }
 
+    @Test(
+        "two clips that read the same file in different colour spaces stop, naming both places",
+        arguments: [
+            (#""colorSpace": "rec709""#, "", #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as its tags say here and as "rec709" at storyline[0], and every clip reads a file in one colour space"#),
+            (#""colorSpace": "rec709""#, #""colorSpace": "rec2020""#, #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as "rec2020" here and as "rec709" at storyline[0], and every clip reads a file in one colour space"#)
+        ]
+    )
+    func refusesFileInTwoColorSpaces(
+        storyline: String,
+        connected: String,
+        message: String
+    ) throws {
+        // Given
+        let comma = connected.isEmpty ? "" : ","
+        let resolved = try resolved(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(storyline), "connected": [
+                { "media": "/abs/run.mp4", "at": [0, 1]\#(comma) \#(connected) } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try resolved.checkMediaColorSpaces() }
+        #expect(error?.description == message)
+    }
+
+    @Test("clips that read a file in one colour space, inside a compound clip too, pass")
+    func acceptsFileInOneColorSpace() throws {
+        // Given
+        let resolved = try resolved(#"""
+            { "kind": "sequence", "storyline": [
+                { "media": "/abs/run.mp4", "colorSpace": "rec709", "connected": [
+                  { "media": "/abs/run.mp4", "colorSpace": "rec709", "at": [0, 1], "toneMap": false } ] },
+                { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: Never.self) { try resolved.checkMediaColorSpaces() }
+    }
+
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes)

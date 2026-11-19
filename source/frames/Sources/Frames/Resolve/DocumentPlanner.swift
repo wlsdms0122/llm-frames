@@ -115,13 +115,16 @@ package struct DocumentPlanner: Sendable {
         return try sequencePlanner.plan(try planner.plan(sequence, theme: .base))
     }
 
-    // The resolved document of what `plan` decides, with every file it names pinned.
+    // The resolved document of what `plan` decides, with every file it names pinned and read in one colour space.
     package func resolved(
         _ document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil
     ) throws -> ResolvedSequence {
-        try ResolvedSequence(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
+        let resolved = try ResolvedSequence(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
+        try resolved.checkMediaColorSpaces()
+
+        return resolved
     }
 
     // MARK: - Private
