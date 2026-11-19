@@ -7,7 +7,7 @@
 
 import Foundation
 
-// The branching peak detector of Giannoulis, Massberg and Reiss (2012) on a gain in dB:
+// A branching peak detector on a gain in dB:
 // g[n] = β g[n-1] + (1 - β) c[n] with β = exp(-1 / (τ × Fs)). The caller picks τ, the attack or the release, by its
 // own branch. A τ an ease carries to 0 or below follows the target at once, the limit of β as τ goes to 0.
 struct GainSmoother: Sendable {

@@ -6,8 +6,8 @@
 //
 
 // A number of a segment's audio filter: one that holds over the segment, or one that moves, as an envelope of points
-// in sequence time joined in straight lines. A moving `frequency` has its points sampled in log space, so the straight
-// lines between them stand in for a geometric sweep.
+// in sequence time joined in straight lines. A moving `frequency` or `q` has its points sampled in log space, so the
+// straight lines between them stand in for a geometric sweep.
 package enum MixValue: Equatable, Sendable {
     case constant(Double)
     case envelope([EnvelopePoint])

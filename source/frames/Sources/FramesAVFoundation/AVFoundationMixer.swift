@@ -11,8 +11,7 @@ import Frames
 // The `avfoundation` mixer: reads each segment's media time through the decoder, maps its channels onto stereo,
 // resamples it to 48 kHz, stretches it in time with the pitch kept when its speed is not 1, runs its audio filter,
 // multiplies it by its envelope, pans it by its pan envelope with the pan law of its channel count, and adds it into
-// the output from its start sample. The sum is not clipped. It runs every audio op of the mix plan, so it refuses
-// none.
+// the output from its start sample. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate: Double = 48_000
