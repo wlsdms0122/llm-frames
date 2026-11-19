@@ -23,17 +23,26 @@ package struct GlyphsItem: Equatable, Sendable {
         self.background = background
     }
 
-    // Shaped text in its own box at `time`. Its background fills the whole box, which holds the background's padding.
+    // Shaped text in its own box at `time`, its glyphs moved along their lines. Its background fills the text box at
+    // that instant grown by the background's padding.
     init(
         text: ResolvedText,
         at time: Double
     ) {
+        let moves = text.glyphMoves(at: time)
+        let box = text.textBox(at: time)
+
         self.init(
             size: text.size,
-            runs: text.runs.map { run in DrawnGlyphRun(run: run, at: time) },
+            runs: zip(text.runs, moves).map { run, moves in DrawnGlyphRun(run: run, at: time, moves: moves) },
             background: text.background.map { background in
                 GlyphBackground(
-                    rectangle: Rectangle(x: 0, y: 0, width: text.size.width, height: text.size.height),
+                    rectangle: Rectangle(
+                        x: box.x - background.padding.width,
+                        y: 0,
+                        width: box.width + background.padding.width * 2,
+                        height: text.size.height
+                    ),
                     radius: background.radius,
                     color: background.color
                 )

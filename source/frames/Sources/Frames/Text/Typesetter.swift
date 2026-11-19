@@ -21,11 +21,11 @@ struct Typesetter: Sendable {
     // MARK: - Public
     // `width` is the width of the text box in output pixels, and the text wraps at it with each run at its widest
     // tracking, while glyphs are placed at its static tracking. Without it the text breaks only at `\n` and the box
-    // is as wide as the widest line. A piece of a word wider than `width` that cannot break
-    // widens the box to hold it. Text that takes more lines than its paragraph style's `lines`, counting every `\n`,
-    // stops. A style of one line wraps at no width, and is too wide when it is wider than `width`. Lines lie the line
-    // height apart, baseline to baseline: the first baseline is its line's largest ascent below the top, and the box
-    // ends the last line's largest descent below the last.
+    // is as wide as the widest line. A piece of a word wider than `width` that cannot break widens the box to hold it.
+    // Text that takes more lines than its paragraph style's `lines`, counting every `\n`, stops. A style of one line
+    // wraps at no width, and is too wide when it is wider than `width`. Lines lie the line height apart, baseline to
+    // baseline: the first baseline is its line's largest ascent below the top, and the box ends the last line's largest
+    // descent below the last.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
@@ -49,14 +49,16 @@ struct Typesetter: Sendable {
 
         let padding = style.background?.padding ?? Size(width: 0, height: 0)
         let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
-        let placedRuns = lines.enumerated().flatMap { index, line in
-            placed(
-                line,
-                origin: Point(
-                    x: padding.width + alignmentOffset(of: line, in: textWidth, align: style.align),
-                    y: firstBaseline + Double(index) * style.lineHeight
-                )
+        var placedRuns: [GlyphRun] = []
+        var placedLines: [PlacedLine] = []
+        for (index, line) in lines.enumerated() {
+            let origin = Point(
+                x: padding.width + style.align.offset(of: line.width, in: textWidth),
+                y: firstBaseline + Double(index) * style.lineHeight
             )
+            let (runs, clusters) = placed(line, origin: origin, firstRun: placedRuns.count)
+            placedRuns += runs
+            placedLines.append(PlacedLine(width: line.width, clusters: clusters))
         }
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
             + (lines.first?.ascent ?? 0)
@@ -64,9 +66,11 @@ struct Typesetter: Sendable {
 
         return TextLayout(
             size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
-            lineCount: lines.count,
+            width: width,
+            lines: placedLines,
             runs: placedRuns,
-            background: style.background
+            background: style.background,
+            align: style.align
         )
     }
 
@@ -199,6 +203,7 @@ struct Typesetter: Sendable {
                     source: source,
                     style: run.style,
                     runFace: run.faces[0],
+                    clusterCount: count,
                     tracking: Double(count) * run.style.tracking * em,
                     widestTracking: Double(count) * run.widestTracking * em
                 )
@@ -270,31 +275,18 @@ struct Typesetter: Sendable {
         visibleWidth(of: glyphs, tracking: \.widestTracking)
     }
 
-    private func alignmentOffset(
-        of line: TextLine,
-        in width: Double,
-        align: TextAlignment
-    ) -> Double {
-        switch align {
-        case .left:
-            0
-
-        case .center:
-            (width - line.width) / 2
-
-        case .right:
-            width - line.width
-        }
-    }
-
     // Glyphs of one line of one text run in one face make one glyph run, and the runs of a line share its baseline.
     // The pieces of a text run's highlight and underline span its glyphs on the line, from the origin of the first to
-    // the end of the advance of the last, the spaces that end the line excluded.
+    // the end of the advance of the last, the spaces that end the line excluded. The line's clusters name glyphs by
+    // the index of their run among the text's, the first of this line's runs being `firstRun`.
     private func placed(
         _ line: TextLine,
-        origin: Point
-    ) -> [GlyphRun] {
+        origin: Point,
+        firstRun: Int
+    ) -> (runs: [GlyphRun], clusters: [GlyphRange]) {
         var runs: [GlyphRun] = []
+        var clusters: [GlyphRange] = []
+        var cluster: (run: Int, first: Int, count: Int)?
         var x = origin.x
         var spans: [(source: Int, run: Int, from: Double, to: Double)] = []
         let visibleCount = visibleGlyphs(of: line.glyphs).count
@@ -321,6 +313,21 @@ struct Typesetter: Sendable {
             }
 
             guard index < visibleCount else { continue }
+            // A cluster split over two faces is cut where its face changes: its glyphs in the earlier face are in no
+            // cluster and stay where they were set.
+            let run = firstRun + runs.count - 1
+            let first = runs[runs.count - 1].glyphs.count - 1
+            let start = cluster.flatMap { $0.run == run ? $0 : nil } ?? (run: run, first: first, count: 0)
+            cluster = (run: run, first: start.first, count: start.count + 1)
+            if glyph.clusterCount > 0 {
+                clusters.append(GlyphRange(run: run, first: start.first, count: start.count + 1))
+                clusters += Array(
+                    repeating: GlyphRange(run: run, first: first + 1, count: 0),
+                    count: glyph.clusterCount - 1
+                )
+                cluster = nil
+            }
+
             if let last = spans.last, last.source == glyph.source {
                 spans[spans.count - 1].to = end
             } else {
@@ -350,6 +357,6 @@ struct Typesetter: Sendable {
             )
         }
 
-        return runs
+        return (runs, clusters)
     }
 }

@@ -374,10 +374,12 @@ struct ResolvedValueReader: Sendable {
     }
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
-        let text = try value.object(keys: ["size", "background", "runs"])
+        let text = try value.object(keys: ["size", "width", "background", "align", "lines", "runs"])
+        let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
 
         return ResolvedText(
             size: try size(text.member("size")),
+            width: try text.member("width").optional { try $0.number() },
             background: try text.member("background").optional { value in
                 let background = try value.object(keys: ["color", "padding", "radius"])
 
@@ -386,6 +388,17 @@ struct ResolvedValueReader: Sendable {
                     padding: try size(background.member("padding")),
                     radius: try background.member("radius").number()
                 )
+            },
+            align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
+            lines: try text.member("lines").optional { value in
+                try value.elements().map { element in
+                    let line = try element.object(keys: ["width", "clusters"])
+
+                    return PlacedLine(
+                        width: try line.member("width").number(),
+                        clusters: try line.member("clusters").elements().map(glyphRange)
+                    )
+                }
             },
             runs: try runs(text.member("runs"))
         )
@@ -485,6 +498,20 @@ struct ResolvedValueReader: Sendable {
             },
             glyphs: try glyphs(run.member("glyphs"))
         )
+    }
+
+    // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.
+    private func glyphRange(_ value: PlacedJSONValue) throws -> GlyphRange {
+        let numbers = try value.numbers(count: 3)
+        guard
+            let run = Int(exactly: numbers[0]),
+            let first = Int(exactly: numbers[1]),
+            let count = Int(exactly: numbers[2])
+        else {
+            throw value.wrongType("[run, first, count]")
+        }
+
+        return GlyphRange(run: run, first: first, count: count)
     }
 
     // A glyph is `[id, x, y]`, its baseline origin in the text's box.

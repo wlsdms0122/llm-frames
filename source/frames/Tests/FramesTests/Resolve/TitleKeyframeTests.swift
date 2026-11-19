@@ -11,7 +11,8 @@ import Testing
 
 // Titles are sequence clips over `/abs/screen.mp4` in a 1920 by 1080 frame, so theme lengths are output pixels, and each
 // is checked by the key tables before it is planned. The theme holds the style `caption`, 40 in `#000000` with a stroke
-// 4 wide in `#000000`, and `small`, 20 in `#FF0000`.
+// 4 wide in `#000000`, `small`, 20 in `#FF0000`, and `wide`, 20 tracked by 100. A glyph is half an em wide and a space
+// a quarter.
 @Suite("Title keyframe Tests")
 struct TitleKeyframeTests {
     // MARK: - Property
@@ -156,10 +157,96 @@ struct TitleKeyframeTests {
         let run = try #require(text.runs.first)
 
         // When
-        let sut = DrawnGlyphRun(run: run, at: 0.5)
+        let sut = DrawnGlyphRun(run: run, at: 0.5, moves: run.glyphs.map { _ in 0 })
 
         // Then
         #expect(sut.glyphs.map(\.y) == run.glyphs.map { $0.y - 5 })
+    }
+
+    @Test(
+        "a title breaks its lines at the largest tracking its keyframes reach, an ease's overshoot included",
+        arguments: [("linear", 1), ("back-out", 2)]
+    )
+    func breaksAtWidestTracking(
+        ease: String,
+        lineCount: Int
+    ) throws {
+        // When
+        let title = try title(#"""
+            { "title": "aa bb", "style": "caption", "position": [400, 225], "width": 100,
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "ease": "\#(ease)" }, { "at": 1, "character": { "tracking": 60 } } ] }
+            """#)
+
+        // Then
+        #expect(title.layout.lineCount == lineCount)
+        #expect(title.layout.runs[0].glyphs.prefix(2).map(\.x) == [0, 20])
+    }
+
+    @Test("a `null` tracking keyframe is each run's own tracking, so each run steps from its own")
+    func stepsEachRunFromItsOwnTracking() throws {
+        // When
+        let title = try title(#"""
+            { "title": [ { "text": "ab" }, { "text": "cd", "style": "wide" } ], "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": null } }, { "at": 1, "character": { "tracking": 50 } } ] }
+            """#)
+
+        // Then
+        let steps = { (time: Double) in
+            title.trackingSteps.map { $0.sampled(at: time, as: .leaf(.length(.any))).number }
+        }
+        #expect(steps(0) == [0, 0])
+        #expect(steps(1) == [2, -1])
+    }
+
+    @Test("a tracking that takes one value adds no steps, and the title carries no lines")
+    func carriesNoLinesForStaticTracking() throws {
+        // When
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "wide", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 100 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // Then
+        #expect(text.lines == nil)
+        #expect(text.runs[0].tracking == .off)
+    }
+
+    @Test("evaluation moves a centred title's glyphs by the tracking at an instant, and its box widens about its centre")
+    func movesGlyphsByTracking() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: 0.5)
+        let box = text.textBox(at: 0.5)
+        let sut = GlyphsItem(text: text, at: 0.5)
+
+        // Then
+        #expect(text.width == nil)
+        #expect(moves == [[-1, 1]])
+        #expect(box == Rectangle(x: -1, y: 0, width: 42, height: 40))
+        #expect(sut.runs[0].glyphs.map(\.x) == [-1, 21])
+    }
+
+    @Test("evaluation keeps a title with a width at its width, and places each line again inside it by `align`")
+    func keepsWidthWhileTracking() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "caption", "position": [400, 225], "width": 100, "paragraph": { "align": "right" },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: 0.5)
+        let box = text.textBox(at: 0.5)
+
+        // Then
+        #expect(text.width == 100)
+        #expect(moves == [[-2, 0]])
+        #expect(box == Rectangle(x: 0, y: 0, width: 100, height: 40))
     }
 
     // MARK: - Private
@@ -185,7 +272,8 @@ struct TitleKeyframeTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "colors": { "accent": "#FFD43B" },
                          "styles": { "caption": { "size": 40, "color": "#000000", "stroke": { "width": 4, "color": "#000000" } },
-                                     "small": { "size": 20, "color": "#FF0000" } } },
+                                     "small": { "size": 20, "color": "#FF0000" },
+                                     "wide": { "size": 20, "tracking": 100 } } },
               "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
             """#
     }

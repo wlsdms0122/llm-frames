@@ -258,9 +258,23 @@ struct ResolvedValueWriter: Sendable {
             ]))
         }
 
+        let lines = text.lines.map { lines in
+            JSONValue.array(lines.map { line in
+                .object(JSONObject(members: [
+                    JSONMember(key: "width", value: .number(line.width)),
+                    JSONMember(key: "clusters", value: .array(line.clusters.map { cluster in
+                        numbers([Double(cluster.run), Double(cluster.first), Double(cluster.count)])
+                    }))
+                ]))
+            })
+        }
+
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
+            JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "align", value: .string(text.align.rawValue)),
+            JSONMember(key: "lines", value: lines ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))
     }

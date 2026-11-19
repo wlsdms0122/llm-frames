@@ -106,7 +106,7 @@ struct ClipLookPlanner: Sendable {
 
     // A key timed over a merged value its caller gives, as a choice merged over the theme's default is: the clip's
     // static value is its own layer, and its keyframes write the leaves of the merged value, completed over
-    // `defaults`.
+    // `defaults`, so a `null` in them may point at a default.
     func timed(
         _ property: LookProperty?,
         key: String,
@@ -116,9 +116,6 @@ struct ClipLookPlanner: Sendable {
     ) throws -> TimedValue {
         let lookPlace = LookPlace(clip: place, key: key)
         let (written, keyframes) = read(property, as: structure)
-        _ = try builder.ownLayer(written: merged, keyframes: keyframes, as: structure, place: lookPlace)
-        guard merged != .off else { return .off }
-
         let completed = try defaults.map { defaults in
             try merger.merge(
                 reader.value(of: defaults, as: structure),
@@ -127,6 +124,8 @@ struct ClipLookPlanner: Sendable {
                 place: place.appending(key: key)
             )
         } ?? merged
+        _ = try builder.ownLayer(written: completed, keyframes: keyframes, as: structure, place: lookPlace)
+        guard merged != .off else { return .off }
 
         return try builder.timed(
             completed,

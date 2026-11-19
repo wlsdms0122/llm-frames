@@ -777,7 +777,14 @@ struct SequencePlanner: Sendable {
             scale: scale,
             theme: time.theme
         )
-        return try titles.plan(title, looks: looks, pack: time.pack, width: written.width, theme: time.theme)
+        return try titles.plan(
+            title,
+            looks: looks,
+            pack: time.pack,
+            width: written.width,
+            visible: plan.visible,
+            theme: time.theme
+        )
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one

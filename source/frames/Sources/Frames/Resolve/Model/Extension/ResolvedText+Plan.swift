@@ -15,9 +15,14 @@ extension ResolvedText {
         plan: TitlePlan,
         hashes: any FileHashProvider
     ) throws {
+        let isTracked = plan.trackingSteps.contains { $0 != .off }
+
         self.init(
             size: plan.layout.size,
+            width: plan.layout.width,
             background: plan.layout.background,
+            align: plan.layout.align,
+            lines: isTracked ? plan.layout.lines : nil,
             runs: try plan.layout.runs.map { run in
                 let character = plan.characters[run.source]
                 let color = character["color"] ?? .off
@@ -29,7 +34,7 @@ extension ResolvedText {
                     color: color,
                     stroke: character["stroke"] ?? .off,
                     baselineShift: character["baselineShift"] ?? .off,
-                    tracking: .off,
+                    tracking: plan.trackingSteps[run.source],
                     highlight: character["highlight"].flatMap { highlight in
                         guard highlight != .off else { return nil }
 

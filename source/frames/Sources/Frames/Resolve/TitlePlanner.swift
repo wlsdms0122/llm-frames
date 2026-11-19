@@ -8,7 +8,7 @@
 // Plans a title. Each run takes the character attributes of its own style with the title's `character` merged over
 // them, and the whole title the paragraph attributes of the clip's style with its `paragraph` merged over them, each
 // timed by the title's keyframes; the text is set at their static values, its lengths at the length scale of the
-// place it is drawn.
+// place it is drawn, and its lines break with each run at the largest tracking it takes while the title is seen.
 struct TitlePlanner: Sendable {
     // MARK: - Property
     private let fonts: FontFinder
@@ -24,15 +24,16 @@ struct TitlePlanner: Sendable {
     }
 
     // MARK: - Public
-    // `looks` plans the title's clip, and `pack` is the pack of the document it is written in. A run without a style is
-    // in the clip's, and a run's style is named at its index in the title's list. A style the theme does not hold
-    // stops where it is named. The default line height follows the size of the clip's style with `character` merged
-    // over it.
+    // `looks` plans the title's clip, `visible` is where it is seen in sequence time, and `pack` is the pack of the
+    // document it is written in. A run without a style is in the clip's, and a run's style is named at its index in
+    // the title's list. A style the theme does not hold stops where it is named. The default line height follows the
+    // size of the clip's style with `character` merged over it.
     func plan(
         _ title: ClipTitle,
         looks: ClipLookPlanner,
         pack: String?,
         width: Double?,
+        visible: TimeRange,
         theme: MergedTheme
     ) throws -> TitlePlan {
         let place = looks.place.appending(key: "title")
@@ -44,6 +45,7 @@ struct TitlePlanner: Sendable {
         var faces: [String: [FontFace]] = [:]
         var textRuns: [TextRun] = []
         var characters: [TimedValue] = []
+        var trackingSteps: [TimedValue] = []
         for (index, run) in title.runs.enumerated() {
             let runStyle = run.style ?? title.style
             if let named = run.style {
@@ -57,15 +59,25 @@ struct TitlePlanner: Sendable {
             let runFaces = try faces[runStyle] ?? fonts.faces(for: style, from: origin)
             faces[runStyle] = runFaces
 
-            textRuns.append(TextRun(text: run.text, style: style, faces: runFaces))
             let defaults = self.defaults(over: written, face: runFaces[0])
-            characters.append(try timed(
+            let timed = try timed(
                 merged,
                 of: title.character,
                 key: "character",
                 as: character,
                 defaults: defaults,
                 looks: looks
+            )
+            let tracking = trackingTrack(of: timed)
+            let range = tracking?.range(over: visible) ?? style.tracking...style.tracking
+            characters.append(timed)
+            trackingSteps.append(steps(of: tracking, over: style))
+            textRuns.append(TextRun(
+                text: run.text,
+                style: style,
+                faces: runFaces,
+                widestTracking: range.upperBound,
+                isSpacedApart: range.lowerBound != 0 || range.upperBound != 0
             ))
         }
 
@@ -84,6 +96,7 @@ struct TitlePlanner: Sendable {
         return TitlePlan(
             layout: try typesetter.layout(textRuns, paragraph: paragraphStyle, width: width, place: place, kind: kind),
             characters: characters,
+            trackingSteps: trackingSteps,
             paragraph: try timed(merged, of: title.paragraph, key: "paragraph", as: paragraph, looks: looks)
         )
     }
@@ -111,8 +124,8 @@ struct TitlePlanner: Sendable {
         return try looks.timed(property, key: key, over: merged, as: structure, defaults: defaults)
     }
 
-    // What a run's character attributes take where no layer gives them, in theme lengths: the `text` colour and no
-    // baseline shift; a stroke the `text` colour; a highlight the `background` colour, no padding and no radius; an
+    // What a run's character attributes take where no layer gives them, in theme lengths: the `text` colour, no
+    // tracking and no baseline shift; a stroke the `text` colour; a highlight the `background` colour, no padding and no radius; an
     // underline the thickness and the position of the face's `post` underline at the run's size. Each of the last
     // three only where it is on, since a default would turn it on.
     private func defaults(
@@ -122,6 +135,7 @@ struct TitlePlanner: Sendable {
         let size = written["size"]?.numberValue ?? 0
         let members = [
             JSONMember(key: "color", value: .string("text")),
+            JSONMember(key: "tracking", value: .number(0)),
             JSONMember(key: "baselineShift", value: .number(0)),
             JSONMember(key: "stroke", value: .object(JSONObject(members: [
                 JSONMember(key: "color", value: .string("text"))
@@ -140,6 +154,30 @@ struct TitlePlanner: Sendable {
         return .object(JSONObject(members: members.filter { member in
             member.value.objectValue == nil || written[member.key]?.objectValue != nil
         }))
+    }
+
+    // A run's tracking over time, in thousandths of an em.
+    private func trackingTrack(of character: TimedValue) -> KeyframeTrack<Double>? {
+        guard case let .track(keyframes)? = character["tracking"] else { return nil }
+
+        return KeyframeTrack(keyframes: keyframes.compactMap { keyframe in
+            guard case let .number(value) = keyframe.value else { return nil }
+
+            return Keyframe(at: keyframe.at, value: value, ease: keyframe.ease)
+        })
+    }
+
+    private func steps(
+        of tracking: KeyframeTrack<Double>?,
+        over style: CharacterStyle
+    ) -> TimedValue {
+        guard let tracking, tracking.keyframes.contains(where: { $0.value != style.tracking }) else { return .off }
+
+        return .track(tracking.keyframes.map { keyframe in
+            let step = (keyframe.value - style.tracking) * style.size / 1000
+
+            return Keyframe(at: keyframe.at, value: .number(step), ease: keyframe.ease)
+        })
     }
 
     private func json(

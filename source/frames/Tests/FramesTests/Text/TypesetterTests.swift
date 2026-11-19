@@ -31,7 +31,13 @@ struct TypesetterTests {
         // Then
         #expect(layout == TextLayout(
             size: Size(width: 40, height: 40),
-            lineCount: 1,
+            width: nil,
+            lines: [
+                PlacedLine(
+                    width: 40,
+                    clusters: [GlyphRange(run: 0, first: 0, count: 1), GlyphRange(run: 0, first: 1, count: 1)]
+                )
+            ],
             runs: [
                 GlyphRun(
                     source: 0,
@@ -40,7 +46,8 @@ struct TypesetterTests {
                     glyphs: [glyph("a", 0, 32), glyph("b", 20, 32)]
                 )
             ],
-            background: nil
+            background: nil,
+            align: .left
         ))
     }
 

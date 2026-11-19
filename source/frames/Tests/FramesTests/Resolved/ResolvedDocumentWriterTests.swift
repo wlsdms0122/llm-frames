@@ -174,11 +174,14 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "title": {
                 "size": [38.25, 29.25],
+                "width": null,
                 "background": {
                   "color": "#ED2929FF",
                   "padding": [9, 4.5],
                   "radius": 6.75
                 },
+                "align": "left",
+                "lines": null,
                 "runs": [
                   {
                     "file": "/System/Apple SD Gothic Neo.ttc",
