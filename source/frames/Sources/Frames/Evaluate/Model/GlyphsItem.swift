@@ -5,21 +5,25 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Shaped glyphs and their background in the text's own box of `size`.
+// Shaped glyphs and their background in the text's own box of `size`. `layer` is nil for an item that draws every step,
+// or the one step a unit's item draws.
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
     package let runs: [DrawnGlyphRun]
+    package let layer: GlyphLayer?
     package let background: GlyphBackground?
 
     // MARK: - Initializer
     package init(
         size: Size,
         runs: [DrawnGlyphRun],
+        layer: GlyphLayer? = nil,
         background: GlyphBackground?
     ) {
         self.size = size
         self.runs = runs
+        self.layer = layer
         self.background = background
     }
 
@@ -56,6 +60,28 @@ package struct GlyphsItem: Equatable, Sendable {
                     )
                 }
             }
+        )
+    }
+
+    // A unit's item of `layer` from the whole title's `item`: the unit's `glyphs` in their runs and the pieces its
+    // `parts` name, with no background. A run the unit has neither glyphs nor parts of is left out.
+    init(
+        carrying glyphs: [GlyphRange],
+        parts: [UnitPart],
+        of item: GlyphsItem,
+        layer: GlyphLayer
+    ) {
+        self.init(
+            size: item.size,
+            runs: item.runs.indices.compactMap { index in
+                let ranges = glyphs.filter { $0.run == index }
+                let carried = parts.filter { $0.run == index }
+                guard !ranges.isEmpty || !carried.isEmpty else { return nil }
+
+                return item.runs[index].carrying(glyphs: ranges, parts: carried)
+            },
+            layer: layer,
+            background: nil
         )
     }
 

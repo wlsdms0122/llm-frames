@@ -101,6 +101,7 @@ package struct DisplayListWriter: Sendable {
             return [
                 JSONMember(key: "size", value: values.size(glyphs.size)),
                 JSONMember(key: "runs", value: values.drawnRuns(glyphs.runs)),
+                JSONMember(key: "layer", value: glyphs.layer.map { .string($0.rawValue) } ?? .null),
                 JSONMember(key: "background", value: background ?? .null)
             ]
 

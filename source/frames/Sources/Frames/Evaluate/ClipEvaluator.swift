@@ -17,17 +17,20 @@ struct ClipEvaluator: Sendable {
 
     // MARK: - Public
     // `picture` is a media clip's picture at the time, and nil for any other clip. `trackMatte` is the clip's track
-    // matte at the time, which cuts its items after its masks.
+    // matte at the time, which cuts its items after its masks. `seed` is the seed of the list the items are drawn in,
+    // which a list nested for a title's units takes.
     func items(
         of clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
         trackMatte: ItemTrackMatte?,
+        seed: Int,
         at time: Double
     ) -> [DisplayItem] {
         let mask = masks(of: clip, in: space, at: time)
 
-        return drawn(clip, in: space, picture: picture, at: time).map { $0.cut(by: mask, trackMatte: trackMatte) }
+        return drawn(clip, in: space, picture: picture, seed: seed, at: time)
+            .map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
     // The map from the space the clip gives its children to output pixels: a title's box at the time, a media clip's
@@ -80,6 +83,7 @@ struct ClipEvaluator: Sendable {
         _ clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
+        seed: Int,
         at time: Double
     ) -> [DisplayItem] {
         let sample = ClipSample(clip: clip, at: time)
@@ -90,7 +94,7 @@ struct ClipEvaluator: Sendable {
             guard let box = clip.box else { return [] }
 
             let glyphs = GlyphsItem(text: text, at: time)
-            return [boxItem(
+            let item = boxItem(
                 of: clip,
                 box: box,
                 drawn: text.box(at: time),
@@ -98,6 +102,19 @@ struct ClipEvaluator: Sendable {
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
+                at: time
+            )
+            guard let schedule = sample.schedule, let units = text.units else { return [item] }
+
+            return [group(
+                of: clip,
+                text: text,
+                units: units,
+                title: item,
+                glyphs: glyphs,
+                schedule: schedule,
+                in: space,
+                seed: seed,
                 at: time
             )]
 
@@ -133,6 +150,67 @@ struct ClipEvaluator: Sendable {
         case let .adjustment(filter):
             return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
         }
+    }
+
+    // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
+    // the title's opacity and blend, and its masks and track matte once they cut it, so its units do not show through
+    // each other. Inside, every item is in `title`'s box and takes its transform: the background as it is, and each
+    // unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. The loop
+    // plays only while every unit rests, so `title`'s reveal, the loop's, cuts every item in the title's box.
+    private func group(
+        of clip: ResolvedClip,
+        text: ResolvedText,
+        units: [PlacedUnit],
+        title item: DisplayItem,
+        glyphs: GlyphsItem,
+        schedule: UnitSchedule,
+        in space: ClipSpace,
+        seed: Int,
+        at time: Double
+    ) -> DisplayItem {
+        let origin = ItemOrigin(clip: clip)
+        let sampler = UnitSampler()
+        let cut = { (rectangle: Rectangle) -> Rectangle in
+            guard let reveal = item.reveal else { return rectangle }
+
+            return reveal.intersection(rectangle) ?? Rectangle(x: rectangle.x, y: rectangle.y, width: 0, height: 0)
+        }
+        let unitItems = units.indices.map { index in
+            let box = text.unitBox(of: index, at: time)
+            let sample = sampler.unit(index, of: clip.animation, schedule: schedule, at: time)
+            let presentation = ItemPresentation(area: box, opacity: 1, motion: sample.motion, carriedBy: item.transform)
+            let parts = text.parts(of: index, at: time)
+            let reveal = cut(sample.reveal.rectangle(wiping: box, from: sample.revealFrom) ?? box)
+
+            return GlyphLayer.allCases.map { layer in
+                DisplayItem(
+                    transform: presentation.transform,
+                    opacity: presentation.opacity,
+                    reveal: reveal,
+                    content: .glyphs(GlyphsItem(carrying: units[index].glyphs, parts: parts, of: glyphs, layer: layer)),
+                    origin: origin
+                )
+            }
+        }
+        let background = DisplayItem(
+            transform: item.transform,
+            reveal: item.reveal,
+            content: .glyphs(GlyphsItem(size: glyphs.size, runs: [], background: glyphs.background)),
+            origin: origin
+        )
+        let passes = GlyphLayer.allCases.indices.flatMap { layer in unitItems.map { $0[layer] } }
+        let list = DisplayList(
+            size: Size(width: space.frame.width, height: space.frame.height),
+            background: Color(written: "#00000000"),
+            seed: seed,
+            items: [background] + passes
+        )
+
+        return DisplayItem(
+            opacity: item.opacity,
+            blend: item.blend,
+            content: .picture(PictureItem(source: .displayList(list), rectangle: space.frame, destination: space.frame))
+        )
     }
 
     // `drawn` is the item's own box at the time, in the clip's box at its placed size, and `receiver` what the item

@@ -151,7 +151,8 @@ struct DisplayListReaderTests {
             stroke: PathStroke(width: 2.5, color: Color(written: "#FFFFFF80"), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
             trim: Trim(start: 0.75, end: 0.25),
             shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
-        )))
+        ))),
+        DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], layer: .strokes, background: nil)))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -473,7 +474,8 @@ struct DisplayListReaderTests {
             (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter, hue, saturation, color, luminosity"#),
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
-            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#)
+            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
+            (#""layer": "strokes""#, #""layer": "glow""#, #"items[10].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#)
         ]
     )
     func refusesUnreadableMember(

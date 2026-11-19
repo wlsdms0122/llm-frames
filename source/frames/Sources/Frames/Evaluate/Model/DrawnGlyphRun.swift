@@ -110,5 +110,48 @@ package struct DrawnGlyphRun: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The run as a unit's item holds it: the glyphs of `glyphs`, ranges of this run, and the highlight and underline
+    // pieces `parts` name, each whole, with its band the part's span cut to the rectangle drawn.
+    func carrying(
+        glyphs ranges: [GlyphRange],
+        parts: [UnitPart]
+    ) -> DrawnGlyphRun {
+        DrawnGlyphRun(
+            font: font,
+            face: face,
+            size: size,
+            color: color,
+            stroke: stroke,
+            highlight: highlight.flatMap { highlight in
+                parts.isEmpty
+                    ? nil
+                    : DrawnHighlight(
+                        rects: parts.map { highlight.rects[$0.piece] },
+                        radius: highlight.radius,
+                        color: highlight.color,
+                        bands: parts.map { band(of: $0, across: highlight.rects[$0.piece]) }
+                    )
+            },
+            underline: underline.flatMap { underline in
+                parts.isEmpty
+                    ? nil
+                    : DrawnUnderline(
+                        rects: parts.map { underline.rects[$0.piece] },
+                        color: underline.color,
+                        bands: parts.map { band(of: $0, across: underline.rects[$0.piece]) }
+                    )
+            },
+            glyphs: ranges.flatMap { range in glyphs[range.first..<range.first + range.count] }
+        )
+    }
+
     // MARK: - Private
+    private func band(
+        of part: UnitPart,
+        across rect: Rectangle
+    ) -> ClosedRange<Double> {
+        let start = min(max(part.span.lowerBound, rect.x), rect.maxX)
+
+        return start...max(start, min(part.span.upperBound, rect.maxX))
+    }
 }

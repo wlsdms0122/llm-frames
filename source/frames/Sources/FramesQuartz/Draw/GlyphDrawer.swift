@@ -11,7 +11,8 @@ import Frames
 
 // Draws a glyphs item in its text's own box: the background, then every run's highlight rectangles in run order, then
 // every run's underline rectangles, then the outline of every glyph of every run with a stroke, then every glyph's fill,
-// so no stroke covers a fill. Glyphs are drawn at their written baseline origins and shaped no further.
+// so no stroke covers a fill. An item of a layer draws only that step and no background. Glyphs are drawn at their
+// written baseline origins and shaped no further.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -26,21 +27,24 @@ struct GlyphDrawer {
         _ item: GlyphsItem,
         in context: CGContext
     ) throws {
-        if let background = item.background {
+        let draws = { (layer: GlyphLayer) in item.layer == nil || item.layer == layer }
+
+        if item.layer == nil, let background = item.background {
             context.addPath(PathOutline(.rect(background.rectangle, radius: background.radius)).path)
             context.setFillColor(background.color.cgColor)
             context.fillPath()
         }
-        for run in item.runs {
+        for run in item.runs where draws(.highlights) {
             guard let highlight = run.highlight else { continue }
 
             fill(highlight.rects, radius: highlight.radius, color: highlight.color, bands: highlight.bands, in: context)
         }
-        for run in item.runs {
+        for run in item.runs where draws(.underlines) {
             guard let underline = run.underline else { continue }
 
             fill(underline.rects, radius: 0, color: underline.color, bands: underline.bands, in: context)
         }
+        guard draws(.strokes) || draws(.fills) else { return }
 
         let runs = try item.runs.map { run in
             (run: run, font: try fonts.font(file: run.font.path, face: run.face, size: run.size))
@@ -50,7 +54,7 @@ struct GlyphDrawer {
 
             strokes.append(stroke)
         }
-        for stroke in strokes {
+        for stroke in strokes where draws(.strokes) {
             // One path for every outline of the runs in one stroke, a line's and the next's, so strokes that cross
             // are drawn once.
             let outlines = CGMutablePath()
@@ -71,7 +75,7 @@ struct GlyphDrawer {
             context.strokePath()
         }
 
-        for (run, font) in runs {
+        for (run, font) in runs where draws(.fills) {
             let glyphs = run.glyphs.map { CGGlyph($0.id) }
             // Core Text draws upright in y-up coordinates, so the run is drawn with y turned back up.
             let positions = run.glyphs.map { CGPoint(x: $0.x, y: -$0.y) }
@@ -85,7 +89,9 @@ struct GlyphDrawer {
     }
 
     // MARK: - Private
-    // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands.
+    // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands. A band's end
+    // inside the rectangle, where two units' parts meet, is cut aliased, so each pixel on it goes whole to one part and
+    // no seam shows between them; an end at the rectangle's own edge cuts nothing, keeping that edge antialiased.
     private func fill(
         _ rects: [Rectangle],
         radius: Double,
@@ -97,12 +103,13 @@ struct GlyphDrawer {
             context.saveGState()
             if let bands, index < bands.count {
                 let band = bands[index]
-                context.clip(to: CGRect(
-                    x: band.lowerBound,
-                    y: rect.y,
-                    width: band.upperBound - band.lowerBound,
-                    height: rect.height
-                ))
+                let margin = rect.width + rect.height
+                let start = band.lowerBound > rect.x ? band.lowerBound : rect.x - margin
+                let right = rect.x + rect.width
+                let end = band.upperBound < right ? band.upperBound : right + margin
+                context.setShouldAntialias(false)
+                context.clip(to: CGRect(x: start, y: rect.y - margin, width: end - start, height: rect.height + margin * 2))
+                context.setShouldAntialias(true)
             }
             context.addPath(PathOutline(.rect(rect, radius: radius)).path)
             context.setFillColor(color.cgColor)
