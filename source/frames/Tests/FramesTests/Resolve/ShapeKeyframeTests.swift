@@ -136,19 +136,19 @@ struct ShapeKeyframeTests {
     }
 
     @Test(
-        "a keyframe of a static leaf or of a value off, null for an object, and a leaf written statically and in every keyframe stop",
+        "a keyframe of a static leaf or of a value off, null for an object, and a leaf written statically and in every keyframe stop, a keyframe's value naming the keyframe",
         arguments: [
             (
-                #"{ "at": 0, "stroke": { "cap": "round" } }, { "at": 1, "stroke": { "width": 2 } }"#,
-                #"clips[0].stroke.cap (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"#
+                #"{ "at": 0, "stroke": { "cap": "round" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
+                #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"#
             ),
             (
                 ##"{ "at": 0, "fill": false }, { "at": 1, "fill": "#FFFFFF" }"##,
-                #"clips[0].fill (keyframe): false or "none" turns a value off and is written on the clip, not in a keyframe"#
+                #"clips[0].keyframes[0].fill (keyframe): false or "none" turns a value off and is written on the clip, not in a keyframe"#
             ),
             (
                 #"{ "at": 0, "stroke": null }, { "at": 1, "stroke": { "width": 2 } }"#,
-                #"clips[0].stroke (keyframe): null stands for a leaf, not for an object or a list"#
+                #"clips[0].keyframes[0].stroke (keyframe): null stands for a leaf, not for an object or a list"#
             ),
             (
                 #"{ "at": 0, "shadow": { "radius": 2 } }, { "at": 1, "shadow": { "radius": 4 } }"#,
@@ -156,11 +156,11 @@ struct ShapeKeyframeTests {
             ),
             (
                 #"{ "at": 0, "stroke": { "width": 0 } }"#,
-                #"clips[0].stroke.width: 0.0 is outside the values this leaf takes"#
+                #"clips[0].keyframes[0].stroke.width: 0.0 is outside the values this leaf takes"#
             ),
             (
                 ##"{ "at": 0, "fill": "ink" }, { "at": 1, "fill": "#FFFFFF" }"##,
-                #"clips[0].fill (rect): colour "ink" is not in colors"#
+                #"clips[0].keyframes[0].fill (rect): colour "ink" is not in colors"#
             )
         ]
     )

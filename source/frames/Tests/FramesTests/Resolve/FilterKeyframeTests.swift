@@ -250,21 +250,21 @@ struct FilterKeyframeTests {
     }
 
     @Test(
-        "a keyframe that writes a preset, an op, a LUT, none or a list of another length stops",
+        "a keyframe that writes a preset, an op, a LUT, none or a list of another length stops, naming the keyframe",
         arguments: [
-            (#""mine/grade""#, #""soften""#, "storyline[0].filter (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"),
-            (#""mine/grade""#, #"{ "op": "blur", "radius": 2 }"#, "storyline[0].filter (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"),
+            (#""mine/grade""#, #""soften""#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"),
+            (#""mine/grade""#, #"{ "op": "blur", "radius": 2 }"#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"),
             (
                 #"{ "op": "lut", "file": "/abs/look.cube", "amount": 1 }"#,
                 #"{ "file": "/abs/other.cube" }"#,
-                "storyline[0].filter.file (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+                "storyline[0].keyframes[0].filter.file (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
             ),
             (
                 #""mine/grade""#,
                 #""none""#,
-                #"storyline[0].filter (keyframe): false or "none" turns a value off and is written on the clip, not in a keyframe"#
+                #"storyline[0].keyframes[0].filter (keyframe): false or "none" turns a value off and is written on the clip, not in a keyframe"#
             ),
-            (#"["mine/grade", "frames/warm"]"#, #"[ { "mix": 0 } ]"#, "storyline[0].filter (keyframe): lists of different lengths: 2, 1")
+            (#"["mine/grade", "frames/warm"]"#, #"[ { "mix": 0 } ]"#, "storyline[0].keyframes[0].filter (keyframe): lists of different lengths: 2, 1")
         ]
     )
     func refusesStaticKeyframe(

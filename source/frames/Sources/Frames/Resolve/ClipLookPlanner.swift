@@ -54,7 +54,8 @@ struct ClipLookPlanner: Sendable {
         let below = style.flatMap(theme.value(at:)).map { reader.value(of: $0, as: structure) }
         let (written, keyframes) = read(property, as: structure)
 
-        let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: place)
+        let lookPlace = LookPlace(clip: self.place, key: key)
+        let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: lookPlace)
         guard let merged = try merger.merge([below, own], as: structure, place: place), merged != .off else {
             return .off
         }
@@ -79,7 +80,7 @@ struct ClipLookPlanner: Sendable {
             keyframes: keyframes,
             as: structure,
             instant: instant,
-            place: place,
+            place: lookPlace,
             leaf: leaf(_:kind:place:)
         )
     }
@@ -92,9 +93,9 @@ struct ClipLookPlanner: Sendable {
         over merged: LookValue,
         as structure: ValueStructure
     ) throws -> TimedValue {
-        let place = self.place.appending(key: key)
+        let lookPlace = LookPlace(clip: place, key: key)
         let (written, keyframes) = read(property, as: structure)
-        _ = try builder.ownLayer(written: merged, keyframes: keyframes, as: structure, place: place)
+        _ = try builder.ownLayer(written: merged, keyframes: keyframes, as: structure, place: lookPlace)
         guard merged != .off else { return .off }
 
         return try builder.timed(
@@ -103,7 +104,7 @@ struct ClipLookPlanner: Sendable {
             keyframes: keyframes,
             as: structure,
             instant: instant,
-            place: place,
+            place: lookPlace,
             leaf: leaf(_:kind:place:)
         )
     }

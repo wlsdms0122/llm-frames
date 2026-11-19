@@ -8,8 +8,8 @@
 // Timing, the second operation after the look merge. `ownLayer` makes the clip's own layer, its static value with the
 // structure its keyframes give, which then merges over the look; `timed` times each leaf over the merged value: a leaf
 // joins only the keyframes that write it, `null` there is the merged value's, and a leaf no keyframe writes is the
-// merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence time,
-// and `place` is where the clip writes the key.
+// merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence time.
+// A stop on a value a keyframe writes names that keyframe, and one on the static value the clip's key.
 struct TimedValueBuilder: Sendable {
     // MARK: - Property
     private let merger = LookMerger()
@@ -23,15 +23,16 @@ struct TimedValueBuilder: Sendable {
         written: LookValue?,
         keyframes: [PropertyKeyframe<LookValue>],
         as structure: ValueStructure,
-        place: Place
+        place: LookPlace
     ) throws -> LookValue? {
         var layer = written
         for keyframe in keyframes {
-            let skeleton = try self.skeleton(of: keyframe.value, as: structure, place: place)
+            let keyframePlace = place.keyframe(keyframe.index)
+            let skeleton = try self.skeleton(of: keyframe.value, as: structure, place: keyframePlace)
             if let layer {
-                try checkAgreement(layer, skeleton, place: place)
+                try checkAgreement(layer, skeleton, place: keyframePlace)
             }
-            layer = try merger.merge(skeleton, layer ?? .unset, as: structure, place: place)
+            layer = try merger.merge(skeleton, layer ?? .unset, as: structure, place: keyframePlace)
         }
 
         return layer
@@ -43,7 +44,7 @@ struct TimedValueBuilder: Sendable {
         keyframes: [PropertyKeyframe<LookValue>],
         as structure: ValueStructure,
         instant: Double,
-        place: Place,
+        place: LookPlace,
         leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
     ) throws -> TimedValue {
         switch (merged, structure) {
@@ -54,14 +55,14 @@ struct TimedValueBuilder: Sendable {
             return try track(merged, written: written, keyframes: keyframes, kind: kind, instant: instant, place: place, leaf: leaf)
 
         case let (.leaf(value), _):
-            if case .leaf = structure, keyframes.contains(where: { $0.value != .unset }) {
-                throw LookError.keyframedStatic(place: place)
+            if case .leaf = structure, let keyframe = keyframes.first(where: { $0.value != .unset }) {
+                throw LookError.keyframedStatic(place: place.keyframe(keyframe.index))
             }
             return .fixed(value)
 
         case let (.object(members), _):
-            if keyframes.contains(where: { $0.value == .unset }) {
-                throw LookError.nullStructure(place: place)
+            if let keyframe = keyframes.first(where: { $0.value == .unset }) {
+                throw LookError.nullStructure(place: place.keyframe(keyframe.index))
             }
 
             // Keys go in the order the structure declares them, so a value is written the same whatever layer gave it.
@@ -143,30 +144,31 @@ struct TimedValueBuilder: Sendable {
         keyframes: [PropertyKeyframe<LookValue>],
         kind: LeafKind,
         instant: Double,
-        place: Place,
+        place: LookPlace,
         leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
     ) throws -> TimedValue {
         guard !keyframes.isEmpty else {
             guard case let .leaf(value) = merged else { return .off }
 
-            return .track([Keyframe(at: instant, value: try leaf(value, kind, place))])
+            return .track([Keyframe(at: instant, value: try leaf(value, kind, place.written))])
         }
 
         if case .leaf = written, keyframes.allSatisfy({ $0.value != .unset }) {
-            throw LookError.staticAndKeyframed(place: place)
+            throw LookError.staticAndKeyframed(place: place.written)
         }
 
         let values = try keyframes.map { keyframe -> Keyframe<LeafValue> in
+            let keyframePlace = place.keyframe(keyframe.index)
             let json: JSONValue
             switch (keyframe.value, merged) {
             case let (.leaf(value), _), let (.unset, .leaf(value)):
                 json = value
 
             default:
-                throw LookError.nullWithoutValue(place: place)
+                throw LookError.nullWithoutValue(place: keyframePlace)
             }
 
-            let value = try leaf(json, kind, place)
+            let value = try leaf(json, kind, keyframePlace)
             let numbers: [Double] = switch value {
             case let .number(number): [number]
             case let .numbers(numbers): numbers
@@ -175,7 +177,7 @@ struct TimedValueBuilder: Sendable {
             // A leaf two keyframes or more write is one end of a change, so it may take any value its samples take.
             let fits = keyframes.count > 1 ? kind.domain.contains : kind.domain.isSeen
             if let outside = numbers.first(where: { !fits($0) }) {
-                throw LookError.outsideDomain(place: place, value: outside)
+                throw LookError.outsideDomain(place: keyframePlace, value: outside)
             }
 
             return Keyframe(at: keyframe.at, value: value, ease: keyframe.ease)

@@ -15,7 +15,7 @@ struct TimedValueBuilderTests {
     private let sut = TimedValueBuilder()
     private let reader = LookReader()
     private let merger = LookMerger()
-    private let place = Place.root.appending(key: "stroke")
+    private let place = LookPlace(clip: Place.root.appending(key: "clip"), key: "stroke")
 
     // MARK: - Initializer
     // MARK: - Test
@@ -36,17 +36,17 @@ struct TimedValueBuilderTests {
         #expect(sampled["width"]?.number == 3)
     }
 
-    @Test("a static leaf, false or null for an object in a keyframe stops")
+    @Test("a static leaf, false or null for an object in a keyframe stops, naming the keyframe")
     func refusesStructureInKeyframe() throws {
         // Given
         let cap = try keyframes([(0, ##"{ "cap": "round" }"##)])
         let off = try keyframes([(0, "false")])
 
         // When, Then
-        #expect(throws: LookError.keyframedStatic(place: place.appending(key: "cap"))) {
+        #expect(throws: LookError.keyframedStatic(place: place.keyframe(0).appending(key: "cap"))) {
             try sut.ownLayer(written: nil, keyframes: cap, as: LookStructureTable.stroke, place: place)
         }
-        #expect(throws: LookError.keyframedOff(place: place)) {
+        #expect(throws: LookError.keyframedOff(place: place.keyframe(0))) {
             try sut.ownLayer(written: nil, keyframes: off, as: LookStructureTable.stroke, place: place)
         }
     }
@@ -61,11 +61,11 @@ struct TimedValueBuilderTests {
 
         // When
         let own = try sut.ownLayer(written: nil, keyframes: colors, as: structure, place: place)
-        let merged = try merger.merge([style, own], as: structure, place: place)
+        let merged = try merger.merge([style, own], as: structure, place: place.written)
 
         // Then
         #expect(merged == .form("color", .unset))
-        #expect(throws: LookError.formsDiffer(place: place, forms: ["color", "linear"])) {
+        #expect(throws: LookError.formsDiffer(place: place.keyframe(0), forms: ["color", "linear"])) {
             try sut.ownLayer(written: .form("color", .leaf(.string("#FF0000"))), keyframes: gradient, as: structure, place: place)
         }
     }
@@ -77,19 +77,19 @@ struct TimedValueBuilderTests {
         let written = reader.value(of: try Fixture.json(##"{ "width": 4 }"##), as: LookStructureTable.stroke)
 
         // When, Then
-        #expect(throws: LookError.staticAndKeyframed(place: place.appending(key: "width"))) {
+        #expect(throws: LookError.staticAndKeyframed(place: place.written.appending(key: "width"))) {
             try timed(style: nil, written: written, keyframes: keyframes)
         }
     }
 
-    @Test("a width of 0 is a domain value between two keyframes, and stops in a single keyframe")
+    @Test("a width of 0 is a domain value between two keyframes, and stops in a single keyframe, naming it")
     func checksDomain() throws {
         // Given
         let single = try keyframes([(0, ##"{ "width": 0 }"##)])
         let style = try Fixture.json(##"{ "width": 6 }"##)
 
         // When, Then
-        #expect(throws: LookError.outsideDomain(place: place.appending(key: "width"), value: 0)) {
+        #expect(throws: LookError.outsideDomain(place: place.keyframe(0).appending(key: "width"), value: 0)) {
             try timed(style: style, written: nil, keyframes: single)
         }
     }
@@ -126,7 +126,7 @@ struct TimedValueBuilderTests {
     ) throws -> TimedValue {
         let structure = LookStructureTable.stroke
         let own = try sut.ownLayer(written: written, keyframes: keyframes, as: structure, place: place)
-        let merged = try #require(try merger.merge([style.map { reader.value(of: $0, as: structure) }, own], as: structure, place: place))
+        let merged = try #require(try merger.merge([style.map { reader.value(of: $0, as: structure) }, own], as: structure, place: place.written))
 
         return try sut.timed(merged, written: written, keyframes: keyframes, as: structure, instant: 0, place: place) { json, kind, _ in
             switch kind.form {
