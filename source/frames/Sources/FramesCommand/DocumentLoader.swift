@@ -35,13 +35,14 @@ struct DocumentLoader: Sendable {
         arguments: String?,
         command: String
     ) throws -> DocumentInput {
-        let document = try JSONReader().read(try data(of: DocumentArgument(argument, command: command), command: command))
+        let source = try DocumentArgument(argument, command: command)
+        let document = try JSONReader().read(try data(of: source, command: command))
         let file = try arguments.map(argumentFile)
         guard try checker.version(of: document, theme: theme, arguments: file) == nil else {
             return .resolved(try reader.read(document))
         }
 
-        return .document(document, theme: theme, arguments: file)
+        return .document(document, pack: source.pack, theme: theme, arguments: file)
     }
 
     // MARK: - Private

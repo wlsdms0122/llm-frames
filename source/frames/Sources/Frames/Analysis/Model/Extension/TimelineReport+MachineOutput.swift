@@ -49,7 +49,9 @@ extension TimelineReport {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "entrance", value: output(animation.entrance, length: "seconds")),
                 JSONMember(key: "loop", value: output(animation.loop, length: "period")),
-                JSONMember(key: "exit", value: output(animation.exit, length: "seconds"))
+                JSONMember(key: "exit", value: output(animation.exit, length: "seconds")),
+                JSONMember(key: "by", value: animation.units.map { .string($0.by.rawValue) } ?? .null),
+                JSONMember(key: "stagger", value: animation.units.map { .number($0.stagger) } ?? .null)
             ]))
         }
         let members = [

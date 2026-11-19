@@ -26,25 +26,20 @@ struct MergedThemeValueTests {
         // Then
         #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
-            pack: nil,
             weight: .regular,
-            size: 40,
-            color: Color(written: "#FFFFFF"),
-            stroke: nil
+            size: 40
         ))
         #expect(paragraph == ParagraphStyle(lineHeight: 50, background: nil, align: .left, lines: nil))
     }
 
-    @Test("a background without colour, padding or radius, and a stroke without colour, take the plain values")
-    func defaultsBackgroundAndStroke() throws {
+    @Test("a background without colour, padding or radius takes the plain values")
+    func defaultsBackground() throws {
         // Given
         let sut = try theme(#"""
-            { "colors": { "background": "#112233", "text": "#445566" },
-              "styles": { "caption": { "size": 40, "background": {}, "stroke": { "width": 4 } } } }
+            { "colors": { "background": "#112233" }, "styles": { "caption": { "size": 40, "background": {} } } }
             """#)
 
         // When
-        let character = sut.characterStyle(named: "caption", scale: 1)
         let paragraph = sut.paragraphStyle(named: "caption", scale: 1)
 
         // Then
@@ -53,10 +48,9 @@ struct MergedThemeValueTests {
             padding: Size(width: 0, height: 0),
             radius: 0
         ))
-        #expect(character.stroke == TextStroke(width: 4, color: Color(written: "#445566")))
     }
 
-    @Test("a written style keeps its values, colours by name or by value, with its lengths times the scale")
+    @Test("a written style keeps its values, with its lengths times the scale")
     func readsWrittenStyle() throws {
         // Given
         let sut = try theme(#"""
@@ -73,11 +67,8 @@ struct MergedThemeValueTests {
         // Then
         #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
-            pack: nil,
             weight: .bold,
-            size: 20,
-            color: Color(written: "#FFFFFF"),
-            stroke: TextStroke(width: 2, color: Color(written: "#00000080"))
+            size: 20
         ))
         #expect(paragraph == ParagraphStyle(
             lineHeight: 30,
@@ -125,10 +116,10 @@ struct MergedThemeValueTests {
         ])
 
         // When
-        let style = sut.characterStyle(named: "subtitle", scale: 1)
+        let style = sut.style(named: "subtitle")
 
         // Then
-        #expect(style.stroke == nil)
+        #expect(style["stroke"] == .bool(false))
     }
 
     @Test("a style's fonts are looked for in the pack of the theme that wrote the font list")
@@ -141,10 +132,54 @@ struct MergedThemeValueTests {
 
         // When
         let style = sut.characterStyle(named: "label", scale: 1)
+        let origin = sut.fontList(ofStyle: "label")
 
         // Then
         #expect(style.families == ["Inter", "Apple SD Gothic Neo"])
-        #expect(style.pack == "shorts")
+        #expect(origin == FontListOrigin(place: Place(components: [.key("font")]), kind: "theme", pack: "shorts"))
+    }
+
+    @Test("a style's typography is read with its size times the scale")
+    func readsTypography() throws {
+        // Given
+        let sut = try theme(#"""
+            { "styles": { "caption": { "size": 40, "font": ["Inter"], "weight": 300, "italic": true, "tracking": 40,
+                                       "kerning": "none", "features": { "tnum": 1, "liga": 0 }, "baselineShift": 8,
+                                       "highlight": { "padding": [2, 8], "radius": 4 },
+                                       "underline": { "width": 2, "color": "accent" } } } }
+            """#)
+
+        // When
+        let character = sut.characterStyle(named: "caption", scale: 0.5)
+
+        // Then
+        #expect(character == CharacterStyle(
+            families: ["Inter"],
+            weight: FontWeight(300),
+            italic: true,
+            size: 20,
+            tracking: 40,
+            isKerned: false,
+            features: [FontFeature(tag: "tnum", value: 1), FontFeature(tag: "liga", value: 0)],
+            isHighlighted: true,
+            isUnderlined: true
+        ))
+        #expect(sut.fontList(ofStyle: "caption").place == Place(components: [.key("styles"), .key("caption"), .key("font")]))
+    }
+
+    @Test("`underline: true` is an underline, and a weight name is its number")
+    func readsUnderlineOn() throws {
+        // Given
+        let sut = try theme(#"{ "styles": { "caption": { "size": 40, "weight": "semibold", "underline": true } } }"#)
+
+        // When
+        let character = sut.characterStyle(named: "caption", scale: 1)
+
+        // Then
+        #expect(character.isUnderlined)
+        #expect(character.weight == FontWeight(600))
+        #expect(character.italic == false)
+        #expect(character.isKerned)
     }
 
     @Test("a style without a size stops when the theme is merged, unless a weaker theme gives it one")

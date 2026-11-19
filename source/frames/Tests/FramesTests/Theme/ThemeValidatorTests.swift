@@ -82,7 +82,7 @@ struct ThemeValidatorTests {
         ))
         let animationPlace = place.appending(key: "animation")
         #expect(defaults.titleAnimations == [
-            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")))
+            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")), by: nil, stagger: nil)
         ])
         #expect(defaults.shapeAnimation == .split(
             entrance: PresetInstance(name: "frames/wipe", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
@@ -143,6 +143,56 @@ struct ThemeValidatorTests {
         // Given
         let layer = ThemeLayer(
             value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "lines": 1 } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        try sut.checkKeys(of: layer)
+    }
+
+    @Test(
+        "a style's feature that is not a four-character tag, `kern`, or a setting that is not a whole number 0 or more stops",
+        arguments: [
+            (#"{ "kern": 0 }"#, "styles.note.features.kern (features): `kern` is set by `kerning`"),
+            (#"{ "lig": 1 }"#, "styles.note.features.lig (features): a feature tag is four printable ASCII characters"),
+            (#"{ "ligaa": 1 }"#, "styles.note.features.ligaa (features): a feature tag is four printable ASCII characters"),
+            (#"{ "liga": -1 }"#, "styles.note.features.liga (features): expected a whole number, 0 or more, found -1"),
+            (#"{ "liga": 0.5 }"#, "styles.note.features.liga (features): expected a whole number, 0 or more, found 0.5")
+        ]
+    )
+    func refusesBadFeatures(features: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "features": \#(features) } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test("a style's weight is a whole number from 100 to 900 or a weight name", arguments: ["50", "950", "450.5", #""heavy""#])
+    func refusesBadWeight(_ weight: String) throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "weight": \#(weight) } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+    }
+
+    @Test("a style's typography keys pass the key check")
+    func acceptsTypography() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"""
+                { "styles": { "note": { "size": 20, "font": ["Inter"], "weight": 350, "italic": true, "tracking": -20,
+                                        "kerning": "none", "features": { "ss01": 2 }, "baselineShift": -4,
+                                        "highlight": false, "underline": { "offset": 3 } } } }
+                """#),
             place: .root
         )
 

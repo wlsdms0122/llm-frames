@@ -58,7 +58,7 @@ extension ResolvedClip {
         let filter = try appearance.filter.pinningFiles(hashes: hashes)
 
         if let title = geometry.title {
-            return .title(try ResolvedText(layout: title, hashes: hashes))
+            return .title(try ResolvedText(plan: title, hashes: hashes))
         }
         if let shape = appearance.shape {
             return .shape(ResolvedShape(shape: shape, geometry: geometry, instant: plan.instant))

@@ -24,13 +24,13 @@ struct TimelineCommand: Command {
         _ options: TimelineOptions,
         in context: CommandContext
     ) throws {
-        let reporter = TimelineReporter(planner: context.planner)
         let report = switch try context.document(options.document, arguments: options.arguments, command: name) {
-        case let .document(document, theme, arguments):
-            try reporter.report(of: document, theme: theme, arguments: arguments)
+        case let .document(document, pack, theme, arguments):
+            try TimelineReporter(planner: context.planner(in: pack))
+                .report(of: document, theme: theme, arguments: arguments)
 
         case let .resolved(document):
-            reporter.report(of: document)
+            TimelineReporter(planner: context.planner(in: nil)).report(of: document)
         }
 
         context.output.write(options.isMachineOutput ? JSONWriter().write(report.machineOutput) : report.text + "\n")

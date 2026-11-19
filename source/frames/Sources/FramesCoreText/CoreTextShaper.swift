@@ -9,77 +9,73 @@ import CoreText
 import Foundation
 import Frames
 
-// The `coretext` shaping provider. A face is named by its PostScript name within its file. Runs are set as a CoreText
-// line sets them by default, kerned and with standard ligatures, and characters the face lacks fall back to the face
-// CoreText's cascade list finds on the machine.
+// The `coretext` shaping provider. A face is named by its PostScript name within its file, and its weight, width and
+// style are read from its OS/2 table. A run is set as a CoreText line sets it, with the feature settings given over
+// the font's defaults, in a font whose cascade list is the later faces given; characters none of them has fall back
+// to the face CoreText's own cascade finds on the machine for the first face, which follows its weight and slant.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
-    // The weight traits CoreText gives regular and bold faces, which the closest face of a family is chosen by.
-    private static let regularWeight = 0.0
-    private static let boldWeight = 0.4
-
-    // A face's distance from normal width, 1 when it is italic, since upright is asked for, its distance from the
-    // weight asked for, and its PostScript name.
-    private typealias Rank = (width: Double, style: Int, weight: Double, name: String)
+    // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9
+    // oblique.
+    private static let weightClassOffset = 4
+    private static let widthClassOffset = 6
+    private static let selectionOffset = 62
 
     // MARK: - Initializer
     package init() {}
 
     // MARK: - Public
     // MARK: - Private
-    // The face of the family with the width closest to normal, then upright, then the weight closest to the one asked
-    // for. Ties go to the PostScript name, so the same family always gives the same face whatever order CoreText lists
-    // them in.
-    private func closest(
-        among descriptors: [CTFontDescriptor],
-        family: String,
-        weight: FontWeight
-    ) -> CTFontDescriptor? {
-        let target = weight == .bold ? Self.boldWeight : Self.regularWeight
-        let candidates = descriptors.compactMap { descriptor -> (descriptor: CTFontDescriptor, rank: Rank)? in
-            guard
-                CTFontDescriptorCopyAttribute(descriptor, kCTFontFamilyNameAttribute) as? String == family,
-                let name = CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String,
-                let traits = CTFontDescriptorCopyAttribute(descriptor, kCTFontTraitsAttribute) as? [CFString: Any]
-            else {
-                return nil
-            }
-            let symbolic = CTFontSymbolicTraits(rawValue: traits[kCTFontSymbolicTrait] as? UInt32 ?? 0)
-            let width = traits[kCTFontWidthTrait] as? Double ?? 0
-            let faceWeight = traits[kCTFontWeightTrait] as? Double ?? 0
-
-            return (descriptor, (abs(width), symbolic.contains(.traitItalic) ? 1 : 0, abs(faceWeight - target), name))
-        }
-
-        return candidates.min { $0.rank < $1.rank }?.descriptor
-    }
-
     private func face(
         of font: CTFont,
         file: String
     ) -> FontFace {
         let unit = CTFontCreateCopyWithAttributes(font, 1, nil, nil)
+        let table = CTFontCopyTable(unit, CTFontTableTag(kCTFontTableOS2), []) as Data?
+        let isItalic = CTFontGetSymbolicTraits(unit).contains(.traitItalic)
+        let selection = table.flatMap { uint16(in: $0, at: Self.selectionOffset) }
+        let style: FontStyle = if let selection {
+            selection & 1 != 0 ? .italic : selection & (1 << 9) != 0 ? .oblique : .upright
+        } else {
+            isItalic ? .italic : .upright
+        }
 
         return FontFace(
             file: file,
             name: CTFontCopyPostScriptName(font) as String,
+            weight: FontWeight(table.flatMap { uint16(in: $0, at: Self.weightClassOffset) }.map(Int.init) ?? 400),
+            width: table.flatMap { uint16(in: $0, at: Self.widthClassOffset) }.map(Int.init) ?? 5,
+            style: style,
             ascent: Double(CTFontGetAscent(unit)),
-            descent: Double(CTFontGetDescent(unit))
+            descent: Double(CTFontGetDescent(unit)),
+            underlineOffset: -Double(CTFontGetUnderlinePosition(unit)),
+            underlineThickness: Double(CTFontGetUnderlineThickness(unit))
         )
     }
 
-    // The face a run was set in: the one asked for, or the one CoreText fell back to, which a renderer must find by
-    // its file.
+    private func uint16(
+        in table: Data,
+        at offset: Int
+    ) -> UInt16? {
+        guard table.count >= offset + 2 else { return nil }
+        let start = table.startIndex + offset
+
+        return UInt16(table[start]) << 8 | UInt16(table[start + 1])
+    }
+
+    // The face a run was set in: one of those asked for, or the one CoreText fell back to, which a renderer must find
+    // by its file.
     private func face(
         of run: CTRun,
-        asked face: FontFace
+        asked faces: [FontFace]
     ) throws -> FontFace {
-        guard let value = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] else { return face }
+        guard let value = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] else { return faces[0] }
         let font = value as! CTFont
-        guard CTFontCopyPostScriptName(font) as String != face.name else { return face }
-        guard let file = file(of: font) else {
-            throw ShapingError.fallbackWithoutFile(name: CTFontCopyPostScriptName(font) as String)
+        let name = CTFontCopyPostScriptName(font) as String
+        if let asked = faces.first(where: { $0.name == name }) {
+            return asked
         }
+        guard let file = file(of: font) else { throw ShapingError.fallbackWithoutFile(name: name) }
 
         return self.face(of: font, file: file)
     }
@@ -97,17 +93,42 @@ package struct CoreTextShaper: Sendable {
         }
     }
 
+    private func isOfFamily(
+        _ descriptor: CTFontDescriptor,
+        _ family: String
+    ) -> Bool {
+        CTFontDescriptorCopyAttribute(descriptor, kCTFontFamilyNameAttribute) as? String == family
+    }
+
     private func file(of font: CTFont) -> String? {
         (CTFontCopyAttribute(font, kCTFontURLAttribute) as? URL)?.path
     }
 
+    // Each face's descriptor carries the feature settings, so the faces of the cascade list are set with them too.
     private func font(
-        of face: FontFace,
-        size: Double
+        of faces: [FontFace],
+        size: Double,
+        features: [FontFeature]
     ) throws -> CTFont {
-        guard let named = descriptor(named: face.name, in: face.file) else { throw ShapingError.faceNotInFile(file: face.file, name: face.name) }
+        let settings = features.map { feature in
+            [kCTFontOpenTypeFeatureTag: feature.tag, kCTFontOpenTypeFeatureValue: feature.value] as CFDictionary
+        }
+        let descriptors = try faces.map { face in
+            guard let named = descriptor(named: face.name, in: face.file) else {
+                throw ShapingError.faceNotInFile(file: face.file, name: face.name)
+            }
 
-        return CTFontCreateWithFontDescriptor(named, size, nil)
+            return CTFontDescriptorCreateCopyWithAttributes(
+                named,
+                [kCTFontFeatureSettingsAttribute: settings] as CFDictionary
+            )
+        }
+        let first = CTFontDescriptorCreateCopyWithAttributes(
+            descriptors[0],
+            [kCTFontCascadeListAttribute: Array(descriptors.dropFirst())] as CFDictionary
+        )
+
+        return CTFontCreateWithFontDescriptor(first, size, nil)
     }
 
     // The index of the Unicode scalar each UTF-16 offset of `text` lies in.
@@ -120,21 +141,16 @@ package struct CoreTextShaper: Sendable {
 
 extension CoreTextShaper: ShapingProvider {
     // MARK: - Lifecycle
-    package func face(
+    // The family's faces may lie in several files, one weight each, so they are gathered from all of them.
+    package func faces(
         family: String,
-        weight: FontWeight,
         in files: [String]
-    ) -> FontFace? {
-        // The family's faces may lie in several files, one weight each, so the face is chosen among all of them.
-        let found = files.flatMap { file in descriptors(in: file).map { (file: file, descriptor: $0) } }
-        guard
-            let descriptor = closest(among: found.map(\.descriptor), family: family, weight: weight),
-            let file = found.first(where: { $0.descriptor === descriptor })?.file
-        else {
-            return nil
+    ) -> [FontFace] {
+        files.flatMap { file in
+            descriptors(in: file)
+                .filter { isOfFamily($0, family) }
+                .map { face(of: CTFontCreateWithFontDescriptor($0, 1, nil), file: file) }
         }
-
-        return face(of: CTFontCreateWithFontDescriptor(descriptor, 1, nil), file: file)
     }
 
     package func face(
@@ -144,26 +160,31 @@ extension CoreTextShaper: ShapingProvider {
         descriptor(named: name, in: file).map { face(of: CTFontCreateWithFontDescriptor($0, 1, nil), file: file) }
     }
 
-    package func installedFace(
-        family: String,
-        weight: FontWeight
-    ) -> FontFace? {
+    package func installedFaces(family: String) -> [FontFace] {
         let wanted = CTFontDescriptorCreateWithAttributes([kCTFontFamilyNameAttribute: family] as CFDictionary)
         let mandatory = Set([kCTFontFamilyNameAttribute as String]) as CFSet
         let matches = CTFontDescriptorCreateMatchingFontDescriptors(wanted, mandatory) as? [CTFontDescriptor] ?? []
-        guard let descriptor = closest(among: matches, family: family, weight: weight) else { return nil }
-        let font = CTFontCreateWithFontDescriptor(descriptor, 1, nil)
 
-        return file(of: font).map { face(of: font, file: $0) }
+        return matches.filter { isOfFamily($0, family) }.compactMap { descriptor in
+            let font = CTFontCreateWithFontDescriptor(descriptor, 1, nil)
+            return file(of: font).map { face(of: font, file: $0) }
+        }
     }
 
     package func shape(
         _ text: String,
-        face: FontFace,
-        size: Double
+        faces: [FontFace],
+        size: Double,
+        features: [FontFeature],
+        weight: FontWeight,
+        italic: Bool
     ) throws -> [ShapedRun] {
-        let font = try font(of: face, size: size)
-        let attributes = [NSAttributedString.Key(kCTFontAttributeName as String): font]
+        let font = try font(of: faces, size: size, features: features)
+        var attributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String): font]
+        // CoreText kerns by the font's `kern` table whatever the feature settings say, and a kern of 0 turns that off.
+        if features.contains(FontFeature(tag: "kern", value: 0)) {
+            attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = 0
+        }
         let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
         let scalars = scalarIndices(of: text)
 
@@ -178,7 +199,7 @@ extension CoreTextShaper: ShapingProvider {
             CTRunGetAdvances(run, all, &advances)
             CTRunGetStringIndices(run, all, &offsets)
 
-            let runFace = try self.face(of: run, asked: face)
+            let runFace = try self.face(of: run, asked: faces)
             let shaped = (0..<count).map { index in
                 ShapedGlyph(
                     id: Int(glyphs[index]),

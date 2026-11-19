@@ -188,7 +188,7 @@ struct ThemeValidator: Sendable {
         case .none:
             []
 
-        case let .preset(instance):
+        case let .preset(instance, _, _):
             [instance]
 
         case let .split(entrance, exit):

@@ -36,8 +36,14 @@ enum ThemeKeyTable {
     static let style = ObjectTable(
         kind: "style",
         rules: [
+            KeyRule("font", .list(.name)),
             KeyRule("size", .number),
-            KeyRule("weight", .literal(["regular", "bold"])),
+            KeyRule("weight", .fontWeight),
+            KeyRule("italic", .bool),
+            KeyRule("tracking", .number),
+            KeyRule("kerning", .literal(["metrics", "none"])),
+            KeyRule("features", .fontFeatures),
+            KeyRule("baselineShift", .number),
             KeyRule("color", .color),
             KeyRule("lineHeight", .number),
             KeyRule("stroke", .oneOf([
@@ -61,12 +67,48 @@ enum ThemeKeyTable {
                     ]
                 ))
             ])),
+            KeyRule("highlight", .oneOf([
+                .exactly(.bool(false)),
+                .object(ObjectTable(
+                    kind: "highlight",
+                    rules: [
+                        KeyRule("color", .color),
+                        KeyRule("padding", .numbers(2)),
+                        KeyRule("radius", .number)
+                    ]
+                ))
+            ])),
+            KeyRule("underline", .oneOf([
+                .bool,
+                .object(ObjectTable(
+                    kind: "underline",
+                    rules: [
+                        KeyRule("width", .number),
+                        KeyRule("offset", .number),
+                        KeyRule("color", .color)
+                    ]
+                ))
+            ])),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number),
             KeyRule("align", .literal(["left", "center", "right"])),
             KeyRule("lines", .positiveInteger)
         ]
     )
+    // A title's `character` and `paragraph`: the keys of a text style it merges over its runs' styles and over its
+    // style's paragraph attributes.
+    static let character = ObjectTable(
+        kind: "character",
+        rules: style.rules.filter { characterKeys.contains($0.name) }
+    )
+    static let paragraph = ObjectTable(
+        kind: "paragraph",
+        rules: style.rules.filter { ["align", "lineHeight", "background"].contains($0.name) }
+    )
+    static let characterKeys = [
+        "font", "size", "weight", "italic", "tracking", "kerning", "features", "baselineShift", "color", "stroke",
+        "highlight", "underline"
+    ]
     static let defaults = ObjectTable(
         kind: "defaults",
         rules: [
@@ -79,9 +121,9 @@ enum ThemeKeyTable {
         kind: "animation defaults",
         rules: [
             KeyRule("title", titleAnimations),
-            KeyRule("shape", ChoiceKeyTable.animation),
-            KeyRule("media", ChoiceKeyTable.animation),
-            KeyRule("adjust", ChoiceKeyTable.animation)
+            KeyRule("shape", ChoiceKeyTable.wholeAnimation),
+            KeyRule("media", ChoiceKeyTable.wholeAnimation),
+            KeyRule("adjust", ChoiceKeyTable.wholeAnimation)
         ]
     )
     // A map's kind is not readable from its value type, so it is named on its own.

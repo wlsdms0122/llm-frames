@@ -68,4 +68,8 @@ indirect enum ValueType: Equatable, Sendable {
     case audioFilterChoice
     case filterOperation
     case audioOperation
+    // A whole number from 100 to 900 or the name of an OpenType weight class.
+    case fontWeight
+    // OpenType feature settings: four-character tags, `kern` aside, each to a whole number 0 or more.
+    case fontFeatures
 }

@@ -623,7 +623,7 @@ struct EvaluatorTests {
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
-        #expect(item.content == .glyphs(GlyphsItem(text: text)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, at: time)))
     }
 
     @Test(
@@ -728,7 +728,7 @@ struct EvaluatorTests {
         let item = try #require(list.items.last)
         #expect(paths.isEmpty)
         #expect([item.transform.a, item.transform.b, item.transform.c, item.transform.d] == [1, 0, 0, 1])
-        #expect(item.content == .glyphs(GlyphsItem(text: text)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, at: 1)))
     }
 
     @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")
@@ -1060,7 +1060,7 @@ struct EvaluatorTests {
         let adjustment = clip(
             .adjustment(.filter([.blur(radius: 2)])),
             storyline: 0,
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
 
@@ -1533,11 +1533,16 @@ struct EvaluatorTests {
 
     private func run() -> ResolvedGlyphRun {
         ResolvedGlyphRun(
+            source: 0,
             font: PinnedFile(path: "/abs/font.ttf", sha256: String(repeating: "0", count: 64)),
             face: "Font-Bold",
             size: 30,
-            color: white,
-            stroke: nil,
+            color: .track([Keyframe(at: 0, value: .color(white))]),
+            stroke: .off,
+            baselineShift: .off,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 8, y: 34)]
         )
     }

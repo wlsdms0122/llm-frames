@@ -26,16 +26,26 @@ enum ChoiceKeyTable {
     ])
     // A side of `{entrance, exit}` takes a preset as the whole choice does, without `{entrance, exit}` again.
     static let animationSide = ValueType.oneOf([.name, .object(presetWithArguments("animation choice"))])
+    // A clip's choice and a theme's title default may play by unit, which resolve allows on a title only.
     static let animation = ValueType.oneOf([
         .name,
-        .object(presetWithArguments("animation choice")),
         .object(ObjectTable(
             kind: "animation choice",
             rules: [
-                KeyRule("entrance", animationSide, isRequired: true),
-                KeyRule("exit", animationSide, isRequired: true)
-            ]
-        ))
+                KeyRule("preset", .name),
+                KeyRule("args", arguments),
+                KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
+                KeyRule("stagger", .nonNegativeNumber)
+            ],
+            group: KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)
+        )),
+        splitAnimation
+    ])
+    // A theme's default for shapes, media clips and adjustment clips, which have no units.
+    static let wholeAnimation = ValueType.oneOf([
+        .name,
+        .object(presetWithArguments("animation choice")),
+        splitAnimation
     ])
     static let filterKind = "filter choice"
     static let filter = ValueType.filterChoice
@@ -78,7 +88,7 @@ enum ChoiceKeyTable {
         case transition:
             .transition
 
-        case animation, animationSide:
+        case animation, wholeAnimation, animationSide:
             .animation
 
         case filter, filterPreset:
@@ -91,6 +101,14 @@ enum ChoiceKeyTable {
             nil
         }
     }
+
+    private static let splitAnimation = ValueType.object(ObjectTable(
+        kind: "animation choice",
+        rules: [
+            KeyRule("entrance", animationSide, isRequired: true),
+            KeyRule("exit", animationSide, isRequired: true)
+        ]
+    ))
 
     private static func presetWithArguments(_ kind: String) -> ObjectTable {
         ObjectTable(

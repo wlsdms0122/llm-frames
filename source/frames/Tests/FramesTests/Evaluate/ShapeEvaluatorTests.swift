@@ -502,7 +502,7 @@ struct ShapeEvaluatorTests {
             scale: scale.map { [Keyframe(at: 0, value: $0)] },
             rotation: rotation.map { [Keyframe(at: 0, value: $0)] },
             blend: "normal",
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }
 }

@@ -10,4 +10,26 @@ enum TextAlignment: String, Equatable, Sendable {
     case left
     case center
     case right
+
+    // MARK: - Property
+    // MARK: - Initializer
+    // MARK: - Public
+    // Where a line `width` wide starts inside `room`.
+    func offset(
+        of width: Double,
+        in room: Double
+    ) -> Double {
+        switch self {
+        case .left:
+            0
+
+        case .center:
+            (room - width) / 2
+
+        case .right:
+            room - width
+        }
+    }
+
+    // MARK: - Private
 }
