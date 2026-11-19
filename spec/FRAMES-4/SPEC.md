@@ -45,7 +45,7 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 | --- | --- |
 | a number (`opacity`, `rotation`, `radius`, `volume`, `pan`, a `width` or `height`) | per component: `a + (b - a) × e` |
 | `scale`, a number or `[sx, sy]` | per component, a number s taken as `[s, s]`, so a keyframe of one form may follow a keyframe of the other ([FRAMES-1](../FRAMES-1/SPEC.md)) |
-| a colour | per channel, as a number: red, green, blue and alpha, straight (not premultiplied), on their sRGB-encoded values from 0 to 1, the working space ([FRAMES-21](../FRAMES-21/SPEC.md)) |
+| a colour | per channel, as a number: red, green, blue and alpha, straight (not premultiplied), on their sRGB-encoded values from 0 to 1, the working space ([FRAMES-21](../FRAMES-21/SPEC.md)). A gradient's stops across space interpolate premultiplied instead ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | a value with leaves (a `stroke`, a `fill`, a `shadow`, a `border`, a `filter` or `adjust`) | leaf by leaf: each number and each colour as above, every other leaf the same in both keyframes. A filter interpolates its op lists op by op, parameter by parameter |
 | `timeRemap` | as a number: the media time shown moves from one key's value to the next along the ease. Two keys with the same value hold a frame, a lower next value plays backwards, and eased keys give speed ramps ([FRAMES-8](../FRAMES-8/SPEC.md)) |
 | a point, `[x, y]` | per component |
@@ -117,6 +117,6 @@ Each leaf of a value joining its own keyframes, as each property does: one key w
 
 Names that change between keyframes taken as a hold to the next keyframe, as After Effects treats a property it cannot interpolate: a changed `cap` or preset in a keyframe is more often a mistake than a cut, and a cut is written as a `step` ease or as two clips. It stops.
 
-Colours interpolated with premultiplied alpha, as CSS interpolates gradient colours: a keyframed colour is one colour at each instant, not a coverage, and straight channels are what After Effects and the renderers' gradient functions use by default. A fade to transparent keeps its colour's channels and changes its alpha.
+Keyframed colours interpolated with premultiplied alpha, as a gradient's stops are ([FRAMES-11](../FRAMES-11/SPEC.md)): a gradient spreads colour over space, where alpha is coverage, but a keyframed colour is one colour changing in time, and the channels each keyframe writes are the colours it passes through, as After Effects interpolates a colour property channel by channel. A fade to transparent is written with its own colour's channels and changes only its alpha.
 
 ## Notes

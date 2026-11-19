@@ -78,7 +78,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| stroke | `color, width, join, cap, start, end, dash, dashOffset` |
+| stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
 | radial gradient | `center, radius, stops` |

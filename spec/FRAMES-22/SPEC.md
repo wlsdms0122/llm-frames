@@ -14,7 +14,7 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 `theme` prints the base theme, and that output is also the list of every group a theme can hold. The keys of a text style and of a shape style are the tables below. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles`, `shapes` and `defaults.animation.title` (keyed by text style name) are open maps: any name may be added. A name that is referred to must exist: a colour, a text style, a shape style, or a `title` key that names no text style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. So does a theme colour such a preset names with the default's arguments applied (a cover or a bloom `color`) that the merged theme, its own colours and those it is merged over, does not hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
-Merging goes key by key through the theme's own structure: the top-level groups, each key of `placement`, `border` and `shadow`, each colour, each text style and its properties, each shape style and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a shape style's `shadow` object, a preset choice like `{preset, seconds}`, a style's `features` and `underline`, a list such as `font`.
+Merging goes key by key through the theme's own structure: the top-level groups, each key of `placement`, `border` and `shadow`, each colour, each text style and its properties, each shape style and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a shape style's `shadow` object, a preset choice like `{preset, seconds}`, a style's `features`, `highlight` and `underline`, a list such as `font`.
 
 Precedence, from weakest:
 
@@ -77,9 +77,10 @@ A text style is a named set of text properties. Any name is allowed. A run's sty
 | `baselineShift` | character | a theme length the run's glyphs are raised by, up positive, as After Effects' Baseline Shift. The default is 0 |
 | `color` | character | text colour. The default is the `text` colour |
 | `stroke` | character | `{width, color}`: an outline with round joins, where strokes never show overlapping, or `false`. `width` is required, since a stroke is written to be seen. Without `color` it takes the `text` colour. Absent means none |
+| `highlight` | character | `{color, padding, radius}`, or `false`: a box behind the run's glyphs on each line it occupies, as a highlighter marks text on a page and CSS draws the background of an inline box ([FRAMES-5](../FRAMES-5/SPEC.md)). `padding` is `[vertical, horizontal]`, in the order CSS writes two values, and it takes no part in layout. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `underline` | character | `true`, `{width, offset, color}` or `false`: a line under the run's glyphs ([FRAMES-5](../FRAMES-5/SPEC.md)). `width` is its thickness and `offset` the distance from the baseline down to its top edge, both theme lengths, as CSS `text-decoration-thickness` and `text-underline-offset`. `true`, and a key the object leaves out, take the face's own underline thickness and position and the run's colour. Absent means none |
 | `lineHeight` | paragraph | distance between baselines. The default is 1.25 × size |
-| `background` | paragraph, and character in a run's style | `{color, padding, radius}`: a box, or `false`. In the clip's style it is the paragraph background, a box behind the text box. In the style a run names it is that run's background, a box behind the run's glyphs on each line it occupies, as CSS draws the background of an inline box ([FRAMES-5](../FRAMES-5/SPEC.md)). `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
+| `background` | paragraph | `{color, padding, radius}`: a box behind the text box, which grows the title's box by its padding ([FRAMES-5](../FRAMES-5/SPEC.md)), or `false`. `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `placement`, `offset` | paragraph | default placement, and the distance from the top or bottom edge that replaces `placement.padding` there ([FRAMES-1](../FRAMES-1/SPEC.md)) |
 | `align` | paragraph | `left`, `center` or `right`: where each line sits in the title's text box, which is its `width` or its widest line ([FRAMES-5](../FRAMES-5/SPEC.md)). The default is `left` |
 | `lines` | paragraph | the most lines the text may take, a whole number of 1 or more. `1` keeps it on one line, and text that needs more lines than `lines` stops ([FRAMES-5](../FRAMES-5/SPEC.md)). Absent means no limit |
@@ -93,7 +94,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, width, join, cap, start, end, dash, dashOffset}`, its `color` a colour or a gradient, or `false` for none |
+| `stroke` | `{color, gradient, width, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, or `false` for none |
 | `radius` | a theme length: the corner radius of a `rect` |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
@@ -117,7 +118,7 @@ A title whose style is not in `animation.title` takes `"none"`. A clip whose med
 
 ### A pack's theme
 
-A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle with a highlight a run can name for one word, two shape styles and gentle default motion:
+A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle with a `keyword` style a run can name to highlight one word, two shape styles and gentle default motion:
 
 ```json
 { "font": ["Avenir Next", "Apple SD Gothic Neo"],
@@ -126,7 +127,7 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
     "subtitle": { "size": 44, "stroke": false, "background": { "color": "#000000B3", "padding": [6, 16], "radius": 6 } },
     "name":     { "size": 56, "weight": "bold", "placement": "bottom-left", "offset": 160 },
     "role":     { "size": 36, "color": "accent", "weight": "medium", "tracking": 40 },
-    "highlight": { "size": 44, "color": "ink", "background": { "color": "accent", "padding": [2, 8], "radius": 4 } } },
+    "keyword":  { "size": 44, "color": "ink", "highlight": { "color": "accent", "padding": [2, 8], "radius": 4 } } },
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
     "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 } },
