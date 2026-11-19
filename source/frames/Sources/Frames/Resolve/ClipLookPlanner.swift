@@ -65,10 +65,7 @@ struct ClipLookPlanner: Sendable {
         guard let merged, merged != .off else { return .off }
 
         do {
-            let given = try keyframes.reduce(merged) { given, keyframe in
-                try merger.merge(keyframe: keyframe.value, over: given, as: structure, place: place)
-            }
-            try merger.checkRequired(in: given, as: structure, place: place)
+            try merger.checkRequired(in: merged, keyframes: keyframes, as: structure, place: lookPlace)
         } catch let LookError.missingLeaf(_, missing) {
             let layer = below == .off ? style.map { path in
                 theme.place(of: path.reduce(Place.root) { $0.appending(key: $1) })

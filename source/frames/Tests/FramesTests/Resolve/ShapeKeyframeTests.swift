@@ -217,6 +217,32 @@ struct ShapeKeyframeTests {
         #expect(throws: (any Error).self) { try resolvedShape(clip) }
     }
 
+    @Test("a keyframe dash whose lengths over the merged dash are all 0 stops at that keyframe, as a static one does")
+    func refusesKeyframeZeroDash() throws {
+        // Given
+        let clip = ##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [3, 0] },
+              "keyframes": [ { "at": 0, "stroke": { "dash": [null, null] } }, { "at": 1, "stroke": { "dash": [0, null] } } ] }
+            """##
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolvedShape(clip) }
+        #expect(error.map { "\($0)" } == "clips[0].keyframes[1].stroke.dash: lengths that are all 0, which draw no dash")
+    }
+
+    @Test("keyframe dashes are each checked over the merged dash, not over the keyframes before them")
+    func takesKeyframeDashOverMerged() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+              "keyframes": [ { "at": 0, "stroke": { "dash": [0, 5] } }, { "at": 1, "stroke": { "dash": [null, 0] } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0)?.dash == [0, 2.5])
+        #expect(shape.stroke.stroke(at: 1)?.dash == [5, 0])
+    }
+
     @Test("a dash an overshooting ease carries to all zeros draws the stroke whole at that instant")
     func drawsSampledZeroDashWhole() throws {
         // When

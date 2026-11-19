@@ -48,5 +48,25 @@ struct LookMergerTests {
         }
     }
 
+    @Test("a keyframe dash whose lengths over the merged dash are all 0 stops at that keyframe")
+    func refusesKeyframeZeroDash() throws {
+        // Given
+        let merged = reader.value(of: try Fixture.json(#"{ "width": 4, "dash": [3, 0] }"#), as: LookStructureTable.stroke)
+        let keyframes = try [#"{ "dash": [null, null] }"#, #"{ "dash": [0, null] }"#].enumerated().map { index, written in
+            PropertyKeyframe(
+                index: index,
+                at: Double(index),
+                value: reader.value(of: try Fixture.json(written), as: LookStructureTable.stroke),
+                ease: .linear
+            )
+        }
+        let lookPlace = LookPlace(clip: Place.root.appending(key: "clips").appending(index: 0), key: "stroke")
+
+        // When, Then
+        #expect(throws: LookError.allZero(place: lookPlace.keyframe(1).appending(key: "dash"))) {
+            try sut.checkRequired(in: merged, keyframes: keyframes, as: LookStructureTable.stroke, place: lookPlace)
+        }
+    }
+
     // MARK: - Private
 }

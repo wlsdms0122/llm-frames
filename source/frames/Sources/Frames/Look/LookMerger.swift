@@ -57,12 +57,45 @@ struct LookMerger: Sendable {
         as structure: ValueStructure,
         place: Place
     ) throws {
+        try check(value, as: structure, place: place, isRequired: true, isNonZero: true)
+    }
+
+    // `checkRequired` for a clip's merged value under its keyframes. A keyframe gives a leaf at every instant from its
+    // own, so a required key is checked with every keyframe merged over the merged value; a keyframe's list at its own
+    // instant is its own over the merged value's, so lengths are checked to be not all 0 in the merged value and in
+    // each keyframe merged over it alone.
+    func checkRequired(
+        in merged: LookValue,
+        keyframes: [PropertyKeyframe<LookValue>],
+        as structure: ValueStructure,
+        place: LookPlace
+    ) throws {
+        let given = try keyframes.reduce(merged) { given, keyframe in
+            try merge(keyframe: keyframe.value, over: given, as: structure, place: place.keyframe(keyframe.index))
+        }
+        try check(given, as: structure, place: place.written, isRequired: true, isNonZero: false)
+        try check(merged, as: structure, place: place.written, isRequired: false, isNonZero: true)
+        for keyframe in keyframes {
+            let keyframePlace = place.keyframe(keyframe.index)
+            let value = try merge(keyframe: keyframe.value, over: merged, as: structure, place: keyframePlace)
+            try check(value, as: structure, place: keyframePlace, isRequired: false, isNonZero: true)
+        }
+    }
+
+    // MARK: - Private
+    private func check(
+        _ value: LookValue,
+        as structure: ValueStructure,
+        place: Place,
+        isRequired: Bool,
+        isNonZero: Bool
+    ) throws {
         switch (value, structure) {
         case let (.object(members), .object(object)):
-            for key in object.required where (value[key] ?? .unset) == .unset {
+            for key in object.required where isRequired && (value[key] ?? .unset) == .unset {
                 throw LookError.missingLeaf(place: place, key: key)
             }
-            for key in object.nonZero {
+            for key in object.nonZero where isNonZero {
                 guard
                     case let .list(elements)? = value[key],
                     !elements.isEmpty,
@@ -74,28 +107,51 @@ struct LookMerger: Sendable {
             for member in members {
                 guard let child = object.structure(of: member.key) else { continue }
 
-                try checkRequired(in: member.value, as: child, place: place.appending(key: member.key))
+                try check(
+                    member.value,
+                    as: child,
+                    place: place.appending(key: member.key),
+                    isRequired: isRequired,
+                    isNonZero: isNonZero
+                )
             }
 
         case let (.object(members), .map(element)):
             for member in members {
-                try checkRequired(in: member.value, as: element, place: place.appending(key: member.key))
+                try check(
+                    member.value,
+                    as: element,
+                    place: place.appending(key: member.key),
+                    isRequired: isRequired,
+                    isNonZero: isNonZero
+                )
             }
 
         case let (.list(elements), .list), let (.list(elements), .tuple), let (.list(elements), .choice):
             for (index, value) in elements.enumerated() {
-                try checkRequired(in: value, as: structure.element(at: index), place: place.appending(index: index))
+                try check(
+                    value,
+                    as: structure.element(at: index),
+                    place: place.appending(index: index),
+                    isRequired: isRequired,
+                    isNonZero: isNonZero
+                )
             }
 
         case let (.form(name, body), .forms), let (.form(name, body), .choice):
-            try checkRequired(in: body, as: structure.structure(ofForm: name) ?? .anyValue, place: place)
+            try check(
+                body,
+                as: structure.structure(ofForm: name) ?? .anyValue,
+                place: place,
+                isRequired: isRequired,
+                isNonZero: isNonZero
+            )
 
         default:
             return
         }
     }
 
-    // MARK: - Private
     private func merge(
         _ under: LookValue?,
         _ over: LookValue,
