@@ -111,7 +111,7 @@ struct ContactSheetComposer: Sendable {
 
         return DisplayItem(
             transform: AffineTransform(mapping: layout.size, onto: frame),
-            content: .glyphs(GlyphsItem(text: text, at: 0))
+            content: .glyphs(GlyphsItem(text: text, factor: 1, at: 0))
         )
     }
 

@@ -12,8 +12,8 @@ import Frames
 // Draws a glyphs item in its text's own box: the background, then every run's highlight rectangles in run order, then
 // every run's underline rectangles, then the outline of every glyph of every run with a stroke, then every glyph's fill,
 // so no stroke covers a fill. An item of a layer draws only that step and no background. Glyphs are drawn at their
-// written baseline origins and shaped no further. A run's stroke width is in output pixels, so it is drawn along the
-// outlines carried by `transform` at its written width, and neither the title's scale nor a unit's motion widens it.
+// written baseline origins and shaped no further. A run's stroke width is in output pixels, so it is drawn at that width
+// along the outlines carried by `transform`, and a transform that scales its axes apart does not stretch it.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary

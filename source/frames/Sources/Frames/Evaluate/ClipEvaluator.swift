@@ -93,17 +93,16 @@ struct ClipEvaluator: Sendable {
             // A title carries its box.
             guard let box = clip.box else { return [] }
 
-            let glyphs = GlyphsItem(text: text, at: time)
+            let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
             let item = boxItem(
                 of: clip,
                 box: box,
                 drawn: text.box(at: time),
-                receiver: glyphs.drawnBounds(),
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
                 at: time
-            )
+            ) { glyphs.drawnBounds(carriedBy: $0) }
             guard let schedule = sample.schedule, let units = text.units else { return [item] }
 
             return [group(
@@ -144,12 +143,11 @@ struct ClipEvaluator: Sendable {
                 of: clip,
                 box: box,
                 drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
-                receiver: receiver ?? item.destination,
                 sample: sample,
                 in: space,
                 content: .picture(item),
                 at: time
-            )]
+            ) { _ in receiver ?? item.destination }]
 
         case let .shape(shape):
             return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
@@ -186,6 +184,7 @@ struct ClipEvaluator: Sendable {
             let box = text.unitBox(of: index, at: time)
             let sample = sampler.unit(index, of: clip.animation, schedule: schedule, at: time)
             let presentation = ItemPresentation(area: box, opacity: 1, motion: sample.motion, carriedBy: item.transform)
+            let factor = Scale(sample.motion.value(of: .scale)).factor
             let parts = text.parts(of: index, at: time)
             let reveal = cut(sample.reveal.rectangle(wiping: box, from: sample.revealFrom) ?? box)
 
@@ -194,7 +193,13 @@ struct ClipEvaluator: Sendable {
                     transform: presentation.transform,
                     opacity: presentation.opacity,
                     reveal: reveal,
-                    content: .glyphs(GlyphsItem(carrying: units[index].glyphs, parts: parts, of: glyphs, layer: layer)),
+                    content: .glyphs(GlyphsItem(
+                        carrying: units[index].glyphs,
+                        parts: parts,
+                        of: glyphs,
+                        layer: layer,
+                        factor: factor
+                    )),
                     origin: origin
                 )
             }
@@ -221,26 +226,27 @@ struct ClipEvaluator: Sendable {
     }
 
     // `drawn` is the item's own box at the time, in the clip's box at its placed size, and `receiver` what the item
-    // draws in its own pixels, which the reveal wipes across.
+    // draws in its own pixels under the item's transform, which the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
         drawn: Rectangle,
-        receiver: Rectangle,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
-        at time: Double
+        at time: Double,
+        receiver: (AffineTransform) -> Rectangle
     ) -> DisplayItem {
         let size = Size(width: drawn.width, height: drawn.height)
         let presentation = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time)
+        let transform = AffineTransform(translation: Point(x: drawn.x, y: drawn.y))
+            .concatenating(presentation.transform)
 
         return DisplayItem(
-            transform: AffineTransform(translation: Point(x: drawn.x, y: drawn.y))
-                .concatenating(presentation.transform),
+            transform: transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: receiver, from: sample.animation.revealFrom),
+            reveal: sample.animation.reveal.rectangle(wiping: receiver(transform), from: sample.animation.revealFrom),
             content: content
         )
     }

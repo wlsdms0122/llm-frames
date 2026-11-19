@@ -42,9 +42,10 @@ package struct DrawnGlyphRun: Equatable, Sendable {
     // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs moved by `moves`,
     // one for each glyph, and its pieces' ends by `pieceMove`. A highlight rectangle is its piece grown by the padding
     // then, and an underline rectangle a band across its piece the width then thick, its top edge the offset then
-    // below the baseline.
+    // below the baseline. The stroke is its width then times `factor`.
     init(
         run: ResolvedGlyphRun,
+        factor: Double,
         at time: Double,
         moves: [Point],
         pieceMove: PieceMove
@@ -63,7 +64,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
             size: run.size,
             color: run.color.sampled(at: time, as: .leaf(.color)).color ?? Color(written: "#000000"),
             stroke: stroke["width"]?.number.flatMap { width in
-                stroke["color"]?.color.map { TextStroke(width: width, color: $0) }
+                stroke["color"]?.color.map { TextStroke(width: width * factor, color: $0) }
             },
             highlight: run.highlight.flatMap { highlight in
                 let structure = ValueStructure.leaf(.lengths(count: 2, domain: .nonNegative))
@@ -111,17 +112,19 @@ package struct DrawnGlyphRun: Equatable, Sendable {
 
     // MARK: - Public
     // The run as a unit's item holds it: the glyphs of `glyphs`, ranges of this run, and the highlight and underline
-    // pieces `parts` name, each whole, with its band the part's span cut to the rectangle drawn.
+    // pieces `parts` name, each whole, with its band the part's span cut to the rectangle drawn, and its stroke
+    // `factor` times as wide.
     func carrying(
         glyphs ranges: [GlyphRange],
-        parts: [UnitPart]
+        parts: [UnitPart],
+        factor: Double
     ) -> DrawnGlyphRun {
         DrawnGlyphRun(
             font: font,
             face: face,
             size: size,
             color: color,
-            stroke: stroke,
+            stroke: stroke.map { TextStroke(width: $0.width * factor, color: $0.color) },
             highlight: highlight.flatMap { highlight in
                 parts.isEmpty
                     ? nil

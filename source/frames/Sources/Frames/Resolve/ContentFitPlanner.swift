@@ -144,7 +144,7 @@ struct ContentFitPlanner: Sendable {
         case let .title(text):
             // The child map places the title's box at the time, which its glyphs item fills.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
-            return GlyphsItem(text: text, at: 0).filledRects()
+            return GlyphsItem(text: text, factor: 1, at: 0).filledRects()
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 

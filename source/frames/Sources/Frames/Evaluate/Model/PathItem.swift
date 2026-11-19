@@ -103,14 +103,13 @@ package struct PathItem: Equatable, Sendable {
         // way along each axis.
         let half = item.inverse == nil ? 0 : (stroke?.width ?? 0) / 2
         let disc = item.inverse.map { $0.concatenating(transform) } ?? transform
-        let across = half * (disc.a * disc.a + disc.c * disc.c).squareRoot()
-        let down = half * (disc.b * disc.b + disc.d * disc.d).squareRoot()
+        let reach = disc.reach(ofDisc: half)
         let outline = Rectangle(bounding: hull)
         let stroked = Rectangle(
-            x: outline.x - across,
-            y: outline.y - down,
-            width: outline.width + 2 * across,
-            height: outline.height + 2 * down
+            x: outline.x - reach.width,
+            y: outline.y - reach.height,
+            width: outline.width + 2 * reach.width,
+            height: outline.height + 2 * reach.height
         )
         let overhangs = overhangs(carriedBy: item).flatMap { $0 }.map(transform.apply(to:))
 

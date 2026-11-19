@@ -160,6 +160,7 @@ struct TitleKeyframeTests {
         let still = Point(x: 0, y: 0)
         let sut = DrawnGlyphRun(
             run: run,
+            factor: 1,
             at: 0.5,
             moves: run.glyphs.map { _ in still },
             pieceMove: PieceMove(start: still, end: still)
@@ -228,7 +229,7 @@ struct TitleKeyframeTests {
         // When
         let moves = text.glyphMoves(at: 0.5)
         let box = text.box(at: 0.5)
-        let sut = GlyphsItem(text: text, at: 0.5)
+        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
 
         // Then
         #expect(text.width == nil)
@@ -266,7 +267,7 @@ struct TitleKeyframeTests {
 
         // When
         let box = text.box(at: 0.5)
-        let sut = GlyphsItem(text: text, at: 0.5)
+        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
 
         // Then
         #expect(text.lines?.map(\.baseline) == [32, 82])
@@ -302,7 +303,7 @@ struct TitleKeyframeTests {
 
         // When
         let box = text.box(at: 1)
-        let sut = GlyphsItem(text: text, at: 1)
+        let sut = GlyphsItem(text: text, factor: 1, at: 1)
 
         // Then
         #expect(text.size == Size(width: 40, height: 40))
@@ -348,7 +349,7 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let sut = GlyphsItem(text: text, at: 0.5)
+        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
 
         // Then
         let run = try #require(sut.runs.first)
@@ -374,7 +375,7 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let sut = GlyphsItem(text: text, at: 0)
+        let sut = GlyphsItem(text: text, factor: 1, at: 0)
 
         // Then
         #expect(sut.filledRects() == [
@@ -382,7 +383,7 @@ struct TitleKeyframeTests {
             Rectangle(x: -4, y: -2, width: 48, height: 44),
             Rectangle(x: 0, y: 42, width: 40, height: 2)
         ])
-        #expect(sut.drawnBounds() == Rectangle(x: -4, y: -2, width: 48, height: 46))
+        #expect(sut.drawnBounds(carriedBy: .identity) == Rectangle(x: -4, y: -2, width: 48, height: 46))
     }
 
     @Test("an animation over a title whose line height opens offsets it by its box then and scales it about its anchor point, which stays")

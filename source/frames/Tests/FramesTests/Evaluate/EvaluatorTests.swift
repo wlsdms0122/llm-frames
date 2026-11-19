@@ -623,7 +623,7 @@ struct EvaluatorTests {
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
-        #expect(item.content == .glyphs(GlyphsItem(text: text, at: time)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: time)))
     }
 
     @Test(
@@ -728,7 +728,7 @@ struct EvaluatorTests {
         let item = try #require(list.items.last)
         #expect(paths.isEmpty)
         #expect([item.transform.a, item.transform.b, item.transform.c, item.transform.d] == [1, 0, 0, 1])
-        #expect(item.content == .glyphs(GlyphsItem(text: text, at: 1)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: 1)))
     }
 
     @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")
