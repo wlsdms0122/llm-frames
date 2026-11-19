@@ -9,7 +9,8 @@
 // structure its keyframes give, and `merged` merges it over the look; `timed` times each leaf over the merged value: a
 // leaf joins only the keyframes that write it, `null` there is the merged value's, and a leaf no keyframe writes is
 // the merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence
-// time. A stop on a value a keyframe writes names that keyframe, and one on the static value the clip's key.
+// time. Every number a leaf takes, static or in a keyframe, is checked against its leaf's domain. A stop on a value a
+// keyframe writes names that keyframe, and one on the static value the clip's key.
 struct TimedValueBuilder: Sendable {
     // MARK: - Property
     private let merger = LookMerger()
@@ -66,8 +67,11 @@ struct TimedValueBuilder: Sendable {
             return try track(merged, written: written, keyframes: keyframes, kind: kind, instant: instant, place: place, leaf: leaf)
 
         case let (.leaf(value), _):
-            if case .leaf = structure, let keyframe = keyframes.first(where: { $0.value != .unset }) {
-                throw LookError.keyframedStatic(place: place.keyframe(keyframe.index))
+            if case let .leaf(kind) = structure {
+                if let keyframe = keyframes.first(where: { $0.value != .unset }) {
+                    throw LookError.keyframedStatic(place: place.keyframe(keyframe.index))
+                }
+                try checkDomain(of: value, kind: kind, isSampled: false, place: place.written)
             }
             return .fixed(value)
 
@@ -211,6 +215,7 @@ struct TimedValueBuilder: Sendable {
         guard !keyframes.isEmpty else {
             guard case let .leaf(value) = merged else { return .off }
 
+            try checkDomain(of: value, kind: kind, isSampled: false, place: place.written)
             let source = LeafSource(place: place, keyframe: nil, time: instant)
             return .track([Keyframe(at: instant, value: try leaf(value, kind, source))])
         }
@@ -231,21 +236,27 @@ struct TimedValueBuilder: Sendable {
             }
 
             let value = try leaf(json, kind, LeafSource(place: place, keyframe: keyframe.index, time: keyframe.at))
-            let numbers: [Double] = switch value {
-            case let .number(number): [number]
-            case let .numbers(numbers): numbers
-            case .color, .area, .point: []
-            }
-            // A leaf two keyframes or more write is one end of a change, so it may take any value its samples take.
-            let fits = keyframes.count > 1 ? kind.domain.contains : kind.domain.isSeen
-            if let outside = numbers.first(where: { !fits($0) }) {
-                throw LookError.outsideDomain(place: keyframePlace, value: outside)
-            }
+            try checkDomain(of: json, kind: kind, isSampled: keyframes.count > 1, place: keyframePlace)
 
             return Keyframe(at: keyframe.at, value: value, ease: keyframe.ease)
         }
 
         return .track(values)
+    }
+
+    // The numbers of a leaf's value as written. A leaf two keyframes or more write is one end of a change, so it may
+    // take any value its samples take.
+    private func checkDomain(
+        of value: JSONValue,
+        kind: LeafKind,
+        isSampled: Bool,
+        place: Place
+    ) throws {
+        let numbers = value.numberValue.map { [$0] } ?? value.arrayValue?.compactMap(\.numberValue) ?? []
+        let fits = isSampled ? kind.domain.contains : kind.domain.isSeen
+        guard let outside = numbers.first(where: { !fits($0) }) else { return }
+
+        throw LookError.outsideDomain(place: place, value: outside)
     }
 
     // A keyframe's value with every timed leaf `unset`: the forms and list lengths it writes. A static leaf, `off`, a

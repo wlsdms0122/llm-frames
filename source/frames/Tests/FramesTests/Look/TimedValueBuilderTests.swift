@@ -94,6 +94,17 @@ struct TimedValueBuilderTests {
         }
     }
 
+    @Test("a static value outside its leaf's domain stops at the clip's key, whether it is timed or not")
+    func checksStaticDomain() throws {
+        // Given
+        let written = reader.value(of: try Fixture.json(##"{ "width": 0 }"##), as: LookStructureTable.stroke)
+
+        // When, Then
+        #expect(throws: LookError.outsideDomain(place: place.written.appending(key: "width"), value: 0)) {
+            try timed(style: nil, written: written, keyframes: [])
+        }
+    }
+
     @Test("an ease that overshoots is clamped where the leaf is sampled")
     func clampsSamples() throws {
         // Given

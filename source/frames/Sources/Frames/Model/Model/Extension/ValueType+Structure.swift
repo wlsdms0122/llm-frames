@@ -6,9 +6,12 @@
 //
 
 // The key check's type of a look value, read from its structure, so the key check and the look merge read one
-// declaration of its keys and domains. `kind` names the value in messages. A domain the key check has no type for, as a
-// compressor's `ratio` or a band's `frequency`, is checked by resolve alone. Without `checksDomains` every number is
-// any number, for a value whose domains have another owner.
+// declaration of its keys and domains. `kind` names the value in messages. The key check stops a number outside its
+// leaf's domain in the layer that writes it, which a theme layer's value that a stronger layer replaces needs, since
+// no merged value holds it. Resolve checks every domain again where it builds the value, in the theme merge, in timing
+// and in a preset's reader, and it alone checks a domain the key check has no type for: a list's numbers, and a range
+// other than 0 to 1, as a compressor's `ratio` or a band's `frequency`. Without `checksDomains` every number is any
+// number, for an op whose sampled parameters may take 0, which resolve checks by the sampled rule.
 extension ValueType {
     // MARK: - Property
     // MARK: - Initializer
@@ -113,7 +116,7 @@ extension ValueType {
         }
     }
 
-    // A range from 0 to 1 is a fraction, and any other range is checked by resolve.
+    // A range from 0 to 1 is a fraction, and any other range is any number here.
     private static func type(
         of leaf: LeafKind,
         checksDomain: Bool

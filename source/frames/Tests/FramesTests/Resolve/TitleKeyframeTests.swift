@@ -76,6 +76,36 @@ struct TitleKeyframeTests {
         #expect(error.map(String.init(describing:)) == message)
     }
 
+    @Test("a look value outside its domain written statically on a clip stops where it is written, as in a keyframe")
+    func refusesStaticValueOutsideDomain() throws {
+        // Given
+        let written = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000", "padding": [-4, 0] } } }
+            """#
+        let keyframed = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "character": { "highlight": { "padding": [-4, 0] } } } ] }
+            """#
+
+        // When
+        let writtenError = #expect(throws: LookError.self) { try title(written) }
+        let keyframedError = #expect(throws: LookError.self) { try title(keyframed) }
+
+        // Then
+        #expect(writtenError == .outsideDomain(
+            place: Place.root.appending(key: "clips").appending(index: 0)
+                .appending(key: "character").appending(key: "highlight").appending(key: "padding"),
+            value: -4
+        ))
+        #expect(keyframedError == .outsideDomain(
+            place: Place.root.appending(key: "clips").appending(index: 0).appending(key: "keyframes").appending(index: 0)
+                .appending(key: "character").appending(key: "highlight").appending(key: "padding"),
+            value: -4
+        ))
+    }
+
     @Test("`null` for a title's `character` in a keyframe stops, since it stands for a leaf")
     func refusesNullCharacter() throws {
         // Given
