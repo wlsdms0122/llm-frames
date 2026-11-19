@@ -141,24 +141,19 @@ struct ThemeValidatorTests {
     @Test(
         "a theme's length outside its domain stops where it is written",
         arguments: [
-            (#"{ "border": { "width": 0 } }"#, "border.width (border): expected a number above 0, found 0"),
-            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius (shadow): expected a number, 0 or more, found -1"),
+            (#"{ "border": { "width": 0 } }"#, "border.width: 0 is not above 0"),
+            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius: -1 is not 0 or more"),
+            (#"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#, "styles.note.stroke.width: -2 is not above 0"),
+            (#"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#, "styles.note.highlight.radius: -4 is not 0 or more"),
             (
-                #"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#,
-                "styles.note.stroke.width (stroke): expected a number above 0, found -2"
+                #"{ "styles": { "note": { "highlight": { "padding": [2, -4] } } } }"#,
+                "styles.note.highlight.padding[1]: -4 is not 0 or more"
             ),
-            (
-                #"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#,
-                "styles.note.highlight.radius (highlight): expected a number, 0 or more, found -4"
-            ),
-            (#"{ "baseWidth": 0 }"#, "baseWidth (theme): expected a number above 0, found 0"),
-            (#"{ "placement": { "padding": -8 } }"#, "placement.padding (placement): expected a number, 0 or more, found -8"),
-            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size (style): expected a number above 0, found 0"),
-            (
-                #"{ "styles": { "note": { "lineHeight": -10 } } }"#,
-                "styles.note.lineHeight (style): expected a number above 0, found -10"
-            ),
-            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset (style): expected a number, 0 or more, found -1")
+            (#"{ "baseWidth": 0 }"#, "baseWidth: 0 is not above 0"),
+            (#"{ "placement": { "padding": -8 } }"#, "placement.padding: -8 is not 0 or more"),
+            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size: 0 is not above 0"),
+            (#"{ "styles": { "note": { "lineHeight": -10 } } }"#, "styles.note.lineHeight: -10 is not above 0"),
+            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset: -1 is not 0 or more")
         ]
     )
     func refusesLookLengthOutsideDomain(theme: String, message: String) throws {
@@ -166,8 +161,21 @@ struct ThemeValidatorTests {
         let layer = ThemeLayer(value: try Fixture.json(theme), place: .root)
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        let error = #expect(throws: LookError.self) { try sut.checkKeys(of: layer) }
         #expect(error?.description == message)
+    }
+
+    @Test("a theme's length that is not a number stops naming the domain it takes")
+    func refusesLookLengthOfWrongType() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"{ "styles": { "note": { "highlight": { "padding": [2, "wide"] } } } }"#),
+            place: .root
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == #"styles.note.highlight.padding[1] (highlight): expected a number 0 or more, found "wide""#)
     }
 
     @Test("a style's lines of 1 passes the key check")

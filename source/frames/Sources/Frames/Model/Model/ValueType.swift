@@ -29,6 +29,10 @@ indirect enum ValueType: Equatable, Sendable {
     case ease
     case literal([String])
     case numbers(Int)
+    // A look leaf's number, which `LeafDomain.check` stops outside the leaf's domain.
+    case leafNumber(LeafDomain)
+    // A look leaf's list of that many numbers, each of which `LeafDomain.check` stops outside the leaf's domain.
+    case leafNumbers(Int, LeafDomain)
     // A list of that many numbers, each from 0 to 1.
     case fractions(Int)
     // A list of at least two points, each as `position` takes it.

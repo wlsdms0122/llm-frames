@@ -199,6 +199,20 @@ struct KeyChecker: Sendable {
                 try check(element, as: .number, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
+        case let .leafNumber(domain):
+            guard admits(type, value) else { throw wrongType(value, type, place, kind) }
+
+            try domain.check(value, place: place)
+
+        case let .leafNumbers(count, domain):
+            guard let elements = value.arrayValue, elements.count == count else {
+                throw wrongType(value, type, place, kind)
+            }
+
+            for (index, element) in elements.enumerated() {
+                try check(element, as: .leafNumber(domain), place: place.appending(index: index), kind: kind, scope: &scope)
+            }
+
         case let .fractions(count):
             guard let elements = value.arrayValue, elements.count == count else {
                 throw wrongType(value, type, place, kind)
@@ -1385,7 +1399,7 @@ struct KeyChecker: Sendable {
             parameterType == "color"
 
         case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
-             .nonNegativeInteger, .margin:
+             .nonNegativeInteger, .leafNumber, .margin:
             parameterType == "number"
 
         case let .leaf(check):
@@ -1437,14 +1451,15 @@ struct KeyChecker: Sendable {
 
         case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
              (.signedFraction, .number),
-             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number):
+             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.leafNumber, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.ease, .object), (.numbers, .array), (.fractions, .array), (.points, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.leafNumbers, .array),
+             (.fractions, .array), (.points, .array), (.list, .array),
              (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
@@ -1535,6 +1550,12 @@ struct KeyChecker: Sendable {
 
         case let .numbers(count):
             "a list of \(count) numbers"
+
+        case let .leafNumber(domain):
+            domain == .any ? "a number" : "a number \(domain.description)"
+
+        case let .leafNumbers(count, domain):
+            domain == .any ? "a list of \(count) numbers" : "a list of \(count) numbers, each \(domain.description)"
 
         case let .fractions(count):
             "a list of \(count) numbers, each from 0 to 1"

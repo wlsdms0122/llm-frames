@@ -136,11 +136,6 @@ struct TemplateInstantiatorTests {
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "p": { "type": "number", "default": -1, "description": "the p" } }, "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ]"#,
-                "{}",
-                "clips[0].radius (image): expected a number, 0 or more, found -1"
-            ),
-            (
                 #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
@@ -160,6 +155,19 @@ struct TemplateInstantiatorTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
         #expect(error?.description == "shorts/leak: \(message)")
+    }
+
+    @Test("a look length given as a parameter stops outside its domain at that place, as a written one does")
+    func refusesLookLengthOutsideDomain() throws {
+        // Given
+        let template = try template(#"""
+            { "kind": "sequence", "params": { "p": { "type": "number", "default": -1, "description": "the p" } },
+              "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: LookError.self) { try sut.instance(of: template, arguments: JSONObject(), place: place) }
+        #expect(error?.description == "shorts/leak: clips[0].radius: -1 is not 0 or more")
     }
 
     @Test("a crop scale given as a parameter stops at 0, as a written one does")
