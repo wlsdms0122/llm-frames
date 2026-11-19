@@ -239,37 +239,46 @@ package struct Transcoder: Sendable {
         of size: Size,
         for request: TranscodeRequest
     ) throws {
-        let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: false)
+        let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: true)
         guard fitted.width < 2 || fitted.height < 2 else { return }
 
         let shrinking = request.maximumSide.flatMap { Double($0) < max(size.width, size.height) ? $0 : nil }
         throw TranscodeError.undersizedVideo(path: request.output, maximumSide: shrinking, size: fitted)
     }
 
-    // `size` with its longer side capped at `maximumSide`, never enlarged, each side rounded to whole pixels. A
-    // video's odd side goes down to the even number below it, so it exceeds neither the source nor the cap.
+    // `size` with its longer side capped at `maximumSide`, never enlarged. An image's sides round to whole pixels, and
+    // a video's exact sides go down to even numbers, so it exceeds neither the source nor the cap.
     private func outputSize(
         of size: Size,
         maximumSide: Int?,
         isVideo: Bool
     ) -> Size {
         let longer = max(size.width, size.height)
-        let scale = maximumSide.map { min(1, Double($0) / longer) } ?? 1
 
         return Size(
-            width: side(size.width * scale, isVideo: isVideo),
-            height: side(size.height * scale, isVideo: isVideo)
+            width: side(scaled(size.width, longer: longer, maximumSide: maximumSide), isVideo: isVideo),
+            height: side(scaled(size.height, longer: longer, maximumSide: maximumSide), isVideo: isVideo)
         )
+    }
+
+    // Multiplied before it is divided, so a side the cap makes whole is exactly whole and does not round below it.
+    private func scaled(
+        _ length: Double,
+        longer: Double,
+        maximumSide: Int?
+    ) -> Double {
+        guard let maximumSide, Double(maximumSide) < longer else { return length }
+
+        return length * Double(maximumSide) / longer
     }
 
     private func side(
         _ length: Double,
         isVideo: Bool
     ) -> Double {
-        let whole = max(length.rounded(), 1)
-        guard isVideo else { return whole }
+        guard isVideo else { return max(length.rounded(), 1) }
 
-        return whole - whole.truncatingRemainder(dividingBy: 2)
+        return (length / 2).rounded(.down) * 2
     }
 
     // Frame k is written at k / fps for every k whose time, measured to the microsecond, is before `duration`, and
