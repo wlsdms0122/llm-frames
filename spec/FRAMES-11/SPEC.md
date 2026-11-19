@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-The clip kinds that draw on a sequence: titles with styled runs, the three shapes (rect, ellipse and path) with fill, stroke, arrowheads and trim, media clips (picture in picture and graphics made elsewhere), adjustment clips, the masks and track mattes any picture takes, and blend modes.
+The clip kinds that draw on a sequence: titles with styled runs, the three shapes (rect, ellipse and path) with fill, stroke, gradients, dashes, arrowheads and trim, media clips (picture in picture and graphics made elsewhere), adjustment clips, the masks and track mattes any picture takes, and blend modes.
 
 ## Motivation
 
@@ -38,25 +38,45 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 
 | Key | Form | Meaning |
 | --- | --- | --- |
-| `fill` | a colour, or `false` | the inside of the outline filled with that colour. A path is filled as if it were closed, by the nonzero rule, as SVG fills it. `false` turns off a style's fill |
-| `stroke` | `{color, width, join, cap, start, end}`, or `false` | the outline drawn centred on itself. `false` turns off a style's stroke |
+| `fill` | a colour, a gradient ([Gradients](#gradients)), or `false` | the inside of the outline painted with that colour or gradient. A path is filled as if it were closed, by the nonzero rule, as SVG fills it. `false` turns off a style's fill |
+| `stroke` | `{color, width, join, cap, start, end, dash, dashOffset}`, or `false` | the outline drawn centred on itself. `false` turns off a style's stroke |
 | `trim` | `[a, b]`, each from 0 to 1, default `[0, 1]` | the part of the outline the stroke draws, as After Effects' Trim Paths |
 | `shadow` | `true` (the theme `shadow`), `false`, or `{radius, offset, color}` whose missing keys come from the theme `shadow` | a drop shadow of the shape's drawn picture ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | `style` | a shape style's name | defaults for `fill`, `stroke`, `radius`, `outset` and `shadow` ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 
 | Stroke key | Form | Default |
 | --- | --- | --- |
-| `color` | a colour | the theme `accent` colour |
+| `color` | a colour, or a gradient ([Gradients](#gradients)) | the theme `accent` colour |
 | `width` | a theme length above 0 ([FRAMES-1](../FRAMES-1/SPEC.md)) | required |
 | `join` | `miter`, `round` or `bevel`, as SVG `stroke-linejoin`, with a miter limit of 4 as SVG's | `round` |
 | `cap` | `butt`, `round` or `square`, as SVG `stroke-linecap` | `butt` |
 | `start`, `end` | `none` or `arrow` | `none` |
+| `dash` | a list of theme lengths, 0 or more and not all 0: the lengths of the dashes and the gaps between them in turn, as SVG `stroke-dasharray` | none: the stroke is drawn whole |
+| `dashOffset` | a theme length: how far into the pattern the stroke starts, as SVG `stroke-dashoffset` | 0 |
 
-- An `arrow` at an end is an arrowhead: a filled triangle in the stroke's colour, `4 × width` long and `4 × width` wide at its base, its tip at that end of the drawn stroke and its axis along the stroke's direction there. The stroke stops at the head's base. Where the drawn stroke is shorter than its heads, each head shrinks, length and width together, so the heads together take the stroke's length. Arrowheads sit on the ends of the stroke as drawn: an open path's stroke always has two, and a rect's, an ellipse's or a closed path's has them only when its `trim` leaves part of the outline undrawn. A whole closed outline has no ends and draws no arrowhead.
+- An `arrow` at an end is an arrowhead: a filled triangle in the stroke's colour or gradient, `4 × width` long and `4 × width` wide at its base, its tip at that end of the drawn stroke and its axis along the stroke's direction there. The stroke stops at the head's base. Where the drawn stroke is shorter than its heads, each head shrinks, length and width together, so the heads together take the stroke's length. Arrowheads sit on the ends of the stroke as drawn: an open path's stroke always has two, and a rect's, an ellipse's or a closed path's has them only when its `trim` leaves part of the outline undrawn. A whole closed outline has no ends and draws no arrowhead.
+- `dash` lays dashes along the stroke as drawn, from its start after `trim`: a dash of the first length, a gap of the second, and so on, the list taken twice over when its length is odd, as SVG does, and the pattern repeated to the stroke's end. `dashOffset` moves the pattern back along the stroke by its length, so keyframing it moves the dashes along the outline. Each dash takes `cap` at both its ends and `join` at the corners inside it. Arrowheads are drawn whole over a dashed stroke, and the line stops at their bases as an undashed one does. A `dash` that is empty, holds a negative length or holds only zeros stops.
 - `trim` measures the outline as a fraction of its length: a rect from its top left corner (for a rounded rect, where the top edge leaves the corner's arc), clockwise; an ellipse from its top, clockwise; a path from its first point along its points, the closing segment last when it is closed. These directions are in the shape's own coordinates, so a mirrored shape draws on mirrored. The stroke is drawn from the smaller of `a` and `b` to the larger, and `a` equal to `b` draws no stroke. A trimmed outline has ends, which take `cap` and its arrowheads. `trim` acts on the stroke only, and the fill is drawn whole. It is keyframable, which draws a stroke on or off.
 - Keys written on the clip win over its style's, each whole: a clip's `stroke` replaces the style's `stroke`. A shape without `style` takes nothing from the theme but colour names. A shape that, after its style, has neither a fill nor a stroke stops, since it would draw nothing.
 - `scale` and `rotation` act about the shape's anchor point ([FRAMES-1](../FRAMES-1/SPEC.md)). The stroke width, `radius`, `outset` and the shadow scale with the shape's own and its animation's scale, by its scale factor and the same in every direction ([FRAMES-1](../FRAMES-1/SPEC.md)), and not with a parent's ([FRAMES-10](../FRAMES-10/SPEC.md)).
 - A shape's `points`, `area`, `width`, `height`, `radius`, `outset`, `fill`, `stroke` and `shadow` keyframe as [FRAMES-4](../FRAMES-4/SPEC.md) says, each keyframe's value read as a static one, so a stroke's colour and width move while its `join` and `cap` stay. A `points` keyframe interpolates point by point, so every `points` value of one shape has the same number of points, and keyframes that differ in it stop.
+
+**Gradients.** A gradient is a paint that changes colour across the shape, as CSS's and SVG's linear and radial gradients do:
+
+| Form | Keys |
+| --- | --- |
+| `{"linear": {"from": p, "to": p, "stops": [...]}}` | `from` and `to`, points in fractions of the shape's box |
+| `{"radial": {"center": p, "radius": r, "stops": [...]}}` | `center`, a point in fractions of the shape's box, and `radius`, a number above 0, a fraction of the box's width |
+
+- A point `[u, v]` of a gradient is `[x + u × w, y + v × h]` of the shape's box `[x, y, w, h]` ([FRAMES-1](../FRAMES-1/SPEC.md)): `[0, 0]` is its top left corner and `[1, 1]` its bottom right. Fractions outside 0 to 1 lie outside the box. So the gradient follows the box as it is placed, keyframed and parented, and is carried by the shape's transform with its geometry: a radial gradient is a circle in the shape's own coordinates, `radius × w` in radius, and is drawn as an ellipse where the shape is scaled per axis.
+- `stops` is a list of at least two `[offset, colour]`, with offsets from 0 to 1 in order, each at least the one before it. A colour may be a theme colour's name. Fewer than two stops, an offset outside 0 to 1, or an offset below the one before it stops.
+- At a point q of the shape's own coordinates the gradient's position is g = ((q - from) · (to - from)) / |to - from|² for a linear gradient, the projection onto the line from `from` to `to`, and g = |q - center| / (radius × w) for a radial one. Its colour at g is the first stop's colour where g is at or below the first offset, the last stop's at or past the last offset, and between two neighbouring stops their colours interpolated per channel at g's place between their offsets, as a keyframed colour is ([FRAMES-4](../FRAMES-4/SPEC.md)). Two stops at one offset make a hard edge there.
+- A linear gradient whose `from` and `to` are the same point, or a radial one of radius 0, paints its last stop's colour, as SVG does.
+- A stroke's gradient is laid over the same box as a fill's and paints the stroke and its arrowheads wherever they lie, the colours past its ends held as above.
+- A gradient is a value with leaves, so it is keyframable ([FRAMES-4](../FRAMES-4/SPEC.md)): its points, radius, offsets and colours move, and its kind and its number of stops stay. Where an ease carries the offsets out of order, each sampled offset is clamped to 0 to 1 and then raised to the one before it, as CSS fixes the positions of its colour stops.
+- A shape's fill and stroke colour, and a shape style's, take gradients. Every other colour a clip draws with is one colour.
+
+**Note.** A rect over the frame with a gradient fill is an NLE's gradient generator, and a frame-sized rect with a radial gradient from a clear centre to a dark edge, blended with `multiply`, is a vignette that a template can place and keyframe. frames has no generator clip.
 
 **Note.** To darken everything but a region, draw a rect over the frame filled with a dark colour, with an inverted mask of the region ([Masks and track mattes](#masks-and-track-mattes)). To point at a region, draw a path with `"end": "arrow"` whose last point is a point of that region ([FRAMES-2](../FRAMES-2/SPEC.md)). A label is a title parented to its shape ([FRAMES-10](../FRAMES-10/SPEC.md)).
 
@@ -119,5 +139,9 @@ Curved paths (Bézier segments): left out (README). Straight segments draw rules
 Masks as clips of their own: a mask belongs to the clip it cuts and moves with it, as in After Effects. A clip that shapes another clip's picture is a track matte, which names its matte by id.
 
 Trimming the fill with the stroke, as After Effects trims a whole shape: drawing on is a stroke's, and a fill that changes shape as it is trimmed is rarely wanted.
+
+Gradient points in the shape's coordinate space, as SVG's `userSpaceOnUse`: a gradient would stay where it was written while its shape moves or grows, and a template's bar would need its gradient written again for every size. Fractions of the box, as SVG's `objectBoundingBox` and CSS's gradients on an element, follow the shape. A radial radius as a fraction of the box's width keeps the gradient round, where `objectBoundingBox` stretches it over a box that is not square.
+
+Dashes laid from the outline's start and uncovered by `trim`: a dashed line drawn on would show the same, but a trim whose start moves would cut a dash anywhere along its length. Laid along the stroke as drawn, as After Effects lays dashes on a trimmed path, the stroke always starts with a whole dash, and `dashOffset` moves the pattern where that is wanted.
 
 ## Notes
