@@ -164,6 +164,73 @@ struct NestedListDrawingTests {
         #expect(bitmap.pixel(x: 32, y: 24) == [0, 0, 1, 1])
     }
 
+    @Test(
+        "a blur adjustment inside a compound clip that crosses the frame edge, at any depth, matches the compound clip drawn uncut",
+        arguments: [1, 2, 3]
+    )
+    func blursAcrossFrameEdge(depth: Int) throws {
+        // Given
+        let scene = (1..<depth).reduce(blurredEdge()) { inner, _ in
+            list(size: 40, items: [DisplayItem(content: .picture(picture(of: inner)))])
+        }
+        // The frame's right edge cuts the list at its x = 15, a pixel left of where black meets white.
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 25, ty: 0),
+            content: .picture(picture(of: scene))
+        )
+
+        // When
+        let cut = try sut.frame(of: list(size: 40, items: [item]))
+        let uncut = try sut.frame(of: list(width: 80, height: 40, items: [item]))
+
+        // Then
+        #expect(difference(cut, uncut).largest < 0.03)
+    }
+
+    @Test("a luma track matte whose source holds a blur adjustment, inside a compound clip that crosses the frame edge, matches the compound clip drawn uncut")
+    func blursTrackMatteAcrossFrameEdge() throws {
+        // Given
+        let matteSource = blurredEdge()
+        let matted = PathItem(filling: Rectangle(x: 0, y: 0, width: 40, height: 40), color: Self.white)
+        let scene = list(size: 40, items: [
+            DisplayItem(
+                trackMatte: ItemTrackMatte(source: matteSource, mode: .luma, isInverted: false),
+                content: .path(matted)
+            )
+        ])
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 25, ty: 0),
+            content: .picture(picture(of: scene))
+        )
+
+        // When
+        let cut = try sut.frame(of: list(size: 40, items: [item]))
+        let uncut = try sut.frame(of: list(width: 80, height: 40, items: [item]))
+
+        // Then
+        #expect(difference(cut, uncut).largest < 0.03)
+    }
+
+    @Test("a blur adjustment inside a cropped compound clip matches the compound clip drawn whole and cut to the same rectangle")
+    func blursAcrossCrop() throws {
+        // Given
+        let scene = blurredEdge()
+        let shown = Rectangle(x: 0, y: 0, width: 15, height: 40)
+        let transform = Frames.AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 10, ty: 0)
+        let cropped = DisplayItem(
+            transform: transform,
+            content: .picture(PictureItem(source: .displayList(scene), rectangle: shown, destination: shown))
+        )
+        let revealed = DisplayItem(transform: transform, reveal: shown, content: .picture(picture(of: scene)))
+
+        // When
+        let cut = try sut.frame(of: list(size: 40, items: [cropped]))
+        let whole = try sut.frame(of: list(width: 80, height: 40, items: [revealed]))
+
+        // Then
+        #expect(difference(cut, whole).largest < 0.03)
+    }
+
     // MARK: - Private
     // Shapes with edges off the pixel grid in a 20 by 20 list: an ellipse, a thin diagonal stroke and a square.
     private func scene() -> DisplayList {
@@ -239,6 +306,16 @@ struct NestedListDrawingTests {
         ])
     }
 
+    // A 40 by 40 list, black left of x = 16 and white right of it, under an adjustment's blur of radius 2, which reads
+    // 8 pixels past any point.
+    private func blurredEdge() -> DisplayList {
+        list(size: 40, items: [
+            DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 16, height: 40), color: Self.black))),
+            DisplayItem(content: .path(PathItem(filling: Rectangle(x: 16, y: 0, width: 24, height: 40), color: Self.white))),
+            DisplayItem(content: .adjust(AdjustItem(filter: [.blur(radius: 2)])))
+        ])
+    }
+
     private func picture(of list: DisplayList) -> PictureItem {
         PictureItem(
             source: .displayList(list),
@@ -251,7 +328,15 @@ struct NestedListDrawingTests {
         size: Double,
         items: [DisplayItem]
     ) -> DisplayList {
-        DisplayList(size: Size(width: size, height: size), background: Self.clear, seed: 0, items: items)
+        list(width: size, height: size, items: items)
+    }
+
+    private func list(
+        width: Double,
+        height: Double,
+        items: [DisplayItem]
+    ) -> DisplayList {
+        DisplayList(size: Size(width: width, height: height), background: Self.clear, seed: 0, items: items)
     }
 
     // The item with `transform` applied after its own.
@@ -281,7 +366,8 @@ struct NestedListDrawingTests {
         return frame.bitmap()
     }
 
-    // The largest and the mean difference of any component between two bitmaps of one size.
+    // The largest and the mean difference of any component between two bitmaps over the first's size, which the
+    // second holds.
     private func difference(
         _ left: Bitmap,
         _ right: Bitmap

@@ -224,8 +224,8 @@ final class FrameDrawer {
         }
     }
 
-    // A nested list is drawn on the part of the raster its picture lands in, grown by how far the picture's filter and
-    // shadow read past it, and is nil when none of it lands there.
+    // A nested list is drawn on the part of the raster its picture lands in and on the part of the list its region
+    // shows, each grown by how far what is drawn reads past it, and is nil when none of it lands there.
     private func image(
         of picture: PictureItem,
         shownBy matrix: CGAffineTransform,
@@ -240,10 +240,12 @@ final class FrameDrawer {
             guard let placement = picture.placement(ofSourceSized: size) else { return nil }
 
             let margin = reach(of: picture, through: matrix)
+            let region = picture.rectangle.map(CGRect.init) ?? CGRect(origin: .zero, size: size)
+            let listMargin = reach(of: list)
             guard
                 let nested = Raster(
                     showing: list.size,
-                    region: picture.rectangle.map(CGRect.init) ?? CGRect(origin: .zero, size: size),
+                    region: region.insetBy(dx: -listMargin, dy: -listMargin),
                     through: placement.concatenating(matrix),
                     within: raster.bounds.insetBy(dx: -margin, dy: -margin)
                 )
@@ -267,7 +269,8 @@ final class FrameDrawer {
         return image
     }
 
-    // How far past the raster, in its pixels, the picture's filter and shadow read its source.
+    // How far past the raster, in its pixels, the picture's filter and shadow read its source, and the items of a list
+    // it shows read past what is drawn of the list.
     private func reach(
         of picture: PictureItem,
         through matrix: CGAffineTransform
@@ -275,8 +278,38 @@ final class FrameDrawer {
         let scale = matrix.axisScale
         let filter = FilterChain(tables: tables).reach(of: picture.filter) * max(scale.width, scale.height)
         let shadow = picture.shadow.map { CGFloat(CastShadow($0, through: matrix).margin) } ?? 0
+        var items = 0.0
+        if
+            case let .displayList(list) = picture.source,
+            let placement = picture.placement(ofSourceSized: CGSize(width: list.size.width, height: list.size.height))
+        {
+            let shown = placement.concatenating(matrix).axisScale
+            items = reach(of: list) * max(shown.width, shown.height)
+        }
 
-        return (filter + shadow).rounded(.up)
+        return (filter + shadow + items).rounded(.up)
+    }
+
+    // How far past the edge of its raster, in its output pixels, a list's items read what is drawn on that raster. An
+    // adjustment reads the backdrop the adjustments below it filtered, so their reaches add up. A track matte's source
+    // is drawn on the same raster and read as far out as the item casts its shadow from. A nested list's own raster is
+    // grown past this raster by its picture's reach, so it adds nothing here.
+    private func reach(of list: DisplayList) -> CGFloat {
+        let chain = FilterChain(tables: tables)
+        var adjustments = 0.0
+        var mattes = 0.0
+        for item in list.items {
+            if case let .adjust(adjust) = item.content {
+                adjustments += chain.reach(of: adjust.filter)
+            }
+            if let trackMatte = item.trackMatte {
+                let shadow = shadow(of: item.content)
+                    .map { CGFloat(CastShadow($0, through: CGAffineTransform(item.transform)).margin) } ?? 0
+                mattes = max(mattes, reach(of: trackMatte.source) + shadow)
+            }
+        }
+
+        return adjustments + mattes
     }
 
     // The whole backdrop through the adjustment's filter, drawn back over the frame in the raster's pixels, which the
