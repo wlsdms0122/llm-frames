@@ -111,12 +111,13 @@ package final class AVFoundationDecoder: Sendable {
         }
     }
 
-    // A file's colour that no fixed formula converts stops a reading that names no colour space.
+    // A file's colour that no fixed formula converts in `colorSpace` stops, with the reason its tags give.
     private func checkColor(
         _ tagged: TaggedColor,
+        in colorSpace: ColorSpace?,
         path: String
     ) throws {
-        guard case let .failure(refusal) = tagged.color else { return }
+        guard !tagged.colorReading.converts(in: colorSpace), case let .failure(refusal) = tagged.color else { return }
 
         throw DecoderError.unconvertibleColor(file: path, reason: refusal.reason)
     }
@@ -223,7 +224,7 @@ extension AVFoundationDecoder: MediaDecoder {
             throw DecoderError.noFrame(file: file.path, index: index, count: count)
         }
 
-        if reading.colorSpace == nil { try checkColor(video.taggedColor, path: file.path) }
+        try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)
         let image = if case .platform = reading {
             try video.taggedImage(atFrame: index, path: file.path)
         } else {
@@ -245,18 +246,19 @@ extension AVFoundationDecoder: MediaDecoder {
         _ file: MediaFile,
         reading: PictureReading?
     ) throws {
-        // A reading with a colour space of its own converts any picture.
-        let checksColor = reading != nil && reading?.colorSpace == nil
+        // A nil reading reads only sound, so no colour is checked.
         if !file.frameFiles.isEmpty {
             for path in file.frameFiles {
                 guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
-                if checksColor { try checkColor(try still.taggedColor(path: path), path: path) }
+                if let reading { try checkColor(try still.taggedColor(path: path), in: reading.colorSpace, path: path) }
             }
 
             return
         }
         if let still = try StillReader(path: file.path) {
-            if checksColor { try checkColor(try still.taggedColor(path: file.path), path: file.path) }
+            if let reading {
+                try checkColor(try still.taggedColor(path: file.path), in: reading.colorSpace, path: file.path)
+            }
 
             return
         }
@@ -270,7 +272,7 @@ extension AVFoundationDecoder: MediaDecoder {
         guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
         }
-        if checksColor { try checkColor(video.taggedColor, path: file.path) }
+        if let reading { try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path) }
     }
 
     package func sound(

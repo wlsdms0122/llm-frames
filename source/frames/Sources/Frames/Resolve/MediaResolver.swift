@@ -230,7 +230,7 @@ struct MediaResolver: Sendable {
         kind: PlaceKind,
         reference: String
     ) throws {
-        guard colorSpace == nil, reading == .platform else { return }
+        guard let reading, !reading.converts(in: colorSpace) else { return }
 
         throw ResolveError.unconvertibleMediaColor(place: place, kind: kind, reference: reference)
     }
