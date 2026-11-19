@@ -22,8 +22,50 @@ struct MixPlanReaderTests {
     )
     private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
 
-    // A video's sound at speed 2 with a fade in, a loop of music as one segment per repeat under a ducking envelope and
-    // panning left, and a compound clip's sound as a segment of its own.
+    // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, and a gate
+    // fading in by its `mix`.
+    private static let filter = [
+        MixFilterEntry(
+            operations: [
+                .eq(bands: [
+                    MixBand(
+                        type: .highPass,
+                        frequency: .envelope([EnvelopePoint(time: 0, value: 80), EnvelopePoint(time: 1, value: 160)]),
+                        gain: nil,
+                        q: .constant(0.7071)
+                    ),
+                    MixBand(type: .lowPass, frequency: .constant(12_000), gain: nil, q: .constant(0.7071)),
+                    MixBand(type: .peak, frequency: .constant(3000), gain: .constant(3), q: .constant(1)),
+                    MixBand(type: .lowShelf, frequency: .constant(200), gain: .constant(-2), q: .constant(0.7071)),
+                    MixBand(type: .highShelf, frequency: .constant(8000), gain: .constant(1.5), q: .constant(0.7071))
+                ]),
+                .compressor(MixCompressor(
+                    threshold: .constant(-18),
+                    ratio: .constant(3),
+                    knee: .constant(6),
+                    attack: .constant(0.01),
+                    release: .constant(0.1),
+                    makeup: .constant(2)
+                ))
+            ],
+            mix: .constant(1)
+        ),
+        MixFilterEntry(
+            operations: [
+                .gate(MixGate(
+                    threshold: .constant(-50),
+                    range: .constant(-80),
+                    attack: .constant(0.001),
+                    hold: .constant(0.05),
+                    release: .constant(0.1)
+                ))
+            ],
+            mix: .envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)])
+        )
+    ]
+
+    // A video's sound at speed 2 with a fade in and an audio filter, a loop of music as one segment per repeat under a
+    // ducking envelope and panning left, and a compound clip's sound as a segment of its own.
     private static let plans = [
         MixPlan(segments: []),
         MixPlan(segments: [
@@ -33,6 +75,7 @@ struct MixPlanReaderTests {
                 speed: 2,
                 start: 0,
                 end: 3,
+                filter: filter,
                 envelope: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)],
                 pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 0)]
             ),
@@ -120,12 +163,80 @@ struct MixPlanReaderTests {
         arguments: [
             (#""mixPlan": "1.0.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
             (#""speed": 2,"#, "", #"segments[0] (segment): missing key "speed""#),
-            (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, envelope, pan"#),
+            (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, filter, envelope, pan"#),
             (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, segments"#),
             (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)
         ]
     )
     func refusesUnreadableMember(
+        written: String,
+        replacement: String,
+        message: String
+    ) throws {
+        // Given
+        let text = replacingFirst(written, with: replacement, in: self.written())
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a filter value that holds is written as a number, and one that moves as [time, value] points")
+    func writesFilterValues() throws {
+        // Given
+        let plan = Self.plans[1]
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+        let entries = segment?["filter"]?.arrayValue
+        let band = entries?.first?.objectValue?["ops"]?.arrayValue?.first?.objectValue?["bands"]?.arrayValue?.first
+
+        // Then
+        #expect(segment?.keys == ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"])
+        #expect(band?.objectValue?.keys == ["type", "frequency", "q"])
+        #expect(band?.objectValue?["frequency"] == .array([.array([.number(0), .number(80)]), .array([.number(1), .number(160)])]))
+        #expect(band?.objectValue?["q"] == .number(0.7071))
+        #expect(entries?.last?.objectValue?["mix"]?.arrayValue?.count == 3)
+    }
+
+    @Test(
+        "a filter entry, op or band written in a form the writer never writes stops, naming its place",
+        arguments: [
+            (
+                #""type": "highPass","#,
+                #""type": "notch","#,
+                #"segments[0].filter[0].ops[0].bands[0].type (band): unknown value "notch". Allowed: lowShelf, highShelf, peak, lowPass, highPass"#
+            ),
+            (
+                #""type": "highPass","#,
+                #""type": "highPass", "gain": 3,"#,
+                #"segments[0].filter[0].ops[0].bands[0] (highPass band): unknown key "gain". Allowed: type, frequency, q"#
+            ),
+            (
+                #""op": "compressor","#,
+                #""op": "limiter","#,
+                #"segments[0].filter[0].ops[1].op (audio op): unknown value "limiter". Allowed: eq, compressor, gate"#
+            ),
+            (
+                #""op": "compressor","#,
+                #""op": "compressor", "hold": 0,"#,
+                #"segments[0].filter[0].ops[1] (compressor): unknown key "hold". Allowed: op, threshold, ratio, knee, attack, release, makeup"#
+            ),
+            (
+                #""threshold": -18,"#,
+                "",
+                #"segments[0].filter[0].ops[1] (compressor): missing key "threshold""#
+            ),
+            (
+                #""mix": 1"#,
+                #""mix": []"#,
+                #"segments[0].filter[0].mix (filter entry): expected a number or a list of [time, value] points, found a list of 0"#
+            )
+        ]
+    )
+    func refusesUnreadableFilter(
         written: String,
         replacement: String,
         message: String
