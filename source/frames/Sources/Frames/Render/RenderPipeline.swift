@@ -7,11 +7,11 @@
 
 import Foundation
 
-// Renders a resolved sequence through the roles: one frame of it to a PNG, or every frame to a master and, when asked,
-// a delivery from the same frames in the same pass, both in the sequence's colour space and clipped to its peak.
-// Everything that can refuse does before the first frame, in this order: the output paths and the time, every pinned
-// file's hash, the decoder on every pinned media, the renderer on every frame's display list, the mixer on the mix
-// plan, and the encoder on each target.
+// Renders a resolved sequence through the roles: one frame of it to a PNG of 16 bits per channel, or every frame to a
+// master and, when asked, a delivery from the same frames in the same pass, each in the sequence's colour space and
+// clipped to its peak. Everything that can refuse does before the first frame, in this order: the output paths and the
+// time, every pinned file's hash, the decoder on every pinned media, the renderer on every frame's display list, the
+// mixer on the mix plan, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let renderer: any Renderer
@@ -81,8 +81,15 @@ package struct RenderPipeline: Sendable {
 
         let list = evaluator.displayList(of: sequence, at: time)
         try renderer.check(list)
+        let target = ImageTarget.png(
+            path: output,
+            size: sequence.format.size,
+            depth: .sixteen,
+            output: sequence.format.output
+        )
+        try encoder.check(target)
 
-        try encoder.writeImage(renderer.frame(of: list), to: output)
+        try encoder.writeImage(renderer.frame(of: list), for: target)
     }
 
     private func master(

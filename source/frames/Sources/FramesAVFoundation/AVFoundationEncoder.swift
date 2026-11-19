@@ -13,15 +13,14 @@ import VideoToolbox
 import Frames
 
 // The `avfoundation` encoder: writes images with ImageIO, and masters, deliveries, compressed videos and sound files
-// with AVAssetWriter, each straight to its path. A PNG is 16 bits per component from a sixteen bit bitmap and 8
-// otherwise, its premultiplied colour written as PNG's straight alpha by ImageIO, with an `sRGB` chunk. A JPEG or HEIC
-// carries an sRGB profile. An image is scaled to its target's size by Core Graphics at high interpolation, and no
-// properties but the picture's own go into it. A wait on a video or sound writer longer than `deadline` seconds
-// cancels it.
+// with AVAssetWriter, each straight to its path. An image's working values are scaled to its target's size by Core
+// Graphics at high interpolation, encoded by its target's output (FRAMES-26 Output) and tagged with the output's
+// Core Graphics space, its premultiplied colour written as straight alpha by ImageIO: a PNG at its target's depth, a
+// HEIC at 16 bits in an HDR space, which ImageIO writes as 10, and at 8 in an SDR one, and a JPEG at 8 over white. A
+// PNG written to a path alone is `srgb` at its bitmap's depth. No properties but the picture's own go into an image. A
+// wait on a video or sound writer longer than `deadline` seconds cancels it.
 package final class AVFoundationEncoder: Sendable {
     // MARK: - Property
-    private static let workingSpace = CGColorSpace(name: CGColorSpace.sRGB)!
-
     private let deadline: Double
     private let soundConverter = AACSoundConverter()
 
@@ -32,58 +31,87 @@ package final class AVFoundationEncoder: Sendable {
 
     // MARK: - Public
     // MARK: - Private
+    // The bitmap at `width` by `height`, each pixel's colour converted by `conversion` and stored at `depth`, sixteen
+    // bits for a half float one, as an image in `space`. An opaque image's colour is over white, which is 1 in every
+    // SDR space's encoded values.
     private func image(
         of bitmap: Bitmap,
-        path: String
+        width: Int,
+        height: Int,
+        depth: BitDepth,
+        space: CGColorSpace,
+        isOpaque: Bool,
+        path: String,
+        by conversion: @escaping @Sendable (RGB) -> RGB
     ) throws -> CGImage {
-        guard let image = bitmap.image() else {
+        guard let fitted = bitmap.scaled(width: width, height: height) else {
+            throw EncoderError.unwritable(file: path, reason: "it cannot be drawn at \(width)x\(height)")
+        }
+
+        var pixels = fitted.floatPixels()
+        pixels.convertColors(width: width, by: conversion)
+        if isOpaque {
+            for pixel in stride(from: 0, to: pixels.count, by: 4) {
+                let transparency = 1 - pixels[pixel + 3]
+                for channel in 0..<3 {
+                    pixels[pixel + channel] += transparency
+                }
+                pixels[pixel + 3] = 1
+            }
+        }
+
+        let isEightBits = depth == .eight
+        let bytesPerRow = width * 4 * (isEightBits ? 1 : 2)
+        var data = Data(count: bytesPerRow * height)
+        data.withUnsafeMutableBytes { buffer in
+            if isEightBits {
+                let output = buffer.bindMemory(to: UInt8.self)
+                for index in pixels.indices {
+                    output[index] = FrameConverter.eightBits(pixels[index])
+                }
+            } else {
+                let output = buffer.bindMemory(to: UInt16.self)
+                for index in pixels.indices {
+                    output[index] = FrameConverter.sixteenBits(pixels[index]).littleEndian
+                }
+            }
+        }
+
+        let alpha = isOpaque ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast
+        let bitmapInfo = CGBitmapInfo(rawValue: alpha.rawValue).union(isEightBits ? [] : .byteOrder16Little)
+        guard
+            let provider = CGDataProvider(data: data as CFData),
+            let image = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: isEightBits ? 8 : 16,
+                bitsPerPixel: isEightBits ? 32 : 64,
+                bytesPerRow: bytesPerRow,
+                space: space,
+                bitmapInfo: bitmapInfo,
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+            )
+        else {
             throw EncoderError.unwritable(file: path, reason: "its bitmap cannot be made an image")
         }
 
         return image
     }
 
-    // The picture at the target's size, a JPEG's over white. One of the bitmap's own size that keeps its alpha is
-    // the bitmap itself.
-    private func picture(
-        of bitmap: Bitmap,
-        for target: ImageTarget
-    ) throws -> CGImage {
-        let image = try image(of: bitmap, path: target.path)
-        let width = Int(target.size.width)
-        let height = Int(target.size.height)
-        let isJPEG = if case .jpeg = target { true } else { false }
-        guard isJPEG || width != bitmap.width || height != bitmap.height else { return image }
+    private func depth(of target: ImageTarget) -> BitDepth {
+        switch target {
+        case let .png(_, _, depth, _):
+            depth
 
-        let depth = isJPEG ? BitDepth.eight : bitmap.depth
-        let byteOrder: CGBitmapInfo = depth == .sixteen ? .byteOrder16Little : []
-        let alpha: CGImageAlphaInfo = isJPEG ? .noneSkipLast : .premultipliedLast
-        guard
-            let context = CGContext(
-                data: nil,
-                width: width,
-                height: height,
-                bitsPerComponent: depth.bitsPerComponent,
-                bytesPerRow: 0,
-                space: Self.workingSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: alpha.rawValue).union(byteOrder).rawValue
-            )
-        else {
-            throw EncoderError.unwritable(file: target.path, reason: "it cannot be drawn at \(width)x\(height)")
-        }
+        case let .heic(_, _, _, output):
+            output.space.isHighDynamicRange ? .sixteen : .eight
 
-        let whole = CGRect(x: 0, y: 0, width: width, height: height)
-        if isJPEG {
-            context.setFillColor(CGColor(colorSpace: Self.workingSpace, components: [1, 1, 1, 1])!)
-            context.fill(whole)
+        case .jpeg:
+            .eight
         }
-        context.interpolationQuality = .high
-        context.draw(image, in: whole)
-        guard let drawn = context.makeImage() else {
-            throw EncoderError.unwritable(file: target.path, reason: "it cannot be drawn at \(width)x\(height)")
-        }
-
-        return drawn
     }
 
     private func write(
@@ -191,6 +219,9 @@ extension AVFoundationEncoder: Encoder {
         guard types.contains(fileType(of: target).identifier) else {
             throw EncoderError.unencodable(file: target.path, codec: codecName(of: target))
         }
+        if case .jpeg = target, target.output.space.isHighDynamicRange {
+            throw EncoderError.highDynamicRange(file: target.path, codec: "JPEG", colorSpace: target.output.space)
+        }
     }
 
     package func check(_ target: SoundTarget) throws {
@@ -213,14 +244,24 @@ extension AVFoundationEncoder: Encoder {
     ) throws {
         let size = Size(width: Double(bitmap.width), height: Double(bitmap.height))
 
-        try writeImage(bitmap, for: .png(path: path, size: size))
+        try writeImage(bitmap, for: .png(path: path, size: size, depth: bitmap.depth == .eight ? .eight : .sixteen))
     }
 
     package func writeImage(
         _ bitmap: Bitmap,
         for target: ImageTarget
     ) throws {
-        let picture = try picture(of: bitmap, for: target)
+        let output = target.output
+        let isJPEG = if case .jpeg = target { true } else { false }
+        let picture = try image(
+            of: bitmap,
+            width: Int(target.size.width),
+            height: Int(target.size.height),
+            depth: depth(of: target),
+            space: output.space.imageSpace,
+            isOpaque: isJPEG,
+            path: target.path
+        ) { output.output($0) }
         let properties: [CFString: Any] = switch target {
         case .png:
             [:]
