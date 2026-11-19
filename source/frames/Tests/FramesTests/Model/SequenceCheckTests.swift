@@ -540,7 +540,7 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames" } } ] }"#,
             #"{ "format": { "size": [1080] } }"#,
             #"{ "format": { "conform": "stretch" } }"#,
-            #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"#
+            ##"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"##
         ]
     )
     func refusesWrongForms(body: String) throws {
