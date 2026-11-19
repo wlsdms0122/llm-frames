@@ -60,27 +60,6 @@ struct ThemeTypesetter: Sendable {
         )
     }
 
-    // The box of set text along a line, placed by its style's alignment, its top on the line's.
-    func frame(
-        of layout: TextLayout,
-        style name: String,
-        theme: MergedTheme,
-        along line: Rectangle
-    ) -> Rectangle {
-        let x = switch theme.paragraphStyle(named: name, scale: 1).align {
-        case .left:
-            line.x
-
-        case .center:
-            line.center.x - layout.size.width / 2
-
-        case .right:
-            line.maxX - layout.size.width
-        }
-
-        return Rectangle(x: x, y: line.y, width: layout.size.width, height: layout.size.height)
-    }
-
     // MARK: - Private
     private func check(
         _ name: String,
