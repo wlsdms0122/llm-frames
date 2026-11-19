@@ -275,7 +275,7 @@ struct TrackPlanner: Sendable {
 
         case let .keyframes(keyframes):
             return .keyframes(keyframes.map { keyframe in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
                     value: found(keyframe.value, keyframe.at),

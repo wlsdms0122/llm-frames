@@ -252,10 +252,10 @@ struct SequenceReader: Sendable {
         }
 
         let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
-            element.objectValue.flatMap { keyframe -> TimedValue<Value>? in
+            element.objectValue.flatMap { keyframe -> PropertyKeyframe<Value>? in
                 guard let at = keyframe["at"]?.numberValue, let value = keyframe[key].flatMap(read) else { return nil }
 
-                return TimedValue(
+                return PropertyKeyframe(
                     index: index,
                     at: at,
                     value: value,

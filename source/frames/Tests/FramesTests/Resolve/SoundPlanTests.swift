@@ -87,13 +87,13 @@ struct SoundPlanTests {
 
         // Then
         #expect(plan.sound[1].volume == .keyframes([
-            TimedValue(index: 0, at: 4, value: 0.5, ease: .linear),
-            TimedValue(index: 1, at: 5, value: 1, ease: .linear)
+            PropertyKeyframe(index: 0, at: 4, value: 0.5, ease: .linear),
+            PropertyKeyframe(index: 1, at: 5, value: 1, ease: .linear)
         ]))
         #expect(plan.sound[2].range == TimeRange(start: 3.5, end: 6))
         #expect(plan.sound[2].volume == .keyframes([
-            TimedValue(index: 0, at: 4, value: 0, ease: .linear),
-            TimedValue(index: 1, at: 4.5, value: 1, ease: .linear)
+            PropertyKeyframe(index: 0, at: 4, value: 0, ease: .linear),
+            PropertyKeyframe(index: 1, at: 4.5, value: 1, ease: .linear)
         ]))
     }
 
@@ -110,8 +110,8 @@ struct SoundPlanTests {
 
         // Then
         #expect(plan.sound[0].pan == .keyframes([
-            TimedValue(index: 0, at: 1, value: -1, ease: .easeIn),
-            TimedValue(index: 1, at: 2, value: 0.5, ease: .linear)
+            PropertyKeyframe(index: 0, at: 1, value: -1, ease: .easeIn),
+            PropertyKeyframe(index: 1, at: 2, value: 0.5, ease: .linear)
         ]))
         #expect(plan.sound[1].pan == .value(0.25))
         #expect(plan.sound[2].pan == .value(0))

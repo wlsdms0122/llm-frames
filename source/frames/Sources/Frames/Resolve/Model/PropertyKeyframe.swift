@@ -1,5 +1,5 @@
 //
-//  TimedValue.swift
+//  PropertyKeyframe.swift
 //  Frames
 //
 //  Created by JSilver on 11/16/26.
@@ -7,7 +7,7 @@
 
 // One keyframe's value of a property. `index` is the keyframe's place in the clip's `keyframes`, and `at` its instant:
 // on the clip's clock as written, and in sequence time once resolve has found it.
-struct TimedValue<Value: Equatable & Sendable>: Equatable, Sendable {
+struct PropertyKeyframe<Value: Equatable & Sendable>: Equatable, Sendable {
     // MARK: - Property
     let index: Int
     let at: Double
@@ -28,8 +28,8 @@ struct TimedValue<Value: Equatable & Sendable>: Equatable, Sendable {
     }
 
     // MARK: - Public
-    func with<Other: Equatable & Sendable>(_ value: Other) -> TimedValue<Other> {
-        TimedValue<Other>(index: index, at: at, value: value, ease: ease)
+    func with<Other: Equatable & Sendable>(_ value: Other) -> PropertyKeyframe<Other> {
+        PropertyKeyframe<Other>(index: index, at: at, value: value, ease: ease)
     }
 
     // MARK: - Private

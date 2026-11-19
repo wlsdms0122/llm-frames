@@ -181,8 +181,8 @@ struct SequenceReaderTests {
             fill: .color("#FF0000"),
             stroke: .off,
             trim: .keyframes([
-                TimedValue(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
-                TimedValue(index: 1, at: 2, value: .whole, ease: .easeIn)
+                PropertyKeyframe(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
+                PropertyKeyframe(index: 1, at: 2, value: .whole, ease: .easeIn)
             ]),
             shadow: .shadow(radius: 4, offset: nil, color: "accent")
         )))

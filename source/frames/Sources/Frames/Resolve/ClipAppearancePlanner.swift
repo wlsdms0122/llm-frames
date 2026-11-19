@@ -363,7 +363,7 @@ struct ClipAppearancePlanner: Sendable {
 
         case let .keyframes(keyframes):
             crops = .keyframes(keyframes.map { keyframe in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
                     value: conformed(keyframe.value.rectangle),

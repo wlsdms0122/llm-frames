@@ -599,8 +599,8 @@ struct SequencePlannerTests {
         let title = plan.clips[0].appearance
         #expect(plan.storyline[0].filter == graded)
         #expect(title.opacity == .keyframes([
-            TimedValue(index: 0, at: 1, value: 0, ease: .linear),
-            TimedValue(index: 1, at: 2, value: 1, ease: .easeIn)
+            PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
+            PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
         ]))
         #expect(title.scale == .value(2))
         #expect(title.rotation == .value(0))
@@ -666,14 +666,14 @@ struct SequencePlannerTests {
         #expect(appearance.box == ClipBox(
             size: Size(width: 1080, height: 1920),
             position: .keyframes([
-                TimedValue(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
-                TimedValue(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
+                PropertyKeyframe(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
+                PropertyKeyframe(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
             ]),
             anchor: Point(x: 0, y: 0)
         ))
         #expect(appearance.scale == .keyframes([
-            TimedValue(index: 0, at: 1, value: 1, ease: .linear),
-            TimedValue(index: 1, at: 3, value: 0.5, ease: .linear)
+            PropertyKeyframe(index: 0, at: 1, value: 1, ease: .linear),
+            PropertyKeyframe(index: 1, at: 3, value: 0.5, ease: .linear)
         ]))
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
@@ -846,11 +846,11 @@ struct SequencePlannerTests {
         // Then
         let triangle = { (y: Double) in [Point(x: 0, y: y), Point(x: 10, y: y), Point(x: 5, y: y + 10)] }
         #expect(plan.clips[0].mask == .keyframes([
-            TimedValue(index: 0, at: 1, value: [
+            PropertyKeyframe(index: 0, at: 1, value: [
                 mask(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4), feather: 2),
                 mask(.polyline(triangle(0), isClosed: true), mode: .subtract)
             ], ease: .easeIn),
-            TimedValue(index: 1, at: 3, value: [
+            PropertyKeyframe(index: 1, at: 3, value: [
                 mask(.rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8), feather: 6),
                 mask(.polyline(triangle(10), isClosed: true), mode: .subtract)
             ], ease: .linear)
