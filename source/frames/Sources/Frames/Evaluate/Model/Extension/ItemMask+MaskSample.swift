@@ -1,5 +1,5 @@
 //
-//  ItemMask+ResolvedMask.swift
+//  ItemMask+MaskSample.swift
 //  Frames
 //
 //  Created by JSilver on 11/18/26.
@@ -12,7 +12,7 @@ extension ItemMask {
     // MARK: - Property
     // MARK: - Initializer
     init(
-        mask: ResolvedMask,
+        mask: MaskSample,
         transform: AffineTransform,
         scale: Double
     ) {

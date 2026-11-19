@@ -453,7 +453,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
     }
 
-    @Test("masks are written after the crop as a keyframe list of {geometry, feather, invert, mode} lists, a box as its rect, and null for none")
+    @Test("masks are written after the crop as a list of {geometry, feather, invert, mode}, each number a keyframe list, a box keeping its width, height and position, and null for none")
     func writesMasks() throws {
         // Given
         let document = #"""
@@ -463,9 +463,9 @@ struct ResolvedSequenceWriterTests {
                 { "media": "/abs/card.png", "at": [0, 4], "width": 160,
                   "mask": [ { "shape": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
                             { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
-                { "adjust": "frames/warm", "at": [0, 4], "keyframes": [
-                    { "at": 1, "ease": "ease-out", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } },
-                    { "at": 3, "mask": { "shape": "rect", "area": [0, 0, 20, 20], "feather": 1 } } ] },
+                { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                    { "at": 1, "ease": "ease-out", "mask": { "area": [0, 0, 10, 10] } },
+                    { "at": 3, "mask": { "area": [0, 0, 20, 20], "feather": 1 } } ] },
                 { "title": "a", "style": "title", "at": [0, 4] } ] }
             """#
 
@@ -480,20 +480,22 @@ struct ResolvedSequenceWriterTests {
             #expect(Array(entry.keys[crop...].prefix(4)) == ["crop", "mask", "trackMatte", "track"])
         }
         #expect(storyline["mask"] == (try Fixture.json(#"""
-            [ { "at": 0, "value": [ { "geometry": { "ellipse": { "rect": [16, 16, 480, 480] } }, "feather": 6, "invert": false, "mode": "add" } ],
-                "ease": "linear" } ]
+            [ { "geometry": { "ellipse": { "rect": [ { "at": 0, "value": [16, 16, 480, 480], "ease": "linear" } ] } },
+                "feather": [ { "at": 0, "value": 6, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[0]["mask"] == (try Fixture.json(#"""
-            [ { "at": 0, "value": [
-                { "geometry": { "rect": { "rect": [150, 280, 100, 40], "radius": 4 } }, "feather": 0, "invert": true, "mode": "intersect" },
-                { "geometry": { "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": true } }, "feather": 0, "invert": false, "mode": "add" } ],
-                "ease": "linear" } ]
+            [ { "geometry": { "rect": { "width": [ { "at": 0, "value": 100, "ease": "linear" } ], "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
+                  "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": 4, "ease": "linear" } ] } },
+                "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": true, "mode": "intersect" },
+              { "geometry": { "polyline": { "points": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
+                  [ { "at": 0, "value": [5, 10], "ease": "linear" } ] ], "closed": true } },
+                "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[1]["mask"] == (try Fixture.json(#"""
-            [ { "at": 1, "value": [ { "geometry": { "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }, "feather": 0, "invert": false, "mode": "add" } ],
-                "ease": "ease-out" },
-              { "at": 3, "value": [ { "geometry": { "rect": { "rect": [0, 0, 20, 20], "radius": 0 } }, "feather": 2, "invert": false, "mode": "add" } ],
-                "ease": "linear" } ]
+            [ { "geometry": { "rect": {
+                  "rect": [ { "at": 1, "value": [0, 0, 10, 10], "ease": "ease-out" }, { "at": 3, "value": [0, 0, 20, 20], "ease": "linear" } ],
+                  "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } },
+                "feather": [ { "at": 3, "value": 2, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[2]["mask"] == .null)
     }

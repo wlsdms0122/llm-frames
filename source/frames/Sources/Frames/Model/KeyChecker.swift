@@ -527,8 +527,8 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape. A rect or an ellipse takes exactly one of `area` and the box `width`,
-    // `height` and `position`, all three together, and a path at least three points, since its path is closed.
+    // A mask takes the keys of its shape, a rect or an ellipse not both `area` and a key of the box, and a path at
+    // least three points, since its path is closed. Whether its geometry is given is checked with its keyframes.
     private func checkMask(
         _ object: JSONObject,
         as shape: ShapeKind,
@@ -547,14 +547,74 @@ struct KeyChecker: Sendable {
         guard shape != .path else { return }
 
         let box = MaskKeyTable.box.filter(object.contains)
-        if object.contains("area") {
-            guard box.isEmpty else {
-                throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
+        if object.contains("area"), !box.isEmpty {
+            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
+        }
+    }
+
+    // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
+    // or every key of the box from one or the other, and a path its `points`. A keyframe's mask takes the keys of its
+    // static mask's shape, a path's points at least three. A mask written alone is the first of a list of one.
+    private func checkMaskGeometry(
+        _ object: JSONObject,
+        place: Place,
+        scope: DocumentScope
+    ) throws {
+        guard let written = object["mask"] else { return }
+
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, keyframe in
+            keyframe.objectValue?["mask"].map { (index: index, mask: $0) }
+        }
+        let elements = written.arrayValue ?? [written]
+        for (index, element) in elements.enumerated() {
+            guard let mask = element.objectValue else { continue }
+
+            let maskPlace = written.arrayValue == nil
+                ? place.appending(key: "mask")
+                : place.appending(key: "mask").appending(index: index)
+            let moved = keyframes.compactMap { keyframe -> (place: Place, mask: JSONObject)? in
+                let keyframePlace = place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "mask")
+                if let list = keyframe.mask.arrayValue {
+                    return list.indices.contains(index)
+                        ? list[index].objectValue.map { (keyframePlace.appending(index: index), $0) }
+                        : nil
+                }
+
+                return index == 0 ? keyframe.mask.objectValue.map { (keyframePlace, $0) } : nil
             }
-        } else if box.isEmpty {
-            throw ModelError.missingKey(place: place, kind: table.kind, keys: ["area"] + MaskKeyTable.box)
-        } else if let missing = MaskKeyTable.box.first(where: { !object.contains($0) }) {
-            throw ModelError.missingKey(place: place, kind: table.kind, keys: [missing])
+            let given = Set(([mask] + moved.map(\.mask)).flatMap { mask in
+                mask.members.filter { $0.value != .null }.map(\.key)
+            })
+
+            var trial = scope
+            for shape in try shapes(of: mask, place: maskPlace, kind: "mask", scope: &trial) {
+                let table = MaskKeyTable.table(for: shape)
+                for keyframe in moved {
+                    if let key = keyframe.mask.keys.first(where: { table.rule(named: $0) == nil }) {
+                        throw ModelError.unknownKey(place: keyframe.place, kind: table.kind, key: key, allowed: table.keys)
+                    }
+                    if shape == .path, let points = keyframe.mask["points"]?.arrayValue, points.count < 3 {
+                        throw ModelError.invalidValue(
+                            place: keyframe.place.appending(key: "points"),
+                            kind: table.kind,
+                            reason: "a path mask is closed, so it runs through at least three points, found \(points.count)"
+                        )
+                    }
+                }
+
+                if shape == .path {
+                    guard given.contains("points") else {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: ["points"])
+                    }
+                } else if !given.contains("area") {
+                    guard MaskKeyTable.box.contains(where: given.contains) else {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: ["area"] + MaskKeyTable.box)
+                    }
+                    if let missing = MaskKeyTable.box.first(where: { !given.contains($0) }) {
+                        throw ModelError.missingKey(place: maskPlace, kind: table.kind, keys: [missing])
+                    }
+                }
+            }
         }
     }
 
@@ -794,6 +854,7 @@ struct KeyChecker: Sendable {
             try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
             try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
+            try checkMaskGeometry(object, place: place, scope: scope)
         }
 
         if let keyframes = object["keyframes"] {

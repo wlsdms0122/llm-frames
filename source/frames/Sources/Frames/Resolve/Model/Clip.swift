@@ -26,7 +26,7 @@ struct Clip: Equatable, Sendable {
     let area: PropertyValue<AreaForm>?
     let position: PropertyValue<PositionForm>?
     let crop: PropertyValue<CropForm>?
-    let mask: PropertyValue<[ClipMask]>?
+    let mask: LookProperty?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
     let width: Double?
@@ -57,7 +57,7 @@ struct Clip: Equatable, Sendable {
         area: PropertyValue<AreaForm>? = nil,
         position: PropertyValue<PositionForm>? = nil,
         crop: PropertyValue<CropForm>? = nil,
-        mask: PropertyValue<[ClipMask]>? = nil,
+        mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
         width: Double? = nil,

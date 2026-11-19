@@ -25,8 +25,9 @@ struct TimedValueBuilder: Sendable {
         as structure: ValueStructure,
         place: LookPlace
     ) throws -> LookValue? {
-        // The merge keeps no key a skeleton writes `unset`, so each keyframe is also checked against the earlier
-        // skeletons, which hold the forms the keyframes give.
+        // A value the merge replaces whole, such as a preset named alone, keeps none of the keys a skeleton writes
+        // under it, so each keyframe is also checked against the earlier skeletons, which hold the forms the
+        // keyframes give.
         var layer = written
         var skeletons: [LookValue] = []
         for keyframe in keyframes {
@@ -36,7 +37,7 @@ struct TimedValueBuilder: Sendable {
                 try checkAgreement(earlier, skeleton, as: structure, place: keyframePlace)
             }
             skeletons.append(skeleton)
-            layer = try merger.merge(skeleton, layer ?? .unset, as: structure, place: keyframePlace)
+            layer = try self.layer(layer ?? .unset, over: skeleton, as: structure, place: keyframePlace)
         }
 
         return layer
@@ -49,7 +50,7 @@ struct TimedValueBuilder: Sendable {
         as structure: ValueStructure,
         instant: Double,
         place: LookPlace,
-        leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
+        leaf: (JSONValue, LeafKind, LeafSource) throws -> LeafValue
     ) throws -> TimedValue {
         switch (merged, structure) {
         case (.off, _):
@@ -141,6 +142,38 @@ struct TimedValueBuilder: Sendable {
     }
 
     // MARK: - Private
+    // The clip's layer merged over a keyframe's skeleton. A list merges element by element, since the skeleton's
+    // elements hold the structure the keyframes give to elements the clip writes without it (a mask's `points` given
+    // only in keyframes), and `checkAgreement` has found both lists of one length. The look merge replaces it whole.
+    private func layer(
+        _ layer: LookValue,
+        over skeleton: LookValue,
+        as structure: ValueStructure,
+        place: Place
+    ) throws -> LookValue {
+        switch (layer, skeleton, structure) {
+        case let (.list(elements), .list(skeletons), _) where elements.count == skeletons.count:
+            let element = Self.element(of: structure)
+            return .list(try zip(elements, skeletons).enumerated().map { index, pair in
+                try self.layer(pair.0, over: pair.1, as: element, place: place.appending(index: index))
+            })
+
+        case let (.object, .object(members), .object):
+            return try members.reduce(layer) { merged, member in
+                guard let value = merged[member.key] else { return merged.setting(member.key, to: member.value) }
+
+                let child = Self.structure(of: member.key, in: structure)
+                return merged.setting(
+                    member.key,
+                    to: try self.layer(value, over: member.value, as: child, place: place.appending(key: member.key))
+                )
+            }
+
+        default:
+            return try merger.merge(skeleton, layer, as: structure, place: place)
+        }
+    }
+
     // One timed leaf: a keyframe list over the keyframes that write it, or one keyframe of the merged value.
     private func track(
         _ merged: LookValue,
@@ -149,12 +182,13 @@ struct TimedValueBuilder: Sendable {
         kind: LeafKind,
         instant: Double,
         place: LookPlace,
-        leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
+        leaf: (JSONValue, LeafKind, LeafSource) throws -> LeafValue
     ) throws -> TimedValue {
         guard !keyframes.isEmpty else {
             guard case let .leaf(value) = merged else { return .off }
 
-            return .track([Keyframe(at: instant, value: try leaf(value, kind, place.written))])
+            let source = LeafSource(place: place, keyframe: nil, time: instant)
+            return .track([Keyframe(at: instant, value: try leaf(value, kind, source))])
         }
 
         if case .leaf = written, keyframes.allSatisfy({ $0.value != .unset }) {
@@ -172,7 +206,7 @@ struct TimedValueBuilder: Sendable {
                 throw LookError.nullWithoutValue(place: keyframePlace)
             }
 
-            let value = try leaf(json, kind, keyframePlace)
+            let value = try leaf(json, kind, LeafSource(place: place, keyframe: keyframe.index, time: keyframe.at))
             let numbers: [Double] = switch value {
             case let .number(number): [number]
             case let .numbers(numbers): numbers

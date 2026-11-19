@@ -247,7 +247,13 @@ struct ContentFitPlanner: Sendable {
             },
             crop: geometry.crop,
             mask: space == .parent
-                ? geometry.mask?.map { masks in masks.map { moved($0, by: offset) } }
+                ? geometry.mask?.map { mask in
+                    mask.carried(
+                        area: { area, _, _ in moved(area, by: offset) },
+                        point: { point, _, _ in moved(point, by: offset) },
+                        scale: { _ in 1 }
+                    )
+                }
                 : geometry.mask,
             track: geometry.track,
             isInOutputPixels: geometry.isInOutputPixels,
@@ -255,24 +261,6 @@ struct ContentFitPlanner: Sendable {
             nested: geometry.nested,
             appearance: geometry.appearance
         )
-    }
-
-    private func moved(
-        _ mask: ResolvedMask,
-        by offset: Point
-    ) -> ResolvedMask {
-        let geometry: PathGeometry = switch mask.geometry {
-        case let .rect(rectangle, radius):
-            .rect(moved(rectangle, by: offset), radius: radius)
-
-        case let .ellipse(rectangle):
-            .ellipse(moved(rectangle, by: offset))
-
-        case let .polyline(points, isClosed):
-            .polyline(points.map { moved($0, by: offset) }, isClosed: isClosed)
-        }
-
-        return mask.replacing(geometry: geometry)
     }
 
     private func moved(

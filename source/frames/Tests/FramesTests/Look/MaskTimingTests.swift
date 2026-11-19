@@ -88,6 +88,30 @@ struct MaskTimingTests {
         #expect(mask["feather"] == .track([Keyframe(at: 2, value: .number(4))]))
     }
 
+    @Test("a path mask in a list whose points only its keyframes write times each point over them")
+    func takesPointsFromKeyframes() throws {
+        // Given
+        let written = try value(##"[{ "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "path", "mode": "subtract" }]"##)
+        let keyframes = try keyframes([
+            (0, ##"[{ }, { "points": [[0, 0], [10, 0], [5, 10]] }]"##),
+            (1, ##"[{ "feather": 1 }, { }]"##),
+            (2, ##"[{ }, { "points": [[0, 10], [10, 10], [5, 20]] }]"##)
+        ])
+
+        // When
+        let timed = try timed(written: written, keyframes: keyframes)
+
+        // Then
+        #expect(timed.count == 2)
+        let path = try #require(timed.last)
+        #expect(path["mode"] == .fixed(.string("subtract")))
+        #expect(path["points"] == .list([
+            .track([Keyframe(at: 0, value: .numbers([0, 0])), Keyframe(at: 2, value: .numbers([0, 10]))]),
+            .track([Keyframe(at: 0, value: .numbers([10, 0])), Keyframe(at: 2, value: .numbers([10, 10]))]),
+            .track([Keyframe(at: 0, value: .numbers([5, 10])), Keyframe(at: 2, value: .numbers([5, 20]))])
+        ]))
+    }
+
     @Test("a geometry leaf written on the clip and in every keyframe that writes it stops")
     func refusesStaticAndKeyframedGeometry() throws {
         // Given

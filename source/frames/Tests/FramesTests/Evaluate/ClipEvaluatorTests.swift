@@ -288,20 +288,14 @@ struct ClipEvaluatorTests {
     @Test("between two keyframes a mask interpolates its geometry, its corner radius and its feather")
     func interpolatesKeyframedMask() throws {
         // Given
-        let mask = [
-            Keyframe(at: 0, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 10), radius: 2),
-                feather: 2,
-                isInverted: true,
-                mode: .subtract
-            )]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 20, y: 10, width: 40, height: 30), radius: 6),
-                feather: 6,
-                isInverted: true,
-                mode: .subtract
-            )])
-        ]
+        let mask = [ResolvedMask(
+            samples: [
+                (at: 0, geometry: .rect(Rectangle(x: 0, y: 0, width: 20, height: 10), radius: 2), feather: 2),
+                (at: 2, geometry: .rect(Rectangle(x: 20, y: 10, width: 40, height: 30), radius: 6), feather: 6)
+            ],
+            isInverted: true,
+            mode: .subtract
+        )]
         let clip = masked(
             .title(text()),
             mask: mask,
@@ -370,9 +364,7 @@ struct ClipEvaluatorTests {
     ) -> ResolvedClip {
         masked(
             content,
-            mask: [Keyframe(at: 0, value: [
-                ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)
-            ])],
+            mask: [ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)],
             box: box,
             crop: crop,
             scale: scale,
@@ -383,7 +375,7 @@ struct ClipEvaluatorTests {
 
     private func masked(
         _ content: ResolvedClipContent,
-        mask: [Keyframe<[ResolvedMask]>],
+        mask: [ResolvedMask],
         box: ResolvedBox? = nil,
         crop: Rectangle? = nil,
         scale: Double? = nil,

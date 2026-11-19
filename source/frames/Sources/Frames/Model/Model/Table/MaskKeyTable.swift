@@ -20,7 +20,7 @@ enum MaskKeyTable {
             [area, width, height, position]
 
         case .path:
-            [KeyRule("points", .points, isRequired: true)]
+            [points]
         }
 
         return ObjectTable(
@@ -33,8 +33,23 @@ enum MaskKeyTable {
         )
     }
 
+    // A keyframe's mask: every key a mask of any shape takes, the keys its static mask's shape takes being checked
+    // with the static mask.
+    static let keyframe = ObjectTable(
+        kind: "mask",
+        rules: [
+            KeyRule("shape", .literal(VocabularyTable.shapes)),
+            area, width, height, position, points,
+            KeyRule("radius", .nonNegativeNumber),
+            KeyRule("feather", .nonNegativeNumber),
+            KeyRule("invert", .bool),
+            KeyRule("mode", .literal(MaskMode.allCases.map(\.rawValue)))
+        ]
+    )
+
     private static let area = KeyRule("area", .area)
     private static let width = KeyRule("width", .positiveNumber)
     private static let height = KeyRule("height", .positiveNumber)
     private static let position = KeyRule("position", AreaKeyTable.point)
+    private static let points = KeyRule("points", .points)
 }

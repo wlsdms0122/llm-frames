@@ -935,9 +935,9 @@ struct SequenceCheckTests {
             """#
         let written = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ { \#(keys), "mask": \#(masks) } ] }"#)
         let keyframed = try Fixture.json(#"""
-            { "kind": "sequence", "\#(list)": [ { \#(keys), "keyframes": [
-                { "at": 0, "mask": { "shape": "ellipse", "area": [0, 0, 10, 10] } },
-                { "at": 1, "mask": { "shape": "ellipse", "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "mask": { "shape": "ellipse" }, "keyframes": [
+                { "at": 0, "mask": { "area": [0, 0, 10, 10] } },
+                { "at": 1, "mask": { "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
             """#)
 
         // When, Then
@@ -1032,6 +1032,71 @@ struct SequenceCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a mask's geometry is given by the clip's mask and its keyframes together",
+        arguments: [
+            (#"{ "shape": "rect" }"#, #"[ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "area": [0, 0, 20, 20] } } ]"#),
+            (#"{ "shape": "ellipse", "width": 10 }"#, #"[ { "at": 0, "mask": { "height": 10, "position": [5, 5] } }, { "at": 1, "mask": { "width": 20 } } ]"#),
+            (#"{ "shape": "path" }"#, #"[ { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } } ]"#),
+            (
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "path" } ]"#,
+                #"[ { "at": 0, "mask": [ { "radius": 2 }, { "points": [[0, 0], [10, 0], [5, 10]] } ] } ]"#
+            )
+        ]
+    )
+    func acceptsMaskGeometryInKeyframes(
+        mask: String,
+        keyframes: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 2], "mask": \#(mask), "keyframes": \#(keyframes) } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "a mask's geometry missing from the clip's mask and its keyframes stops at the clip's mask, and a keyframe's mask takes its static mask's keys",
+        arguments: [
+            (
+                #"{ "shape": "rect" }"#,
+                #"[ { "at": 0, "mask": { "feather": 2 } } ]"#,
+                "clips[0].mask (rect mask): needs one of area, width, height, position"
+            ),
+            (
+                #"[ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10 } ]"#,
+                #"[ { "at": 0, "mask": [ { }, { "height": 10 } ] } ]"#,
+                #"clips[0].mask[1] (ellipse mask): missing key "position""#
+            ),
+            (
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
+                #"[ { "at": 0, "mask": { "radius": 2 } } ]"#,
+                #"clips[0].keyframes[0].mask (ellipse mask): unknown key "radius""#
+            ),
+            (
+                #"{ "shape": "path" }"#,
+                #"[ { "at": 0, "mask": { "points": [[0, 0], [10, 0]] } } ]"#,
+                "clips[0].keyframes[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
+            )
+        ]
+    )
+    func refusesMaskGeometryInKeyframes(
+        mask: String,
+        keyframes: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "adjust": "frames/vivid", "at": [0, 2], "mask": \#(mask), "keyframes": \#(keyframes) } ] }
+            """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }

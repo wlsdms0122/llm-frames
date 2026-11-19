@@ -81,7 +81,7 @@ struct ClipLookPlanner: Sendable {
             as: structure,
             instant: instant,
             place: lookPlace,
-            leaf: leaf(_:kind:place:)
+            leaf: { value, kind, source in try leaf(value, kind: kind, place: source.written) }
         )
     }
 
@@ -105,7 +105,7 @@ struct ClipLookPlanner: Sendable {
             as: structure,
             instant: instant,
             place: lookPlace,
-            leaf: leaf(_:kind:place:)
+            leaf: { value, kind, source in try leaf(value, kind: kind, place: source.written) }
         )
     }
 
