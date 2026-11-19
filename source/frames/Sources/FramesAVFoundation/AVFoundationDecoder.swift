@@ -17,6 +17,8 @@ import os
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     private let converter = PictureConverter()
+    private let managedConverter = ManagedPictureConverter()
+    private let colorReader = ColorReader()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
 
@@ -46,8 +48,15 @@ package final class AVFoundationDecoder: Sendable {
         try soundTrack(at: path).map { ProbedSound(channels: $0.layout.labels.count, sampleRate: $0.sampleRate) }
     }
 
-    private func picture(of still: StillReader, path: String) throws -> Bitmap {
-        converter.picture(from: try still.image(path: path), depth: still.depth)
+    // The picture as `reading` says: by the platform's colour management into its colour space, or tagged otherwise.
+    private func picture(
+        of image: CIImage,
+        depth: BitDepth,
+        reading: PictureReading
+    ) -> Bitmap {
+        guard case let .platform(colorSpace) = reading else { return converter.picture(from: image, depth: depth) }
+
+        return managedConverter.picture(from: image, in: colorSpace)
     }
 
     // The PNG files in a directory in natural order, so `frame2` comes before `frame10`.
@@ -111,9 +120,11 @@ extension AVFoundationDecoder: MediaFactProvider {
 
 extension AVFoundationDecoder: MediaDecoder {
     // MARK: - Lifecycle
+    // Every reading but `platform` is the picture Core Image converts from the space it is tagged with.
     package func picture(
         of file: MediaFile,
-        atFrame index: Int
+        atFrame index: Int,
+        reading: PictureReading
     ) throws -> Bitmap {
         if !file.frameFiles.isEmpty {
             guard file.frameFiles.indices.contains(index) else {
@@ -123,12 +134,12 @@ extension AVFoundationDecoder: MediaDecoder {
             let path = file.frameFiles[index]
             guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
 
-            return try picture(of: still, path: path)
+            return picture(of: try still.image(path: path), depth: still.depth, reading: reading)
         }
         if let still = try StillReader(path: file.path) {
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
 
-            return try picture(of: still, path: file.path)
+            return picture(of: try still.image(path: file.path), depth: still.depth, reading: reading)
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
@@ -140,10 +151,14 @@ extension AVFoundationDecoder: MediaDecoder {
             throw DecoderError.noFrame(file: file.path, index: index, count: count)
         }
 
-        return converter.picture(
-            from: try video.image(atFrame: index, path: file.path),
-            depth: video.depth
-        )
+        return picture(of: try video.image(atFrame: index, path: file.path), depth: video.depth, reading: reading)
+    }
+
+    package func colorReading(of file: MediaFile) throws -> ColorReading {
+        let path = file.frameFiles.first ?? file.path
+        guard let reading = try colorReader.colorReading(at: path) else { throw DecoderError.unreadable(file: path) }
+
+        return reading
     }
 
     package func check(_ file: MediaFile) throws {
