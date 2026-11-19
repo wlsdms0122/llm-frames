@@ -63,6 +63,22 @@ A run's background and its underline mark the run where it lies, as a highlighte
 - Neither takes part in layout: they move no glyph, add no space and do not grow the text box, so a padded background may reach over the space beside its run and out of the text box. A title's drawn extent holds them ([FRAMES-6](../FRAMES-6/SPEC.md), [FRAMES-14](../FRAMES-14/SPEC.md)).
 - They are drawn over the paragraph background and under every glyph: the run backgrounds in text order, then the underlines, then the glyphs' strokes and fills ([FRAMES-20](../FRAMES-20/SPEC.md)).
 
+### Units
+
+A title whose animation plays by character, word or line ([FRAMES-14](../FRAMES-14/SPEC.md)) is split by its layout into units, in reading order, which is the order of its text.
+
+| `by` | A unit is |
+| --- | --- |
+| `character` | an extended grapheme cluster of UAX #29 |
+| `word` | a word between UAX #29 word boundaries, with the punctuation it touches |
+| `line` | a laid out line |
+
+- Spaces are not units and belong to none. A line that holds nothing but spaces, such as an empty line a `\n` makes, is no `line` unit.
+- Under `word`, a piece of text between two UAX #29 word boundaries that holds a letter, a digit or an ideograph is a word. A piece of punctuation or symbols joins the word it touches with no space between them, the word before it when it touches two, so `Hello,` and `"Quote"` are one unit each, and a dash between two spaces is a unit of its own. The boundaries are those of UAX #29's default rules, with no dictionary, so each Chinese or Japanese ideograph is a word, a Korean word runs from space to space, and `iPhone에서` is one word.
+- Characters the shaping provider sets as one glyph are in one unit: units that would share a glyph are one unit. Under `character` the optional ligatures (`liga`, `clig`, `dlig`) are off, unless the style's `features` turns them on, so that each character can move alone.
+- A unit's box spans its glyphs, from the origin of the first to the end of the advance of the last, and its line, from the line's baseline less the largest ascent among the line's runs to the baseline plus their largest descent. It grows on every side by half the widest stroke among its glyphs. It is in the title's box, and does not move with `baselineShift`, so every unit on a line shares the line's height and its centre.
+- The paragraph background, the run backgrounds and the underlines are not part of any unit.
+
 ## Interactions
 
 Styles are [FRAMES-22](../FRAMES-22/SPEC.md). A title's keys, `width` among them, are [FRAMES-11](../FRAMES-11/SPEC.md). The shaping provider is [FRAMES-21](../FRAMES-21/SPEC.md). Pack fonts are found as [FRAMES-17](../FRAMES-17/SPEC.md) says. A title's box is measured into a content-fit frame as [FRAMES-6](../FRAMES-6/SPEC.md) says.

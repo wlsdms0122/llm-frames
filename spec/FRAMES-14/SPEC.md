@@ -44,7 +44,7 @@ A document passes arguments in its preset choices:
 | Choice | Forms |
 | --- | --- |
 | transition choice | `"cut"`, a preset name, or `{preset, seconds, args}` |
-| animation choice | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}` |
+| animation choice | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}`. On a title, either object form may also take `by` and `stagger` ([By character, word or line](#by-character-word-or-line)) |
 | side of `{entrance, exit}` | `"none"`, a preset name, or `{preset, args}` |
 | filter choice | [FRAMES-15](../FRAMES-15/SPEC.md) |
 
@@ -112,6 +112,27 @@ A span is:
 - `{entrance, exit}` as a choice takes the entrance span from one preset and the exit span from another, each with its own arguments, and no loop. Both sides are written, and a side without a span is `"none"`.
 - An animation is applied over the clip's keyframes, about the same point: its scale and opacity multiply, and its x, y and rotation add. A preset's look is the same for every anchor point, made about that point.
 
+### By character, word or line
+
+A title's animation choice may take `by`, `character`, `word` or `line`, and `stagger`, the seconds from the start of one unit's span to the start of the next. The entrance and the exit then play on each unit of the title ([FRAMES-5](../FRAMES-5/SPEC.md)) in reading order, each unit moving about its own box, as Motion and Final Cut Pro sequence text and After Effects' text animators with a range offset move text. A span is the same motion for one unit as for a whole title, so every animation preset plays by unit without a change, and the unit, the order and the stagger are all a document has to say.
+
+```json
+"animation": { "preset": "frames/rise", "by": "word", "stagger": 0.08 }
+```
+
+| `by` | Default `stagger` |
+| --- | --- |
+| `character` | 0.04 |
+| `word` | 0.12 |
+| `line` | 0.3 |
+
+- With n units numbered from 0 in reading order, a window from s to e, an entrance of `seconds` a and an exit of `seconds` x, unit i runs its entrance from s + i × `stagger` for a seconds, and its exit from e - x - (n - 1 - i) × `stagger` for x seconds, so the units leave in reading order too and the last one ends with the window. Before its entrance a unit holds the entrance at progress 0, and after its exit the exit at progress 1.
+- On a short window the entrance runs first and the exit takes what time is left, as for a whole clip. With E = a + (n - 1) × `stagger` and X = x + (n - 1) × `stagger`, when E + X is longer than the window, the exit's `seconds` and `stagger` are both multiplied by (e - s - E) / X, and when E alone fills the window there is no exit.
+- The loop, when the choice has one, plays on the whole title as it does without `by`, from the end of the last unit's entrance to the start of the first unit's exit.
+- A unit's motion acts about the centre of the unit's box. Its `x` and `y` are multiples of that box's size, its `reveal` wipes that box from the `revealFrom` side, and its opacity multiplies the title's. The unit's motion is applied inside the title's own transform, so the title's keyframes, its parent and its loop carry every unit, and the title's mask and track matte stay where the title is.
+- The paragraph background, the run backgrounds and the underlines take the title's keyframes and its loop, and no entrance or exit: they show over the whole window.
+- `by` on the animation of a clip that is not a title stops, and so does `stagger` without `by`, a negative `stagger`, and `by` with a choice that has neither an entrance nor an exit, since `by` would move nothing. A theme's `defaults.animation.title` takes `by` and `stagger` as any title's choice does, and its `shape`, `media` and `adjust` entries do not.
+
 ### transition
 
 ```json
@@ -147,6 +168,6 @@ Presets come from packs ([FRAMES-17](../FRAMES-17/SPEC.md)), and preset paramete
 
 ## Alternatives considered
 
-Effects as code: packs carry data only, so every role can draw them (README). Parameters as expressions, as After Effects writes them: an expression is code, set aside for the same reason. Presets without parameters: each variant (a dip to black, to white, to a brand colour) would be its own copy of the file, and a fix to one would not reach the others. A `reveal` that differs by receiver (an outline traced around on one kind of clip, a line grown from its tail on another): a property whose meaning depends on one kind of clip is a purpose built into a tool, and a shape's `trim` draws any stroke on. A motion property only one kind of clip reads, such as a jab towards a target: the same reason, and position keyframes or a parent give it. Transition offsets in multiples of the picture's own box: a picture scaled to half the frame would push only half a frame and leave a gap, while every NLE pushes and slides by the frame. A transition that moves a picture together with the clips parented to it: it would move clips the editor did not put in the transition, and a compound clip already says what moves together.
+Effects as code: packs carry data only, so every role can draw them (README). Parameters as expressions, as After Effects writes them: an expression is code, set aside for the same reason. Presets without parameters: each variant (a dip to black, to white, to a brand colour) would be its own copy of the file, and a fix to one would not reach the others. A `reveal` that differs by receiver (an outline traced around on one kind of clip, a line grown from its tail on another): a property whose meaning depends on one kind of clip is a purpose built into a tool, and a shape's `trim` draws any stroke on. A motion property only one kind of clip reads, such as a jab towards a target: the same reason, and position keyframes or a parent give it. Transition offsets in multiples of the picture's own box: a picture scaled to half the frame would push only half a frame and leave a gap, while every NLE pushes and slides by the frame. Range selectors, as After Effects' text animators have, with per-unit randomness and wiggle: a selector is an expression of which units move how far, and the order and the stagger give the sequence text effects every NLE ships. An extension that needs each word on its own time, as a caption timed to speech, writes successive titles. A loop that plays by unit: a pulse or a shake on each word at once is a wiggle by unit, and on the whole title it keeps the title one block while it stays. A transition that moves a picture together with the clips parented to it: it would move clips the editor did not put in the transition, and a compound clip already says what moves together.
 
 ## Notes
