@@ -63,10 +63,11 @@ struct DisplayListFlattener: Sendable {
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
 
         case let .glyphs(glyphs):
-            // A title's background drawn alone, under its units, covers only its rect, or nothing without one.
+            // A title's background drawn alone, under its units, covers only its rect, or nothing without one, and a
+            // unit's item its unit's box.
             let box = glyphs.runs.isEmpty && glyphs.layer == nil
                 ? glyphs.background?.rectangle
-                : Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
+                : glyphs.unitBox ?? Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
             guard let box else { return [] }
 
             coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))

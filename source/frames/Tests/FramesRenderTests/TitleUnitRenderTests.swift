@@ -47,6 +47,22 @@ struct TitleUnitRenderTests {
         #expect(largest <= 3.0 / 255, "the largest difference is \(largest * 255) of 255")
     }
 
+    @Test("at rest a title by word with a stroke and a padded highlight draws its edges as it does without `by`")
+    func matchesEdgesAtRest() throws {
+        // Given
+        let resolver = try DocumentResolver(presets: presets)
+        let byWord = try resolver.resolve(edged(animation: #"{ "preset": "mine/rise", "by": "word" }"#))
+        let whole = try resolver.resolve(edged(animation: #""mine/rise""#))
+
+        // When
+        let drawn = try sut.frame(of: Evaluator().displayList(of: byWord, at: 1))
+        let expected = try sut.frame(of: Evaluator().displayList(of: whole, at: 1))
+
+        // Then
+        let largest = largestDifference(drawn, expected)
+        #expect(largest <= 3.0 / 255, "the largest difference is \(largest * 255) of 255")
+    }
+
     @Test("a unit entering at opacity 0.5 shows its stroke through its own fill, where the whole title at 0.5 does not")
     func showsStrokeThroughFill() throws {
         // Given
@@ -82,6 +98,19 @@ struct TitleUnitRenderTests {
                 { "title": "AB CD", "style": "headline", "at": [0, 2], "opacity": 0.5, "blend": "multiply",
                   "mask": { "shape": "ellipse", "area": [0, 0, 160, 70], "feather": 8 },
                   "trackMatte": { "clip": "m", "mode": "luma" }, \#(animation) } ] }
+            """#
+    }
+
+    // Nothing cuts the title, so every edge of its stroke and its highlight's padding shows.
+    private func edged(animation: String) -> String {
+        #"""
+            { "kind": "sequence", "format": { "size": [320, 180], "fps": 10 },
+              "theme": { "baseWidth": 320,
+                         "styles": { "headline": { "size": 60, "color": "#FFFFFF", "stroke": { "width": 10, "color": "#CC2200" },
+                                                   "highlight": { "color": "#2255FF", "padding": [12, 16], "radius": 6 },
+                                                   "placement": "center", "offset": 0 } } },
+              "storyline": [ { "solid": "#88AA66", "duration": 2 } ],
+              "clips": [ { "title": "AB CD", "style": "headline", "at": [0, 2], "animation": \#(animation) } ] }
             """#
     }
 
