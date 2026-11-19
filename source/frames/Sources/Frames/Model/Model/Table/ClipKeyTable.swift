@@ -289,6 +289,10 @@ enum ClipKeyTable {
         case "radius":
             .nonNegativeNumber
 
+        // An outset grows the outline a shape draws around its geometry, and a smaller outline is a smaller geometry.
+        case "outset":
+            .nonNegativeNumber
+
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":
             .signedFraction

@@ -40,7 +40,7 @@ enum ShapeKeyTable {
             KeyRule("fill", fill),
             KeyRule("stroke", stroke),
             KeyRule("radius", .nonNegativeNumber),
-            KeyRule("outset", .number),
+            KeyRule("outset", .nonNegativeNumber),
             KeyRule("shadow", shadow)
         ]
     )

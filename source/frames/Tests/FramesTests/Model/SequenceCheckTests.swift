@@ -283,7 +283,7 @@ struct SequenceCheckTests {
     @Test(
         "a shape takes its appearance keys in every form they have",
         arguments: [
-            #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": -2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
+            #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": 2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
             ##"{ "shape": "ellipse", "area": [0, 0, 10, 10], "fill": "#FFFFFF80", "stroke": false, "trim": [0.25, 0], "shadow": { "radius": 4 } }"##,
             #"{ "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "center" }], "closed": true, "style": "outline", "shadow": false }"#,
             #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [2, 2]], "trim": [0, 0.5], "position": [1, 1], "scale": 2, "rotation": 90 } ] }"#,
@@ -539,7 +539,8 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "crop": { "scale": 0 } } ] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames" } } ] }"#,
             #"{ "format": { "size": [1080] } }"#,
-            #"{ "format": { "conform": "stretch" } }"#
+            #"{ "format": { "conform": "stretch" } }"#,
+            #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"#
         ]
     )
     func refusesWrongForms(body: String) throws {
