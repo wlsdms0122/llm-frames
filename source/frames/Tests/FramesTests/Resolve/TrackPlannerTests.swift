@@ -617,7 +617,8 @@ struct TrackPlannerTests {
                 followed: followed.map { ["/abs/screen.mp4": $0] } ?? [:],
                 drift: Point(x: 0, y: 10)
             ),
-            ocr: ocr
+            ocr: ocr,
+            languages: nil
         )
     }
 

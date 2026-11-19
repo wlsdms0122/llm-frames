@@ -637,6 +637,7 @@ struct ResolvedDocumentReaderTests {
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

@@ -17,7 +17,7 @@ struct AreaFinder: Sendable {
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil
+        languages: [LanguageTag]?
     ) {
         self.ocr = ocr
         self.languages = languages
@@ -71,8 +71,7 @@ struct AreaFinder: Sendable {
                         provider: .ocr,
                         place: place,
                         kind: kind,
-                        media: picture.name,
-                        mediaTime: time,
+                        picture: ProviderPicture(media: picture.name, mediaTime: time),
                         message: "\(error)"
                     )
                 }

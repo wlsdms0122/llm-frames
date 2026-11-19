@@ -18,7 +18,7 @@ struct GeometryFinderTests {
             (from: 0, lines: [RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 100, width: 200, height: 40))]),
             (from: 2, lines: [RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 700, width: 200, height: 40))])
         ]
-    ]))
+    ]), languages: nil)
     private let screen = Picture(
         name: "/abs/screen.mp4",
         source: .mediaFile(MediaFile(path: "/abs/screen.mp4")),

@@ -135,6 +135,7 @@ enum Fixture {
 
     static let sequencePlanner = SequencePlanner(
         ocr: ocr,
+        languages: nil,
         tracker: tracker,
         shaper: shaper,
         presets: presets,
@@ -145,6 +146,7 @@ enum Fixture {
         mediaFacts: mediaFacts,
         presets: presets,
         ocr: ocr,
+        languages: nil,
         tracker: tracker,
         shaper: shaper,
         library: library

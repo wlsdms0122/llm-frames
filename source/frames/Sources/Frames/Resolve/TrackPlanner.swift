@@ -22,7 +22,7 @@ struct TrackPlanner: Sendable {
     init(
         tracker: any TrackerProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil
+        languages: [LanguageTag]?
     ) {
         self.follower = TargetFollower(tracker: tracker)
         self.finder = AreaFinder(ocr: ocr, languages: languages)
@@ -343,8 +343,7 @@ struct TrackPlanner: Sendable {
                 provider: .tracker,
                 place: place,
                 kind: kind.label,
-                media: media,
-                mediaTime: target.mediaTime,
+                picture: ProviderPicture(media: media, mediaTime: target.mediaTime),
                 message: "\(error)"
             )
         }

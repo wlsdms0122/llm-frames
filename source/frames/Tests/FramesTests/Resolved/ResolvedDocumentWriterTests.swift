@@ -408,6 +408,7 @@ struct ResolvedDocumentWriterTests {
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

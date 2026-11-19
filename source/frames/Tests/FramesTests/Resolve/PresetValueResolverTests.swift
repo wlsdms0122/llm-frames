@@ -168,6 +168,7 @@ struct PresetValueResolverTests {
             mediaFacts: mediaFacts,
             presets: presets(),
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: library

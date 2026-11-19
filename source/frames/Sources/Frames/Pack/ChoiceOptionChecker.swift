@@ -14,8 +14,8 @@ struct ChoiceOptionChecker: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
     private let library: ReferenceLibrary
+    private let themes: DocumentThemeResolver
     private let filler = ParameterFiller(checker: KeyChecker())
-    private let merger = ThemeMerger()
 
     // MARK: - Initializer
     init(
@@ -24,6 +24,7 @@ struct ChoiceOptionChecker: Sendable {
     ) {
         self.presets = presets
         self.library = library
+        self.themes = DocumentThemeResolver(library: library)
     }
 
     // MARK: - Public
@@ -71,11 +72,11 @@ struct ChoiceOptionChecker: Sendable {
     ) throws {
         let isThere: Bool
         switch target {
-        case let .preset(kind, choice):
+        case let .preset(kind, choice, part):
             let place = Place(file: reference.place.file, components: choice)
             let found = try presetsAreThere(value(at: choice[...], in: document), kind: kind, place: place)
             // An argument is not what names the preset, so a preset that is not there is resolve's to stop on.
-            guard found || reference.place.components.count != choice.count + 2 else { return }
+            guard found || part != .argument else { return }
 
             isThere = found
 
@@ -176,18 +177,14 @@ struct ChoiceOptionChecker: Sendable {
     ) throws -> MergedTheme? {
         var theme = theme
         if let object = value.objectValue, object.contains("kind"), let written = object["theme"] {
-            guard written.objectValue?["param"] == nil else { return nil }
-
-            switch ThemeReference(value: written) {
-            case let .named(name):
-                guard let layer = try library.theme(named: name) else { return nil }
-
-                theme = try merger.merge([layer], over: theme)
-
-            case let .object(layer):
-                let layer = ThemeLayer(value: layer, place: place.appending(key: "theme"), pack: library.pack)
-                theme = try merger.merge([layer], over: theme)
+            guard
+                written.objectValue?["param"] == nil,
+                let merged = try themes.theme(ThemeReference(value: written), of: place, over: theme)
+            else {
+                return nil
             }
+
+            theme = merged
         }
         guard let component = components.first else { return theme }
 

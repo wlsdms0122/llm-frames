@@ -6,9 +6,9 @@
 //
 
 // What a template's choice names where it stands, which resolve looks up there. A preset is the whole preset choice
-// at `choice`, which the reference is, or whose `preset` or one of whose `args` it is.
+// at `choice`, of which the reference stands for `part`.
 enum ChoiceTarget: Equatable, Sendable {
-    case preset(PresetKind, choice: [PlaceComponent])
+    case preset(PresetKind, choice: [PlaceComponent], part: ChoicePart)
     case theme
     case textStyle
     case shapeStyle
@@ -17,7 +17,7 @@ enum ChoiceTarget: Equatable, Sendable {
     // MARK: - Property
     var label: String {
         switch self {
-        case let .preset(kind, _):
+        case let .preset(kind, _, _):
             "\(kind.rawValue) preset"
 
         case .theme:
@@ -74,15 +74,10 @@ enum ChoiceTarget: Equatable, Sendable {
     // whole choice of its own.
     private static func preset(of reference: ParameterReference) -> ChoiceTarget? {
         let components = reference.place.components
-        let keys: [String: PresetKind] = [
-            "transition": .transition,
-            "animation": .animation,
-            "filter": .filter,
-            "adjust": .filter
-        ]
         guard
-            let index = components.lastIndex(where: { $0.key.flatMap { keys[$0] } != nil }),
-            let kind = components[index].key.flatMap({ keys[$0] })
+            let index = components.lastIndex(where: { $0.key.flatMap(ClipKeyTable.choice(ofKey:)) != nil }),
+            let type = components[index].key.flatMap(ClipKeyTable.choice(ofKey:)),
+            let kind = ChoiceKeyTable.presetKind(of: type)
         else {
             return nil
         }
@@ -97,27 +92,27 @@ enum ChoiceTarget: Equatable, Sendable {
             break
         }
 
+        let part: ChoicePart
         switch Array(rest) {
         case []:
-            let types = [
-                ChoiceKeyTable.transition,
-                ChoiceKeyTable.animation,
-                ChoiceKeyTable.animationSide,
-                ChoiceKeyTable.filter,
-                ChoiceKeyTable.filterPreset
-            ]
-            guard types.contains(reference.type) else { return nil }
+            guard ChoiceKeyTable.presetKind(of: reference.type) == kind else { return nil }
+
+            part = .whole
 
         case [.key("preset")]:
             guard reference.kind.hasSuffix("choice") else { return nil }
 
+            part = .name
+
         case let written where written.count == 2 && written.first == .key("args"):
             guard reference.kind == ChoiceKeyTable.argumentsKind else { return nil }
+
+            part = .argument
 
         default:
             return nil
         }
 
-        return .preset(kind, choice: choice)
+        return .preset(kind, choice: choice, part: part)
     }
 }

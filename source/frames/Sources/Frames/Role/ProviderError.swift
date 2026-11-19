@@ -5,26 +5,23 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// `place` is where the document asked the provider, or the command's option, which has no `kind`. A provider that
-// reads a picture names its media and media time, and the shaping provider names neither.
+// `place` is where the document asked the provider, or the command's option, which has no `kind`. `picture` is nil
+// for the shaping provider, which reads none.
 enum ProviderError: Error, Equatable, CustomStringConvertible, Sendable {
     case failed(
         provider: ProviderKind,
         place: Place,
         kind: String?,
-        media: String?,
-        mediaTime: Double?,
+        picture: ProviderPicture?,
         message: String
     )
 
     // MARK: - Property
     var description: String {
         switch self {
-        case let .failed(provider, place, kind, media, mediaTime, message):
+        case let .failed(provider, place, kind, picture, message):
             let asker = kind.map { "\(place) (\($0))" } ?? place.description
-            let picture = media.map { media in
-                " on \(quoted(media))" + (mediaTime.map { " at media second \(number($0))" } ?? "")
-            } ?? ""
+            let picture = picture.map { " on \(quoted($0.media)) at media second \(number($0.mediaTime))" } ?? ""
 
             return "\(asker): the \(provider.label) failed\(picture): \(message)"
         }

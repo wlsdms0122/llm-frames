@@ -23,7 +23,7 @@ package struct TrackReporter: Sendable {
     package init(
         mediaFacts: any MediaFactProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider
     ) {
         self.mediaFacts = mediaFacts
@@ -74,8 +74,7 @@ package struct TrackReporter: Sendable {
                 provider: .tracker,
                 place: Self.place,
                 kind: Self.kind,
-                media: path,
-                mediaTime: time,
+                picture: ProviderPicture(media: path, mediaTime: time),
                 message: "\(error)"
             )
         }

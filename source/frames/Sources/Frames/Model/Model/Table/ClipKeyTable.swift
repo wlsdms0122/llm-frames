@@ -25,6 +25,23 @@ enum ClipKeyTable {
         return ObjectTable(kind: kind.label, rules: rules)
     }
 
+    // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
+    static func choice(ofKey name: String) -> ValueType? {
+        switch name {
+        case "animation":
+            ChoiceKeyTable.animation
+
+        case "filter", "adjust":
+            ChoiceKeyTable.filter
+
+        case "transition":
+            ChoiceKeyTable.transition
+
+        default:
+            nil
+        }
+    }
+
     static func keyframable(
         for kind: ClipKind,
         in place: ClipPlace
@@ -175,9 +192,6 @@ enum ClipKeyTable {
         case "lane":
             .integer
 
-        case "animation":
-            ChoiceKeyTable.animation
-
         case "keyframes":
             .list(.object(keyframeTable(for: kind, in: place)))
 
@@ -189,12 +203,6 @@ enum ClipKeyTable {
 
         case "crop":
             .crop
-
-        case "filter", "adjust":
-            ChoiceKeyTable.filter
-
-        case "transition":
-            ChoiceKeyTable.transition
 
         case "solid":
             .color
@@ -270,7 +278,7 @@ enum ClipKeyTable {
             .signedFraction
 
         default:
-            .number
+            choice(ofKey: name) ?? .number
         }
     }
 

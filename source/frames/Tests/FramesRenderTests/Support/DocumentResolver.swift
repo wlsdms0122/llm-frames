@@ -65,6 +65,7 @@ struct DocumentResolver {
             mediaFacts: decoder,
             presets: PresetLibrary(packs: packs),
             ocr: VisionOCR(decoder: decoder),
+            languages: nil,
             tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),
             library: library

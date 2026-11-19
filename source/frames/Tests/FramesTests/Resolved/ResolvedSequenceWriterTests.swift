@@ -506,6 +506,7 @@ struct ResolvedSequenceWriterTests {
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

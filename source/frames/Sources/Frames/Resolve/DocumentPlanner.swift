@@ -24,7 +24,7 @@ package struct DocumentPlanner: Sendable {
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         library: ReferenceLibrary
