@@ -76,7 +76,8 @@ struct MediaResolver: Sendable {
                 fps: fps,
                 size: probed.size,
                 frameTimes: probed.files.indices.map { Double($0) / fps },
-                frameFiles: probed.files
+                frameFiles: probed.files,
+                taggedColorSpace: probed.colorSpace?.name
             )
             return MediaPlan(
                 kind: .video,

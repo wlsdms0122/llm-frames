@@ -12,7 +12,13 @@ extension MediaFile {
         path: String,
         probed: ProbedMedia
     ) {
-        self.init(path: path, fps: probed.fps, size: probed.size, frameTimes: probed.frames)
+        self.init(
+            path: path,
+            fps: probed.fps,
+            size: probed.size,
+            frameTimes: probed.frames,
+            taggedColorSpace: probed.colorSpace?.name
+        )
     }
 
     // MARK: - Public

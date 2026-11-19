@@ -279,33 +279,64 @@ struct ColorKeyTests {
     ) throws {
         // Given
         let comma = connected.isEmpty ? "" : ","
-        let resolved = try resolved(#"""
+        let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(storyline), "connected": [
                 { "media": "/abs/run.mp4", "at": [0, 1]\#(comma) \#(connected) } ] } ] }
-            """#)
+            """#
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try resolved.checkMediaColorSpaces() }
+        let error = #expect(throws: ResolveError.self) { try checkMediaColorSpaces(of: document) }
         #expect(error?.description == message)
     }
 
     @Test("clips that read a file in one colour space, inside a compound clip too, pass")
     func acceptsFileInOneColorSpace() throws {
         // Given
-        let resolved = try resolved(#"""
+        let document = #"""
             { "kind": "sequence", "storyline": [
                 { "media": "/abs/run.mp4", "colorSpace": "rec709", "connected": [
                   { "media": "/abs/run.mp4", "colorSpace": "rec709", "at": [0, 1], "toneMap": false } ] },
                 { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
-            """#)
+            """#
 
         // When, Then
-        #expect(throws: Never.self) { try resolved.checkMediaColorSpaces() }
+        #expect(throws: Never.self) { try checkMediaColorSpaces(of: document) }
+    }
+
+    @Test("a clip that writes the space a file's tags name and one that writes nothing read it in one colour space")
+    func acceptsTaggedSpaceWrittenOrNot() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "srgb", "connected": [
+                { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            """#
+
+        // When, Then
+        #expect(throws: Never.self) { try checkMediaColorSpaces(of: document) }
+    }
+
+    @Test("a clip that writes nothing for a tagged file is named with the space its tags name when another differs")
+    func refusesOtherSpaceThanTagged() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709", "connected": [
+                { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try checkMediaColorSpaces(of: document) }
+        #expect(error?.description == #"storyline[0].connected[0] (clip): "/abs/card.png" is read as "srgb" here and as "rec709" at storyline[0], and every place that names a file reads it in one colour space"#)
     }
 
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes)
+    }
+
+    private func checkMediaColorSpaces(of document: String) throws {
+        let plan = try Fixture.documentPlanner.plan(Fixture.json(document))
+        try ResolvedSequence(plan: plan, hashes: hashes)
+            .checkMediaColorSpaces(taggedColorSpaces: plan.time.taggedColorSpaces)
     }
 
     private func written(_ resolved: ResolvedSequence) throws -> JSONObject {

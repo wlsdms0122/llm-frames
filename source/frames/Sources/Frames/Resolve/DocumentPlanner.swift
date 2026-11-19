@@ -121,8 +121,9 @@ package struct DocumentPlanner: Sendable {
         theme: String? = nil,
         arguments: ArgumentFile? = nil
     ) throws -> ResolvedSequence {
-        let resolved = try ResolvedSequence(plan: plan(document, theme: theme, arguments: arguments), hashes: FileHasher())
-        try resolved.checkMediaColorSpaces()
+        let plan = try plan(document, theme: theme, arguments: arguments)
+        let resolved = try ResolvedSequence(plan: plan, hashes: FileHasher())
+        try resolved.checkMediaColorSpaces(taggedColorSpaces: plan.time.taggedColorSpaces)
 
         return resolved
     }

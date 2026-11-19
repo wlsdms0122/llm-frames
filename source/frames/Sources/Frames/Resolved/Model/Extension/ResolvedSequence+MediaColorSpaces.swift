@@ -8,7 +8,7 @@
 // A `colorSpace` is a fact of the file it is written for, so every place that names a file (a storyline entry, a media
 // clip, a transition's cover or matte, nested sequences included) reads it in one colour space, and its recognised
 // text and tracks have one answer. A file is known by the SHA-256 of what it holds, and a place that writes no
-// `colorSpace` reads it as its tags say.
+// `colorSpace` reads it in the space its tags name (FRAMES-26 Media).
 extension ResolvedSequence {
     // Media of a file where the document names it: its place, the kind of what names it, and the colour space it is
     // read in there.
@@ -17,12 +17,20 @@ extension ResolvedSequence {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    // Two places that read the same file in different colour spaces stop, naming both.
-    func checkMediaColorSpaces() throws {
+    // Two places that read the same file in different colour spaces stop, naming both. `taggedColorSpaces` holds the
+    // space the tags of each file name, by the path of its first pinned file; a file missing there is tagged outside
+    // the table, and a place that writes nothing for it is read as its tags say.
+    func checkMediaColorSpaces(taggedColorSpaces: [String: ColorSpace]) throws {
         var first: [[String]: NamedMedia] = [:]
 
-        for named in namedMedia(of: self) {
-            let files = Self.files(of: named.media)
+        for written in namedMedia(of: self) {
+            let files = Self.files(of: written.media)
+            let named = (
+                media: written.media,
+                place: written.place,
+                kind: written.kind,
+                colorSpace: written.colorSpace ?? files.first.flatMap { taggedColorSpaces[$0.path] }
+            )
             let hashes = files.map(\.sha256)
             guard let earlier = first[hashes] else {
                 first[hashes] = named
