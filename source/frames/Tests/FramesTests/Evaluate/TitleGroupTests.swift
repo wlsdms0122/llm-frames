@@ -57,7 +57,7 @@ struct TitleGroupTests {
         #expect(self.glyphs(of: list.items[8])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[3..<5]))
     }
 
-    @Test("each unit's reveal wipes what it draws, its box and its stroke, on its own schedule, and the background shows whole")
+    @Test("each unit's reveal wipes what it draws, its box, on its own schedule, and the background shows whole")
     func revealsEachUnit() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
@@ -71,20 +71,18 @@ struct TitleGroupTests {
         )
 
         // Then
-        // Each reveal wipes its unit's box grown by 2, half its stroke.
+        // Each unit's box, from its glyphs grown by 2 for half its stroke, is all the unit draws: "ab" from 0 to 40 and
+        // "cd" from 50 to 90, each from -32 to 8 about the baseline at 32.
         let first = text.unitBox(of: 0, at: 0.25)
         let second = text.unitBox(of: 1, at: 0.25)
+        #expect(first == Rectangle(x: -2, y: -2, width: 44, height: 44))
+        #expect(second == Rectangle(x: 48, y: -2, width: 44, height: 44))
         #expect(list.items[0].reveal == nil)
-        #expect(list.items[1].reveal == Rectangle(
-            x: first.x - 2,
-            y: first.y - 2,
-            width: (first.width + 4) / 2,
-            height: first.height + 4
-        ))
-        #expect(list.items[2].reveal == Rectangle(x: second.x - 2, y: second.y - 2, width: 0, height: second.height + 4))
+        #expect(list.items[1].reveal == Rectangle(x: -2, y: -2, width: 22, height: 44))
+        #expect(list.items[2].reveal == Rectangle(x: 48, y: -2, width: 0, height: 44))
     }
 
-    @Test("a unit fully revealed is not cut, and one entering wipes its box grown by its stroke and its part of the highlight")
+    @Test("a unit fully revealed is not cut, and one entering wipes its box, which holds its stroke and its part of the highlight")
     func leavesRevealedUnitWhole() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
@@ -102,21 +100,22 @@ struct TitleGroupTests {
 
         // Then
         // "ab" has entered, and "cd" is half way. The box of "cd", from 50 to 90 and from 0 to 40, grows by 2 for its
-        // stroke, then to the highlight's padding of 4 above and below and 10 past the piece's end at 90.
+        // stroke, then to the highlight's padding of 4 above and below and 10 past the piece's end at 90, and holds its
+        // part of the piece cut to its band.
         let second = text.unitBox(of: 1, at: 0.75)
         let carried = try #require(highlight(of: list.items[2]))
         let band = try #require(carried.bands?.first)
         let piece = try #require(carried.rects.first)
-        let stroked = Rectangle(x: second.x - 2, y: second.y - 2, width: second.width + 4, height: second.height + 4)
-        let drawn = stroked.union(Rectangle(
-            x: band.lowerBound,
+        let part = Rectangle(
+            x: max(band.lowerBound, piece.x),
             y: piece.y,
-            width: band.upperBound - band.lowerBound,
+            width: min(band.upperBound, piece.maxX) - max(band.lowerBound, piece.x),
             height: piece.height
-        ))
+        )
         #expect(second == Rectangle(x: 48, y: -4, width: 52, height: 48))
+        #expect(second.union(part) == second)
         #expect(list.items[1].reveal == nil)
-        #expect(list.items[2].reveal == Rectangle(x: drawn.x, y: drawn.y, width: drawn.width / 2, height: drawn.height))
+        #expect(list.items[2].reveal == Rectangle(x: 48, y: -4, width: 26, height: 48))
     }
 
     @Test("a highlighted word enters with its word, carrying its part of the piece drawn whole and cut to its band")

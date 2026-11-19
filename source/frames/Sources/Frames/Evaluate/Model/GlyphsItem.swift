@@ -103,11 +103,15 @@ package struct GlyphsItem: Equatable, Sendable {
         [glyphBox] + pieces()
     }
 
-    // What the item draws, which a reveal wipes across: the filled rectangles with the box grown by half the widest
-    // stroke, since a stroke is centred on outlines that reach the box's edges. A stroke is drawn in output pixels on
-    // the outlines `transform` carries, so the disc it sweeps is carried back by the transform's inverse, and is nothing
-    // where the transform flattens the plane.
+    // What the item draws, which a reveal wipes across. A unit's box as resolved already holds its strokes and its parts
+    // at their widest, so a unit's item draws within it, and growing it again would wipe past what the unit draws. A
+    // whole title draws its filled rectangles with the box grown by half the widest stroke, since a stroke is centred on
+    // outlines that reach the box's edges. A stroke is drawn in output pixels on the outlines `transform` carries, so
+    // the disc it sweeps is carried back by the transform's inverse, and is nothing where the transform flattens the
+    // plane.
     package func drawnBounds(carriedBy transform: AffineTransform) -> Rectangle {
+        if let unitBox { return unitBox }
+
         let box = glyphBox
         let half = (runs.compactMap(\.stroke).map(\.width).max() ?? 0) / 2
         let reach = transform.inverse?.reach(ofDisc: half) ?? Size(width: 0, height: 0)
