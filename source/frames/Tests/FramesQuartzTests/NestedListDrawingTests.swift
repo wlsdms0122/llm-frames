@@ -403,11 +403,11 @@ struct NestedListDrawingTests {
         size: Int
     ) throws -> Bitmap {
         let image = try sut.frame(of: list).cgImage()
-        let frame = try FrameContext(width: size, height: size)
+        let frame = try FrameContext(width: size, height: size, compositing: .encoded)
         frame.context.concatenate(CGAffineTransform(transform))
         frame.context.drawUpright(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
 
-        return frame.bitmap()
+        return try frame.bitmap()
     }
 
     // The largest and the mean difference of any component between two bitmaps over the first's size, which the

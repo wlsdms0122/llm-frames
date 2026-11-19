@@ -9,10 +9,14 @@ import CoreGraphics
 import Frames
 
 // A gradient's colours as a Core Graphics function of its position from 0 to 1, red, green, blue and alpha straight
-// in the working space, which a shading lays along its line or out from its centre. The function holds the ramp, and
+// on the encoded form, the colours unbounded and alpha from 0 to 1, which a shading lays along its line or out from
+// its centre. The function holds the ramp, and
 // Core Graphics releases it with the function.
 final class GradientRamp: Sendable {
     // MARK: - Property
+    // The bound of a colour channel in the function's range, which Core Graphics clips to: further than any colour
+    // half float holds.
+    private static let reach: CGFloat = 65_504
     private let gradient: Gradient
 
     // MARK: - Initializer
@@ -44,7 +48,7 @@ final class GradientRamp: Sendable {
             domainDimension: 1,
             domain: [0, 1],
             rangeDimension: 4,
-            range: [0, 1, 0, 1, 0, 1, 0, 1],
+            range: [-Self.reach, Self.reach, -Self.reach, Self.reach, -Self.reach, Self.reach, 0, 1],
             callbacks: &callbacks
         ) else {
             Unmanaged<GradientRamp>.fromOpaque(info).release()

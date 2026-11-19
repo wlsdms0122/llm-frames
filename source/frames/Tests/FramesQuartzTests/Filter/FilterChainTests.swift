@@ -20,19 +20,20 @@ struct FilterChainTests {
     // Core Image's blur of a step edge lies within 0.0018 of the continuous Gaussian at deviations 2, 3 and 5.
     private let blurTolerance: Float = 0.003
 
-    // Unpremultiplied colours with their alpha, the last one half transparent.
+    // Unpremultiplied colours with their alpha, one above 1 and below 0, the last one half transparent.
     private let colors: [[Float]] = [
         [0.2, 0.5, 0.8, 1],
         [0.9, 0.1, 0.4, 1],
         [0.03, 0.6, 0.99, 1],
         [0.5, 0.5, 0.5, 1],
+        [1.5, -0.2, 0.7, 1],
         [0.7, 0.35, 0.15, 0.5]
     ]
 
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "a colour operation computes its formula on the unpremultiplied colour, clamps it and keeps alpha",
+        "a colour operation computes its formula on the unpremultiplied colour, clamps nothing and keeps alpha",
         arguments: [
             ResolvedFilterOperation.exposure(ev: 1),
             .exposure(ev: -0.5),
@@ -48,7 +49,8 @@ struct FilterChainTests {
             .sepia(amount: 1),
             .sepia(amount: 0.4),
             .levels(input: [0.1, 0.9], output: [0.05, 0.8]),
-            .levels(input: [0, 0.5], output: [0, 1])
+            .levels(input: [0, 0.5], output: [0, 1]),
+            .levels(input: [0, 1], output: [0, 1])
         ]
     )
     func computesColorOperation(operation: ResolvedFilterOperation) throws {
@@ -57,7 +59,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         for (column, color) in colors.enumerated() {
@@ -78,7 +80,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation], mix: mix)], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation], mix: mix)], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         for (column, color) in colors.enumerated() {
@@ -91,43 +93,41 @@ struct FilterChainTests {
         }
     }
 
-    @Test("an operation that overshoots is clamped to 0 to 1 before the next one reads it")
-    func clampsBeforeNextOperation() throws {
+    @Test("an operation's result above 1 or below 0 reaches the next one as it is")
+    func keepsOvershootForNextOperation() throws {
         // Given
         let grid = PixelGrid(width: 1, height: 1, color: [0.9, 0.05, 0.5, 1])
         let operations = [ResolvedFilterOperation.contrast(amount: 3), .contrast(amount: 0.5)]
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: operations)], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: operations)], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
-        // 0.9 overshoots to 1.7 and is clamped to 1, and 0.05 to -0.85 and is clamped to 0, before halving the
-        // contrast; 0.5 stays.
-        let expected: [Float] = [0.75, 0.25, 0.5, 1]
+        // 0.9 overshoots to 1.7 and 0.05 to -0.85, which halving the contrast takes to 1.1 and -0.175; 0.5 stays.
+        let expected: [Float] = [1.1, -0.175, 0.5, 1]
         for (value, want) in zip(result.pixel(column: 0, row: 0), expected) {
             #expect(abs(value - want) < tolerance)
         }
     }
 
-    @Test("the operations apply in order, so contrast then saturation differs from saturation then contrast")
+    @Test("the operations apply in order, so exposure then contrast differs from contrast then exposure")
     func appliesInOrder() throws {
         // Given
-        // Contrast and saturation commute while nothing clamps, as the luma weights sum to 1, so the colour is chosen
-        // for contrast to clamp red and blue before saturation reads them.
-        let color: [Float] = [0.9, 0.2, 0.1, 1]
+        // Exposure, on the linear form, and contrast, on the encoded form, do not commute.
+        let color: [Float] = [0.6, 0.3, 0.2, 1]
         let grid = PixelGrid(width: 1, height: 1, color: color)
         let contrast = ResolvedFilterOperation.contrast(amount: 2)
-        let saturation = ResolvedFilterOperation.saturation(amount: 0.5)
+        let exposure = ResolvedFilterOperation.exposure(ev: 1)
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let first = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [contrast, saturation])], to: grid.image, seed: 0))
-        let second = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [saturation, contrast])], to: grid.image, seed: 0))
+        let first = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [contrast, exposure])], to: grid.image, seed: 0, compositing: .encoded))
+        let second = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [exposure, contrast])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
-        let expectedFirst = expectedColor(of: saturation, expectedColor(of: contrast, color) + [1])
-        let expectedSecond = expectedColor(of: contrast, expectedColor(of: saturation, color) + [1])
+        let expectedFirst = expectedColor(of: exposure, expectedColor(of: contrast, color) + [1])
+        let expectedSecond = expectedColor(of: contrast, expectedColor(of: exposure, color) + [1])
         for channel in 0..<3 {
             #expect(abs(first.pixel(column: 0, row: 0)[channel] - expectedFirst[channel]) < tolerance)
             #expect(abs(second.pixel(column: 0, row: 0)[channel] - expectedSecond[channel]) < tolerance)
@@ -161,7 +161,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = try sut.apply([FilterEntry(operations: [operation])], to: image, seed: 3)
+        let result = try sut.apply([FilterEntry(operations: [operation])], to: image, seed: 3, compositing: .encoded)
 
         // Then
         #expect(result.extent == extent)
@@ -182,7 +182,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         let centre = result.pixel(column: 8, row: 6)
@@ -205,7 +205,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.blur(radius: radius)])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.blur(radius: radius)])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         for column in 0..<64 {
@@ -215,7 +215,7 @@ struct FilterChainTests {
     }
 
     @Test(
-        "sharpen is the unsharp mask v + amount × (v - blur(v)), clamped",
+        "sharpen is the unsharp mask v + amount × (v - blur(v)), its colour unclamped",
         arguments: [(0.5, 2.0), (2.0, 3.0)]
     )
     func sharpensByUnsharpMask(
@@ -228,7 +228,7 @@ struct FilterChainTests {
 
         // When
         let operation = ResolvedFilterOperation.sharpen(amount: amount, radius: radius)
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         // The blur's error is scaled by amount.
@@ -236,13 +236,13 @@ struct FilterChainTests {
         for column in 0..<64 {
             let value = Double(column) + 0.5 < 32 ? 0.0 : 1.0
             let blurred = gaussianStep(at: Double(column) + 0.5, edge: 32, deviation: radius)
-            let expected = Float(min(max(value + amount * (value - blurred), 0), 1))
+            let expected = Float(value + amount * (value - blurred))
             #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < sharpenTolerance, "column \(column)")
         }
     }
 
     @Test(
-        "bloom adds amount × the blur of the bright parts, times its colour when it has one, clamped",
+        "bloom adds amount × the blur of the bright parts, times its colour when it has one, unclamped",
         arguments: [
             ([Float](arrayLiteral: 0.9, 0.85, 0.7), 0.5, nil as Color?),
             ([0.6, 0.6, 0.6], 1.0, nil),
@@ -261,14 +261,14 @@ struct FilterChainTests {
 
         // When
         let operation = ResolvedFilterOperation.bloom(amount: amount, radius: 3, color: tint)
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         // The blur of a flat image is the image, so each pixel gains amount × v × smoothstep(0.5, 1, L) × colour.
         let weight = smoothstep(0.5, 1, luma(color))
         let tintComponents = tint.map(components) ?? [1, 1, 1]
         for channel in 0..<3 {
-            let expected = clamped(color[channel] + Float(amount) * color[channel] * weight * tintComponents[channel])
+            let expected = color[channel] + Float(amount) * color[channel] * weight * tintComponents[channel]
             #expect(abs(result.pixel(column: 5, row: 7)[channel] - expected) < tolerance)
         }
     }
@@ -286,7 +286,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.bloom(amount: 1, radius: 1.5, color: nil)])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.bloom(amount: 1, radius: 1.5, color: nil)])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         #expect(result.pixel(column: 3, row: 4)[0] > 0.1)
@@ -308,7 +308,7 @@ struct FilterChainTests {
 
         // When
         let operation = ResolvedFilterOperation.vignette(amount: amount, radius: radius)
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         let halfDiagonal = (8.0 * 8.0 + 6.0 * 6.0).squareRoot() / 2
@@ -342,7 +342,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.pixelate(size: size)])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.pixelate(size: size)])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         let block = { (index: Int) in Int(((Double(index) + 0.5) / size).rounded(.down)) }
@@ -373,7 +373,7 @@ struct FilterChainTests {
 
         // When
         let operation = ResolvedFilterOperation.grain(amount: Double(amount), size: 1)
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 7))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 7, compositing: .encoded))
 
         // Then
         let noise = stride(from: 0, to: result.pixels.count, by: 4).map { (result.pixels[$0] - 0.5) / amount }
@@ -394,9 +394,9 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let first = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 12))
-        let again = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 12))
-        let other = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 13))
+        let first = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 12, compositing: .encoded))
+        let again = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 12, compositing: .encoded))
+        let other = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 13, compositing: .encoded))
 
         // Then
         #expect(first.pixels == again.pixels)
@@ -410,7 +410,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.grain(amount: 0.2, size: 4)])], to: grid.image, seed: 1))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [.grain(amount: 0.2, size: 4)])], to: grid.image, seed: 1, compositing: .encoded))
 
         // Then
         var grains: Set<Float> = []
@@ -459,7 +459,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         // Trilinear: each corner weighs the product of (1 - f) or f along each axis.
@@ -496,7 +496,7 @@ struct FilterChainTests {
         let sut = FilterChain(tables: LookUpTableCache())
 
         // When
-        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0))
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
 
         // Then
         // The entries are the identity over [0, 1], so v maps to (v - 0.2) / 0.4, clamped to the domain.
@@ -518,11 +518,175 @@ struct FilterChainTests {
 
         // When
         let error = #expect(throws: FilterError.self) {
-            try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0)
+            try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded)
         }
 
         // Then
         #expect(error?.description.hasPrefix("\(path): line 1: ") == true)
+    }
+
+    @Test("levels at its identity leaves a value above 1 and below 0 as it is")
+    func keepsValuesAtLevelsIdentity() throws {
+        // Given
+        let grid = PixelGrid(width: 1, height: 1, color: [2, -0.5, 0.5, 1])
+        let operation = ResolvedFilterOperation.levels(input: [0, 1], output: [0, 1])
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let result = PixelGrid(rendering: try sut.apply([FilterEntry(operations: [operation])], to: grid.image, seed: 0, compositing: .encoded))
+
+        // Then
+        for (value, want) in zip(result.pixel(column: 0, row: 0), [Float](arrayLiteral: 2, -0.5, 0.5, 1)) {
+            #expect(abs(value - want) < tolerance)
+        }
+    }
+
+    @Test(
+        "an operation with a home computes in it under either compositing",
+        arguments: [
+            ResolvedFilterOperation.exposure(ev: 1.5),
+            .temperature(kelvin: 2000),
+            .contrast(amount: 1.4),
+            .saturation(amount: 1.6),
+            .hue(degrees: 45),
+            .sepia(amount: 0.7),
+            .levels(input: [0.1, 0.8], output: [0, 1])
+        ]
+    )
+    func computesInHome(operation: ResolvedFilterOperation) throws {
+        // Given
+        let grid = PixelGrid(width: colors.count, height: 1, pixels: Array(colors.map(premultiplied).joined()))
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let entries = [FilterEntry(operations: [operation])]
+        let encoded = PixelGrid(rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .encoded))
+        let linear = PixelGrid(
+            rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .linear),
+            compositing: .linear
+        )
+
+        // Then
+        for column in 0..<colors.count {
+            for (value, want) in zip(linear.pixel(column: column, row: 0), encoded.pixel(column: column, row: 0)) {
+                #expect(abs(value - want) < 16 * tolerance, "\(operation) column \(column)")
+            }
+        }
+    }
+
+    @Test("an entry's mix follows compositing while contrast keeps its pivot on the encoded form")
+    func mixesInCompositingForm() throws {
+        // Given
+        // Contrast 0 takes every colour to its pivot, the encoded 0.5, in both forms. Mixed half way with white, that
+        // is 0.75 encoded under `encoded`, and the mean of the linear 1 and decode(0.5) under `linear`.
+        let grid = PixelGrid(width: 1, height: 1, color: [1, 1, 1, 1])
+        let entries = [FilterEntry(operations: [.contrast(amount: 0)], mix: 0.5)]
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let encoded = PixelGrid(rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .encoded))
+        let linear = PixelGrid(
+            rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .linear),
+            compositing: .linear
+        )
+
+        // Then
+        let mean = encode((1 + decode(0.5)) / 2)
+        #expect(abs(mean - 0.7997) < 1e-3)
+        for channel in 0..<3 {
+            #expect(abs(encoded.pixel(column: 0, row: 0)[channel] - 0.75) < tolerance)
+            #expect(abs(linear.pixel(column: 0, row: 0)[channel] - mean) < 4 * tolerance)
+        }
+    }
+
+    @Test("blur under linear mixes light, so a step from black to white blurs to the encoded mean of its light")
+    func blursLight() throws {
+        // Given
+        let grid = stepEdge(width: 64)
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let entries = [FilterEntry(operations: [.blur(radius: 3)])]
+        let result = PixelGrid(
+            rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .linear),
+            compositing: .linear
+        )
+
+        // Then
+        for column in 28..<36 {
+            let expected = encode(Float(gaussianStep(at: Double(column) + 0.5, edge: 32, deviation: 3)))
+            #expect(abs(result.pixel(column: column, row: 0)[0] - expected) < 2 * blurTolerance, "column \(column)")
+        }
+    }
+
+    @Test(
+        "lut in a space looks up the colour converted to it, clipped to the domain, and converts the result back",
+        arguments: [ColorSpace.srgbLinear, .rec2100PQ, .displayP3]
+    )
+    func looksUpInSpace(space: ColorSpace) throws {
+        // Given
+        // An identity cube over [0, 4]: every value inside the domain maps to itself, so the colour comes back as it
+        // was, and one past it comes back from the domain's edge.
+        let directory = try TemporaryDirectory()
+        let path = directory.file("identity.cube")
+        let text = "LUT_3D_SIZE 2\nDOMAIN_MIN 0 0 0\nDOMAIN_MAX 4 4 4\n" + (0..<8).map { index in
+            (0..<3).map { axis in index >> axis & 1 == 1 ? "4" : "0" }.joined(separator: " ")
+        }.joined(separator: "\n")
+        try text.write(toFile: path, atomically: true, encoding: .utf8)
+        let operation = ResolvedFilterOperation.lut(
+            file: PinnedFile(path: path, sha256: UUID().uuidString),
+            amount: 1,
+            space: space
+        )
+        let colors: [[Float]] = [[0.2, 0.5, 0.8, 1], [1.5, 0.4, 0.1, 1], [0.6, 0.3, 0.9, 0.5]]
+        let grid = PixelGrid(width: colors.count, height: 1, pixels: Array(colors.map(premultiplied).joined()))
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let entries = [FilterEntry(operations: [operation])]
+        let result = PixelGrid(rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .encoded))
+
+        // Then
+        let conversion = ColorConversion(space: space)
+        for (column, color) in colors.enumerated() {
+            let working = RGB(red: Double(color[0]), green: Double(color[1]), blue: Double(color[2]))
+            let inSpace = conversion.encoded(working)
+            let clipped = RGB(red: min(inSpace.red, 4), green: min(inSpace.green, 4), blue: min(inSpace.blue, 4))
+            let expected = conversion.working(clipped)
+            let pixel = result.pixel(column: column, row: 0)
+            #expect(abs(pixel[3] - color[3]) < tolerance)
+            for (channel, want) in [expected.red, expected.green, expected.blue].enumerated() {
+                #expect(abs(pixel[channel] - Float(want) * color[3]) < 0.002, "\(space) column \(column)")
+            }
+        }
+    }
+
+    @Test("lut in srgb-linear clips the linear colour to its domain, so a colour past it comes back at the domain's edge")
+    func clipsToDomainInSpace() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("identity.cube")
+        let text = "LUT_3D_SIZE 2\n" + (0..<8).map { index in
+            (0..<3).map { axis in index >> axis & 1 == 1 ? "1" : "0" }.joined(separator: " ")
+        }.joined(separator: "\n")
+        try text.write(toFile: path, atomically: true, encoding: .utf8)
+        let operation = ResolvedFilterOperation.lut(
+            file: PinnedFile(path: path, sha256: UUID().uuidString),
+            amount: 1,
+            space: .srgbLinear
+        )
+        let grid = PixelGrid(width: 1, height: 1, color: [1.5, 0.5, -0.2, 1])
+        let sut = FilterChain(tables: LookUpTableCache())
+
+        // When
+        let entries = [FilterEntry(operations: [operation])]
+        let result = PixelGrid(rendering: try sut.apply(entries, to: grid.image, seed: 0, compositing: .encoded))
+
+        // Then
+        let expected: [Float] = [1, 0.5, 0, 1]
+        for (value, want) in zip(result.pixel(column: 0, row: 0), expected) {
+            #expect(abs(value - want) < 0.001)
+        }
     }
 
     // MARK: - Private
@@ -530,7 +694,7 @@ struct FilterChainTests {
         [color[0] * color[3], color[1] * color[3], color[2] * color[3], color[3]]
     }
 
-    // The expected colour of an operation on the unpremultiplied red, green and blue of `color`, clamped.
+    // The expected colour of an operation on the unpremultiplied red, green and blue of `color`.
     private func expectedColor(
         of operation: ResolvedFilterOperation,
         _ color: [Float]
@@ -571,7 +735,7 @@ struct FilterChainTests {
 
         case let .levels(input, output):
             result = v.map { value in
-                let level = clamped((value - Float(input[0])) / Float(input[1] - input[0]))
+                let level = (value - Float(input[0])) / Float(input[1] - input[0])
 
                 return Float(output[0]) + level * Float(output[1] - output[0])
             }
@@ -580,7 +744,7 @@ struct FilterChainTests {
             result = v
         }
 
-        return result.map(clamped)
+        return result
     }
 
     private func multiplied(
@@ -590,12 +754,13 @@ struct FilterChainTests {
         matrix.map { row in zip(row, v).map(*).reduce(0, +) }
     }
 
+    // The extended sRGB transfer of FRAMES-26, the sign kept.
     private func decode(_ value: Float) -> Float {
-        value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        Float(TransferFunction.sRGB.decode(Double(value)))
     }
 
     private func encode(_ value: Float) -> Float {
-        value <= 0.0031308 ? 12.92 * value : 1.055 * pow(value, 1 / 2.4) - 0.055
+        Float(TransferFunction.sRGB.encode(Double(value)))
     }
 
     private func luma(_ v: [Float]) -> Float {

@@ -11,12 +11,17 @@ import Frames
 extension CIVector {
     // MARK: - Property
     // MARK: - Initializer
-    // The encoded working value premultiplied by its alpha.
-    convenience init(premultiplied color: Color) {
+    // The colour's working value in the form `compositing` names, premultiplied by its alpha.
+    convenience init(
+        premultiplied color: Color,
+        compositing: Compositing
+    ) {
+        let encoded = RGB(red: color.red, green: color.green, blue: color.blue)
+        let value = compositing == .linear ? TransferFunction.sRGB.decode(encoded) : encoded
         self.init(
-            x: color.red * color.alpha,
-            y: color.green * color.alpha,
-            z: color.blue * color.alpha,
+            x: value.red * color.alpha,
+            y: value.green * color.alpha,
+            z: value.blue * color.alpha,
             w: color.alpha
         )
     }

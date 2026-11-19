@@ -48,7 +48,7 @@ struct TrackMatteDrawer {
         values.withUnsafeMutableBytes { buffer in
             guard let pointer = buffer.baseAddress else { return }
 
-            WorkingSpace.context.render(
+            WorkingSpace.valueContext.render(
                 matte,
                 toBitmap: pointer,
                 rowBytes: width * MemoryLayout<Float>.size,

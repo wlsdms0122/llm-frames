@@ -9,19 +9,22 @@ import CoreGraphics
 import CoreImage
 import Frames
 
-// Masks a picture by the luminance of its matte frame, stretched over the picture's destination.
+// Masks a picture by the luma of its transition matte, an analysis picture stretched over the picture's destination
+// (`MatteKernelSource`).
 struct MatteApplier {
     // MARK: - Property
     private static let kernelName = "matteLuma"
 
     // MARK: - Initializer
     // MARK: - Public
-    // `picture` holds the destination's `size` at its top left, in Core Image's y-up coordinates.
+    // `picture` holds the destination's `size` at its top left, in Core Image's y-up coordinates, computed in the form
+    // `compositing` names.
     func apply(
         _ matte: PictureMatte,
         frame: CGImage,
         to picture: CIImage,
-        size: Size
+        size: Size,
+        compositing: Compositing
     ) throws -> CIImage {
         let kernel = try KernelLibrary.shared.colorKernel(named: Self.kernelName)
         let stretch = CGAffineTransform(
@@ -40,7 +43,8 @@ struct MatteApplier {
             stretched,
             matte.progress,
             matte.softness,
-            matte.isInverted ? 1.0 : 0.0
+            matte.isInverted ? 1.0 : 0.0,
+            compositing.kernelArgument
         ]
         guard let image = kernel.apply(extent: picture.extent, arguments: arguments) else {
             throw QuartzError.kernelFailed(name: Self.kernelName)

@@ -5,32 +5,23 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The Metal functions of the filter operations, on sRGB-encoded premultiplied samples. A colour operation
-// unpremultiplies, computes on v, clamps v to 0 to 1 and premultiplies by the alpha it was given.
+// The Metal functions of the filter operations (FRAMES-15), on premultiplied samples in the form their `linear`
+// argument names (`FormKernelSource`). A colour operation unpremultiplies, takes v to its home, computes, takes its
+// result back and premultiplies by the alpha it was given, and clamps nothing: `contrast`, `saturation`, `hue`,
+// `sepia`, `levels`, `lut`'s lookup in `srgb` and `grain` on the encoded form, `exposure` and `temperature` on the
+// linear form, and `vignette`, `mix` and `lut`'s `amount` in the samples' form. Blur, sharpen, bloom and pixelate work
+// in the samples' form and clamp their alpha only.
 enum FilterKernelSource {
     static let text = """
-        static inline float filterLuma(float3 v) {
-            return dot(v, float3(0.2126, 0.7152, 0.0722));
-        }
-
-        // IEC 61966-2-1 decoding to linear light, and encoding back.
-        static inline float3 filterDecode(float3 v) {
-            return select(pow((v + 0.055) / 1.055, 2.4), v / 12.92, v <= 0.04045);
-        }
-
-        static inline float3 filterEncode(float3 light) {
-            return select(1.055 * pow(light, 1.0 / 2.4) - 0.055, 12.92 * light, light <= 0.0031308);
-        }
-
         static inline float4 filterFinish(float3 v, float alpha) {
-            return premultiply(float4(clamp(v, 0.0, 1.0), alpha));
+            return premultiply(float4(v, alpha));
         }
 
-        // Clamps a premultiplied result so that alpha and the unpremultiplied colour lie in 0 to 1.
-        static inline float4 filterClampPremultiplied(float4 value) {
+        // Clamps a premultiplied result's alpha to 0 to 1, and a pixel whose alpha is then 0 to transparent.
+        static inline float4 filterClampedAlpha(float4 value) {
             float alpha = clamp(value.a, 0.0, 1.0);
 
-            return float4(clamp(value.rgb, 0.0, alpha), alpha);
+            return alpha > 0.0 ? float4(value.rgb, alpha) : float4(0.0);
         }
 
         // lowbias32 by Chris Wellons.
@@ -58,68 +49,78 @@ enum FilterKernelSource {
             return table.sample(table.transform(texel)).rgb;
         }
 
-        [[stitchable]] float4 filterClamp(sample_t sample) {
-            return filterClampPremultiplied(sample);
+        [[stitchable]] float4 filterClampAlpha(sample_t sample) {
+            return filterClampedAlpha(sample);
         }
 
-        [[stitchable]] float4 filterExposure(sample_t sample, float ev) {
+        [[stitchable]] float4 filterExposure(sample_t sample, float ev, float linear) {
             float4 v = unpremultiply(sample);
 
-            return filterFinish(filterEncode(filterDecode(v.rgb) * exp2(ev)), v.a);
+            return filterFinish(formFromLinear(formToLinear(v.rgb, linear) * exp2(ev), linear), v.a);
         }
 
-        [[stitchable]] float4 filterTemperature(sample_t sample, float3 gain) {
+        [[stitchable]] float4 filterTemperature(sample_t sample, float3 gain, float linear) {
             float4 v = unpremultiply(sample);
 
-            return filterFinish(filterEncode(filterDecode(v.rgb) * gain), v.a);
+            return filterFinish(formFromLinear(formToLinear(v.rgb, linear) * gain, linear), v.a);
         }
 
-        [[stitchable]] float4 filterContrast(sample_t sample, float amount) {
+        [[stitchable]] float4 filterContrast(sample_t sample, float amount, float linear) {
             float4 v = unpremultiply(sample);
+            float3 encoded = formToEncoded(v.rgb, linear);
 
-            return filterFinish((v.rgb - 0.5) * amount + 0.5, v.a);
+            return filterFinish(formFromEncoded((encoded - 0.5) * amount + 0.5, linear), v.a);
         }
 
-        [[stitchable]] float4 filterSaturation(sample_t sample, float amount) {
+        [[stitchable]] float4 filterSaturation(sample_t sample, float amount, float linear) {
             float4 v = unpremultiply(sample);
-            float luma = filterLuma(v.rgb);
+            float3 encoded = formToEncoded(v.rgb, linear);
+            float luma = dot(encoded, float3(0.2126, 0.7152, 0.0722));
 
-            return filterFinish(luma + amount * (v.rgb - luma), v.a);
+            return filterFinish(formFromEncoded(luma + amount * (encoded - luma), linear), v.a);
         }
 
         // The hue-rotate() matrix of W3C Filter Effects.
-        [[stitchable]] float4 filterHue(sample_t sample, float degrees) {
+        [[stitchable]] float4 filterHue(sample_t sample, float degrees, float linear) {
             float4 v = unpremultiply(sample);
+            float3 encoded = formToEncoded(v.rgb, linear);
             float c = cos(degrees * M_PI_F / 180.0);
             float s = sin(degrees * M_PI_F / 180.0);
             float3 red = float3(0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928);
             float3 green = float3(0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283);
             float3 blue = float3(0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072);
 
-            return filterFinish(float3(dot(red, v.rgb), dot(green, v.rgb), dot(blue, v.rgb)), v.a);
+            float3 rotated = float3(dot(red, encoded), dot(green, encoded), dot(blue, encoded));
+
+            return filterFinish(formFromEncoded(rotated, linear), v.a);
         }
 
         // The sepia() matrix of W3C Filter Effects.
-        [[stitchable]] float4 filterSepia(sample_t sample, float amount) {
+        [[stitchable]] float4 filterSepia(sample_t sample, float amount, float linear) {
             float4 v = unpremultiply(sample);
+            float3 encoded = formToEncoded(v.rgb, linear);
             float rest = 1.0 - amount;
             float3 red = float3(0.393 + 0.607 * rest, 0.769 - 0.769 * rest, 0.189 - 0.189 * rest);
             float3 green = float3(0.349 - 0.349 * rest, 0.686 + 0.314 * rest, 0.168 - 0.168 * rest);
             float3 blue = float3(0.272 - 0.272 * rest, 0.534 - 0.534 * rest, 0.131 + 0.869 * rest);
 
-            return filterFinish(float3(dot(red, v.rgb), dot(green, v.rgb), dot(blue, v.rgb)), v.a);
+            float3 toned = float3(dot(red, encoded), dot(green, encoded), dot(blue, encoded));
+
+            return filterFinish(formFromEncoded(toned, linear), v.a);
         }
 
         // `input` and `output` are each a black and a white level.
-        [[stitchable]] float4 filterLevels(sample_t sample, float2 input, float2 output) {
+        [[stitchable]] float4 filterLevels(sample_t sample, float2 input, float2 output, float linear) {
             float4 v = unpremultiply(sample);
-            float3 level = clamp((v.rgb - input.x) / (input.y - input.x), 0.0, 1.0);
+            float3 level = (formToEncoded(v.rgb, linear) - input.x) / (input.y - input.x);
 
-            return filterFinish(output.x + level * (output.y - output.x), v.a);
+            return filterFinish(formFromEncoded(output.x + level * (output.y - output.x), linear), v.a);
         }
 
         // `table` holds the entries of a `size` cube as `size` columns of red by `size` x `size` rows of green plus
-        // blue times `size`, at texel centres.
+        // blue times `size`, at texel centres. The image's colours are looked up on the encoded form, clipped to the
+        // domain, and the result is mixed with them by `amount` in their own form. An image already converted to a
+        // LUT's space is taken as it is at a `linear` of 0.
         [[stitchable]] float4 filterLookUp(
             sampler image,
             sampler table,
@@ -127,10 +128,12 @@ enum FilterKernelSource {
             float3 domainMin,
             float3 domainMax,
             float amount,
+            float linear,
             destination dest
         ) {
             float4 v = unpremultiply(image.sample(image.transform(dest.coord())));
-            float3 index = clamp((v.rgb - domainMin) / (domainMax - domainMin), 0.0, 1.0) * (size - 1.0);
+            float3 encoded = formToEncoded(v.rgb, linear);
+            float3 index = clamp((encoded - domainMin) / (domainMax - domainMin), 0.0, 1.0) * (size - 1.0);
             float3 lower = min(floor(index), size - 2.0);
             float3 fraction = index - lower;
             float3 c00 = mix(
@@ -155,7 +158,7 @@ enum FilterKernelSource {
             );
             float3 mapped = mix(mix(c00, c10, fraction.g), mix(c01, c11, fraction.g), fraction.b);
 
-            return filterFinish(mix(v.rgb, mapped, amount), v.a);
+            return filterFinish(mix(v.rgb, formFromEncoded(mapped, linear), amount), v.a);
         }
 
         // `filtered` is an entry's result for `sample`, both premultiplied.
@@ -165,16 +168,20 @@ enum FilterKernelSource {
 
         // `blurred` is the Gaussian blur of `sample`'s image, both premultiplied.
         [[stitchable]] float4 filterSharpen(sample_t sample, sample_t blurred, float amount) {
-            return filterClampPremultiplied(sample + amount * (sample - blurred));
+            return filterClampedAlpha(sample + amount * (sample - blurred));
         }
 
-        [[stitchable]] float4 filterBloomBright(sample_t sample) {
-            return sample * smoothstep(0.5, 1.0, filterLuma(unpremultiply(sample).rgb));
+        // The pixel weighed by smoothstep(0.5, 1, L), L its luma clamped to 0 to 1.
+        [[stitchable]] float4 filterBloomBright(sample_t sample, float linear) {
+            float luma = clamp(formLuma(unpremultiply(sample).rgb, linear), 0.0, 1.0);
+
+            return sample * smoothstep(0.5, 1.0, luma);
         }
 
-        // `glow` is the blur of the bright parts, and `tint` the bloom's colour premultiplied, or white.
+        // `glow` is the blur of the bright parts, and `tint` the bloom's colour in the samples' form premultiplied, or
+        // white.
         [[stitchable]] float4 filterBloomAdd(sample_t sample, sample_t glow, float amount, float4 tint) {
-            return filterClampPremultiplied(sample + amount * glow * tint);
+            return filterClampedAlpha(sample + amount * glow * tint);
         }
 
         // `centre` is the centre of the image's extent and `halfDiagonal` half its diagonal. smoothstep(1, 1, d) is
@@ -187,29 +194,30 @@ enum FilterKernelSource {
             float halfDiagonal,
             destination dest
         ) {
-            float4 v = unpremultiply(sample);
             float reach = length(dest.coord() - centre) / halfDiagonal;
             float falloff = radius < 1.0 ? smoothstep(radius, 1.0, reach) : step(1.0, reach);
 
-            return filterFinish(v.rgb * (1.0 - amount * falloff), v.a);
+            return float4(sample.rgb * (1.0 - amount * falloff), sample.a);
         }
 
         // Grains are squares `size` across on a grid from `topLeft`, the extent's top left corner. `seed` is the
-        // seed's low and high sixteen bits.
+        // seed's low and high sixteen bits. The noise is weighed by the luma clamped to 0 to 1.
         [[stitchable]] float4 filterGrain(
             sample_t sample,
             float amount,
             float size,
             float2 topLeft,
             float2 seed,
+            float linear,
             destination dest
         ) {
             float4 v = unpremultiply(sample);
+            float3 encoded = formToEncoded(v.rgb, linear);
             float2 place = float2(dest.coord().x - topLeft.x, topLeft.y - dest.coord().y);
             float noise = filterNoise(int2(floor(place / size)), uint(seed.x) | (uint(seed.y) << 16));
-            float luma = filterLuma(v.rgb);
+            float luma = clamp(dot(encoded, float3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
 
-            return filterFinish(v.rgb + amount * 4.0 * luma * (1.0 - luma) * noise, v.a);
+            return filterFinish(formFromEncoded(encoded + amount * 4.0 * luma * (1.0 - luma) * noise, linear), v.a);
         }
 
         // One output pixel per block, block (column, row) counted from the top left: the mean of the image's pixels
