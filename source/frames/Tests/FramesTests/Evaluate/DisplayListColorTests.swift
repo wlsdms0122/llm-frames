@@ -91,6 +91,22 @@ struct DisplayListColorTests {
         #expect(frames.map(\.targetPeak) == [targetPeak, ColorSpace(rawValue: colorSpace)?.peakLuminance])
     }
 
+    @Test("a storyline clip and a media clip that write no toneMap are tone mapped to the outermost sequence's peak")
+    func toneMapsByDefault() throws {
+        // Given
+        let resolved = try resolved(#"""
+            { "kind": "sequence", "format": { "colorSpace": "rec2100-hlg" }, "storyline": [
+                { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            """#)
+
+        // When
+        let frames = frames(in: sut.displayList(of: resolved, at: 0.5))
+
+        // Then
+        #expect(resolved.storyline.map(\.isToneMapped) == [true])
+        #expect(frames.map(\.targetPeak) == [1000, 1000])
+    }
+
     @Test("a transition cover is tone mapped to the outermost sequence's peak, and its matte carries no target peak")
     func carriesCoverAndMatteColor() throws {
         // Given
