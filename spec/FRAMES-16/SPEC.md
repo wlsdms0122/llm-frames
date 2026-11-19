@@ -76,6 +76,8 @@ Every transition but `fade`, `dip-black` and `flash` eases in and out. All of th
 | `vignette` | darker towards the edges and corners |
 | `pixelate` | square blocks |
 
+frames ships no audio preset. Audio filters are written in place or come from packs ([FRAMES-13](../FRAMES-13/SPEC.md)).
+
 ## Interactions
 
 Their format is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md). Changing their numbers is a major change ([FRAMES-18](../FRAMES-18/SPEC.md)). The base theme names none of them as a default ([FRAMES-22](../FRAMES-22/SPEC.md)). Which to use for a kind of result is a guide's judgement ([FRAMES-25](../FRAMES-25/SPEC.md)).

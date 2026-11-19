@@ -12,7 +12,7 @@ Editors reuse motion. The same cross dissolve runs between hundreds of shots, ev
 
 ## Rules
 
-A preset is one JSON file at `presets/<transition|animation|filter>/<name>.json`. `<pack>/<name>` is a preset in a pack ([FRAMES-17](../FRAMES-17/SPEC.md)), the ones frames ships in the pack `frames` (`frames/pop`), and an absolute path reads that file. Adding a preset needs no rebuild.
+A preset is one JSON file at `presets/<transition|animation|filter|audio>/<name>.json`, an audio preset being an audio filter ([FRAMES-13](../FRAMES-13/SPEC.md)). `<pack>/<name>` is a preset in a pack ([FRAMES-17](../FRAMES-17/SPEC.md)), the ones frames ships in the pack `frames` (`frames/pop`), and an absolute path reads that file. Adding a preset needs no rebuild.
 
 Every preset has a `description`: one line on how it looks and moves, which `presets` prints. It says what the viewer sees, not what the preset is for. Unknown keys and broken rules in a preset stop when it is read.
 

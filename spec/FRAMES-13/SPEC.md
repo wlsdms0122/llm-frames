@@ -4,11 +4,11 @@ Status: accepted
 
 ## Summary
 
-How clips play sound: volume, pan, fades, keyframed volume and pan, transition crossfades with the transition preset's curve, how gains multiply, which clips play no sound, and a video's sound placed alone as an audio clip.
+How clips play sound: volume, pan, fades, audio filters (EQ, compressor and gate) as data, keyframed volume and pan, transition crossfades with the transition preset's curve, how gains multiply, which clips play no sound, and a video's sound placed alone as an audio clip.
 
 ## Motivation
 
-An edit's sound is laid like its pictures: a music bed under the whole piece and ducked under speech, dialogue from the camera clips, a sound effect placed on the left as something leaves the frame, a crossfade at every cut that would otherwise click. Sound is media that frames places and does not make, so its rules are how levels and positions combine, fixed so that every mixer gives the same mix: the pan law, the crossfade curves and the order gains multiply in.
+An edit's sound is laid like its pictures: a music bed under the whole piece and ducked under speech, dialogue from the camera clips, a sound effect placed on the left as something leaves the frame, a crossfade at every cut that would otherwise click. Sound is media that frames places and does not make, so its rules are how levels and positions combine and how a clip's sound is processed (an EQ on a voice, a compressor on a narration), fixed so that every mixer gives the same mix: the pan law, the crossfade curves, the order gains multiply in and the formula of every audio filter. A shot's sound is also cut apart from its picture, as every NLE detaches it for a J or an L cut, and placing it alone must not decode a picture nobody sees.
 
 ## Rules
 
@@ -16,9 +16,9 @@ An edit's sound is laid like its pictures: a music bed under the whole piece and
 
 - A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept.
 - A storyline clip's sound plays over its drawn range, its handles included, and another clip's over its visible window ([FRAMES-8](../FRAMES-8/SPEC.md)). A video without a sound track, a still, and a compound clip none of whose clips has sound play no sound.
-- A clip with `timeRemap` plays no sound ([FRAMES-8](../FRAMES-8/SPEC.md)). `volume`, `pan`, `fadeIn` and `fadeOut` on it stop, since they would do nothing. Sound for a remapped shot is placed as an audio clip of its own.
+- A clip with `timeRemap` plays no sound ([FRAMES-8](../FRAMES-8/SPEC.md)). `volume`, `pan`, `fadeIn`, `fadeOut` and `audioFilter` on it stop, since they would do nothing. Sound for a remapped shot is placed as an audio clip of its own.
 - `fadeIn` and `fadeOut` are seconds, and ramp the volume linearly from and to 0 at the ends of the range its sound plays over: a storyline clip's drawn range, or another clip's visible window, so a clip the sequence end or tracking cuts still fades out before the cut.
-- `volume` is keyframable, for ducking and longer fades.
+- `volume` is keyframable, for ducking and longer fades. `audioFilter` processes the sound before its volume ([Audio filters](#audio-filters)).
 - `pan` places a sound between the left and right channels of the output, from -1 (left) through 0 (centre, the default) to 1 (right). It is keyframable. How it acts depends on how many channels the sound has:
 
 | Channels | Left gain | Right gain | At the centre |
@@ -28,13 +28,6 @@ An edit's sound is laid like its pictures: a music bed under the whole piece and
 | more than 2 | as stereo, after the mixer mixes the sound down to two channels ([FRAMES-21](../FRAMES-21/SPEC.md)) | | |
 
 A mono sound is placed into both output channels at those gains. A stereo sound keeps its channels apart, each taking its own gain. A `pan` outside -1 to 1 stops, as a value of the wrong type does ([FRAMES-7](../FRAMES-7/SPEC.md)).
-
-### A video's sound alone
-
-A connected or sequence media clip of a video, a compound clip or a sequence template instance takes `"picture": false` to be an audio clip of its media's sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it. It then takes the keys of an audio clip and `picture` ([FRAMES-7](../FRAMES-7/SPEC.md)), and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
-
-- A split edit, a J cut where the next shot's sound comes in before its picture or an L cut where the last shot's sound runs on under the next picture, is an audio clip of that shot's sound beside its storyline clip, with the storyline clip's own `volume` keyframed down where the audio clip takes its sound over. No picture is decoded for it and none is hidden.
-- `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: an image, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
 
 ### Crossfades
 
@@ -53,12 +46,74 @@ A connected or sequence media clip of a video, a compound clip or a sequence tem
 - Gains multiply: volume, fades and the transition crossfade all apply. Pan acts after them, on the channels.
 - A compound clip's sounds join the outer mix, with their times mapped through the compound clip, their gains multiplied by its own, and its pan added to theirs, cut to -1 and 1.
 - Sounds that overlap are mixed. Everything is cut at the end of the sequence.
+- The mix is the sum of its sounds, with no limiter on it: samples past full scale are clipped where a file stores them as PCM, as in an NLE with nothing on its master.
 - A sequence with no sound has no audio track.
-- The mix plan carries each sound as segments with a gain envelope and a pan envelope ([FRAMES-20](../FRAMES-20/SPEC.md)), and the mixer applies the gains and the pan law above.
+- The mix plan carries each sound as segments with its audio filter, a gain envelope and a pan envelope ([FRAMES-20](../FRAMES-20/SPEC.md)), and the mixer applies the filter, the gains and the pan law above.
+
+### A video's sound alone
+
+A connected or sequence media clip of a video, a compound clip or a sequence template instance takes `"picture": false` to be an audio clip of its media's sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it. It then takes the keys of an audio clip and `picture` ([FRAMES-7](../FRAMES-7/SPEC.md)), and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
+
+- A split edit, a J cut where the next shot's sound comes in before its picture or an L cut where the last shot's sound runs on under the next picture, is an audio clip of that shot's sound beside its storyline clip, with the storyline clip's own `volume` keyframed down where the audio clip takes its sound over. No picture is decoded for it and none is hidden.
+- `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: an image, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
+
+### Audio filters
+
+`audioFilter` processes a clip's sound with operations from a fixed table, as `filter` does its picture ([FRAMES-15](../FRAMES-15/SPEC.md)) and as an NLE's clip audio effects do: an EQ to take the rumble out of a room and give a voice presence, a compressor to even out its level, a gate to quiet the noise between phrases. The operations are frames vocabulary and their formulas are the contract, so every mixer gives the same sound and a pack's voice chain sounds the same wherever the document is mixed.
+
+| Form | Meaning |
+| --- | --- |
+| a preset name | an audio preset with its defaults: `<pack>/<name>` for `presets/audio/<name>.json` in a pack, or an absolute path |
+| `{preset, args}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them. `args` is required |
+| an op | one operation written in place, `{"op": ..., ...}` |
+| a list of those | each in turn, the first applied first. It holds at least one entry, and an empty list stops |
+
+```json
+"audioFilter": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 }, { "type": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
+                 { "op": "compressor", "threshold": -18, "ratio": 3, "knee": 6 } ]
+```
+
+An audio preset is `{description, params, ops}`, `ops` a list of operations. Its `params` are as every preset's ([FRAMES-14](../FRAMES-14/SPEC.md)), and `{"param": "<name>"}` stands for a number wherever an operation takes a number. It never stands for an `op`, a band's `type` or a key, and since no operation takes a colour or an ease, a `color` or `choice` parameter stops. frames ships no audio preset ([FRAMES-16](../FRAMES-16/SPEC.md)).
+
+| op | Parameters | Meaning |
+| --- | --- | --- |
+| `eq` | `bands`, a list of at least one band | each band in order, a biquad filter of the RBJ Audio EQ Cookbook |
+| `compressor` | `threshold` (dBFS), `ratio` (1 or more), `knee` (dB, 0 or more, default 0), `attack` (seconds above 0, default 0.01), `release` (seconds above 0, default 0.1), `makeup` (dB, default 0) | a feed-forward compressor with a hard knee at `knee` 0 and a soft one above it |
+| `gate` | `threshold` (dBFS), `range` (dB, 0 or less, default -80), `attack` (seconds above 0, default 0.001), `hold` (seconds, 0 or more, default 0.05), `release` (seconds above 0, default 0.1) | a noise gate that turns the sound down by `range` while its level stays below `threshold` |
+
+| Band key | Form | Default |
+| --- | --- | --- |
+| `type` | `lowShelf`, `highShelf`, `peak`, `lowPass` or `highPass` | required |
+| `frequency` | Hz, above 0 and below 24000 | required |
+| `gain` | dB, taken by `lowShelf`, `highShelf` and `peak` only | required where it is taken |
+| `q` | above 0 | 0.7071, which is 1/√2 |
+
+A parameter outside its range stops where it is written, and in a preset when it is read, with every parameter at its default and again with a choice's arguments, as filters are checked ([FRAMES-15](../FRAMES-15/SPEC.md)). An unknown op, a band key its `type` does not take, and a missing required key stop.
+
+**EQ.** With Fs = 48000, f the `frequency`, G the `gain`, w = 2πf / Fs, A = 10^(G / 40) and α = sin(w) / (2 × `q`), each band filters each channel on its own as y[n] = (b0 x[n] + b1 x[n-1] + b2 x[n-2] - a1 y[n-1] - a2 y[n-2]) / a0, with the coefficients of the cookbook:
+
+| `type` | b0 | b1 | b2 | a0 | a1 | a2 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `lowPass` | (1 - cos w) / 2 | 1 - cos w | (1 - cos w) / 2 | 1 + α | -2 cos w | 1 - α |
+| `highPass` | (1 + cos w) / 2 | -(1 + cos w) | (1 + cos w) / 2 | 1 + α | -2 cos w | 1 - α |
+| `peak` | 1 + α A | -2 cos w | 1 - α A | 1 + α / A | -2 cos w | 1 - α / A |
+| `lowShelf` | A((A + 1) - (A - 1) cos w + 2√A α) | 2A((A - 1) - (A + 1) cos w) | A((A + 1) - (A - 1) cos w - 2√A α) | (A + 1) + (A - 1) cos w + 2√A α | -2((A - 1) + (A + 1) cos w) | (A + 1) + (A - 1) cos w - 2√A α |
+| `highShelf` | A((A + 1) + (A - 1) cos w + 2√A α) | -2A((A - 1) + (A + 1) cos w) | A((A + 1) + (A - 1) cos w - 2√A α) | (A + 1) - (A - 1) cos w + 2√A α | 2((A - 1) - (A + 1) cos w) | (A + 1) - (A - 1) cos w - 2√A α |
+
+**Level.** The compressor and the gate read one level for all of a sound's channels, so they never move a stereo image: L[n] = 20 log10(m[n]) in dBFS, with m[n] the largest |x[n]| among the channels, and a silent sample's level below every threshold. Each smooths a target gain c[n] in dB into the gain g[n] it applies, as the branching peak detector of Giannoulis, Massberg and Reiss (2012) smooths it: g[n] = β g[n-1] + (1 - β) c[n], with β = exp(-1 / (τ × Fs)) and τ its `attack` or its `release` as below.
+
+**Compressor.** With T the `threshold`, R the `ratio` and W the `knee`, the gain curve maps a level L to y(L) = L where 2(L - T) < -W, to L + (1/R - 1)(L - T + W/2)² / (2W) where |2(L - T)| ≤ W and W is above 0, and to T + (L - T) / R where 2(L - T) > W. Its target is c[n] = y(L[n]) - L[n], τ is `attack` when c[n] < g[n-1] and `release` otherwise, and every channel is multiplied by 10^((g[n] + `makeup`) / 20).
+
+**Gate.** The gate is open at n when L[n] ≥ `threshold`, or when L was at or above `threshold` at a sample less than `hold` seconds before n. Its target c[n] is 0 dB when it is open and `range` when it is closed, τ is `attack` when c[n] > g[n-1] and `release` otherwise, and every channel is multiplied by 10^(g[n] / 20).
+
+- A clip's audio filter acts on its sound as the mixer reads it, at 48 kHz, after its `speed` and after a sound of more than two channels is downmixed ([FRAMES-21](../FRAMES-21/SPEC.md)), and before its volume, fades, crossfades and pan, as a console's insert effects come before its fader. So a fade fades the processed sound, and a compressor does not undo a fade.
+- Each segment of the mix plan ([FRAMES-20](../FRAMES-20/SPEC.md)) starts its operations at rest: every biquad's past samples 0, a compressor's gain 0 dB, and a gate closed, its gain at `range`. A loop starts them again on each repeat.
+- `audioFilter` is taken by a clip whose media is a file with sound: a storyline clip or media clip of a video with a sound track, an audio clip, and a clip of a video's sound alone. On a clip that plays no sound (a video without a sound track, a clip with `timeRemap`) it stops, as `volume` does there. On a clip whose media is a compound clip or a template instance it stops, since the sound it would process is a mix of several sounds, which is a mix bus (README); its clips take their own.
+- `audioFilter` is keyframable. A keyframe's `audioFilter` is the clip's whole audio filter at that instant, resolved with its arguments applied, and between two keyframes every number interpolates as [FRAMES-4](../FRAMES-4/SPEC.md) gives, except a band's `frequency`, which interpolates geometrically (in log space), as a crop's size does, since a pitch is heard by its ratio and a sweep from 100 Hz to 10 kHz should spend as long on each octave. Every keyframe of one clip writes the same structure: the same entries in the same order, the same presets and ops, the same number and types of bands and the same keys written. One that differs stops, naming the clip and the keyframe. A value an ease carries past its range is clamped to it where it is used.
 
 ## Interactions
 
-Clocks, windows and `timeRemap` are [FRAMES-8](../FRAMES-8/SPEC.md). Keyframes and eases are [FRAMES-4](../FRAMES-4/SPEC.md). A transition's `audio` is declared in its preset ([FRAMES-14](../FRAMES-14/SPEC.md)). The mix plan is [FRAMES-20](../FRAMES-20/SPEC.md). The mixer, the downmix and the sound format are [FRAMES-21](../FRAMES-21/SPEC.md).
+Clocks, windows and `timeRemap` are [FRAMES-8](../FRAMES-8/SPEC.md). Audio presets are read as presets are ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-17](../FRAMES-17/SPEC.md)), and their numbers are checked as filters' are ([FRAMES-15](../FRAMES-15/SPEC.md)). Keyframes and eases are [FRAMES-4](../FRAMES-4/SPEC.md). A transition's `audio` is declared in its preset ([FRAMES-14](../FRAMES-14/SPEC.md)). The mix plan is [FRAMES-20](../FRAMES-20/SPEC.md). The mixer, the downmix and the sound format are [FRAMES-21](../FRAMES-21/SPEC.md).
 
 ## Alternatives considered
 
@@ -70,6 +125,12 @@ Panning a stereo sound by the mono law: a centred stereo sound would play 3 dB d
 
 Sound under time remapping, with its pitch kept or shifted: a hold or a reverse gives sound few edits keep, and a sound placed as its own clip is cut as the edit needs.
 
-Audio filters (EQ, compression): left out (README). Volume and pan are what placing sound needs, and processed sound arrives as media.
+Audio filters as names without formulas: the meaning of a pack's voice chain would be each mixer's, as a filter's would be each renderer's ([FRAMES-15](../FRAMES-15/SPEC.md)). The cookbook biquads and the feed-forward compressor are what every DAW and NLE builds its EQ and dynamics on, and are written out exactly.
+
+A level detector by RMS, or one per channel: an RMS window is one more parameter whose shape mixers choose differently, and a compressor per channel moves a stereo image when one side is louder. A linked peak detector with smoothed gain is the form the compressor literature gives as the reference.
+
+Processing on a compound clip, a bus or the master (a limiter, a loudness target): each processes a mix of several sounds, which needs a bus in the mix plan and a mixer that sums before it processes. It is left out (README), and the sounds inside a compound clip take their own audio filters.
+
+Effects after the fader: a compressor after a fade would lift the fade back up, and an NLE's clip effects sit before its volume.
 
 ## Notes
