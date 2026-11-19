@@ -105,9 +105,7 @@ struct FontFinderTests {
         CharacterStyle(
             families: families,
             weight: .bold,
-            size: 40,
-            color: Color(written: "#000000"),
-            stroke: nil
+            size: 40
         )
     }
 }

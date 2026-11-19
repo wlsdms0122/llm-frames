@@ -80,11 +80,10 @@ extension MergedTheme {
         value(at: ["styles", name, "offset"])?.numberValue
     }
 
-    // A style's character attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
-    // value: the theme `font`, regular, upright, no tracking, kerned, the `text` colour, and no stroke, highlight or
-    // underline. A stroke without a colour takes the `text` colour and a highlight without one the `background`
-    // colour. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a
-    // name the theme does not hold.
+    // A style's character attributes with its size multiplied by `scale`. A property it leaves out takes the plain
+    // value: the theme `font`, regular, upright, no tracking, kerned, and no highlight or underline. Every style has a
+    // size, since the merged theme stopped on one without, and the typesetter stopped on a name the theme does not
+    // hold.
     func characterStyle(
         named name: String,
         scale: Double
@@ -107,16 +106,8 @@ extension MergedTheme {
             features: (style["features"]?.objectValue?.members ?? []).compactMap { member in
                 member.value.numberValue.map { FontFeature(tag: member.key, value: Int($0)) }
             },
-            baselineShift: (style["baselineShift"]?.numberValue ?? 0) * scale,
-            color: color(style["color"]?.stringValue ?? "text"),
-            stroke: style["stroke"]?.objectValue.map { stroke in
-                TextStroke(
-                    width: (stroke["width"]?.numberValue ?? 0) * scale,
-                    color: color(stroke["color"]?.stringValue ?? "text")
-                )
-            },
-            highlight: style["highlight"]?.objectValue.map { box(of: $0, scale: scale) },
-            underline: underline(of: style["underline"], scale: scale)
+            isHighlighted: style["highlight"]?.objectValue != nil,
+            isUnderlined: style["underline"] == .bool(true) || style["underline"]?.objectValue != nil
         )
     }
 
@@ -164,7 +155,7 @@ extension MergedTheme {
         return style(named: name)["font"] == nil ? Place(components: [.key("font")]) : path
     }
 
-    // A highlight or a background: without `color` the `background` colour, without `padding` or `radius` 0.
+    // A background: without `color` the `background` colour, without `padding` or `radius` 0.
     private func box(
         of written: JSONObject,
         scale: Double
@@ -176,27 +167,6 @@ extension MergedTheme {
             padding: Size(width: padding[1] * scale, height: padding[0] * scale),
             radius: (written["radius"]?.numberValue ?? 0) * scale
         )
-    }
-
-    // `true` and an object are an underline, each leaf it leaves out given by the run's face and colour.
-    private func underline(
-        of written: JSONValue?,
-        scale: Double
-    ) -> TextUnderline? {
-        switch written {
-        case .bool(true):
-            return TextUnderline(width: nil, offset: nil, color: nil)
-
-        case let .object(underline):
-            return TextUnderline(
-                width: underline["width"]?.numberValue.map { $0 * scale },
-                offset: underline["offset"]?.numberValue.map { $0 * scale },
-                color: underline["color"]?.stringValue.map(color)
-            )
-
-        default:
-            return nil
-        }
     }
 
     private func number(at path: [String]) -> Double {

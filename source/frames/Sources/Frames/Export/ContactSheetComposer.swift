@@ -74,7 +74,7 @@ struct ContactSheetComposer: Sendable {
     // MARK: - Private
     // The face is given, so the style's families and weight are not read.
     private func characterStyle(size: Double) -> CharacterStyle {
-        CharacterStyle(families: [], weight: .regular, size: size, color: Self.textColor, stroke: nil)
+        CharacterStyle(families: [], weight: .regular, size: size)
     }
 
     // The line box is the face's ascent and descent at the size, and the background lies around it.
@@ -107,9 +107,11 @@ struct ContactSheetComposer: Sendable {
             height: layout.size.height
         )
 
+        let text = try ResolvedText(layout: layout, color: Self.textColor, hashes: hasher)
+
         return DisplayItem(
             transform: AffineTransform(mapping: layout.size, onto: frame),
-            content: .glyphs(GlyphsItem(text: try ResolvedText(layout: layout, hashes: hasher), at: 0))
+            content: .glyphs(GlyphsItem(text: text, at: 0))
         )
     }
 

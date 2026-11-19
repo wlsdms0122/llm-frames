@@ -500,13 +500,12 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let runs = try #require(plan.clips[0].title?.layout.runs)
-        #expect(runs.map(\.color) == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
-        #expect(runs.map(\.size) == [40, 20])
-        #expect(runs.map(\.stroke) == [
-            TextStroke(width: 2, color: Color(written: "#000000")),
-            TextStroke(width: 2, color: Color(written: "#FFFFFF"))
-        ])
+        let title = try #require(plan.clips[0].title)
+        let characters = title.characters.map { $0.sampled(at: 0, as: LookStructureTable.character) }
+        #expect(characters.map { $0["color"]?.color } == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
+        #expect(title.layout.runs.map(\.size) == [40, 20])
+        #expect(characters.map { $0["stroke"]?["width"]?.number } == [2, 2])
+        #expect(characters.map { $0["stroke"]?["color"]?.color } == [Color(written: "#000000"), Color(written: "#FFFFFF")])
     }
 
     @Test("a title's `paragraph` merges over its style's paragraph attributes, and its default line height follows `character`")

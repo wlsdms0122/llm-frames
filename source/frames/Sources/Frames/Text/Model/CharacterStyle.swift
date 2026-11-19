@@ -5,9 +5,11 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A theme style's character attributes. `families` is its font list. `size`, `baselineShift` and the lengths of the stroke, highlight and
-// underline are in output pixels, already multiplied by the length scale of the place the text is drawn. `tracking`
-// is in thousandths of an em, and `features` are the style's own settings, without `kern`.
+// The character attributes a run is set at. `families` is its font list. `size` is in output pixels, already
+// multiplied by the length scale of the place the text is drawn, `tracking` is in thousandths of an em, and `features`
+// are the style's own settings, without `kern`. `isHighlighted` and `isUnderlined` say whether the run's highlight and
+// underline pieces are cut; their colours and lengths, like the run's colour, stroke and baseline shift, change no
+// glyph's place and are timed by the title planner.
 struct CharacterStyle: Equatable, Sendable {
     // MARK: - Property
     let families: [String]
@@ -17,11 +19,8 @@ struct CharacterStyle: Equatable, Sendable {
     let tracking: Double
     let isKerned: Bool
     let features: [FontFeature]
-    let baselineShift: Double
-    let color: Color
-    let stroke: TextStroke?
-    let highlight: TextBackground?
-    let underline: TextUnderline?
+    let isHighlighted: Bool
+    let isUnderlined: Bool
 
     // MARK: - Initializer
     init(
@@ -32,11 +31,8 @@ struct CharacterStyle: Equatable, Sendable {
         tracking: Double = 0,
         isKerned: Bool = true,
         features: [FontFeature] = [],
-        baselineShift: Double = 0,
-        color: Color,
-        stroke: TextStroke?,
-        highlight: TextBackground? = nil,
-        underline: TextUnderline? = nil
+        isHighlighted: Bool = false,
+        isUnderlined: Bool = false
     ) {
         self.families = families
         self.weight = weight
@@ -45,11 +41,8 @@ struct CharacterStyle: Equatable, Sendable {
         self.tracking = tracking
         self.isKerned = isKerned
         self.features = features
-        self.baselineShift = baselineShift
-        self.color = color
-        self.stroke = stroke
-        self.highlight = highlight
-        self.underline = underline
+        self.isHighlighted = isHighlighted
+        self.isUnderlined = isUnderlined
     }
 
     // MARK: - Public

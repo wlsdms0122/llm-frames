@@ -45,7 +45,6 @@ struct TitleKeyframeTests {
         let stroke = title.characters[0].sampled(at: 0.5, as: LookStructureTable.character)["stroke"]
         #expect(stroke?["width"]?.number == 4)
         #expect(stroke?["color"]?.color == Color(written: "#000000FF"))
-        #expect(title.layout.runs[0].stroke == TextStroke(width: 4, color: Color(written: "#000000")))
     }
 
     @Test(
@@ -129,6 +128,22 @@ struct TitleKeyframeTests {
         #expect(underline.offset == .track([Keyframe(at: 0, value: .number(4))]))
         #expect(underline.color == text.runs.first?.color)
         #expect(underline.rects.map(\.width) == [20])
+    }
+
+    @Test("a stroke without a colour takes the `text` colour, and a highlight without one the `background` colour, no padding and no radius")
+    func defaultsStrokeAndHighlight() throws {
+        // When
+        let title = try title(#"""
+            { "title": "a", "style": "small", "position": [400, 225],
+              "character": { "stroke": { "width": 2 }, "highlight": { "radius": 0 } } }
+            """#)
+
+        // Then
+        let character = title.characters[0].sampled(at: 0, as: LookStructureTable.character)
+        #expect(character["stroke"]?["color"]?.color == MergedTheme.base.color("text"))
+        #expect(character["highlight"]?["color"]?.color == MergedTheme.base.color("background"))
+        #expect(character["highlight"]?["padding"]?.numbers == [0, 0])
+        #expect(character["baselineShift"]?.number == 0)
     }
 
     @Test("evaluation raises a run's glyphs by its baseline shift at each instant")

@@ -58,10 +58,11 @@ extension ResolvedText {
         )
     }
 
-    // A label is drawn as set, in its colour alone, so its colour is one keyframe and it takes no stroke, baseline shift,
+    // A label is drawn as set in `color` alone, so its colour is one keyframe and it takes no stroke, baseline shift,
     // highlight or underline.
     init(
         layout: TextLayout,
+        color: Color,
         hashes: any FileHashProvider
     ) throws {
         self.init(
@@ -72,7 +73,7 @@ extension ResolvedText {
                     font: try PinnedFile(path: run.face.file, hashes: hashes),
                     face: run.face.name,
                     size: run.size,
-                    color: .track([Keyframe(at: 0, value: .color(run.color))]),
+                    color: .track([Keyframe(at: 0, value: .color(color))]),
                     stroke: .off,
                     baselineShift: .off,
                     tracking: .off,

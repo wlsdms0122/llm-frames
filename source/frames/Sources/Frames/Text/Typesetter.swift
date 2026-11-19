@@ -309,8 +309,6 @@ struct Typesetter: Sendable {
                     source: last.source,
                     face: last.face,
                     size: last.size,
-                    color: last.color,
-                    stroke: last.stroke,
                     glyphs: last.glyphs + [positioned]
                 )
             } else {
@@ -318,8 +316,6 @@ struct Typesetter: Sendable {
                     source: glyph.source,
                     face: glyph.face,
                     size: glyph.style.size,
-                    color: glyph.style.color,
-                    stroke: glyph.style.stroke,
                     glyphs: [positioned]
                 ))
             }
@@ -337,26 +333,20 @@ struct Typesetter: Sendable {
             let glyph = line.glyphs.first { $0.source == span.source }
             guard let style = glyph?.style, let face = glyph?.runFace else { continue }
             let extent = TextExtent(face: face, size: style.size)
-            let highlights = style.highlight == nil ? [] : [
-                Rectangle(
-                    x: span.from,
-                    y: origin.y - extent.ascent,
-                    width: span.to - span.from,
-                    height: extent.ascent + extent.descent
-                )
-            ]
-            let underlines = style.underline == nil ? [] : [
-                UnderlinePiece(x: span.from, y: origin.y, width: span.to - span.from)
-            ]
+            let highlight = Rectangle(
+                x: span.from,
+                y: origin.y - extent.ascent,
+                width: span.to - span.from,
+                height: extent.ascent + extent.descent
+            )
+            let underline = UnderlinePiece(x: span.from, y: origin.y, width: span.to - span.from)
             runs[span.run] = GlyphRun(
                 source: run.source,
                 face: run.face,
                 size: run.size,
-                color: run.color,
-                stroke: run.stroke,
                 glyphs: run.glyphs,
-                highlights: highlights,
-                underlines: underlines
+                highlights: style.isHighlighted ? [highlight] : [],
+                underlines: style.isUnderlined ? [underline] : []
             )
         }
 

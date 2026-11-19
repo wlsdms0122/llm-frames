@@ -16,13 +16,11 @@ struct TypesetterTests {
     // MARK: - Property
     private let sut = Typesetter(shaper: ShaperTable(missing: ["✓"]))
     private let face = ShaperTable.face("Apple SD Gothic Neo", .bold)
-    private let text = Color(written: "#FFFFFF")
-    private let accent = Color(written: "#FFD43B")
     private let place = Place.root.appending(key: "title")
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a line is set in the style's size and colour, its glyphs placed on the baseline")
+    @Test("a line is set in the style's size, its glyphs placed on the baseline")
     func setsOneLine() throws {
         // Given
         let runs = [run("ab")]
@@ -39,8 +37,6 @@ struct TypesetterTests {
                     source: 0,
                     face: face,
                     size: 40,
-                    color: text,
-                    stroke: nil,
                     glyphs: [glyph("a", 0, 32), glyph("b", 20, 32)]
                 )
             ],
@@ -48,24 +44,21 @@ struct TypesetterTests {
         ))
     }
 
-    @Test("each run is set in its own size, colour and stroke, and text written with markup is set as written")
+    @Test("each run is set in its own size, and text written with markup is set as written")
     func setsRunsInTheirStyles() throws {
         // Given
-        let stroke = TextStroke(width: 3, color: Color(written: "#000000"))
-        let runs = [run("a "), run("**b**", style: character(size: 20, color: accent, stroke: stroke))]
+        let runs = [run("a "), run("**b**", style: character(size: 20))]
 
         // When
         let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
 
         // Then
         #expect(layout.runs == [
-            GlyphRun(source: 0, face: face, size: 40, color: text, stroke: nil, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
+            GlyphRun(source: 0, face: face, size: 40, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
             GlyphRun(
                 source: 1,
                 face: face,
                 size: 20,
-                color: accent,
-                stroke: stroke,
                 glyphs: [
                     glyph("*", 30, 32), glyph("*", 40, 32), glyph("b", 50, 32), glyph("*", 60, 32), glyph("*", 70, 32)
                 ]
@@ -126,7 +119,7 @@ struct TypesetterTests {
     @Test("a run boundary is no break opportunity, so a word split over two runs stays whole on its line")
     func keepsWordWholeAcrossRuns() throws {
         // Given
-        let runs = [run("go iPhone"), run("에서", style: character(size: 40, color: accent))]
+        let runs = [run("go iPhone"), run("에서", style: character(size: 40))]
 
         // When
         let layout = try sut.layout(runs, paragraph: paragraph(), width: 170, place: place, kind: "title")
@@ -368,8 +361,7 @@ struct TypesetterTests {
     @Test("a highlight is one piece per line from the run's ascent to its descent, the spaces ending a line left out")
     func cutsHighlightPerLine() throws {
         // Given
-        let highlight = TextBackground(color: accent, padding: Size(width: 8, height: 2), radius: 4)
-        let runs = [run("aa bb", style: character(highlight: highlight))]
+        let runs = [run("aa bb", style: character(isHighlighted: true))]
 
         // When
         let layout = try sut.layout(runs, paragraph: paragraph(), width: 60, place: place, kind: "title")
@@ -387,8 +379,7 @@ struct TypesetterTests {
     @Test("an underline piece spans its run's glyphs on the baseline, spaces inside the line included")
     func cutsUnderlineOnBaseline() throws {
         // Given
-        let underline = TextUnderline(width: nil, offset: nil, color: nil)
-        let runs = [run("a"), run(" bb ", style: character(underline: underline)), run("c")]
+        let runs = [run("a"), run(" bb ", style: character(isUnderlined: true)), run("c")]
 
         // When
         let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
@@ -494,10 +485,8 @@ struct TypesetterTests {
         tracking: Double = 0,
         isKerned: Bool = true,
         features: [FontFeature] = [],
-        color: Color? = nil,
-        stroke: TextStroke? = nil,
-        highlight: TextBackground? = nil,
-        underline: TextUnderline? = nil
+        isHighlighted: Bool = false,
+        isUnderlined: Bool = false
     ) -> CharacterStyle {
         CharacterStyle(
             families: ["Apple SD Gothic Neo"],
@@ -506,10 +495,8 @@ struct TypesetterTests {
             tracking: tracking,
             isKerned: isKerned,
             features: features,
-            color: color ?? text,
-            stroke: stroke,
-            highlight: highlight,
-            underline: underline
+            isHighlighted: isHighlighted,
+            isUnderlined: isUnderlined
         )
     }
 
