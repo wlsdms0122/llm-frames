@@ -8,7 +8,8 @@
 import Foundation
 import Frames
 
-// Reading a rendered sixteen bit bitmap back as premultiplied components from 0 to 1.
+// Reading a bitmap back as premultiplied components: a rendered sixteen bit one from 0 to 1, and the half floats of a
+// decoded picture as they are stored.
 extension Bitmap {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,9 +20,15 @@ extension Bitmap {
         y: Int
     ) -> [Double] {
         pixels.withUnsafeBytes { buffer in
-            let row = buffer.baseAddress!.advanced(by: y * bytesPerRow).assumingMemoryBound(to: UInt16.self)
+            let row = buffer.baseAddress!.advanced(by: y * bytesPerRow)
+            guard depth != .halfFloat else {
+                let components = row.assumingMemoryBound(to: Float16.self)
 
-            return (0..<4).map { component in Double(UInt16(littleEndian: row[x * 4 + component])) / 65535 }
+                return (0..<4).map { component in Double(components[x * 4 + component]) }
+            }
+            let components = row.assumingMemoryBound(to: UInt16.self)
+
+            return (0..<4).map { component in Double(UInt16(littleEndian: components[x * 4 + component])) / 65535 }
         }
     }
 

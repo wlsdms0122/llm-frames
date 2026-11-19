@@ -48,7 +48,7 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(try keys(of: sut.standardOutput) == ["probe", "kind", "size", "duration", "fps", "alpha", "audio"])
+        #expect(try keys(of: sut.standardOutput) == ["probe", "kind", "size", "duration", "fps", "alpha", "colorSpace", "audio"])
         #expect(sut.standardOutput.hasPrefix("{\n  \"probe\": \"\(FramesVersion.current)\",\n  \"kind\": \"video\","))
     }
 

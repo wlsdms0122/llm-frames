@@ -111,7 +111,9 @@ struct StorylineRenderTests {
         #expect(frame.width == 160 && frame.height == 90)
         var differences: [(Int, Int)] = []
         for y in 0..<90 {
-            for x in 0..<160 where !frame.isPixel(x: x, y: y, patternColor(x: x, y: y), tolerance: exact) {
+            // Each working value is the half float nearest the image's sRGB value.
+            let working = { (x: Int) in patternColor(x: x, y: y).map { Double(Float16($0 / 255)) * 255 } }
+            for x in 0..<160 where !frame.isPixel(x: x, y: y, working(x), tolerance: exact) {
                 differences.append((x, y))
             }
         }

@@ -41,9 +41,11 @@ struct PictureDrawerTests {
         let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 8), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
-        // Output column i covers source columns 16 + 2i and 17 + 2i, whose mean is 16.5 + 2i steps.
+        // Output column i covers source columns 16 + 2i and 17 + 2i, the mean of their working values, each the half
+        // float nearest its level.
         for column in 2..<14 {
-            let expected = (16.5 + 2 * Double(column)) * Self.step
+            let levels = [16 + 2 * column, 17 + 2 * column].map { Double(Float16(Double($0) * Self.step)) }
+            let expected = (levels[0] + levels[1]) / 2
             let pixel = bitmap.pixel(x: column, y: 4)
             #expect(abs(pixel[0] - expected) <= 8.0 / 65535, "column \(column): \(pixel[0]) is not \(expected)")
             #expect(pixel[3] == 1)
@@ -228,14 +230,23 @@ struct PictureDrawerTests {
         MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))), index: 0)
     }
 
-    // The 16 x 16 output at (4, 4) holds source columns 8 to 23 exactly, and nothing else is drawn.
+    // The 16 x 16 output at (4, 4) holds source columns 8 to 23 exactly, each half float working value at the nearest
+    // sixteen bit level, and nothing else is drawn.
+    private func level(
+        of picture: Bitmap,
+        x: Int,
+        y: Int
+    ) -> [UInt16] {
+        picture.pixel(x: x, y: y).map { UInt16(($0 * 65535).rounded()) }
+    }
+
     private func expectCopy(
         _ bitmap: Bitmap,
         of source: Bitmap,
         sourceLocation: SourceLocation = #_sourceLocation
     ) {
         for y in 0..<16 {
-            for x in 0..<16 where bitmap.components(x: x + 4, y: y + 4) != source.components(x: x + 8, y: y) {
+            for x in 0..<16 where bitmap.components(x: x + 4, y: y + 4) != level(of: source, x: x + 8, y: y) {
                 Issue.record("pixel (\(x + 4), \(y + 4)) is not source pixel (\(x + 8), \(y))", sourceLocation: sourceLocation)
                 return
             }
