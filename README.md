@@ -353,8 +353,9 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 A title clip's `title` is a string or a list of runs `{text, style}`, and its `style` names a theme text style and is required.
 
 - A run's `style` gives that run its character attributes (`size`, `weight`, `color`, `stroke`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
-- `width` is the wrapping width in output pixels, by default the frame width less twice the title safe margin. Lines break by Unicode line breaking and keep words whole, so Korean breaks at spaces.
-- Text that needs more lines than its style's `lines` stops, so a `lines: 1` title wider than its room stops rather than shrink or cut.
+- Without `width` a title is point text: it does not wrap, its lines break only at `\n`, and its box is as wide as its widest line, so a background hugs the text.
+- With `width` (output pixels) a title is paragraph text: it wraps at that width, its box is `width` wide, each line sits in it by the style's `align`, and a background fills it. Lines break by Unicode line breaking and keep words whole, so Korean breaks at spaces.
+- Text that needs more lines than its style's `lines` stops, with `width` or without, so a `lines: 1` title wider than its `width` stops rather than shrink or cut.
 - Fonts come from the theme `font` list, the first family the pack or the machine has. Text is laid out by resolve, so line breaks and boxes are the same on every renderer.
 
 [FRAMES-5](spec/FRAMES-5/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
@@ -466,7 +467,7 @@ A clip with sound plays it at `volume` (default 1), following its `speed` with t
 
 A still is a sequence rendered as one frame (`render -o out.png`, `still`). A still edit is usually one still storyline clip with clips connected to it: its `crop` crops, `format.size` resizes, a larger `format.size` with the clip's transform pads, `border` borders, and connected titles, shapes and adjustment clips draw on it.
 
-`format.size` as `{"fit": "content", "margin": m}` measures the frame from what it holds, as a design tool's "fit to content". `margin` is `n`, `[v, h]` or `[t, r, b, l]` in whole pixels. A storyline picture is drawn at the pixel size of its crop, clips sit where they are written with their top left at the origin by default, and the frame is the bounding box of everything plus the margin. A `placement`, or a title without `width`, stops under content fit, since both depend on the frame.
+`format.size` as `{"fit": "content", "margin": m}` measures the frame from what it holds, as a design tool's "fit to content". `margin` is `n`, `[v, h]` or `[t, r, b, l]` in whole pixels. A storyline picture is drawn at the pixel size of its crop, clips sit where they are written with their top left at the origin by default, and the frame is the bounding box of everything plus the margin. A `placement` stops under content fit, since it depends on the frame.
 
 ```json
 {
