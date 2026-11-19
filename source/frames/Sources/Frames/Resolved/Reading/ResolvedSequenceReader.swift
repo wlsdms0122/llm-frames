@@ -21,7 +21,8 @@ struct ResolvedSequenceReader: Sendable {
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
         "title", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke",
-        "adjust", "media", "in", "origin", "out", "speed", "loop", "timeRemap", "filter", "conform", "border", "shadow"
+        "adjust", "media", "in", "origin", "out", "speed", "loop", "timeRemap", "filter", "conform", "colorSpace",
+        "toneMap", "border", "shadow"
     ]
 
     private static let shapeKeys = [
@@ -173,7 +174,7 @@ struct ResolvedSequenceReader: Sendable {
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
-            keys: ["size", "fps", "duration", "background", "conform"]
+            keys: ["size", "fps", "duration", "background", "conform", "colorSpace", "compositing"]
         )
 
         return ResolvedFormat(
@@ -181,7 +182,9 @@ struct ResolvedSequenceReader: Sendable {
             fps: try format.member("fps").number(),
             duration: try duration(format.member("duration")),
             background: try values.color(format.member("background")),
-            conform: try conform(format.member("conform"))
+            conform: try conform(format.member("conform")),
+            colorSpace: try format.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init),
+            compositing: try format.member("compositing").name(among: VocabularyTable.compositings, Compositing.init)
         )
     }
 
@@ -201,16 +204,20 @@ struct ResolvedSequenceReader: Sendable {
 
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let entry = try value.object(kind: "storyline clip", keys: [
-            "place", "id", "media", "solid", "in", "out", "speed", "timeRemap", "start", "end", "size", "position",
-            "anchor", "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "filter",
-            "radius", "border", "shadow", "transition"
+            "place", "id", "media", "solid", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start", "end",
+            "size", "position", "anchor", "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend",
+            "filter", "radius", "border", "shadow", "transition"
         ])
+        let media = try entry.member("media").optional(self.media)
+        let reading = try reading(of: entry, media: media)
 
         return ResolvedStorylineClip(
             place: try entry.member("place").string(),
             id: try entry.member("id").optional { try $0.string() },
-            media: try entry.member("media").optional(media),
+            media: media,
             solid: try entry.member("solid").optional(values.color),
+            colorSpace: reading.colorSpace,
+            isToneMapped: reading.isToneMapped,
             in: try entry.member("in").number(),
             out: try entry.member("out").number(),
             speed: try entry.member("speed").number(),
@@ -296,7 +303,7 @@ struct ResolvedSequenceReader: Sendable {
         if clip.contains("media") {
             let timing = clip.contains("origin") ? ["in", "origin", "out", "speed", "loop", "timeRemap"] : []
 
-            return ["media"] + timing + ["filter", "conform", "radius", "border", "shadow"]
+            return ["media"] + timing + ["filter", "conform", "colorSpace", "toneMap", "radius", "border", "shadow"]
         }
 
         throw ModelError.missingKey(place: clip.place, kind: clip.kind, keys: ["title", "shape", "adjust", "media"])
@@ -317,9 +324,13 @@ struct ResolvedSequenceReader: Sendable {
         }
 
         let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
+        let media = try self.media(clip.member("media"))
+        let reading = try reading(of: clip, media: media)
 
         return .media(ResolvedMediaClip(
-            media: try media(clip.member("media")),
+            media: media,
+            colorSpace: reading.colorSpace,
+            isToneMapped: reading.isToneMapped,
             timing: timing,
             filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
             appearance: ResolvedMediaAppearance(
@@ -557,6 +568,34 @@ struct ResolvedSequenceReader: Sendable {
 
     private func transitionMedia(_ object: PlacedJSONObject) throws -> ResolvedTransitionMedia {
         ResolvedTransitionMedia(media: try values.media(object), duration: try object.member("duration").number())
+    }
+
+    // How an entry's pictures are read: media of a file in its `colorSpace`, null where the file's tags apply, and by its
+    // `toneMap`, true or false. A nested sequence's pictures are working values already and a solid shows no media, so
+    // both are null there.
+    private func reading(
+        of entry: PlacedJSONObject,
+        media: ResolvedMediaContent?
+    ) throws -> (colorSpace: ColorSpace?, isToneMapped: Bool?) {
+        let colorSpace = try entry.member("colorSpace")
+        let toneMap = try entry.member("toneMap")
+        guard case .pinned = media else {
+            for value in [colorSpace, toneMap] where !value.isNull {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "only media of a file is read in a colour space and tone mapped, so it is null here, "
+                        + "found \(value.value.written)"
+                )
+            }
+
+            return (nil, nil)
+        }
+
+        return (
+            try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) },
+            try toneMap.bool()
+        )
     }
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {

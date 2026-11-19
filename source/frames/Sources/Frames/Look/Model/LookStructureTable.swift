@@ -249,8 +249,8 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`.
-    // Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and a sample
+    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`
+    // and a LUT's `space`, which is `srgb` where none is written. Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and a sample
     // is clamped to it. A length is above 0 where it holds and 0 or more once it moves, since a sampled length at 0
     // leaves the picture as it is. An entry written in place also takes `mix`.
     static func filterOperation(
@@ -267,7 +267,12 @@ enum LookStructureTable {
         case "hue": [("degrees", .leaf(.number()))]
         case "sepia": [("amount", .leaf(unit))]
         case "levels": [("input", .leaf(levels)), ("output", .leaf(levels))]
-        case "lut": [("file", .leaf(LeafKind(form: .file))), ("amount", .leaf(unit))]
+        case "lut":
+            [
+                ("file", .leaf(LeafKind(form: .file))),
+                ("amount", .leaf(unit)),
+                ("space", .leaf(.name(among: VocabularyTable.colorSpaces)))
+            ]
         case "blur": [("radius", .leaf(length))]
         case "sharpen": [("amount", .leaf(.number())), ("radius", .leaf(length))]
         case "bloom": [("amount", .leaf(.number())), ("radius", .leaf(length)), ("color", .leaf(.color))]
@@ -276,11 +281,16 @@ enum LookStructureTable {
         default: [("amount", .leaf(unit)), ("size", .leaf(length))]
         }
 
-        let required = parameters.map(\.name).filter { $0 != "color" }
+        let required = parameters.map(\.name).filter { $0 != "color" && $0 != "space" }
+        let plain: [String: JSONValue] = name == "lut" ? ["space": .string(ColorSpace.srgb.rawValue)] : [:]
 
         return mixed
-            ? .object(ObjectStructure(parameters + [("mix", mix)], required: required, plain: ["mix": .number(1)]))
-            : .object(ObjectStructure(parameters, required: required))
+            ? .object(ObjectStructure(
+                parameters + [("mix", mix)],
+                required: required,
+                plain: plain.merging(["mix": .number(1)]) { first, _ in first }
+            ))
+            : .object(ObjectStructure(parameters, required: required, plain: plain))
     }
 
     // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are

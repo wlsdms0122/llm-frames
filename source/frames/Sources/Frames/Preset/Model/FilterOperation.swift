@@ -13,7 +13,7 @@ enum FilterOperation: Equatable, Sendable {
     case hue(degrees: Double)
     case sepia(amount: Double)
     case levels(input: [Double], output: [Double])
-    case lut(file: String, amount: Double)
+    case lut(file: String, amount: Double, space: ColorSpace = .srgb)
     case blur(radius: Double)
     case sharpen(amount: Double, radius: Double)
     case bloom(amount: Double, radius: Double, color: String?)

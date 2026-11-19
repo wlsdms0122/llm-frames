@@ -266,6 +266,8 @@ struct SequencePlanner: Sendable {
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
             duration: time.duration,
+            colorSpace: format.colorSpace ?? .srgb,
+            compositing: format.compositing ?? .encoded,
             margin: margin
         )
     }

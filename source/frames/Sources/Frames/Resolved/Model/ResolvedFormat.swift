@@ -6,7 +6,8 @@
 //
 
 // The output frame of a sequence in output pixels, its frame rate and duration (the sequence end), the colour behind
-// everything, and how storyline crops were conformed to it.
+// everything, how storyline crops were conformed to it, the colour space its output is in, and the form its sums of
+// colours are taken in.
 struct ResolvedFormat: Equatable, Sendable {
     // MARK: - Property
     let size: Size
@@ -14,6 +15,8 @@ struct ResolvedFormat: Equatable, Sendable {
     let duration: Double
     let background: Color
     let conform: Conform
+    let colorSpace: ColorSpace
+    let compositing: Compositing
 
     var frame: Rectangle {
         Rectangle(x: 0, y: 0, width: size.width, height: size.height)
@@ -25,13 +28,17 @@ struct ResolvedFormat: Equatable, Sendable {
         fps: Double,
         duration: Double,
         background: Color,
-        conform: Conform
+        conform: Conform,
+        colorSpace: ColorSpace = .srgb,
+        compositing: Compositing = .encoded
     ) {
         self.size = size
         self.fps = fps
         self.duration = duration
         self.background = background
         self.conform = conform
+        self.colorSpace = colorSpace
+        self.compositing = compositing
     }
 
     // MARK: - Public

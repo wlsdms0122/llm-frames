@@ -69,6 +69,8 @@ extension ResolvedClip {
         {
             return .media(ResolvedMediaClip(
                 media: media,
+                colorSpace: plan.media?.colorSpace,
+                isToneMapped: plan.media?.isToneMapped,
                 timing: plan.timing,
                 filter: filter,
                 appearance: ResolvedMediaAppearance(

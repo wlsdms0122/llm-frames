@@ -46,7 +46,9 @@ struct ResolvedDocumentWriterTests {
             "fps": 30,
             "duration": 3,
             "background": "color(srgb 0 0 0 / 1)",
-            "conform": "fit"
+            "conform": "fit",
+            "colorSpace": "srgb",
+            "compositing": "encoded"
           },
           "storyline": [
             {
@@ -57,6 +59,8 @@ struct ResolvedDocumentWriterTests {
                 "sha256": "9f2c41d07b3e"
               },
               "solid": null,
+              "colorSpace": null,
+              "toneMap": true,
               "in": 2,
               "out": 8,
               "speed": 2,
@@ -303,6 +307,8 @@ struct ResolvedDocumentWriterTests {
               },
               "filter": null,
               "conform": "fit",
+              "colorSpace": null,
+              "toneMap": true,
               "radius": null,
               "border": {
                 "width": [

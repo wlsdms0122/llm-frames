@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The output frame of a sequence in output pixels. `conform` is how storyline crops fill it. `margin` is the room a
-// content-fit frame leaves round what it measures, nil for a frame of a written or default size.
+// The output frame of a sequence in output pixels. `conform` is how storyline crops fill it, `colorSpace` the space its
+// output is in and `compositing` the form its sums of colours are taken in. `margin` is the room a content-fit frame
+// leaves round what it measures, nil for a frame of a written or default size.
 struct FormatPlan: Equatable, Sendable {
     // MARK: - Property
     let size: Size
@@ -14,6 +15,8 @@ struct FormatPlan: Equatable, Sendable {
     let background: Color
     let fps: Double
     let duration: Double
+    let colorSpace: ColorSpace
+    let compositing: Compositing
     let margin: Margin?
 
     var frame: Rectangle {
@@ -32,6 +35,8 @@ struct FormatPlan: Equatable, Sendable {
         background: Color,
         fps: Double,
         duration: Double,
+        colorSpace: ColorSpace = .srgb,
+        compositing: Compositing = .encoded,
         margin: Margin? = nil
     ) {
         self.size = size
@@ -39,6 +44,8 @@ struct FormatPlan: Equatable, Sendable {
         self.background = background
         self.fps = fps
         self.duration = duration
+        self.colorSpace = colorSpace
+        self.compositing = compositing
         self.margin = margin
     }
 

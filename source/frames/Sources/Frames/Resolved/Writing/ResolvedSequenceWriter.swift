@@ -36,7 +36,9 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "fps", value: .number(format.fps)),
             JSONMember(key: "duration", value: .number(format.duration)),
             JSONMember(key: "background", value: values.color(format.background)),
-            JSONMember(key: "conform", value: .string(format.conform.rawValue))
+            JSONMember(key: "conform", value: .string(format.conform.rawValue)),
+            JSONMember(key: "colorSpace", value: .string(format.colorSpace.rawValue)),
+            JSONMember(key: "compositing", value: .string(format.compositing.rawValue))
         ]))
     }
 
@@ -46,6 +48,8 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "media", value: entry.media.map(media) ?? .null),
             JSONMember(key: "solid", value: entry.solid.map(values.color) ?? .null),
+            JSONMember(key: "colorSpace", value: entry.colorSpace.map { .string($0.rawValue) } ?? .null),
+            JSONMember(key: "toneMap", value: entry.isToneMapped.map(JSONValue.bool) ?? .null),
             JSONMember(key: "in", value: .number(entry.in)),
             JSONMember(key: "out", value: .number(entry.out)),
             JSONMember(key: "speed", value: .number(entry.speed)),
@@ -127,7 +131,7 @@ struct ResolvedSequenceWriter: Sendable {
 
             return [JSONMember(key: "media", value: media(clip.media))] + timing
                 + [JSONMember(key: "filter", value: values.timed(clip.filter))]
-                + appearance(clip.appearance)
+                + appearance(of: clip)
         }
     }
 
@@ -172,10 +176,15 @@ struct ResolvedSequenceWriter: Sendable {
         ]
     }
 
-    // How a media clip's picture fills its box, its crop aside, which is written with the geometry.
-    private func appearance(_ appearance: ResolvedMediaAppearance) -> [JSONMember] {
-        [
+    // How a media clip's picture fills its box and how its pictures are read, its crop aside, which is written with the
+    // geometry.
+    private func appearance(of clip: ResolvedMediaClip) -> [JSONMember] {
+        let appearance = clip.appearance
+
+        return [
             JSONMember(key: "conform", value: .string(appearance.conform.rawValue)),
+            JSONMember(key: "colorSpace", value: clip.colorSpace.map { .string($0.rawValue) } ?? .null),
+            JSONMember(key: "toneMap", value: clip.isToneMapped.map(JSONValue.bool) ?? .null),
             JSONMember(key: "radius", value: values.timed(appearance.radius)),
             JSONMember(key: "border", value: values.timed(appearance.border)),
             JSONMember(key: "shadow", value: values.timed(appearance.shadow))

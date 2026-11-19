@@ -402,7 +402,11 @@ struct PresetReader: Sendable {
             return .levels(input: numbers("input"), output: numbers("output"))
 
         case "lut":
-            return .lut(file: object["file"]?.stringValue ?? "", amount: number("amount"))
+            return .lut(
+                file: object["file"]?.stringValue ?? "",
+                amount: number("amount"),
+                space: object["space"]?.stringValue.flatMap(ColorSpace.init) ?? .srgb
+            )
 
         case "blur":
             return .blur(radius: number("radius"))

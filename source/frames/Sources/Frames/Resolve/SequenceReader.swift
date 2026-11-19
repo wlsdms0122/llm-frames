@@ -185,6 +185,8 @@ struct SequenceReader: Sendable {
     ) -> ClipMedia {
         ClipMedia(
             source: source(value, place: place),
+            colorSpace: clip["colorSpace"]?.stringValue.flatMap(ColorSpace.init),
+            isToneMapped: clip["toneMap"]?.boolValue,
             in: clip["in"]?.numberValue,
             out: clip["out"]?.numberValue,
             speed: clip["speed"]?.numberValue,
@@ -224,7 +226,9 @@ struct SequenceReader: Sendable {
             fps: object["fps"]?.numberValue,
             size: object["size"].flatMap(formatSize),
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
-            background: object["background"]?.stringValue
+            background: object["background"]?.stringValue,
+            colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init),
+            compositing: object["compositing"]?.stringValue.flatMap(Compositing.init)
         )
     }
 

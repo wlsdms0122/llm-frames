@@ -115,6 +115,7 @@ struct TimePlanner: Sendable {
             kind: .genericClip(.storyline),
             theme: theme
         )
+        .read(by: clipMedia)
         let kind = ClipKind.media(media.kind)
         guard media.kind != .image else {
             let duration = try stillDuration(of: clip, kind: kind)
@@ -463,6 +464,7 @@ struct TimePlanner: Sendable {
                 kind: .genericClip(clip.clipPlace),
                 theme: theme
             )
+            .read(by: clipMedia)
             let kind = try kind(of: clipMedia, media: media, place: clip.place)
             guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {

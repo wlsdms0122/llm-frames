@@ -7,11 +7,14 @@
 
 // The media of a clip and how it plays, each value nil when left to its default. `in` and `out` are clip time,
 // `timeRemap`, `volume` and `pan` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
-// `picture` false takes only the media's sound, `audioFilter` is the clip's audio filter as written, and `split` moves
-// the edges of its sound.
+// `colorSpace` is the space its pictures are read in where the file's tags do not apply, and `isToneMapped` its
+// `toneMap`. `picture` false takes only the media's sound, `audioFilter` is the clip's audio filter as written, and
+// `split` moves the edges of its sound.
 struct ClipMedia: Equatable, Sendable {
     // MARK: - Property
     let source: MediaSource
+    let colorSpace: ColorSpace?
+    let isToneMapped: Bool?
     let `in`: Double?
     let out: Double?
     let speed: Double?
@@ -28,6 +31,8 @@ struct ClipMedia: Equatable, Sendable {
     // MARK: - Initializer
     init(
         source: MediaSource,
+        colorSpace: ColorSpace? = nil,
+        isToneMapped: Bool? = nil,
         in: Double? = nil,
         out: Double? = nil,
         speed: Double? = nil,
@@ -42,6 +47,8 @@ struct ClipMedia: Equatable, Sendable {
         split: SplitEdit? = nil
     ) {
         self.source = source
+        self.colorSpace = colorSpace
+        self.isToneMapped = isToneMapped
         self.in = `in`
         self.out = out
         self.speed = speed

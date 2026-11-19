@@ -103,13 +103,14 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
                     TimedMember(key: "output", value: .held(.numbers(output)))
                 ]
             )
-        case let .lut(file, amount):
+        case let .lut(file, amount, space):
             (
                 "lut",
                 [
                     TimedMember(key: "file", value: .fixed(.string(file.path))),
                     TimedMember(key: "sha256", value: .fixed(.string(file.sha256))),
-                    number("amount", amount)
+                    number("amount", amount),
+                    TimedMember(key: "space", value: .fixed(.string(space.rawValue)))
                 ]
             )
         case let .blur(radius): ("blur", [number("radius", radius)])

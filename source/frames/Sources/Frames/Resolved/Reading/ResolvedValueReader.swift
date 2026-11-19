@@ -764,7 +764,7 @@ struct ResolvedValueReader: Sendable {
             "bloom", "vignette", "pixelate", "grain"
         ]
         let name = try value.object(keys: ["op", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
-                                            "radius", "color", "size"] + grainKeys)
+                                            "space", "radius", "color", "size"] + grainKeys)
             .member("op")
             .name(among: names) { names.contains($0) ? $0 : nil }
         let keys = { (keys: [String]) in try value.object(keys: ["op"] + keys) }
@@ -803,8 +803,12 @@ struct ResolvedValueReader: Sendable {
             )
 
         case "lut":
-            let operation = try keys(["file", "sha256", "amount"])
-            return .lut(file: try pinned(operation), amount: try number(operation, "amount"))
+            let operation = try keys(["file", "sha256", "amount", "space"])
+            return .lut(
+                file: try pinned(operation),
+                amount: try number(operation, "amount"),
+                space: try operation.member("space").name(among: VocabularyTable.colorSpaces, ColorSpace.init)
+            )
 
         case "blur":
             let operation = try keys(["radius"])

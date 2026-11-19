@@ -19,6 +19,8 @@ enum VocabularyTable {
         "hue", "saturation", "color", "luminosity"
     ]
     static let conforms = ["fit", "fill"]
+    static let colorSpaces = ColorSpace.allCases.map(\.rawValue)
+    static let compositings = Compositing.allCases.map(\.rawValue)
     static let parameterTypes = ["video", "sequence", "image", "audio", "text", "color", "number", "choice"]
     static let easeNames = ["linear", "ease-in", "ease-out", "ease-in-out", "back-out", "bounce-out", "step"]
 }

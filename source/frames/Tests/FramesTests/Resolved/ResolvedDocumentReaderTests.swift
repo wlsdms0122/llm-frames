@@ -258,7 +258,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""duration": 3,"#,
                 #""duration": 3, "fsp": 30,"#,
-                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform"#
+                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform, colorSpace, compositing"#
             ),
             (
                 #""loop": true,"#,

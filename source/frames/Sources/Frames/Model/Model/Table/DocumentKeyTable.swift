@@ -24,7 +24,9 @@ enum DocumentKeyTable {
             KeyRule("size", .oneOf([.numbers(2, .any), .object(contentFit)])),
             KeyRule("fps", .number(.positive)),
             KeyRule("background", .color),
-            KeyRule("conform", .literal(VocabularyTable.conforms))
+            KeyRule("conform", .literal(VocabularyTable.conforms)),
+            KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
+            KeyRule("compositing", .literal(VocabularyTable.compositings))
         ]
     )
     static let contentFit = ObjectTable(

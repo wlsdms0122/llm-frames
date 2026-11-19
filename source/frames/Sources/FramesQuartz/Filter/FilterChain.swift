@@ -112,7 +112,7 @@ struct FilterChain: Sendable {
 
             return try color("filterLevels", image, arguments, library)
 
-        case let .lut(file, amount):
+        case let .lut(file, amount, _):
             return try lookUp(image, table: try tables.table(of: file), amount: amount, library: library)
 
         case let .blur(radius):

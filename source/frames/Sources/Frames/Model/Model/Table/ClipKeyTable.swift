@@ -180,9 +180,10 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
-                "id", "metadata", "media", "in", "out", "speed", "crop", "filter", "transition", "anchor", "position",
-                "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius", "border", "shadow",
-                "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes", "connected"
+                "id", "metadata", "media", "colorSpace", "toneMap", "in", "out", "speed", "crop", "filter", "transition",
+                "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius",
+                "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes",
+                "connected"
             ]
 
         case (_, .solid):
@@ -190,9 +191,9 @@ enum ClipKeyTable {
 
         case (.storyline, .media):
             return [
-                "id", "metadata", "media", "duration", "crop", "filter", "transition", "anchor", "position", "scale",
-                "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border", "shadow", "keyframes",
-                "connected"
+                "id", "metadata", "media", "colorSpace", "toneMap", "duration", "crop", "filter", "transition", "anchor",
+                "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border", "shadow",
+                "keyframes", "connected"
             ]
 
         case (_, .media(.audio)):
@@ -203,15 +204,15 @@ enum ClipKeyTable {
 
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
-                "media", "picture", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "audioFilter",
-                "split", "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height",
-                "radius", "border", "shadow"
+                "media", "picture", "colorSpace", "toneMap", "in", "out", "speed", "loop", "volume", "pan", "fadeIn",
+                "fadeOut", "audioFilter", "split", "placement", "position", "anchor", "scale", "rotation", "crop", "conform",
+                "filter", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
-                "media", "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width",
-                "height", "radius", "border", "shadow"
+                "media", "colorSpace", "toneMap", "placement", "position", "anchor", "scale", "rotation", "crop", "conform",
+                "filter", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
@@ -264,8 +265,11 @@ enum ClipKeyTable {
         case "solid":
             .color
 
-        case "loop", "closed", "picture":
+        case "loop", "closed", "picture", "toneMap":
             .bool
+
+        case "colorSpace":
+            .literal(VocabularyTable.colorSpaces)
 
         // A media clip's and a storyline clip's shadow take the same forms as a shape's.
         case "shadow":
@@ -416,12 +420,13 @@ enum ClipKeyTable {
         }
     }
 
-    // A compound clip's sound is a mix of several sounds, so it takes no `audioFilter`; its clips take their own.
+    // A compound clip's or a template instance's sound is a mix of several sounds, so it takes no `audioFilter`, and its
+    // pictures are working values already, so it takes no `colorSpace` or `toneMap`; its clips take their own.
     private static func takes(
         _ key: String,
         kind: ClipKind
     ) -> Bool {
-        key != "audioFilter" || kind != .media(.sequence)
+        !["audioFilter", "colorSpace", "toneMap"].contains(key) || kind != .media(.sequence)
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {

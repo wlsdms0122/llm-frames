@@ -525,8 +525,11 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "output", value: numbers(output))
             ]
 
-        case let .lut(file, amount):
-            return [kind("lut")] + pinned(file) + [value("amount", amount)]
+        case let .lut(file, amount, space):
+            return [kind("lut")] + pinned(file) + [
+                value("amount", amount),
+                JSONMember(key: "space", value: .string(space.rawValue))
+            ]
 
         case let .blur(radius):
             return [kind("blur"), value("radius", radius)]
