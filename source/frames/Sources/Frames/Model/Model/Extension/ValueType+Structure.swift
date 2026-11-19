@@ -6,9 +6,14 @@
 //
 
 // The key check's type of a look value, read from its structure, so the key check and the look merge read one
-// declaration of its keys and domains. `kind` names the value in messages. A domain the key check has no type for, as a
-// compressor's `ratio` or a band's `frequency`, is checked by resolve alone. Without `checksDomains` every number is
-// any number, for a value whose domains have another owner.
+// declaration of its keys and domains. `kind` names the value in messages. A number leaf, and each number of a list
+// leaf, takes its leaf's domain, which the key check stops through `LeafDomain.check` in the layer that writes it, as
+// timing and the theme merge do where they build the value: a theme layer's value that a stronger layer replaces
+// reaches neither, so only the key check stops it. A keyframe's number takes any number here (`ClipKeyTable`), since
+// timing checks it against its domain or, where two keyframes or more write the leaf, its sampled domain. Without
+// `checksDomains` every number is any number: a filter op's parameters are checked by `PresetReader.checkRanges` and
+// an audio op's by `ValueStructure.checkDomains(of:place:sampled:)`, each of which lets a leaf a sampled argument fills
+// take the values its samples take.
 extension ValueType {
     // MARK: - Property
     // MARK: - Initializer
@@ -87,19 +92,6 @@ extension ValueType {
         self = .oneOf(shorthands.map(Self.type(of:)))
     }
 
-    init(check: LeafCheck) {
-        switch check {
-        case .fontWeight:
-            self = .fontWeight
-
-        case .fontFeatures:
-            self = .fontFeatures
-
-        case .positiveInteger:
-            self = .positiveInteger
-        }
-    }
-
     // MARK: - Public
     // MARK: - Private
     // `true` for the value below, and a colour for its colour.
@@ -113,11 +105,12 @@ extension ValueType {
         }
     }
 
-    // A range from 0 to 1 is a fraction, and any other range is checked by resolve.
     private static func type(
         of leaf: LeafKind,
         checksDomain: Bool
     ) -> ValueType {
+        let domain = checksDomain ? leaf.domain : .any
+
         switch leaf.form {
         case .color:
             return .color
@@ -132,27 +125,10 @@ extension ValueType {
             return .name
 
         case let .numbers(count):
-            return .numbers(count)
+            return domain == .any ? .numbers(count) : .leafNumbers(count, domain)
 
         case .number, .staticNumber:
-            guard checksDomain else { return .number }
-
-            switch leaf.domain {
-            case .any:
-                return .number
-
-            case .positive:
-                return .positiveNumber
-
-            case .nonNegative:
-                return .nonNegativeNumber
-
-            case let .range(range) where range == 0...1:
-                return .fraction
-
-            case .range, .between:
-                return .number
-            }
+            return domain == .any ? .number : .leafNumber(domain)
         }
     }
 }

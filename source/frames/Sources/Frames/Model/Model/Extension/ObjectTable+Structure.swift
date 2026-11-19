@@ -39,7 +39,7 @@ extension ObjectTable {
             kind: kind,
             rules: structure.keys.map { key in
                 let type = if let check = structure.checks[key.name] {
-                    ValueType(check: check)
+                    ValueType.leaf(check)
                 } else if structure.nonZero.contains(key.name) {
                     ValueType.dash(isKeyframed: false)
                 } else if isWritten {

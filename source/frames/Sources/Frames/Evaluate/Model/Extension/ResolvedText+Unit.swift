@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box is its box as
-// resolved, which holds its strokes and its parts at their widest and so reaches past its glyphs, moved with its first
-// glyph and widened by how far its last glyph moves beyond its first. A part is cut where the next unit's first glyph is
-// then, and the first and last parts of a piece reach past its ends, so they hold its padding at any value.
+// A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box and its glyph box
+// are their boxes as resolved, moved with its first glyph and widened by how far its last glyph moves beyond its first.
+// A part is cut where the next unit's first glyph is then, and the first and last parts of a piece reach past its ends,
+// so they hold its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,17 +19,16 @@ extension ResolvedText {
     ) -> Rectangle {
         guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
-        let origin = box(at: time)
-        let moves = glyphMoves(at: time)
-        let start = firstMove(of: unit, moves: moves)
-        let end = unit.glyphs.last.map { moves[$0.run][$0.first + $0.count - 1] } ?? start
+        return moved(unit.box, of: unit, at: time)
+    }
 
-        return Rectangle(
-            x: unit.box.x + start.x - origin.x,
-            y: unit.box.y + start.y - origin.y,
-            width: unit.box.width + end.x - start.x,
-            height: unit.box.height
-        )
+    func glyphBox(
+        of index: Int,
+        at time: Double
+    ) -> Rectangle {
+        guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
+
+        return moved(unit.glyphBox, of: unit, at: time)
     }
 
     func parts(
@@ -63,6 +62,24 @@ extension ResolvedText {
     }
 
     // MARK: - Private
+    private func moved(
+        _ box: Rectangle,
+        of unit: PlacedUnit,
+        at time: Double
+    ) -> Rectangle {
+        let origin = self.box(at: time)
+        let moves = glyphMoves(at: time)
+        let start = firstMove(of: unit, moves: moves)
+        let end = unit.glyphs.last.map { moves[$0.run][$0.first + $0.count - 1] } ?? start
+
+        return Rectangle(
+            x: box.x + start.x - origin.x,
+            y: box.y + start.y - origin.y,
+            width: box.width + end.x - start.x,
+            height: box.height
+        )
+    }
+
     private func firstMove(
         of unit: PlacedUnit,
         moves: [[Point]]

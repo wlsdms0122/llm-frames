@@ -19,7 +19,8 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
     case nullStructure(place: Place)
     case nullWithoutValue(place: Place)
     case staticAndKeyframed(place: Place)
-    case outsideDomain(place: Place, value: Double)
+    // `domain` is the one the value was checked against, a leaf's sampled domain where two keyframes or more write it.
+    case outsideDomain(place: Place, value: Double, domain: LeafDomain)
     case failedCheck(place: Place, check: LeafCheck, failure: LeafCheckFailure)
 
     // MARK: - Property
@@ -58,8 +59,8 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .staticAndKeyframed(place):
             "\(place): written as a static value and in every keyframe that writes it, so the static value never shows"
 
-        case let .outsideDomain(place, value):
-            "\(place): \(value) is outside the values this leaf takes"
+        case let .outsideDomain(place, value, domain):
+            "\(place): \(JSONValue.number(value).written) is not \(domain.description)"
 
         case let .failedCheck(place, check, failure):
             switch failure {
@@ -113,8 +114,8 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .staticAndKeyframed(place):
             .staticAndKeyframed(place: moved(place))
 
-        case let .outsideDomain(place, value):
-            .outsideDomain(place: moved(place), value: value)
+        case let .outsideDomain(place, value, domain):
+            .outsideDomain(place: moved(place), value: value, domain: domain)
 
         case let .failedCheck(place, check, failure):
             .failedCheck(place: moved(place), check: check, failure: failure)

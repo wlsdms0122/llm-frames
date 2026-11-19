@@ -160,13 +160,12 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, both kinds, a static radius of 0, or a stroke with both a colour and a gradient stops",
+        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, both kinds, or a stroke with both a colour and a gradient stops",
         arguments: [
             (##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"]] } }"##, "fill.linear.stops ("),
             (##""fill": { "linear": { "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] } }"##, "fill.linear.stops[1][0] ("),
             (##""fill": { "radial": { "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] } }"##, "fill.radial.stops[1][0] ("),
             (##""fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] } }"##, "fill.radial.stops[1] ("),
-            (##""fill": { "radial": { "radius": 0 } }"##, "fill.radial.radius ("),
             (##""fill": { "linear": { }, "radial": { } }"##, "fill (gradient): "),
             (##""stroke": { "width": 2, "color": "#FFFFFF", "gradient": { "radial": { } } }"##, "stroke (stroke): "),
             (##""keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1.5, null]] } } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
@@ -351,7 +350,6 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": true }"#, #"clips[0].fill (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": true }"#, #"clips[0].stroke (rect): expected "#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } }"#, #"clips[0].stroke.width (stroke): expected a number above 0, found 0"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "join": "square" } }"#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "head": 8 } }"#, #"clips[0].stroke (stroke): unknown key "head""#),
@@ -374,6 +372,47 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a look number outside its leaf's domain stops where it is written, naming the domain",
+        arguments: [
+            (
+                #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } } ] }"#,
+                "clips[0].stroke.width: 0 is not above 0"
+            ),
+            (
+                ##"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"##,
+                "clips[0].outset: -1 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": { "radial": { "radius": 0 } } } ] }"#,
+                "clips[0].fill.radial.radius: 0 is not above 0"
+            ),
+            (
+                #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "radius": -8 } ] }"#,
+                "clips[0].radius: -8 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 } } ] }"#,
+                "clips[0].mask.feather: -1 is not 0 or more"
+            ),
+            (
+                #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "width": 0, "height": 10, "position": [5, 5] } } ] }"#,
+                "clips[0].mask.width: 0 is not above 0"
+            )
+        ]
+    )
+    func refusesLookNumberOutsideDomain(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: LookError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test(
@@ -635,8 +674,7 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "crop": { "scale": 0 } } ] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames" } } ] }"#,
             #"{ "format": { "size": [1080] } }"#,
-            #"{ "format": { "conform": "stretch" } }"#,
-            ##"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"##
+            #"{ "format": { "conform": "stretch" } }"#
         ]
     )
     func refusesWrongForms(body: String) throws {
@@ -925,13 +963,12 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a media clip's width and height are above 0 and its radius 0 or more",
+        "a media clip's width and height are above 0",
         arguments: [
             (#""width": 0"#, "clips[0].width (image): expected a number above 0, found 0"),
             (#""width": -300"#, "clips[0].width (image): expected a number above 0, found -300"),
             (#""height": 0"#, "clips[0].height (image): expected a number above 0, found 0"),
-            (#""width": 300, "height": -1"#, "clips[0].height (image): expected a number above 0, found -1"),
-            (#""radius": -8"#, "clips[0].radius (image): expected a number, 0 or more, found -8")
+            (#""width": 300, "height": -1"#, "clips[0].height (image): expected a number above 0, found -1")
         ]
     )
     func refusesEmptyMediaBox(
@@ -1117,9 +1154,7 @@ struct SequenceCheckTests {
             (#"{ "shape": "path", "points": [[0, 0], [10, 0]] }"#, "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"),
             (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
             (#"{ "shape": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 }"#, "clips[0].mask.feather (rect mask): expected a number, 0 or more, found -1"),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
-            (#"{ "shape": "rect", "width": 0, "height": 10, "position": [5, 5] }"#, "clips[0].mask.width (rect mask): expected a number above 0, found 0"),
             ("[]", "clips[0].mask (adjustment): a mask list holds at least one mask, and a clip without masks writes no mask"),
             ("true", "clips[0].mask (adjustment): expected a mask or a list of masks, found true")
         ]

@@ -29,6 +29,17 @@ enum LeafCheck: Equatable, Sendable {
         }
     }
 
+    // A number is one of the values it takes, so a number parameter may stand for it.
+    var takesNumber: Bool {
+        switch self {
+        case .fontWeight, .positiveInteger:
+            true
+
+        case .fontFeatures:
+            false
+        }
+    }
+
     // MARK: - Initializer
     // MARK: - Public
     // How `value` breaks the rule, or nil when it keeps it.

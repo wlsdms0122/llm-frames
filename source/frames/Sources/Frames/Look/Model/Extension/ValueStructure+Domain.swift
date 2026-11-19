@@ -42,9 +42,8 @@ extension ValueStructure {
                 try element(at: index).checkDomains(of: value, place: place.appending(index: index), sampled: sampled)
             }
 
-        case let (.number(number), .leaf(kind)):
-            let fits = sampled.contains(place) ? kind.domain.contains : kind.domain.isSeen
-            guard fits(number) else { throw LookError.outsideDomain(place: place, value: number) }
+        case let (_, .leaf(kind)):
+            try (sampled.contains(place) ? kind.domain.sampled : kind.domain).check(value, place: place)
 
         default:
             return

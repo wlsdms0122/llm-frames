@@ -350,6 +350,7 @@ struct ResolvedValueWriter: Sendable {
             JSONValue.array(units.map { unit in
                 .object(JSONObject(members: [
                     JSONMember(key: "box", value: rectangle(unit.box)),
+                    JSONMember(key: "glyphBox", value: rectangle(unit.glyphBox)),
                     JSONMember(key: "glyphs", value: .array(unit.glyphs.map { glyphs in
                         numbers([Double(glyphs.run), Double(glyphs.first), Double(glyphs.count)])
                     })),

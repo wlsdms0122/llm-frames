@@ -76,6 +76,39 @@ struct TitleKeyframeTests {
         #expect(error.map(String.init(describing:)) == message)
     }
 
+    @Test("a look value outside its domain written statically on a clip stops where it is written, as in a keyframe")
+    func refusesStaticValueOutsideDomain() throws {
+        // Given
+        let written = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000", "padding": [-4, 0] } } }
+            """#
+        let keyframed = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "character": { "highlight": { "padding": [-4, 0] } } } ] }
+            """#
+
+        // When
+        let writtenError = #expect(throws: LookError.self) { try title(written) }
+        let keyframedError = #expect(throws: LookError.self) { try title(keyframed) }
+
+        // Then
+        #expect(writtenError == .outsideDomain(
+            place: Place.root.appending(key: "clips").appending(index: 0)
+                .appending(key: "character").appending(key: "highlight").appending(key: "padding").appending(index: 0),
+            value: -4,
+            domain: .nonNegative
+        ))
+        #expect(keyframedError == .outsideDomain(
+            place: Place.root.appending(key: "clips").appending(index: 0).appending(key: "keyframes").appending(index: 0)
+                .appending(key: "character").appending(key: "highlight").appending(key: "padding").appending(index: 0),
+            value: -4,
+            domain: .nonNegative
+        ))
+        #expect(writtenError?.description == "clips[0].character.highlight.padding[0]: -4 is not 0 or more")
+    }
+
     @Test("`null` for a title's `character` in a keyframe stops, since it stands for a leaf")
     func refusesNullCharacter() throws {
         // Given
@@ -383,7 +416,7 @@ struct TitleKeyframeTests {
             Rectangle(x: -4, y: -2, width: 48, height: 44),
             Rectangle(x: 0, y: 42, width: 40, height: 2)
         ])
-        #expect(sut.drawnBounds(carriedBy: .identity) == Rectangle(x: -4, y: -2, width: 48, height: 46))
+        #expect(sut.drawnBounds(around: sut.textBox, carriedBy: .identity) == Rectangle(x: -4, y: -2, width: 48, height: 46))
     }
 
     @Test("an animation over a title whose line height opens offsets it by its box then and scales it about its anchor point, which stays")

@@ -6,8 +6,8 @@
 //
 
 // Shaped glyphs and their background in the text's own box of `size`. `layer` is nil for an item that draws every step,
-// or the one step a unit's item draws. `unitBox` is a unit's box in the text's box for a unit's item, and nil for an
-// item whose glyphs fill the text's box.
+// or the one step a unit's item draws. `unitBox` is a unit's box in the text's box for a unit's item, which holds its
+// stroke and its parts, and nil for an item whose glyphs fill the text's box.
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
@@ -97,40 +97,38 @@ package struct GlyphsItem: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The box and every highlight and underline rectangle, each cut to its band where there are bands, a rectangle
-    // outside its band left out: what the item covers without its strokes.
-    package func filledRects() -> [Rectangle] {
-        [glyphBox] + pieces()
+    package var textBox: Rectangle {
+        Rectangle(x: 0, y: 0, width: size.width, height: size.height)
     }
 
-    // What the item draws, which a reveal wipes across. A unit's box as resolved already holds its strokes and its parts
-    // at their widest, so a unit's item draws within it, and growing it again would wipe past what the unit draws. A
-    // whole title draws its filled rectangles with the box grown by half the widest stroke, since a stroke is centred on
-    // outlines that reach the box's edges. A stroke is drawn in output pixels on the outlines `transform` carries, so
+    // A whole title's text box and every highlight and underline rectangle: what it covers without its strokes.
+    package func filledRects() -> [Rectangle] {
+        [textBox] + pieces()
+    }
+
+    // What the item draws, which a reveal wipes across, its glyphs lying in `glyphBox`: a whole title's text box, or a
+    // unit's glyph box. The box grows by half the widest stroke, since a stroke is centred on outlines that reach the
+    // box's edges, and joins every highlight and underline rectangle, each cut to its band where there are bands, a
+    // rectangle outside its band left out. A stroke is drawn in output pixels on the outlines `transform` carries, so
     // the disc it sweeps is carried back by the transform's inverse, and is nothing where the transform flattens the
     // plane.
-    package func drawnBounds(carriedBy transform: AffineTransform) -> Rectangle {
-        if let unitBox { return unitBox }
-
-        let box = glyphBox
+    package func drawnBounds(
+        around glyphBox: Rectangle,
+        carriedBy transform: AffineTransform
+    ) -> Rectangle {
         let half = (runs.compactMap(\.stroke).map(\.width).max() ?? 0) / 2
         let reach = transform.inverse?.reach(ofDisc: half) ?? Size(width: 0, height: 0)
         let stroked = Rectangle(
-            x: box.x - reach.width,
-            y: box.y - reach.height,
-            width: box.width + 2 * reach.width,
-            height: box.height + 2 * reach.height
+            x: glyphBox.x - reach.width,
+            y: glyphBox.y - reach.height,
+            width: glyphBox.width + 2 * reach.width,
+            height: glyphBox.height + 2 * reach.height
         )
 
         return pieces().reduce(stroked) { $0.union($1) }
     }
 
     // MARK: - Private
-    // The box the item's glyphs lie in: a unit's box, or the whole text box.
-    private var glyphBox: Rectangle {
-        unitBox ?? Rectangle(x: 0, y: 0, width: size.width, height: size.height)
-    }
-
     private func pieces() -> [Rectangle] {
         runs.flatMap { run in
             cut(run.highlight?.rects ?? [], to: run.highlight?.bands)

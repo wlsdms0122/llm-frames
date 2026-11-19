@@ -159,7 +159,7 @@ struct ShapeKeyframeTests {
             ),
             (
                 #"{ "at": 0, "stroke": { "width": 0 } }"#,
-                #"clips[0].keyframes[0].stroke.width: 0.0 is outside the values this leaf takes"#
+                #"clips[0].keyframes[0].stroke.width: 0 is not above 0"#
             ),
             (
                 ##"{ "at": 0, "fill": "ink" }, { "at": 1, "fill": "#FFFFFF" }"##,

@@ -26,8 +26,8 @@ enum ClipKeyTable {
     }
 
     // A media clip of a video or a compound clip written with `"picture": false`, which takes only its media's sound
-    // and so an audio clip's keys, and `picture`.
-    // A compound clip's or a template instance's sound is a mix of several sounds, which takes no `audioFilter`.
+    // and so an audio clip's keys, and `picture`. A compound clip's or a template instance's sound takes no
+    // `audioFilter`, for the reason `takes(_:kind:)` gives.
     static func soundTable(
         of media: MediaKind,
         in place: ClipPlace
@@ -355,9 +355,9 @@ enum ClipKeyTable {
         }
     }
 
-    // A look key's type in a keyframe: each leaf may be `null`, and a length may be 0 or less, since timing checks a
-    // leaf two keyframes write against its domain and one a single keyframe writes as a static value. A gradient's
-    // offsets may be out of order, since sampling raises each to the one before it.
+    // A look key's type in a keyframe: each leaf may be `null`, and its numbers may be any number, since timing checks
+    // a leaf two keyframes write against its sampled domain and one a single keyframe writes against its domain. A
+    // gradient's offsets may be out of order, since sampling raises each to the one before it.
     private static func keyframed(_ type: ValueType) -> ValueType {
         switch type {
         case ChoiceKeyTable.filter, ChoiceKeyTable.audioFilter:
@@ -383,8 +383,11 @@ enum ClipKeyTable {
                 groups: table.groups
             ))
 
-        case .positiveNumber, .nonNegativeNumber:
+        case .leafNumber:
             .number
+
+        case let .leafNumbers(count, _):
+            .numbers(count)
 
         case .stops:
             .stops(isKeyframed: true)

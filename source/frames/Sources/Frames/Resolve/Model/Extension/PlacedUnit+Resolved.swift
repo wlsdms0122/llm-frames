@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A unit as resolved, its box holding what it draws at its widest over the keyframes: grown on every side by half the
-// widest stroke among its glyphs, then to hold its highlight parts at their largest padding and its underline parts at
-// their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds the padding there.
+// A unit as resolved, its box holding what it draws at its widest over the keyframes: its glyph box grown on every side
+// by half the widest stroke among its glyphs, then to hold its highlight parts at their largest padding and its
+// underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds the
+// padding there.
 extension PlacedUnit {
     // MARK: - Property
     // MARK: - Initializer
@@ -34,7 +35,8 @@ extension PlacedUnit {
 
         self.init(
             glyphs: unit.glyphs,
-            box: parts.reduce(unit.box.grown(by: stroke / 2)) { $0.union($1) },
+            glyphBox: unit.glyphBox,
+            box: parts.reduce(unit.glyphBox.grown(by: stroke / 2)) { $0.union($1) },
             parts: unit.parts
         )
     }

@@ -21,7 +21,6 @@ indirect enum ValueType: Equatable, Sendable {
     case openSignedFraction
     case integer
     case nonNegativeInteger
-    case positiveInteger
     case text
     case name
     case color
@@ -30,6 +29,10 @@ indirect enum ValueType: Equatable, Sendable {
     case ease
     case literal([String])
     case numbers(Int)
+    // A look leaf's number, which `LeafDomain.check` stops outside the leaf's domain.
+    case leafNumber(LeafDomain)
+    // A look leaf's list of that many numbers, each of which `LeafDomain.check` stops outside the leaf's domain.
+    case leafNumbers(Int, LeafDomain)
     // A list of that many numbers, each from 0 to 1.
     case fractions(Int)
     // A list of at least two points, each as `position` takes it.
@@ -68,8 +71,6 @@ indirect enum ValueType: Equatable, Sendable {
     case audioFilterChoice
     case filterOperation
     case audioOperation
-    // A whole number from 100 to 900 or the name of an OpenType weight class.
-    case fontWeight
-    // OpenType feature settings: four-character tags, `kern` aside, each to a whole number 0 or more.
-    case fontFeatures
+    // A value its leaf's named check takes.
+    case leaf(LeafCheck)
 }

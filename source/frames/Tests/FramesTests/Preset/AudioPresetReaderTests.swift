@@ -45,7 +45,7 @@ struct AudioPresetReaderTests {
         let published = try sut.publishedAudio(from: json(preset), place: file)
 
         // When, Then
-        #expect(throws: LookError.outsideDomain(place: file.appending(key: "ops").appending(index: 0).appending(key: "ratio"), value: 0.5)) {
+        #expect(throws: LookError.outsideDomain(place: file.appending(key: "ops").appending(index: 0).appending(key: "ratio"), value: 0.5, domain: .range(1...Double.infinity))) {
             try sut.publishedAudio(from: json(preset.replacingOccurrences(of: #""default": 3"#, with: #""default": 0.5"#)), place: file)
         }
         #expect(throws: PresetError.self) {

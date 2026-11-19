@@ -57,7 +57,7 @@ struct TitleGroupTests {
         #expect(self.glyphs(of: list.items[8])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[3..<5]))
     }
 
-    @Test("each unit's reveal wipes what it draws, its box, on its own schedule, and the background shows whole")
+    @Test("each unit's reveal wipes what it draws, its glyphs and their stroke, on its own schedule, and the background shows whole")
     func revealsEachUnit() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
@@ -71,8 +71,8 @@ struct TitleGroupTests {
         )
 
         // Then
-        // Each unit's box, from its glyphs grown by 2 for half its stroke, is all the unit draws: "ab" from 0 to 40 and
-        // "cd" from 50 to 90, each from -32 to 8 about the baseline at 32.
+        // Each unit draws its glyphs grown by 2 for half its stroke, which is its box: "ab" from 0 to 40 and "cd" from
+        // 50 to 90, each from -32 to 8 about the baseline at 32.
         let first = text.unitBox(of: 0, at: 0.25)
         let second = text.unitBox(of: 1, at: 0.25)
         #expect(first == Rectangle(x: -2, y: -2, width: 44, height: 44))
@@ -82,7 +82,7 @@ struct TitleGroupTests {
         #expect(list.items[2].reveal == Rectangle(x: 48, y: -2, width: 0, height: 44))
     }
 
-    @Test("a unit fully revealed is not cut, and one entering wipes its box, which holds its stroke and its part of the highlight")
+    @Test("a unit fully revealed is not cut, and one entering wipes its glyphs, their stroke and its part of the highlight, which its box holds")
     func leavesRevealedUnitWhole() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
@@ -99,9 +99,9 @@ struct TitleGroupTests {
         )
 
         // Then
-        // "ab" has entered, and "cd" is half way. The box of "cd", from 50 to 90 and from 0 to 40, grows by 2 for its
-        // stroke, then to the highlight's padding of 4 above and below and 10 past the piece's end at 90, and holds its
-        // part of the piece cut to its band.
+        // "ab" has entered, and "cd" is half way. "cd", from 50 to 90 and from 0 to 40, draws 2 past it for its stroke,
+        // and its part of the piece cut to its band, with the highlight's padding of 4 above and below and 10 past the
+        // piece's end at 90. Its box holds both.
         let second = text.unitBox(of: 1, at: 0.75)
         let carried = try #require(highlight(of: list.items[2]))
         let band = try #require(carried.bands?.first)
@@ -116,6 +116,58 @@ struct TitleGroupTests {
         #expect(second.union(part) == second)
         #expect(list.items[1].reveal == nil)
         #expect(list.items[2].reveal == Rectangle(x: 48, y: -4, width: 26, height: 48))
+    }
+
+    @Test(
+        "a unit entering under a title scaled apart along its axes wipes its stroke where it reaches along each, and shows whole at rest",
+        arguments: [0.1, 0.25, 0.4]
+    )
+    func wipesStrokeUnderTitleScale(at time: Double) throws {
+        // Given
+        let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225], "scale": [2, 1] }"#)
+        let animation = animated(clip, entrance: AnimationSpan(length: 0.5, span: wipe), stagger: 0.5)
+
+        // When
+        let entering = try group(of: animation, at: time)
+        let resting = try group(of: animation, at: 1.5)
+
+        // Then
+        // "ab" lies in 0 to 40 both ways. Its stroke, 4 at the title's scale factor of root 2, is drawn 4 root 2 wide in
+        // output pixels, so it reaches root 2 across and 2 root 2 down in the title's box, scaled 2 across and 1 down.
+        let reveal = try #require(entering.items[1].reveal)
+        let across = 2.squareRoot()
+        let down = 2 * 2.squareRoot()
+        #expect(abs(reveal.x + across) < 1e-9)
+        #expect(abs(reveal.y + down) < 1e-9)
+        #expect(abs(reveal.height - (40 + 2 * down)) < 1e-9)
+        #expect(abs(reveal.width - (40 + 2 * across) * time / 0.5) < 1e-9)
+        #expect(resting.items[1].reveal == nil)
+    }
+
+    @Test(
+        "a unit entering under a parent at half scale wipes its stroke where it reaches, and shows whole at rest",
+        arguments: [0.1, 0.25, 0.4]
+    )
+    func wipesStrokeUnderParentScale(at time: Double) throws {
+        // Given
+        let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let animation = animated(clip, entrance: AnimationSpan(length: 0.5, span: wipe), stagger: 0.5)
+        let parent = ClipSpace(frame: Self.frame, transform: AffineTransform(scale: 0.5, about: Point(x: 0, y: 0)))
+
+        // When
+        let entering = try group(of: animation, in: parent, at: time)
+        let resting = try group(of: animation, in: parent, at: 1.5)
+
+        // Then
+        // A title keeps its size under a parent, so its stroke, 4 wide, reaches 2 past "ab", which lies in 0 to 40.
+        let reveal = try #require(entering.items[1].reveal)
+        #expect(abs(reveal.x + 2) < 1e-9)
+        #expect(abs(reveal.y + 2) < 1e-9)
+        #expect(abs(reveal.height - 44) < 1e-9)
+        #expect(abs(reveal.width - 44 * time / 0.5) < 1e-9)
+        #expect(resting.items[1].reveal == nil)
     }
 
     @Test("a highlighted word enters with its word, carrying its part of the piece drawn whole and cut to its band")
@@ -292,9 +344,12 @@ struct TitleGroupTests {
 
     private func group(
         of clip: ResolvedClip,
+        in space: ClipSpace? = nil,
         at time: Double
     ) throws -> DisplayList {
-        let item = try #require(sut.items(of: clip, in: space, picture: nil, trackMatte: nil, seed: 0, at: time).first)
+        let item = try #require(
+            sut.items(of: clip, in: space ?? self.space, picture: nil, trackMatte: nil, seed: 0, at: time).first
+        )
         guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
             Issue.record("the title draws a group")
             return DisplayList(size: Size(width: 0, height: 0), background: Color(written: "#00000000"), seed: 0, items: [])
