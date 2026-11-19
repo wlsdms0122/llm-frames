@@ -100,6 +100,7 @@ struct UnitFinderTests {
         let space = { (run: Int, x: Double) in
             GlyphRun(
                 source: run,
+                line: 0,
                 face: ShaperTable.face("Apple SD Gothic Neo", .bold),
                 size: 40,
                 glyphs: [PositionedGlyph(id: 32, x: x, y: 32)],
@@ -118,6 +119,40 @@ struct UnitFinderTests {
         ])
     }
 
+    @Test("a piece of spaces alone at the start of a line goes with that line's first unit, not the line before")
+    func keepsSpacePiecesOnTheirLine() {
+        // Given
+        let lines = [clusters(of: "ab"), clusters(of: " ", run: 1) + clusters(of: "cd", run: 2, from: 1)]
+        let runs = [
+            run(count: 2),
+            run(count: 1, source: 1, line: 1, highlight: Rectangle(x: 0, y: 50, width: 20, height: 40)),
+            run(count: 2, source: 2, line: 1)
+        ]
+
+        // When
+        let units = sut.units(by: .word, lines: lines, extents: [0...40, 50...90], runs: runs)
+
+        // Then
+        #expect(units.map(\.parts) == [[], [UnitPart(run: 1, piece: 0, span: 0...20)]])
+    }
+
+    @Test("a piece held by a run whose glyphs lie in no cluster goes with the unit of its text run on its line")
+    func keepsPiecesOfRunsInNoCluster() {
+        // Given
+        // A cluster split over two faces leaves its glyph in the first face, run 0, in no cluster.
+        let lines = [[PlacedCluster(glyphs: range(1, 0, 1), character: "a", start: 0, end: 40)]]
+        let runs = [
+            run(count: 1, highlight: Rectangle(x: 0, y: 0, width: 40, height: 40)),
+            run(count: 1)
+        ]
+
+        // When
+        let units = sut.units(by: .word, lines: lines, extents: [0...40], runs: runs)
+
+        // Then
+        #expect(units.map(\.parts) == [[UnitPart(run: 0, piece: 0, span: 0...40)]])
+    }
+
     // MARK: - Private
     private func clusters(
         of text: String,
@@ -133,10 +168,12 @@ struct UnitFinderTests {
     private func run(
         count: Int,
         source: Int = 0,
+        line: Int = 0,
         highlight: Rectangle? = nil
     ) -> GlyphRun {
         GlyphRun(
             source: source,
+            line: line,
             face: ShaperTable.face("Apple SD Gothic Neo", .bold),
             size: 40,
             glyphs: (0..<count).map { PositionedGlyph(id: 0, x: Double($0) * 20, y: 32) },

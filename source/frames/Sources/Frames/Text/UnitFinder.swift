@@ -16,8 +16,9 @@ struct UnitFinder: Sendable {
 
     // MARK: - Public
     // `lines` are the clusters of each line up to its last visible one, `extents` each line's span down the text's box
-    // from its baseline less its largest ascent to its baseline plus its largest descent, and `runs` the glyph runs the
-    // clusters name, which hold the highlight and underline pieces.
+    // from its baseline less its largest ascent to its baseline plus its largest descent, and `runs` the text's glyph
+    // runs, which hold the highlight and underline pieces. A run's glyphs may lie in no cluster, as a cluster split over
+    // two faces leaves its glyphs in the earlier face, so a run's line is its own.
     func units(
         by unit: TextUnit,
         lines: [[PlacedCluster]],
@@ -44,24 +45,18 @@ struct UnitFinder: Sendable {
             }
         }
 
-        var lineOfRun: [Int: Int] = [:]
-        for (line, clusters) in lines.enumerated() {
-            for cluster in clusters {
-                lineOfRun[cluster.glyphs.run] = line
-            }
-        }
         var parts = units.map { _ in [UnitPart]() }
         for (index, run) in runs.enumerated() {
-            guard let line = lineOfRun[index] else { continue }
-
-            let carriers = units.indices.filter { unit in
-                units[unit].line == line && units[unit].unit.glyphs.contains { runs[$0.run].source == run.source }
+            let onLine = units.indices.filter { units[$0].line == run.line }
+            let carriers = onLine.filter { unit in
+                units[unit].unit.glyphs.contains { runs[$0.run].source == run.source }
             }
             for (piece, span) in spans(of: run).enumerated() {
                 guard !carriers.isEmpty else {
-                    // A piece of spaces alone goes with the unit before it, or the first.
-                    let before = units.indices.last { units[$0].unit.glyphs.first.map { $0.run < index } ?? false }
-                    if let owner = before ?? units.indices.first {
+                    // A piece of spaces alone goes with the unit before it on its line, or the line's first. A line
+                    // of spaces alone has no unit to carry it.
+                    let before = onLine.last { units[$0].unit.glyphs.first.map { $0.run < index } ?? false }
+                    if let owner = before ?? onLine.first {
                         parts[owner].append(UnitPart(run: index, piece: piece, span: span))
                     }
                     continue
