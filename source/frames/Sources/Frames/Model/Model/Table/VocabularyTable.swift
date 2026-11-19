@@ -15,7 +15,8 @@ enum VocabularyTable {
     static let shapes = ShapeKind.allCases.map(\.rawValue)
     static let blendModes = [
         "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge",
-        "color-burn", "hard-light", "soft-light", "difference", "exclusion", "plus-lighter"
+        "color-burn", "hard-light", "soft-light", "difference", "exclusion", "plus-lighter",
+        "hue", "saturation", "color", "luminosity"
     ]
     static let conforms = ["fit", "fill"]
     static let parameterTypes = ["video", "sequence", "image", "audio", "text", "color", "number", "choice"]

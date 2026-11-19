@@ -7,7 +7,7 @@
 
 // A stretch of one media file heard in the output, from sequence time `start` to `end`, playing from media time
 // `mediaStart`. Pans run from -1 (left) to 1 (right). Both envelopes' points are in sequence time from `start` to
-// `end`, joined in straight lines.
+// `end`, joined in straight lines. `filter` runs on the sound before the gain and the pan, empty when it has none.
 package struct MixSegment: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia
@@ -15,6 +15,7 @@ package struct MixSegment: Equatable, Sendable {
     package let speed: Double
     package let start: Double
     package let end: Double
+    package let filter: [MixFilterEntry]
     package let envelope: [EnvelopePoint]
     package let pan: [EnvelopePoint]
 
@@ -25,6 +26,7 @@ package struct MixSegment: Equatable, Sendable {
         speed: Double,
         start: Double,
         end: Double,
+        filter: [MixFilterEntry] = [],
         envelope: [EnvelopePoint],
         pan: [EnvelopePoint]
     ) {
@@ -33,6 +35,7 @@ package struct MixSegment: Equatable, Sendable {
         self.speed = speed
         self.start = start
         self.end = end
+        self.filter = filter
         self.envelope = envelope
         self.pan = pan
     }

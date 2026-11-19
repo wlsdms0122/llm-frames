@@ -14,10 +14,12 @@ import Testing
 @Suite("Blender Tests")
 struct BlenderTests {
     // MARK: - Property
-    // Backdrop and source colours as written, the last pair half transparent on both sides.
+    // Backdrop and source colours as written. The third pair is saturated enough that the non-separable modes clip
+    // their colour on both sides of the range; the last is half transparent on both sides.
     private static let pairs: [(backdrop: String, source: String)] = [
         ("#3366CC", "#CC9933"),
         ("#E61A80", "#4DB380"),
+        ("#F0E010", "#2000F0"),
         ("#3366CC80", "#CC993380")
     ]
 
