@@ -116,7 +116,7 @@ frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <n
 
 Global options go before the command. `--theme` merges a theme under every document's own theme. The role and provider options pick an implementation by name: the decoder, the mixer and the encoder are `avfoundation`, the renderer `quartz`, the OCR provider `vision`, the shaper `coretext` and the tracker `point`, which are also the defaults. `--ocr-languages` gives the OCR provider the recognition languages as BCP 47 tags in order of preference (`ko-KR,en-US`); without it the provider detects the language of each picture, which reads text in one language, accents and Chinese and Japanese included. Give it for lines that mix scripts, such as Korean with English words and numbers, with the non-Latin language first: `vision` reads only what the listed languages cover, led by the first, so `ko-KR,en-US` reads `Total 12,000원` and `en-US,ko-KR` misses the Korean.
 
-Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage and exits with 64. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
+Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage to standard error and exits with 64. `frames --help` prints the usage and what each global option takes, and `frames <command> --help` prints what that command does and each of its arguments and options with its default, both to standard output with exit 0. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
 
 ```
 frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, anchor, media, placement, position, scale, rotation, crop, conform, filter, blend, mask, trackMatte, width, height, radius, border, shadow
@@ -173,6 +173,7 @@ frames locate /path/to/edit.json --at 1 --point 1760,120
 | `packs [<pack>]` | the packs, the one that ships with frames and the installed ones, or what one pack holds, with the parameters each preset and template publishes |
 | `theme` | the base theme, which is also the list of every group a theme holds |
 | `--version` | the version of frames |
+| `--help`, `<command> --help` | the usage and the global options, or one command's help |
 
 ```sh
 frames presets transition
@@ -183,7 +184,7 @@ frames theme
 
 ### Extensions
 
-A command frames does not have runs a program from `PATH`: `frames autocut ...` runs `frames-autocut ...`, with the global options before the name and the arguments after it passed through unchanged, standard input and output included. An extension reads documents and machine output and writes a document to standard output, so extensions chain into `render -`:
+A command frames does not have runs a program from `PATH`: `frames autocut ...` runs `frames-autocut ...`, with the global options before the name and the arguments after it passed through unchanged, standard input and output included, so `frames autocut --help` is the extension's own help. An extension reads documents and machine output and writes a document to standard output, so extensions chain into `render -`:
 
 ```sh
 frames autocut /path/to/raw.json | frames captions - | frames render - -o /path/to/out/cut.mov
