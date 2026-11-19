@@ -108,7 +108,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
-Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key evaluation reads at each instant whose value is built from numbers and colours). The table is written for reference, and where it and the principle differ the principle decides:
+Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key whose value is built from numbers and colours and whose change reflows nothing resolve lays out). The table is written for reference, and where it and the principle differ the principle decides:
 
 | Clip | Properties |
 | --- | --- |
@@ -116,7 +116,7 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 | storyline clip, solid | `solid` |
 | media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | audio clip | `volume, pan`, and `audioFilter` where it takes one |
-| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, and the `color` of its `highlight` and `underline` |
+| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline` |
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
