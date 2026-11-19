@@ -87,8 +87,10 @@ struct DisplayListColorTests {
         let frames = frames(in: sut.displayList(of: resolved, at: 0.5))
 
         // Then
-        #expect(frames.map(\.colorSpace) == [.rec709, nil])
-        #expect(frames.map(\.targetPeak) == [targetPeak, ColorSpace(rawValue: colorSpace)?.peakLuminance])
+        #expect(frames.map(\.reading) == [
+            .working(colorSpace: .rec709, targetPeak: targetPeak),
+            .working(colorSpace: nil, targetPeak: ColorSpace(rawValue: colorSpace)?.peakLuminance)
+        ])
     }
 
     @Test("a storyline clip and a media clip that write no toneMap are tone mapped to the outermost sequence's peak")
@@ -104,10 +106,13 @@ struct DisplayListColorTests {
 
         // Then
         #expect(resolved.storyline.map(\.isToneMapped) == [true])
-        #expect(frames.map(\.targetPeak) == [1000, 1000])
+        #expect(frames.map(\.reading) == [
+            .working(colorSpace: nil, targetPeak: 1000),
+            .working(colorSpace: nil, targetPeak: 1000)
+        ])
     }
 
-    @Test("a transition cover is tone mapped to the outermost sequence's peak, and its matte carries no target peak")
+    @Test("a transition cover is tone mapped to the outermost sequence's peak, and its matte is read as an analysis picture")
     func carriesCoverAndMatteColor() throws {
         // Given
         let resolved = try resolved(#"""
@@ -125,11 +130,9 @@ struct DisplayListColorTests {
             Issue.record("the cover shows no media")
             return
         }
-        #expect(frame.colorSpace == nil)
-        #expect(frame.targetPeak == 1000)
+        #expect(frame.reading == .working(colorSpace: nil, targetPeak: 1000))
         let matte = try #require(pictures.compactMap(\.matte).first)
-        #expect(matte.frame.colorSpace == nil)
-        #expect(matte.frame.targetPeak == nil)
+        #expect(matte.frame.reading == .analysis(colorSpace: nil))
 
         let written = try #require(try JSONReader().read(writer.write(list)).objectValue)
         let items = written["items"]?.arrayValue?.compactMap(\.objectValue) ?? []

@@ -130,7 +130,7 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
                 JSONMember(key: "frame", value: .number(Double(matte.frame.index))),
-                JSONMember(key: "colorSpace", value: matte.frame.colorSpace.map { .string($0.rawValue) } ?? .null),
+                JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
                 JSONMember(key: "softness", value: .number(matte.softness)),
                 JSONMember(key: "invert", value: .bool(matte.isInverted))
@@ -206,8 +206,8 @@ package struct DisplayListWriter: Sendable {
             .object(JSONObject(members: [
                 JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
                 JSONMember(key: "frame", value: .number(Double(frame.index))),
-                JSONMember(key: "colorSpace", value: frame.colorSpace.map { .string($0.rawValue) } ?? .null),
-                JSONMember(key: "targetPeak", value: frame.targetPeak.map(JSONValue.number) ?? .null)
+                JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
+                JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))
             ]))
 
         case let .displayList(list):
@@ -219,5 +219,18 @@ package struct DisplayListWriter: Sendable {
 
     private func rectangle(_ rectangle: Rectangle?) -> JSONValue {
         rectangle.map(values.rectangle) ?? .null
+    }
+
+    // The space a picture is read in, null where its file's tags apply.
+    private func colorSpace(of reading: PictureReading) -> JSONValue {
+        reading.colorSpace.map { .string($0.rawValue) } ?? .null
+    }
+
+    // The peak a working read tone maps an HDR picture to, null where it takes it as display light. A matte, read as
+    // an analysis picture, writes none.
+    private func targetPeak(of reading: PictureReading) -> JSONValue {
+        guard case let .working(_, targetPeak?) = reading else { return .null }
+
+        return .number(targetPeak)
     }
 }

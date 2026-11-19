@@ -143,7 +143,8 @@ package struct FrameExporter: Sendable {
     // MARK: - Private
     // A sequence frame of a colour space other than `srgb` is first written as its analysis picture to a folder of its
     // own, removed after, and drawn on the sheet from there, so its label lies on the analysis picture. An `srgb`
-    // frame's analysis picture is its working values clipped, which the sheet's output clips.
+    // frame's analysis picture is its working values clipped, which the sheet's output clips. A video's frame is read as
+    // its analysis picture.
     private func draw(
         _ frames: SampledFrames,
         in sequenceOutput: ColorConversion,
@@ -174,7 +175,8 @@ package struct FrameExporter: Sendable {
             try encoder.writeAnalysisPicture(of: renderer.frame(of: list), in: sequenceOutput, to: path)
             let media = try PinnedMedia(file: MediaFile(path: path, size: frames.size), hashes: hasher)
 
-            return ContactSheetCell(SampledFrame(time: frame.time, picture: .media(MediaFrame(media: media, index: 0))))
+            let picture = MediaFrame(media: media, index: 0, reading: .analysis(colorSpace: nil))
+            return ContactSheetCell(SampledFrame(time: frame.time, picture: .media(picture)))
         }
         let sheet = try composer.sheet(
             of: cells,
@@ -217,8 +219,8 @@ package struct FrameExporter: Sendable {
         )
     }
 
-    // The frames shown at media times, as a storyline clip shows them, once the decoder has checked it reads the file's
-    // pictures as its tags say.
+    // The frames shown at media times, as a storyline clip shows them, each read as an analysis picture, once the
+    // decoder has checked it reads the file's pictures so.
     private func frames(
         ofVideo path: String,
         range: FrameRange
@@ -236,7 +238,10 @@ package struct FrameExporter: Sendable {
         return SampledFrames(
             size: size,
             frames: times.map { time in
-                SampledFrame(time: time, picture: .media(MediaFrame(media: media, mediaTime: time)))
+                SampledFrame(
+                    time: time,
+                    picture: .media(MediaFrame(media: media, mediaTime: time, reading: .analysis(colorSpace: nil)))
+                )
             }
         )
     }
@@ -246,7 +251,7 @@ package struct FrameExporter: Sendable {
     private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.analysisPicture(of: frame)
+            try decoder.picture(of: frame)
 
         case let .displayList(list):
             try renderer.frame(of: list)

@@ -26,21 +26,9 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Public
-    // The frame as working values, in its colour space and tone mapped to its target peak.
+    // The frame's picture, read as the frame says: working values, or an analysis picture for a transition matte.
     func image(of frame: MediaFrame) throws -> CGImage {
-        try image(of: frame, reading: .working(colorSpace: frame.colorSpace, targetPeak: frame.targetPeak))
-    }
-
-    // The frame as an analysis picture in its colour space, as a transition matte is read (FRAMES-26).
-    func analysisImage(of frame: MediaFrame) throws -> CGImage {
-        try image(of: frame, reading: .analysis(colorSpace: frame.colorSpace))
-    }
-
-    // MARK: - Private
-    private func image(
-        of frame: MediaFrame,
-        reading: PictureReading
-    ) throws -> CGImage {
+        let reading = frame.reading
         let file = MediaFile(media: frame.media)
         let kept = pictures.withLock { pictures in
             pictures[file.path]?.first { $0.index == frame.index && $0.reading == reading }?.image
@@ -55,4 +43,6 @@ final class MediaPictureCache: Sendable {
 
         return image
     }
+
+    // MARK: - Private
 }

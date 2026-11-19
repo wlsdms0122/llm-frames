@@ -134,7 +134,9 @@ struct PeakKeyTests {
 
             switch picture.source {
             case let .media(frame):
-                return [frame.targetPeak]
+                guard case let .working(_, targetPeak) = frame.reading else { return [nil] }
+
+                return [targetPeak]
 
             case let .displayList(nested):
                 return targetPeaks(in: nested)

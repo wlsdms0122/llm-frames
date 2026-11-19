@@ -8,9 +8,10 @@
 // Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed, and a
 // storyline picture's and a track matte's a transparent background, so what such a list leaves uncovered shows what
 // lies below its picture. A clip used as a track matte draws no item of its own, and its children are drawn as usual.
-// The outermost list carries the sequence's colour space and peak, and every list the compositing of the sequence whose items
-// it holds, a compound clip's or a template instance's its own. An HDR picture is tone mapped to `targetPeak`, the
-// outermost sequence's peak, where its clip's `toneMap` is true, and a transition cover's always is.
+// The outermost list carries the sequence's colour space and peak, and every list the compositing of the sequence
+// whose items it holds, a compound clip's or a template instance's its own. An HDR picture is tone mapped to
+// `targetPeak`, the outermost sequence's peak, where its clip's `toneMap` is true, and a transition cover's always is.
+// A transition matte is read as an analysis picture.
 package struct Evaluator: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -318,8 +319,7 @@ package struct Evaluator: Sendable {
             .media(MediaFrame(
                 media: media,
                 mediaTime: mediaTime,
-                colorSpace: colorSpace,
-                targetPeak: isToneMapped == true ? targetPeak : nil
+                reading: .working(colorSpace: colorSpace, targetPeak: isToneMapped == true ? targetPeak : nil)
             ))
 
         case let .nested(sequence):
@@ -332,7 +332,11 @@ package struct Evaluator: Sendable {
         at progress: Double
     ) -> PictureMatte {
         PictureMatte(
-            frame: MediaFrame(media: matte.media, progress: progress),
+            frame: MediaFrame(
+                media: matte.media,
+                progress: progress,
+                reading: .analysis(colorSpace: matte.media.colorSpace)
+            ),
             progress: transitionSampler.matteProgress(easedBy: matte.ease, at: progress),
             softness: matte.softness,
             isInverted: matte.isInverted
@@ -354,7 +358,11 @@ package struct Evaluator: Sendable {
 
         case let .media(media):
             let picture = PictureItem(
-                source: .media(MediaFrame(media: media, progress: progress, targetPeak: targetPeak)),
+                source: .media(MediaFrame(
+                    media: media,
+                    progress: progress,
+                    reading: .working(colorSpace: media.colorSpace, targetPeak: targetPeak)
+                )),
                 rectangle: nil,
                 destination: frame
             )

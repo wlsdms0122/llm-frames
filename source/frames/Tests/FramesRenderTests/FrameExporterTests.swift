@@ -116,6 +116,38 @@ struct FrameExporterTests {
         #expect(pixels(in: sheet, x: 515..<574, y: 305..<330, labelled(colors[3]), tolerance: tolerance) > 0)
     }
 
+    @Test("a sheet cell of an HDR video is its analysis picture, tone mapped as extract writes the frame")
+    func drawsHighDynamicRangeVideoSheet() async throws {
+        // Given
+        // 300 cd/m² is above reference white, so it is white clipped and a light grey tone mapped.
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let video = media.file("pq.mov")
+        let encoded = PerceptualQuantizer().encoded(displayLight: 300)
+        try await ColorMovieWriter(size: Size(width: 160, height: 90), colorSpace: .rec2100PQ)
+            .write(to: video, red: encoded, green: encoded, blue: encoded)
+        let face = try labelFace()
+        let sut = exporter()
+
+        // When
+        try sut.sheet(
+            .video(path: video),
+            range: FrameRange(),
+            columns: 1,
+            labelFace: face,
+            to: output.file("sheet.png")
+        )
+        let files = try sut.extract(.video(path: video), range: FrameRange(), to: output.file("frames"))
+
+        // Then
+        let sheet = try picture(at: output.file("sheet.png"))
+        let frame = try picture(at: try #require(files.first))
+        let cell = sheet.pixel(x: 94, y: 59)
+        let extracted = frame.pixel(x: 80, y: 45)
+        #expect(extracted[0] < 0.99, "\(extracted)")
+        #expect(zip(cell, extracted).allSatisfy { abs($0 - $1) <= 2.0 / 255 }, "\(cell) \(extracted)")
+    }
+
     @Test("a sheet of a document draws its frames as still does, and never enlarges a small frame")
     func drawsDocumentSheet() throws {
         // Given

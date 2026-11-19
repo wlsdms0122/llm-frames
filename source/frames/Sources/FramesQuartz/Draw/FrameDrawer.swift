@@ -222,7 +222,7 @@ final class FrameDrawer {
         switch item.content {
         case let .picture(picture):
             let source = try image(of: picture, shownBy: matrix(of: item, on: raster), on: raster)
-            let matte = try picture.matte.map { try pictures.analysisImage(of: $0.frame) }
+            let matte = try picture.matte.map { try pictures.image(of: $0.frame) }
             return { [tables] context in
                 try PictureDrawer(tables: tables).draw(
                     picture,

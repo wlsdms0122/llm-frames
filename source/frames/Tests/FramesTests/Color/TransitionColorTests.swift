@@ -103,10 +103,9 @@ struct TransitionColorTests {
             Issue.record("the cover shows no media")
             return
         }
-        #expect(cover.colorSpace == .rec709)
+        #expect(cover.reading.colorSpace == .rec709)
         let matte = try #require(pictures.compactMap(\.matte).first)
-        #expect(matte.frame.colorSpace == .displayP3)
-        #expect(matte.frame.targetPeak == nil)
+        #expect(matte.frame.reading == .analysis(colorSpace: .displayP3))
 
         let written = try #require(try JSONReader().read(listWriter.write(list)).objectValue)
         let items = written["items"]?.arrayValue?.compactMap(\.objectValue) ?? []

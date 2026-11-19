@@ -255,7 +255,7 @@ package struct DisplayListReader: Sendable {
                     frame: MediaFrame(
                         media: frame.media,
                         index: frame.index,
-                        colorSpace: try colorSpace(matte.member("colorSpace"))
+                        reading: .analysis(colorSpace: try colorSpace(matte.member("colorSpace")))
                     ),
                     progress: try matte.member("progress").number(),
                     softness: try matte.member("softness").number(),
@@ -338,8 +338,10 @@ package struct DisplayListReader: Sendable {
             return .media(MediaFrame(
                 media: frame.media,
                 index: frame.index,
-                colorSpace: try colorSpace(source.member("colorSpace")),
-                targetPeak: try source.member("targetPeak").optional(targetPeak)
+                reading: .working(
+                    colorSpace: try colorSpace(source.member("colorSpace")),
+                    targetPeak: try source.member("targetPeak").optional(targetPeak)
+                )
             ))
         }
 

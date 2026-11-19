@@ -53,23 +53,9 @@ extension MediaDecoder {
         try picture(of: file, atFrame: index, reading: .tagged)
     }
 
-    // A display list's media frame as working values, in its colour space and tone mapped to its target peak.
+    // A display list's media frame, read as the frame says.
     package func picture(of frame: MediaFrame) throws -> Bitmap {
-        try picture(
-            of: MediaFile(media: frame.media),
-            atFrame: frame.index,
-            reading: .working(colorSpace: frame.colorSpace, targetPeak: frame.targetPeak)
-        )
-    }
-
-    // A display list's media frame as an analysis picture, in its colour space: a transition matte's, or a frame a
-    // command shows.
-    package func analysisPicture(of frame: MediaFrame) throws -> Bitmap {
-        try picture(
-            of: MediaFile(media: frame.media),
-            atFrame: frame.index,
-            reading: .analysis(colorSpace: frame.colorSpace)
-        )
+        try picture(of: MediaFile(media: frame.media), atFrame: frame.index, reading: frame.reading)
     }
 
     // MARK: - Private

@@ -5,16 +5,14 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One frame of pinned media by its index in frame order, and how the decoder reads its picture: `colorSpace` is the
-// space that overrides the file's tags, nil where they apply, and `targetPeak` the peak in cd/m² an HDR picture of it
-// is tone mapped to, nil where it is taken as display light. A still has the one frame 0. A transition matte's frame
-// carries no target peak, since it is read as an analysis picture.
+// One frame of pinned media by its index in frame order, and how the decoder reads its picture: as working values, in
+// the colour space written where the media is named and tone mapped to the target peak, or as an analysis picture, as
+// a transition matte and a frame a command shows are read. A still has the one frame 0.
 package struct MediaFrame: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia
     package let index: Int
-    package let colorSpace: ColorSpace?
-    package let targetPeak: Double?
+    package let reading: PictureReading
 
     var file: PinnedFile {
         switch media.source {
@@ -30,35 +28,28 @@ package struct MediaFrame: Equatable, Sendable {
     package init(
         media: PinnedMedia,
         index: Int,
-        colorSpace: ColorSpace? = nil,
-        targetPeak: Double? = nil
+        reading: PictureReading = .tagged
     ) {
         self.media = media
         self.index = index
-        self.colorSpace = colorSpace
-        self.targetPeak = targetPeak
+        self.reading = reading
     }
 
     init(
         media: PinnedMedia,
         mediaTime: Double,
-        colorSpace: ColorSpace? = nil,
-        targetPeak: Double? = nil
+        reading: PictureReading = .tagged
     ) {
-        self.init(media: media, index: media.frameIndex(at: mediaTime), colorSpace: colorSpace, targetPeak: targetPeak)
+        self.init(media: media, index: media.frameIndex(at: mediaTime), reading: reading)
     }
 
+    // A transition's cover or matte at `progress` through the transition.
     init(
         media: ResolvedTransitionMedia,
         progress: Double,
-        targetPeak: Double? = nil
+        reading: PictureReading
     ) {
-        self.init(
-            media: media.media,
-            mediaTime: progress * media.duration,
-            colorSpace: media.colorSpace,
-            targetPeak: targetPeak
-        )
+        self.init(media: media.media, mediaTime: progress * media.duration, reading: reading)
     }
 
     // MARK: - Public
