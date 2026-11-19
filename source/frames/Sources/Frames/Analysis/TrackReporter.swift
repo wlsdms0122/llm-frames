@@ -15,7 +15,7 @@ package struct TrackReporter: Sendable {
     private static let kind = "area"
 
     private let mediaFacts: any MediaFactProvider
-    private let tracker: any TrackerProvider
+    private let follower: TargetFollower
     private let finder: AreaFinder
     private let checker = KeyChecker()
 
@@ -27,7 +27,7 @@ package struct TrackReporter: Sendable {
         tracker: any TrackerProvider
     ) {
         self.mediaFacts = mediaFacts
-        self.tracker = tracker
+        self.follower = TargetFollower(tracker: tracker)
         self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
@@ -65,9 +65,9 @@ package struct TrackReporter: Sendable {
         let found = try finder.area(form, in: picture, atMediaTime: time, place: Self.place, kind: Self.kind)
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
-        let target = Quad(found.target)
+        let range = (file.frameTime(at: first) ?? first)...last
         let frames = try Result {
-            try tracker.track(target, in: file, atMediaTime: time, over: (file.frameTime(at: first) ?? first)...last)
+            try follower.follow(found.target, in: file, atMediaTime: time, over: range)
         }
         .mapError { error in
             ProviderError.failed(
@@ -81,7 +81,7 @@ package struct TrackReporter: Sendable {
         }
         .get()
 
-        return TrackReport(track: Track(target: target, mediaTime: time, frames: frames))
+        return TrackReport(track: Track(target: Quad(found.target), mediaTime: time, frames: frames))
     }
 
     // MARK: - Private

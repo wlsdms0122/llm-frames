@@ -431,6 +431,39 @@ struct TrackPlannerTests {
             """#)
     }
 
+    @Test("a target partly outside the media is followed on its part inside, and its track keeps the target as written")
+    func followsTargetPartlyOutside() throws {
+        // Given
+        let target = Rectangle(x: 1106, y: 100, width: 200, height: 40)
+        let sut = planner()
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [1106, 100, 200, 40], "at": [0, 2], "track": true }"#)
+
+        // When
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [.value(found(target, at: 1))], masks: time.clips.map { _ in nil })
+
+        // Then
+        let track = try #require(plan.clips[0]?.track)
+        #expect(track.target == Quad(target))
+        #expect(plan.time.clips[0].visible == time.clips[0].visible)
+        let last = try #require(track.samples.last)
+        let moved = Quad(moved(target, down: 20))
+        #expect(zip(last.quad.corners, moved.corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
+    @Test("a connected clip whose target lies wholly outside the media is followed on no frame, so it stops as never visible")
+    func refusesTargetOutside() throws {
+        // Given
+        let sut = planner()
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1.5, 2.5], "track": [1300, 100, 100, 40] }"#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }) }
+        #expect(error?.description == #"""
+            storyline[0]#screen.connected[0] (rect): never visible, since the tracker follows its target on none of the \#
+            frames of its visible range [0.5, 1.5)
+            """#)
+    }
+
     @Test(
         "track stops where there is nothing to follow, and true where the clip has no area or names its target",
         arguments: untrackable

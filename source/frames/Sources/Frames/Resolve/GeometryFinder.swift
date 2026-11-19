@@ -107,8 +107,7 @@ struct GeometryFinder: Sendable {
         }
     }
 
-    // A clip's masks, each found in the space its geometry is written in. A mask written as numbers is taken as it is,
-    // not cut at the picture's edges, since a mask may reach past them, as a vignette's ellipse does.
+    // A clip's masks, each found in the space its geometry is written in.
     func masks(
         _ property: PropertyValue<[ClipMask]>,
         in picture: Picture,
@@ -125,9 +124,6 @@ struct GeometryFinder: Sendable {
                 let maskPlace = mask.index.map { place.appending(index: $0) } ?? place
                 let geometry: FoundMaskGeometry
                 switch mask.geometry {
-                case let .area(.rectangle(rectangle)):
-                    geometry = .area(rectangle)
-
                 case let .area(area):
                     let found = try self.area(
                         area,

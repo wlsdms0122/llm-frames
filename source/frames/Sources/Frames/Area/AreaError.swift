@@ -16,7 +16,6 @@ enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
         nth: Int?,
         matchCount: Int
     )
-    case outsidePicture(place: Place, kind: String, rectangle: Rectangle, size: Size)
     case textInDocument(place: Place, kind: String, picture: String)
     case textInSpace(place: Place, kind: String, parent: String)
 
@@ -36,10 +35,6 @@ enum AreaError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind)): \(matchCount) \(matchCount == 1 ? "line" : "lines") of \(quoted(picture)) at media "
                 + "second \(number(mediaTime)) \(matchCount == 1 ? "contains" : "contain") \(quoted(text)), so there "
                 + "is no line \(nth) (counted from 0)"
-
-        case let .outsidePicture(place, kind, rectangle, size):
-            "\(place) (\(kind)): the area \(written(rectangle)) lies wholly outside its picture of "
-                + "\(number(size.width))x\(number(size.height))"
 
         case let .textInDocument(place, kind, picture):
             "\(place) (\(kind)): \(quoted(picture)) is drawn, not read, so it takes no text area. "

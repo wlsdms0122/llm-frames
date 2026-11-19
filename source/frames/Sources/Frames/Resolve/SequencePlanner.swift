@@ -16,6 +16,7 @@ struct SequencePlanner: Sendable {
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
     private let contentFit = ContentFitPlanner()
+    private let cropChecker = CropChecker()
 
     // MARK: - Initializer
     init(
@@ -119,7 +120,22 @@ struct SequencePlanner: Sendable {
         }
 
         let storyline = try time.storyline.indices.map { index in
-            StorylineGeometry(
+            let box = try box(
+                of: time.storyline[index],
+                crop: crops[index],
+                nested: storylineNested[index],
+                format: format
+            )
+            try checkCrop(
+                crops[index],
+                of: time.storyline[index],
+                written: time.sequence.storyline[index],
+                box: box,
+                nested: storylineNested[index],
+                format: format
+            )
+
+            return StorylineGeometry(
                 crop: crops[index],
                 mask: storylineMasks[index],
                 track: tracked.storyline[index],
@@ -137,12 +153,7 @@ struct SequencePlanner: Sendable {
                     of: time.storyline[index],
                     written: time.sequence.storyline[index],
                     position: storylinePositions[index],
-                    box: try box(
-                        of: time.storyline[index],
-                        crop: crops[index],
-                        nested: storylineNested[index],
-                        format: format
-                    ),
+                    box: box,
                     format: format,
                     scale: lengthScale,
                     theme: time.theme
@@ -268,6 +279,34 @@ struct SequencePlanner: Sendable {
         guard format.isMeasured else { return format.size }
 
         return try pictureBox(of: plan, crop: crop, nested: nested)
+    }
+
+    // A storyline clip's crop fills its box by the format's `conform`.
+    private func checkCrop(
+        _ crop: PropertyValue<FoundArea>?,
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        box: Size?,
+        nested: SequencePlan?,
+        format: FormatPlan
+    ) throws {
+        guard crop != nil, let box, let media = plan.source.media else { return }
+
+        let picture = try self.picture(
+            of: media,
+            kind: plan.source.kind,
+            nested: nested,
+            place: plan.place.appending(key: "media")
+        )
+        try cropChecker.check(
+            crop,
+            of: picture,
+            box: box,
+            conform: format.conform,
+            isTracked: written.track != nil,
+            place: written.place.appending(key: "crop"),
+            kind: .clip(plan.source.kind)
+        )
     }
 
     // The pixel size of a storyline clip's crop at scale 1, nil for a solid, which has no picture of its own.
