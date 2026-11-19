@@ -60,7 +60,7 @@ struct Typesetter: Sendable {
                 x: padding.width + style.align.offset(of: line.width, in: textWidth),
                 y: firstBaseline + Double(index) * style.lineHeight
             )
-            let (runs, clusters) = placed(line, origin: origin, firstRun: placedRuns.count)
+            let (runs, clusters) = placed(line, index: index, origin: origin, firstRun: placedRuns.count)
             placedRuns += runs
             placedLines.append(PlacedLine(width: line.width, baseline: origin.y, clusters: clusters.map(\.glyphs)))
             placedClusters.append(clusters)
@@ -287,9 +287,11 @@ struct Typesetter: Sendable {
     // Glyphs of one line of one text run in one face make one glyph run, and the runs of a line share its baseline.
     // The pieces of a text run's highlight and underline span its glyphs on the line, from the origin of the first to
     // the end of the advance of the last, the spaces that end the line excluded. The line's clusters name glyphs by
-    // the index of their run among the text's, the first of this line's runs being `firstRun`.
+    // the index of their run among the text's, the first of this line's runs being `firstRun`. `index` is the line's
+    // among the text's.
     private func placed(
         _ line: TextLine,
+        index lineIndex: Int,
         origin: Point,
         firstRun: Int
     ) -> (runs: [GlyphRun], clusters: [PlacedCluster]) {
@@ -308,6 +310,7 @@ struct Typesetter: Sendable {
             if let last = runs.last, isSameRun {
                 runs[runs.count - 1] = GlyphRun(
                     source: last.source,
+                    line: lineIndex,
                     face: last.face,
                     size: last.size,
                     glyphs: last.glyphs + [positioned]
@@ -315,6 +318,7 @@ struct Typesetter: Sendable {
             } else {
                 runs.append(GlyphRun(
                     source: glyph.source,
+                    line: lineIndex,
                     face: glyph.face,
                     size: glyph.style.size,
                     glyphs: [positioned]
@@ -368,6 +372,7 @@ struct Typesetter: Sendable {
             let underline = UnderlinePiece(x: span.from, y: origin.y, width: span.to - span.from)
             runs[span.run] = GlyphRun(
                 source: run.source,
+                line: run.line,
                 face: run.face,
                 size: run.size,
                 glyphs: run.glyphs,

@@ -6,7 +6,7 @@
 //
 
 // Text is laid out left to right, so an alignment names a physical side.
-enum TextAlignment: String, Equatable, Sendable {
+enum TextAlignment: String, CaseIterable, Equatable, Sendable {
     case left
     case center
     case right

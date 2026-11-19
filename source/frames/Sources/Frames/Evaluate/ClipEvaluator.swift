@@ -160,8 +160,9 @@ struct ClipEvaluator: Sendable {
     // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
     // the title's opacity and blend, and its masks and track matte once they cut it, so its units do not show through
     // each other. Inside, every item is in `title`'s box and takes its transform: the background as it is, and each
-    // unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. The loop
-    // plays only while every unit rests, so `title`'s reveal, the loop's, cuts every item in the title's box.
+    // unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. A unit's
+    // reveal wipes what the unit draws, as a whole title's wipes what the title draws. The loop plays only while every
+    // unit rests, so `title`'s reveal, the loop's, cuts every item in the title's box.
     private func group(
         of clip: ResolvedClip,
         text: ResolvedText,
@@ -175,31 +176,36 @@ struct ClipEvaluator: Sendable {
     ) -> DisplayItem {
         let origin = ItemOrigin(clip: clip)
         let sampler = UnitSampler()
-        let cut = { (rectangle: Rectangle) -> Rectangle in
-            guard let reveal = item.reveal else { return rectangle }
-
-            return reveal.intersection(rectangle) ?? Rectangle(x: rectangle.x, y: rectangle.y, width: 0, height: 0)
-        }
         let unitItems = units.indices.map { index in
             let box = text.unitBox(of: index, at: time)
             let sample = sampler.unit(index, of: clip.animation, schedule: schedule, at: time)
             let presentation = ItemPresentation(area: box, opacity: 1, motion: sample.motion, carriedBy: item.transform)
             let factor = Scale(sample.motion.value(of: .scale)).factor
             let parts = text.parts(of: index, at: time)
-            let reveal = cut(sample.reveal.rectangle(wiping: box, from: sample.revealFrom) ?? box)
+            let layers = GlyphLayer.allCases.map { layer in
+                GlyphsItem(
+                    carrying: units[index].glyphs,
+                    parts: parts,
+                    in: box,
+                    of: glyphs,
+                    layer: layer,
+                    factor: factor
+                )
+            }
+            let reveal = reveal(
+                of: sample.reveal.rectangle(
+                    wiping: layers[0].drawnBounds(carriedBy: presentation.transform),
+                    from: sample.revealFrom
+                ),
+                within: item.reveal
+            )
 
-            return GlyphLayer.allCases.map { layer in
+            return layers.map { layer in
                 DisplayItem(
                     transform: presentation.transform,
                     opacity: presentation.opacity,
                     reveal: reveal,
-                    content: .glyphs(GlyphsItem(
-                        carrying: units[index].glyphs,
-                        parts: parts,
-                        of: glyphs,
-                        layer: layer,
-                        factor: factor
-                    )),
+                    content: .glyphs(layer),
                     origin: origin
                 )
             }
@@ -223,6 +229,16 @@ struct ClipEvaluator: Sendable {
             blend: item.blend,
             content: .picture(PictureItem(source: .displayList(list), rectangle: space.frame, destination: space.frame))
         )
+    }
+
+    // A unit's reveal and the loop's are in the title's box, and a unit shows where both show.
+    private func reveal(
+        of unit: Rectangle?,
+        within loop: Rectangle?
+    ) -> Rectangle? {
+        guard let unit, let loop else { return unit ?? loop }
+
+        return unit.intersection(loop) ?? Rectangle(x: unit.x, y: unit.y, width: 0, height: 0)
     }
 
     // `drawn` is the item's own box at the time, in the clip's box at its placed size, and `receiver` what the item

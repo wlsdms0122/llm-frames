@@ -40,7 +40,7 @@ enum ClipKeyTable {
         let mixed = ObjectTable(
             kind: keyframes.kind,
             rules: keyframes.rules.filter { $0.name != "audioFilter" },
-            group: KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)
+            groups: [KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)]
         )
         let rules = audio.rules.filter { $0.name != "audioFilter" }.map { rule in
             rule.name == "keyframes" ? KeyRule("keyframes", .list(.object(mixed))) : rule
@@ -135,7 +135,7 @@ enum ClipKeyTable {
         return ObjectTable(
             kind: "keyframe",
             rules: rules,
-            group: KeyGroup(keys: properties, isExclusive: false)
+            groups: [KeyGroup(keys: properties, isExclusive: false)]
         )
     }
 
@@ -312,7 +312,7 @@ enum ClipKeyTable {
             .literal(VocabularyTable.blendModes)
 
         case "border":
-            .oneOf([.exactly(.bool(true)), .color])
+            ValueType(shorthandsOf: LookStructureTable.border)
 
         case "title":
             .runs
@@ -333,16 +333,12 @@ enum ClipKeyTable {
         case "scale":
             .oneOf([.number, .numbers(2)])
 
-        // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
+        // A box is drawn or wraps text, so it has some size.
         case "width", "height":
             .positiveNumber
 
-        case "radius":
-            .nonNegativeNumber
-
-        // An outset grows the outline a shape draws around its geometry, and a smaller outline is a smaller geometry.
-        case "outset":
-            .nonNegativeNumber
+        case "radius", "outset":
+            ValueType(structure: LookStructureTable.length, kind: name)
 
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":
@@ -384,7 +380,7 @@ enum ClipKeyTable {
             .object(ObjectTable(
                 kind: table.kind,
                 rules: table.rules.map { KeyRule($0.name, keyframed($0.type)) },
-                group: table.group
+                groups: table.groups
             ))
 
         case .positiveNumber, .nonNegativeNumber:

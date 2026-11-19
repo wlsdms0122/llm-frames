@@ -20,6 +20,7 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
     case nullWithoutValue(place: Place)
     case staticAndKeyframed(place: Place)
     case outsideDomain(place: Place, value: Double)
+    case failedCheck(place: Place, check: LeafCheck, failure: LeafCheckFailure)
 
     // MARK: - Property
     var description: String {
@@ -59,6 +60,18 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .outsideDomain(place, value):
             "\(place): \(value) is outside the values this leaf takes"
+
+        case let .failedCheck(place, check, failure):
+            switch failure {
+            case .unknownName, .wrongValue:
+                "\(place): expected \(check.expectation)"
+
+            case let .invalidMember(key, reason):
+                "\(place.appending(key: key)): \(reason)"
+
+            case let .wrongMember(key):
+                "\(place.appending(key: key)): expected a whole number, 0 or more"
+            }
         }
     }
 
@@ -102,6 +115,9 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .outsideDomain(place, value):
             .outsideDomain(place: moved(place), value: value)
+
+        case let .failedCheck(place, check, failure):
+            .failedCheck(place: moved(place), check: check, failure: failure)
         }
     }
 

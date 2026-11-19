@@ -62,12 +62,7 @@ struct SoundPlanner: Sendable {
         let exists = TimeRange(start: map.sequenceTime(ofClipTime: 0), end: map.sequenceTime(ofClipTime: media.duration))
         let kind = PlaceKind.clip(plan.source.kind)
         let place = plan.place.appending(key: "split")
-        if split.before > 0, index == 0 {
-            throw ResolveError.splitOutsideSequence(place: place.appending(key: "before"), kind: kind)
-        }
-        if split.after > 0, index == time.storyline.count - 1 {
-            throw ResolveError.splitOutsideSequence(place: place.appending(key: "after"), kind: kind)
-        }
+        try checkSequence(of: split, range: range, duration: time.duration, place: place, kind: kind)
         try checkMedia(of: split, range: range, exists: exists, place: place, kind: kind)
         guard let audible = range.intersection(exists) else { return nil }
 
@@ -117,12 +112,7 @@ struct SoundPlanner: Sendable {
         )
         let kind = PlaceKind.clip(plan.kind)
         let place = plan.place.appending(key: "split")
-        if split.before > 0, range.start.timeTicks < 0 {
-            throw ResolveError.splitOutsideSequence(place: place.appending(key: "before"), kind: kind)
-        }
-        if split.after > 0, range.end.timeTicks > time.duration.timeTicks {
-            throw ResolveError.splitOutsideSequence(place: place.appending(key: "after"), kind: kind)
-        }
+        try checkSequence(of: split, range: range, duration: time.duration, place: place, kind: kind)
         try checkMedia(of: split, range: range, exists: exists, place: place, kind: kind)
         guard let audible = range.intersection(exists) else { return nil }
 
@@ -158,6 +148,22 @@ struct SoundPlanner: Sendable {
         }
         if media?.split != nil {
             throw ResolveError.splitWithoutSound(place: place.appending(key: "split"), kind: .clip(kind))
+        }
+    }
+
+    // A moved edge lies inside the sequence.
+    private func checkSequence(
+        of split: SplitEdit,
+        range: TimeRange,
+        duration: Double,
+        place: Place,
+        kind: PlaceKind
+    ) throws {
+        if split.before > 0, range.start.timeTicks < 0 {
+            throw ResolveError.splitOutsideSequence(place: place.appending(key: "before"), kind: kind)
+        }
+        if split.after > 0, range.end.timeTicks > duration.timeTicks {
+            throw ResolveError.splitOutsideSequence(place: place.appending(key: "after"), kind: kind)
         }
     }
 

@@ -96,6 +96,32 @@ struct GlyphDrawerTests {
         #expect(bitmap.pixel(x: Int(bounds.midX) + 40, y: row) == [1, 0, 0, 1])
     }
 
+    @Test("two parts of a highlight cut at a band's end inside a pixel draw every pixel as the whole piece does")
+    func splitsPieceAtPixel() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let piece = Rectangle(x: 10, y: 20.5, width: 80, height: 40)
+        let part = { (band: ClosedRange<Double>?) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                runs: [self.highlighted(piece, band: band)],
+                background: nil
+            )))
+        }
+
+        // When
+        let parts = try sut.frame(of: list(items: [part(10...50.4), part(50.4...90)]))
+        let whole = try sut.frame(of: list(items: [part(nil)]))
+
+        // Then
+        // The rows at 20 and 60 are half covered, so a pixel either part drew again would be darker there.
+        for y in [20, 40, 60] {
+            for x in 48..<53 {
+                #expect(parts.pixel(x: x, y: y) == whole.pixel(x: x, y: y), "at (\(x), \(y))")
+            }
+        }
+    }
+
     @Test("a face the font file does not hold is refused, naming both")
     func refusesMissingFace() throws {
         // Given
@@ -138,6 +164,28 @@ struct GlyphDrawerTests {
             highlight: nil,
             underline: nil,
             glyphs: [PositionedGlyph(id: Int(glyph), x: x, y: Self.baseline.y)]
+        )
+    }
+
+    // A run with no glyphs and one highlight piece, cut to `band` when there is one.
+    private func highlighted(
+        _ piece: Rectangle,
+        band: ClosedRange<Double>?
+    ) -> DrawnGlyphRun {
+        DrawnGlyphRun(
+            font: PinnedFile(path: Self.file, sha256: ""),
+            face: Self.face,
+            size: Self.size,
+            color: Color(written: "#FF0000"),
+            stroke: nil,
+            highlight: DrawnHighlight(
+                rects: [piece],
+                radius: 0,
+                color: Color(written: "#0000FF"),
+                bands: band.map { [$0] }
+            ),
+            underline: nil,
+            glyphs: []
         )
     }
 

@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box moves with its
-// line, its left edge with its first glyph and its right edge with its last. A part is cut where the next unit's first
-// glyph is then, and the first and last parts of a piece reach past its ends, so they hold its padding at any value.
+// A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box is its box as
+// resolved, which holds its strokes and its parts at their widest and so reaches past its glyphs, moved with its first
+// glyph and widened by how far its last glyph moves beyond its first. A part is cut where the next unit's first glyph is
+// then, and the first and last parts of a piece reach past its ends, so they hold its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer

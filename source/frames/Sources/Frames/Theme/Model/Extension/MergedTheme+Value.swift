@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The values resolve reads from a merged theme, typed. The base theme holds every key below, and the key tables and
-// reference checks let only these shapes through, so a value is always there. Lengths come back in points unless a
-// length scale is given.
+// The values resolve reads from a merged theme, typed. The base theme holds every key below, and the key tables, the
+// merge's checks against the theme's structure and the reference checks let only these shapes through, so a value is
+// always there and a value written reads. Lengths come back in points unless a length scale is given.
 extension MergedTheme {
     // MARK: - Property
     var baseWidth: Double {
@@ -104,7 +104,7 @@ extension MergedTheme {
             tracking: style["tracking"]?.numberValue ?? 0,
             isKerned: style["kerning"]?.stringValue != "none",
             features: (style["features"]?.objectValue?.members ?? []).compactMap { member in
-                member.value.numberValue.map { FontFeature(tag: member.key, value: Int($0)) }
+                member.value.numberValue.flatMap { Int(exactly: $0) }.map { FontFeature(tag: member.key, value: $0) }
             },
             isHighlighted: style["highlight"]?.objectValue != nil,
             isUnderlined: style["underline"] == .bool(true) || style["underline"]?.objectValue != nil
@@ -134,7 +134,7 @@ extension MergedTheme {
             lineHeight: (style["lineHeight"]?.numberValue ?? defaultLineHeight(of: size)) * scale,
             background: style["background"]?.objectValue.map { box(of: $0, scale: scale) },
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
-            lines: style["lines"]?.numberValue.map { Int($0) }
+            lines: style["lines"]?.numberValue.flatMap { Int(exactly: $0) }
         )
     }
 

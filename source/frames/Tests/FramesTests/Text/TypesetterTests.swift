@@ -43,6 +43,7 @@ struct TypesetterTests {
             runs: [
                 GlyphRun(
                     source: 0,
+                    line: 0,
                     face: face,
                     size: 40,
                     glyphs: [glyph("a", 0, 32), glyph("b", 20, 32)]
@@ -64,9 +65,10 @@ struct TypesetterTests {
 
         // Then
         #expect(layout.runs == [
-            GlyphRun(source: 0, face: face, size: 40, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
+            GlyphRun(source: 0, line: 0, face: face, size: 40, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
             GlyphRun(
                 source: 1,
+                line: 0,
                 face: face,
                 size: 20,
                 glyphs: [

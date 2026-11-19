@@ -176,9 +176,7 @@ struct KeyChecker: Sendable {
             }
 
         case .positiveInteger:
-            guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
-                throw wrongType(value, type, place, kind)
-            }
+            try check(value, by: .positiveInteger, as: type, place: place, kind: kind)
 
         case .color, .hexColor:
             try checkColor(value, as: type, place: place, kind: kind)
@@ -316,10 +314,10 @@ struct KeyChecker: Sendable {
             try checkAudioOperation(object, place: place, mixed: false, scope: &scope)
 
         case .fontWeight:
-            try checkFontWeight(value, place: place, kind: kind)
+            try check(value, by: .fontWeight, as: type, place: place, kind: kind)
 
         case .fontFeatures:
-            try checkFontFeatures(value, place: place, kind: kind)
+            try check(value, by: .fontFeatures, as: type, place: place, kind: kind)
         }
     }
 
@@ -343,14 +341,24 @@ struct KeyChecker: Sendable {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: [rule.name])
         }
 
-        guard let group = table.group else { return }
-
-        let present = group.keys.filter(object.contains)
-        guard !present.isEmpty || group.isOptional else {
+        for group in table.groups where !group.isOptional && !group.keys.contains(where: object.contains) {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: group.keys)
         }
-        guard !group.isExclusive || present.count <= 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: present)
+
+        // Exclusive groups that share a key, as a mask's `area` with each key of its box, stop together, naming every
+        // key they hold.
+        let conflicting = table.groups
+            .filter(\.isExclusive)
+            .map { $0.keys.filter(object.contains) }
+            .filter { $0.count > 1 }
+            .flatMap { $0 }
+            .reduce(into: [String]()) { keys, key in
+                if !keys.contains(key) {
+                    keys.append(key)
+                }
+            }
+        guard conflicting.isEmpty else {
+            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: conflicting)
         }
     }
 
@@ -591,8 +599,8 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape, a rect or an ellipse not both `area` and a key of the box, and a path at
-    // least three points, since its path is closed. Whether its geometry is given is checked with its keyframes.
+    // A mask takes the keys of its shape, and a path at least three points, since its path is closed. Whether its
+    // geometry is given is checked with its keyframes.
     private func checkMask(
         _ object: JSONObject,
         as shape: ShapeKind,
@@ -608,12 +616,6 @@ struct KeyChecker: Sendable {
             )
         }
         try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
-        guard shape != .path else { return }
-
-        let box = MaskKeyTable.box.filter(object.contains)
-        if object.contains("area"), !box.isEmpty {
-            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
-        }
     }
 
     // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
@@ -682,52 +684,34 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
-    private func checkFontWeight(
+    // Only a style's `features` has members, and a member's stop is placed at it.
+    private func check(
         _ value: JSONValue,
+        by check: LeafCheck,
+        as type: ValueType,
         place: Place,
         kind: String
     ) throws {
-        if let name = value.stringValue {
-            let names = FontWeight.names.map(\.name)
-            guard names.contains(name) else {
-                throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: names)
-            }
+        switch check.failure(of: value) {
+        case .none:
             return
-        }
-        guard let number = value.numberValue, let weight = Int(exactly: number), (100...900).contains(weight) else {
-            throw wrongType(value, .fontWeight, place, kind)
-        }
-    }
 
-    // `kern` is a key of its own, `kerning`, so a style cannot set it twice.
-    private func checkFontFeatures(
-        _ value: JSONValue,
-        place: Place,
-        kind: String
-    ) throws {
-        guard let object = value.objectValue else { throw wrongType(value, .fontFeatures, place, kind) }
+        case let .unknownName(name, allowed):
+            throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: allowed)
 
-        for member in object.members {
-            let tagPlace = place.appending(key: member.key)
-            guard member.key != "kern" else {
-                throw ModelError.invalidValue(place: tagPlace, kind: "features", reason: "`kern` is set by `kerning`")
-            }
-            let isTag = member.key.unicodeScalars.count == 4
-                && member.key.unicodeScalars.allSatisfy { (0x20...0x7E).contains($0.value) }
-            guard isTag else {
-                throw ModelError.invalidValue(
-                    place: tagPlace,
-                    kind: "features",
-                    reason: "a feature tag is four printable ASCII characters"
-                )
-            }
-            guard let number = member.value.numberValue, Int(exactly: number) != nil, number >= 0 else {
-                throw wrongType(member.value, .nonNegativeInteger, tagPlace, "features")
-            }
+        case .wrongValue:
+            throw wrongType(value, type, place, kind)
+
+        case let .invalidMember(key, reason):
+            throw ModelError.invalidValue(place: place.appending(key: key), kind: "features", reason: reason)
+
+        case let .wrongMember(key):
+            let member = value.objectValue?[key] ?? .null
+            throw wrongType(member, .nonNegativeInteger, place.appending(key: key), "features")
         }
     }
 
+    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
     private func checkMargin(
         _ value: JSONValue,
         place: Place,
@@ -1541,7 +1525,7 @@ struct KeyChecker: Sendable {
             "a whole number, 0 or more"
 
         case .positiveInteger:
-            "a whole number, 1 or more"
+            LeafCheck.positiveInteger.expectation
 
         case .text, .name, .identifier:
             "a string"
@@ -1620,10 +1604,10 @@ struct KeyChecker: Sendable {
             "an audio operation"
 
         case .fontWeight:
-            "a whole number from 100 to 900 or a weight name"
+            LeafCheck.fontWeight.expectation
 
         case .fontFeatures:
-            "an object of feature tags"
+            LeafCheck.fontFeatures.expectation
         }
     }
 

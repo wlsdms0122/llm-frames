@@ -21,7 +21,7 @@ enum ChoiceKeyTable {
                 KeyRule("seconds", .positiveNumber),
                 KeyRule("args", arguments)
             ],
-            group: KeyGroup(keys: ["seconds", "args"], isExclusive: false)
+            groups: [KeyGroup(keys: ["seconds", "args"], isExclusive: false)]
         ))
     ])
     // A side of `{entrance, exit}` takes a preset as the whole choice does, without `{entrance, exit}` again.
@@ -37,7 +37,7 @@ enum ChoiceKeyTable {
                 KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
                 KeyRule("stagger", .nonNegativeNumber)
             ],
-            group: KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)
+            groups: [KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)]
         )),
         splitAnimation
     ])
@@ -59,7 +59,7 @@ enum ChoiceKeyTable {
                 KeyRule("args", arguments),
                 KeyRule("mix", .fraction)
             ],
-            group: KeyGroup(keys: ["args", "mix"], isExclusive: false)
+            groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
         ))
     ])
     static let audioFilter = ValueType.audioFilterChoice
@@ -73,7 +73,7 @@ enum ChoiceKeyTable {
                 KeyRule("args", arguments),
                 KeyRule("mix", .fraction)
             ],
-            group: KeyGroup(keys: ["args", "mix"], isExclusive: false)
+            groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
         ))
     ])
     // A filter choice in a keyframe writes the leaves it moves over the clip's choice: an object of an entry's

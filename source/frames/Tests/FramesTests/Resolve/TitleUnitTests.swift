@@ -49,6 +49,25 @@ struct TitleUnitTests {
         #expect(read == text)
     }
 
+    @Test("a highlighted line of spaces alone between two lines of words is set with no piece, so no unit carries one")
+    func setsNoPieceOnLineOfSpaces() throws {
+        // When
+        let text = try resolvedText(#"""
+            { "title": "ab\n   \ncd", "style": "caption", "position": [400, 225],
+              "animation": { "preset": "frames/fade", "by": "word" },
+              "character": { "highlight": { "color": "#FF0000" } } }
+            """#)
+
+        // Then
+        // The spaces end their line and hang outside it, so its run spans no glyph to highlight.
+        let highlights = text.runs.map { $0.highlight?.rects.count ?? 0 }
+        #expect(highlights == [1, 0, 1])
+        #expect(text.units?.map(\.parts) == [
+            [UnitPart(run: 0, piece: 0, span: 0...40)],
+            [UnitPart(run: 2, piece: 0, span: 0...40)]
+        ])
+    }
+
     @Test("a title not animated by unit carries no units")
     func carriesNoUnitsWithoutBy() throws {
         // When

@@ -9,7 +9,7 @@ struct ObjectTable: Equatable, Sendable {
     // MARK: - Property
     let kind: String
     let rules: [KeyRule]
-    let group: KeyGroup?
+    let groups: [KeyGroup]
 
     var keys: [String] {
         rules.map(\.name)
@@ -19,11 +19,11 @@ struct ObjectTable: Equatable, Sendable {
     init(
         kind: String,
         rules: [KeyRule],
-        group: KeyGroup? = nil
+        groups: [KeyGroup] = []
     ) {
         self.kind = kind
         self.rules = rules
-        self.group = group
+        self.groups = groups
     }
 
     // MARK: - Public

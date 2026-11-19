@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// The structure of every value of a look, as the theme and the key tables give its keys. A keyframable key is made
-// keyframable by declaring its structure here: its numbers and colours are its timed leaves, and the look merge and
-// timing read nothing else of it.
+// The structure of every value of a look. A keyframable key is made keyframable by declaring its structure here: its
+// numbers and colours are its timed leaves, and the look merge and timing read nothing else of it. The key tables read
+// the keys and domains of the look objects they check from here.
 enum LookStructureTable {
     // A gradient's kind is its form and its number of stops the length of `stops`, both static; its points are
     // fractions of the shape's box, not theme lengths.
@@ -61,6 +61,8 @@ enum LookStructureTable {
         shorthands: [.on, .color(key: "color")]
     ))
 
+    // A box's `radius` and a shape's `outset`: a corner cannot curve inwards, and an outset grows the outline a shape
+    // draws around its geometry, where a smaller outline is a smaller geometry.
     static let length = ValueStructure.leaf(.length())
 
     static let textStroke = ValueStructure.object(ObjectStructure(
@@ -88,57 +90,67 @@ enum LookStructureTable {
         shorthands: [.on]
     ))
 
-    static let textStyle = ValueStructure.object(ObjectStructure([
-        ("font", .list(.leaf(.name))),
-        ("size", .leaf(.length(.positive))),
-        ("weight", .leaf(.name)),
-        ("italic", .leaf(.boolean)),
-        ("tracking", .leaf(.number())),
-        ("kerning", .leaf(.name)),
-        ("features", .map(.leaf(.staticNumber))),
-        ("baselineShift", .leaf(.length(.any))),
-        ("color", .leaf(.color)),
-        ("lineHeight", .leaf(.length(.positive))),
-        ("stroke", textStroke),
-        ("highlight", highlight),
-        ("underline", underline),
-        ("background", background),
-        ("placement", .leaf(.name)),
-        ("offset", .leaf(.length())),
-        ("align", .leaf(.name)),
-        ("lines", .leaf(.number(.positive)))
-    ]))
+    // A text style's `kerning` and `align`, which a title's `character` and `paragraph` write as well.
+    static let kerning = ValueStructure.leaf(.name(among: ["metrics", "none"]))
+    static let align = ValueStructure.leaf(.name(among: TextAlignment.allCases.map(\.rawValue)))
+
+    static let textStyle = ObjectStructure(
+        [
+            ("font", .list(.leaf(.name))),
+            ("size", .leaf(.length(.positive))),
+            ("weight", .leaf(.name)),
+            ("italic", .leaf(.boolean)),
+            ("tracking", .leaf(.number())),
+            ("kerning", kerning),
+            ("features", .map(.leaf(.staticNumber))),
+            ("baselineShift", .leaf(.length(.any))),
+            ("color", .leaf(.color)),
+            ("lineHeight", .leaf(.length(.positive))),
+            ("stroke", textStroke),
+            ("background", background),
+            ("highlight", highlight),
+            ("underline", underline),
+            ("placement", .leaf(.name(among: VocabularyTable.placementNames))),
+            ("offset", .leaf(.length())),
+            ("align", align),
+            ("lines", .leaf(.number(.positive)))
+        ],
+        checks: ["weight": .fontWeight, "features": .fontFeatures, "lines": .positiveInteger]
+    )
 
     // A title's character attributes: those that decide faces, shaping and line breaks are static.
-    static let character = ValueStructure.object(ObjectStructure([
-        ("font", .list(.leaf(.name))),
-        ("size", .leaf(LeafKind(form: .staticNumber, domain: .positive, isLength: true))),
-        ("weight", .leaf(.name)),
-        ("italic", .leaf(.boolean)),
-        ("tracking", .leaf(.number())),
-        ("kerning", .leaf(.name)),
-        ("features", .map(.leaf(.staticNumber))),
-        ("baselineShift", .leaf(.length(.any))),
-        ("color", .leaf(.color)),
-        ("stroke", textStroke),
-        ("highlight", highlight),
-        ("underline", underline)
-    ]))
+    static let character = ValueStructure.object(ObjectStructure(
+        [
+            ("font", .list(.leaf(.name))),
+            ("size", .leaf(LeafKind(form: .staticNumber, domain: .positive, isLength: true))),
+            ("weight", .leaf(.name)),
+            ("italic", .leaf(.boolean)),
+            ("tracking", .leaf(.number())),
+            ("kerning", kerning),
+            ("features", .map(.leaf(.staticNumber))),
+            ("baselineShift", .leaf(.length(.any))),
+            ("color", .leaf(.color)),
+            ("stroke", textStroke),
+            ("highlight", highlight),
+            ("underline", underline)
+        ],
+        checks: ["weight": .fontWeight, "features": .fontFeatures]
+    ))
 
     // A title's paragraph attributes: `align` is static.
     static let paragraph = ValueStructure.object(ObjectStructure([
-        ("align", .leaf(.name)),
+        ("align", align),
         ("lineHeight", .leaf(.length(.positive))),
         ("background", background)
     ]))
 
-    static let shapeStyle = ValueStructure.object(ObjectStructure([
+    static let shapeStyle = ObjectStructure([
         ("fill", fill),
         ("stroke", stroke),
         ("radius", length),
         ("outset", length),
         ("shadow", shadow)
-    ]))
+    ])
 
     static let transition = ValueStructure.choice(offNames: ["cut"])
 
@@ -188,8 +200,8 @@ enum LookStructureTable {
         ("baseWidth", .leaf(.number(.positive))),
         ("font", .list(.leaf(.name))),
         ("colors", .map(.leaf(.color))),
-        ("styles", .map(textStyle)),
-        ("shapes", .map(shapeStyle)),
+        ("styles", .map(.object(textStyle))),
+        ("shapes", .map(.object(shapeStyle))),
         ("placement", .object(ObjectStructure([("padding", length)]))),
         ("border", border),
         ("shadow", shadow),
@@ -237,10 +249,10 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, a length a theme length. Each leaf's domain is its parameter's
-    // range: `PresetReader.checkRanges` stops on a value outside it and a sample is clamped to it. A length is above 0
-    // where it holds and 0 or more once it moves, since a sampled length at 0 leaves the picture as it is. An entry
-    // written in place also takes `mix`.
+    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`.
+    // Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and a sample
+    // is clamped to it. A length is above 0 where it holds and 0 or more once it moves, since a sampled length at 0
+    // leaves the picture as it is. An entry written in place also takes `mix`.
     static func filterOperation(
         _ name: String,
         mixed: Bool = false
@@ -264,9 +276,11 @@ enum LookStructureTable {
         default: [("amount", .leaf(unit)), ("size", .leaf(length))]
         }
 
+        let required = parameters.map(\.name).filter { $0 != "color" }
+
         return mixed
-            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: ["mix": .number(1)]))
-            : .object(ObjectStructure(parameters))
+            ? .object(ObjectStructure(parameters + [("mix", mix)], required: required, plain: ["mix": .number(1)]))
+            : .object(ObjectStructure(parameters, required: required))
     }
 
     // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are
@@ -301,8 +315,8 @@ enum LookStructureTable {
         ("mix", mix)
     ])))
 
-    // An audio op's parameters in the order of the op table, each in its range with its default written. A band's
-    // `frequency` and `q` are heard by their ratio, so they move geometrically.
+    // An audio op's parameters in the order of the op table, each in its range with its default written, and those
+    // with no default required. A band's `frequency` and `q` are heard by their ratio, so they move geometrically.
     static func audioOperation(
         _ name: String,
         mixed: Bool = false
@@ -338,14 +352,20 @@ enum LookStructureTable {
             )
         }
 
+        let required = name == "eq" ? [] : parameters.map(\.name).filter { defaults[$0] == nil }
+
         return mixed
-            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: defaults.merging(["mix": .number(1)]) { $1 }))
-            : .object(ObjectStructure(parameters, plain: defaults))
+            ? .object(ObjectStructure(
+                parameters + [("mix", mix)],
+                required: required,
+                plain: defaults.merging(["mix": .number(1)]) { $1 }
+            ))
+            : .object(ObjectStructure(parameters, required: required, plain: defaults))
     }
 
     // A band is a form by its `type`, each requiring the keys its type takes but `q`, which defaults to 1/√2. A band's
     // `frequency` lies above 0 and below half of 48 kHz.
-    private static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
+    static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
         let keys: [(name: String, structure: ValueStructure)] = [
             ("frequency", .leaf(LeafKind(form: .number, domain: .between(0, 24000), interpolation: .geometric))),
             ("gain", .leaf(.number())),

@@ -102,8 +102,9 @@ struct GlyphDrawer {
 
     // MARK: - Private
     // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands. A band's end
-    // inside the rectangle, where two units' parts meet, is cut aliased, so each pixel on it goes whole to one part and
-    // no seam shows between them; an end at the rectangle's own edge cuts nothing, keeping that edge antialiased.
+    // inside the rectangle, where two units' parts meet, is cut aliased on the nearest pixel edge, so each pixel on it
+    // goes whole to one part and no seam shows between them: an aliased clip whose edge crosses a pixel takes that pixel
+    // on both sides. An end at the rectangle's own edge cuts nothing, keeping that edge antialiased.
     private func fill(
         _ rects: [Rectangle],
         radius: Double,
@@ -116,9 +117,13 @@ struct GlyphDrawer {
             if let bands, index < bands.count {
                 let band = bands[index]
                 let margin = rect.width + rect.height
-                let start = band.lowerBound > rect.x ? band.lowerBound : rect.x - margin
+                let start = band.lowerBound > rect.x
+                    ? pixelEdge(near: band.lowerBound, y: rect.y, in: context)
+                    : rect.x - margin
                 let right = rect.x + rect.width
-                let end = band.upperBound < right ? band.upperBound : right + margin
+                let end = band.upperBound < right
+                    ? pixelEdge(near: band.upperBound, y: rect.y, in: context)
+                    : right + margin
                 context.setShouldAntialias(false)
                 context.clip(to: CGRect(x: start, y: rect.y - margin, width: end - start, height: rect.height + margin * 2))
                 context.setShouldAntialias(true)
@@ -128,5 +133,15 @@ struct GlyphDrawer {
             context.fillPath()
             context.restoreGState()
         }
+    }
+
+    private func pixelEdge(
+        near x: Double,
+        y: Double,
+        in context: CGContext
+    ) -> Double {
+        let device = context.convertToDeviceSpace(CGPoint(x: x, y: y))
+
+        return context.convertToUserSpace(CGPoint(x: device.x.rounded(), y: device.y)).x
     }
 }

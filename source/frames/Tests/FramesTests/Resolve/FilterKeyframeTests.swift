@@ -222,6 +222,42 @@ struct FilterKeyframeTests {
         #expect(error.map { "\($0)" } == message)
     }
 
+    @Test("an op parameter only keyframes write passes the key tables and moves, its length scaled")
+    func movesOperationParameterFromKeyframes() throws {
+        // Given
+        let clip = #"""
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur" },
+              "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": 8 } } ] }
+            """#
+
+        // When
+        let plan = try plan(clip)
+
+        // Then
+        #expect(plan.storyline[0].filter.filter(at: 1) == [FilterEntry(operations: [.blur(radius: 4 * scale)])])
+    }
+
+    @Test(
+        "an op parameter that neither the op, written on the clip or as the theme's default, nor its keyframes write stops",
+        arguments: [
+            (#""filter": { "op": "blur" },"#, #""mine/grade""#, "storyline[0].filter"),
+            (#""filter": [ "mine/grade", { "op": "sharpen", "amount": 1 } ],"#, #""mine/grade""#, "storyline[0].filter[1]"),
+            ("", #"{ "op": "blur" }"#, "storyline[0].filter")
+        ]
+    )
+    func refusesMissingOperationParameter(
+        filter: String,
+        defaults: String,
+        place: String
+    ) throws {
+        // Given
+        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, \#(filter) "keyframes": [] }"#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(clip, defaults: defaults) }
+        #expect(error.map { "\($0)" } == "\(place) (video): missing key \"radius\", which the clip does not write and no theme layer gives")
+    }
+
     @Test("an in-place blur radius two keyframes write, one of them null, may be 0 at the other")
     func movesOperationInPlaceFromZero() throws {
         // Given

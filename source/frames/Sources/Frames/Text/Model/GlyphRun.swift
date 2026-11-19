@@ -5,12 +5,14 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Glyphs of one line set in one face and size, all of one text run, whose index among the text's runs is `source`. `highlights` and `underlines` are the pieces of the text run's highlight and underline on this
-// line, held by the first glyph run of the text run on it: a highlight piece from the run's ascent to its descent
+// Glyphs of one line set in one face and size, all of one text run, whose index among the text's runs is `source`, and
+// whose line is the `line`th of the text. `highlights` and `underlines` are the pieces of the text run's highlight and
+// underline on this line, held by the first glyph run of the text run on it: a highlight piece from the run's ascent to its descent
 // without padding, an underline piece on the baseline.
 struct GlyphRun: Equatable, Sendable {
     // MARK: - Property
     let source: Int
+    let line: Int
     let face: FontFace
     let size: Double
     let glyphs: [PositionedGlyph]
@@ -20,6 +22,7 @@ struct GlyphRun: Equatable, Sendable {
     // MARK: - Initializer
     init(
         source: Int,
+        line: Int,
         face: FontFace,
         size: Double,
         glyphs: [PositionedGlyph],
@@ -27,6 +30,7 @@ struct GlyphRun: Equatable, Sendable {
         underlines: [UnderlinePiece] = []
     ) {
         self.source = source
+        self.line = line
         self.face = face
         self.size = size
         self.glyphs = glyphs

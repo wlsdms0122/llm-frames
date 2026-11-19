@@ -57,7 +57,7 @@ struct TitleGroupTests {
         #expect(self.glyphs(of: list.items[8])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[3..<5]))
     }
 
-    @Test("each unit's reveal wipes its own box on its own schedule, and the background shows whole")
+    @Test("each unit's reveal wipes what it draws, its box, on its own schedule, and the background shows whole")
     func revealsEachUnit() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
@@ -71,11 +71,51 @@ struct TitleGroupTests {
         )
 
         // Then
+        // Each unit's box, from its glyphs grown by 2 for half its stroke, is all the unit draws: "ab" from 0 to 40 and
+        // "cd" from 50 to 90, each from -32 to 8 about the baseline at 32.
         let first = text.unitBox(of: 0, at: 0.25)
         let second = text.unitBox(of: 1, at: 0.25)
+        #expect(first == Rectangle(x: -2, y: -2, width: 44, height: 44))
+        #expect(second == Rectangle(x: 48, y: -2, width: 44, height: 44))
         #expect(list.items[0].reveal == nil)
-        #expect(list.items[1].reveal == Rectangle(x: first.x, y: first.y, width: first.width / 2, height: first.height))
-        #expect(list.items[2].reveal == Rectangle(x: second.x, y: second.y, width: 0, height: second.height))
+        #expect(list.items[1].reveal == Rectangle(x: -2, y: -2, width: 22, height: 44))
+        #expect(list.items[2].reveal == Rectangle(x: 48, y: -2, width: 0, height: 44))
+    }
+
+    @Test("a unit fully revealed is not cut, and one entering wipes its box, which holds its stroke and its part of the highlight")
+    func leavesRevealedUnitWhole() throws {
+        // Given
+        let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
+        let clip = try resolvedClip(#"""
+            { "title": "ab cd", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000", "padding": [4, 10] } } }
+            """#)
+        let text = try title(of: clip)
+
+        // When
+        let list = try group(
+            of: animated(clip, entrance: AnimationSpan(length: 0.5, span: wipe), stagger: 0.5),
+            at: 0.75
+        )
+
+        // Then
+        // "ab" has entered, and "cd" is half way. The box of "cd", from 50 to 90 and from 0 to 40, grows by 2 for its
+        // stroke, then to the highlight's padding of 4 above and below and 10 past the piece's end at 90, and holds its
+        // part of the piece cut to its band.
+        let second = text.unitBox(of: 1, at: 0.75)
+        let carried = try #require(highlight(of: list.items[2]))
+        let band = try #require(carried.bands?.first)
+        let piece = try #require(carried.rects.first)
+        let part = Rectangle(
+            x: max(band.lowerBound, piece.x),
+            y: piece.y,
+            width: min(band.upperBound, piece.maxX) - max(band.lowerBound, piece.x),
+            height: piece.height
+        )
+        #expect(second == Rectangle(x: 48, y: -4, width: 52, height: 48))
+        #expect(second.union(part) == second)
+        #expect(list.items[1].reveal == nil)
+        #expect(list.items[2].reveal == Rectangle(x: 48, y: -4, width: 26, height: 48))
     }
 
     @Test("a highlighted word enters with its word, carrying its part of the piece drawn whole and cut to its band")
@@ -153,13 +193,12 @@ struct TitleGroupTests {
         ])
     }
 
-    @Test("the loop's reveal cuts the whole title in its box: the background, and each unit to the part of its box it shows")
+    @Test("the loop's reveal cuts the whole title in its box: the background and each resting unit alike")
     func revealsLoopOnTitle() throws {
         // Given
         let keys = [SpanKey(t: 0, values: [.reveal: 0.5]), SpanKey(t: 1, values: [.reveal: 0.5])]
         let half = Span(ease: .linear, keys: keys)
         let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
-        let text = try title(of: clip)
         let animation = { (stagger: Double?) in
             self.animated(clip, entrance: self.fade, loop: AnimationSpan(length: 1, span: half), stagger: stagger)
         }
@@ -173,11 +212,8 @@ struct TitleGroupTests {
         // Then
         // The title draws -2 to 92 with its stroke, so the loop shows -2 to 45: all of "ab" and none of "cd".
         let reveal = try #require(title.reveal)
-        let second = text.unitBox(of: 1, at: 1)
         #expect(reveal == Rectangle(x: -2, y: -2, width: 47, height: 44))
-        #expect(list.items[0].reveal == reveal)
-        #expect(list.items[1].reveal == reveal.intersection(text.unitBox(of: 0, at: 1)))
-        #expect(list.items[2].reveal == Rectangle(x: second.x, y: second.y, width: 0, height: 0))
+        #expect(list.items.map(\.reveal) == Array(repeating: reveal, count: 9))
     }
 
     @Test("a title's group reads back as written, each unit's item with its layer and its bands")

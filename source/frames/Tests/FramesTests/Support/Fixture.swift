@@ -118,6 +118,10 @@ enum Fixture {
                     "squash": { "type": "number", "default": 3, "description": "the ratio" } },
                   "ops": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": { "param": "cut" } } ] },
                            { "op": "compressor", "threshold": -18, "ratio": { "param": "squash" } } ] }
+                """#,
+            "mine/gate": #"""
+                { "description": "", "params": { "attack": { "type": "number", "default": 0.01, "description": "the attack" } },
+                  "ops": [ { "op": "gate", "threshold": -40, "attack": { "param": "attack" } } ] }
                 """#
         ]
     )
