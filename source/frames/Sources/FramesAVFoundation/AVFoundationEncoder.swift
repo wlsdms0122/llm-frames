@@ -16,9 +16,9 @@ import Frames
 // with AVAssetWriter, each straight to its path. An image's working values are scaled to its target's size by Core
 // Graphics at high interpolation, encoded by its target's output (FRAMES-26 Output) and tagged with the output's
 // Core Graphics space, its premultiplied colour written as straight alpha by ImageIO: a PNG at its target's depth, a
-// HEIC at 16 bits in an HDR space, which ImageIO writes as 10, and at 8 in an SDR one, and a JPEG at 8 over white. A
-// PNG written to a path alone is `srgb` at its bitmap's depth. No properties but the picture's own go into an image. A
-// wait on a video or sound writer longer than `deadline` seconds cancels it.
+// HEIC at 16 bits in an HDR space, which ImageIO writes as 10, and at 8 in an SDR one, and a JPEG at 8 over white. An
+// analysis picture is an 8-bit PNG with an sRGB chunk. No properties but the picture's own go into an image. A wait on
+// a video or sound writer longer than `deadline` seconds cancels it.
 package final class AVFoundationEncoder: Sendable {
     // MARK: - Property
     private let deadline: Double
@@ -238,13 +238,22 @@ extension AVFoundationEncoder: Encoder {
         }
     }
 
-    package func writeImage(
-        _ bitmap: Bitmap,
+    package func writeAnalysisPicture(
+        of frame: Bitmap,
+        in output: ColorConversion,
         to path: String
     ) throws {
-        let size = Size(width: Double(bitmap.width), height: Double(bitmap.height))
+        let picture = try image(
+            of: frame,
+            width: frame.width,
+            height: frame.height,
+            depth: .eight,
+            space: ColorSpace.srgb.imageSpace,
+            isOpaque: false,
+            path: path
+        ) { output.analysis($0) }
 
-        try writeImage(bitmap, for: .png(path: path, size: size, depth: bitmap.depth == .eight ? .eight : .sixteen))
+        try write(picture, type: .png, properties: [:], to: path)
     }
 
     package func writeImage(

@@ -43,11 +43,12 @@ struct RecordingEncoder: Encoder {
         guard !refuses else { throw RoleRefusal.encoder }
     }
 
-    func writeImage(
-        _ bitmap: Bitmap,
+    func writeAnalysisPicture(
+        of frame: Bitmap,
+        in output: ColorConversion,
         to path: String
     ) throws {
-        log.record(.writeImage(path: path, frame: bitmap.frame))
+        log.record(.writeAnalysisPicture(path: path, frame: frame.frame, output: output))
     }
 
     func writeImage(

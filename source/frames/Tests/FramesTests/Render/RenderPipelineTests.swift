@@ -222,28 +222,35 @@ struct RenderPipelineTests {
         #expect(drawn.count == 5)
     }
 
-    @Test("a PNG is the frame at `--at`, 0 when it is left out, checked and written once", arguments: [
-        (nil as Double?, 0),
-        (1.25, 2),
-        (1.99, 3)
-    ])
+    @Test(
+        "a PNG is the frame at `--at`, 0 when it is left out, checked and written once at 16 bits in the sequence's space",
+        arguments: [
+            (nil as Double?, 0),
+            (1.25, 2),
+            (1.99, 3)
+        ]
+    )
     func rendersFrameToPNG(
         time: Double?,
         frame: Int
     ) throws {
         // Given
+        let directory = try TemporaryDirectory()
         let log = RoleCallLog()
         let sut = pipeline(log: log)
+        let output = directory.file("out.png")
 
         // When
-        try sut.render(sequence(fps: 2, duration: 2), to: image, at: time, delivery: nil)
+        try sut.render(sequence(fps: 2, duration: 2), to: output, at: time, delivery: nil)
 
         // Then
+        let target = ImageTarget.png(path: output, size: size, depth: .sixteen)
         #expect(log.calls == [
             .checkMedia(path: "/abs/run.mp4"),
             .checkList(frame: frame),
+            .checkImageTarget(target),
             .draw(frame: frame),
-            .writeImage(path: image, frame: frame)
+            .writeImageTarget(target, frame: frame)
         ])
     }
 

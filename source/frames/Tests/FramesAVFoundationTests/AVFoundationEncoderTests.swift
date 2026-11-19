@@ -278,7 +278,7 @@ struct AVFoundationEncoderTests {
     }
 
     @Test(
-        "a PNG has the bitmap's bit depth, an sRGB chunk, and its premultiplied colour as straight alpha",
+        "a PNG has its target's bit depth, an sRGB chunk, and its premultiplied colour as straight alpha",
         arguments: [BitDepth.sixteen, BitDepth.eight]
     )
     func writesImage(depth: BitDepth) throws {
@@ -292,7 +292,7 @@ struct AVFoundationEncoderTests {
         let bitmap = Bitmap(width: 2, height: 1, depth: depth, bytesPerRow: pixels.count, pixels: pixels)
 
         // When
-        try sut.writeImage(bitmap, to: path)
+        try sut.writeImage(bitmap, for: .png(path: path, size: Size(width: 2, height: 1), depth: depth))
 
         // Then
         let chunks = try pngChunks(at: path)
@@ -317,7 +317,7 @@ struct AVFoundationEncoderTests {
 
         // When
         #expect(throws: EncoderError.self) {
-            try sut.writeImage(frame(), to: path)
+            try sut.writeAnalysisPicture(of: frame(), in: ColorConversion(space: .srgb), to: path)
         }
 
         // Then
