@@ -20,6 +20,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case soundWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case pictureOffWithoutSound(place: Place, kind: PlaceKind)
     case audioFilterWithoutSound(place: Place, kind: PlaceKind)
+    case splitWithoutSound(place: Place, kind: PlaceKind)
+    // `place` names the edge, `split.before` or `split.after`.
+    case splitPastMedia(place: Place, kind: PlaceKind)
+    case splitOutsideSequence(place: Place, kind: PlaceKind)
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
@@ -119,6 +123,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .audioFilterWithoutSound(place, kind):
             "\(place) (\(kind.label)): this clip plays no sound, so \"audioFilter\" would do nothing"
+
+        case let .splitWithoutSound(place, kind):
+            "\(place) (\(kind.label)): this clip plays no sound, so a split has no sound to move"
+
+        case let .splitPastMedia(place, kind):
+            "\(place) (\(kind.label)): the split moves the clip's sound past where its media holds sound"
+
+        case let .splitOutsideSequence(place, kind):
+            "\(place) (\(kind.label)): the split moves the clip's sound outside the sequence"
 
         case let .rangeWithTimeRemap(place, kind, key):
             "\(place) (\(kind.label)): a media clip with \"timeRemap\" takes no \"\(key)\", since its keys give the "

@@ -9,8 +9,13 @@
 extension Crossfade {
     // MARK: - Property
     // MARK: - Initializer
-    init(plan: TransitionPlan) {
-        self.init(range: plan.range, curve: plan.definition.audio)
+    // A clip's own side of the crossfade moves with its sound's edge, by `offset` seconds.
+    init(
+        plan: TransitionPlan,
+        movedBy offset: Double = 0
+    ) {
+        let range = TimeRange(start: plan.range.start + offset, end: plan.range.end + offset)
+        self.init(range: range, curve: plan.definition.audio)
     }
 
     // MARK: - Public

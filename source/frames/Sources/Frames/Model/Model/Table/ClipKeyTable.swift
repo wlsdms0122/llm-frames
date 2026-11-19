@@ -25,7 +25,6 @@ enum ClipKeyTable {
         return ObjectTable(kind: kind.label, rules: rules)
     }
 
-    // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
     // A media clip of a video or a compound clip written with `"picture": false`, which takes only its media's sound
     // and so an audio clip's keys, and `picture`.
     // A compound clip's or a template instance's sound is a mix of several sounds, which takes no `audioFilter`.
@@ -49,6 +48,7 @@ enum ClipKeyTable {
         return ObjectTable(kind: audio.kind, rules: rules + [picture])
     }
 
+    // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
     static func choice(ofKey name: String) -> ValueType? {
         switch name {
         case "animation":
@@ -177,7 +177,7 @@ enum ClipKeyTable {
             return [
                 "id", "metadata", "media", "in", "out", "speed", "crop", "filter", "transition", "anchor", "position",
                 "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius", "border", "shadow",
-                "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "keyframes", "connected"
+                "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes", "connected"
             ]
 
         case (_, .solid):
@@ -199,7 +199,7 @@ enum ClipKeyTable {
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
                 "media", "picture", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "audioFilter",
-                "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height",
+                "split", "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height",
                 "radius", "border", "shadow"
             ]
 
@@ -329,6 +329,12 @@ enum ClipKeyTable {
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":
             .signedFraction
+
+        case "split":
+            .object(ObjectTable(
+                kind: "split",
+                rules: [KeyRule("before", .nonNegativeNumber), KeyRule("after", .nonNegativeNumber)]
+            ))
 
         default:
             choice(ofKey: name) ?? .number

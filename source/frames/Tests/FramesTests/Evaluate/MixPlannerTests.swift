@@ -148,6 +148,18 @@ struct MixPlannerTests {
         #expect(segment.envelope == envelope([[0, 0], [0.25, 1], [1, 1], [1.5, 0.5], [2, 0]]))
     }
 
+    @Test("a looping sound a split starts before its origin plays the media before `in` there, then repeats from `in`")
+    func playsLeadOfLoop() {
+        // Given
+        let audio = [sound(music, in: 2, origin: 3, out: 4, loop: true, start: 2, end: 6, audible: TimeRange(start: 2, end: 6))]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 2, duration: 6))
+
+        // Then
+        #expect(plan.segments.map { [$0.start, $0.end, $0.mediaStart] } == [[2, 3, 1], [3, 5, 2], [5, 6, 2]])
+    }
+
     @Test("over a constant-gain transition the outgoing sound fades out and the incoming one in linearly, in entry order")
     func crossfadesOverTransition() {
         // Given

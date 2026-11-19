@@ -190,7 +190,8 @@ struct SequenceReader: Sendable {
             fadeIn: clip["fadeIn"]?.numberValue,
             fadeOut: clip["fadeOut"]?.numberValue,
             picture: clip["picture"]?.boolValue,
-            audioFilter: look("audioFilter", of: clip)
+            audioFilter: look("audioFilter", of: clip),
+            split: clip["split"]?.objectValue.map(SplitEdit.init)
         )
     }
 

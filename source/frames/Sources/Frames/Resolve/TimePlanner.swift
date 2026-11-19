@@ -160,7 +160,8 @@ struct TimePlanner: Sendable {
             ("pan", clipMedia.pan != nil),
             ("fadeIn", clipMedia.fadeIn != nil),
             ("fadeOut", clipMedia.fadeOut != nil),
-            ("audioFilter", clipMedia.audioFilter != nil)
+            ("audioFilter", clipMedia.audioFilter != nil),
+            ("split", clipMedia.split != nil)
         ]
         if let written = sound.first(where: \.isWritten) {
             throw ResolveError.soundWithTimeRemap(
