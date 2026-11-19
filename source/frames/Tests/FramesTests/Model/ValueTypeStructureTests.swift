@@ -175,7 +175,7 @@ struct ValueTypeStructureTests {
             "hue": [number("degrees")],
             "sepia": [number("amount")],
             "levels": [KeyRule("input", .numbers(2, .any)), KeyRule("output", .numbers(2, .any))],
-            "lut": [KeyRule("file", .name), number("amount"), KeyRule("space", .literal(VocabularyTable.colorSpaces))],
+            "lut": [KeyRule("file", .name), number("amount"), KeyRule("space", .literal(VocabularyTable.lookUpTableSpaces))],
             "blur": [number("radius")],
             "sharpen": [number("amount"), number("radius")],
             "bloom": [number("amount"), number("radius"), KeyRule("color", .color)],
