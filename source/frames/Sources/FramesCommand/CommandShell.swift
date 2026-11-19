@@ -81,7 +81,7 @@ package struct CommandShell: Sendable {
         let scanner = ArgumentScanner(
             command: command.name,
             rules: Selected.Options.rules,
-            placeholders: Selected.Options.placeholders
+            positionals: Selected.Options.positionals
         )
 
         try command.run(Selected.Options(scanner.scan(arguments)), in: context)

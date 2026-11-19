@@ -28,6 +28,14 @@ struct RoleTable<Builder: Sendable>: Sendable {
     }
 
     // MARK: - Public
+    var rule: OptionRule {
+        OptionRule(
+            option,
+            value: "<name>",
+            help: "The \(role). Known: \(builders.keys.sorted().joined(separator: ", ")). Default: \(defaultName)."
+        )
+    }
+
     func builder(named name: String?) throws -> Builder {
         let wanted = name ?? defaultName
         guard let builder = builders[wanted] else {

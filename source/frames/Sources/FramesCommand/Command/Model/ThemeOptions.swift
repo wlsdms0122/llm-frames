@@ -8,7 +8,7 @@
 struct ThemeOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []
-    static let placeholders: [String] = []
+    static let positionals: [PositionalRule] = []
 
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws { }

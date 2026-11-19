@@ -11,22 +11,22 @@ struct ArgumentScanner: Sendable {
     // MARK: - Property
     private let command: String
     private let rules: [OptionRule]
-    private let placeholders: [String]
+    private let positionals: [PositionalRule]
 
     // MARK: - Initializer
     init(
         command: String,
         rules: [OptionRule],
-        placeholders: [String]
+        positionals: [PositionalRule]
     ) {
         self.command = command
         self.rules = rules
-        self.placeholders = placeholders
+        self.positionals = positionals
     }
 
     // MARK: - Public
     func scan(_ arguments: [String]) throws -> ScannedArguments {
-        var positionals: [String] = []
+        var scanned: [String] = []
         var values: [String: String] = [:]
         var flags: Set<String> = []
         var index = arguments.startIndex
@@ -34,11 +34,11 @@ struct ArgumentScanner: Sendable {
             let argument = arguments[index]
             index += 1
             guard isOption(argument) else {
-                guard positionals.count < placeholders.count else {
+                guard scanned.count < positionals.count else {
                     throw CommandError.unexpectedArgument(command: command, argument: argument)
                 }
 
-                positionals.append(argument)
+                scanned.append(argument)
                 continue
             }
             guard let rule = rules.first(where: { $0.name == argument }) else {
@@ -61,9 +61,9 @@ struct ArgumentScanner: Sendable {
 
         return ScannedArguments(
             command: command,
-            placeholders: placeholders,
+            placeholders: positionals.map(\.placeholder),
             rules: rules,
-            positionals: positionals,
+            positionals: scanned,
             values: values,
             flags: flags
         )

@@ -12,14 +12,31 @@ struct OCROptions: CommandOptions, Equatable {
     private static let rangeOptions = ["--from", "--to", "--step"]
 
     static let rules = [
-        OptionRule("--at", value: "<t>"),
-        OptionRule("--from", value: "<t>"),
-        OptionRule("--to", value: "<t>"),
-        OptionRule("--step", value: "<s>"),
-        OptionRule("--languages", value: "<tag>[,<tag>...]"),
-        OptionRule("--json")
+        OptionRule(
+            "--at",
+            value: "<t>",
+            help: "The media time of the frame of a video read, in [0, duration). Default: 0."
+        ),
+        OptionRule.from,
+        OptionRule.to,
+        OptionRule(
+            "--step",
+            value: "<s>",
+            help: "The seconds between the frames of a range, at least a microsecond. A range needs it."
+        ),
+        OptionRule(
+            "--languages",
+            value: "<tag>[,<tag>...]",
+            help: "The recognition languages, BCP 47 tags in order of preference. Default: the global --ocr-languages."
+        ),
+        OptionRule.json
     ]
-    static let placeholders = ["<image | video>"]
+    static let positionals = [
+        PositionalRule(
+            "<image | video>",
+            help: "An image, read whole, or a video, read at --at or over a range, as an absolute path."
+        )
+    ]
 
     let media: String
     let selection: TimeSelection

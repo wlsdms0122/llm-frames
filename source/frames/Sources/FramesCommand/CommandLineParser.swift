@@ -12,15 +12,18 @@ import Frames
 struct CommandLineParser: Sendable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--theme", value: "<pack/name | /abs/theme.json>"),
-        OptionRule("--decoder", value: "<name>"),
-        OptionRule("--renderer", value: "<name>"),
-        OptionRule("--mixer", value: "<name>"),
-        OptionRule("--encoder", value: "<name>"),
-        OptionRule("--shaper", value: "<name>"),
-        OptionRule("--tracker", value: "<name>"),
-        OptionRule("--ocr", value: "<name>"),
-        OptionRule("--ocr-languages", value: "<tag>[,<tag>...]")
+        OptionRule(
+            "--theme",
+            value: "<pack/name | /abs/theme.json>",
+            help: "A theme merged under every document's own theme: a pack theme or a JSON file as an absolute path."
+        )
+    ] + RoleFactory().rules + [
+        OptionRule(
+            "--ocr-languages",
+            value: "<tag>[,<tag>...]",
+            help: "The OCR provider's recognition languages, BCP 47 tags in order of preference. "
+                + "Without it the provider detects the language of each picture."
+        )
     ]
 
     private static let version = "--version"

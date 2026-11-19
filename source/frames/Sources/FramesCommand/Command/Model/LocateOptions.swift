@@ -10,11 +10,11 @@ import Frames
 struct LocateOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--at", value: "<t>"),
-        OptionRule("--point", value: "<x,y>"),
-        OptionRule("--args", value: "<args.json>")
+        OptionRule("--at", value: "<t>", help: "The sequence time, in [0, duration)."),
+        OptionRule("--point", value: "<x,y>", help: "The point of the output, in its pixels."),
+        OptionRule.arguments
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let time: Double

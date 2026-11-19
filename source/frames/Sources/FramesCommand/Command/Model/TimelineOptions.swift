@@ -8,10 +8,10 @@
 struct TimelineOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--args", value: "<args.json>"),
-        OptionRule("--json")
+        OptionRule.arguments,
+        OptionRule.json
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let arguments: String?

@@ -8,12 +8,24 @@
 struct RenderOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("-o", value: "<out.mov | out.png>"),
-        OptionRule("--at", value: "<t>"),
-        OptionRule("--deliver", value: "<out.mp4>"),
-        OptionRule("--args", value: "<args.json>")
+        OptionRule(
+            "-o",
+            value: "<out.mov | out.png>",
+            help: "The file written: a .mov master of every frame, or a .png of one frame, as an absolute path."
+        ),
+        OptionRule(
+            "--at",
+            value: "<t>",
+            help: "The sequence time of the frame a .png holds, in [0, duration). Only with a .png. Default: 0."
+        ),
+        OptionRule(
+            "--deliver",
+            value: "<out.mp4>",
+            help: "An .mp4 delivery also written from the same frames. Only with a .mov."
+        ),
+        OptionRule.arguments
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let output: String
