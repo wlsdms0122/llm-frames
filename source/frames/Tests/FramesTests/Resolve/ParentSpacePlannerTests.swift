@@ -136,8 +136,8 @@ struct ParentSpacePlannerTests {
         let beside = Point(x: total.x + total.width + Self.padding, y: total.center.y)
         let numbers = try #require(positions.first)
         let text = try #require(positions.last)
-        #expect(numbers.value == Point(x: 300, y: 100))
-        #expect(isClose(text.value, beside), "the text keyframe is at \(text.value), the text's right at \(beside)")
+        #expect(numbers.value == .point(Point(x: 300, y: 100)))
+        #expect(isClose(text.value.fixed, beside), "the text keyframe is at \(text.value), the text's right at \(beside)")
     }
 
     @Test(
@@ -304,9 +304,9 @@ struct ParentSpacePlannerTests {
             return
         }
         let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
-        let expected = try #require(card.inverse).apply(to: onScreen[0])
-        #expect(isClose(underCard[0], expected), "the point is \(underCard[0]), carried back \(expected)")
-        #expect(underCard[1] == Point(x: 0, y: 0))
+        let expected = try #require(card.inverse).apply(to: onScreen[0].fixed)
+        #expect(isClose(underCard[0].fixed, expected), "the point is \(underCard[0]), carried back \(expected)")
+        #expect(underCard[1] == .point(Point(x: 0, y: 0)))
     }
 
     @Test("a chain of 64 shapes, each finding its area by text under the one before, resolves and evaluates in place")

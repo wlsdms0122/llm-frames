@@ -12,9 +12,9 @@
 // or a shape given by `width` and `height` is drawn, and `position` the anchor point it was found from.
 struct ClipGeometry: Equatable, Sendable {
     // MARK: - Property
-    let area: PropertyValue<FoundArea>?
-    let points: PropertyValue<[Point]>?
-    let position: PropertyValue<Point>?
+    let area: PropertyValue<AreaValue>?
+    let points: PropertyValue<[GeometryPoint]>?
+    let position: PropertyValue<GeometryPoint>?
     let box: ClipBox?
     let crop: PropertyValue<FoundArea>?
     let mask: [ResolvedMask]?
@@ -26,9 +26,9 @@ struct ClipGeometry: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
-        area: PropertyValue<FoundArea>?,
-        points: PropertyValue<[Point]>? = nil,
-        position: PropertyValue<Point>?,
+        area: PropertyValue<AreaValue>?,
+        points: PropertyValue<[GeometryPoint]>? = nil,
+        position: PropertyValue<GeometryPoint>?,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
         mask: [ResolvedMask]?,

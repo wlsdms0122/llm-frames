@@ -45,7 +45,7 @@ indirect enum TimedValue: Equatable, Sendable {
 
         case let (.object(members), _):
             return .object(Dictionary(
-                members.map { ($0.key, $0.value.sampled(at: time, as: Self.structure(of: $0.key, in: structure))) },
+                members.map { ($0.key, $0.value.sampled(at: time, as: structure.structure(ofMember: $0.key))) },
                 uniquingKeysWith: { first, _ in first }
             ))
 
@@ -69,19 +69,4 @@ indirect enum TimedValue: Equatable, Sendable {
     }
 
     // MARK: - Private
-    private static func structure(
-        of key: String,
-        in structure: ValueStructure
-    ) -> ValueStructure {
-        switch structure {
-        case let .object(object):
-            object.structure(of: key) ?? .anyValue
-
-        case let .map(element):
-            element
-
-        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
-            .anyValue
-        }
-    }
 }

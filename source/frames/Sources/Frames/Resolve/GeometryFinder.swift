@@ -20,7 +20,8 @@ struct GeometryFinder: Sendable {
     }
 
     // MARK: - Public
-    // `instant` is in sequence time and `clock` is the clip's, which its keyframes are written on.
+    // `instant` is in sequence time and `clock` is the clip's, which its keyframes are written on. A clip area is
+    // kept, its padding a theme length times `lengthScale`.
     func areas(
         _ property: PropertyValue<AreaForm>,
         key: String,
@@ -28,17 +29,22 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
+        lengthScale: Double,
         place: Place,
         kind: String
-    ) throws -> PropertyValue<FoundArea> {
+    ) throws -> PropertyValue<AreaValue> {
         try values(property, key: key, clock: clock, instant: instant, place: place) { form, time, place in
-            try area(
+            if case let .clip(clip, padding) = form {
+                return .clip(ClipArea(clip: clip, padding: padding * lengthScale))
+            }
+
+            return .found(try area(
                 form,
                 in: picture,
                 at: pictureClock.mediaTime(atSequenceTime: time),
                 place: place,
                 kind: kind
-            )
+            ))
         }
     }
 
@@ -76,11 +82,19 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
+        lengthScale: Double,
         place: Place,
         kind: String
-    ) throws -> PropertyValue<Point> {
+    ) throws -> PropertyValue<GeometryPoint> {
         try values(property, key: "position", clock: clock, instant: instant, place: place) { form, time, place in
-            try point(form, in: picture, at: pictureClock.mediaTime(atSequenceTime: time), place: place, kind: kind)
+            try point(
+                form,
+                in: picture,
+                at: pictureClock.mediaTime(atSequenceTime: time),
+                lengthScale: lengthScale,
+                place: place,
+                kind: kind
+            )
         }
     }
 
@@ -91,15 +105,17 @@ struct GeometryFinder: Sendable {
         pictureClock: PictureClock,
         clock: TimeMap,
         instant: Double,
+        lengthScale: Double,
         place: Place,
         kind: String
-    ) throws -> PropertyValue<[Point]> {
+    ) throws -> PropertyValue<[GeometryPoint]> {
         try values(property, key: "points", clock: clock, instant: instant, place: place) { forms, time, place in
             try forms.enumerated().map { index, form in
                 try point(
                     form,
                     in: picture,
                     at: pictureClock.mediaTime(atSequenceTime: time),
+                    lengthScale: lengthScale,
                     place: place.appending(index: index),
                     kind: kind
                 )
@@ -135,6 +151,21 @@ struct GeometryFinder: Sendable {
     }
 
     // MARK: - Private
+    private func point(
+        _ form: PositionForm,
+        in picture: Picture,
+        at mediaTime: Double,
+        lengthScale: Double,
+        place: Place,
+        kind: String
+    ) throws -> GeometryPoint {
+        guard case let .area(.clip(clip, padding), name) = form else {
+            return .point(try point(form, in: picture, at: mediaTime, place: place, kind: kind))
+        }
+
+        return .clip(ClipArea(clip: clip, padding: padding * lengthScale), point: name)
+    }
+
     private func values<Form, Found>(
         _ property: PropertyValue<Form>,
         key: String,

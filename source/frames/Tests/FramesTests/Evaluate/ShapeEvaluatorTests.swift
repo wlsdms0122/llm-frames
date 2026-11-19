@@ -113,7 +113,7 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: Self.area)],
+                [Keyframe(at: 0, value: .rectangle(Self.area))],
                 outset: 0,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
@@ -144,7 +144,7 @@ struct ShapeEvaluatorTests {
         // The anchor is the box's bottom right, at (80, 40).
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 80, y: 40))],
             anchor: Point(x: 40, y: 20)
         )
         let shape = boxShape(kind: .rect, width: [Keyframe(at: 0, value: 40)])
@@ -170,7 +170,7 @@ struct ShapeEvaluatorTests {
         // The anchor is the middle of the box's right side, at (80, 30), and the width goes from 40 to 80.
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 80, y: 30))],
             anchor: Point(x: 40, y: 10)
         )
         let shape = boxShape(kind: .ellipse, width: [Keyframe(at: 0, value: 40), Keyframe(at: 2, value: 80)])
@@ -229,7 +229,7 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: Self.area)],
+                [Keyframe(at: 0, value: .rectangle(Self.area))],
                 outset: 4,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
@@ -284,7 +284,7 @@ struct ShapeEvaluatorTests {
         ]))
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: trim)],
             fill: .off,
@@ -323,7 +323,7 @@ struct ShapeEvaluatorTests {
         let stroke = PathStroke(width: 2, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
             fill: .off,
@@ -350,7 +350,7 @@ struct ShapeEvaluatorTests {
         // Given
         let shape = ResolvedShape(
             kind: .ellipse,
-            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
+            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
             fill: .off,
@@ -415,7 +415,7 @@ struct ShapeEvaluatorTests {
     ) -> ResolvedClip {
         let box = ResolvedBox(
             size: Size(width: 40, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 40, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 60, y: 30))],
             anchor: Point(x: 20, y: 10)
         )
         let shape = switch placement {
@@ -429,7 +429,7 @@ struct ShapeEvaluatorTests {
             ResolvedShape(
                 kind: .path,
                 geometry: .points(
-                    [Keyframe(at: 0, value: [Point(x: 40, y: 20), Point(x: 80, y: 40)])],
+                    [Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])],
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),
@@ -443,7 +443,7 @@ struct ShapeEvaluatorTests {
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
-                geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
+                geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
                 radius: 2,
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: .off,

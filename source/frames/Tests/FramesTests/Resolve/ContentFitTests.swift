@@ -35,8 +35,9 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == size)
-        #expect(plan.storyline[0].appearance.box?.size == size)
-        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 0, y: 0)))
+        let box = plan.storyline[0].appearance.box
+        #expect(box?.size == size)
+        #expect(box?.position == box.map { .value(.point($0.anchor)) })
     }
 
     @Test("a later storyline crop conforms to the box of the first, which does not scale it to the frame")
@@ -71,7 +72,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.clips[0].box == ClipBox(
             size: Size(width: 1080, height: 1350),
-            position: .value(Point(x: 0, y: 0)),
+            position: .value(Point(x: 540, y: 675)),
             anchor: Point(x: 540, y: 675)
         ))
         #expect(plan.clips[1].box?.size == Size(width: 200, height: 100))
@@ -98,7 +99,7 @@ struct ContentFitTests {
 
         // Then
         #expect(box.size.width == boxWidth)
-        #expect(box.position == .value(Point(x: 1200, y: 0)))
+        #expect(box.position == .value(.point(Point(x: 1200, y: 0))))
         #expect(plan.format.size == Size(width: (right / 2).rounded(.up) * 2, height: 800))
     }
 
@@ -129,16 +130,16 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 450, height: 350))
-        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 50, y: 50)))
-        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 50, y: 50, width: 100, height: 100))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 250, y: 200))))
+        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 50, y: 50, width: 100, height: 100))
     }
 
     @Test(
         "the margin is added round the content in each of its forms, which moves the content by its left and top",
         arguments: [
-            ("10", Size(width: 320, height: 220), Point(x: 10, y: 10)),
-            ("[10, 20]", Size(width: 340, height: 220), Point(x: 20, y: 10)),
-            ("[2, 4, 6, 8]", Size(width: 312, height: 208), Point(x: 8, y: 2))
+            ("10", Size(width: 320, height: 220), Point(x: 160, y: 110)),
+            ("[10, 20]", Size(width: 340, height: 220), Point(x: 170, y: 110)),
+            ("[2, 4, 6, 8]", Size(width: 312, height: 208), Point(x: 158, y: 102))
         ]
     )
     func addsMargin(
@@ -155,7 +156,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == size)
         #expect(plan.format.margin != nil)
-        #expect(plan.storyline[0].appearance.box?.position == .value(position))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(position)))
     }
 
     @Test(
@@ -189,10 +190,10 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 410, height: 258))
-        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 105, y: 54)))
-        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4.5, y: 4, width: 50, height: 50))
-        #expect(plan.clips[1].position == .value(Point(x: 105, y: 54)))
-        #expect(plan.clips[1].box?.position == .value(Point(x: 55, y: 4)))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 255, y: 154))))
+        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 4.5, y: 4, width: 50, height: 50))
+        #expect(plan.clips[1].position == .value(.point(Point(x: 105, y: 54))))
+        #expect(plan.clips[1].box?.position == .value(.point(Point(x: 105, y: 54))))
     }
 
     @Test("a solid fills the measured frame and is not measured")
@@ -210,7 +211,7 @@ struct ContentFitTests {
         #expect(plan.storyline[0].appearance.box == nil)
         #expect(resolved.storyline[0].box == ResolvedBox(
             size: Size(width: 320, height: 220),
-            position: [Keyframe(at: 0, value: Point(x: 0, y: 0))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 110))],
             anchor: Point(x: 160, y: 110)
         ))
     }
@@ -230,8 +231,8 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 408, height: 258))
-        #expect(plan.storyline[0].appearance.box?.position == .value(Point(x: 104, y: 54)))
-        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4, y: 4, width: 50, height: 50))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 254, y: 154))))
+        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 4, y: 4, width: 50, height: 50))
         #expect(space.transform == .identity)
     }
 
@@ -246,7 +247,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 450, height: 200))
-        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 400, y: 0, width: 50, height: 50))
+        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 400, y: 0, width: 50, height: 50))
     }
 
     @Test("theme lengths take the length scale of the first storyline picture's box")

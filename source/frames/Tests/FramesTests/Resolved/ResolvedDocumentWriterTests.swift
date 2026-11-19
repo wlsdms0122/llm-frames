@@ -203,7 +203,7 @@ struct ResolvedDocumentWriterTests {
               "position": [
                 {
                   "at": 0,
-                  "value": [56.275000000000006, 1695.175],
+                  "value": [75.4, 1709.8],
                   "ease": "linear"
                 }
               ],
@@ -281,7 +281,7 @@ struct ResolvedDocumentWriterTests {
               "position": [
                 {
                   "at": 0,
-                  "value": [440, 880],
+                  "value": [540, 960],
                   "ease": "linear"
                 }
               ],

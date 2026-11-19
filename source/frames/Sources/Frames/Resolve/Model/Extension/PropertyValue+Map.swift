@@ -9,17 +9,17 @@ extension PropertyValue {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func map<Other: Equatable & Sendable>(_ transform: (Value) -> Other) -> PropertyValue<Other> {
+    func map<Other: Equatable & Sendable>(_ transform: (Value) throws -> Other) rethrows -> PropertyValue<Other> {
         switch self {
         case let .value(value):
-            .value(transform(value))
+            .value(try transform(value))
 
         case let .keyframes(keyframes):
-            .keyframes(keyframes.map { keyframe in
+            .keyframes(try keyframes.map { keyframe in
                 PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
-                    value: transform(keyframe.value),
+                    value: try transform(keyframe.value),
                     ease: keyframe.ease
                 )
             })

@@ -667,7 +667,7 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "Total" } } } ] }"#,
-                "storyline[0].crop (area): needs one of text, from"
+                "storyline[0].crop (area): needs one of text, from, clip"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 0, 10] } ] }"#,

@@ -53,7 +53,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
             JSONMember(key: "size", value: values.size(entry.box.size)),
-            JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.point)),
+            JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.geometryPoint)),
             JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "mask", value: values.masks(entry.mask)),
@@ -84,11 +84,11 @@ struct ResolvedSequenceWriter: Sendable {
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement
         let position = clip.box?.position ?? placement?.position
-        let anchor = clip.box?.anchor ?? placement?.anchor
+        let anchor = clip.box.map { values.point($0.anchor) } ?? placement?.anchor.map(values.geometryAnchor)
         let geometry = [
             JSONMember(key: "size", value: clip.box.map { values.size($0.size) } ?? .null),
-            JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.point) } ?? .null),
-            JSONMember(key: "anchor", value: anchor.map(values.point) ?? .null),
+            JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.geometryPoint) } ?? .null),
+            JSONMember(key: "anchor", value: anchor ?? .null),
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
             JSONMember(key: "mask", value: values.masks(clip.mask)),
             JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
@@ -148,10 +148,10 @@ struct ResolvedSequenceWriter: Sendable {
             (.null, numbers(width), numbers(height), .null, .null, values.timed(outset))
 
         case let .area(area, outset, _):
-            (values.keyframes(area, value: values.rectangle), .null, .null, .null, .null, values.timed(outset))
+            (values.keyframes(area, value: values.geometryArea), .null, .null, .null, .null, values.timed(outset))
 
         case let .points(points, isClosed, _):
-            (.null, .null, .null, values.keyframes(points) { .array($0.map(values.point)) }, .bool(isClosed), .null)
+            (.null, .null, .null, values.keyframes(points) { .array($0.map(values.geometryPoint)) }, .bool(isClosed), .null)
         }
 
         return [

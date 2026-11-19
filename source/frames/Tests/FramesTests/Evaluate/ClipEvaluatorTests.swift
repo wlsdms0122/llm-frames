@@ -336,7 +336,7 @@ struct ClipEvaluatorTests {
             parent: nil,
             box: ResolvedBox(
                 size: text.size,
-                position: [Keyframe(at: 0, value: Point(x: 50, y: 160))],
+                position: [Keyframe(at: 0, value: Point(x: 100, y: 200))],
                 anchor: Point(x: 50, y: 40)
             ),
             crop: nil,
@@ -406,12 +406,17 @@ struct ClipEvaluatorTests {
         )
     }
 
+    // A box whose top left is at `topLeft`.
     private func box(
         size: Size,
-        at position: Point,
+        at topLeft: Point,
         anchor: Point
     ) -> ResolvedBox {
-        ResolvedBox(size: size, position: [Keyframe(at: 0, value: position)], anchor: anchor)
+        ResolvedBox(
+            size: size,
+            position: [Keyframe(at: 0, value: Point(x: topLeft.x + anchor.x, y: topLeft.y + anchor.y))],
+            anchor: anchor
+        )
     }
 
     private func text() -> ResolvedText {

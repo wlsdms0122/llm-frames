@@ -20,7 +20,7 @@ extension ResolvedStorylineClip {
     ) throws {
         let appearance = geometry.appearance
         let clipBox = appearance.box
-            ?? ClipBox(size: format.size, position: .value(Point(x: 0, y: 0)), anchor: format.frame.center)
+            ?? ClipBox(size: format.size, position: .value(.point(format.frame.center)), anchor: format.frame.center)
         let conformer = CropConformer()
         let box = Rectangle(x: 0, y: 0, width: clipBox.size.width, height: clipBox.size.height)
         let conform = { (rectangle: Rectangle) in

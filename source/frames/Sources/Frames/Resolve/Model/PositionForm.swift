@@ -15,6 +15,10 @@ enum PositionForm: Equatable, Sendable {
         if case let .area(area, _) = self { area.isFoundByText } else { false }
     }
 
+    var clip: String? {
+        if case let .area(area, _) = self { area.clip } else { nil }
+    }
+
     // MARK: - Initializer
     init?(value: JSONValue) {
         if let numbers = value.arrayValue?.compactMap(\.numberValue), numbers.count == 2 {

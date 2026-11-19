@@ -498,12 +498,21 @@ struct KeyChecker: Sendable {
             }
 
         case let .object(object):
-            if object.contains("text") {
+            if object.contains("clip") {
+                if let key = AreaKeyTable.textKeys.first(where: object.contains) {
+                    throw ModelError.invalidValue(
+                        place: place.appending(key: key),
+                        kind: kind,
+                        reason: "an area holds the keys of one form, and a clip area takes no text form key"
+                    )
+                }
+                try checkObject(object, as: AreaKeyTable.clip, place: place, scope: &scope)
+            } else if object.contains("text") {
                 try checkObject(object, as: AreaKeyTable.text, place: place, scope: &scope)
             } else if object.contains("from") || object.contains("to") {
                 try checkObject(object, as: AreaKeyTable.range, place: place, scope: &scope)
             } else {
-                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from"])
+                throw ModelError.missingKey(place: place, kind: "area", keys: ["text", "from", "clip"])
             }
 
         default:

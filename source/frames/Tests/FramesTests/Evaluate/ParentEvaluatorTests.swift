@@ -95,7 +95,7 @@ struct ParentEvaluatorTests {
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -214,7 +214,7 @@ struct ParentEvaluatorTests {
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -264,7 +264,7 @@ struct ParentEvaluatorTests {
             end: 1,
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
-                position: [Keyframe(at: 0, value: Point(x: 10, y: 20)), Keyframe(at: 2, value: Point(x: 50, y: 20))],
+                position: [Keyframe(at: 0, value: Point(x: 50, y: 40)), Keyframe(at: 2, value: Point(x: 90, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
             crop: [Keyframe(at: 0, value: Crop(whole))]
@@ -467,7 +467,7 @@ struct ParentEvaluatorTests {
             parent: parent,
             box: ResolvedBox(
                 size: Size(width: 100, height: 40),
-                position: [Keyframe(at: 0, value: position)],
+                position: [Keyframe(at: 0, value: Point(x: position.x + 50, y: position.y + 40))],
                 anchor: Point(x: 50, y: 40)
             ),
             scale: scale

@@ -46,7 +46,7 @@ extension ResolvedStorylineClip {
             filter: filter,
             box: ResolvedBox(
                 size: size,
-                position: [Keyframe(at: start, value: Point(x: 0, y: 0))],
+                position: [Keyframe(at: start, value: Point(x: size.width / 2, y: size.height / 2))],
                 anchor: Point(x: size.width / 2, y: size.height / 2)
             ),
             opacity: [Keyframe(at: start, value: 1)],

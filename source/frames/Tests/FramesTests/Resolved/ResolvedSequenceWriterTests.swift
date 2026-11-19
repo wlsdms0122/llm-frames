@@ -226,7 +226,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["size"] == .array([.number(300), .number(300)]))
         #expect(clip["position"] == .array([.object(JSONObject(members: [
             JSONMember(key: "at", value: .number(0)),
-            JSONMember(key: "value", value: .array([.number(390), .number(810)])),
+            JSONMember(key: "value", value: .array([.number(540), .number(960)])),
             JSONMember(key: "ease", value: .string("linear"))
         ]))]))
         #expect(clip["anchor"] == .array([.number(150), .number(150)]))

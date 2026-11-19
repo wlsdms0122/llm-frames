@@ -13,7 +13,7 @@ extension PropertyValue {
     // MARK: - Initializer
     // MARK: - Public
     // `value` turns each value found into the value the document holds.
-    func keyframes<Other: Interpolable>(
+    func keyframes<Other: Equatable & Sendable>(
         at instant: Double,
         _ value: (Value) -> Other
     ) -> [Keyframe<Other>] {

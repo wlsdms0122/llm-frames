@@ -449,15 +449,17 @@ struct SequencePlanner: Sendable {
             throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.source.kind))
         }
         let space = output(of: format)
+        // ClipAreaFinder has stopped a clip area on a storyline clip.
         return try finder.positions(
             position,
             in: space,
             pictureClock: .still,
             clock: plan.map,
             instant: plan.instant,
+            lengthScale: 1,
             place: written.place,
             kind: plan.source.kind.label
-        )
+        ).map(\.fixed)
     }
 
     // A parented clip's area and position are in its parent's space, and an unparented clip's in output pixels, as are
@@ -498,6 +500,7 @@ struct SequencePlanner: Sendable {
                 pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
+                lengthScale: lengthScale,
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -513,6 +516,7 @@ struct SequencePlanner: Sendable {
                 pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
+                lengthScale: lengthScale,
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -528,6 +532,7 @@ struct SequencePlanner: Sendable {
                 pictureClock: space.clock,
                 clock: plan.clock,
                 instant: plan.instant,
+                lengthScale: lengthScale,
                 place: written.place,
                 kind: plan.kind.label
             )
@@ -571,7 +576,8 @@ struct SequencePlanner: Sendable {
                 written.mask,
                 in: space.picture,
                 pictureClock: space.clock,
-                textStop: space.isOutputPixels ? { .textAreaInOutputPixels(place: $0, kind: .clip(plan.kind)) } : nil
+                textStop: space.isOutputPixels ? { .textAreaInOutputPixels(place: $0, kind: .clip(plan.kind)) } : nil,
+                clipStop: { .clipAreaInMask(place: $0, kind: .clip(plan.kind)) }
             )
         }
 

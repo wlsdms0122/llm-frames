@@ -5,19 +5,19 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Where a title or media clip is drawn: `size` in output pixels, `position` the top left of the box with keyframes in
-// sequence time, and `anchor` the point scale and rotation act around, in the box's own pixels. A parented clip's
-// position is in its parent's space, and its anchor point there is `position + anchor`.
+// Where a clip with a box of its own is drawn: `size` in output pixels, `anchor` the point scale and rotation act
+// around, in the box's own pixels, and `position` where that point goes, keyframes in sequence time, each a point or a
+// point of a clip area. A parented clip's position is in its parent's space.
 struct ResolvedBox: Equatable, Sendable {
     // MARK: - Property
     let size: Size
-    let position: [Keyframe<Point>]
+    let position: [Keyframe<GeometryPoint>]
     let anchor: Point
 
     // MARK: - Initializer
     init(
         size: Size,
-        position: [Keyframe<Point>],
+        position: [Keyframe<GeometryPoint>],
         anchor: Point
     ) {
         self.size = size

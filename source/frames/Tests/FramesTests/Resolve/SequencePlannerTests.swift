@@ -132,12 +132,12 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].area == .value(FoundArea(
+        #expect(plan.clips[0].area == .value(.found(FoundArea(
             rectangle: Rectangle(x: 10, y: 20, width: 30, height: 40),
             target: Rectangle(x: 10, y: 20, width: 30, height: 40),
             mediaTime: 0,
             lines: []
-        )))
+        ))))
     }
 
     @Test("a parented position given by a text area is the point it names, padding included")
@@ -150,8 +150,8 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].position == .value(Point(x: 86, y: 120)))
-        #expect(plan.clips[1].position == .value(Point(x: 10, y: 20)))
+        #expect(plan.clips[0].position == .value(.point(Point(x: 86, y: 120))))
+        #expect(plan.clips[1].position == .value(.point(Point(x: 10, y: 20))))
     }
 
     @Test(
@@ -187,7 +187,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].position == .value(Point(x: 110, y: 40)))
+        #expect(plan.clips[0].position == .value(.point(Point(x: 110, y: 40))))
     }
 
     @Test("a sequence clip parented to a storyline clip finds its text area in that clip's picture")
@@ -333,7 +333,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[1].position == .value(Point(x: 314, y: 120)))
+        #expect(plan.clips[1].position == .value(.point(Point(x: 314, y: 120))))
     }
 
     @Test(
@@ -641,7 +641,7 @@ struct SequencePlannerTests {
 
         // Then
         #expect(plan.storyline[0].appearance == StorylineAppearance(
-            box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 0, y: 0)), anchor: Point(x: 540, y: 960)),
+            box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 540, y: 960)), anchor: Point(x: 540, y: 960)),
             opacity: .value(1),
             scale: .value(.identity),
             rotation: .value(0),

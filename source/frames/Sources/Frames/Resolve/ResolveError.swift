@@ -63,6 +63,13 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
     case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
+    case unknownClipArea(place: Place, kind: PlaceKind, id: String)
+    case clipAreaKind(place: Place, kind: PlaceKind, id: String, named: TrackMatteRefusal)
+    case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
+    case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
+    case clipAreaOnStoryline(place: Place, kind: PlaceKind)
+    case clipAreaInMask(place: Place, kind: PlaceKind)
+    case textUnderClipArea(place: Place, kind: PlaceKind, parent: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
@@ -275,6 +282,34 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .trackMatteCycle(place, kind, ids):
             "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .unknownClipArea(place, kind, id):
+            "\(place) (\(kind.label)): no clip of this document has the id \(quoted(id))"
+
+        case let .clipAreaKind(place, kind, id, named):
+            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), "
+                + "and a clip area names a connected or sequence media clip, title or shape"
+
+        case let .clipAreaAcrossSpaces(place, kind, id, parent, namedParent):
+            "\(place) (\(kind.label)): this clip's parent is \(parent.map(quoted) ?? "none") and the parent of "
+                + "\(quoted(id)) is \(namedParent.map(quoted) ?? "none"), so its box is in another coordinate space. "
+                + "A clip area names a clip with the same parent, or with none where this clip has none, or this "
+                + "clip's own parent"
+
+        case let .clipAreaCycle(place, kind, ids):
+            "\(place) (\(kind.label)): the clip areas come back to the box they start from: "
+                + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
+
+        case let .clipAreaOnStoryline(place, kind):
+            "\(place) (\(kind.label)): a storyline clip is placed by the storyline in output pixels, so it takes "
+                + "no clip area"
+
+        case let .clipAreaInMask(place, kind):
+            "\(place) (\(kind.label)): a clip area in a mask is not drawn by this version of frames"
+
+        case let .textUnderClipArea(place, kind, parent):
+            "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "
+                + "resolved, and its geometry or position holds a clip area, whose box is known only when evaluated"
 
         case let .trackWithoutVideo(place, kind):
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "

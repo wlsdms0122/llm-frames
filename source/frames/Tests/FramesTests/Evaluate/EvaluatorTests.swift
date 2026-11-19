@@ -450,7 +450,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let sequence = sequence(
@@ -558,7 +558,7 @@ struct EvaluatorTests {
                     .shape(ResolvedShape(
                         kind: .rect,
                         geometry: .area(
-                            [Keyframe(at: 0, value: Rectangle(x: 150, y: 75, width: 40, height: 20))],
+                            [Keyframe(at: 0, value: .rectangle(Rectangle(x: 150, y: 75, width: 40, height: 20)))],
                             outset: 0,
                             placement: GeometryPlacement()
                         ),
@@ -607,7 +607,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let sequence = sequence(
@@ -638,7 +638,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let title = clip(.title(text), storyline: 0, parent: "shot", box: box)
@@ -705,7 +705,7 @@ struct EvaluatorTests {
         let text = text(Size(width: 60, height: 20))
         let box = ResolvedBox(
             size: Size(width: 60, height: 20),
-            position: [Keyframe(at: 0, value: Point(x: 130, y: 65))],
+            position: [Keyframe(at: 0, value: Point(x: 160, y: 75))],
             anchor: Point(x: 30, y: 10)
         )
         let shape = geometryClip(
@@ -876,7 +876,7 @@ struct EvaluatorTests {
         // Given
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            position: [Keyframe(at: 0, value: Point(x: 0, y: 0)), Keyframe(at: 2, value: Point(x: 100, y: 0))],
+            topLeft: [Keyframe(at: 0, value: Point(x: 0, y: 0)), Keyframe(at: 2, value: Point(x: 100, y: 0))],
             scale: [Keyframe(at: 0, value: Scale(1)), Keyframe(at: 2, value: Scale(0.5))]
         )
 
@@ -942,7 +942,7 @@ struct EvaluatorTests {
         let area = Rectangle(x: 0, y: 0, width: 20, height: 20)
         let entry = transformed(
             storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
-            position: [Keyframe(at: 0, value: Point(x: 20, y: 10))],
+            topLeft: [Keyframe(at: 0, value: Point(x: 20, y: 10))],
             scale: [Keyframe(at: 0, value: Scale(0.5))]
         )
         let sequence = sequence([entry], clips: [fillClip(area, lane: 1, storyline: 0, parent: "shot")])
@@ -1267,10 +1267,10 @@ struct EvaluatorTests {
     }
 
     // `entry` with its own transform, opacity, blend, box drawing and masks in place of the ones that fill the frame,
-    // its anchor still the centre of the frame.
+    // its anchor still the centre of the frame and its box's top left at `topLeft`.
     private func transformed(
         _ entry: ResolvedStorylineClip,
-        position: [Keyframe<Point>]? = nil,
+        topLeft: [Keyframe<Point>]? = nil,
         scale: [Keyframe<Scale>]? = nil,
         mask: [ResolvedMask]? = nil,
         opacity: Double = 1,
@@ -1295,7 +1295,13 @@ struct EvaluatorTests {
             trackMatte: nil,
             track: entry.track,
             filter: entry.filter,
-            box: ResolvedBox(size: entry.box.size, position: position ?? entry.box.position, anchor: entry.box.anchor),
+            box: ResolvedBox(
+                size: entry.box.size,
+                position: topLeft.map { keyframes in
+                    keyframes.map { $0.map { .point(Point(x: $0.x + entry.box.anchor.x, y: $0.y + entry.box.anchor.y)) } }
+                } ?? entry.box.position,
+                anchor: entry.box.anchor
+            ),
             opacity: [Keyframe(at: entry.start, value: opacity)],
             scale: scale ?? entry.scale,
             rotation: entry.rotation,
@@ -1422,7 +1428,7 @@ struct EvaluatorTests {
         let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: .filter(filter), appearance: appearance)
         let box = ResolvedBox(
             size: Size(width: 80, height: 40),
-            position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
+            position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
             anchor: Point(x: 40, y: 20)
         )
 

@@ -12,16 +12,17 @@
 // as its evaluation holds it: an adjustment's tracked motion, and a shape's own scale and rotation about its anchor
 // point and its position, then its tracked motion. A shape's own geometry and position are brought into its own
 // parent's space the same way first. An area carried back through a rotation is the box bounding its four carried
-// corners. A value written as numbers is in the parent's space already. A link with no inverse at that time, a scale
-// of 0 on an axis, stops the clip.
+// corners. A value written as numbers is in the parent's space already, and so is a clip area. A link with no inverse
+// at that time, a scale of 0 on an axis, stops the clip, and so does a shape whose geometry or position holds a clip
+// area, whose box only evaluation knows.
 struct ParentSpacePlanner: Sendable {
     // MARK: - Property
     private let tracked: TrackPlan
     private let written: [Clip]
     private let shapes: [ShapeAppearance?]
-    private let areas: [PropertyValue<FoundArea>?]
-    private let points: [PropertyValue<[Point]>?]
-    private let positions: [PropertyValue<Point>?]
+    private let areas: [PropertyValue<AreaValue>?]
+    private let points: [PropertyValue<[GeometryPoint]>?]
+    private let positions: [PropertyValue<GeometryPoint>?]
     private let masks: [[FoundMask]?]
     // The transform of each shape placed by its geometry, nil for every other clip. Each is planned once, its
     // parents' first, since what a shape finds is brought back through its parents' transforms.
@@ -34,9 +35,9 @@ struct ParentSpacePlanner: Sendable {
         tracked: TrackPlan,
         written: [Clip],
         shapes: [ShapeAppearance?],
-        areas: [PropertyValue<FoundArea>?],
-        points: [PropertyValue<[Point]>?],
-        positions: [PropertyValue<Point>?],
+        areas: [PropertyValue<AreaValue>?],
+        points: [PropertyValue<[GeometryPoint]>?],
+        positions: [PropertyValue<GeometryPoint>?],
         masks: [[FoundMask]?]
     ) throws {
         self.tracked = tracked
@@ -54,26 +55,26 @@ struct ParentSpacePlanner: Sendable {
     }
 
     // MARK: - Public
-    func area(of index: Int) throws -> PropertyValue<FoundArea>? {
+    func area(of index: Int) throws -> PropertyValue<AreaValue>? {
         let plan = tracked.time.clips[index]
         guard let found = areas[index], let written = written[index].area, let parent = plan.parent else {
             return areas[index]
         }
 
         return try values(found, written: written, instant: plan.instant) { area, form, time in
-            guard form.isFoundByText else { return area }
+            guard form.isFoundByText, let found = area.found else { return area }
 
             let inverses = try inverseLinks(under: parent, at: time, of: index, key: "area")
-            return FoundArea(
-                rectangle: bringBack(area.rectangle, through: inverses),
-                target: bringBack(area.target, through: inverses),
-                mediaTime: area.mediaTime,
-                lines: area.lines
-            )
+            return .found(FoundArea(
+                rectangle: bringBack(found.rectangle, through: inverses),
+                target: bringBack(found.target, through: inverses),
+                mediaTime: found.mediaTime,
+                lines: found.lines
+            ))
         }
     }
 
-    func points(of index: Int) throws -> PropertyValue<[Point]>? {
+    func points(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
         let plan = tracked.time.clips[index]
         guard let found = points[index],
             case let .shape(shape) = written[index].content,
@@ -86,12 +87,12 @@ struct ParentSpacePlanner: Sendable {
 
             let inverses = try inverseLinks(under: parent, at: time, of: index, key: "points")
             return zip(points, forms).map { point, form in
-                form.isFoundByText ? bringBack(point, through: inverses) : point
+                form.isFoundByText ? point.map { bringBack($0, through: inverses) } : point
             }
         }
     }
 
-    func position(of index: Int) throws -> PropertyValue<Point>? {
+    func position(of index: Int) throws -> PropertyValue<GeometryPoint>? {
         let plan = tracked.time.clips[index]
         guard let found = positions[index], let written = written[index].position, let parent = plan.parent else {
             return positions[index]
@@ -100,7 +101,8 @@ struct ParentSpacePlanner: Sendable {
         return try values(found, written: written, instant: plan.instant) { point, form, time in
             guard form.isFoundByText else { return point }
 
-            return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "position"))
+            let inverses = try inverseLinks(under: parent, at: time, of: index, key: "position")
+            return point.map { bringBack($0, through: inverses) }
         }
     }
 
@@ -136,8 +138,10 @@ struct ParentSpacePlanner: Sendable {
     // picture to search, and ParentFinder has ruled out a cycle, so the chain ends.
     private func links(
         under parent: ClipParent,
-        at time: Double
-    ) -> [AffineTransform] {
+        at time: Double,
+        of child: Int,
+        key: String
+    ) throws -> [AffineTransform] {
         var links: [AffineTransform] = []
         var next: ClipParent? = parent
         while case let .clip(index, _) = next {
@@ -148,6 +152,14 @@ struct ParentSpacePlanner: Sendable {
 
             default:
                 return links.reversed()
+            }
+
+            if let transform = transforms[index], transform.geometry.holdsClipArea {
+                throw ResolveError.textUnderClipArea(
+                    place: written[child].place.appending(key: key),
+                    kind: .clip(tracked.time.clips[child].kind),
+                    parent: plan.id ?? plan.place.description
+                )
             }
 
             let held = plan.visible.held(time)
@@ -188,7 +200,7 @@ struct ParentSpacePlanner: Sendable {
         return ParentTransformPlan(
             geometry: ShapeGeometry(
                 plan: shape.geometry,
-                area: try area(of: index)?.keyframes(at: plan.instant) { $0.rectangle },
+                area: try area(of: index)?.keyframes(at: plan.instant) { $0.geometry },
                 points: try points(of: index)?.keyframes(at: plan.instant) { $0 },
                 position: try position(of: index)?.keyframes(at: plan.instant) { $0 },
                 instant: plan.instant,
@@ -207,7 +219,7 @@ struct ParentSpacePlanner: Sendable {
         of index: Int,
         key: String
     ) throws -> [AffineTransform] {
-        try links(under: parent, at: time).map { link in
+        try links(under: parent, at: time, of: index, key: key).map { link in
             guard let inverse = link.inverse else {
                 throw ResolveError.flatParent(
                     place: written[index].place.appending(key: key),

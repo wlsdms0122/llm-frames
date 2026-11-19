@@ -224,7 +224,7 @@ struct ResolvedSequenceReader: Sendable {
             filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
             box: ResolvedBox(
                 size: try values.size(entry.member("size")),
-                position: try values.keyframes(entry.member("position"), read: values.point),
+                position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
                 anchor: try values.point(entry.member("anchor"))
             ),
             opacity: try values.numbers(entry.member("opacity")),
@@ -257,11 +257,7 @@ struct ResolvedSequenceReader: Sendable {
         let box: ResolvedBox? = if size.isNull && (isShape || position.isNull && anchor.isNull) {
             nil
         } else {
-            ResolvedBox(
-                size: try values.size(size),
-                position: try values.keyframes(position, read: values.point),
-                anchor: try values.point(anchor)
-            )
+            try box(size: size, position: position, anchor: anchor)
         }
 
         return ResolvedClip(
@@ -345,7 +341,9 @@ struct ResolvedSequenceReader: Sendable {
         let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
-                try values.keyframes(clip.member("points")) { points in try points.elements().map(values.point) },
+                try values.keyframes(clip.member("points")) { points in
+                    try points.elements().map { try values.geometryPoint($0) }
+                },
                 isClosed: try clip.member("closed").bool(),
                 placement: try placement(of: clip)
             )
@@ -357,7 +355,7 @@ struct ResolvedSequenceReader: Sendable {
             )
         } else {
             .area(
-                try values.keyframes(clip.member("area"), read: values.rectangle),
+                try values.keyframes(clip.member("area"), read: values.geometryArea),
                 outset: try values.timed(clip.member("outset"), as: LookStructureTable.length),
                 placement: try placement(of: clip)
             )
@@ -379,10 +377,24 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
+    private func box(
+        size: PlacedJSONValue,
+        position: PlacedJSONValue,
+        anchor: PlacedJSONValue
+    ) throws -> ResolvedBox {
+        ResolvedBox(
+            size: try values.size(size),
+            position: try values.keyframes(position) { try values.geometryPoint($0) },
+            anchor: try values.point(anchor)
+        )
+    }
+
     private func placement(of clip: PlacedJSONObject) throws -> GeometryPlacement {
         GeometryPlacement(
-            position: try clip.member("position").optional { value in try values.keyframes(value, read: values.point) },
-            anchor: try clip.member("anchor").optional(values.point)
+            position: try clip.member("position").optional { value in
+                try values.keyframes(value) { try values.geometryPoint($0) }
+            },
+            anchor: try clip.member("anchor").optional(values.geometryAnchor)
         )
     }
 

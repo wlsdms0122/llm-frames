@@ -41,14 +41,16 @@ struct ParentEvaluator: Sendable {
             next = parent.parent
         }
 
-        return chain.reversed().reduce(outer) { space, parent in
+        let parentSpace = chain.reversed().reduce(outer) { space, parent in
             let held = TimeRange(start: parent.start, end: parent.end).held(time)
             return ClipSpace(
                 frame: frame,
-                transform: clipEvaluator.childTransform(of: parent, in: space, at: held),
+                transform: clipEvaluator.childTransform(of: parent, in: space.drawing(parent, of: sequence), at: held),
                 clock: parent.clock
             )
         }
+
+        return parentSpace.drawing(clip, of: sequence)
     }
 
     // MARK: - Private
