@@ -71,7 +71,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` on a connected clip ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
@@ -80,7 +80,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | run (an item of a `title` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| split | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| split (on a storyline clip or a connected media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
@@ -89,9 +89,9 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
-| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
+| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args`, `preset` left out to merge over the theme's default ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-22](../FRAMES-22/SPEC.md)) |
+| animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. `preset` may be left out of an object to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)). On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
+| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, `preset` left out to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)), a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
 | filter op | `op`, the parameters the op table of [FRAMES-15](../FRAMES-15/SPEC.md) gives that op, and `mix` where a choice writes it (not in a preset's `ops`) |
 | audio filter choice (`audioFilter`) | an audio preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, an audio op, or a list of those ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | audio op | `op`, `mix` where a choice writes it (not in a preset's `ops`), and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate` |
@@ -108,7 +108,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
-Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key evaluation reads at each instant whose value is built from numbers and colours). The table is written for reference, and where it and the principle differ the principle decides:
+Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key whose value is built from numbers and colours and whose change reflows nothing resolve lays out). The table is written for reference, and where it and the principle differ the principle decides:
 
 | Clip | Properties |
 | --- | --- |
@@ -116,13 +116,13 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 | storyline clip, solid | `solid` |
 | media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | audio clip | `volume, pan`, and `audioFilter` where it takes one |
-| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, and the `color` of its `highlight` and `underline` |
+| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline` |
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
-`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)). In the same way `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character` and `audioFilter` in a keyframe are the clip's whole value of that key at that instant, merged over its static value and its style's leaf by leaf and read as the same value written statically would be ([FRAMES-11](../FRAMES-11/SPEC.md)), and two keyframes of one key hold the same names in the same places ([FRAMES-4](../FRAMES-4/SPEC.md)).
+`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character` and `audioFilter` in a keyframe write the numbers and colours they change, over the clip's static value merged over its style's, whose names and structure are static, and a leaf written `null` is that value below at that instant.
 
-Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A value written both statically and in a keyframe stops, since the static value would never show, and in an object this holds key by key ([FRAMES-4](../FRAMES-4/SPEC.md)).
+Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A leaf written statically and given a value in every keyframe that writes it stops, since the static value would never show ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
 ## Interactions
 

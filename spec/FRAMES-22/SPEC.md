@@ -14,14 +14,14 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 `theme` prints the base theme, and that output is also the list of every group a theme can hold. The keys of a text style and of a shape style are the tables below. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles`, `shapes` and `defaults.animation.title` (keyed by text style name) are open maps: any name may be added. A name that is referred to must exist: a colour, a text style, a shape style, or a `title` key that names no text style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. So does a theme colour such a preset names with the default's arguments applied (a cover or a bloom `color`) that the merged theme, its own colours and those it is merged over, does not hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
-**Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's keys over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), a title's `character` over its runs' styles ([FRAMES-11](../FRAMES-11/SPEC.md)), and a keyframe over the value below it ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
+**Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's keys over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), a title's `character` over its runs' styles ([FRAMES-11](../FRAMES-11/SPEC.md)), a clip's choice over the theme's default choice ([Defaults](#defaults)), and a keyframe over the value below it ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
 
 - An object takes the upper layer's keys over the lower one's, key by key and inside nested objects: the top-level groups, each colour, each text style and shape style and each of their properties, a `stroke`, a `shadow`, a `background`, a `highlight`, an `underline`, a style's `features`, each entry of `defaults` and of `defaults.animation`, and each style in its `title` map. So a stronger theme that writes `{"stroke": {"color": "red"}}` for a shape style keeps the weaker theme's stroke `width`.
 - Every other value replaces the one under it: a number, a colour, a name, a list such as `font`, a `dash` or a gradient's `stops`.
 - A value of another form replaces the one under it whole: a colour over a gradient, a linear gradient over a radial one, `true` over a shadow or underline object, a preset name over a preset choice object, and a choice of one preset over a choice of another, whose arguments are another preset's parameters. Over `false`, or where the layer below has no value, the upper value stands alone.
 - A stroke's `color` and `gradient` are one paint leaf: writing either replaces the other.
 - `false` turns the value below off.
-- A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops.
+- A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops. **A clip's partial value over a layer that gives none (`false`, or no value) stands alone, and a leaf it requires that is still missing stops, naming the clip and the theme layer that gave none**, since a value that cannot do what it says stops (README): a stroke recoloured where the look has no stroke has no stroke to recolour, and a width frames chose for it would draw a line the look does not hold. So a rect that writes `stroke: {"color": "red"}` over a shape style whose stroke a `--theme` file turns `false` stops under that theme, naming the clip and the file.
 
 Precedence, from weakest:
 
@@ -29,7 +29,7 @@ Precedence, from weakest:
 base theme < --theme file < document theme < keys on the clip
 ```
 
-The keys on the clip are a shape's appearance keys over its shape style, a media clip's `border` and `shadow` over the theme's, and a title's `character` over its runs' styles.
+The keys on the clip are a shape's appearance keys over its shape style, a media clip's `border` and `shadow` over the theme's, a title's `character` over its runs' styles, and a clip's `transition`, `animation` and `filter` over the theme's `defaults`.
 
 A document inside another starts from the theme in effect where it is written: a compound clip from its document's, and a document given as a template argument from the caller's, not the template's. A template starts from the base theme ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
@@ -124,6 +124,8 @@ What each property draws, and its defaults, are [FRAMES-11](../FRAMES-11/SPEC.md
 | `animation.adjust` | adjustment clips | `"none"` |
 
 A title whose style is not in `animation.title` takes `"none"`. A clip whose media is a compound clip or a template instance takes no default filter, since the clips inside it already took theirs.
+
+**`defaults` is a layer of the look like the others.** A clip's choice written as an object without `preset` merges over the theme's default choice for that clip, key by key, a default written as a preset name read as `{preset: name}`, and the result is checked as a choice ([FRAMES-14](../FRAMES-14/SPEC.md)). So `"animation": {"by": "word"}` on a title plays the default animation of its style by word, `"filter": {"mix": 0.5}` or `{"args": {...}}` on a clip is the default filter at half strength or with those arguments, and `"transition": {"seconds": 1}` is the default transition a second long, and a later change of the default reaches each of them. A filter entry merges over a default filter of one entry, and over a default that is a list it stops, since which entry it changes is ambiguous. Over a default of `"none"` or `"cut"`, or where the clip takes no default (an adjustment clip's `adjust`, an `audioFilter`, a clip whose media is a compound clip), it stops, naming the clip and the theme layer that gave none, as any partial value with nothing below it does ([above](#rules)). A choice that names a preset, a list and `"none"` replace the default whole.
 
 ### A pack's theme
 
