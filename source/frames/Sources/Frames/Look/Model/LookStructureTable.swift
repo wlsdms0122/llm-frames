@@ -154,9 +154,10 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, each in its range, a length a theme length. A sampled length
-    // at 0 leaves the picture as it is, so a length is 0 or more once it moves. An entry written in place also takes
-    // `mix`.
+    // An op's parameters, in the order of the op table, a length a theme length. Each leaf's domain is its parameter's
+    // range: `PresetReader.checkRanges` stops on a value outside it and a sample is clamped to it. A length is above 0
+    // where it holds and 0 or more once it moves, since a sampled length at 0 leaves the picture as it is. An entry
+    // written in place also takes `mix`.
     static func filterOperation(
         _ name: String,
         mixed: Bool = false

@@ -112,12 +112,22 @@ struct PresetReader: Sendable {
         sampled: Set<String> = []
     ) throws {
         let name = operation["op"]?.stringValue ?? ""
-        for (parameter, written) in FilterRangeTable.ranges(of: name) {
-            let range = sampled.contains(parameter) ? written.sampled : written
-            guard let value = operation[parameter], !range.contains(value) else { continue }
+        guard case let .object(structure) = LookStructureTable.filterOperation(name) else { return }
+
+        for parameter in structure.keys {
+            guard
+                case let .leaf(kind) = parameter.structure,
+                let declared = ParameterRange(kind: kind),
+                let value = operation[parameter.name]
+            else {
+                continue
+            }
+
+            let range = sampled.contains(parameter.name) ? declared.sampled : declared
+            guard !range.contains(value) else { continue }
 
             throw PresetError.parameterOutOfRange(
-                place: place.appending(key: parameter),
+                place: place.appending(key: parameter.name),
                 kind: name,
                 value: value.written,
                 range: range.description
