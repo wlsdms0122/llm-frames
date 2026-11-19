@@ -28,7 +28,7 @@ A parented clip's coordinates are in its parent's space: its `position`, its `ar
 | a storyline clip with media | media pixels of its media (a compound clip's media pixels are its own frame's output pixels) | its conformed crop scaled to its box ([FRAMES-9](../FRAMES-9/SPEC.md)), its transform, and then its transition motion (below) |
 | a solid | output pixels of the frame | its transition motion (below) |
 | a media clip | media pixels of its media | its crop conformed to its box ([FRAMES-11](../FRAMES-11/SPEC.md)), and its transform |
-| a title | its text box, origin at the box's top left ([FRAMES-5](../FRAMES-5/SPEC.md)) | its transform |
+| a title | its text box with its background, at that instant, origin at that box's top left ([FRAMES-5](../FRAMES-5/SPEC.md)) | its transform |
 | a rect or ellipse placed by `width` and `height` | its box, origin at the box's top left | its transform |
 | a shape placed by `area` or `points` | the space its geometry is written in: its parent's space, or output pixels when it has none | its transform |
 | an adjustment clip | the space its mask is written in: its parent's space, or output pixels when it has none | its transform |
