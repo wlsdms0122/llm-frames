@@ -9,8 +9,8 @@ import CoreGraphics
 import CoreImage
 import Frames
 
-// Takes a track matte's value at each pixel of a region of output pixels from its source, drawn at the size of the
-// list that holds its item (`TrackMatteKernelSource`). Outside the source the matte is transparent, so its value is 0
+// Takes a track matte's value at each pixel of a region of a raster's pixels from its source, drawn on the raster of
+// the list that holds its item (`TrackMatteKernelSource`). Outside the source the matte is transparent, so its value is 0
 // there, and 1 when inverted.
 struct TrackMatteDrawer {
     // MARK: - Property
@@ -18,7 +18,7 @@ struct TrackMatteDrawer {
 
     // MARK: - Initializer
     // MARK: - Public
-    // `source` is the matte's source drawn, and `region` is in output pixels, in whole pixels. The values are rows from
+    // `source` is the matte's source drawn, and `region` is in its pixels, in whole pixels. The values are rows from
     // the top.
     func values(
         of trackMatte: ItemTrackMatte,
