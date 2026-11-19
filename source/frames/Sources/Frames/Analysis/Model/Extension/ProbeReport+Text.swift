@@ -20,6 +20,7 @@ extension ProbeReport {
             "duration \(duration.map { JSONValue.time($0).written } ?? "none")",
             "fps \(fps.map(number) ?? "none")",
             "alpha \(hasAlpha ? "yes" : "no")",
+            "color space \(colorSpace.map(written) ?? "none")",
             "audio \(audio ?? "none")"
         ].joined(separator: "\n")
     }
@@ -27,6 +28,15 @@ extension ProbeReport {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    // The name, or the code points outside the table, then the depth and whether it is HDR.
+    private func written(_ colorSpace: ProbedColorSpace) -> String {
+        let codePoint = { (value: Int?) in value.map(String.init) ?? "unspecified" }
+        let name = colorSpace.name?.rawValue ?? "outside the table (primaries \(codePoint(colorSpace.primaries)), "
+            + "transfer \(codePoint(colorSpace.transfer)), matrix \(codePoint(colorSpace.matrix)))"
+
+        return "\(name), \(colorSpace.bitDepth) bit\(colorSpace.isHighDynamicRange ? ", HDR" : "")"
+    }
+
     private func number(_ number: Double) -> String {
         JSONValue.number(number).written
     }

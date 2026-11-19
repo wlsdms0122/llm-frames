@@ -35,7 +35,7 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardOutput == "kind video\nsize 64x48\nduration 1\nfps 2\nalpha no\naudio none\n")
+        #expect(sut.standardOutput == "kind video\nsize 64x48\nduration 1\nfps 2\nalpha no\ncolor space srgb, 8 bit\naudio none\n")
     }
 
     @Test("probe --json prints the probe object, its first key the command set to the version")

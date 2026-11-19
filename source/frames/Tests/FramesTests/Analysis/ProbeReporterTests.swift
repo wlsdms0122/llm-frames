@@ -21,7 +21,7 @@ struct ProbeReporterTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("the machine output is the probe object FRAMES-23 gives, the duration to the microsecond")
+    @Test("the machine output is the probe object FRAMES-23 gives, the duration to the microsecond, with colour facts")
     func writesMachineOutput() throws {
         // Given
         let facts = MediaFactTable(files: [
@@ -30,6 +30,14 @@ struct ProbeReporterTests {
                 duration: 2.0000004,
                 fps: 29.97,
                 size: Size(width: 1080, height: 1920),
+                colorSpace: ProbedColorSpace(
+                    name: .rec2100PQ,
+                    primaries: 9,
+                    transfer: 16,
+                    matrix: 9,
+                    bitDepth: 10,
+                    isHighDynamicRange: true
+                ),
                 sound: ProbedSound(channels: 2, sampleRate: 48_000)
             )
         ])
@@ -41,7 +49,8 @@ struct ProbeReporterTests {
         // Then
         let expected = #"""
             {"probe": "1.0.0", "kind": "video", "size": [1080, 1920], "duration": 2, "fps": 29.97, "alpha": false, \#
-            "audio": {"channels": 2, "sampleRate": 48000}}
+            "colorSpace": {"name": "rec2100-pq", "primaries": 9, "transfer": 16, "matrix": 9, "bitDepth": 10, \#
+            "hdr": true}, "audio": {"channels": 2, "sampleRate": 48000}}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -60,7 +69,7 @@ struct ProbeReporterTests {
         #expect(imageOutput?["kind"] == .string("image"))
         #expect(imageOutput?["duration"] == .null && imageOutput?["fps"] == .null && imageOutput?["audio"] == .null)
         #expect(soundOutput?["kind"] == .string("audio"))
-        #expect(soundOutput?["size"] == .null && soundOutput?["fps"] == .null)
+        #expect(soundOutput?["size"] == .null && soundOutput?["fps"] == .null && soundOutput?["colorSpace"] == .null)
         #expect(soundOutput?["audio"] == .object(JSONObject(members: [
             JSONMember(key: "channels", value: .number(1)),
             JSONMember(key: "sampleRate", value: .number(44_100))
@@ -82,9 +91,10 @@ struct ProbeReporterTests {
             "duration 30",
             "fps 29.97",
             "alpha no",
+            "color space none",
             "audio 2 channels, 48000 Hz"
         ])
-        #expect(try sut.report(of: "/abs/card.png").text.contains("duration none\nfps none\nalpha no\naudio none"))
+        #expect(try sut.report(of: "/abs/card.png").text.contains("duration none\nfps none\nalpha no\ncolor space"))
     }
 
     @Test("media that is not there stops, and one the decoder cannot read stops with its reason")
@@ -103,7 +113,7 @@ struct ProbeReporterTests {
         #expect(unreadable?.description == "media /abs/notes.txt cannot be read")
     }
 
-    @Test("a real video, still and image sequence are probed through the decoder with their alpha and sound")
+    @Test("a real video, still and image sequence are probed through the decoder with their alpha, colour and sound")
     func probesRealMedia() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -121,6 +131,14 @@ struct ProbeReporterTests {
             try ImageWriter(size: size, opaque: true).write(to: frame) { _ in }
         }
         let sut = ProbeReporter(mediaFacts: AVFoundationDecoder())
+        let taggedSRGB = ProbedColorSpace(
+            name: .srgb,
+            primaries: 1,
+            transfer: 13,
+            matrix: nil,
+            bitDepth: 8,
+            isHighDynamicRange: false
+        )
 
         // When
         let videoReport = try sut.report(of: video)
@@ -134,6 +152,14 @@ struct ProbeReporterTests {
             duration: 1,
             fps: 2,
             hasAlpha: false,
+            colorSpace: ProbedColorSpace(
+                name: .srgb,
+                primaries: 1,
+                transfer: 13,
+                matrix: 1,
+                bitDepth: 8,
+                isHighDynamicRange: false
+            ),
             sound: ProbedSound(channels: 1, sampleRate: 48_000)
         ))
         #expect(stillReport == ProbeReport(
@@ -142,6 +168,7 @@ struct ProbeReporterTests {
             duration: nil,
             fps: nil,
             hasAlpha: true,
+            colorSpace: taggedSRGB,
             sound: nil
         ))
         #expect(sequenceReport == ProbeReport(
@@ -150,6 +177,7 @@ struct ProbeReporterTests {
             duration: nil,
             fps: nil,
             hasAlpha: false,
+            colorSpace: taggedSRGB,
             sound: nil
         ))
     }
