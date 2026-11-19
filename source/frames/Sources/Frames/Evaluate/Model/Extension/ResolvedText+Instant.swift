@@ -1,5 +1,5 @@
 //
-//  ResolvedText+Tracking.swift
+//  ResolvedText+Instant.swift
 //  Frames
 //
 //  Created by JSilver on 11/19/26.
