@@ -39,7 +39,7 @@ extension ResolvedMask {
 
         let geometry: ResolvedMaskGeometry = switch samples[0].geometry {
         case .rect:
-            .rect(.area(rectangles), radius: samples.map { sample in
+            .rect(.area(rectangles.map { $0.map(GeometryArea.rectangle) }), radius: samples.map { sample in
                 if case let .rect(_, radius) = sample.geometry {
                     Keyframe(at: sample.at, value: radius)
                 } else {
@@ -48,15 +48,15 @@ extension ResolvedMask {
             })
 
         case .ellipse:
-            .ellipse(.area(rectangles))
+            .ellipse(.area(rectangles.map { $0.map(GeometryArea.rectangle) }))
 
         case let .polyline(points, _):
             .polyline(points.indices.map { index in
                 samples.map { sample in
                     if case let .polyline(points, _) = sample.geometry {
-                        Keyframe(at: sample.at, value: points[index])
+                        Keyframe(at: sample.at, value: GeometryPoint.point(points[index]))
                     } else {
-                        Keyframe(at: sample.at, value: Point(x: 0, y: 0))
+                        Keyframe(at: sample.at, value: GeometryPoint.point(Point(x: 0, y: 0)))
                     }
                 }
             })

@@ -26,10 +26,10 @@ enum GeometryPoint: Equatable, Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
-    func map(_ transform: (Point) -> Point) -> GeometryPoint {
+    func map(_ transform: (Point) throws -> Point) rethrows -> GeometryPoint {
         guard case let .point(point) = self else { return self }
 
-        return .point(transform(point))
+        return .point(try transform(point))
     }
 
     // MARK: - Private

@@ -577,7 +577,7 @@ struct SequencePlanner: Sendable {
                 in: space.picture,
                 pictureClock: space.clock,
                 textStop: space.isOutputPixels ? { .textAreaInOutputPixels(place: $0, kind: .clip(plan.kind)) } : nil,
-                clipStop: { .clipAreaInMask(place: $0, kind: .clip(plan.kind)) }
+                takesClipArea: true
             )
         }
 

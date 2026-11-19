@@ -7,8 +7,9 @@
 
 // Plans a clip's masks as timed values: the clip's `mask` is its own layer with the structure its keyframes give, and
 // no style lies below it, so the merged value is that layer; `shape` must be given there. Each leaf is then timed over
-// it, an area, a position or a point given by text found in `picture` at the media time of the leaf's own instant, and
-// `feather` a theme length times `lengthScale`. A mask written alone is read as a list of one, and a stop names it as
+// it, an area, a position or a point given by text found in `picture` at the media time of the leaf's own instant, a
+// clip area kept for evaluation where the masks take one, and `feather` and a clip area's padding theme lengths times
+// `lengthScale`. A mask written alone is read as a list of one, and a stop names it as
 // the document wrote it, `mask.<key>` for a mask alone and `mask[i].<key>` in a list.
 struct MaskPlanner: Sendable {
     // MARK: - Property
@@ -42,14 +43,14 @@ struct MaskPlanner: Sendable {
 
     // MARK: - Public
     // `textStop` is the stop for a text form where the clip's masks are not in a picture that can be searched, and
-    // `clipStop` the stop for a clip area where the masks are in the space the clip is drawn in. Anywhere else a clip
-    // area stops as an area searched in a picture.
+    // `takesClipArea` whether the masks are in the space the clip is drawn in, where a clip area names a box drawn
+    // there. Anywhere else a clip area stops as an area searched in a picture.
     func masks(
         _ property: LookProperty?,
         in picture: Picture,
         pictureClock: PictureClock,
         textStop: ((Place) -> ResolveError)? = nil,
-        clipStop: ((Place) -> ResolveError)? = nil
+        takesClipArea: Bool = false
     ) throws -> [FoundMask]? {
         guard let property else { return nil }
 
@@ -98,7 +99,7 @@ struct MaskPlanner: Sendable {
                         pictureClock: pictureClock,
                         place: placed(source.written),
                         textStop: textStop,
-                        clipStop: clipStop
+                        takesClipArea: takesClipArea
                     )
                     if let index = found.index, let text = found.text {
                         textTimes[index, default: [:]][text, default: []].insert(source.time)
@@ -130,7 +131,7 @@ struct MaskPlanner: Sendable {
         pictureClock: PictureClock,
         place: Place,
         textStop: ((Place) -> ResolveError)?,
-        clipStop: ((Place) -> ResolveError)?
+        takesClipArea: Bool
     ) throws -> (value: LeafValue, index: Int?, text: MaskLeaf?) {
         let path = source.place.path.components
         guard path.count >= 2, case let .index(index, _) = path[0], case let .key(key) = path[1] else {
@@ -147,8 +148,8 @@ struct MaskPlanner: Sendable {
             if form.isFoundByText, let textStop {
                 throw textStop(place)
             }
-            if form.clip != nil, let clipStop {
-                throw clipStop(place)
+            if takesClipArea, let area = ClipArea(form: form, lengthScale: lengthScale) {
+                return (.area(area), index, nil)
             }
             let rectangle = try finder.area(form, in: picture, at: mediaTime, place: place, kind: kind.label).rectangle
             return (
@@ -178,8 +179,12 @@ struct MaskPlanner: Sendable {
         if position.isFoundByText, let textStop {
             throw textStop(place)
         }
-        if position.clip != nil, let clipStop {
-            throw clipStop(place)
+        if
+            takesClipArea,
+            case let .area(form, name) = position,
+            let area = ClipArea(form: form, lengthScale: lengthScale)
+        {
+            return (.point(area, name: name), index, nil)
         }
         let point = try finder.point(position, in: picture, at: mediaTime, place: place, kind: kind.label)
         return (.numbers([point.x, point.y]), index, position.isFoundByText ? maskLeaf : nil)

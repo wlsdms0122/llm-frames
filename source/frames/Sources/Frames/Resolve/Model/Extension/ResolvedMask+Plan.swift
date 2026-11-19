@@ -7,7 +7,7 @@
 
 // A mask as resolve times it, from the timed value of one mask the key tables and timing have checked: its `shape`
 // names its geometry, given by `area`, by the box `width`, `height` and `position`, or by `points`, and a path is
-// a closed polyline.
+// a closed polyline. An area or a point the planner kept as a clip area stays one.
 extension ResolvedMask {
     // MARK: - Property
     // MARK: - Initializer
@@ -44,10 +44,19 @@ extension ResolvedMask {
     private static func rectangle(of timed: TimedValue) -> ResolvedMaskRectangle? {
         if let area = track(timed["area"]) {
             return .area(area.compactMap { keyframe in
-                guard case let .numbers(numbers) = keyframe.value, numbers.count == 4 else { return nil }
+                let area: GeometryArea
+                switch keyframe.value {
+                case let .numbers(numbers) where numbers.count == 4:
+                    area = .rectangle(Rectangle(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]))
 
-                let rectangle = Rectangle(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3])
-                return Keyframe(at: keyframe.at, value: rectangle, ease: keyframe.ease)
+                case let .area(clip):
+                    area = .clip(clip)
+
+                default:
+                    return nil
+                }
+
+                return Keyframe(at: keyframe.at, value: area, ease: keyframe.ease)
             })
         }
         guard
@@ -81,11 +90,21 @@ extension ResolvedMask {
         }
     }
 
-    private static func points(_ value: TimedValue?) -> [Keyframe<Point>]? {
+    private static func points(_ value: TimedValue?) -> [Keyframe<GeometryPoint>]? {
         track(value)?.compactMap { keyframe in
-            guard case let .numbers(numbers) = keyframe.value, numbers.count == 2 else { return nil }
+            let point: GeometryPoint
+            switch keyframe.value {
+            case let .numbers(numbers) where numbers.count == 2:
+                point = .point(Point(x: numbers[0], y: numbers[1]))
 
-            return Keyframe(at: keyframe.at, value: Point(x: numbers[0], y: numbers[1]), ease: keyframe.ease)
+            case let .point(clip, name):
+                point = .clip(clip, point: name)
+
+            default:
+                return nil
+            }
+
+            return Keyframe(at: keyframe.at, value: point, ease: keyframe.ease)
         }
     }
 }

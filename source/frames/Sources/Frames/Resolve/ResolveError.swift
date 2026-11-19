@@ -71,7 +71,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
     case clipAreaOnStoryline(place: Place, kind: PlaceKind)
-    case clipAreaInMask(place: Place, kind: PlaceKind)
     case textUnderClipArea(place: Place, kind: PlaceKind, parent: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
@@ -315,9 +314,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .clipAreaOnStoryline(place, kind):
             "\(place) (\(kind.label)): a storyline clip is placed by the storyline in output pixels, so it takes "
                 + "no clip area"
-
-        case let .clipAreaInMask(place, kind):
-            "\(place) (\(kind.label)): a clip area in a mask is not drawn by this version of frames"
 
         case let .textUnderClipArea(place, kind, parent):
             "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "

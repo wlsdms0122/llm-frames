@@ -242,6 +242,12 @@ struct ResolvedValueWriter: Sendable {
 
                 case let .numbers(numbers):
                     self.numbers(numbers)
+
+                case let .area(area):
+                    geometryArea(.clip(area))
+
+                case let .point(area, name):
+                    geometryPoint(.clip(area, point: name))
                 }
             }
 
@@ -453,7 +459,7 @@ struct ResolvedValueWriter: Sendable {
 
         case let .polyline(points):
             return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: point) })),
+                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: geometryPoint) })),
                 JSONMember(key: "closed", value: .bool(true))
             ])
         }
@@ -462,13 +468,13 @@ struct ResolvedValueWriter: Sendable {
     private func members(of rectangle: ResolvedMaskRectangle) -> [JSONMember] {
         switch rectangle {
         case let .area(area):
-            [JSONMember(key: "rect", value: keyframes(area, value: self.rectangle))]
+            [JSONMember(key: "rect", value: keyframes(area, value: geometryArea))]
 
         case let .box(width, height, position):
             [
                 JSONMember(key: "width", value: numbers(width)),
                 JSONMember(key: "height", value: numbers(height)),
-                JSONMember(key: "position", value: keyframes(position, value: point))
+                JSONMember(key: "position", value: keyframes(position, value: geometryPoint))
             ]
         }
     }

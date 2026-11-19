@@ -86,7 +86,7 @@ extension PlacedUnit {
             case let .numbers(numbers):
                 numbers
 
-            case .color:
+            case .color, .area, .point:
                 nil
             }
         }

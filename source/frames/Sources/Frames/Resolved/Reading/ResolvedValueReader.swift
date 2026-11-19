@@ -579,7 +579,7 @@ struct ResolvedValueReader: Sendable {
         default:
             let polyline = try form.object(keys: ["points", "closed"])
             let written = try polyline.member("points")
-            let points = try written.elements().map { try keyframes($0, read: point) }
+            let points = try written.elements().map { try keyframes($0, read: geometryPoint) }
             guard try polyline.member("closed").bool(), points.count >= 3 else {
                 throw ModelError.invalidValue(
                     place: value.place,
@@ -598,13 +598,13 @@ struct ResolvedValueReader: Sendable {
                 throw ModelError.conflictingKeys(place: object.place, kind: object.kind, keys: ["rect", box])
             }
 
-            return .area(try keyframes(object.member("rect"), read: rectangle))
+            return .area(try keyframes(object.member("rect"), read: geometryArea))
         }
 
         return .box(
             width: try numbers(object.member("width")),
             height: try numbers(object.member("height")),
-            position: try keyframes(object.member("position"), read: point)
+            position: try keyframes(object.member("position"), read: geometryPoint)
         )
     }
 

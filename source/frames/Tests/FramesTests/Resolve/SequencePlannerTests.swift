@@ -1075,7 +1075,7 @@ struct SequencePlannerTests {
         let box = ResolvedMaskRectangle.box(
             width: [Keyframe(at: 0, value: width)],
             height: [Keyframe(at: 0, value: height)],
-            position: [Keyframe(at: 0, value: position)]
+            position: [Keyframe(at: 0, value: .point(position))]
         )
         let geometry: ResolvedMaskGeometry = shape == .rect ? .rect(box, radius: [Keyframe(at: 0, value: 0)]) : .ellipse(box)
 

@@ -7,8 +7,9 @@
 
 // Checks the clip each clip area names in the same document: a connected or sequence media clip, title or shape, the
 // clips a track matte may name, drawn in the space of the clip that writes the area (both with one parent or none) or
-// that clip's own parent. A clip whose box depends on itself through clip areas stops, naming the clips in the cycle.
-// A storyline clip is placed in output pixels by the storyline, so it takes no clip area.
+// that clip's own parent. A clip whose box depends on itself through clip areas stops, naming the clips in the cycle;
+// a mask is checked as an area is and takes no part in a cycle, since no clip's box depends on a mask's area. A
+// storyline clip is placed in output pixels by the storyline, so it takes no clip area.
 struct ClipAreaFinder: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -32,6 +33,11 @@ struct ClipAreaFinder: Sendable {
         let named = try written.indices.map { index in
             try references(of: written[index]).map { reference in
                 try self.named(reference, by: index, clips: clips, links: links, storylineLinks: storylineLinks)
+            }
+        }
+        for index in written.indices {
+            for reference in maskReferences(of: written[index]) {
+                _ = try self.named(reference, by: index, clips: clips, links: links, storylineLinks: storylineLinks)
             }
         }
 
@@ -152,6 +158,51 @@ struct ClipAreaFinder: Sendable {
         return entries(position, key: "position", place: place).compactMap { form, place in
             form.clip.map { ClipAreaReference(place: place.appending(key: "area"), clip: $0) }
         }
+    }
+
+    // Every clip area a clip's masks write in an `area`, a box `position` and a path's `points`, statically and in
+    // keyframes, a mask written alone placed without its index.
+    private func maskReferences(of clip: Clip) -> [ClipAreaReference] {
+        guard let mask = clip.mask else { return [] }
+
+        let written = mask.written.map { [($0, clip.place.appending(key: "mask"))] } ?? []
+        let keyframes = mask.keyframes.map { keyframe in
+            let place = clip.place.appending(key: "keyframes").appending(index: keyframe.index)
+            return (keyframe.value, place.appending(key: "mask"))
+        }
+        return (written + keyframes).flatMap { value, place in
+            if value.objectValue != nil {
+                return maskReferences(in: value, place: place)
+            }
+
+            return (value.arrayValue ?? []).enumerated().flatMap { index, mask in
+                maskReferences(in: mask, place: place.appending(index: index))
+            }
+        }
+    }
+
+    private func maskReferences(
+        in mask: JSONValue,
+        place: Place
+    ) -> [ClipAreaReference] {
+        guard let object = mask.objectValue else { return [] }
+
+        let area = object["area"].flatMap(AreaForm.init(value:))?.clip.map {
+            ClipAreaReference(place: place.appending(key: "area"), clip: $0)
+        }
+        let position = object["position"].flatMap(PositionForm.init(value:))?.clip.map {
+            ClipAreaReference(place: place.appending(key: "position").appending(key: "area"), clip: $0)
+        }
+        let points = (object["points"]?.arrayValue ?? []).enumerated().compactMap { index, point in
+            PositionForm(value: point)?.clip.map {
+                ClipAreaReference(
+                    place: place.appending(key: "points").appending(index: index).appending(key: "area"),
+                    clip: $0
+                )
+            }
+        }
+
+        return [area, position].compactMap { $0 } + points
     }
 
     // A property's static value or each keyframe's, with the place that writes it.

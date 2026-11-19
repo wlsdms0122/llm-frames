@@ -234,7 +234,7 @@ struct TimedValueBuilder: Sendable {
             let numbers: [Double] = switch value {
             case let .number(number): [number]
             case let .numbers(numbers): numbers
-            case .color: []
+            case .color, .area, .point: []
             }
             // A leaf two keyframes or more write is one end of a change, so it may take any value its samples take.
             let fits = keyframes.count > 1 ? kind.domain.contains : kind.domain.isSeen

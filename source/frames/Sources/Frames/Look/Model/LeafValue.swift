@@ -5,12 +5,15 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A timed leaf's value once resolved: a number, a colour, or numbers moved as one (a point, an offset, a padding).
-// Numbers interpolate linearly and per component, and a colour per channel, straight.
+// A timed leaf's value once resolved: a number, a colour, numbers moved as one (a point, an offset, a padding), or a
+// clip area or the point a placement name gives of one, whose numbers only evaluation knows. Numbers interpolate
+// linearly and per component, and a colour per channel, straight.
 enum LeafValue: Interpolable {
     case number(Double)
     case color(Color)
     case numbers([Double])
+    case area(ClipArea)
+    case point(ClipArea, name: String)
 
     // MARK: - Property
     // MARK: - Initializer
@@ -44,7 +47,7 @@ enum LeafValue: Interpolable {
         case let .numbers(numbers):
             .numbers(numbers.map(domain.clamped))
 
-        case .color:
+        case .color, .area, .point:
             self
         }
     }
