@@ -58,7 +58,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 - `storyline` is the primary storyline. Its clips play one after another, and a transition plays across the edit point between two of them.
 - `connected` clips belong to one storyline clip and live on its clip time ([FRAMES-8](../FRAMES-8/SPEC.md)). They move when that clip moves.
 - `clips` are the sequence's clips on the sequence clock.
-- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. What a media clip takes from its media is the clip's own choice: its picture and its sound, or with `"picture": false` its sound alone, as Final Cut Pro detaches a clip's audio ([FRAMES-13](../FRAMES-13/SPEC.md)). An **audio clip** is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a **clip with a picture** is every other clip.
+- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. `"picture": false` on a media clip whose media has a picture and sound (a video, a compound clip, a sequence template instance) takes only the sound, as Final Cut Pro detaches a clip's audio, and the clip is then an audio clip ([FRAMES-13](../FRAMES-13/SPEC.md)). An **audio clip** is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a **clip with a picture** is every other clip.
 
 ### Keys
 
@@ -67,14 +67,15 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
 | format | `size, fps, background, conform` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
-| audio clip of a video's or a compound clip's sound (`"picture": false`) | every audio clip's, `picture` |
+| audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
+| audio clip of a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's but `audioFilter`, and `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | title clip | every clip with a picture's, `title, style, character, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
@@ -114,7 +115,7 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 | storyline clip with media | `crop, position, scale, rotation, opacity, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | storyline clip, solid | `solid` |
 | media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
-| audio clip | `volume, pan, audioFilter` |
+| audio clip | `volume, pan`, and `audioFilter` where it takes one |
 | title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, and the `color` of its `highlight` and `underline` |
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
