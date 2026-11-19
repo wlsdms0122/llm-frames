@@ -6,17 +6,20 @@
 //
 
 // A leaf of a keyed value: its form, its domain, whether it is a theme length, which resolve scales to output pixels,
-// and for a name the names it takes, nil for any.
+// for a name the names it takes, nil for any, and how it moves between keyframes.
 struct LeafKind: Equatable, Sendable {
     // MARK: - Property
     static let name = LeafKind(form: .name)
     static let boolean = LeafKind(form: .boolean)
     static let color = LeafKind(form: .color)
+    // A positive number heard by its ratio, as a frequency is, which moves geometrically between keyframes.
+    static let ratio = LeafKind(form: .number, domain: .positive, interpolation: .geometric)
 
     let form: LeafForm
     let domain: LeafDomain
     let isLength: Bool
     let names: [String]?
+    let interpolation: LeafInterpolation
 
     var isTimed: Bool { form.isTimed }
 
@@ -25,12 +28,14 @@ struct LeafKind: Equatable, Sendable {
         form: LeafForm,
         domain: LeafDomain = .any,
         isLength: Bool = false,
-        names: [String]? = nil
+        names: [String]? = nil,
+        interpolation: LeafInterpolation = .linear
     ) {
         self.form = form
         self.domain = domain
         self.isLength = isLength
         self.names = names
+        self.interpolation = interpolation
     }
 
     // MARK: - Public
