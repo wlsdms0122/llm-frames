@@ -590,7 +590,7 @@ struct EvaluatorTests {
         }
         let corners = item.transform.apply(toCornersOf: rectangle)
         #expect(isClose(corners, area))
-        #expect(abs(stroke.width * item.transform.a - 4) < 1e-9)
+        #expect(stroke.width == 4)
         #expect(abs(radius * item.transform.a - 2) < 1e-9)
     }
 
@@ -735,7 +735,7 @@ struct EvaluatorTests {
         let shadow = DropShadow(radius: 4, offset: Point(x: 0, y: 2), color: background)
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            scale: [Keyframe(at: 0, value: 0.5)],
+            scale: [Keyframe(at: 0, value: Scale(0.5))],
             opacity: 0.5,
             blend: "screen",
             radius: 8,
@@ -747,14 +747,15 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence([entry]), at: 1)
 
         // Then
-        // Half size about the centre of the frame, which is its anchor.
+        // Half size about the centre of the frame, which is its anchor. The border width and the shadow radius are
+        // in output pixels at that scale; the radius and the shadow offset are carried by the transform.
         let picture = PictureItem(
             source: .media(MediaFrame(media: first, index: 4)),
             rectangle: whole,
             destination: frame,
             radius: 8,
-            border: border,
-            shadow: shadow
+            border: MediaBorder(width: 1, color: white),
+            shadow: DropShadow(radius: 2, offset: Point(x: 0, y: 2), color: background)
         )
         let inner = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 50, ty: 25),
@@ -771,7 +772,7 @@ struct EvaluatorTests {
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
             position: [Keyframe(at: 0, value: Point(x: 0, y: 0)), Keyframe(at: 2, value: Point(x: 100, y: 0))],
-            scale: [Keyframe(at: 0, value: 1), Keyframe(at: 2, value: 0.5)]
+            scale: [Keyframe(at: 0, value: Scale(1)), Keyframe(at: 2, value: Scale(0.5))]
         )
 
         // When
@@ -803,7 +804,7 @@ struct EvaluatorTests {
             storylineClip(.pinned(first), in: 1, start: 0, end: 2),
             transformed(
                 storylineClip(.pinned(second), in: 1, start: 2, end: 4, transition: transition),
-                scale: [Keyframe(at: 2, value: 0.5)],
+                scale: [Keyframe(at: 2, value: Scale(0.5))],
                 blend: "multiply"
             )
         ])
@@ -837,7 +838,7 @@ struct EvaluatorTests {
         let entry = transformed(
             storylineClip(.pinned(first), id: "shot", start: 0, end: 4),
             position: [Keyframe(at: 0, value: Point(x: 20, y: 10))],
-            scale: [Keyframe(at: 0, value: 0.5)]
+            scale: [Keyframe(at: 0, value: Scale(0.5))]
         )
         let sequence = sequence([entry], clips: [fillClip(area, lane: 1, storyline: 0, parent: "shot")])
 
@@ -976,7 +977,7 @@ struct EvaluatorTests {
         let mask = ResolvedMask(geometry: .ellipse(whole), feather: 4, isInverted: false, mode: .add)
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
-            scale: [Keyframe(at: 0, value: 0.5)],
+            scale: [Keyframe(at: 0, value: Scale(0.5))],
             mask: [Keyframe(at: 0, value: [mask])]
         )
 
@@ -1179,7 +1180,7 @@ struct EvaluatorTests {
     private func transformed(
         _ entry: ResolvedStorylineClip,
         position: [Keyframe<Point>]? = nil,
-        scale: [Keyframe<Double>]? = nil,
+        scale: [Keyframe<Scale>]? = nil,
         mask: [Keyframe<[ResolvedMask]>]? = nil,
         opacity: Double = 1,
         blend: String = "normal",
@@ -1282,7 +1283,7 @@ struct EvaluatorTests {
             trackMatte: nil,
             track: track,
             opacity: [Keyframe(at: 0, value: opacity)],
-            scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: .identity)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: blend,
             animation: animation

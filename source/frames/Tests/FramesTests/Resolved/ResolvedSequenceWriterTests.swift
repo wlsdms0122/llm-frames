@@ -167,7 +167,7 @@ struct ResolvedSequenceWriterTests {
                 JSONMember(key: "ease", value: .string("linear"))
             ]))
         ]))
-        #expect(clip["scale"]?.arrayValue?.first?.objectValue?["value"] == .number(1))
+        #expect(clip["scale"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(1), .number(1)]))
         #expect(clip["blend"] == .string("normal"))
     }
 

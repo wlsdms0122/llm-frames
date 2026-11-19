@@ -34,7 +34,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let filter: TimedValue
     let box: ResolvedBox
     let opacity: [Keyframe<Double>]
-    let scale: [Keyframe<Double>]
+    let scale: [Keyframe<Scale>]
     let rotation: [Keyframe<Double>]
     let blend: String
     let radius: TimedValue
@@ -70,7 +70,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         filter: TimedValue,
         box: ResolvedBox,
         opacity: [Keyframe<Double>],
-        scale: [Keyframe<Double>],
+        scale: [Keyframe<Scale>],
         rotation: [Keyframe<Double>],
         blend: String,
         radius: TimedValue,

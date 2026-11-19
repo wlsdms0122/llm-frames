@@ -398,6 +398,44 @@ struct PathDrawerTests {
         try expectDrawnInsideBounds(of: path)
     }
 
+    @Test("a stroke under a transform that scales its axes apart is as wide on every side in output pixels")
+    func drawsNonScalingStroke() throws {
+        // Given
+        // A 20 by 40 rect at [2, 1]: the output outline runs from (20, 20) to (60, 60), its stroke 4 wide about it, so
+        // the top side covers the pixel rows 18 to 21 and the left side the columns 18 to 21.
+        let path = stroked(.rect(Rectangle(x: 10, y: 20, width: 20, height: 40), radius: 0), width: 4)
+        let item = DisplayItem(transform: AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: 0, ty: 0), content: .path(path))
+        let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        expect(
+            bitmap,
+            at: [(40, 17), (40, 18), (40, 21), (40, 22), (17, 40), (18, 40), (21, 40), (22, 40), (40, 40)],
+            inked: [false, true, true, false, false, true, true, false, false]
+        )
+    }
+
+    @Test("the arrowhead under a transform that scales its axes apart keeps its shape, 4 times the width long")
+    func drawsNonScalingArrowhead() throws {
+        // Given
+        // A 4 wide line to (45, 50) at [2, 1] ends at (90, 50) on the output, its head from x = 74, 16 wide.
+        let points = [Point(x: 5, y: 50), Point(x: 45, y: 50)]
+        let path = stroked(.polyline(points, isClosed: false), width: 4, end: .arrow)
+        let item = DisplayItem(transform: AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: 0, ty: 0), content: .path(path))
+        let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        expect(bitmap, at: [(40, 51), (40, 53), (73, 43), (75, 43), (75, 41), (85, 49), (90, 50)], inked: [
+            true, false, false, true, false, true, false
+        ])
+    }
+
     // MARK: - Private
     private func list(_ paths: [PathItem]) -> DisplayList {
         DisplayList(
@@ -432,7 +470,7 @@ struct PathDrawerTests {
         of path: PathItem,
         sourceLocation: SourceLocation = #_sourceLocation
     ) throws {
-        let box = path.drawnBounds()
+        let box = path.drawnBounds(carriedBy: .identity)
         let revealed = DisplayList(
             size: Size(width: 100, height: 100),
             background: Color(written: "#00000000"),

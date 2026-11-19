@@ -501,7 +501,7 @@ struct ParentEvaluatorTests {
             trackMatte: nil,
             track: track,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: Scale(scale))],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: "normal",
             animation: .none

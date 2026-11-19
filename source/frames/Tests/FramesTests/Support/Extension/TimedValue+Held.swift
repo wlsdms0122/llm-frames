@@ -121,15 +121,15 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     }
 
     func stroke(at time: Double = 0) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke))
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {
-        DropShadow(sampled: sampled(at: time, as: LookStructureTable.shadow))
+        DropShadow(sampled: sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
     }
 
     func border(at time: Double = 0) -> MediaBorder? {
-        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border))
+        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1)
     }
 
     func filter(at time: Double = 0) -> [FilterEntry] {

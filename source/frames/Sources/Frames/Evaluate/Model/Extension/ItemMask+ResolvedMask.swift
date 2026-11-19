@@ -6,20 +6,20 @@
 //
 
 // `transform` is the clip's space's map to output pixels of the list. The feather, a theme length in output pixels, is
-// multiplied by `scale`, the clip's own scale and its animation's; a parent's scale, which `transform` carries, does
-// not grow it.
+// multiplied by `factor`, the scale factor of the clip's own scale and its animation's; a parent's scale, which
+// `transform` carries, does not grow it.
 extension ItemMask {
     // MARK: - Property
     // MARK: - Initializer
     init(
         mask: ResolvedMask,
         transform: AffineTransform,
-        scale: Double
+        factor: Double
     ) {
         self.init(
             geometry: mask.geometry,
             transform: transform,
-            feather: mask.feather * scale,
+            feather: mask.feather * factor,
             isInverted: mask.isInverted,
             mode: mask.mode
         )

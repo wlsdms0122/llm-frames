@@ -154,6 +154,11 @@ struct ResolvedValueWriter: Sendable {
         self.keyframes(keyframes) { .number($0) }
     }
 
+    // A scale is written as its pair, `[sx, sy]`.
+    func scales(_ keyframes: [Keyframe<Scale>]) -> JSONValue {
+        self.keyframes(keyframes) { scale in numbers([scale.x, scale.y]) }
+    }
+
     // A timed value: each timed leaf as its keyframe list, each static leaf as its value, `off` as `null`, the colour
     // form as its colour, a choice's form as the choice writes it, its name beside its body (`{"op": "blur", ...}`),
     // and any other form as an object of its one name.

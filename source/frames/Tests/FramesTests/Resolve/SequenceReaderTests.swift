@@ -166,7 +166,7 @@ struct SequenceReaderTests {
             stroke: LookProperty(written: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "arrow" }"#)),
             shadow: LookProperty(written: .bool(true))
         )))
-        #expect(sequence.clips[0].scale == .value(2))
+        #expect(sequence.clips[0].scale == .value(Scale(2)))
         #expect(sequence.clips[0].rotation == .value(30))
         #expect(sequence.clips[1].content == .shape(ClipShape(
             kind: .path,

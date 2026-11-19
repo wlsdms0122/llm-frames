@@ -200,6 +200,8 @@ package struct Evaluator: Sendable {
         let origin = ItemOrigin(entry: entry)
         let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
         let presentation = entry.presentation(at: time)
+        // A box's own pixels are carried at the entry's scale, so a carried length is written as it is.
+        let factor = entry.scale.value(at: time).factor
         let content: DisplayContent
         if let media = entry.media {
             content = .picture(PictureItem(
@@ -208,8 +210,15 @@ package struct Evaluator: Sendable {
                 destination: box,
                 filter: FilterEntry.entries(of: entry.filter, at: time),
                 radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
-                border: MediaBorder(sampled: entry.border.sampled(at: time, as: LookStructureTable.border)),
-                shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow))
+                border: MediaBorder(
+                    sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
+                    factor: factor
+                ),
+                shadow: DropShadow(
+                    sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                    factor: factor,
+                    carried: 1
+                )
             ))
         } else if let solid = entry.solid {
             content = .path(PathItem(filling: box, color: solid))

@@ -17,7 +17,7 @@ struct ItemPresentationTests {
     @Test("a clip's keyframes and animation combine about its anchor point: scale and opacity multiply, rotation adds")
     func combinesAboutAnchor() {
         // Given
-        let values = KeyframedValues(position: Point(x: 300, y: 400), scale: 1, rotation: 60, opacity: 0.5)
+        let values = KeyframedValues(position: Point(x: 300, y: 400), rotation: 60, opacity: 0.5)
         let motion = Motion(values: [.scale: 2, .rotation: 30, .opacity: 0.5, .x: 0.5])
 
         // When

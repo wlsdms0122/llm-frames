@@ -223,6 +223,14 @@ struct ResolvedValueReader: Sendable {
         try keyframes(value) { try $0.number() }
     }
 
+    func scales(_ value: PlacedJSONValue) throws -> [Keyframe<Scale>] {
+        try keyframes(value) { element in
+            let factors = try element.numbers(count: 2)
+
+            return Scale(x: factors[0], y: factors[1])
+        }
+    }
+
     func crops(_ value: PlacedJSONValue) throws -> [Keyframe<Crop>] {
         try keyframes(value) { Crop(try rectangle($0)) }
     }

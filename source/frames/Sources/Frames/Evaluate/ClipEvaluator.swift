@@ -106,8 +106,15 @@ struct ClipEvaluator: Sendable {
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: FilterEntry.entries(of: media.filter, at: time),
                 radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
-                border: MediaBorder(sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border)),
-                shadow: DropShadow(sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow))
+                border: MediaBorder(
+                    sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
+                    factor: sample.lengthFactor
+                ),
+                shadow: DropShadow(
+                    sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                    factor: sample.lengthFactor,
+                    carried: 1
+                )
             )
             // The border lies inside the box, so only the shadow reaches past it.
             let receiver = item.shadow.map { item.destination.union($0.castBounds(of: item.destination)) }
@@ -151,7 +158,7 @@ struct ClipEvaluator: Sendable {
     }
 
     // The box keeps its size in output pixels under a parent and its tracked motion: its anchor point goes where they
-    // carry it, and it turns by their rotation on top of its own.
+    // carry it, and it turns by their map's rotation on top of its own, never mirrored.
     private func presentation(
         of clip: ResolvedClip,
         box: ResolvedBox,
@@ -163,8 +170,8 @@ struct ClipEvaluator: Sendable {
         let anchor = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
         let values = KeyframedValues(
             position: Point(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y),
-            scale: clip.scale.map { $0.value(at: time) } ?? 1,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.rotation,
+            scale: clip.scale.map { $0.value(at: time) } ?? .identity,
+            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation,
             opacity: sample.opacity
         )
 
@@ -224,8 +231,8 @@ struct ClipEvaluator: Sendable {
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
             : clip.ownMasks(at: time)
         let transform = clip.ownMotion(at: time).concatenating(childTransform(of: clip, in: space, at: time))
-        let scale = ClipSample(clip: clip, at: time).ownScale
-        return masks.map { ItemMask(mask: $0, transform: transform, scale: scale) }
+        let factor = ClipSample(clip: clip, at: time).lengthFactor
+        return masks.map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }
 
     private func maskBounds(

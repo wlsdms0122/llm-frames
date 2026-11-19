@@ -15,14 +15,14 @@ extension ResolvedStorylineClip {
     func masks(at time: Double) -> [ItemMask] {
         guard let mask else { return [] }
 
-        let scale = scale.value(at: time)
+        let factor = scale.value(at: time).factor
         guard let track, let clock else {
             let transform = spaceTransform(at: time)
-            return mask.value(at: time).map { ItemMask(mask: $0, transform: transform, scale: scale) }
+            return mask.value(at: time).map { ItemMask(mask: $0, transform: transform, factor: factor) }
         }
 
         let transform = track.transform(on: clock, at: time).concatenating(spaceTransform(at: time))
-        return track.masks(of: mask, on: clock, at: time).map { ItemMask(mask: $0, transform: transform, scale: scale) }
+        return track.masks(of: mask, on: clock, at: time).map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }
 
     // MARK: - Private

@@ -29,7 +29,7 @@ struct ResolvedClip: Equatable, Sendable {
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let opacity: [Keyframe<Double>]
-    let scale: [Keyframe<Double>]?
+    let scale: [Keyframe<Scale>]?
     let rotation: [Keyframe<Double>]?
     let blend: String
     let animation: ResolvedAnimation
@@ -61,7 +61,7 @@ struct ResolvedClip: Equatable, Sendable {
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         opacity: [Keyframe<Double>],
-        scale: [Keyframe<Double>]?,
+        scale: [Keyframe<Scale>]?,
         rotation: [Keyframe<Double>]?,
         blend: String,
         animation: ResolvedAnimation

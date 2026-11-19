@@ -5,28 +5,18 @@
 //  Created by JSilver on 11/16/26.
 //
 
-import Foundation
-
 // The coordinate space a clip's positions and areas are written in, at one instant. `transform` maps that space to
-// output pixels of the list the clip is drawn in, the identity for an unparented clip. It is a similarity, so `scale`
-// and `rotation` are its one scale and its turn in degrees. `frame` is the list's frame, what an adjustment without a
-// mask covers, and `clock` the parent's media clock, which a tracked clip follows. A tracked clip's keyframes are each
-// brought back to the instant through its track, so `area`, `point`, `points`, `masks` and `anchor` answer in the
-// clip's values' coordinates, and `tracked(by:at:)` is the space that maps those to output pixels: the track's motion,
-// then this space's map.
+// output pixels of the list the clip is drawn in, the identity for an unparented clip; it is any affine map, as a
+// parent may scale its axes apart and mirror. `frame` is the list's frame, what an adjustment without a mask covers,
+// and `clock` the parent's media clock, which a tracked clip follows. A tracked clip's keyframes are each brought back
+// to the instant through its track, so `area`, `point`, `points`, `masks` and `anchor` answer in the clip's values'
+// coordinates, and `tracked(by:at:)` is the space that maps those to output pixels: the track's motion, then this
+// space's map.
 struct ClipSpace: Sendable {
     // MARK: - Property
     let frame: Rectangle
     let transform: AffineTransform
     let clock: MediaClock?
-
-    var scale: Double {
-        (transform.a * transform.a + transform.b * transform.b).squareRoot()
-    }
-
-    var rotation: Double {
-        atan2(transform.b, transform.a) * 180 / .pi
-    }
 
     // MARK: - Initializer
     init(

@@ -202,7 +202,7 @@ struct ClipAppearancePlanner: Sendable {
     ) throws -> ClipAppearance {
         ClipAppearance(
             opacity: property(written.opacity, plain: 1, clock: plan.clock),
-            scale: property(written.scale, plain: 1, clock: plan.clock),
+            scale: property(written.scale, plain: .identity, clock: plan.clock),
             rotation: property(written.rotation, plain: 0, clock: plan.clock),
             blend: written.blend ?? "normal",
             shape: shape,
@@ -247,7 +247,7 @@ struct ClipAppearancePlanner: Sendable {
             return StorylineAppearance(
                 box: nil,
                 opacity: .value(1),
-                scale: .value(1),
+                scale: .value(.identity),
                 rotation: .value(0),
                 blend: "normal",
                 radius: .off,
@@ -272,7 +272,7 @@ struct ClipAppearancePlanner: Sendable {
         return StorylineAppearance(
             box: ClipBox(size: box, position: placed, anchor: anchor),
             opacity: property(written.opacity, plain: 1, clock: plan.map),
-            scale: property(written.scale, plain: 1, clock: plan.map),
+            scale: property(written.scale, plain: .identity, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
             blend: written.blend ?? "normal",
             radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.length),

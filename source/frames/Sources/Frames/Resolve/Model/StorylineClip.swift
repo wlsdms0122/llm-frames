@@ -25,7 +25,7 @@ struct StorylineClip: Equatable, Sendable {
     let filter: LookProperty?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
-    let scale: PropertyValue<Double>?
+    let scale: PropertyValue<Scale>?
     let rotation: PropertyValue<Double>?
     let opacity: PropertyValue<Double>?
     let blend: String?
@@ -50,7 +50,7 @@ struct StorylineClip: Equatable, Sendable {
         filter: LookProperty? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,
-        scale: PropertyValue<Double>? = nil,
+        scale: PropertyValue<Scale>? = nil,
         rotation: PropertyValue<Double>? = nil,
         opacity: PropertyValue<Double>? = nil,
         blend: String? = nil,

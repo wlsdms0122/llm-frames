@@ -10,14 +10,18 @@ import Foundation
 import Frames
 
 // Draws a path item in its own coordinates: its fill, then its stroke over it. The stroke runs along its outline
-// between the smaller and the larger trim, centred, and stops at the middle of its arrowheads' bases. The stroked line
-// and its heads are united into one shape filled once, so a translucent colour is not drawn twice where they overlap.
+// between the smaller and the larger trim, centred, and stops at the middle of its arrowheads' bases. It is laid in
+// output pixels on the outline `transform` carries (`PathItem.carriedStroke(by:)`), so a transform that scales its
+// axes apart does not stretch it, and drawn back in the item's coordinates.
+// The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
+// where they overlap.
 struct PathDrawer {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
     func draw(
         _ item: PathItem,
+        carriedBy transform: Frames.AffineTransform,
         in context: CGContext
     ) {
         let outline = PathOutline(item.geometry)
@@ -30,13 +34,16 @@ struct PathDrawer {
 
         guard
             let stroke = item.stroke,
-            let drawn = item.drawnStroke,
+            let back = transform.inverse,
+            case let (carried, drawn)? = item.carriedStroke(by: transform),
             drawn.isDrawn,
-            outline.length > 0,
-            let shape = shape(of: stroke, drawn: drawn, along: outline)
+            let shape = shape(of: stroke, drawn: drawn, along: carried)
         else { return }
 
-        context.addPath(shape)
+        var matrix = CGAffineTransform(back)
+        guard let placed = shape.copy(using: &matrix) else { return }
+
+        context.addPath(placed)
         context.setFillColor(stroke.color.cgColor)
         context.fillPath(using: .winding)
     }

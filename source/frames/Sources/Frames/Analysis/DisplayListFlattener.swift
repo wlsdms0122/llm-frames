@@ -60,7 +60,7 @@ struct DisplayListFlattener: Sendable {
             return items(of: picture, own: own)
 
         case let .path(path):
-            coverage = own.covered(ItemCoverage(path: path))
+            coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
 
         case let .glyphs(glyphs):
             let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)

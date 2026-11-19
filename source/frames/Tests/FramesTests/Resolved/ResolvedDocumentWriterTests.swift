@@ -97,12 +97,12 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 },
                 {
                   "at": 3,
-                  "value": 0.5,
+                  "value": [0.5, 0.5],
                   "ease": "linear"
                 }
               ],
@@ -222,7 +222,7 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 }
               ],
@@ -306,7 +306,7 @@ struct ResolvedDocumentWriterTests {
               "scale": [
                 {
                   "at": 0,
-                  "value": 1,
+                  "value": [1, 1],
                   "ease": "linear"
                 }
               ],

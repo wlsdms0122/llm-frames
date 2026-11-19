@@ -39,7 +39,7 @@ struct ShapeEvaluatorTests {
             SpanKey(t: 0, values: [.scale: 2]),
             SpanKey(t: 1, values: [.scale: 2])
         ]))
-        let clip = clip(placedBy: placement, scale: 3, entrance: entrance)
+        let clip = clip(placedBy: placement, scale: Scale(3), entrance: entrance)
         let shape = try #require(resolvedShape(of: clip))
 
         // When
@@ -51,13 +51,43 @@ struct ShapeEvaluatorTests {
             Issue.record("a shape draws one path item")
             return
         }
-        let scale = (item.transform.a * item.transform.a + item.transform.b * item.transform.b).squareRoot()
-        #expect(abs(try #require(path.stroke).width * scale - 4 * 6) < 1e-9)
+        // Widths are in output pixels; the radius and the shadow's offset are carried by the transform.
+        let factor = item.transform.lengthFactor
+        #expect(abs(try #require(path.stroke).width - 4 * 6) < 1e-9)
         if case let .rect(_, radius) = path.geometry {
-            #expect(abs(radius * scale - 2 * 6) < 1e-9)
+            #expect(abs(radius * factor - 2 * 6) < 1e-9)
         }
-        #expect(abs(try #require(path.shadow).radius * scale - 6 * 6) < 1e-9)
-        #expect(abs(try #require(path.shadow).offset.y * scale - 4 * 6) < 1e-9)
+        #expect(abs(try #require(path.shadow).radius - 6 * 6) < 1e-9)
+        #expect(abs(try #require(path.shadow).offset.y * factor - 4 * 6) < 1e-9)
+    }
+
+    @Test(
+        "a shape at scale [2, 1] draws its stroke at the geometric mean and its corners carried, 2r wide and r tall",
+        arguments: ["rect by area", "rect by width and height"]
+    )
+    func carriesCornersUnderPerAxisScale(placement: String) throws {
+        // Given
+        let clip = clip(placedBy: placement, scale: Scale(x: 2, y: 1))
+        let shape = try #require(resolvedShape(of: clip))
+
+        // When
+        let items = sut.items(
+            of: shape,
+            clip: clip,
+            sample: ClipSample(clip: clip, at: 1),
+            in: ClipSpace(frame: Self.frame),
+            at: 1
+        )
+
+        // Then
+        let item = try #require(items.first)
+        guard case let .path(path) = item.content, case let .rect(_, radius) = path.geometry else {
+            Issue.record("a rect draws one path item with a rect geometry")
+            return
+        }
+        #expect(abs(try #require(path.stroke).width - 4 * 2.0.squareRoot()) < 1e-9)
+        #expect(abs(radius * item.transform.a - 2 * 2) < 1e-9)
+        #expect(abs(radius * item.transform.d - 2) < 1e-9)
     }
 
     @Test("a shape placed by its area turns about the centre of its geometry's box by default")
@@ -337,7 +367,7 @@ struct ShapeEvaluatorTests {
     // A stroked shape with a shadow, corners of radius 2, by each placement.
     private func clip(
         placedBy placement: String,
-        scale: Double? = nil,
+        scale: Scale? = nil,
         rotation: Double? = nil,
         entrance: AnimationSpan? = nil
     ) -> ResolvedClip {
@@ -408,7 +438,7 @@ struct ShapeEvaluatorTests {
     private func clip(
         _ shape: ResolvedShape,
         box: ResolvedBox?,
-        scale: Double? = nil,
+        scale: Scale? = nil,
         rotation: Double? = nil,
         entrance: AnimationSpan? = nil
     ) -> ResolvedClip {

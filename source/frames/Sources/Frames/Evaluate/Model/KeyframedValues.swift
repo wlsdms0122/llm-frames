@@ -10,14 +10,14 @@
 struct KeyframedValues: Equatable, Sendable {
     // MARK: - Property
     let position: Point
-    let scale: Double
+    let scale: Scale
     let rotation: Double
     let opacity: Double
 
     // MARK: - Initializer
     init(
         position: Point,
-        scale: Double = 1,
+        scale: Scale = .identity,
         rotation: Double = 0,
         opacity: Double = 1
     ) {

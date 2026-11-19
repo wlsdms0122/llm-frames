@@ -233,7 +233,7 @@ struct ParentSpacePlanner: Sendable {
                 track: track
             ),
             track: track,
-            scale: (written.scale?.inSequenceTime(on: plan.clock) ?? .value(1)).keyframes(at: plan.instant) { $0 },
+            scale: (written.scale?.inSequenceTime(on: plan.clock) ?? .value(.identity)).keyframes(at: plan.instant) { $0 },
             rotation: (written.rotation?.inSequenceTime(on: plan.clock) ?? .value(0)).keyframes(at: plan.instant) { $0 }
         )
     }

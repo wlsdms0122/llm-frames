@@ -89,7 +89,7 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: [Keyframe(at: 0, value: 1)],
+            scale: [Keyframe(at: 0, value: .identity)],
             rotation: [Keyframe(at: 0, value: 0)],
             blend: "normal",
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
@@ -350,7 +350,7 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: opacity)],
-            scale: [Keyframe(at: 0, value: scale)],
+            scale: [Keyframe(at: 0, value: Scale(scale))],
             rotation: [Keyframe(at: 0, value: rotation)],
             blend: "normal",
             animation: animation
@@ -407,7 +407,7 @@ struct ClipEvaluatorTests {
             trackMatte: nil,
             track: nil,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: isAdjustment ? nil : [Keyframe(at: 0, value: scale ?? 1)],
+            scale: isAdjustment ? nil : [Keyframe(at: 0, value: Scale(scale ?? 1))],
             rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
             blend: "normal",
             animation: animation
