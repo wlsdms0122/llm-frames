@@ -1,0 +1,31 @@
+//
+//  FailingTracker.swift
+//  FramesTests
+//
+//  Created by JSilver on 11/19/26.
+//
+
+@testable import Frames
+
+// A fake tracker that fails on every target with `failure`.
+struct FailingTracker: TrackerProvider {
+    // MARK: - Property
+    let failure: ProviderFailure
+
+    // MARK: - Initializer
+    init(_ failure: ProviderFailure) {
+        self.failure = failure
+    }
+
+    // MARK: - Public
+    func track(
+        _ target: Quad,
+        in file: MediaFile,
+        atMediaTime time: Double,
+        over range: ClosedRange<Double>
+    ) throws -> [TrackedFrame] {
+        throw failure
+    }
+
+    // MARK: - Private
+}

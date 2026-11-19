@@ -181,6 +181,32 @@ struct TrackReporterTests {
         #expect(description.hasPrefix(message), "\(description)")
     }
 
+    @Test("a failing tracker or OCR provider stops, naming `--area`, the video and the media time of `--at`")
+    func namesFailingProvider() {
+        // Given
+        let failure = ProviderFailure("no model")
+        let failingTracker = TrackReporter(mediaFacts: facts, ocr: ocr, tracker: FailingTracker(failure))
+        let failingOCR = TrackReporter(mediaFacts: facts, ocr: FailingOCR(failure), tracker: tracker)
+
+        // When
+        let trackerError = #expect(throws: ProviderError.self) {
+            try failingTracker.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
+        }
+        let ocrError = #expect(throws: ProviderError.self) {
+            try failingOCR.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
+        }
+
+        // Then
+        #expect(
+            trackerError?.description
+                == #"--area (area): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
+        )
+        #expect(
+            ocrError?.description
+                == #"--area (area): the OCR provider failed on "/abs/clip.mov" at media second 0.5: no model"#
+        )
+    }
+
     @Test("a real scrolling line is found by Vision and followed by the point tracker over every frame")
     func followsRealLine() async throws {
         // Given

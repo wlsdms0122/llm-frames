@@ -202,6 +202,30 @@ struct OCRReporterTests {
         #expect(isNear(total.rectangle, scrolled[15]), "\(total) drawn at \(scrolled[15])")
     }
 
+    @Test("a failing provider stops, naming the option that chose the frame, the media and its media time", arguments: [
+        ("/abs/card.png", TimeSelection.start, #"ocr: the OCR provider failed on "/abs/card.png" at media second 0: no model"#),
+        ("/abs/clip.mov", TimeSelection.at(0.5), #"--at: the OCR provider failed on "/abs/clip.mov" at media second 0.5: no model"#),
+        (
+            "/abs/clip.mov",
+            TimeSelection.range(FrameRange(from: 0.25, to: 0.75, step: 0.25)),
+            #"--from: the OCR provider failed on "/abs/clip.mov" at media second 0.25: no model"#
+        )
+    ])
+    func namesFailingProvider(
+        file: String,
+        selection: TimeSelection,
+        message: String
+    ) {
+        // Given
+        let sut = OCRReporter(mediaFacts: facts, ocr: FailingOCR(ProviderFailure("no model")))
+
+        // When
+        let error = #expect(throws: ProviderError.self) { try sut.report(of: file, at: selection) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     // MARK: - Private
     // Within 8 pixels of the drawn line box on every edge.
     private func isNear(

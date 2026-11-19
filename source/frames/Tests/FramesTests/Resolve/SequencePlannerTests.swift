@@ -921,6 +921,49 @@ struct SequencePlannerTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a failing provider stops, naming the place that asked it, the media and its media time, then its message",
+        arguments: [
+            (
+                ProviderKind.ocr,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "crop": { "text": "Total" } } ] }"#,
+                #"storyline[0].crop (video): the OCR provider failed on "/abs/screen.mp4" at media second 0: no model"#
+            ),
+            (
+                ProviderKind.tracker,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "track": { "text": "Total" } } ] }"#,
+                #"storyline[0].track (video): the tracker failed on "/abs/screen.mp4" at media second 0: no model"#
+            ),
+            (
+                ProviderKind.shaping,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "Hi", "style": "title", "at": [0, 1] } ] } ] }"#,
+                "storyline[0].connected[0].title (title): the shaping provider failed: no model"
+            )
+        ]
+    )
+    func namesFailingProvider(
+        provider: ProviderKind,
+        document: String,
+        message: String
+    ) throws {
+        // Given
+        let failure = ProviderFailure("no model")
+        let sut = SequencePlanner(
+            ocr: provider == .ocr ? FailingOCR(failure) as any OCRProvider : Fixture.ocr,
+            tracker: provider == .tracker ? FailingTracker(failure) as any TrackerProvider : Fixture.tracker,
+            shaper: provider == .shaping ? FailingShaper(failure) as any ShapingProvider : Fixture.shaper,
+            presets: Fixture.presets,
+            library: Fixture.library
+        )
+        let time = try Fixture.planner.plan(document: Fixture.json(document))
+
+        // When
+        let error = #expect(throws: ProviderError.self) { try sut.plan(time) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     // MARK: - Private
     private func mask(
         _ geometry: PathGeometry,
