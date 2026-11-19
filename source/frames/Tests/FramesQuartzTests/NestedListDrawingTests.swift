@@ -282,7 +282,7 @@ struct NestedListDrawingTests {
             source: .displayList(inner),
             rectangle: nil,
             destination: Rectangle(x: 4, y: 24, width: 12, height: 12),
-            filter: [.blur(radius: 1)],
+            filter: [FilterEntry(operations: [.blur(radius: 1)])],
             border: MediaBorder(width: 1, color: Self.black)
         )
         let matteSource = DisplayList(size: Size(width: 40, height: 40), background: Self.clear, seed: 0, items: [
@@ -297,7 +297,7 @@ struct NestedListDrawingTests {
         return DisplayList(size: Size(width: 40, height: 40), background: Self.white, seed: 0, items: [
             DisplayItem(content: .path(shadowed)),
             DisplayItem(mask: [feathered], content: .path(ellipse)),
-            DisplayItem(content: .adjust(AdjustItem(filter: [.blur(radius: 1.5)]))),
+            DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 1.5)])]))),
             DisplayItem(content: .picture(filtered)),
             DisplayItem(
                 trackMatte: ItemTrackMatte(source: matteSource, mode: .alpha, isInverted: false),
@@ -312,7 +312,7 @@ struct NestedListDrawingTests {
         list(size: 40, items: [
             DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 16, height: 40), color: Self.black))),
             DisplayItem(content: .path(PathItem(filling: Rectangle(x: 16, y: 0, width: 24, height: 40), color: Self.white))),
-            DisplayItem(content: .adjust(AdjustItem(filter: [.blur(radius: 2)])))
+            DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 2)])])))
         ])
     }
 

@@ -268,7 +268,7 @@ struct ParentSpacePlanner: Sendable {
 
         case let (.keyframes(keyframes), .keyframes(forms)):
             return .keyframes(zip(keyframes, forms).map { keyframe, form in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
                     value: bring(keyframe.value, form.value, keyframe.at),

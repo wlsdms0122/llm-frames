@@ -14,11 +14,11 @@ import Testing
 @Suite("DefaultFilter Tests")
 struct DefaultFilterTests {
     // MARK: - Property
-    private let grade: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * (1080.0 / 1920))]
+    private let grade = [FilterEntry(operations: [.saturation(amount: 1.25), .blur(radius: 4 * (1080.0 / 1920))])]
     private let presets = PresetTable(
         transitions: Fixture.presets.transitions,
         animations: Fixture.presets.animations,
-        filters: ["film": FilterPreset(description: "", operations: [.lut(file: "film.cube", amount: 1)])]
+        filters: ["film": #"{"description": "", "ops": [{"op": "lut", "file": "film.cube", "amount": 1}]}"#]
     )
 
     // MARK: - Initializer
@@ -32,9 +32,9 @@ struct DefaultFilterTests {
             """#)
 
         // Then
-        #expect(plan.storyline[0].filter == grade)
-        #expect(plan.clips[0].appearance.filter == grade)
-        #expect(plan.clips[1].appearance.filter == [])
+        #expect(plan.storyline[0].filter.filter() == grade)
+        #expect(plan.clips[0].appearance.filter.filter() == grade)
+        #expect(plan.clips[1].appearance.filter == .off)
     }
 
     @Test("a title takes no filter, since only media takes the default")
@@ -45,7 +45,7 @@ struct DefaultFilterTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].appearance.filter == [])
+        #expect(plan.clips[0].appearance.filter == .off)
     }
 
     @Test("a compound clip takes no default filter, since its own clips already took theirs")
@@ -56,9 +56,9 @@ struct DefaultFilterTests {
             """#)
 
         // Then
-        #expect(plan.storyline[0].filter == [])
+        #expect(plan.storyline[0].filter == .off)
         let nested = try #require(plan.storyline[0].nested)
-        #expect(nested.storyline[0].filter == grade)
+        #expect(nested.storyline[0].filter.filter() == grade)
     }
 
     @Test("a template instance takes no default filter, since its own clips already took theirs")
@@ -88,7 +88,7 @@ struct DefaultFilterTests {
         )))
 
         // Then
-        #expect(plan.storyline[0].filter == [])
+        #expect(plan.storyline[0].filter == .off)
     }
 
     @Test("an audio clip takes no default filter, since nothing draws it, so a default it could not use does not stop")
@@ -100,7 +100,7 @@ struct DefaultFilterTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].appearance.filter == [])
+        #expect(plan.clips[0].appearance.filter == .off)
     }
 
     @Test("a default filter whose values do not resolve stops where the theme names it")

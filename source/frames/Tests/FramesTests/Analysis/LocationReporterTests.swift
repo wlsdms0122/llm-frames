@@ -278,7 +278,7 @@ struct LocationReporterTests {
         let adjust = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
             mask: mask(Rectangle(x: 100, y: 0, width: 100, height: 100)),
-            content: .adjust(AdjustItem(filter: [.blur(radius: 2)])),
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 2)])])),
             origin: rect
         )
 

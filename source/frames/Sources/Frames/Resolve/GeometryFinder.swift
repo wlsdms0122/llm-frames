@@ -208,7 +208,7 @@ struct GeometryFinder: Sendable {
                     .appending(index: keyframe.index)
                     .appending(key: key)
 
-                return TimedValue(
+                return PropertyKeyframe(
                     index: keyframe.index,
                     at: time,
                     value: try find(keyframe.value, time, keyframePlace),

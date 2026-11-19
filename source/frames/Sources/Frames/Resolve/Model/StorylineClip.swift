@@ -7,7 +7,8 @@
 
 // A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, and whether media is
 // timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
-// and `shadow` are its transform and how its box is drawn, as on a media clip.
+// and `shadow` are its transform and how its box is drawn, as on a media clip. `transition` and `filter` are preset
+// choices as written, which resolve merges over the theme's defaults, `filter` with its keyframes.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -15,22 +16,22 @@ struct StorylineClip: Equatable, Sendable {
     let media: ClipMedia?
     let solid: String?
     let duration: Double?
-    let transition: TransitionChoice?
+    let transition: JSONValue?
     let keyframes: [KeyframeInstant]
     let crop: PropertyValue<CropForm>?
     let mask: PropertyValue<[ClipMask]>?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
-    let filter: FilterChoice?
+    let filter: LookProperty?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
     let opacity: PropertyValue<Double>?
     let blend: String?
-    let radius: Double?
-    let border: BorderForm?
-    let shadow: ShadowForm?
+    let radius: LookProperty?
+    let border: LookProperty?
+    let shadow: LookProperty?
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -40,22 +41,22 @@ struct StorylineClip: Equatable, Sendable {
         media: ClipMedia?,
         solid: String? = nil,
         duration: Double?,
-        transition: TransitionChoice?,
+        transition: JSONValue?,
         keyframes: [KeyframeInstant],
         crop: PropertyValue<CropForm>? = nil,
         mask: PropertyValue<[ClipMask]>? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
-        filter: FilterChoice? = nil,
+        filter: LookProperty? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
         opacity: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        radius: Double? = nil,
-        border: BorderForm? = nil,
-        shadow: ShadowForm? = nil,
+        radius: LookProperty? = nil,
+        border: LookProperty? = nil,
+        shadow: LookProperty? = nil,
         connected: [Clip]
     ) {
         self.place = place

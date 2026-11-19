@@ -30,7 +30,7 @@ struct ResolvedSequenceWriterTests {
             )
         ],
         animations: Fixture.presets.animations,
-        filters: ["film": FilterPreset(description: "", operations: [.lut(file: "/abs/film.cube", amount: 0.5)])]
+        filters: ["film": #"{"description": "", "ops": [{"op": "lut", "file": "/abs/film.cube", "amount": 0.5}]}"#]
     )
 
     // MARK: - Initializer
@@ -70,7 +70,7 @@ struct ResolvedSequenceWriterTests {
         #expect(entry["start"] == .number(0))
         #expect(entry["end"] == .number(3))
         #expect(entry["transition"] == .null)
-        #expect(entry["filter"] == .array([]))
+        #expect(entry["filter"] == .null)
     }
 
     @Test("a storyline crop is written conformed to the frame, and no crop is the whole picture conformed")
@@ -211,15 +211,15 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["anchor"] == .array([.number(150), .number(150)]))
         #expect(clip["crop"] == keyframes(at: 0, Rectangle(x: 0, y: 135, width: 1080, height: 1080)))
         #expect(clip["conform"] == .string("fill"))
-        #expect(clip["radius"] == .number(6.75))
+        #expect(clip["radius"] == held(.number(6.75)))
         #expect(clip["border"] == .object(JSONObject(members: [
-            JSONMember(key: "width", value: .number(2.25)),
-            JSONMember(key: "color", value: .string("#FFFFFFFF"))
+            JSONMember(key: "width", value: held(.number(2.25))),
+            JSONMember(key: "color", value: held(.string("#FFFFFFFF")))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
-            JSONMember(key: "radius", value: .number(18)),
-            JSONMember(key: "offset", value: .array([.number(0), .number(6.75)])),
-            JSONMember(key: "color", value: .string("#00000080"))
+            JSONMember(key: "radius", value: held(.number(18))),
+            JSONMember(key: "offset", value: held(.array([.number(0), .number(6.75)]))),
+            JSONMember(key: "color", value: held(.string("#00000080")))
         ])))
     }
 
@@ -239,7 +239,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let colors = clips.map { $0.objectValue?["border"]?.objectValue?["color"] }
-        #expect(colors == [.string("#101418FF"), .string("#FF0000FF")])
+        #expect(colors == [held(.string("#101418FF")), held(.string("#FF0000FF"))])
     }
 
     @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")
@@ -282,7 +282,9 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
         #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
-        #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
+        let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
+        #expect(entry?.keys == ["ops", "mix"])
+        #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
     @Test("a tracked clip writes its track as the media followed, the media time, the target and the frames followed")
@@ -417,12 +419,12 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["width"] == .null)
         #expect(clips[0]["points"] == .null)
         #expect(clips[0]["closed"] == .null)
-        #expect(clips[0]["outset"] == .number(0))
+        #expect(clips[0]["outset"] == .null)
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
-            JSONMember(key: "color", value: .string("#ED2929FF")),
-            JSONMember(key: "width", value: .number(8 * scale)),
+            JSONMember(key: "color", value: held(.string("#ED2929FF"))),
+            JSONMember(key: "width", value: held(.number(8 * scale))),
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
             JSONMember(key: "start", value: .string("none")),
@@ -435,17 +437,17 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
-        #expect(clips[1]["stroke"]?.objectValue?["color"] == .string(theme.color("accent").hex))
+        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").hex)))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
-        #expect(clips[1]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(0))
+        #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
         #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200))
-        #expect(clips[2]["outset"] == .number(10 * scale))
+        #expect(clips[2]["outset"] == held(.number(10 * scale)))
         // An ellipse placed by `width` and `height` keeps its box as written, its outset growing only the outline it
         // draws.
         #expect(clips[2]["size"] == .array([.number(200), .number(100)]))
         #expect(clips[2]["anchor"] == .array([.number(100), .number(50)]))
-        #expect(clips[2]["fill"] == .string("#00000080"))
+        #expect(clips[2]["fill"] == held(.string("#00000080")))
         #expect(clips[2]["stroke"] == .null)
         // A named anchor of a shape placed by its area is a point of its area as written, whatever its outset.
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
@@ -514,6 +516,15 @@ struct ResolvedSequenceWriterTests {
         let text = sut.write(try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
+    }
+
+    // A timed leaf no keyframe moves: one keyframe at the clip's instant.
+    private func held(_ value: JSONValue) -> JSONValue {
+        .array([.object(JSONObject(members: [
+            JSONMember(key: "at", value: .number(0)),
+            JSONMember(key: "value", value: value),
+            JSONMember(key: "ease", value: .string("linear"))
+        ]))])
     }
 
     private func keyframes(

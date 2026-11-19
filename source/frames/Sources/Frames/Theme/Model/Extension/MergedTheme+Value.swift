@@ -18,28 +18,6 @@ extension MergedTheme {
         number(at: ["placement", "padding"])
     }
 
-    var borderWidth: Double {
-        number(at: ["border", "width"])
-    }
-
-    var borderColor: Color {
-        color(value(at: ["border", "color"])?.stringValue ?? "accent")
-    }
-
-    var shadowRadius: Double {
-        number(at: ["shadow", "radius"])
-    }
-
-    var shadowOffset: Point {
-        let offset = value(at: ["shadow", "offset"])?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
-
-        return Point(x: offset[0], y: offset[1])
-    }
-
-    var shadowColor: Color {
-        color(value(at: ["shadow", "color"])?.stringValue ?? "shadow")
-    }
-
     // The names of the styles the theme holds, in order, which a stop on a name it lacks lists.
     var styleNames: [String] {
         (value(at: ["styles"])?.objectValue?.keys ?? []).sorted()
@@ -151,10 +129,12 @@ extension MergedTheme {
         )
     }
 
-    // MARK: - Private
-    private func value(at path: [String]) -> JSONValue? {
+    // The value at a path of keys, as the theme holds it, its lengths in points.
+    func value(at path: [String]) -> JSONValue? {
         path.reduce(Optional(value)) { value, key in value?.objectValue?[key] }
     }
+
+    // MARK: - Private
 
     private func style(named name: String) -> JSONObject {
         value(at: ["styles", name])?.objectValue ?? JSONObject()

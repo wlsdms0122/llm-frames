@@ -116,18 +116,53 @@ struct ResolvedDocumentWriterTests {
               "blend": "screen",
               "filter": [
                 {
-                  "op": "saturation",
-                  "amount": 1.25
-                },
-                {
-                  "op": "blur",
-                  "radius": 2.25
+                  "ops": [
+                    {
+                      "op": "saturation",
+                      "amount": [
+                        {
+                          "at": 0,
+                          "value": 1.25,
+                          "ease": "linear"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "blur",
+                      "radius": [
+                        {
+                          "at": 0,
+                          "value": 2.25,
+                          "ease": "linear"
+                        }
+                      ]
+                    }
+                  ],
+                  "mix": [
+                    {
+                      "at": 0,
+                      "value": 1,
+                      "ease": "linear"
+                    }
+                  ]
                 }
               ],
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "transition": null
@@ -217,12 +252,24 @@ struct ResolvedDocumentWriterTests {
                 "file": "/abs/page.png",
                 "sha256": "5d17e0a9b2c4"
               },
-              "filter": [],
+              "filter": null,
               "conform": "fit",
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "start": 0,

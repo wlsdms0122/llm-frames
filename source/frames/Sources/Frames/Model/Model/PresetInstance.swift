@@ -6,22 +6,26 @@
 //
 
 // A preset as a choice names it: by its name, with the arguments the choice passes it, and the place the choice is
-// written, which a stop on those arguments names.
+// written, which a stop on those arguments names. The arguments named in `sampled` are one keyframe's values of an
+// argument two keyframes or more write, so they may put a length or size at 0.
 struct PresetInstance: Equatable, Sendable {
     // MARK: - Property
     let name: String
     let arguments: JSONObject
     let place: Place
+    let sampled: Set<String>
 
     // MARK: - Initializer
     init(
         name: String,
         arguments: JSONObject = JSONObject(),
-        place: Place = .root
+        place: Place = .root,
+        sampled: Set<String> = []
     ) {
         self.name = name
         self.arguments = arguments
         self.place = place
+        self.sampled = sampled
     }
 
     // A preset name, or `{preset, args}`, as it passed the shape check of its choice.

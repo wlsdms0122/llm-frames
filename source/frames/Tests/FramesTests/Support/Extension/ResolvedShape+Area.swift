@@ -20,11 +20,11 @@ extension ResolvedShape {
         self.init(
             kind: .rect,
             geometry: .area(area, outset: 0, placement: GeometryPlacement()),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: .off,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: fill,
-            stroke: stroke,
-            shadow: nil
+            fill: .fill(fill),
+            stroke: .stroke(stroke),
+            shadow: .off
         )
     }
 

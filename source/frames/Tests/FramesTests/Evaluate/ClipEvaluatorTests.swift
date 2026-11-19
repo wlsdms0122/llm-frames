@@ -71,13 +71,13 @@ struct ClipEvaluatorTests {
         let appearance = ResolvedMediaAppearance(
             conform: .fit,
             radius: 0,
-            border: MediaBorder(width: 4, color: white),
-            shadow: DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white)
+            border: .border(MediaBorder(width: 4, color: white)),
+            shadow: .shadow(DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white))
         )
         let clip = ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: [], appearance: appearance)),
+            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
             start: 0,
             end: 4,
             lane: 1,
@@ -183,8 +183,8 @@ struct ClipEvaluatorTests {
                 .media(ResolvedMediaClip(
                     media: .pinned(media),
                     timing: nil,
-                    filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    filter: .off,
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20)),
@@ -202,11 +202,11 @@ struct ClipEvaluatorTests {
                         height: [Keyframe(at: 0, value: 20)],
                         outset: 0
                     ),
-                    radius: [Keyframe(at: 0, value: 0)],
+                    radius: 0,
                     trim: [Keyframe(at: 0, value: .whole)],
-                    fill: white,
-                    stroke: nil,
-                    shadow: nil
+                    fill: .fill(white),
+                    stroke: .off,
+                    shadow: .off
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 40, height: 20), at: Point(x: 40, y: 20), anchor: Point(x: 20, y: 10))
@@ -222,7 +222,7 @@ struct ClipEvaluatorTests {
 
         default:
             geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
-            clip = masked(.adjustment([.blur(radius: 2)]), mask: geometry, animation: doubling)
+            clip = masked(.adjustment(.filter([.blur(radius: 2)])), mask: geometry, animation: doubling)
             expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 50, y: 20))]
         }
 
@@ -260,7 +260,7 @@ struct ClipEvaluatorTests {
             .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white))
 
         default:
-            .adjustment([.blur(radius: 2)])
+            .adjustment(.filter([.blur(radius: 2)]))
         }
         let isAdjustment = kind == "adjustment"
         let clip = masked(

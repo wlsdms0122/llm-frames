@@ -154,17 +154,68 @@ struct ResolvedValueWriter: Sendable {
         self.keyframes(keyframes) { .number($0) }
     }
 
-    // Each operation is `op` followed by its values, and a LUT's file is pinned. A display list's `grain` also carries
-    // `seed`, the number of the output frame it is drawn in, which a resolved document has none of.
-    func filter(
-        _ operations: [ResolvedFilterOperation],
-        seed: Int? = nil
-    ) -> JSONValue {
-        .array(operations.map { operation in
-            let members = members(of: operation)
-            guard case .grain = operation, let seed else { return .object(JSONObject(members: members)) }
+    // A timed value: each timed leaf as its keyframe list, each static leaf as its value, `off` as `null`, the colour
+    // form as its colour, a choice's form as the choice writes it, its name beside its body (`{"op": "blur", ...}`),
+    // and any other form as an object of its one name.
+    func timed(_ value: TimedValue) -> JSONValue {
+        switch value {
+        case .off:
+            .null
 
-            return .object(JSONObject(members: members + [JSONMember(key: "seed", value: .number(Double(seed)))]))
+        case let .fixed(value):
+            value
+
+        case let .track(keyframes):
+            self.keyframes(keyframes) { leaf in
+                switch leaf {
+                case let .number(number):
+                    .number(number)
+
+                case let .color(color):
+                    self.color(color)
+
+                case let .numbers(numbers):
+                    self.numbers(numbers)
+                }
+            }
+
+        case let .object(members):
+            .object(JSONObject(members: members.map { JSONMember(key: $0.key, value: timed($0.value)) }))
+
+        case let .list(elements):
+            .array(elements.map(timed))
+
+        case let .form(name, body) where name == ValueStructure.colorForm:
+            timed(body)
+
+        case let .form(name, body):
+            if let separator = name.firstIndex(of: ":"), case let .object(members) = body {
+                .object(JSONObject(members: [
+                    JSONMember(key: String(name[..<separator]), value: .string(String(name[name.index(after: separator)...])))
+                ] + members.map { JSONMember(key: $0.key, value: timed($0.value)) }))
+            } else {
+                .object(JSONObject(members: [JSONMember(key: name, value: timed(body))]))
+            }
+        }
+    }
+
+    // A display list's filter: each entry its ops, each `op` followed by its values with a LUT's file pinned and a
+    // `grain`'s `seed`, the number of the output frame it is drawn in, then its `mix`.
+    func filter(
+        _ entries: [FilterEntry],
+        seed: Int
+    ) -> JSONValue {
+        .array(entries.map { entry in
+            let operations = JSONValue.array(entry.operations.map { operation in
+                let members = members(of: operation)
+                guard case .grain = operation else { return .object(JSONObject(members: members)) }
+
+                return .object(JSONObject(members: members + [JSONMember(key: "seed", value: .number(Double(seed)))]))
+            })
+            return .object(JSONObject(members: [
+                JSONMember(key: "ops", value: operations),
+                JSONMember(key: "mix", value: .number(entry.mix))
+            ]))
         })
     }
 

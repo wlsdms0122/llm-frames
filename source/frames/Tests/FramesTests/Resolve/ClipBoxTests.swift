@@ -113,8 +113,8 @@ struct ClipBoxTests {
 
         // Then
         #expect(box?.position == .keyframes([
-            TimedValue(index: 0, at: 0, value: Point(x: -50, y: 12.5), ease: .linear),
-            TimedValue(index: 1, at: 1, value: Point(x: 150, y: 212.5), ease: .easeIn)
+            PropertyKeyframe(index: 0, at: 0, value: Point(x: -50, y: 12.5), ease: .linear),
+            PropertyKeyframe(index: 1, at: 1, value: Point(x: 150, y: 212.5), ease: .easeIn)
         ]))
     }
 
@@ -199,8 +199,8 @@ struct ClipBoxTests {
         // Then
         #expect(media?.conform == conform)
         #expect(media?.crop == .keyframes([
-            TimedValue(index: 0, at: 0, value: Rectangle(x: 0, y: 0, width: 400, height: 200), ease: .linear),
-            TimedValue(index: 1, at: 1, value: second, ease: .linear)
+            PropertyKeyframe(index: 0, at: 0, value: Rectangle(x: 0, y: 0, width: 400, height: 200), ease: .linear),
+            PropertyKeyframe(index: 1, at: 1, value: second, ease: .linear)
         ]))
     }
 

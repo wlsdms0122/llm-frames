@@ -227,12 +227,111 @@ struct ResolvedValueReader: Sendable {
         try keyframes(value) { Crop(try rectangle($0)) }
     }
 
-    // `grainKeys` are the keys a `grain` may hold besides its values: a display list's `seed`, which its reader reads.
+    // A timed value as the writer writes it, read by its structure: `null` is `off`, a timed leaf a keyframe list, and
+    // a name, a boolean or a file its value. A form is the colour form where its value is not an object of one name.
+    // `kind` names the entry an object is, which its stops name.
+    func timed(
+        _ value: PlacedJSONValue,
+        as structure: ValueStructure,
+        kind: String? = nil
+    ) throws -> TimedValue {
+        guard !value.isNull else { return .off }
+
+        switch structure {
+        case let .leaf(leaf) where leaf.isTimed:
+            if case let .numbers(count) = leaf.form, value.value.arrayValue?.first?.arrayValue != nil {
+                let elements = try value.elements()
+                guard elements.count == count else { throw value.wrongType("a list of \(count) keyframe lists") }
+
+                return .list(try elements.map { element in
+                    .track(try keyframes(element) { try self.leaf($0, as: .number(leaf.domain)) })
+                })
+            }
+
+            return .track(try keyframes(value) { try self.leaf($0, as: leaf) })
+
+        case let .leaf(leaf):
+            if let names = leaf.names {
+                _ = try value.name(among: names) { names.contains($0) ? $0 : nil }
+            }
+            return .fixed(value.value)
+
+        case let .choice(_, forms) where !forms.isEmpty:
+            return try choice(value, forms: forms, kind: kind)
+
+        case .anyValue, .choice:
+            return .fixed(value.value)
+
+        case let .object(object):
+            let members = try value.object(kind: kind, keys: object.keys.map(\.name))
+            return .object(try object.keys.compactMap { key in
+                try members.optionalMember(key.name).map { member in
+                    TimedMember(key: key.name, value: try timed(member, as: key.structure))
+                }
+            })
+
+        case let .map(element):
+            let members = try value.object(keys: value.value.objectValue?.keys ?? [])
+            return .object(try members.object.keys.map { key in
+                TimedMember(key: key, value: try timed(members.member(key), as: element))
+            })
+
+        case let .list(element):
+            return .list(try value.elements().map { try timed($0, as: element) })
+
+        case let .forms(forms):
+            if let object = value.value.objectValue, object.members.count == 1,
+                let form = forms.first(where: { $0.name == object.members[0].key }) {
+                let body = try value.object(keys: [form.name]).member(form.name)
+                return .form(form.name, try timed(body, as: form.structure))
+            }
+            guard let form = forms.first(where: { $0.name == ValueStructure.colorForm }) else {
+                throw value.wrongType("one of the forms \(forms.map(\.name).joined(separator: ", "))")
+            }
+
+            return .form(form.name, try timed(value, as: form.structure))
+        }
+    }
+
+    // A form of a choice as the writer writes it: `preset` or `op` naming it, beside the keys of its body.
+    private func choice(
+        _ value: PlacedJSONValue,
+        forms: [(name: String, structure: ValueStructure)],
+        kind: String?
+    ) throws -> TimedValue {
+        let object = try value.object(kind: kind, keys: ["preset", "op"] + forms.flatMap { form in
+            if case let .object(body) = form.structure { body.keys.map(\.name) } else { [String]() }
+        })
+        let prefix = object.object.contains("op") ? "op" : "preset"
+        let names = forms.map(\.name).filter { $0.hasPrefix(prefix + ":") }.map { String($0.dropFirst(prefix.count + 1)) }
+        let name = try object.member(prefix).name(among: names) { names.contains($0) ? $0 : nil }
+        guard let form = forms.first(where: { $0.name == prefix + ":" + name }), case let .object(body) = form.structure
+        else {
+            return .fixed(value.value)
+        }
+
+        let members = try value.object(kind: kind, keys: [prefix] + body.keys.map(\.name))
+        return .form(form.name, .object(try body.keys.compactMap { key in
+            try members.optionalMember(key.name).map { TimedMember(key: key.name, value: try timed($0, as: key.structure)) }
+        }))
+    }
+
+    // A display list's filter, its entries `{ops, mix}`. `grainKeys` are the keys a `grain` may hold besides its
+    // values: a display list's `seed`, which its reader reads.
     func filter(
         _ value: PlacedJSONValue,
         grainKeys: [String] = []
-    ) throws -> [ResolvedFilterOperation] {
-        try value.elements().map { try operation($0, grainKeys: grainKeys) }
+    ) throws -> [FilterEntry] {
+        try value.elements().map { element in
+            let entry = try element.object(keys: ["ops", "mix"])
+            let mix = try entry.member("mix").number()
+            guard (0...1).contains(mix) else { throw try entry.member("mix").wrongType("a number from 0 to 1") }
+
+            return FilterEntry(
+                operations: try entry.member("ops").elements().map { try operation($0, grainKeys: grainKeys) },
+                mix: mix
+            )
+        }
     }
 
     func span(_ object: PlacedJSONObject) throws -> Span {
@@ -297,6 +396,22 @@ struct ResolvedValueReader: Sendable {
     }
 
     // MARK: - Private
+    private func leaf(
+        _ value: PlacedJSONValue,
+        as kind: LeafKind
+    ) throws -> LeafValue {
+        switch kind.form {
+        case .color:
+            .color(try color(value))
+
+        case let .numbers(count):
+            .numbers(try value.numbers(count: count))
+
+        case .number, .name, .boolean, .file:
+            .number(try value.number())
+        }
+    }
+
     private func mask(_ value: PlacedJSONValue) throws -> ResolvedMask {
         let mask = try value.object(kind: "mask", keys: ["geometry", "feather", "invert", "mode"])
 

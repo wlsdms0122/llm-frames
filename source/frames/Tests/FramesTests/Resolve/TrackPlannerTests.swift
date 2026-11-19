@@ -199,8 +199,8 @@ struct TrackPlannerTests {
             storylineMasks: [nil],
             crops: time.clips.map { _ in nil },
             areas: [.keyframes([
-                TimedValue(index: 1, at: 1.2, value: found(total, at: 2.2), ease: .linear),
-                TimedValue(index: 0, at: 0.8, value: found(total, at: 1.8), ease: .linear)
+                PropertyKeyframe(index: 1, at: 1.2, value: found(total, at: 2.2), ease: .linear),
+                PropertyKeyframe(index: 0, at: 0.8, value: found(total, at: 1.8), ease: .linear)
             ])],
             masks: [nil]
         )
@@ -225,8 +225,8 @@ struct TrackPlannerTests {
         let keyframedPlan = try sut.plan(
             keyframedTime,
             storylineCrops: [.keyframes([
-                TimedValue(index: 0, at: 1.5, value: found(Rectangle(x: 0, y: 0, width: 603, height: 1311), at: 2.5), ease: .linear),
-                TimedValue(index: 1, at: 0.5, value: found(crop, at: 1.5), ease: .linear)
+                PropertyKeyframe(index: 0, at: 1.5, value: found(Rectangle(x: 0, y: 0, width: 603, height: 1311), at: 2.5), ease: .linear),
+                PropertyKeyframe(index: 1, at: 0.5, value: found(crop, at: 1.5), ease: .linear)
             ])],
             storylineMasks: keyframedTime.storyline.map { _ in nil },
             crops: keyframedTime.clips.map { _ in nil },
@@ -406,8 +406,8 @@ struct TrackPlannerTests {
             storylineMasks: time.storyline.map { _ in nil },
             crops: time.clips.map { _ in nil },
             areas: [.keyframes([
-                TimedValue(index: 1, at: 1.2, value: found(total, at: 2.2), ease: .linear),
-                TimedValue(index: 0, at: 0.8, value: found(first, at: 1.8), ease: .linear)
+                PropertyKeyframe(index: 1, at: 1.2, value: found(total, at: 2.2), ease: .linear),
+                PropertyKeyframe(index: 0, at: 0.8, value: found(first, at: 1.8), ease: .linear)
             ])],
             masks: time.clips.map { _ in nil }
         )
@@ -505,8 +505,8 @@ struct TrackPlannerTests {
             crops: time.clips.map { _ in nil },
             areas: [nil],
             masks: [.keyframes([
-                TimedValue(index: 1, at: 1.2, value: later, ease: .linear),
-                TimedValue(index: 0, at: 0.8, value: masks, ease: .linear)
+                PropertyKeyframe(index: 1, at: 1.2, value: later, ease: .linear),
+                PropertyKeyframe(index: 0, at: 0.8, value: masks, ease: .linear)
             ])]
         )
 

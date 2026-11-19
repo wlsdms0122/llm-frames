@@ -56,41 +56,77 @@ struct ThemeMergerTests {
         #expect(animation?["adjust"] == .string("none"))
     }
 
-    @Test("below the theme's structure a value replaces the one under it whole")
-    func replacesBelowStructure() throws {
+    @Test("a list replaces the one under it whole, and an object merges key by key at every depth")
+    func replacesListsAndMergesObjects() throws {
         // Given
-        let file = try Fixture.json(#"{ "font": ["Inter"], "styles": { "subtitle": { "background": { "radius": 4 } } } }"#)
+        let file = try Fixture.json(##"{ "font": ["Inter"], "styles": { "subtitle": { "background": { "radius": 4 }, "stroke": { "color": "#FF0000" } } } }"##)
 
         // When
         let theme = try #require(try sut.merge([ThemeLayer(value: file, place: .root)]).value.objectValue)
 
         // Then
+        let subtitle = theme["styles"]?.objectValue?["subtitle"]?.objectValue
         #expect(theme["font"] == .array([.string("Inter")]))
-        #expect(theme["styles"]?.objectValue?["subtitle"]?.objectValue?["background"] == (try Fixture.json(#"{ "radius": 4 }"#)))
+        #expect(subtitle?["background"] == (try Fixture.json(##"{ "radius": 4 }"##)))
+        #expect(subtitle?["stroke"] == (try Fixture.json(##"{ "width": 3, "color": "#FF0000" }"##)))
     }
 
-    @Test("a stronger layer wins: base, then the theme file, then the document, then the clip")
+    @Test("a stronger theme writing a shape style's stroke colour keeps the weaker one's width")
+    func keepsWeakerStrokeWidth() throws {
+        // Given
+        let weaker = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "stroke": { "width": 6, "cap": "round" } } } }"##), place: .root)
+        let stronger = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "stroke": { "color": "#FF0000" } } } }"##), place: .root)
+
+        // When
+        let theme = try sut.merge([weaker, stronger])
+
+        // Then
+        #expect(theme.shapeStyle(named: "bar")?["stroke"] == (try Fixture.json(##"{ "width": 6, "cap": "round", "color": "#FF0000" }"##)))
+    }
+
+    @Test("a shadow of true in a style is the weaker theme's shadow for that style")
+    func expandsShadowShorthand() throws {
+        // Given
+        let weaker = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "fill": "#FFFFFF", "shadow": { "radius": 5 } } } }"##), place: .root)
+        let stronger = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "shadow": true } } }"##), place: .root)
+
+        // When
+        let theme = try sut.merge([weaker, stronger])
+
+        // Then
+        #expect(theme.shapeStyle(named: "bar")?["shadow"] == (try Fixture.json(##"{ "radius": 5 }"##)))
+    }
+
+    @Test("a default choice that names a preset replaces the weaker default whole, its arguments with it")
+    func replacesDefaultChoice() throws {
+        // Given
+        let weaker = ThemeLayer(value: try Fixture.json(##"{ "defaults": { "transition": { "preset": "frames/push-up", "seconds": 0.3 } } }"##), place: .root)
+        let stronger = ThemeLayer(value: try Fixture.json(##"{ "defaults": { "transition": "frames/fade" } }"##), place: .root)
+
+        // When
+        let defaults = try sut.merge([weaker, stronger]).value.objectValue?["defaults"]?.objectValue
+
+        // Then
+        #expect(defaults?["transition"] == .string("frames/fade"))
+    }
+
+    @Test("a stronger layer wins: base, then the theme file, then the document")
     func appliesPrecedence() throws {
         // Given
         let file = try Fixture.json(##"{ "colors": { "accent": "#111111", "text": "#222222" }, "styles": { "subtitle": { "color": "text" } } }"##)
         let document = try Fixture.json(##"{ "colors": { "accent": "#333333" } }"##)
-        let clip = ClipThemeLayer.layer(forClip: try Fixture.object(##"{ "shape": "rect", "animation": "frames/pop" }"##), kind: .shape("rect"))
 
         // When
         let documentTheme = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
-        let clipTheme = try sut.merge([ThemeLayer(value: clip, place: .root)], over: documentTheme)
 
         // Then
         let colors = documentTheme.value.objectValue?["colors"]?.objectValue
         #expect(colors?["accent"] == .string("#333333"))
         #expect(colors?["text"] == .string("#222222"))
         #expect(colors?["background"] == .string("#000000"))
-        let subtitle = { (theme: MergedTheme) in theme.value.objectValue?["styles"]?.objectValue?["subtitle"]?.objectValue }
-        let animation = clipTheme.value.objectValue?["defaults"]?.objectValue?["animation"]?.objectValue
-        #expect(subtitle(documentTheme)?["color"] == .string("text"))
-        #expect(subtitle(documentTheme)?["size"] != nil)
-        #expect(animation?["shape"] == .string("frames/pop"))
-        #expect(subtitle(clipTheme)?["color"] == .string("text"))
+        let subtitle = documentTheme.value.objectValue?["styles"]?.objectValue?["subtitle"]?.objectValue
+        #expect(subtitle?["color"] == .string("text"))
+        #expect(subtitle?["size"] != nil)
     }
 
     @Test("a layer with an unknown key stops before anything is merged")
@@ -103,14 +139,15 @@ struct ThemeMergerTests {
         #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, lineHeight, stroke, background, placement, offset, align, lines"#)
     }
 
-    @Test("a stroke without a width stops as a missing key, since it replaces the one under it whole")
+    @Test("a stroke whose layers together give no width stops after the merge, naming the layer that writes it")
     func refusesStrokeWithoutWidth() throws {
         // Given
-        let file = try Fixture.json(##"{ "styles": { "subtitle": { "stroke": { "color": "#000000" } } } }"##)
+        let off = ThemeLayer(value: try Fixture.json(##"{ "styles": { "subtitle": { "stroke": false } } }"##), place: .root)
+        let partial = ThemeLayer(value: try Fixture.json(##"{ "styles": { "subtitle": { "stroke": { "color": "#000000" } } } }"##), place: .root)
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == #"styles.subtitle.stroke (stroke): missing key "width""#)
+        let error = #expect(throws: LookError.self) { try sut.merge([off, partial]) }
+        #expect(error?.description == #"styles.subtitle.stroke: missing key "width", which no layer gives"#)
     }
 
     @Test("a reference to a colour or style that the merged theme lacks stops")
@@ -143,7 +180,7 @@ struct ThemeMergerTests {
         "a shape style takes only fill, stroke, radius, outset and shadow, and the colours it names are the theme's",
         arguments: [
             (#"{ "shapes": { "box": { "width": 8, "radius": 18 } } }"#, #"shapes.box (shape style): unknown key "width". Allowed: fill, stroke, radius, outset, shadow"#),
-            (#"{ "shapes": { "outline": { "stroke": { "color": "accent" } } } }"#, #"shapes.outline.stroke (stroke): missing key "width""#),
+            (#"{ "shapes": { "outline": { "stroke": { "color": "accent" } } } }"#, #"shapes.outline.stroke: missing key "width", which no layer gives"#),
             (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors"#),
             (#"{ "shapes": { "outline": { "stroke": { "width": 2, "color": "brand" } } } }"#, #"shapes.outline.stroke.color (stroke): colour "brand" is not in colors"#),
             (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors"#)

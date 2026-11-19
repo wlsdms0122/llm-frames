@@ -104,10 +104,10 @@ struct ClipEvaluator: Sendable {
                 source: picture,
                 rectangle: clip.crop(at: time),
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
-                filter: media.filter,
-                radius: media.appearance.radius,
-                border: media.appearance.border,
-                shadow: media.appearance.shadow
+                filter: FilterEntry.entries(of: media.filter, at: time),
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                border: MediaBorder(sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border)),
+                shadow: DropShadow(sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow))
             )
             // The border lies inside the box, so only the shadow reaches past it.
             let receiver = item.shadow.map { item.destination.union($0.castBounds(of: item.destination)) }
@@ -175,7 +175,7 @@ struct ClipEvaluator: Sendable {
     // unfiltered one.
     private func adjustItem(
         of clip: ResolvedClip,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
@@ -188,7 +188,7 @@ struct ClipEvaluator: Sendable {
             opacity: presentation.opacity,
             blend: sample.blend,
             reveal: sample.animation.reveal.rectangle(wiping: bounds ?? space.frame, from: sample.animation.revealFrom),
-            content: .adjust(AdjustItem(filter: filter))
+            content: .adjust(AdjustItem(filter: FilterEntry.entries(of: filter, at: time)))
         )
     }
 

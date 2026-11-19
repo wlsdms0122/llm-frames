@@ -425,11 +425,15 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a property whose keyframes all lie outside the range its clip shows in stops",
+        "a leaf whose keyframes all lie outside the range its clip shows in stops",
         arguments: [
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] } ] }"#,
                 #"storyline[0].keyframes (video): every keyframe of "crop" lies outside [0, 6), so only one of its values would ever show"#
+            ),
+            (
+                ##"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 1, "shadow": { "radius": 2 } }, { "at": 2, "shadow": { "radius": 4 } }, { "at": 9, "shadow": { "color": "#FF0000" } }, { "at": 10, "shadow": { "color": "#000000" } } ] } ] }"##,
+                #"storyline[0].keyframes (video): every keyframe of "shadow.color" lies outside [0, 6), so only one of its values would ever show"#
             ),
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "at": [2, 4], "title": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] } ] } ] }"#,
@@ -595,12 +599,14 @@ struct SequencePlannerTests {
         let plan = try plan(document)
 
         // Then
-        let graded: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))]
+        let graded = [
+            FilterEntry(operations: [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))])
+        ]
         let title = plan.clips[0].appearance
-        #expect(plan.storyline[0].filter == graded)
+        #expect(plan.storyline[0].filter.filter() == graded)
         #expect(title.opacity == .keyframes([
-            TimedValue(index: 0, at: 1, value: 0, ease: .linear),
-            TimedValue(index: 1, at: 2, value: 1, ease: .easeIn)
+            PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
+            PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
         ]))
         #expect(title.scale == .value(2))
         #expect(title.rotation == .value(0))
@@ -609,21 +615,21 @@ struct SequencePlannerTests {
         #expect(plan.clips[1].appearance.blend == "normal")
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
-            geometry: .area(outset: 0, anchor: nil),
-            radius: .value(0),
+            geometry: .area(outset: .off, anchor: nil),
+            radius: .off,
             trim: .value(.whole),
-            fill: nil,
-            stroke: PathStroke(
+            fill: .off,
+            stroke: .stroke(PathStroke(
                 width: 8 * MergedTheme.base.lengthScale(at: 2160),
                 color: MergedTheme.base.color("accent"),
                 join: .round,
                 cap: .butt,
                 start: .none,
                 end: .none
-            ),
-            shadow: nil
+            )),
+            shadow: .off
         ))
-        #expect(plan.clips[2].appearance.filter == graded)
+        #expect(plan.clips[2].appearance.filter.filter() == graded)
     }
 
     @Test("a storyline clip that writes none of its transform has the frame as its box and fills it exactly")
@@ -640,9 +646,9 @@ struct SequencePlannerTests {
             scale: .value(1),
             rotation: .value(0),
             blend: "normal",
-            radius: 0,
-            border: nil,
-            shadow: nil
+            radius: .off,
+            border: .off,
+            shadow: .off
         ))
     }
 
@@ -666,24 +672,24 @@ struct SequencePlannerTests {
         #expect(appearance.box == ClipBox(
             size: Size(width: 1080, height: 1920),
             position: .keyframes([
-                TimedValue(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
-                TimedValue(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
+                PropertyKeyframe(index: 0, at: 1, value: Point(x: 0, y: 0), ease: .linear),
+                PropertyKeyframe(index: 1, at: 3, value: Point(x: 540, y: 960), ease: .linear)
             ]),
             anchor: Point(x: 0, y: 0)
         ))
         #expect(appearance.scale == .keyframes([
-            TimedValue(index: 0, at: 1, value: 1, ease: .linear),
-            TimedValue(index: 1, at: 3, value: 0.5, ease: .linear)
+            PropertyKeyframe(index: 0, at: 1, value: 1, ease: .linear),
+            PropertyKeyframe(index: 1, at: 3, value: 0.5, ease: .linear)
         ]))
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius == 12 * scale)
-        #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
-        #expect(appearance.shadow == DropShadow(
-            radius: theme.shadowRadius * scale,
-            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
-            color: theme.shadowColor
+        #expect(appearance.radius.number() == 12 * scale)
+        #expect(appearance.border.border() == MediaBorder(width: 4 * scale, color: theme.color("accent")))
+        #expect(appearance.shadow.shadow() == DropShadow(
+            radius: 32 * scale,
+            offset: Point(x: 0, y: 12 * scale),
+            color: theme.color("shadow")
         ))
     }
 
@@ -846,11 +852,11 @@ struct SequencePlannerTests {
         // Then
         let triangle = { (y: Double) in [Point(x: 0, y: y), Point(x: 10, y: y), Point(x: 5, y: y + 10)] }
         #expect(plan.clips[0].mask == .keyframes([
-            TimedValue(index: 0, at: 1, value: [
+            PropertyKeyframe(index: 0, at: 1, value: [
                 mask(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4), feather: 2),
                 mask(.polyline(triangle(0), isClosed: true), mode: .subtract)
             ], ease: .easeIn),
-            TimedValue(index: 1, at: 3, value: [
+            PropertyKeyframe(index: 1, at: 3, value: [
                 mask(.rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8), feather: 6),
                 mask(.polyline(triangle(10), isClosed: true), mode: .subtract)
             ], ease: .linear)

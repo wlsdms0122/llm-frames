@@ -45,7 +45,7 @@ enum ThemeKeyTable {
                 .object(ObjectTable(
                     kind: "stroke",
                     rules: [
-                        KeyRule("width", .number, isRequired: true),
+                        KeyRule("width", .number),
                         KeyRule("color", .color)
                     ]
                 ))

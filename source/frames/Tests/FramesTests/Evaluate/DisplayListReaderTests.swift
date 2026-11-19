@@ -67,7 +67,7 @@ struct DisplayListReaderTests {
                 source: .media(MediaFrame(media: video, index: 2)),
                 rectangle: Rectangle(x: 45, y: 97.5, width: 990, height: 1760),
                 destination: Rectangle(x: 10, y: 20, width: 495, height: 880),
-                filter: [.exposure(ev: 0.5), .blur(radius: 2)],
+                filter: [FilterEntry(operations: [.exposure(ev: 0.5), .blur(radius: 2)], mix: 0.5)],
                 matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
@@ -133,7 +133,7 @@ struct DisplayListReaderTests {
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "title")
         ),
         DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], background: nil))),
-        DisplayItem(content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))),
+        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.saturation(amount: 0)])]))),
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
             fill: Color(written: "#3366CC"),
@@ -182,12 +182,12 @@ struct DisplayListReaderTests {
         let list = list(
             seed: 7,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(filter: filter))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: filter)]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .media(MediaFrame(media: Self.still, index: 0)),
                     rectangle: nil,
                     destination: Rectangle(x: 0, y: 0, width: 10, height: 10),
-                    filter: filter
+                    filter: [FilterEntry(operations: filter)]
                 )))
             ]
         )
@@ -219,7 +219,7 @@ struct DisplayListReaderTests {
         let inner = list(
             size: Size(width: 400, height: 300),
             seed: 12,
-            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let nested = list(
             size: Size(width: 1080, height: 1500),
@@ -260,7 +260,7 @@ struct DisplayListReaderTests {
         // Given
         let source = list(
             seed: 7,
-            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let list = list(
             seed: 7,
@@ -411,12 +411,12 @@ struct DisplayListReaderTests {
         // Given
         let inner = list(
             seed: 4,
-            items: [DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)])))]
+            items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let list = list(
             seed: 3,
             items: [
-                DisplayItem(content: .adjust(AdjustItem(filter: [.grain(amount: 0.3, size: 2)]))),
+                DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])]))),
                 DisplayItem(content: .picture(PictureItem(
                     source: .displayList(inner),
                     rectangle: nil,
@@ -430,7 +430,7 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(error?.description == """
-            items[1].source.list.items[0].filter[0].seed (adjust): seed 4 differs from 3, the seed of the first grain \
+            items[1].source.list.items[0].filter[0].ops[0].seed (adjust): seed 4 differs from 3, the seed of the first grain \
             in the list, and every grain of an output frame takes that frame's number
             """)
     }

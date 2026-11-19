@@ -35,7 +35,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case placementWithPosition(place: Place, kind: PlaceKind)
     case parentWithoutPosition(place: Place, kind: PlaceKind)
     case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
-    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
+    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, leaf: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
     case placementUnderContentFit(place: Place, kind: PlaceKind)
@@ -46,6 +46,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
+    case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
+    case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
+    case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
     case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case masksDiffer(place: Place, kind: PlaceKind, property: String)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
@@ -169,8 +173,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): style \(quoted(style)) gives no placement, so the title needs \"placement\" or "
                 + "\"position\""
 
-        case let .keyframesOutsideVisibleRange(place, kind, property, visible):
-            "\(place) (\(kind.label)): every keyframe of \(quoted(property)) lies outside \(written(visible)), "
+        case let .keyframesOutsideVisibleRange(place, kind, leaf, visible):
+            "\(place) (\(kind.label)): every keyframe of \(quoted(leaf)) lies outside \(written(visible)), "
                 + "so only one of its values would ever show"
 
         case let .missingFormatSize(place, kind):
@@ -219,6 +223,21 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the keyframes of \"points\" hold "
                 + counts.map { "\($0)" }.joined(separator: " and ")
                 + " points, and points interpolate one by one, so every value has the same number"
+
+        case let .missingLookLeaf(place, kind, key, .some(layer)):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and its theme turns off (\(layer))"
+
+        case let .missingLookLeaf(place, kind, key, .none):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and no theme layer gives"
+
+        case let .partialChoiceOverNone(place, kind, .some(layer)):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, which is none here (\(layer))"
+
+        case let .partialChoiceOverNone(place, kind, .none):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, and this clip takes none"
+
+        case let .partialChoiceOverList(place, kind, layer):
+            "\(place) (\(kind.label)): a choice without a preset over the theme's default list (\(layer)), where which entry it changes is ambiguous"
 
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"

@@ -67,7 +67,10 @@ package struct DisplayListReader: Sendable {
             )
             let trackMatte = (try? values.member("trackMatte", of: item, kind: item.kind))
                 .flatMap { try? values.member("source", of: $0, kind: "track matte") }
-            let filter = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let entries = (try? values.member("filter", of: item, kind: item.kind).elements()) ?? []
+            let filter = entries.flatMap { entry in
+                (try? values.member("ops", of: entry, kind: "filter entry").elements()) ?? []
+            }
             let grain = trackMatte.flatMap(nestedGrain)
                 ?? (try? values.member("source", of: item, kind: item.kind)).flatMap(nestedGrain)
                 ?? filter.first(where: isGrain)
@@ -370,10 +373,11 @@ package struct DisplayListReader: Sendable {
     private func filter(
         _ value: PlacedJSONValue,
         seed: Int
-    ) throws -> [ResolvedFilterOperation] {
-        let operations = try values.filter(value, grainKeys: ["seed"])
+    ) throws -> [FilterEntry] {
+        let entries = try values.filter(value, grainKeys: ["seed"])
+        let written = try value.elements().flatMap { try $0.object(keys: ["ops", "mix"]).member("ops").elements() }
 
-        for (element, operation) in zip(try value.elements(), operations) {
+        for (element, operation) in zip(written, entries.flatMap(\.operations)) {
             guard case .grain = operation else { continue }
 
             let written = try values.member("seed", of: element, kind: element.kind)
@@ -383,6 +387,6 @@ package struct DisplayListReader: Sendable {
             }
         }
 
-        return operations
+        return entries
     }
 }

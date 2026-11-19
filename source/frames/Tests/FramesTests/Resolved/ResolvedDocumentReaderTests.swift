@@ -42,11 +42,15 @@ struct ResolvedDocumentReaderTests {
         ]) { $1 },
         animations: Fixture.presets.animations,
         filters: Fixture.presets.filters.merging([
-            "film": FilterPreset(description: "", operations: [
-                .lut(file: "/abs/film.cube", amount: 0.5),
-                .bloom(amount: 0.5, radius: 4, color: "#FFFFFF"),
-                .levels(input: [0, 1], output: [0.1, 0.9])
-            ])
+            "film": #"""
+                { "description": "", "ops": [ { "op": "lut", "file": "/abs/film.cube", "amount": 0.5 },
+                                             { "op": "bloom", "amount": 0.5, "radius": 4, "color": "#FFFFFF" },
+                                             { "op": "levels", "input": [0, 1], "output": [0.1, 0.9] } ] }
+                """#,
+            "fade": #"""
+                { "description": "", "params": { "black": { "type": "number", "default": 0, "description": "the black" } },
+                  "ops": [ { "op": "levels", "input": [ { "param": "black" }, 1 ], "output": [0, 1] } ] }
+                """#
         ]) { $1 }
     )
 
@@ -133,6 +137,13 @@ struct ResolvedDocumentReaderTests {
             { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
               "trackMatte": { "clip": "word", "mode": "alpha" } },
             { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
+        """#,
+        // A filter whose preset argument and mix move, beside an op written in place.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            "filter": [ "fade", { "op": "exposure", "ev": 0.5 } ],
+            "keyframes": [ { "at": 0, "filter": [ { "args": { "black": 0 } }, { "mix": 0 } ], "ease": "ease-in" },
+                           { "at": 2, "filter": [ { "args": { "black": 0.2 } }, { "mix": 1 } ] } ] } ] }
         """#,
         // Time remapping: a storyline clip held, reversed and eased past the end of its media, and a connected media
         // clip remapped over its window, which writes no `in`, `out` or `loop`.

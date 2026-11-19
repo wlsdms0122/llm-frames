@@ -868,7 +868,7 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let keyframes = object["keyframes"]?.arrayValue else { return }
 
-        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace).filter { !ClipKeyTable.lookKeys.contains($0) }
         for keyframe in keyframes.compactMap(\.objectValue) {
             for property in properties where keyframe.contains(property) && object.contains(property) {
                 throw ModelError.staticAndKeyframed(place: place, kind: kind.label, property: property)
@@ -1035,7 +1035,8 @@ struct KeyChecker: Sendable {
         return mediaKind
     }
 
-    // `"none"` turns the filter off, so it is written alone, and a list applies at least one preset.
+    // `"none"` turns the filter off, so it is written alone, and a list applies at least one entry. An object naming
+    // `op` is an op written in place, which takes `mix` beside its parameters.
     private func checkFilterChoice(
         _ value: JSONValue,
         place: Place,
@@ -1043,14 +1044,14 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let elements = value.arrayValue else {
-            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            try checkFilterEntry(value, place: place, kind: kind, scope: &scope)
             return
         }
         guard !elements.isEmpty else {
             throw ModelError.invalidValue(
                 place: place,
                 kind: ChoiceKeyTable.filterKind,
-                reason: "a filter list holds at least one preset"
+                reason: "a filter list holds at least one entry"
             )
         }
 
@@ -1064,7 +1065,25 @@ struct KeyChecker: Sendable {
                 )
             }
 
-            try check(element, as: ChoiceKeyTable.filterPreset, place: elementPlace, kind: kind, scope: &scope)
+            try checkFilterEntry(element, place: elementPlace, kind: kind, scope: &scope)
+        }
+    }
+
+    private func checkFilterEntry(
+        _ value: JSONValue,
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws {
+        guard let object = value.objectValue, object.contains("op") else {
+            try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
+            return
+        }
+
+        let operation = JSONObject(members: object.members.filter { $0.key != "mix" })
+        try checkFilterOperation(.object(operation), place: place, kind: kind, scope: &scope)
+        if let mix = object["mix"] {
+            try check(mix, as: .fraction, place: place.appending(key: "mix"), kind: ChoiceKeyTable.filterKind, scope: &scope)
         }
     }
 

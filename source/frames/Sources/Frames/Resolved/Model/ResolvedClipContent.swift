@@ -9,6 +9,6 @@
 enum ResolvedClipContent: Equatable, Sendable {
     case title(ResolvedText)
     case shape(ResolvedShape)
-    case adjustment([ResolvedFilterOperation])
+    case adjustment(TimedValue)
     case media(ResolvedMediaClip)
 }

@@ -35,6 +35,14 @@ package struct PresetLibrary: PresetProvider {
         try publishedFilter(named: instance.name).map { try reader.filter($0, instance: instance) }
     }
 
+    func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
+        try filters.preset(named: name) {
+            try value(named: name, kind: "filter").map { value in
+                try reader.publishedFilter(from: value, place: Place(file: name, components: []))
+            }
+        }
+    }
+
     // MARK: - Public
     // Every preset of a kind, each pack's in pack order, each read and checked, so a preset that would stop a document
     // stops the listing too.
@@ -105,14 +113,6 @@ package struct PresetLibrary: PresetProvider {
         try animations.preset(named: name) {
             try value(named: name, kind: "animation").map { value in
                 try reader.publishedAnimation(from: value, place: Place(file: name, components: []))
-            }
-        }
-    }
-
-    private func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
-        try filters.preset(named: name) {
-            try value(named: name, kind: "filter").map { value in
-                try reader.publishedFilter(from: value, place: Place(file: name, components: []))
             }
         }
     }

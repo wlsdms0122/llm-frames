@@ -90,11 +90,11 @@ struct ShapeEvaluatorTests {
                     anchor: Point(x: 40, y: 20)
                 )
             ),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: Self.red,
-            stroke: nil,
-            shadow: nil
+            fill: .fill(Self.red),
+            stroke: .off,
+            shadow: .off
         )
         let clip = clip(shape, box: nil, rotation: 90)
 
@@ -206,11 +206,11 @@ struct ShapeEvaluatorTests {
                     anchor: Point(x: 40, y: 20)
                 )
             ),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: Self.red,
-            stroke: nil,
-            shadow: nil
+            fill: .fill(Self.red),
+            stroke: .off,
+            shadow: .off
         )
         let clip = clip(shape, box: nil)
 
@@ -255,11 +255,11 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: trim)],
-            fill: nil,
-            stroke: PathStroke(width: 4, color: Self.red, join: .round, cap: .butt, start: .none, end: .arrow),
-            shadow: nil
+            fill: .off,
+            stroke: .stroke(PathStroke(width: 4, color: Self.red, join: .round, cap: .butt, start: .none, end: .arrow)),
+            shadow: .off
         )
         let clip = clip(shape, box: nil, entrance: entrance)
 
@@ -279,11 +279,11 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .ellipse,
             geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-            radius: [Keyframe(at: 0, value: 0)],
+            radius: 0,
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
-            fill: nil,
-            stroke: Self.stroke,
-            shadow: nil
+            fill: .off,
+            stroke: .stroke(Self.stroke),
+            shadow: .off
         )
         let clip = clip(shape, box: nil)
 
@@ -361,22 +361,22 @@ struct ShapeEvaluatorTests {
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),
-                radius: [Keyframe(at: 0, value: 0)],
+                radius: 0,
                 trim: [Keyframe(at: 0, value: .whole)],
-                fill: nil,
-                stroke: Self.stroke,
-                shadow: Self.shadow
+                fill: .off,
+                stroke: .stroke(Self.stroke),
+                shadow: .shadow(Self.shadow)
             )
 
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
                 geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
-                radius: [Keyframe(at: 0, value: 2)],
+                radius: 2,
                 trim: [Keyframe(at: 0, value: .whole)],
-                fill: nil,
-                stroke: Self.stroke,
-                shadow: Self.shadow
+                fill: .off,
+                stroke: .stroke(Self.stroke),
+                shadow: .shadow(Self.shadow)
             )
         }
 
@@ -397,11 +397,11 @@ struct ShapeEvaluatorTests {
         ResolvedShape(
             kind: kind,
             geometry: .box(width: width, height: [Keyframe(at: 0, value: 20)], outset: 0),
-            radius: [Keyframe(at: 0, value: 2)],
+            radius: 2,
             trim: [Keyframe(at: 0, value: .whole)],
-            fill: nil,
-            stroke: Self.stroke,
-            shadow: shadow
+            fill: .off,
+            stroke: .stroke(Self.stroke),
+            shadow: .shadow(shadow)
         )
     }
 

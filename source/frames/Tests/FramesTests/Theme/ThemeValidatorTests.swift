@@ -80,12 +80,6 @@ struct ThemeValidatorTests {
             PresetInstance(name: "frames/flash", place: place.appending(key: "transition")),
             seconds: 1
         ))
-        #expect(defaults.filter == [
-            ThemeFilterPreset(
-                preset: FilterPreset(description: "", operations: []),
-                place: place.appending(key: "filter").appending(index: 0)
-            )
-        ])
         let animationPlace = place.appending(key: "animation")
         #expect(defaults.titleAnimations == [
             "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")))

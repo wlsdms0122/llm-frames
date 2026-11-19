@@ -17,7 +17,7 @@ extension PropertyValue {
 
         case let .keyframes(keyframes):
             .keyframes(keyframes.map { keyframe in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: clock.sequenceTime(ofClipTime: keyframe.at),
                     value: keyframe.value,

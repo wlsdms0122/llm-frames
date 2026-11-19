@@ -55,7 +55,7 @@ extension ResolvedClip {
         hashes: any FileHashProvider
     ) throws -> ResolvedClipContent {
         let appearance = geometry.appearance
-        let filter = try appearance.filter.map { try ResolvedFilterOperation(operation: $0, hashes: hashes) }
+        let filter = try appearance.filter.pinningFiles(hashes: hashes)
 
         if let title = geometry.title {
             return .title(try ResolvedText(layout: title, hashes: hashes))

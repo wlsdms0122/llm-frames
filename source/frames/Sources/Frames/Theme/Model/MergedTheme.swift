@@ -24,8 +24,8 @@ struct MergedTheme: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The strongest layer that holds the path wrote its value, since below the merged structure a value replaces the
-    // one under it whole. A path no layer holds is the base theme's.
+    // The strongest layer that holds the path wrote its value, or the last change to it. A path no layer holds is the
+    // base theme's.
     func place(of path: Place) -> Place {
         guard let layer = layers.last(where: { holds($0.value, path.components[...]) }) else { return path }
 

@@ -53,8 +53,8 @@ struct MediaAppearanceTests {
         let plan = try plan(document)
 
         // Then
-        #expect(plan.clips[0].appearance.media?.shadow == shadow)
-        #expect(plan.storyline[0].appearance.shadow == shadow)
+        #expect(plan.clips[0].appearance.media?.shadow.shadow() == shadow)
+        #expect(plan.storyline[0].appearance.shadow.shadow() == shadow)
     }
 
     @Test("a media clip's and a storyline clip's radius is a theme length, scaled by the frame's width over baseWidth")
@@ -66,8 +66,8 @@ struct MediaAppearanceTests {
         let plan = try plan(document)
 
         // Then
-        #expect(plan.clips[0].appearance.media?.radius == 12)
-        #expect(plan.storyline[0].appearance.radius == 12)
+        #expect(plan.clips[0].appearance.media?.radius.number() == 12)
+        #expect(plan.storyline[0].appearance.radius.number() == 12)
     }
 
     @Test("a shadow colour that is not a theme colour stops at the clip that writes it")
@@ -89,7 +89,7 @@ struct MediaAppearanceTests {
         #expect(storylineError.map { "\($0)" } == #"storyline[0].shadow.color (video): colour "ink" is not in colors"#)
     }
 
-    @Test("a border colour that is not a theme colour stops at the clip that writes it")
+    @Test("a border colour that is not a theme colour stops at the leaf it is, where the clip writes it")
     func stopsOnUnknownBorderColor() throws {
         // Given
         let clip = #"""
@@ -104,8 +104,8 @@ struct MediaAppearanceTests {
         // When, Then
         let clipError = #expect(throws: ThemeError.self) { try plan(clip) }
         let storylineError = #expect(throws: ThemeError.self) { try plan(storyline) }
-        #expect(clipError.map { "\($0)" } == #"clips[0].border (image): colour "ink" is not in colors"#)
-        #expect(storylineError.map { "\($0)" } == #"storyline[0].border (video): colour "ink" is not in colors"#)
+        #expect(clipError.map { "\($0)" } == #"clips[0].border.color (image): colour "ink" is not in colors"#)
+        #expect(storylineError.map { "\($0)" } == #"storyline[0].border.color (video): colour "ink" is not in colors"#)
     }
 
     // MARK: - Private

@@ -48,8 +48,8 @@ struct ResolvedSequencePinnedReferencesTests {
                 clip("clips[1]", content: .media(ResolvedMediaClip(
                     media: .nested(nested),
                     timing: nil,
-                    filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    filter: .off,
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],
             audio: [sound("clips[2]", media: music)]
@@ -125,7 +125,7 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 1,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: filter,
+            filter: .filter(filter),
             transition: transition,
             filling: size
         )

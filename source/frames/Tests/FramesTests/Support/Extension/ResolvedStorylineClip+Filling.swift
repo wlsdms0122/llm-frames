@@ -24,7 +24,7 @@ extension ResolvedStorylineClip {
         end: Double,
         crop: [Keyframe<Crop>],
         track: ResolvedTrack?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         transition: ResolvedTransition?,
         filling size: Size
     ) {
@@ -53,9 +53,9 @@ extension ResolvedStorylineClip {
             scale: [Keyframe(at: start, value: 1)],
             rotation: [Keyframe(at: start, value: 0)],
             blend: "normal",
-            radius: 0,
-            border: nil,
-            shadow: nil,
+            radius: .off,
+            border: .off,
+            shadow: .off,
             transition: transition
         )
     }

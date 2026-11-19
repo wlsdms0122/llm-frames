@@ -126,7 +126,7 @@ struct QuartzRendererTests {
         let adjust = DisplayItem(
             opacity: 0.5,
             mask: mask(Rectangle(x: 2, y: 2, width: 8, height: 8)),
-            content: .adjust(AdjustItem(filter: [.saturation(amount: 0)]))
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.saturation(amount: 0)])]))
         )
 
         // When
@@ -212,7 +212,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(filter: [.exposure(ev: 1), .lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.exposure(ev: 1), .lut(file: file, amount: 1)])])
         let nested = list(size: 1, items: [DisplayItem(content: .adjust(adjust))])
         let picture = PictureItem(
             source: .displayList(nested),
@@ -230,7 +230,7 @@ struct QuartzRendererTests {
             Issue.record("expected a malformed cube, got \(String(describing: error))")
             return
         }
-        #expect(place == "items[0].source.items[0].filter[1]")
+        #expect(place == "items[0].source.items[0].filter[0].ops[1]")
         #expect(errorFile == path && errorLine == line)
     }
 
@@ -247,7 +247,7 @@ struct QuartzRendererTests {
         try contents.write(toFile: path, atomically: true, encoding: .utf8)
         let file = PinnedFile(path: path, sha256: sha256(of: contents))
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let adjust = AdjustItem(filter: [.lut(file: file, amount: 1)])
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.lut(file: file, amount: 1)])])
         let list = list(size: 4, items: [DisplayItem(content: .adjust(adjust))])
         try sut.check(list)
         try FileManager.default.removeItem(atPath: path)

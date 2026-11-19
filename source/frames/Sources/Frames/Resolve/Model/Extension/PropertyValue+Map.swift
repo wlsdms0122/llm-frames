@@ -16,7 +16,7 @@ extension PropertyValue {
 
         case let .keyframes(keyframes):
             .keyframes(keyframes.map { keyframe in
-                TimedValue(
+                PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
                     value: transform(keyframe.value),

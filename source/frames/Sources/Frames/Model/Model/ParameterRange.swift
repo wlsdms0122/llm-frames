@@ -8,6 +8,7 @@
 enum ParameterRange: Sendable {
     case unit
     case positive
+    case nonNegative
     case levels
 
     // MARK: - Property
@@ -19,9 +20,17 @@ enum ParameterRange: Sendable {
         case .positive:
             "above 0"
 
+        case .nonNegative:
+            "0 or more"
+
         case .levels:
             "within 0 to 1 with black below white"
         }
+    }
+
+    // The range of a sampled value, where a length or size may be 0.
+    var sampled: ParameterRange {
+        self == .positive ? .nonNegative : self
     }
 
     // MARK: - Initializer
@@ -33,6 +42,9 @@ enum ParameterRange: Sendable {
 
         case let (.positive, .number(number)):
             number > 0
+
+        case let (.nonNegative, .number(number)):
+            number >= 0
 
         case let (.levels, .array(elements)):
             isLevels(elements.compactMap(\.numberValue))

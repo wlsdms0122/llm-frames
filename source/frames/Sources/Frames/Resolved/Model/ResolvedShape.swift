@@ -6,27 +6,27 @@
 //
 
 // A shape entry's own keys: its kind and how it is placed, its geometry as the clip wrote it and its `outset` in output
-// pixels, then `radius` and `trim` keyframes, and `fill`, `stroke` and `shadow` with its style applied and its lengths
-// in output pixels. Keyframes are in sequence time.
+// pixels, then `trim` keyframes, and `radius`, `fill`, `stroke` and `shadow` as timed values with its style applied
+// and its lengths in output pixels, `off` where it has none. Keyframes are in sequence time.
 struct ResolvedShape: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind
     let geometry: ShapeGeometry
-    let radius: [Keyframe<Double>]
+    let radius: TimedValue
     let trim: [Keyframe<Trim>]
-    let fill: Color?
-    let stroke: PathStroke?
-    let shadow: DropShadow?
+    let fill: TimedValue
+    let stroke: TimedValue
+    let shadow: TimedValue
 
     // MARK: - Initializer
     init(
         kind: ShapeKind,
         geometry: ShapeGeometry,
-        radius: [Keyframe<Double>],
+        radius: TimedValue,
         trim: [Keyframe<Trim>],
-        fill: Color?,
-        stroke: PathStroke?,
-        shadow: DropShadow?
+        fill: TimedValue,
+        stroke: TimedValue,
+        shadow: TimedValue
     ) {
         self.kind = kind
         self.geometry = geometry

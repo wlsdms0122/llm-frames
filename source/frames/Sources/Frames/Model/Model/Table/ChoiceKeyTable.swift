@@ -6,7 +6,9 @@
 //
 
 // The preset choices, as a clip, a theme's `defaults` and a template's arguments and options all write them. In an
-// object choice the name alone is the string form, so `preset` needs another key beside it.
+// object choice the name alone is the string form, so `preset` needs another key beside it. An object without `preset`
+// changes the choice below it, the theme's default for a clip or a weaker theme's, which resolve and the theme merge
+// check.
 enum ChoiceKeyTable {
     static let argumentsKind = "preset arguments"
     static let arguments = ValueType.map(.presetArgument, kind: argumentsKind)
@@ -15,7 +17,7 @@ enum ChoiceKeyTable {
         .object(ObjectTable(
             kind: "transition choice",
             rules: [
-                KeyRule("preset", .name, isRequired: true),
+                KeyRule("preset", .name),
                 KeyRule("seconds", .positiveNumber),
                 KeyRule("args", arguments)
             ],
@@ -37,8 +39,24 @@ enum ChoiceKeyTable {
     ])
     static let filterKind = "filter choice"
     static let filter = ValueType.filterChoice
-    // One preset of a filter choice, alone or in its list.
-    static let filterPreset = ValueType.oneOf([.name, .object(presetWithArguments(filterKind))])
+    // One preset of a filter choice, alone or in its list. An op written in place is checked by its op's table.
+    static let filterPreset = ValueType.oneOf([
+        .name,
+        .object(ObjectTable(
+            kind: filterKind,
+            rules: [
+                KeyRule("preset", .name),
+                KeyRule("args", arguments),
+                KeyRule("mix", .fraction)
+            ],
+            group: KeyGroup(keys: ["args", "mix"], isExclusive: false)
+        ))
+    ])
+    // A filter choice in a keyframe writes the leaves it moves over the clip's choice: an object of an entry's
+    // arguments, op parameters and `mix`, `null` or a list of those. A name stops when it is timed, since an entry's
+    // preset and op are static.
+    static let filterKeyframe = ValueType.oneOf([.exactly(.null), filterKeyframeEntry, .list(filterKeyframeEntry)])
+    private static let filterKeyframeEntry = ValueType.oneOf([.exactly(.null), .name, .map(.anyValue, kind: filterKind)])
 
     // The kind of preset a choice of `type` names, nil for a type that is not a preset choice.
     static func presetKind(of type: ValueType) -> PresetKind? {
@@ -61,7 +79,7 @@ enum ChoiceKeyTable {
         ObjectTable(
             kind: kind,
             rules: [
-                KeyRule("preset", .name, isRequired: true),
+                KeyRule("preset", .name),
                 KeyRule("args", arguments, isRequired: true)
             ]
         )

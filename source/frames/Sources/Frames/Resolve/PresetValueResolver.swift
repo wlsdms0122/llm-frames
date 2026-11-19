@@ -28,10 +28,7 @@ struct PresetValueResolver: Sendable {
     ) throws -> FilterOperation {
         switch operation {
         case let .lut(file, amount):
-            .lut(
-                file: try self.file(file, found: library.lutFile(named: file), place: place, kind: kind),
-                amount: amount
-            )
+            .lut(file: try lutFile(file, place: place, kind: kind), amount: amount)
 
         case let .bloom(amount, radius, color):
             .bloom(
@@ -44,6 +41,14 @@ struct PresetValueResolver: Sendable {
             .pixelate, .grain:
             operation
         }
+    }
+
+    func lutFile(
+        _ name: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> String {
+        try file(name, found: library.lutFile(named: name), place: place, kind: kind)
     }
 
     func transition(

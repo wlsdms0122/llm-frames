@@ -48,29 +48,38 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "pan", "timeRemap"]
+            [
+                "crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow",
+                "volume", "pan", "timeRemap"
+            ]
 
         case (.storyline, .media):
-            ["crop", "position", "scale", "rotation", "opacity", "mask"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .media(.audio)):
             ["volume", "pan"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
-            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume", "pan", "timeRemap"]
+            [
+                "position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow",
+                "volume", "pan", "timeRemap"
+            ]
 
         case (_, .media):
-            ["position", "scale", "rotation", "opacity", "crop", "mask"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .title):
             ["position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .shape):
-            ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "mask"]
-                .filter(keys(for: kind, in: place).contains)
+            [
+                "area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "outset",
+                "fill", "stroke", "shadow", "mask"
+            ]
+            .filter(keys(for: kind, in: place).contains)
 
         case (_, .adjust):
-            ["opacity", "mask"]
+            ["opacity", "mask", "adjust"]
 
         case (_, .solid):
             []
@@ -85,7 +94,10 @@ enum ClipKeyTable {
         let rules = [
             KeyRule("at", .number, isRequired: true),
             KeyRule("ease", .ease)
-        ] + properties.map { KeyRule($0, type(of: $0, for: kind, in: place)) }
+        ] + properties.map { property in
+            let type = type(of: property, for: kind, in: place)
+            return KeyRule(property, lookKeys.contains(property) ? keyframed(type) : type)
+        }
 
         return ObjectTable(
             kind: "keyframe",
@@ -105,6 +117,10 @@ enum ClipKeyTable {
 
     // Properties written only in keyframes, so a static value stops.
     static let keyframedOnly = ["timeRemap"]
+
+    // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
+    // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
+    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust"]
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
@@ -273,12 +289,42 @@ enum ClipKeyTable {
         case "radius":
             .nonNegativeNumber
 
+        // An outset grows the outline a shape draws around its geometry, and a smaller outline is a smaller geometry.
+        case "outset":
+            .nonNegativeNumber
+
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":
             .signedFraction
 
         default:
             choice(ofKey: name) ?? .number
+        }
+    }
+
+    // A look key's type in a keyframe: each leaf may be `null`, and a length may be 0 or less, since timing checks a
+    // leaf two keyframes write against its domain and one a single keyframe writes as a static value.
+    private static func keyframed(_ type: ValueType) -> ValueType {
+        type == ChoiceKeyTable.filter ? ChoiceKeyTable.filterKeyframe : .oneOf([.exactly(.null), loosened(type)])
+    }
+
+    private static func loosened(_ type: ValueType) -> ValueType {
+        switch type {
+        case let .oneOf(types):
+            .oneOf(types.map(loosened))
+
+        case let .object(table):
+            .object(ObjectTable(
+                kind: table.kind,
+                rules: table.rules.map { KeyRule($0.name, keyframed($0.type)) },
+                group: table.group
+            ))
+
+        case .positiveNumber, .nonNegativeNumber:
+            .number
+
+        default:
+            type
         }
     }
 

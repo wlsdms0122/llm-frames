@@ -158,6 +158,11 @@ enum FilterKernelSource {
             return filterFinish(mix(v.rgb, mapped, amount), v.a);
         }
 
+        // `filtered` is an entry's result for `sample`, both premultiplied.
+        [[stitchable]] float4 filterMix(sample_t sample, sample_t filtered, float mix) {
+            return sample + (filtered - sample) * mix;
+        }
+
         // `blurred` is the Gaussian blur of `sample`'s image, both premultiplied.
         [[stitchable]] float4 filterSharpen(sample_t sample, sample_t blurred, float amount) {
             return filterClampPremultiplied(sample + amount * (sample - blurred));
