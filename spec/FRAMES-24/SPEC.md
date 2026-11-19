@@ -29,7 +29,7 @@ These are the acceptance tests.
 - Outlined text has round corners and no overlapping strokes.
 - A tracked clip stays on its target on every frame the tracker followed, at every zoom.
 - The master is ProRes and PCM at full quality. Only `--deliver` and `transcode` write at a delivery quality.
-- A PNG from `render --at` is the frame `still` draws at that time, without its label.
+- A PNG from `render --at` is the frame `still` draws at that time, without its label: for an `srgb` sequence the same pixels to within the rounding of `still`'s 8 bits, and for another colour space the same frame in the sequence's colour space, where `still` draws its analysis picture ([FRAMES-26](../FRAMES-26/SPEC.md#providers-and-analysis-pictures)).
 - A storyline image is resampled once, from its source straight to its size on the output.
 - Evaluating a resolved document at the same time always gives the same display list, and rendering it twice on the same decoder and renderer gives the same frames before encoding.
 - A resolved document whose files changed is refused.
