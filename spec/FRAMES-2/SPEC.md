@@ -4,11 +4,11 @@ Status: accepted
 
 ## Summary
 
-How a place is named in a clip's coordinate space: an area, as a rectangle or, where there is a media picture to search, as text found by OCR; and a point, as coordinates or a named point of an area. Shapes, masks, crops, positions and tracking all take these same values.
+How a place is named in a clip's coordinate space: an area, as a rectangle, as the box of another clip at the same instant, or, where there is a media picture to search, as text found by OCR; and a point, as coordinates or a named point of an area. Shapes, masks, crops, positions and tracking all take these same values.
 
 ## Motivation
 
-Shape geometry, a mask, a crop, a title's position and a tracker's target all name a place in a picture, and an editor that gave each its own way of naming it would make the same place be written four times. One area and one point form, in the clip's own coordinate space, lets a mask, a shape outline and a title beside it take the same value and stay together when the picture under them moves. Where the picture holds text (a sign in camera footage, a slide, a scoreboard, an app on screen), a place can also be named by that text, so a document survives a new take or a new export without measuring again, and stopping on an ambiguous or missing match keeps a mask from landing on the wrong word unnoticed.
+Shape geometry, a mask, a crop, a title's position and a tracker's target all name a place in a picture, and an editor that gave each its own way of naming it would make the same place be written four times. One area and one point form, in the clip's own coordinate space, lets a mask, a shape outline and a title beside it take the same value and stay together when the picture under them moves. Where the picture holds text (a sign in camera footage, a slide, a scoreboard, an app on screen), a place can also be named by that text, so a document survives a new take or a new export without measuring again, and stopping on an ambiguous or missing match keeps a mask from landing on the wrong word unnoticed. A place can also be named by another clip, as After Effects' `sourceRectAtTime` names a layer's box: a lower third's bar written as the box of its name, with padding, fits any name a template is given, and a note placed at the name's right edge moves with it.
 
 ## Rules
 
@@ -20,14 +20,36 @@ An area is given in one of these forms, in the coordinate space of the clip that
 | --- | --- |
 | `[x, y, w, h]` | that rectangle: its top left corner at `(x, y)`, `w` wide and `h` tall. `w` and `h` are above 0 |
 | `{"text": "...", "nth": n, "padding": p}` | the recognised line that contains the text. With `nth`, the nth line (from 0) among the lines that contain it, counted top to bottom by row and left to right within a row, where lines whose vertical centres lie within half the shorter one's height of each other are one row |
+| `{"clip": "<id>", "padding": p}` | the box of the clip with that `id` at the same instant, grown by `padding` ([Clip areas](#clip-areas)) |
 | `{"from": "...", "to": "...", "fromNth": a, "toNth": b, "padding": p}` | the rectangle around the `from` line and the `to` line, each found as the `text` form finds its line (`fromNth` and `toNth` acting as its `nth`), and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
 
-- `nth`, `fromNth` and `toNth` are optional whole numbers, 0 or more. `padding` is optional, a number 0 or more, and defaults to 0.
+- `nth`, `fromNth` and `toNth` are optional whole numbers, 0 or more. `padding` is optional, a number 0 or more, and defaults to 0. An area object holds the keys of one form, and one that mixes `clip` with a text form's keys stops.
 - Text is compared with whitespace removed. A line matches when it contains the text.
 - A text form without `nth` that matches more than one line stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` form.
 - Text that matches no line, or an `nth` past the last match, stops, naming the media, the text and the nth.
 - A text form's area grows outward on every side by its `padding`, in pixels of the picture searched, once the area is found. A tracker follows the area as found, before padding ([FRAMES-12](../FRAMES-12/SPEC.md)).
 - An area keeps what is written or found, also where it reaches past the picture's edges. A shape, a mask and a point drawn from it are where it says, and the part of a crop beyond the picture is transparent ([FRAMES-9](../FRAMES-9/SPEC.md)). OCR and the tracker read only the picture's pixels.
+
+### Clip areas
+
+A clip area `{"clip": "<id>", "padding": p}` is the box of another clip, as the clip draws it at the instant being evaluated, in the space the two clips share.
+
+- `clip` names, by its `id` ([FRAMES-7](../FRAMES-7/SPEC.md)), a connected or sequence media clip, title or shape in the same document, the clips a track matte may name ([FRAMES-11](../FRAMES-11/SPEC.md)). Any other clip named (a storyline clip, an adjustment clip, an audio clip, a clip in another document), or an id that names no clip, stops.
+- **The two clips share one coordinate space**: the clip that writes the area and the named clip have the same `parent`, or neither has one. A clip area whose two clips do not stops, naming both.
+- The named clip's box is its box ([FRAMES-1](../FRAMES-1/SPEC.md)) before its own transform: for a clip with a box of its own (a title's text box with its style's background, a media clip's box, a rect or ellipse placed by `width` and `height`), that box with its anchor point at the clip's keyframed `position`, without its `scale`, `rotation`, tracked motion and animation; for a shape placed by its geometry, its `area` or the bounding box of its `points`, without its `outset`. A clip with a box of its own keeps its size in output pixels under a parent ([FRAMES-10](../FRAMES-10/SPEC.md)), so under one its box is carried into the parent's space by the inverse of the parent's map at that instant, and where that map turns or skews it, the area is the axis-aligned rectangle that bounds its four carried corners.
+- `padding` is a theme length, 0 or more, default 0 ([FRAMES-1](../FRAMES-1/SPEC.md)): the box grows by it on every side, divided by the length factor of the shared space's map to the output under a parent ([FRAMES-20](../FRAMES-20/SPEC.md)), so the padding keeps its size against the text as a style's background padding does.
+- The box is taken at the instant being evaluated, on the sequence clock, whether or not the named clip is visible then. Outside the named clip's window it holds the box it has at the window's edge, as a parent's transform does ([FRAMES-10](../FRAMES-10/SPEC.md)). A clip area in a keyframe is the named clip's box at each instant of the spans on its sides ([FRAMES-4](../FRAMES-4/SPEC.md)).
+- A clip area may stand wherever an area or a point is in the clip's coordinate space: the `area`, `points` and `position` of a connected or sequence clip, and the mask of a shape placed by `area` or `points` or of an adjustment clip. A clip area in a `crop`, a `track` target, or the mask of a media clip, a title, a storyline clip or a shape placed by `width` and `height` stops, since those are in the clip's own media or box.
+- A clip whose box depends on itself through clip areas, its own included, stops and names the clips in the cycle: a rect whose area is a title's box, and a title whose `position` is a point of that rect's area.
+
+```json
+{ "id": "name", "at": [2, 8], "lane": 2, "title": "Mina Park", "style": "name" },
+{ "at": [2, 8], "lane": 1, "shape": "rect", "area": { "clip": "name", "padding": 24 }, "fill": "#101418E6", "radius": 8 },
+{ "at": [2.4, 8], "lane": 2, "title": "Head baker", "style": "role",
+  "position": { "area": { "clip": "name", "padding": 24 }, "point": "right" }, "anchor": "left" }
+```
+
+The bar is the name's box grown by 24 points on every side, so it fits whatever name a template is given, and the role sits at the bar's right edge, growing to the right from it.
 
 ### Where text forms are allowed
 
@@ -89,5 +111,11 @@ Padding from the theme: how far an area reaches past its text is a choice about 
 Text forms on any coordinate space, found by recognising drawn pixels: a resolved value would then depend on a renderer, and providers read media files, never drawn pixels (README). A text form is allowed only where there is a media picture.
 
 A band form, the full width of a picture between two lines: it served one layout. A rectangle written with the picture's full width names the same place, and a pack can write it.
+
+A clip area that takes the named clip's transform, its scale, rotation and animation included: a bar would turn and bounce with its title's entrance and not with its own, and the area would not be a rectangle. The box before its transform is what `sourceRectAtTime` gives, and a bar that should move with its title is parented to it or given the same animation.
+
+A clip area across coordinate spaces, carried through each clip's parent: it would mix two parents' motion into one value, and two clips that should share a space share a parent.
+
+Text that shrinks to fit a box, as a responsive title template does: a template sets a title's `width` and `lines`, so text that does not fit stops, and an extension that must fit text measures it with `evaluate` ([FRAMES-23](../FRAMES-23/SPEC.md)) and writes the size.
 
 ## Notes

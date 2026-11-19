@@ -105,7 +105,7 @@ A mask is `{geometry, transform, feather, invert, mode}`: `geometry` in one of t
 
 ### What evaluation has done
 
-Evaluation has done everything above pixels: keyframes and eases (springs included), animation spans and how they combine, transition motion, cover and matte progress, reveal, parent transforms, masks, track mattes, tracked motion, time remapping, and the visible windows. A role is left with the items as written.
+Evaluation has done everything above pixels: keyframes and eases (springs included), clip areas at t ([FRAMES-2](../FRAMES-2/SPEC.md)), animation spans and how they combine, transition motion, cover and matte progress, reveal, parent transforms, masks, track mattes, tracked motion, time remapping, and the visible windows. A role is left with the items as written.
 
 - Evaluation writes `seed` into every `grain` op: the number of the output frame being drawn, k for frame k of the outermost sequence (evaluated at k / fps), and the frame whose interval holds t for `still`, `evaluate` and a PNG. Nested lists take the outer frame's seed, so grain belongs to the output frame and two pictures in a transition share it.
 
