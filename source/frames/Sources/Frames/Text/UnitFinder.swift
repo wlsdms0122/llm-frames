@@ -53,10 +53,7 @@ struct UnitFinder: Sendable {
             }
             for (piece, span) in spans(of: run).enumerated() {
                 guard !carriers.isEmpty else {
-                    // A piece of spaces alone goes with the unit before it on its line, or the line's first. A line
-                    // of spaces alone has no unit to carry it.
-                    let before = onLine.last { units[$0].unit.glyphs.first.map { $0.run < index } ?? false }
-                    if let owner = before ?? onLine.first {
+                    if let owner = owner(ofSpacesIn: index, of: run, onLine: onLine, units: units) {
                         parts[owner].append(UnitPart(run: index, piece: piece, span: span))
                     }
                     continue
@@ -76,6 +73,21 @@ struct UnitFinder: Sendable {
     }
 
     // MARK: - Private
+    // A piece of spaces alone goes with the unit before it on its line, or the line's first, so its part stays on its
+    // line. On a line with no unit it goes with the unit before it in reading order, or the title's first, so every
+    // piece of a title with a unit is drawn by one.
+    private func owner(
+        ofSpacesIn index: Int,
+        of run: GlyphRun,
+        onLine: [Int],
+        units: [(line: Int, unit: PlacedUnit)]
+    ) -> Int? {
+        let before = onLine.last { units[$0].unit.glyphs.first.map { $0.run < index } ?? false }
+        let earlier = units.indices.last { units[$0].line < run.line }
+
+        return before ?? onLine.first ?? earlier ?? units.indices.first
+    }
+
     // The clusters of each unit on a line, by their index, in order.
     private func groups(
         of clusters: [PlacedCluster],

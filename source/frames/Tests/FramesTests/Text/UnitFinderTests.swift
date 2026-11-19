@@ -136,6 +136,36 @@ struct UnitFinderTests {
         #expect(units.map(\.parts) == [[], [UnitPart(run: 1, piece: 0, span: 0...20)]])
     }
 
+    @Test(
+        "a piece of spaces alone on a line with no unit goes with the unit before it in reading order, or the first"
+    )
+    func givesPiecesOnLinesWithoutUnits() {
+        // Given
+        let spaces = { (line: Int, y: Double) in
+            run(count: 1, source: 1, line: line, highlight: Rectangle(x: 0, y: y, width: 20, height: 40))
+        }
+        let between = [clusters(of: "ab"), clusters(of: " ", run: 1), clusters(of: "cd", run: 2)]
+        let first = [clusters(of: " "), clusters(of: "ab", run: 1)]
+
+        // When
+        let afterWords = sut.units(
+            by: .word,
+            lines: between,
+            extents: [0...40, 50...90, 100...140],
+            runs: [run(count: 2), spaces(1, 50), run(count: 2, source: 2, line: 2)]
+        )
+        let beforeWords = sut.units(
+            by: .word,
+            lines: first,
+            extents: [0...40, 50...90],
+            runs: [spaces(0, 0), run(count: 2, source: 2, line: 1)]
+        )
+
+        // Then
+        #expect(afterWords.map(\.parts) == [[UnitPart(run: 1, piece: 0, span: 0...20)], []])
+        #expect(beforeWords.map(\.parts) == [[UnitPart(run: 0, piece: 0, span: 0...20)]])
+    }
+
     @Test("a piece held by a run whose glyphs lie in no cluster goes with the unit of its text run on its line")
     func keepsPiecesOfRunsInNoCluster() {
         // Given
