@@ -74,7 +74,20 @@ struct AreaFinder: Sendable {
     ) throws -> [RecognisedLine] {
         switch picture.source {
         case let .mediaFile(file):
-            return order.sorted(try ocr.lines(in: file, atMediaTime: time, languages: languages))
+            let lines = try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages) }
+                .mapError { error in
+                    ProviderError.failed(
+                        provider: .ocr,
+                        place: place,
+                        kind: kind,
+                        media: picture.name,
+                        mediaTime: time,
+                        message: "\(error)"
+                    )
+                }
+                .get()
+            
+            return order.sorted(lines)
 
         case .document:
             throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)

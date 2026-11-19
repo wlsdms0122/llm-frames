@@ -31,7 +31,7 @@ struct Typesetter: Sendable {
         let limit = width == nil ? 1 : style.lines
         let isOneLine = limit == 1
         let lines = try paragraphs(of: runs).flatMap { paragraph in
-            try self.lines(of: paragraph, width: isOneLine ? nil : width)
+            try self.lines(of: paragraph, width: isOneLine ? nil : width, place: place, kind: kind)
         }
         if let limit, lines.count > limit {
             throw TextError.tooManyLines(place: place, kind: kind, count: lines.count, limit: limit)
@@ -86,10 +86,12 @@ struct Typesetter: Sendable {
     // wider overflows alone. Without a width only a mandatory break ends a line.
     private func lines(
         of paragraph: [TextRun],
-        width: Double?
+        width: Double?,
+        place: Place,
+        kind: String
     ) throws -> [TextLine] {
         let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
-        let glyphs = try shaped(paragraph)
+        let glyphs = try shaped(paragraph, place: place, kind: kind)
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
 
@@ -151,11 +153,28 @@ struct Typesetter: Sendable {
 
     // Each run is shaped on its own, since a run boundary ends a shaping run, and its glyphs are told by the scalar
     // they start at in the whole paragraph.
-    private func shaped(_ paragraph: [TextRun]) throws -> [StyledGlyph] {
+    private func shaped(
+        _ paragraph: [TextRun],
+        place: Place,
+        kind: String
+    ) throws -> [StyledGlyph] {
         var start = 0
         var glyphs: [StyledGlyph] = []
         for run in paragraph {
-            for shaped in try shaper.shape(run.text, face: run.face, size: run.style.size) {
+            let shapedRuns = try Result { try shaper.shape(run.text, face: run.face, size: run.style.size) }
+                .mapError { error in
+                    ProviderError.failed(
+                        provider: .shaping,
+                        place: place,
+                        kind: kind,
+                        media: nil,
+                        mediaTime: nil,
+                        message: "\(error)"
+                    )
+                }
+                .get()
+            
+            for shaped in shapedRuns {
                 glyphs += shaped.glyphs.map { glyph in
                     StyledGlyph(
                         glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),

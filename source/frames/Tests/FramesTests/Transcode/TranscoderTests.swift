@@ -187,9 +187,10 @@ struct TranscoderTests {
         #expect(log.calls.contains(.checkImageTarget(.png(path: output, size: expected))))
     }
 
-    @Test("--max caps a video's longer side, never enlarges it, and takes an odd side down to an even one", arguments: [
+    @Test("--max caps a video's longer side, never enlarges it, and takes each exact side down to an even one", arguments: [
         (Size(width: 1920, height: 1080), 1000, Size(width: 1000, height: 562)),
-        (Size(width: 1920, height: 1080), 999, Size(width: 998, height: 562)),
+        (Size(width: 1920, height: 1080), 999, Size(width: 998, height: 560)),
+        (Size(width: 1000, height: 508), 200, Size(width: 200, height: 100)),
         (Size(width: 1080, height: 1920), 640, Size(width: 360, height: 640)),
         (Size(width: 640, height: 360), 2000, Size(width: 640, height: 360)),
         (Size(width: 101, height: 75), nil, Size(width: 100, height: 74))
@@ -359,10 +360,11 @@ struct TranscoderTests {
     }
 
     @Test("a video side that rounds below 2 pixels stops, naming the size it would give and the cap that shrank it", arguments: [
-        (Size(width: 1920, height: 1080), 1, Size(width: 1, height: 1)),
-        (Size(width: 1920, height: 1080), 2, Size(width: 2, height: 1)),
-        (Size(width: 400, height: 2), 100, Size(width: 100, height: 1)),
-        (Size(width: 1, height: 400), nil, Size(width: 1, height: 400))
+        (Size(width: 1920, height: 1080), 1, Size(width: 0, height: 0)),
+        (Size(width: 1920, height: 1080), 2, Size(width: 2, height: 0)),
+        (Size(width: 400, height: 2), 100, Size(width: 100, height: 0)),
+        (Size(width: 1920, height: 1080), 3, Size(width: 2, height: 0)),
+        (Size(width: 1, height: 400), nil, Size(width: 0, height: 400))
     ])
     func stopsOnUndersizedVideo(
         source size: Size,
@@ -401,7 +403,7 @@ struct TranscoderTests {
         try expectStop(
             request,
             facts: [input: media],
-            error: .undersizedVideo(path: output, maximumSide: nil, size: Size(width: 1, height: 400))
+            error: .undersizedVideo(path: output, maximumSide: nil, size: Size(width: 0, height: 400))
         )
     }
 

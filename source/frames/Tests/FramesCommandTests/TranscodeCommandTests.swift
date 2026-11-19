@@ -110,7 +110,7 @@ struct TranscodeCommandTests {
         // Then
         #expect(code == 1)
         #expect(sut.standardError == """
-            frames: "\(output)": --max 1 makes the video 1x1, and a video's sides are at least 2 pixels
+            frames: "\(output)": --max 1 makes the video 0x0, and a video's sides are at least 2 pixels
 
             """)
         #expect(!FileManager.default.fileExists(atPath: output))

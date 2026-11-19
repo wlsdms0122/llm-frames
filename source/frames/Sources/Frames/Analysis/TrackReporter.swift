@@ -66,12 +66,20 @@ package struct TrackReporter: Sendable {
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
         let target = Quad(found.target)
-        let frames = try tracker.track(
-            target,
-            in: file,
-            atMediaTime: time,
-            over: (file.frameTime(at: first) ?? first)...last
-        )
+        let frames = try Result {
+            try tracker.track(target, in: file, atMediaTime: time, over: (file.frameTime(at: first) ?? first)...last)
+        }
+        .mapError { error in
+            ProviderError.failed(
+                provider: .tracker,
+                place: Self.place,
+                kind: Self.kind,
+                media: path,
+                mediaTime: time,
+                message: "\(error)"
+            )
+        }
+        .get()
 
         return TrackReport(track: Track(target: target, mediaTime: time, frames: frames))
     }

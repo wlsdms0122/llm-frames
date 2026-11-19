@@ -97,7 +97,10 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: plan.drawn,
             file: picture.file,
-            fps: fps
+            named: picture.picture.name,
+            fps: fps,
+            place: place,
+            kind: kind
         )
         let isEditFollowed = followed.range.start <= plan.edit.start + Self.tolerance
             && followed.range.end >= plan.edit.end - Self.tolerance
@@ -150,7 +153,10 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: plan.visible,
             file: picture.file,
-            fps: fps
+            named: picture.picture.name,
+            fps: fps,
+            place: place,
+            kind: kind
         )
 
         return (
@@ -206,7 +212,10 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: drawn(under: parent, of: plan, in: time),
             file: picture.file,
-            fps: fps
+            named: picture.picture.name,
+            fps: fps,
+            place: place,
+            kind: kind
         )
 
         return (
@@ -311,7 +320,10 @@ struct TrackPlanner: Sendable {
         on clock: MediaClock,
         drawn: TimeRange,
         file: MediaFile,
-        fps: Double
+        named media: String,
+        fps: Double,
+        place: Place,
+        kind: PlaceKind
     ) throws -> (track: Track, range: TimeRange) {
         let shown = shownMediaTimes(on: clock, drawn: drawn, fps: fps)
         let firstShown = shown.min() ?? target.mediaTime
@@ -319,7 +331,20 @@ struct TrackPlanner: Sendable {
         let firstNeeded = file.frameTime(at: min(firstShown, target.mediaTime)) ?? firstShown
         let lastNeeded = max(lastShown, target.mediaTime)
         let quad = Quad(target.target)
-        let frames = try tracker.track(quad, in: file, atMediaTime: target.mediaTime, over: firstNeeded...lastNeeded)
+        let frames = try Result {
+            try tracker.track(quad, in: file, atMediaTime: target.mediaTime, over: firstNeeded...lastNeeded)
+        }
+        .mapError { error in
+            ProviderError.failed(
+                provider: .tracker,
+                place: place,
+                kind: kind.label,
+                media: media,
+                mediaTime: target.mediaTime,
+                message: "\(error)"
+            )
+        }
+        .get()
         let track = Track(target: quad, mediaTime: target.mediaTime, frames: frames)
         guard let first = frames.first, let last = frames.last else {
             return (track, TimeRange(start: instant, end: instant))
