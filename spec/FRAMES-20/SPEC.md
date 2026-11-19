@@ -37,7 +37,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 | --- | --- | --- |
 | `picture` | `source` (a frame of a media file or image sequence, by index, or a nested display list), `rect` (the source region), `dest` (the rectangle it fills, in its own coordinates), `filter` (op list, applied at `dest` size), `matte` (`{source, frame, progress, softness, invert}` or `null`), `radius`, `border` `{width, color}` or `null`, `shadow` or `null` | a region of a picture scaled into a rectangle, filtered, then cut by its transition matte |
 | `path` | `geometry`, `fill` (a colour or `null`), `stroke` (`{width, color, join, cap, start, end}` or `null`), `trim` `[a, b]`, `shadow` or `null` | a rectangle, an ellipse or a polyline, filled and stroked |
-| `glyphs` | `runs` (each: font file, face, size, colour, `stroke` `{width, color}` or `null`, glyph ids and positions), `background` `{rect, radius, color}` or `null`, `size` | glyphs, with their outlines and background |
+| `glyphs` | `runs` (each: font file, face, size, colour, `stroke` `{width, color}` or `null`, `background` `{rects, radius, color}` or `null`, `underline` `{rects, color}` or `null`, glyph ids and positions), `background` `{rect, radius, color}` or `null`, `size` | glyphs, with their outlines, run backgrounds, underlines and background |
 | `adjust` | `filter` | the filter applied to everything drawn below it in the same list |
 
 ### Pictures
@@ -74,7 +74,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 
 ### Glyphs and adjustments
 
-- A `glyphs` item draws its background, then the outline of every glyph of every run with a stroke, each run's glyphs as one stroke in its width and colour, centred on the outline with round joins and caps, then every glyph's fill, so no stroke covers a fill. Glyph positions are in the item's own coordinates, its text box `size` with its origin at the top left.
+- A `glyphs` item draws its background, then every run's background rectangles in run order, each with corners of its `radius`, then every run's underline rectangles, then the outline of every glyph of every run with a stroke, each run's glyphs as one stroke in its width and colour, centred on the outline with round joins and caps, then every glyph's fill, so no stroke covers a fill. Glyph positions are in the item's own coordinates, its text box `size` with its origin at the top left.
 - An `adjust` item covers the whole frame of its list: the filter is applied to everything drawn below it in that list, and the filtered picture is composited onto the unfiltered one with the item's `blend`, its alpha multiplied by the item's reveal, mask, track matte and `opacity`. Its `transform` carries its `reveal` only.
 
 ### Masks

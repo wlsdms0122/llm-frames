@@ -24,7 +24,8 @@ A title's text ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs
 
 - A string is one run in the clip's `style`.
 - A run is `{text, style}`. `text` is a string. `style` names a theme text style ([FRAMES-22](../FRAMES-22/SPEC.md)) and is optional: without it the run is in the clip's `style`. A style a run names that the theme in effect does not hold stops.
-- A run's style gives that run its character attributes: `font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color` and `stroke` ([FRAMES-22](../FRAMES-22/SPEC.md)). Every other attribute is a paragraph attribute and comes from the clip's `style` alone: `placement`, `offset`, `align`, `lineHeight`, `lines` and `background`. A run style's paragraph attributes are not read.
+- A run's style gives that run its character attributes: `font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color`, `stroke` and `underline` ([FRAMES-22](../FRAMES-22/SPEC.md)), and, when the run names a style, its `background` as the run's background ([below](#run-backgrounds-and-underlines)). Every other attribute is a paragraph attribute and comes from the clip's `style` alone: `placement`, `offset`, `align`, `lineHeight`, `lines`, and `background` as the paragraph background. A run style's paragraph attributes are not read.
+- A run without `style`, or one that names the clip's style, has no run background, since the clip style's background is already the paragraph background behind it.
 - The runs are laid out as one text, in order. A run's text may hold `\n`, and a line may hold parts of several runs.
 - An empty list of runs stops, since it is a title with nothing to show.
 
@@ -46,10 +47,21 @@ A title's text ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs
 
 - Lines break by Unicode line breaking (UAX #14) over the text of all runs together, at the title's `width` when it has one and at every `\n`. A title without `width` breaks only at `\n`, so each of its lines is as long as its text. A run boundary is not a break opportunity of its own. Words are kept whole as CSS `word-break: keep-all` keeps them: no line breaks between two letters, digits, ideographs or Hangul syllables, so Korean breaks at spaces and `iPhone에서` stays whole, and Chinese and Japanese also break only at spaces, punctuation and the other places UAX #14 gives outside those pairs. A word wider than `width` starts a line of its own and breaks inside where UAX #14 allows, unless its style keeps it on one line. A piece of it that still has no break opportunity stays whole on its line and widens the text box to hold it.
 - Lines are `lineHeight` of the clip's style apart, baseline to baseline. The glyphs of every run on a line share its baseline. The first baseline lies the largest ascent among that line's runs below the top of the text box, and the box ends the largest descent among the last line's runs below the last baseline. A line with no text, which only a `\n` makes, takes the ascent and descent of the run it begins in.
-- The text box is as tall as its lines. A title with `width` has a text box `width` wide, and a title without one has a text box as wide as its widest line, which fits the text exactly. A style's background lies behind the text box and grows it by its padding on each side.
+- The text box is as tall as its lines. A title with `width` has a text box `width` wide, and a title without one has a text box as wide as its widest line, which fits the text exactly. The clip style's background, the paragraph background, lies behind the text box and grows it by its padding on each side.
 - Each line is placed inside the text box by the clip style's `align`, measured on the advances of all its runs: inside `width` when the title has one, and inside the widest line when it has none.
-- Resolve shapes each run of text with the shaping provider, which gives glyph ids and advances, and a run boundary ends a shaping run. frames breaks, wraps and places the lines. The resolved document carries glyph runs (font file, face, size, colour, stroke, glyph ids and positions) and the box they fill. A renderer draws the glyphs where they are written and shapes nothing.
+- Resolve shapes each run of text with the shaping provider, which gives glyph ids and advances, and a run boundary ends a shaping run. frames breaks, wraps and places the lines. The resolved document carries glyph runs (font file, face, size, colour, stroke, background and underline pieces, glyph ids and positions) and the box they fill. A renderer draws the glyphs where they are written and shapes nothing.
 - A style's `lines` is the most lines its text may take, a whole number of 1 or more. It limits a title with `width` or without one. Text that needs more lines than that, after wrapping at `width` and after every `\n`, stops, since cutting it or shrinking it to fit would show something other than what was written; a title without `width` counts the lines its `\n` make. So a line of a `lines: 1` style that is wider than the title's `width` stops, since it would need a second line. Without `lines` a title takes as many lines as it needs.
+
+### Run backgrounds and underlines
+
+A run's background and its underline mark the run where it lies, as a highlighter and an underline do on a page. They are drawn on each line the run occupies, as one piece per line, each piece with its own padding and rounded corners, as CSS `box-decoration-break: clone` draws an inline box broken over lines.
+
+- A piece spans the run's glyphs on that line, from the origin of the first to the end of the advance of the last, the glyphs a fallback face set included and the spaces that end a line excluded. Spaces inside the run are in it.
+- A background piece runs from the run's ascent above the baseline to its descent below it, the ascent and descent of its face at its size, as CSS paints an inline box's content area. It grows by its `padding`, vertically above and below and horizontally at both ends, and its corners are rounded by its `radius` ([FRAMES-20](../FRAMES-20/SPEC.md)).
+- An underline piece is a band across the piece, without padding, `width` thick, its top edge `offset` below the baseline, in its colour. A `true` underline, and an object that leaves out a key, take the thickness and the position of the top edge from the face's `post` table at the run's size, and the run's colour. It is drawn through descenders, as CSS `text-decoration-skip-ink: none` draws it.
+- Both move with the run's `baselineShift`.
+- Neither takes part in layout: they move no glyph, add no space and do not grow the text box, so a padded background may reach over the space beside its run and out of the text box. A title's drawn extent holds them ([FRAMES-6](../FRAMES-6/SPEC.md), [FRAMES-14](../FRAMES-14/SPEC.md)).
+- They are drawn over the paragraph background and under every glyph: the run backgrounds in text order, then the underlines, then the glyphs' strokes and fills ([FRAMES-20](../FRAMES-20/SPEC.md)).
 
 ## Interactions
 
@@ -60,6 +72,8 @@ Styles are [FRAMES-22](../FRAMES-22/SPEC.md). A title's keys, `width` among them
 Inline markup (Markdown's `**...**`, a subset of HTML): it needs an escape for its own characters, it reaches only the looks its syntax names, and an agent writing text from a transcript or a script would have to quote it. Runs name any theme style and hold text as it is.
 
 A default `width` taken from the frame: a title's box would change with the frame it is drawn on, a background could not hug a short title without its own `width`, and a content-fit frame has no width yet to take it from. A title without `width` is point text and a title with it is paragraph text, as After Effects makes them.
+
+Run backgrounds and underlines that take space, as CSS padding on an inline box widens its line: a highlight added to one word would rewrap the paragraph and move every word after it, where an editor adds a highlight to a caption that is already timed and placed.
 
 Paragraph attributes per run (a run with its own alignment or line height): one paragraph has one alignment and one line spacing in every NLE title tool, and a second paragraph that needs another look is a second title.
 
