@@ -16,8 +16,8 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 
 - `title` is a string or a list of runs `{text, style}`. A string is one run in the clip's style. A run's `style` names a theme text style whose character attributes (size, weight, colour, stroke) apply to that run, and the paragraph attributes (placement, offset, align, line height, lines, background) come from the clip's `style`. Runs are laid out as [FRAMES-5](../FRAMES-5/SPEC.md) says.
 - `style` names a theme text style ([FRAMES-22](../FRAMES-22/SPEC.md)) and is required, since which kind of text a title is belongs to the document.
-- `width` is the wrapping width in output pixels. The default is the frame width minus twice the theme `placement.padding`. Under content fit a title needs `width` ([FRAMES-6](../FRAMES-6/SPEC.md)).
-- A title's box is its text box ([FRAMES-5](../FRAMES-5/SPEC.md)). It is placed by `placement` or `position` about its anchor point ([FRAMES-1](../FRAMES-1/SPEC.md)).
+- `width`, in output pixels, is the width of the title's text box, and the text wraps at it. Each line is placed inside that width by the style's `align`, and the style's background fills it. A title without `width` does not wrap: its lines break only at `\n`, and its text box is as wide as its widest line ([FRAMES-5](../FRAMES-5/SPEC.md)).
+- A title's box is its text box, grown by its style's background padding ([FRAMES-5](../FRAMES-5/SPEC.md)). It is placed by `placement` or `position` about its anchor point ([FRAMES-1](../FRAMES-1/SPEC.md)).
 
 ### Shapes
 

@@ -74,7 +74,7 @@ A text style is a named set of text properties. Any name is allowed. A run's sty
 | `lineHeight` | paragraph | distance between baselines. The default is 1.25 × size |
 | `background` | paragraph | `{color, padding, radius}`: a box behind the text, or `false`. `padding` is `[vertical, horizontal]`, in the order CSS writes two values. Without `color` it takes the `background` colour, and without `padding` or `radius` they are 0. Absent means none |
 | `placement`, `offset` | paragraph | default placement, and the distance from the top or bottom edge that replaces `placement.padding` there ([FRAMES-1](../FRAMES-1/SPEC.md)) |
-| `align` | paragraph | `left`, `center` or `right`. The default is `left` |
+| `align` | paragraph | `left`, `center` or `right`: where each line sits in the title's text box, which is its `width` or its widest line ([FRAMES-5](../FRAMES-5/SPEC.md)). The default is `left` |
 | `lines` | paragraph | the most lines the text may take, a whole number of 1 or more. `1` keeps it on one line, and text that needs more lines than `lines` stops ([FRAMES-5](../FRAMES-5/SPEC.md)). Absent means no limit |
 
 A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it. A style a document names that the theme in effect there does not hold stops, naming where it is named and listing the styles that theme holds.

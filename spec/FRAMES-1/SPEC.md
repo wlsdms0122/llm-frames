@@ -26,7 +26,7 @@ A value means one thing only when its unit and origin are fixed. A document is w
 | Angles | degrees, clockwise positive |
 | Colours | `#RRGGBB`, `#RRGGBBAA`, or the name of a theme colour |
 
-A clip's own size is that of its box: a title's text box, a media clip's box, a storyline picture's box (the frame, which its conformed crop fills, [FRAMES-9](../FRAMES-9/SPEC.md)), a rect or ellipse shape's box, and the bounding box of a path's points. Scale and rotation act around the clip's anchor point ([Placement](#placement)).
+A clip's own size is that of its box: a title's box (its text box, `width` wide or fitted to its text, with its background, [FRAMES-11](../FRAMES-11/SPEC.md)), a media clip's box, a storyline picture's box (the frame, which its conformed crop fills, [FRAMES-9](../FRAMES-9/SPEC.md)), a rect or ellipse shape's box, and the bounding box of a path's points. Scale and rotation act around the clip's anchor point ([Placement](#placement)).
 
 Media time, in media seconds, is a media file's presentation timeline after its edit list, with 0 at the first presented frame. The decoder converts pictures to sRGB and tone maps HDR sources. Everything that reads media reads it by these definitions.
 
