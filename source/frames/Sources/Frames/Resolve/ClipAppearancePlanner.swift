@@ -12,6 +12,7 @@ struct ClipAppearancePlanner: Sendable {
     // MARK: - Property
     private let filters: FilterResolver
     private let conformer = CropConformer()
+    private let cropChecker = CropChecker()
 
     // MARK: - Initializer
     init(
@@ -344,6 +345,15 @@ struct ClipAppearancePlanner: Sendable {
         try checkColor(of: written.shadow, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         try checkColor(of: written.border, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         let conform = written.conform ?? .fit
+        try cropChecker.check(
+            crop,
+            of: picture,
+            box: box.size,
+            conform: conform,
+            isTracked: written.track != nil,
+            place: written.place.appending(key: "crop"),
+            kind: .clip(kind)
+        )
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
         let crops: PropertyValue<Rectangle>

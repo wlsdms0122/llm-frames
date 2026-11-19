@@ -38,21 +38,21 @@ struct AreaFinderTests {
         ))
     }
 
-    @Test("an area partly outside the picture is cut to it, and one wholly outside stops")
-    func cutsAreaToPicture() throws {
+    @Test("an area past the picture's edges keeps what is written, and padding grows a text area on every side")
+    func keepsAreaPastPicture() throws {
         // Given
         let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line("Back", 100, 4, 200, 40)]))
 
         // When
         let partly = try find(.rectangle(rectangle(1100, -10, 200, 100)), with: sut)
+        let outside = try find(.rectangle(rectangle(2000, 0, 10, 10)), with: sut)
         let padded = try find(.text("Back", nth: nil, padding: 14), with: sut)
 
         // Then
-        #expect(partly.rectangle == rectangle(1100, 0, 106, 90))
-        #expect(padded.rectangle == rectangle(86, 0, 228, 58))
+        #expect(partly.rectangle == rectangle(1100, -10, 200, 100))
+        #expect(outside.rectangle == rectangle(2000, 0, 10, 10))
+        #expect(padded.rectangle == rectangle(86, -10, 228, 68))
         #expect(padded.target == rectangle(100, 4, 200, 40))
-        let error = #expect(throws: AreaError.self) { try find(.rectangle(rectangle(2000, 0, 10, 10)), with: sut) }
-        #expect(error?.description == "area (rect): the area [2000, 0, 10, 10] lies wholly outside its picture of 1206x2622")
     }
 
     @Test("a text area is the whole line that contains the text, grown by its padding, its target before padding")

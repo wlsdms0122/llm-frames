@@ -337,13 +337,13 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
+        "a numeric area under a shape or adjustment parent keeps what is written past the edges of the media it is in",
         arguments: [
             #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
             #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
-    func cutsAreaUnderShape(parent: String) throws {
+    func keepsAreaUnderShape(parent: String) throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
@@ -355,10 +355,10 @@ struct SequencePlannerTests {
             Issue.record("the area was not found")
             return
         }
-        #expect(area.rectangle == Rectangle(x: 0, y: 0, width: 1206, height: 2622))
+        #expect(area.rectangle == Rectangle(x: -50, y: -50, width: 5000, height: 5000))
     }
 
-    @Test("a numeric area under a title parent is kept whole, since a space has no edges to cut it at")
+    @Test("a numeric area under a title parent keeps what is written")
     func keepsAreaInSpace() throws {
         // When
         let plan = try plan(#"""

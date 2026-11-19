@@ -26,6 +26,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
     case emptyWindow(place: Place, kind: PlaceKind, start: Double, end: Double)
     case neverVisible(place: Place, kind: PlaceKind, window: TimeRange, range: TimeRange)
+    case cropOutsideMedia(place: Place, kind: PlaceKind, crop: Rectangle, size: Size)
     case neverPlays(place: Place, kind: PlaceKind, window: TimeRange)
     case audioStartOutsideDrawnRange(place: Place, kind: PlaceKind, start: Double, drawn: TimeRange)
     case startsAtOrAfterEnd(place: Place, kind: PlaceKind, start: Double, end: Double)
@@ -136,6 +137,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .neverVisible(place, kind, window, range):
             "\(place) (\(kind.label)): "
                 + "never visible, since its window \(written(window)) does not meet \(written(range))"
+
+        case let .cropOutsideMedia(place, kind, crop, size):
+            "\(place) (\(kind.label)): never visible, since its crop conformed to its box is \(written(crop)), which "
+                + "lies wholly outside its media of \(number(size.width))x\(number(size.height))"
 
         case let .neverPlays(place, kind, window):
             "\(place) (\(kind.label)): never plays, since its window \(written(window)) ends before the sequence starts"
@@ -308,5 +313,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
     private func written(_ range: TimeRange) -> String {
         "[\(number(range.start)), \(number(range.end)))"
+    }
+
+    private func written(_ rectangle: Rectangle) -> String {
+        "[\([rectangle.x, rectangle.y, rectangle.width, rectangle.height].map(number).joined(separator: ", "))]"
     }
 }

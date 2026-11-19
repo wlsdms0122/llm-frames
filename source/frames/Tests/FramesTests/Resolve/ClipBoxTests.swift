@@ -280,18 +280,19 @@ struct ClipBoxTests {
         #expect(box == ClipBox(size: Size(width: 200, height: 100), position: .value(Point(x: 500, y: 600)), anchor: Point(x: 0, y: 0)))
     }
 
-    @Test("a media clip whose crop has no width stops at the crop, so the box it sizes is never empty")
-    func refusesEmptyCrop() throws {
+    @Test("a media clip whose crop, conformed to its box, lies wholly outside its media stops, since it is never visible")
+    func refusesCropOutsideMedia() throws {
         // When, Then
-        let error = #expect(throws: AreaError.self) {
-            try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "crop": [100, 100, 0, 200] }"#)
+        let error = #expect(throws: ResolveError.self) {
+            try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "crop": [2000, 100, 200, 100] }"#)
         }
-        #expect(error == .outsidePicture(
+        #expect(error == .cropOutsideMedia(
             place: Place.root.appending(key: "clips").appending(index: 0).appending(key: "crop"),
-            kind: "image",
-            rectangle: Rectangle(x: 100, y: 100, width: 0, height: 200),
+            kind: .clip(.media(.image)),
+            crop: Rectangle(x: 2000, y: 50, width: 200, height: 200),
             size: Size(width: 1080, height: 1350)
         ))
+        #expect(error?.description == "clips[0].crop (image): never visible, since its crop conformed to its box is [2000, 50, 200, 200], which lies wholly outside its media of 1080x1350")
     }
 
     @Test("a title whose style gives no placement stops without a placement or a position, since it has no default place")
