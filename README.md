@@ -119,17 +119,17 @@ Global options go before the command. `--theme` merges a theme under every docum
 Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage to standard error and exits with 64. `frames --help` prints the usage and what each global option takes, and `frames <command> --help` prints what that command does and each of its arguments and options with its default, both to standard output with exit 0. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
 
 ```
-frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, anchor, media, placement, position, scale, rotation, crop, conform, filter, blend, mask, trackMatte, width, height, radius, border, shadow
+frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow
 ```
 
 ### Making results
 
 | Command | What it does |
 | --- | --- |
-| `render <document> -o <out.mov \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Renders the sequence. A `.mov` is the master of every frame: ProRes 422 HQ, or ProRes 4444 when the background is not opaque, with 24-bit PCM sound. A `.png` is the frame at `--at` (0 when left out), without a time label. `--deliver` also writes an H.264 `.mp4` from the same frames |
-| `still <document> --at <t>[,<t>...] -o <out.png> [--args <args.json>]` | Draws frames at those sequence times side by side, each with its time label, without encoding a video. The cheap check while you edit |
+| `render <document> -o <out.mov \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Renders the sequence. A `.mov` is the master of every frame: ProRes 422 HQ, or ProRes 4444 when the background is not opaque, with 24-bit PCM sound. A `.png` is the frame at `--at` (0 when left out), without a time label, at 16 bits per channel. Both are in the sequence's colour space ([Colour](#colour)). `--deliver` also writes an `.mp4` from the same frames: H.264 for an SDR colour space, HEVC Main 10 for an HDR one |
+| `still <document> --at <t>[,<t>...] -o <out.png> [--args <args.json>]` | Draws frames at those sequence times side by side, each with its time label, without encoding a video, as an SDR sRGB preview. The cheap check while you edit |
 | `resolve <document> -o <resolved.json> [--args <args.json>]` | Writes the resolved document: everything found, laid out and planned, with the files it uses pinned by hash |
-| `transcode <in> -o <out> [--quality high\|medium\|low] [--max <px>] [--codec h264\|hevc]` | Writes a delivery file from an image (`.jpg`, `.heic`, `.png`), audio (`.m4a`) or video (`.mp4`, `.mov`, `.m4v`, or `.m4a` for its sound) at a quality level. `--max` caps the longer side |
+| `transcode <in> -o <out> [--quality high\|medium\|low] [--max <px>] [--codec h264\|hevc] [--color-space <name>]` | Writes a delivery file from an image (`.jpg`, `.heic`, `.png`), audio (`.m4a`) or video (`.mp4`, `.mov`, `.m4v`, or `.m4a` for its sound) at a quality level. `--max` caps the longer side, and `--color-space` names the output's colour space ([Colour](#colour)) |
 
 `--args` gives a template its arguments ([Templates](#templates)). A resolved document has its theme and arguments written in, so `--theme` or `--args` with one stops.
 
@@ -145,16 +145,16 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 
 | Command | What it reports |
 | --- | --- |
-| `probe <media> [--json]` | the kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha and audio of a file or a directory of PNGs |
-| `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
-| `track <video> --at <t> --area <area> [--to <t>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
+| `probe <media> [--json]` | the kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, colour space and audio of a file or a directory of PNGs |
+| `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
+| `track <video> --at <t> --area <area> [--to <t>] [--color-space <name>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each at most 480 pixels on its longer side and labelled with its time |
 | `timeline <document> [--args <args.json>] [--json]` | the plan of time without rendering: every storyline clip's edit, drawn and clip ranges, speed and transition, and every other clip's visible range, kind and animation, each by its place. `--json` also gives each clip's lane and parent |
 | `evaluate <document> --at <t> [--args <args.json>]` | the display list at a time: what is drawn, by which clip, where, as JSON |
 | `locate <document> --at <t> --point <x,y> [--args <args.json>]` | the clips under a point of the output at a time, and for media the frame and pixel it shows |
 
-Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes. `--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Flat white"}'`.
+Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes, as an SDR sRGB preview. `ocr` and `track` read the media in the colour space `--color-space` names, as a clip's `colorSpace` corrects it. `--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Flat white"}'`.
 
 ```sh
 frames probe /path/to/interview.mov
@@ -201,7 +201,7 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 | Value | Written as | Spec |
 | --- | --- | --- |
 | time | seconds, as a number | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
-| colour | `#RRGGBB`, `#RRGGBBAA`, or the name of a theme colour (`accent`) | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
+| colour | `#RRGGBB` or `#RRGGBBAA` (sRGB), `color(<space> r g b)` or `color(<space> r g b / a)` with `srgb`, `srgb-linear`, `display-p3` or `rec2020` and components of any real number, or the name of a theme colour (`accent`) | [FRAMES-26](spec/FRAMES-26/SPEC.md#colour-values) |
 | a clip's coordinates (`position`, `area`, path points, mask geometry) | output pixels, origin top left, for an unparented clip, and the space its parent gives for a parented one | [FRAMES-1](spec/FRAMES-1/SPEC.md), [FRAMES-10](spec/FRAMES-10/SPEC.md) |
 | `crop` | media pixels of the clip's own media | [FRAMES-9](spec/FRAMES-9/SPEC.md) |
 | theme length (text size, stroke width, `radius`, `outset`, `feather`, border, shadow, filter radius) | points at the theme `baseWidth`, scaled by the frame's width over it | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
@@ -213,16 +213,17 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 | Object | Keys |
 | --- | --- |
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
-| format | `size, fps, background, conform` |
+| format | `size, fps, background, conform, colorSpace, peak, compositing` |
 | content fit (a `size` written as an object) | `fit, margin` |
 
 - `size` is `[w, h]`, `{"fit": "content", "margin": m}` ([Stills and content fit](#stills-and-content-fit)), or left out for the size of the first video clip on the storyline (of the first storyline clip when there is no video). Sizes round to even numbers.
 - `fps` defaults to the first video's nominal rate rounded to 24, 25, 30, 50 or 60, and to 30 without video.
 - `background` defaults to the theme `background` colour, black in the base theme. A background that is not opaque gives a master with alpha.
 - `conform` is how a storyline crop fills the frame: `fit` (the default) shows the whole crop and leaves the rest transparent, `fill` fills the frame and cuts what overflows.
+- `colorSpace` is the colour space the sequence is output in, `srgb` by default, `peak` the mastering peak of a `rec2100-pq` sequence, and `compositing` the form it composites in, `encoded` by default or `linear` ([Colour](#colour)).
 - `theme` is a theme object, `<pack>/<name>` or an absolute path ([Theme](#theme)). `params` makes the document a template ([Templates](#templates)).
 
-[FRAMES-6](spec/FRAMES-6/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md)
+[FRAMES-6](spec/FRAMES-6/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-26](spec/FRAMES-26/SPEC.md)
 
 ### Clips
 
@@ -234,12 +235,12 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
@@ -249,6 +250,7 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
 - `lane` is a non-zero integer, 1 by default. Negative lanes are below the storyline (lane 0) and positive lanes above it ([Lanes and stacking](#lanes-and-stacking)).
 - A storyline clip is placed by `position` (default the centre of the frame) and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
+- `colorSpace` on a media clip names the colour space its media are in, over what the file says, and `toneMap` (`true` by default) whether an HDR picture of it is tone mapped to the sequence's peak ([Colour](#colour)). A clip whose media is a compound clip or a template instance takes neither.
 - `filter` and `transition` take preset choices ([Presets and choices](#presets-and-choices)). `"none"` turns off the theme's default filter for one clip, and `"cut"` its default transition. The first storyline clip takes no transition. To open from black, put a solid there and give the clip after it a transition.
 
 [FRAMES-7](spec/FRAMES-7/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
@@ -448,9 +450,50 @@ The board is fitted to the 1920 by 1080 frame, and every clip on it is written i
 
 ### Blend modes and adjustment clips
 
-`blend` takes the W3C compositing modes: `normal` (default), `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, and the non-separable `hue`, `saturation`, `color`, `luminosity`, and `add` (Linear Dodge). Light leaks and film burns come in as media with `screen`, `plus-lighter` or `add`.
+`blend` takes the W3C compositing modes: `normal` (default), `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, and the non-separable `hue`, `saturation`, `color`, `luminosity`, and `add` (Linear Dodge). Light leaks and film burns come in as media with `screen`, `plus-lighter` or `add`. `add` adds light without bound, so it keeps an HDR highlight under a leak, which `screen` darkens and `plus-lighter` clips at 1, and a wide gamut leak's colour ([Colour](#colour)).
 
 An adjustment clip applies a filter choice (`adjust`) to everything below it in its frame, as an adjustment layer: over the whole frame, or inside its `mask`. Its `opacity` mixes the filtered picture with what is below. Inside a compound clip it reaches only that compound clip's clips. [FRAMES-11](spec/FRAMES-11/SPEC.md), [FRAMES-15](spec/FRAMES-15/SPEC.md)
+
+### Colour
+
+frames holds every colour from the decoder to the encoder as a working value: red, green and blue on the sRGB primaries, each any real number, with 1 as reference white. A value above 1 is light brighter than reference white (HDR) or a colour outside the sRGB gamut, and one below 0 is outside the gamut. One working space serves every sequence, so every formula gives the same result whatever the output, and nothing clips a value until the output.
+
+`format.colorSpace` is the colour space the sequence is output in:
+
+| `colorSpace` | Primaries, transfer | Range |
+| --- | --- | --- |
+| `srgb` (default) | BT.709, sRGB | SDR |
+| `display-p3` | P3 D65, sRGB | SDR |
+| `rec2020` | BT.2020, BT.1886 | SDR |
+| `rec709` | BT.709, BT.1886 | SDR |
+| `rec2100-pq` | BT.2020, PQ | HDR, its peak `format.peak` (400 to 10000 cd/m², 1000 by default) |
+| `rec2100-hlg` | BT.2020, HLG | HDR, its peak 1000 cd/m² |
+
+- The master `.mov` and a `render` `.png` (16 bits per channel) are written and tagged in that space, with each channel clipped to its gamut and peak and no gamut mapping. `--deliver` writes H.264 for an SDR space and HEVC Main 10 for an HDR one, since H.264 holds 8 bits. On an HDR output reference white is 203 cd/m², as BT.2408 gives it, so a white title stays well below the peak.
+- `format.compositing` is the form the sequence composites in. Under `encoded` (the default) source-over, blends such as `multiply`, `screen` and `add`, dissolves, blurs and `mix` weigh code values, as browsers and After Effects do by default. Under `linear` they mix light, as Premiere Pro's Composite in Linear Color does, so a dissolve or a blur of HDR and wide gamut pictures mixes their light. A formula written for one form keeps it under either: `contrast`, `levels`, `overlay`, `soft-light` and luma read encoded values, `exposure` and `temperature` read light, and a `lut` reads its `space`. Keyframed colours and gradient stops interpolate on encoded values.
+- A picture is read in the colour space its tags name, an untagged one as `srgb`. A `colorSpace` written where the media is named (on a media clip, or on a transition's cover or matte) replaces what the file says, as Premiere Pro's Override Media Color Space does, and every place that names the same file names the same space. A picture tagged outside the table is converted by fixed formulas, and one with a LUT-based ICC profile stops, naming `transcode`. Log footage is not a colour space: a `lut` filter takes it to a display space.
+- HDR media (PQ or HLG) of a clip with `toneMap` true, the default, are tone mapped by the BT.2390 EETF to the sequence's peak where their own peak is above it, so an HDR shot in an SDR sequence comes in with its highlights fitted under white. With `toneMap` false they come in as their display light, values above 1 that filters see, to be graded into the sequence by hand.
+- `color()` writes a colour beyond `#RRGGBB`: `color(display-p3 1 0 0)` is the red of P3 and `color(srgb-linear 2 2 2)` twice reference white. The resolved document writes every colour as `color(srgb r g b / a)`.
+- `still`, `sheet` and `extract` write SDR previews: PNGs in sRGB at 8 bits per channel, with HDR tone mapped to 203 cd/m² and wide gamut clipped, the same pictures OCR and the tracker read. They are not the master: check the master of a `display-p3`, `rec2020` or HDR sequence with `render --at`, which writes the frame in its colour space.
+- `transcode` writes in the source's colour space where a sequence can be output in it, and in `srgb` otherwise. `--color-space` names another, and an HDR source is tone mapped to the output space's peak where its own is above it. `--codec h264` and a `.jpg` in an HDR space stop.
+- `probe` reports the colour space a picture is read in (none when it is tagged outside the table), its H.273 primaries, transfer and matrix, its bits per channel and whether it is HDR.
+
+```json
+{
+  "kind": "sequence",
+  "format": { "size": [3840, 2160], "fps": 25, "colorSpace": "rec2100-pq", "compositing": "linear" },
+  "storyline": [
+    { "media": "/path/to/drone-hlg.mov", "in": 0, "out": 6 },
+    { "media": "/path/to/phone.mov", "colorSpace": "rec709", "in": 0, "out": 4, "transition": "frames/fade" }
+  ],
+  "clips": [
+    { "at": [1, 5], "title": "Above the bay", "style": "title", "placement": "bottom" },
+    { "at": [5, 7], "media": "/path/to/light-leak.mov", "blend": "add", "lane": 2 }
+  ]
+}
+```
+
+The drone shot is HLG, whose peak of 1000 cd/m² is the sequence's, so it comes in as its display light without tone mapping. The phone video is untagged and was made for a BT.1886 display, so its clip names `rec709`. The fade mixes light, and the leak adds its light above the highlights under it. The master is ProRes in PQ, `--deliver` writes HEVC Main 10, `still` shows an SDR preview and `render --at` the PQ frame. [FRAMES-26](spec/FRAMES-26/SPEC.md)
 
 ### Lanes and stacking
 
@@ -586,7 +629,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 
 | Command | Object |
 | --- | --- |
-| `probe` | `{probe, kind, size, duration, fps, alpha, audio}`, `audio` as `{channels, sampleRate}` or `null` |
+| `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null` |
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
