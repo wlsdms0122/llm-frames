@@ -98,7 +98,7 @@ struct PeakKeyTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "rec2100-pq", "peak": 600 }, "storyline": [
-                { "media": "/abs/run.mp4", "toneMap": true } ] }
+                { "media": "/abs/run.mp4" } ] }
             """#)
 
         // When
@@ -107,12 +107,7 @@ struct PeakKeyTests {
 
         // Then
         #expect(list.peak == 600)
-        let targetPeaks = list.items.compactMap { item -> Double? in
-            guard case let .picture(picture) = item.content, case let .media(frame) = picture.source else { return nil }
-
-            return frame.targetPeak
-        }
-        #expect(targetPeaks == [600])
+        #expect(targetPeaks(in: list) == [600])
         #expect(read.peak == 600)
     }
 
@@ -132,6 +127,21 @@ struct PeakKeyTests {
     }
 
     // MARK: - Private
+    // The target peak of every media frame a picture shows, nested lists included, bottom first.
+    private func targetPeaks(in list: DisplayList) -> [Double?] {
+        list.items.flatMap { item -> [Double?] in
+            guard case let .picture(picture) = item.content else { return [] }
+
+            switch picture.source {
+            case let .media(frame):
+                return [frame.targetPeak]
+
+            case let .displayList(nested):
+                return targetPeaks(in: nested)
+            }
+        }
+    }
+
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes)
     }
