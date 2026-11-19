@@ -9,9 +9,8 @@ import CoreGraphics
 import Foundation
 import Frames
 
-// A drop shadow as it is cast in a raster's pixels. The shadow's radius and offset are in its item's own coordinates,
-// so the matrix that carries them into the raster carries the offset and scales the radius by its area's square
-// root.
+// A drop shadow as it is cast in a raster's pixels. Its offset is in its item's own coordinates, carried into the
+// raster by the item's matrix, and its radius in output pixels, scaled onto the raster by `rasterScale`.
 struct CastShadow {
     // MARK: - Property
     let color: Color
@@ -26,10 +25,11 @@ struct CastShadow {
     // MARK: - Initializer
     init(
         _ shadow: DropShadow,
-        through matrix: CGAffineTransform
+        through matrix: CGAffineTransform,
+        rasterScale: CGFloat
     ) {
         self.color = shadow.color
-        self.blur = shadow.radius * matrix.lengthScale
+        self.blur = shadow.radius * rasterScale
         self.offset = CGSize(width: shadow.offset.x, height: shadow.offset.y).applying(matrix)
     }
 

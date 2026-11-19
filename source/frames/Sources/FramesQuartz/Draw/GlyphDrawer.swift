@@ -11,7 +11,8 @@ import Frames
 
 // Draws a glyphs item in its text's own box: the background, then the outline of every glyph of every run with a
 // stroke, then every glyph's fill, so no stroke covers a fill. Glyphs are drawn at their written baseline origins and
-// shaped no further.
+// shaped no further. A run's stroke width is in the box's pixels at the transform's length factor and is drawn along
+// the outlines carried by `transform`, so a transform that scales its axes apart does not stretch it.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -24,6 +25,7 @@ struct GlyphDrawer {
     // MARK: - Public
     func draw(
         _ item: GlyphsItem,
+        carriedBy transform: Frames.AffineTransform,
         in context: CGContext
     ) throws {
         if let background = item.background {
@@ -40,7 +42,10 @@ struct GlyphDrawer {
 
             strokes.append(stroke)
         }
+        let back = transform.inverse
         for stroke in strokes {
+            guard let back else { break }
+
             // One path for every outline of the runs in one stroke, a line's and the next's, so strokes that cross
             // are drawn once.
             let outlines = CGMutablePath()
@@ -53,12 +58,19 @@ struct GlyphDrawer {
                 }
             }
 
-            context.addPath(outlines)
-            context.setLineWidth(stroke.width)
-            context.setLineJoin(.round)
-            context.setLineCap(.round)
-            context.setStrokeColor(stroke.color.cgColor)
-            context.strokePath()
+            var carry = CGAffineTransform(transform)
+            var matrix = CGAffineTransform(back)
+            let band = outlines.copy(using: &carry)?.copy(
+                strokingWithWidth: CGFloat(stroke.width * transform.lengthFactor),
+                lineCap: .round,
+                lineJoin: .round,
+                miterLimit: 10
+            )
+            guard let placed = band?.copy(using: &matrix) else { continue }
+
+            context.addPath(placed)
+            context.setFillColor(stroke.color.cgColor)
+            context.fillPath(using: .winding)
         }
 
         for (run, font) in runs {

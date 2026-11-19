@@ -174,7 +174,7 @@ struct ContentFitPlanner: Sendable {
         let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: 0)
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
-        return path.drawnBounds(under: item.transform)
+        return path.drawnBounds(carriedBy: item.transform, under: item.transform)
     }
 
     private func bounds(

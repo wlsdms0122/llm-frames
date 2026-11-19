@@ -174,7 +174,7 @@ struct EvaluationReporterTests {
     )
     func boundsPaths() {
         // Given
-        let stroke = PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .arrow)
+        let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .arrow)
         let rect = DisplayItem(content: .path(PathItem(
             geometry: .rect(Rectangle(x: 20, y: 20, width: 40, height: 30), radius: 4),
             fill: nil,
@@ -182,7 +182,7 @@ struct EvaluationReporterTests {
         )))
         let polyline = DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 100, y: 10), Point(x: 160, y: 10), Point(x: 160, y: 50)], isClosed: false),
-            fill: black,
+            fill: .color(black),
             stroke: stroke
         )))
 

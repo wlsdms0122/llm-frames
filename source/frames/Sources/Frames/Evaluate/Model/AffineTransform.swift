@@ -24,8 +24,23 @@ package struct AffineTransform: Equatable, Sendable {
         [a, b, c, d, tx, ty]
     }
 
+    // The length factor k, the geometric mean of the scales the map applies.
+    package var lengthFactor: Double {
+        abs(a * d - b * c).squareRoot()
+    }
+
+    // The rotation of the polar decomposition, the one nearest the linear part, in degrees clockwise. Under a mirror it
+    // is the rotation of the map with its own x axis mirrored first, so a map flipped vertically turns by a half turn
+    // more than one flipped horizontally. It is 0 where the map leaves no direction to take, as a scale of 0 does.
+    package var rotation: Double {
+        let (y, x) = a * d - b * c >= 0 ? (b - c, a + d) : (-(b + c), d - a)
+        guard x != 0 || y != 0 else { return 0 }
+
+        return atan2(y, x) * 180 / .pi
+    }
+
     // Nil when the matrix flattens the plane, as a scale of 0 does.
-    var inverse: AffineTransform? {
+    package var inverse: AffineTransform? {
         let determinant = a * d - b * c
         guard determinant != 0 else { return nil }
 
@@ -66,7 +81,11 @@ package struct AffineTransform: Equatable, Sendable {
     }
 
     init(scale: Double, about center: Point) {
-        self.init(a: scale, b: 0, c: 0, d: scale, tx: center.x * (1 - scale), ty: center.y * (1 - scale))
+        self.init(scale: Scale(scale), about: center)
+    }
+
+    init(scale: Scale, about center: Point) {
+        self.init(a: scale.x, b: 0, c: 0, d: scale.y, tx: center.x * (1 - scale.x), ty: center.y * (1 - scale.y))
     }
 
     // The transform that scales a box of `size` with its top left at the origin onto `rectangle`.
@@ -103,6 +122,15 @@ package struct AffineTransform: Equatable, Sendable {
     // `offset`.
     init(
         scale: Double,
+        rotation degrees: Double,
+        about anchor: Point,
+        offset: Point
+    ) {
+        self.init(scale: Scale(scale), rotation: degrees, about: anchor, offset: offset)
+    }
+
+    init(
+        scale: Scale,
         rotation degrees: Double,
         about anchor: Point,
         offset: Point

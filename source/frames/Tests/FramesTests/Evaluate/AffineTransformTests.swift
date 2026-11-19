@@ -121,7 +121,82 @@ struct AffineTransformTests {
         #expect(inverse == nil)
     }
 
+    @Test(
+        "the rotation of a map is that of its polar decomposition, a horizontal flip read before it",
+        arguments: [
+            (Scale(x: 2, y: 0.5), 30.0, 30.0),
+            (Scale(x: -1, y: 1), 30.0, 30.0),
+            (Scale(x: 1, y: -1), 30.0, 210.0),
+            (Scale(x: -2, y: -3), 0.0, 180.0)
+        ]
+    )
+    func takesPolarRotation(
+        scale: Scale,
+        degrees: Double,
+        expected: Double
+    ) {
+        // Given
+        let sut = AffineTransform(scale: scale, rotation: degrees, about: Point(x: 5, y: 5), offset: Point(x: 1, y: 2))
+
+        // When
+        let rotation = sut.rotation
+
+        // Then
+        #expect(turn(from: rotation, to: expected) < 1e-9)
+    }
+
+    @Test("the same map written as a flip and a half turn or as the other flip gives the same rotation")
+    func takesRotationFromMapAlone() {
+        // Given
+        let flipped = AffineTransform(scale: Scale(x: 1, y: -1), rotation: 0, about: Point(x: 0, y: 0), offset: Point(x: 0, y: 0))
+        let sut = AffineTransform(scale: Scale(x: -1, y: 1), rotation: 180, about: Point(x: 0, y: 0), offset: Point(x: 0, y: 0))
+
+        // When
+        let rotation = sut.rotation
+
+        // Then
+        // Rounding may read one as 180 and the other as -180, the same turn.
+        #expect(zip(sut.matrix, flipped.matrix).allSatisfy { abs($0 - $1) < 1e-9 })
+        #expect(turn(from: rotation, to: flipped.rotation) < 1e-9)
+    }
+
+    @Test("a map that flattens the plane turns by 0 and has a length factor of 0")
+    func flatTurnsByZero() {
+        // Given
+        let sut = AffineTransform(scale: 0, about: Point(x: 4, y: 4))
+
+        // When
+        let rotation = sut.rotation
+        let factor = sut.lengthFactor
+
+        // Then
+        #expect(rotation == 0)
+        #expect(factor == 0)
+    }
+
+    @Test("the length factor is the geometric mean of the scales a map applies")
+    func takesLengthFactor() {
+        // Given
+        let sut = AffineTransform(scale: Scale(x: -2, y: 8), rotation: 40, about: Point(x: 3, y: 1), offset: Point(x: 0, y: 0))
+
+        // When
+        let factor = sut.lengthFactor
+
+        // Then
+        #expect(abs(factor - 4) < 1e-9)
+    }
+
     // MARK: - Private
+    // The smaller angle between two rotations in degrees, whatever whole turns they differ by.
+    private func turn(
+        from rotation: Double,
+        to other: Double
+    ) -> Double {
+        let turn = abs((rotation - other).truncatingRemainder(dividingBy: 360))
+
+        return min(turn, 360 - turn)
+    }
+
     private func expectClose(
         _ point: Point,
         _ expected: Point

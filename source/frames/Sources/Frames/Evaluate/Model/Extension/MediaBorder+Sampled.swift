@@ -6,14 +6,17 @@
 //
 
 // A box's border at one instant, nil where it is off or its width is sampled at 0, where it draws nothing. Resolve
-// completed every leaf from the theme `border`.
+// completed every leaf from the theme `border`. Its width is drawn in output pixels at the clip's scale factor.
 extension MediaBorder {
     // MARK: - Property
     // MARK: - Initializer
-    init?(sampled: SampledValue) {
+    init?(
+        sampled: SampledValue,
+        factor: Double
+    ) {
         guard let width = sampled["width"]?.number, width > 0, let color = sampled["color"]?.color else { return nil }
 
-        self.init(width: width, color: color)
+        self.init(width: width * factor, color: color)
     }
 
     // MARK: - Public

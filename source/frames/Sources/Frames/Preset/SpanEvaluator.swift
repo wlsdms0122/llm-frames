@@ -15,7 +15,7 @@ struct SpanEvaluator: Sendable {
         of span: Span,
         at progress: Double
     ) -> Motion {
-        let bent = span.ease.value(at: min(max(progress, 0), 1))
+        let bent = span.ease.value(at: progress)
         let values = MotionProperty.allCases.reduce(into: [MotionProperty: Double]()) { values, property in
             values[property] = value(of: property, in: span, atBent: bent)
         }

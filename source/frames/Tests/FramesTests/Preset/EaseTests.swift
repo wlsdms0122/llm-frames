@@ -61,10 +61,10 @@ struct EaseTests {
     }
 
     @Test(
-        "every ease starts at 0 and ends at 1",
+        "every ease gives exactly 0 at the start of its span and exactly 1 at its end",
         arguments: [
             Ease.linear, .easeIn, .easeOut, .easeInOut, .backOut, .bounceOut, .step,
-            .cubicBezier(x1: 0.68, y1: -0.55, x2: 0.27, y2: 1.55)
+            .cubicBezier(x1: 0.68, y1: -0.55, x2: 0.27, y2: 1.55), .spring(bounce: 0.5)
         ]
     )
     func keepsEnds(sut: Ease) {
@@ -73,8 +73,8 @@ struct EaseTests {
         let end = sut.value(at: 1)
 
         // Then
-        #expect(abs(start) < 1e-9)
-        #expect(abs(end - 1) < 1e-9)
+        #expect(start == 0)
+        #expect(end == 1)
     }
 
     @Test(

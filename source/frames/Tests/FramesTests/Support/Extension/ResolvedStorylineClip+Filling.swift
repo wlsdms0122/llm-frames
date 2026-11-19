@@ -50,7 +50,7 @@ extension ResolvedStorylineClip {
                 anchor: Point(x: size.width / 2, y: size.height / 2)
             ),
             opacity: [Keyframe(at: start, value: 1)],
-            scale: [Keyframe(at: start, value: 1)],
+            scale: [Keyframe(at: start, value: .identity)],
             rotation: [Keyframe(at: start, value: 0)],
             blend: "normal",
             radius: .off,

@@ -10,17 +10,24 @@
 // of its points, and its stroke as drawn after `trim` covers a band the stroke wide along each segment, the line
 // stopping at its arrowheads' bases. Each adds what its stroke draws past its outline grown by half its width
 // (`PathItem.overhangs`): its arrowheads, miter joins and square caps. Bevels, round joins and caps, rounded corners,
-// the curve of an ellipse and the trim of a rect or an ellipse are left out.
+// the curve of an ellipse and the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the
+// outline `transform` carries, so its band is taken at its width over the transform's length factor, exact where the
+// transform scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // MARK: - Initializer
-    init(path: PathItem) {
+    init(
+        path: PathItem,
+        carriedBy transform: AffineTransform
+    ) {
         let stroke = path.drawnStroke?.isDrawn == true ? path.stroke : nil
-        let overhangs = path.overhangs.map(ConvexPolygon.init(corners:))
+        let overhangs = path.overhangs(carriedBy: transform).map(ConvexPolygon.init(corners:))
+        let factor = transform.lengthFactor
+        let width = factor > 0 ? (stroke?.width ?? 0) / factor : 0
 
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            let half = (stroke?.width ?? 0) / 2
+            let half = width / 2
             let outer = Self.inset(rectangle, by: -half)
             let inner = Self.inset(rectangle, by: half)
             let isHollow = path.fill == nil && inner.width > 0 && inner.height > 0
@@ -31,7 +38,7 @@ extension ItemCoverage {
 
         case let .polyline(points, isClosed):
             let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: points)]
-            let line = Self.pieces(of: points, isClosed: isClosed, path: path)
+            let line = Self.pieces(of: points, isClosed: isClosed, path: path, width: width)
             self.init(pieces: fill + line + overhangs)
         }
     }
@@ -54,19 +61,20 @@ extension ItemCoverage {
     private static func pieces(
         of points: [Point],
         isClosed: Bool,
-        path: PathItem
+        path: PathItem,
+        width: Double
     ) -> [ConvexPolygon] {
         let vertices = isClosed ? points + [points[0]] : points
         let segments = zip(vertices, vertices.dropFirst()).filter { distance(from: $0.0, to: $0.1) > 0 }
         let length = segments.map { distance(from: $0.0, to: $0.1) }.reduce(0, +)
-        guard let stroke = path.stroke, let drawn = path.drawnStroke, drawn.isDrawn, length > 0 else { return [] }
+        guard let drawn = path.drawnStroke, drawn.isDrawn, length > 0 else { return [] }
 
         let lineStart = drawn.lineStart(along: length)
         let lineEnd = drawn.lineEnd(along: length)
         guard lineEnd > lineStart else { return [] }
 
         return piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
-            band(from: start, to: end, width: stroke.width)
+            band(from: start, to: end, width: width)
         }
     }
 

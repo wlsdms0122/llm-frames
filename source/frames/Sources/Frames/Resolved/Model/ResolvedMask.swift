@@ -67,34 +67,23 @@ struct ResolvedMask: Equatable, Sendable {
     // centre and each point by `area` and `point`, and a box's size and a rect's radius by the factor `scale` gives.
     // The feather is in output pixels and stays.
     func carried(
-        area: (Rectangle, Double, MaskLeaf) -> Rectangle,
-        point: (Point, Double, MaskLeaf) -> Point,
-        scale: (Double) -> Double
-    ) -> ResolvedMask {
-        func rectangle(_ rectangle: ResolvedMaskRectangle) -> ResolvedMaskRectangle {
-            switch rectangle {
-            case let .area(keyframes):
-                .area(carried(keyframes) { area($0, $1, .area) })
-
-            case let .box(width, height, position):
-                .box(
-                    width: carried(width) { $0 * scale($1) },
-                    height: carried(height) { $0 * scale($1) },
-                    position: carried(position) { point($0, $1, .position) }
-                )
-            }
-        }
-
+        area: (Rectangle, Double, MaskLeaf) throws -> Rectangle,
+        point: (Point, Double, MaskLeaf) throws -> Point,
+        scale: (Double) throws -> Double
+    ) rethrows -> ResolvedMask {
         let geometry: ResolvedMaskGeometry = switch self.geometry {
         case let .rect(box, radius):
-            .rect(rectangle(box), radius: carried(radius) { $0 * scale($1) })
+            .rect(
+                try carried(box, area: area, point: point, scale: scale),
+                radius: try carried(radius) { try $0 * scale($1) }
+            )
 
         case let .ellipse(box):
-            .ellipse(rectangle(box))
+            .ellipse(try carried(box, area: area, point: point, scale: scale))
 
         case let .polyline(points):
-            .polyline(points.enumerated().map { index, keyframes in
-                carried(keyframes) { point($0, $1, .point(index)) }
+            .polyline(try points.enumerated().map { index, keyframes in
+                try carried(keyframes) { try point($0, $1, .point(index)) }
             })
         }
 
@@ -102,10 +91,29 @@ struct ResolvedMask: Equatable, Sendable {
     }
 
     // MARK: - Private
+    private func carried(
+        _ rectangle: ResolvedMaskRectangle,
+        area: (Rectangle, Double, MaskLeaf) throws -> Rectangle,
+        point: (Point, Double, MaskLeaf) throws -> Point,
+        scale: (Double) throws -> Double
+    ) rethrows -> ResolvedMaskRectangle {
+        switch rectangle {
+        case let .area(keyframes):
+            .area(try carried(keyframes) { try area($0, $1, .area) })
+
+        case let .box(width, height, position):
+            .box(
+                width: try carried(width) { try $0 * scale($1) },
+                height: try carried(height) { try $0 * scale($1) },
+                position: try carried(position) { try point($0, $1, .position) }
+            )
+        }
+    }
+
     private func carried<Value: Interpolable>(
         _ keyframes: [Keyframe<Value>],
-        by carry: (Value, Double) -> Value
-    ) -> [Keyframe<Value>] {
-        keyframes.map { Keyframe(at: $0.at, value: carry($0.value, $0.at), ease: $0.ease) }
+        by carry: (Value, Double) throws -> Value
+    ) rethrows -> [Keyframe<Value>] {
+        try keyframes.map { Keyframe(at: $0.at, value: try carry($0.value, $0.at), ease: $0.ease) }
     }
 }

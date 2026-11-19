@@ -24,7 +24,7 @@ extension OutlineSegment {
             let last = point(at: end)
             path.addLine(to: CGPoint(x: last.x, y: last.y))
 
-        case let .arc(center, radii, angle, _):
+        case let .arc(center, xAxis, yAxis, angle, _):
             // The unit circle carried onto the ellipse, so its angles are the ellipse's parameter.
             path.addArc(
                 center: .zero,
@@ -32,7 +32,7 @@ extension OutlineSegment {
                 startAngle: angle + self.angle(at: start),
                 endAngle: angle + self.angle(at: end),
                 clockwise: false,
-                transform: CGAffineTransform(a: radii.width, b: 0, c: 0, d: radii.height, tx: center.x, ty: center.y)
+                transform: CGAffineTransform(a: xAxis.x, b: xAxis.y, c: yAxis.x, d: yAxis.y, tx: center.x, ty: center.y)
             )
         }
     }

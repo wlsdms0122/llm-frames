@@ -315,6 +315,10 @@ enum ClipKeyTable {
         case "shape":
             .literal(VocabularyTable.shapes)
 
+        // A number is the same factor on both axes, and a pair a factor along each.
+        case "scale":
+            .oneOf([.number, .numbers(2)])
+
         // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
         case "width", "height":
             .positiveNumber
@@ -342,7 +346,8 @@ enum ClipKeyTable {
     }
 
     // A look key's type in a keyframe: each leaf may be `null`, and a length may be 0 or less, since timing checks a
-    // leaf two keyframes write against its domain and one a single keyframe writes as a static value.
+    // leaf two keyframes write against its domain and one a single keyframe writes as a static value. A gradient's
+    // offsets may be out of order, since sampling raises each to the one before it.
     private static func keyframed(_ type: ValueType) -> ValueType {
         switch type {
         case ChoiceKeyTable.filter, ChoiceKeyTable.audioFilter:
@@ -370,6 +375,12 @@ enum ClipKeyTable {
 
         case .positiveNumber, .nonNegativeNumber:
             .number
+
+        case .stops:
+            .stops(isKeyframed: true)
+
+        case .dash:
+            .dash(isKeyframed: true)
 
         default:
             type

@@ -149,7 +149,7 @@ struct LocationReporterTests {
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 80, y: 20, width: 40, height: 40), radius: 0),
                 fill: nil,
-                stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .none)
             )),
             origin: rect
         )
@@ -194,7 +194,7 @@ struct LocationReporterTests {
             content: .path(PathItem(
                 geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
                 fill: nil,
-                stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow)
+                stroke: PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .arrow)
             )),
             origin: ItemOrigin(place: "clips[2]", id: nil, kind: "shape")
         )
@@ -215,7 +215,7 @@ struct LocationReporterTests {
         let arrow = DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 10, y: 50), Point(x: 110, y: 50)], isClosed: false),
             fill: nil,
-            stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .arrow),
+            stroke: PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .arrow),
             trim: Trim(start: 0, end: 0.5)
         )))
 
@@ -236,7 +236,7 @@ struct LocationReporterTests {
         let arrow = DisplayItem(content: .path(PathItem(
             geometry: .rect(Rectangle(x: 20, y: 40, width: 60, height: 40), radius: 0),
             fill: nil,
-            stroke: PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .arrow),
+            stroke: PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .arrow),
             trim: Trim(start: 0, end: 61.0 / 200)
         )))
 

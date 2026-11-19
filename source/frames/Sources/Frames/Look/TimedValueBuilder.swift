@@ -6,10 +6,10 @@
 //
 
 // Timing, the second operation after the look merge. `ownLayer` makes the clip's own layer, its static value with the
-// structure its keyframes give, which then merges over the look; `timed` times each leaf over the merged value: a leaf
-// joins only the keyframes that write it, `null` there is the merged value's, and a leaf no keyframe writes is the
-// merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence time.
-// A stop on a value a keyframe writes names that keyframe, and one on the static value the clip's key.
+// structure its keyframes give, and `merged` merges it over the look; `timed` times each leaf over the merged value: a
+// leaf joins only the keyframes that write it, `null` there is the merged value's, and a leaf no keyframe writes is
+// the merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence
+// time. A stop on a value a keyframe writes names that keyframe, and one on the static value the clip's key.
 struct TimedValueBuilder: Sendable {
     // MARK: - Property
     private let merger = LookMerger()
@@ -25,22 +25,28 @@ struct TimedValueBuilder: Sendable {
         as structure: ValueStructure,
         place: LookPlace
     ) throws -> LookValue? {
-        // A value the merge replaces whole, such as a preset named alone, keeps none of the keys a skeleton writes
-        // under it, so each keyframe is also checked against the earlier skeletons, which hold the forms the
-        // keyframes give.
-        var layer = written
-        var skeletons: [LookValue] = []
-        for keyframe in keyframes {
-            let keyframePlace = place.keyframe(keyframe.index)
-            let skeleton = try self.skeleton(of: keyframe.value, as: structure, place: keyframePlace)
-            for earlier in [layer].compactMap({ $0 }) + skeletons {
-                try checkAgreement(earlier, skeleton, as: structure, place: keyframePlace)
-            }
-            skeletons.append(skeleton)
-            layer = try self.layer(layer ?? .unset, over: skeleton, as: structure, place: keyframePlace)
+        let skeletons = try self.skeletons(written: written, keyframes: keyframes, as: structure, place: place)
+        return try zip(keyframes, skeletons).reduce(written) { layer, pair in
+            try self.layer(layer ?? .unset, over: pair.1, as: structure, place: place.keyframe(pair.0.index))
         }
+    }
 
-        return layer
+    // The clip's own layer over the look below it. The clip's static value merges as any layer does, so a list it
+    // writes replaces the look's whole, and each keyframe's skeleton merges over the result as a keyframe's value does,
+    // so a list only keyframes give keeps the elements of a look's list of its length to time them, and replaces a
+    // list of another length or another form.
+    func merged(
+        over below: LookValue?,
+        written: LookValue?,
+        keyframes: [PropertyKeyframe<LookValue>],
+        as structure: ValueStructure,
+        place: LookPlace
+    ) throws -> LookValue? {
+        let skeletons = try self.skeletons(written: written, keyframes: keyframes, as: structure, place: place)
+        let merged = try merger.merge([below, written], as: structure, place: place.written)
+        return try zip(keyframes, skeletons).reduce(merged) { merged, pair in
+            try merger.merge(keyframe: pair.1, over: merged ?? .unset, as: structure, place: place.keyframe(pair.0.index))
+        }
     }
 
     func timed(
@@ -94,13 +100,12 @@ struct TimedValueBuilder: Sendable {
             return .object(timed)
 
         case let (.list(elements), _):
-            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
                 try timed(
                     value,
                     written: written.flatMap { Self.element(index, of: $0) },
                     keyframes: keyframes.compactMap { keyframe in Self.element(index, of: keyframe.value).map(keyframe.with) },
-                    as: element,
+                    as: structure.element(at: index),
                     instant: instant,
                     place: place.appending(index: index),
                     leaf: leaf
@@ -142,6 +147,25 @@ struct TimedValueBuilder: Sendable {
     }
 
     // MARK: - Private
+    // Each keyframe's skeleton, checked against the clip's value and every earlier skeleton: a value the merge
+    // replaces whole, such as a preset named alone, keeps none of the keys a skeleton writes under it, so the
+    // skeletons hold the forms the keyframes give.
+    private func skeletons(
+        written: LookValue?,
+        keyframes: [PropertyKeyframe<LookValue>],
+        as structure: ValueStructure,
+        place: LookPlace
+    ) throws -> [LookValue] {
+        try keyframes.reduce(into: [LookValue]()) { skeletons, keyframe in
+            let keyframePlace = place.keyframe(keyframe.index)
+            let skeleton = try self.skeleton(of: keyframe.value, as: structure, place: keyframePlace)
+            for earlier in [written].compactMap({ $0 }) + skeletons {
+                try checkAgreement(earlier, skeleton, as: structure, place: keyframePlace)
+            }
+            skeletons.append(skeleton)
+        }
+    }
+
     // The clip's layer merged over a keyframe's skeleton. A list merges element by element, since the skeleton's
     // elements hold the structure the keyframes give to elements the clip writes without it (a mask's `points` given
     // only in keyframes), and `checkAgreement` has found both lists of one length. The look merge replaces it whole.
@@ -153,9 +177,9 @@ struct TimedValueBuilder: Sendable {
     ) throws -> LookValue {
         switch (layer, skeleton, structure) {
         case let (.list(elements), .list(skeletons), _) where elements.count == skeletons.count:
-            let element = structure.element
             return .list(try zip(elements, skeletons).enumerated().map { index, pair in
-                try self.layer(pair.0, over: pair.1, as: element, place: place.appending(index: index))
+                let element = structure.element(at: index)
+                return try self.layer(pair.0, over: pair.1, as: element, place: place.appending(index: index))
             })
 
         case let (.object, .object(members), .object):
@@ -262,9 +286,8 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.list(elements), _):
-            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
-                try skeleton(of: value, as: element, place: place.appending(index: index))
+                try skeleton(of: value, as: structure.element(at: index), place: place.appending(index: index))
             })
 
         case let (.form(name, body), _):
@@ -306,9 +329,8 @@ struct TimedValueBuilder: Sendable {
                 throw LookError.lengthsDiffer(place: place, counts: [elements.count, others.count])
             }
 
-            let element = structure.element
             for (index, pair) in zip(elements, others).enumerated() {
-                try checkAgreement(pair.0, pair.1, as: element, place: place.appending(index: index))
+                try checkAgreement(pair.0, pair.1, as: structure.element(at: index), place: place.appending(index: index))
             }
 
         case let (.object, .object(members)):
@@ -348,7 +370,7 @@ struct TimedValueBuilder: Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

@@ -14,13 +14,15 @@
 // form keys are `preset`, `op` and the key of each form it declares, a form `<key>:<value>` (an `eq` band's
 // `type:peak`). A form's other keys are its body, whose structure `forms` declares for the forms that are timed, such
 // as a filter's presets and ops, and is otherwise `anyValue`: a value whose structure is not declared, which merges
-// key by key at every depth and is never timed.
+// key by key at every depth and is never timed. A `tuple` is a list of a fixed length whose elements each have their
+// own structure, as a gradient stop `[offset, colour]`.
 indirect enum ValueStructure: Sendable {
     case anyValue
     case leaf(LeafKind)
     case object(ObjectStructure)
     case map(ValueStructure)
     case list(ValueStructure)
+    case tuple([ValueStructure])
     case forms([(name: String, structure: ValueStructure)])
     case choice(offNames: [String], forms: [(name: String, structure: ValueStructure)] = [])
 
@@ -30,12 +32,15 @@ indirect enum ValueStructure: Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
-    // The structure of each element of a list of this structure. A list of choices is a list whose every element is
-    // that choice.
-    var element: ValueStructure {
+    // The structure of a list's element at `index`, a tuple's own at that place. A list of choices is a list whose
+    // every element is that choice.
+    func element(at index: Int) -> ValueStructure {
         switch self {
         case let .list(element):
             element
+
+        case let .tuple(structures):
+            structures.indices.contains(index) ? structures[index] : .anyValue
 
         case .choice:
             self
@@ -81,7 +86,7 @@ indirect enum ValueStructure: Sendable {
         case let .choice(_, forms):
             forms.first { $0.name == name }?.structure ?? .anyValue
 
-        case .anyValue, .leaf, .object, .map, .list:
+        case .anyValue, .leaf, .object, .map, .list, .tuple:
             nil
         }
     }

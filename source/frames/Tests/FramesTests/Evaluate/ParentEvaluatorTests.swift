@@ -224,7 +224,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -274,7 +274,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -318,7 +318,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "shot",
             track: track
@@ -501,7 +501,7 @@ struct ParentEvaluatorTests {
             trackMatte: nil,
             track: track,
             opacity: [Keyframe(at: 0, value: 1)],
-            scale: box == nil ? nil : [Keyframe(at: 0, value: scale)],
+            scale: box == nil ? nil : [Keyframe(at: 0, value: Scale(scale))],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             blend: "normal",
             animation: .none

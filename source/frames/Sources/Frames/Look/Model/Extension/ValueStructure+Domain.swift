@@ -27,9 +27,9 @@ extension ValueStructure {
 
             try structure.checkDomains(of: .object(form.body), place: place, sampled: sampled)
 
-        case let (.array(elements), .list(element)):
+        case let (.array(elements), .list), let (.array(elements), .tuple):
             for (index, value) in elements.enumerated() {
-                try element.checkDomains(of: value, place: place.appending(index: index), sampled: sampled)
+                try element(at: index).checkDomains(of: value, place: place.appending(index: index), sampled: sampled)
             }
 
         case let (.number(number), .leaf(kind)):

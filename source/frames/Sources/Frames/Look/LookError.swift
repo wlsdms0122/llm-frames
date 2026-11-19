@@ -11,6 +11,7 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
     case nothingBelow(place: Place)
     case partialOverList(place: Place)
     case missingLeaf(place: Place, key: String)
+    case allZero(place: Place)
     case keyframedStatic(place: Place)
     case keyframedOff(place: Place)
     case formsDiffer(place: Place, forms: [String])
@@ -31,6 +32,9 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingLeaf(place, key):
             "\(place): missing key \"\(key)\", which no layer gives"
+
+        case let .allZero(place):
+            "\(place): lengths that are all 0, which draw no dash"
 
         case let .keyframedStatic(place):
             "\(place) (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
@@ -71,6 +75,9 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingLeaf(place, key):
             .missingLeaf(place: moved(place), key: key)
+
+        case let .allZero(place):
+            .allZero(place: moved(place))
 
         case let .keyframedStatic(place):
             .keyframedStatic(place: moved(place))

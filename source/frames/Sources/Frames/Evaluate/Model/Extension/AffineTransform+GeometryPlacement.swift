@@ -14,7 +14,7 @@ extension AffineTransform {
         placing box: Rectangle,
         anchor: Point?,
         position: Point?,
-        scale: Double,
+        scale: Scale,
         rotation: Double,
         moved: Point = Point(x: 0, y: 0)
     ) {

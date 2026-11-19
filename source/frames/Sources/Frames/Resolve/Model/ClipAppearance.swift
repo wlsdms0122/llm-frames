@@ -10,7 +10,7 @@
 struct ClipAppearance: Equatable, Sendable {
     // MARK: - Property
     let opacity: PropertyValue<Double>
-    let scale: PropertyValue<Double>
+    let scale: PropertyValue<Scale>
     let rotation: PropertyValue<Double>
     let blend: String
     let shape: ShapeAppearance?
@@ -20,7 +20,7 @@ struct ClipAppearance: Equatable, Sendable {
     // MARK: - Initializer
     init(
         opacity: PropertyValue<Double>,
-        scale: PropertyValue<Double>,
+        scale: PropertyValue<Scale>,
         rotation: PropertyValue<Double>,
         blend: String,
         shape: ShapeAppearance?,

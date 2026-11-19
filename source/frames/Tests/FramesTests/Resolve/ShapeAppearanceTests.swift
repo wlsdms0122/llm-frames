@@ -127,7 +127,7 @@ struct ShapeAppearanceTests {
             radius: 9,
             trim: .value(.whole),
             fill: .fill(Color(written: "#123456")),
-            stroke: .stroke(PathStroke(width: 4, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow)),
+            stroke: .stroke(PathStroke(width: 4, paint: .color(Color(written: "#ED2929")), join: .round, cap: .butt, start: .none, end: .arrow)),
             shadow: .shadow(DropShadow(radius: 10, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         ))
     }
@@ -141,7 +141,7 @@ struct ShapeAppearanceTests {
             """#)
 
         // Then
-        #expect(shape.stroke.stroke() == PathStroke(width: 1, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow))
+        #expect(shape.stroke.stroke() == PathStroke(width: 1, paint: .color(Color(written: "#ED2929")), join: .round, cap: .butt, start: .none, end: .arrow))
         #expect(shape.fill == .off)
         #expect(shape.shadow.shadow() == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         #expect(shape.radius == 0)
@@ -184,7 +184,7 @@ struct ShapeAppearanceTests {
             radius: .off,
             trim: .value(.whole),
             fill: .fill(Color(written: "#123456")),
-            stroke: .stroke(PathStroke(width: 2, color: MergedTheme.base.color("accent"), join: .round, cap: .butt, start: .none, end: .none)),
+            stroke: .stroke(PathStroke(width: 2, paint: .color(MergedTheme.base.color("accent")), join: .round, cap: .butt, start: .none, end: .none)),
             shadow: .off
         ))
     }

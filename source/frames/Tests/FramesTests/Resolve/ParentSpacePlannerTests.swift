@@ -265,6 +265,23 @@ struct ParentSpacePlannerTests {
         #expect(numbers.rectangle == Rectangle(x: 300, y: 100, width: 50, height: 50))
     }
 
+    @Test("text found under a shape whose scale is 0 on an axis at the value's instant stops, naming the clip and the instant")
+    func stopsUnderFlatParent() throws {
+        // Given
+        let sut = planner(growth: 0)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": [200, 300, 400, 200],
+                  "scale": [2, 0] },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "area": { "text": "Total" } } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(Fixture.planner.plan(document: document)) }
+        #expect(error?.description == "storyline[0]#screen.connected[1].area (rect): found by text at 2, where its parent's "
+            + "transform has a scale of 0 on an axis and cannot be undone to bring it into the parent's space")
+    }
+
     @Test("a path's point of text under a turned and scaled shape is carried back into its space, and a point of numbers is kept")
     func bringsPointsBackThroughRotation() throws {
         // Given

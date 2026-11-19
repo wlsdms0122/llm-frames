@@ -60,7 +60,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
-            JSONMember(key: "scale", value: values.numbers(entry.scale)),
+            JSONMember(key: "scale", value: values.scales(entry.scale)),
             JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
             JSONMember(key: "blend", value: .string(entry.blend)),
             JSONMember(key: "filter", value: values.timed(entry.filter)),
@@ -77,7 +77,7 @@ struct ResolvedSequenceWriter: Sendable {
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
         let transform = [
-            clip.scale.map { JSONMember(key: "scale", value: number($0)) },
+            clip.scale.map { JSONMember(key: "scale", value: values.scales($0)) },
             clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
             JSONMember(key: "blend", value: .string(clip.blend))
         ].compactMap { $0 }

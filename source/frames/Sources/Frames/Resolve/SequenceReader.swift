@@ -81,7 +81,7 @@ struct SequenceReader: Sendable {
             filter: look("filter", of: object),
             anchor: object["anchor"]?.stringValue,
             position: property("position", of: object, read: PositionForm.init(value:)),
-            scale: property("scale", of: object, read: \.numberValue),
+            scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             opacity: property("opacity", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
@@ -124,7 +124,7 @@ struct SequenceReader: Sendable {
             border: look("border", of: object),
             shadow: look("shadow", of: object),
             opacity: property("opacity", of: object, read: \.numberValue),
-            scale: property("scale", of: object, read: \.numberValue),
+            scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
             filter: look("adjust", of: object) ?? look("filter", of: object)

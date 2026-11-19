@@ -9,20 +9,38 @@
 // keyframable by declaring its structure here: its numbers and colours are its timed leaves, and the look merge and
 // timing read nothing else of it.
 enum LookStructureTable {
-    static let fill = ValueStructure.forms([
-        (ValueStructure.colorForm, .leaf(.color))
-    ])
+    // A gradient's kind is its form and its number of stops the length of `stops`, both static; its points are
+    // fractions of the shape's box, not theme lengths.
+    static let gradientForms: [(name: String, structure: ValueStructure)] = [
+        ("linear", .object(ObjectStructure(
+            [("from", .leaf(.numbers(count: 2))), ("to", .leaf(.numbers(count: 2))), ("stops", stops)],
+            required: ["from", "to", "stops"]
+        ))),
+        ("radial", .object(ObjectStructure(
+            [("center", .leaf(.numbers(count: 2))), ("radius", .leaf(.number(.positive))), ("stops", stops)],
+            required: ["center", "stops"],
+            plain: ["radius": .number(1)]
+        )))
+    ]
+
+    static let stops = ValueStructure.list(.tuple([.leaf(.number(.range(0...1))), .leaf(.color)]))
+
+    static let fill = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
 
     static let stroke = ValueStructure.object(ObjectStructure(
         [
             ("color", .leaf(.color)),
+            ("gradient", .forms(gradientForms)),
             ("width", .leaf(.length(.positive))),
             ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
             ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
             ("start", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
-            ("end", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue))))
+            ("end", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
+            ("dash", .list(.leaf(.length()))),
+            ("dashOffset", .leaf(.length(.any)))
         ],
         required: ["width"],
+        nonZero: ["dash"],
         exclusive: [["color", "gradient"]]
     ))
 
