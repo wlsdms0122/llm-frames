@@ -42,7 +42,7 @@ struct MediaAppearanceTests {
             )
         ] as [(String, DropShadow?)]
     )
-    func plansShadowForms(
+    func plansDropShadow(
         keys: String,
         shadow: DropShadow?
     ) throws {
