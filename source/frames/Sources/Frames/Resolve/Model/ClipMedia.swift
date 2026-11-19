@@ -7,7 +7,7 @@
 
 // The media of a clip and how it plays, each value nil when left to its default. `in` and `out` are clip time,
 // `timeRemap`, `volume` and `pan` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
-// `picture` false takes only the media's sound.
+// `picture` false takes only the media's sound, and `audioFilter` is the clip's audio filter as written.
 struct ClipMedia: Equatable, Sendable {
     // MARK: - Property
     let source: MediaSource
@@ -21,6 +21,7 @@ struct ClipMedia: Equatable, Sendable {
     let fadeIn: Double?
     let fadeOut: Double?
     let picture: Bool?
+    let audioFilter: LookProperty?
 
     // MARK: - Initializer
     init(
@@ -34,7 +35,8 @@ struct ClipMedia: Equatable, Sendable {
         pan: PropertyValue<Double>? = nil,
         fadeIn: Double? = nil,
         fadeOut: Double? = nil,
-        picture: Bool? = nil
+        picture: Bool? = nil,
+        audioFilter: LookProperty? = nil
     ) {
         self.source = source
         self.in = `in`
@@ -47,6 +49,7 @@ struct ClipMedia: Equatable, Sendable {
         self.fadeIn = fadeIn
         self.fadeOut = fadeOut
         self.picture = picture
+        self.audioFilter = audioFilter
     }
 
     // MARK: - Public

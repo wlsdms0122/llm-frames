@@ -9,6 +9,8 @@
 // clips with sound, then the sequence clips with sound. Gains are multiplied when the mix is evaluated, not here.
 struct SoundPlanner: Sendable {
     // MARK: - Property
+    private let audioFilters = AudioFilterResolver()
+
     // MARK: - Initializer
     // MARK: - Public
     // `time` is the plan whose windows tracking narrowed, `written` its clips as `time.clips` lists them, and the nested
@@ -18,18 +20,18 @@ struct SoundPlanner: Sendable {
         written: [Clip],
         storylineNested: [SequencePlan?],
         clipNested: [SequencePlan?]
-    ) -> [SoundPlan] {
+    ) throws -> [SoundPlan] {
         let clipSound = { (index: Int) in
-            self.sound(of: time.clips[index], written: written[index], nested: clipNested[index])
+            try self.sound(of: time.clips[index], written: written[index], nested: clipNested[index], theme: time.theme)
         }
-        let storyline = time.storyline.indices.flatMap { index in
+        let storyline = try time.storyline.indices.flatMap { index in
             let connected = time.clips.indices.filter { clip in
                 written[clip].clipPlace == .connected && time.clips[clip].storyline == index
             }
 
-            return [sound(of: time, index: index, nested: storylineNested[index])] + connected.map(clipSound)
+            return try [sound(of: time, index: index, nested: storylineNested[index])] + connected.map(clipSound)
         }
-        let sequence = time.clips.indices.filter { written[$0].clipPlace == .sequence }.map(clipSound)
+        let sequence = try time.clips.indices.filter { written[$0].clipPlace == .sequence }.map(clipSound)
 
         return (storyline + sequence).compactMap { $0 }
     }
@@ -41,11 +43,14 @@ struct SoundPlanner: Sendable {
         of time: TimePlan,
         index: Int,
         nested: SequencePlan?
-    ) -> SoundPlan? {
+    ) throws -> SoundPlan? {
         let plan = time.storyline[index]
-        guard let media = plan.source.media, media.hasSound, plan.timeRemap == nil else { return nil }
-
         let written = time.sequence.storyline[index].media
+        guard let media = plan.source.media, media.hasSound, plan.timeRemap == nil else {
+            try checkSilent(written, place: plan.place, kind: plan.source.kind)
+            return nil
+        }
+
         let map = plan.map
         let exists = TimeRange(start: map.sequenceTime(ofClipTime: 0), end: map.sequenceTime(ofClipTime: media.duration))
         guard let audible = plan.drawn.intersection(exists) else { return nil }
@@ -63,7 +68,11 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(written?.fadeOut, over: plan.drawn),
             incoming: plan.transition.map(Crossfade.init(plan:)),
             outgoing: outgoing.map(Crossfade.init(plan:)),
-            nested: nested?.sound ?? []
+            nested: nested?.sound ?? [],
+            audioFilter: try audioFilters.timed(
+                written?.audioFilter,
+                looks: looks(of: plan.place, kind: plan.source.kind, clock: map, instant: plan.instant, theme: time.theme)
+            )
         )
     }
 
@@ -72,14 +81,12 @@ struct SoundPlanner: Sendable {
     private func sound(
         of plan: ClipPlan,
         written: Clip,
-        nested: SequencePlan?
-    ) -> SoundPlan? {
-        guard
-            case let .media(clipMedia) = written.content,
-            let media = plan.media,
-            let played = plan.timing?.played,
-            media.hasSound
-        else {
+        nested: SequencePlan?,
+        theme: MergedTheme
+    ) throws -> SoundPlan? {
+        guard case let .media(clipMedia) = written.content else { return nil }
+        guard let media = plan.media, let played = plan.timing?.played, media.hasSound else {
+            try checkSilent(clipMedia, place: plan.place, kind: plan.kind)
             return nil
         }
 
@@ -101,8 +108,34 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(clipMedia.fadeOut, over: plan.visible),
             incoming: nil,
             outgoing: nil,
-            nested: nested?.sound ?? []
+            nested: nested?.sound ?? [],
+            audioFilter: try audioFilters.timed(
+                clipMedia.audioFilter,
+                looks: looks(of: plan.place, kind: plan.kind, clock: plan.clock, instant: plan.instant, theme: theme)
+            )
         )
+    }
+
+    // A clip that plays no sound takes no audio filter. A remapped storyline clip's stops where its time is planned.
+    private func checkSilent(
+        _ media: ClipMedia?,
+        place: Place,
+        kind: ClipKind
+    ) throws {
+        guard media?.audioFilter != nil else { return }
+
+        throw ResolveError.audioFilterWithoutSound(place: place.appending(key: AudioFilterResolver.key), kind: .clip(kind))
+    }
+
+    // An audio filter has no theme layer and no lengths.
+    private func looks(
+        of place: Place,
+        kind: ClipKind,
+        clock: TimeMap,
+        instant: Double,
+        theme: MergedTheme
+    ) -> ClipLookPlanner {
+        ClipLookPlanner(place: place, kind: .clip(kind), clock: clock, instant: instant, scale: 1, theme: theme)
     }
 
     // Volume and pan keyframes are on the clip's clock, so they move into sequence time. A property left unwritten is its

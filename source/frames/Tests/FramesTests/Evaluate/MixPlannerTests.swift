@@ -19,6 +19,43 @@ struct MixPlannerTests {
 
     // MARK: - Initializer
     // MARK: - Test
+    @Test("a segment carries its sound's audio filter: a held leaf as a number, a moving frequency sampled in log space")
+    func carriesAudioFilter() throws {
+        // Given
+        let band = TimedValue.object([
+            TimedMember(key: "type", value: .fixed(.string("peak"))),
+            TimedMember(key: "frequency", value: .track([
+                Keyframe(at: 0, value: .number(100)),
+                Keyframe(at: 2, value: .number(10000))
+            ])),
+            TimedMember(key: "gain", value: .track([Keyframe(at: 0, value: .number(6))])),
+            TimedMember(key: "q", value: .track([Keyframe(at: 0, value: .number(0.7071))]))
+        ])
+        let entry = TimedValue.object([
+            TimedMember(key: "ops", value: .list([.form("op:eq", .object([TimedMember(key: "bands", value: .list([band]))]))])),
+            TimedMember(key: "mix", value: .track([Keyframe(at: 0, value: .number(1))]))
+        ])
+        let audio = [sound(music, start: 0, end: 2, audioFilter: .list([entry]))]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
+
+        // Then
+        let filter = try #require(plan.segments.first?.filter)
+        #expect(filter.count == 1)
+        #expect(filter[0].mix == .constant(1))
+        guard case let .eq(bands) = filter[0].operations.first, case let .envelope(points) = bands.first?.frequency else {
+            Issue.record("expected an eq band with a frequency envelope, got \(filter)")
+            return
+        }
+        #expect(bands[0].type == .peak)
+        #expect(bands[0].gain == .constant(6))
+        #expect(bands[0].q == .constant(0.7071))
+        #expect(points.map(\.time) == [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
+        let middle = try #require(points.first { $0.time == 1 })
+        #expect(abs(middle.value - 1000) < 1e-9)
+    }
+
     @Test("a sound at a static volume is one segment at that gain, centred, with points only at its ends")
     func playsStaticVolume() {
         // Given
@@ -373,7 +410,8 @@ struct MixPlannerTests {
         fadeIn: TimeRange? = nil,
         fadeOut: TimeRange? = nil,
         incoming: Crossfade? = nil,
-        outgoing: Crossfade? = nil
+        outgoing: Crossfade? = nil,
+        audioFilter: TimedValue = .off
     ) -> ResolvedSound {
         ResolvedSound(
             place: "sound",
@@ -392,7 +430,8 @@ struct MixPlannerTests {
             fadeIn: fadeIn,
             fadeOut: fadeOut,
             incoming: incoming,
-            outgoing: outgoing
+            outgoing: outgoing,
+            audioFilter: audioFilter
         )
     }
 

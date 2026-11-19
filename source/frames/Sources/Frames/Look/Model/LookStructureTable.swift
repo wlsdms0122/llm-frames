@@ -184,4 +184,72 @@ enum LookStructureTable {
             ? .object(ObjectStructure(parameters + [("mix", mix)], plain: ["mix": .number(1)]))
             : .object(ObjectStructure(parameters))
     }
+
+    // An audio filter of ops written in place, each with its `mix`; its structure is static, so its ops and the number
+    // and types of its bands are as the clip writes them.
+    static let audioFilter = ValueStructure.choice(offNames: [], forms: AudioFilterKeyTable.operations.map { name in
+        ("op:" + name, audioOperation(name, mixed: true))
+    })
+
+    // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with.
+    static let resolvedAudioFilter = ValueStructure.list(.object(ObjectStructure([
+        ("ops", .list(.choice(offNames: [], forms: AudioFilterKeyTable.operations.map { name in
+            ("op:" + name, audioOperation(name))
+        }))),
+        ("mix", mix)
+    ])))
+
+    // An audio op's parameters in the order of the op table, each in its range with its default written. A band's
+    // `frequency` and `q` are heard by their ratio, so they move geometrically.
+    static func audioOperation(
+        _ name: String,
+        mixed: Bool = false
+    ) -> ValueStructure {
+        let seconds = LeafKind.number(.positive)
+        let (parameters, defaults): ([(name: String, structure: ValueStructure)], [String: JSONValue]) = switch name {
+        case "eq":
+            ([("bands", .list(band))], [:])
+
+        case "compressor":
+            (
+                [
+                    ("threshold", .leaf(.number())),
+                    ("ratio", .leaf(.number(.range(1...Double.infinity)))),
+                    ("knee", .leaf(.number(.nonNegative))),
+                    ("attack", .leaf(seconds)),
+                    ("release", .leaf(seconds)),
+                    ("makeup", .leaf(.number()))
+                ],
+                ["knee": .number(0), "attack": .number(0.01), "release": .number(0.1), "makeup": .number(0)]
+            )
+
+        default:
+            (
+                [
+                    ("threshold", .leaf(.number())),
+                    ("range", .leaf(.number(.range(-Double.infinity...0)))),
+                    ("attack", .leaf(seconds)),
+                    ("hold", .leaf(.number(.nonNegative))),
+                    ("release", .leaf(seconds))
+                ],
+                ["range": .number(-80), "attack": .number(0.001), "hold": .number(0.05), "release": .number(0.1)]
+            )
+        }
+
+        return mixed
+            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: defaults.merging(["mix": .number(1)]) { $1 }))
+            : .object(ObjectStructure(parameters, plain: defaults))
+    }
+
+    // A band's `frequency` lies above 0 and below half of 48 kHz, and its `q` defaults to 1/√2.
+    private static let band = ValueStructure.object(ObjectStructure(
+        [
+            ("type", .leaf(.name(among: AudioFilterKeyTable.bandTypes))),
+            ("frequency", .leaf(LeafKind(form: .number, domain: .between(0, 24000), interpolation: .geometric))),
+            ("gain", .leaf(.number())),
+            ("q", .leaf(.ratio))
+        ],
+        required: ["frequency"],
+        plain: ["q": .number(0.7071)]
+    ))
 }

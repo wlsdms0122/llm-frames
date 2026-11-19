@@ -201,7 +201,7 @@ struct SequencePlanner: Sendable {
             )
         }
 
-        let sound = self.sound.sound(
+        let sound = try self.sound.sound(
             of: tracked.time,
             written: written,
             storylineNested: storylineNested,

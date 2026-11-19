@@ -36,44 +36,18 @@ struct LookMerger: Sendable {
         as structure: ValueStructure,
         place: Place
     ) throws -> LookValue {
-        switch over {
-        case .unset:
-            return under ?? .unset
+        try merge(under, over, as: structure, place: place, byElement: false)
+    }
 
-        case .off:
-            return .off
-
-        case .leaf, .list, .object, .form:
-            break
-        }
-
-        guard let under, under != .unset, under != .off else {
-            if case .choice = structure, case .object = over {
-                throw LookError.nothingBelow(place: place)
-            }
-            return over
-        }
-
-        switch (structure, under, over) {
-        case let (.choice, .form(name, body), .object):
-            return .form(name, try mergeObjects(body, over, as: structure.structure(ofForm: name) ?? .anyValue, place: place))
-
-        case (.choice, .list, .object):
-            throw LookError.partialOverList(place: place)
-
-        case let (_, .form(underName, underBody), .form(overName, overBody)):
-            // A preset named alone is read as a form with no other keys, and it replaces a choice of that preset whole.
-            guard underName == overName, overBody != .object([]) else { return over }
-
-            let form = structure.structure(ofForm: overName) ?? .anyValue
-            return .form(overName, try merge(underBody, overBody, as: form, place: place))
-
-        case (.object, .object, .object), (.map, .object, .object), (.anyValue, .object, .object):
-            return try mergeObjects(under, over, as: structure, place: place)
-
-        default:
-            return over
-        }
+    // A keyframe's value over the merged value. A keyframe's list has the length of the list it writes, so it merges
+    // element by element, where a layer's list replaces the one below whole.
+    func merge(
+        keyframe: LookValue,
+        over merged: LookValue,
+        as structure: ValueStructure,
+        place: Place
+    ) throws -> LookValue {
+        try merge(merged, keyframe, as: structure, place: place, byElement: true)
     }
 
     // Every key the structure requires, wherever the value holds an object of it, has a value after the merge.
@@ -98,12 +72,12 @@ struct LookMerger: Sendable {
                 try checkRequired(in: member.value, as: element, place: place.appending(key: member.key))
             }
 
-        case let (.list(elements), .list(element)):
+        case let (.list(elements), .list), let (.list(elements), .choice):
             for (index, value) in elements.enumerated() {
-                try checkRequired(in: value, as: element, place: place.appending(index: index))
+                try checkRequired(in: value, as: structure.element, place: place.appending(index: index))
             }
 
-        case let (.form(name, body), .forms):
+        case let (.form(name, body), .forms), let (.form(name, body), .choice):
             try checkRequired(in: body, as: structure.structure(ofForm: name) ?? .anyValue, place: place)
 
         default:
@@ -112,17 +86,77 @@ struct LookMerger: Sendable {
     }
 
     // MARK: - Private
+    private func merge(
+        _ under: LookValue?,
+        _ over: LookValue,
+        as structure: ValueStructure,
+        place: Place,
+        byElement: Bool
+    ) throws -> LookValue {
+        switch over {
+        case .unset:
+            return under ?? .unset
+
+        case .off:
+            return .off
+
+        case .leaf, .list, .object, .form:
+            break
+        }
+
+        guard let under, under != .unset, under != .off else {
+            if case .choice = structure, case .object = over {
+                throw LookError.nothingBelow(place: place)
+            }
+            return over
+        }
+
+        switch (structure, under, over) {
+        case let (.choice, .form(name, body), .object):
+            let form = structure.structure(ofForm: name) ?? .anyValue
+            return .form(name, try mergeObjects(body, over, as: form, place: place, byElement: byElement))
+
+        case (.choice, .list, .object):
+            throw LookError.partialOverList(place: place)
+
+        case let (_, .form(underName, underBody), .form(overName, overBody)):
+            // A preset named alone is read as a form with no other keys, and it replaces a choice of that preset whole.
+            guard underName == overName, overBody != .object([]) else { return over }
+
+            let form = structure.structure(ofForm: overName) ?? .anyValue
+            return .form(overName, try merge(underBody, overBody, as: form, place: place, byElement: byElement))
+
+        case (.object, .object, .object), (.map, .object, .object), (.anyValue, .object, .object):
+            return try mergeObjects(under, over, as: structure, place: place, byElement: byElement)
+
+        case let (_, .list(elements), .list(others)) where byElement && elements.count == others.count:
+            return .list(try zip(elements, others).enumerated().map { index, pair in
+                try merge(pair.0, pair.1, as: structure.element, place: place.appending(index: index), byElement: true)
+            })
+
+        default:
+            return over
+        }
+    }
+
     private func mergeObjects(
         _ under: LookValue,
         _ over: LookValue,
         as structure: ValueStructure,
-        place: Place
+        place: Place,
+        byElement: Bool
     ) throws -> LookValue {
         try over.members.reduce(under) { merged, member in
             let child = childStructure(of: member.key, in: structure)
             let partners = if case let .object(object) = structure { object.partners(of: member.key) } else { [String]() }
             let cleared = member.value == .unset ? merged : partners.reduce(merged) { $0.setting($1, to: nil) }
-            let value = try merge(cleared[member.key], member.value, as: child, place: place.appending(key: member.key))
+            let value = try merge(
+                cleared[member.key],
+                member.value,
+                as: child,
+                place: place.appending(key: member.key),
+                byElement: byElement
+            )
 
             return cleared.setting(member.key, to: value)
         }

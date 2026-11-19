@@ -153,6 +153,14 @@ struct ResolvedDocumentReaderTests {
             "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
               { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
         """#,
+        // Audio filters: a storyline clip's held entries and a connected sound's band swept by its keyframes.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
+          "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+                       "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
+                                      { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
+        """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
@@ -247,7 +255,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""loop": true,"#,
                 #""loop": true, "scale": [],"#,
-                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing"#
+                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing, audioFilter"#
             )
         ]
     )

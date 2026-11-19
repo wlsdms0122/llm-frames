@@ -29,6 +29,21 @@ indirect enum ValueStructure: Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
+    // The structure of each element of a list of this structure. A list of choices is a list whose every element is
+    // that choice.
+    var element: ValueStructure {
+        switch self {
+        case let .list(element):
+            element
+
+        case .choice:
+            self
+
+        case .anyValue, .leaf, .object, .map, .forms:
+            .anyValue
+        }
+    }
+
     func structure(ofForm name: String) -> ValueStructure? {
         switch self {
         case let .forms(forms):

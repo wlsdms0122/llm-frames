@@ -89,7 +89,7 @@ struct TimedValueBuilder: Sendable {
             return .object(timed)
 
         case let (.list(elements), _):
-            let element = Self.element(of: structure)
+            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
                 try timed(
                     value,
@@ -224,7 +224,7 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.list(elements), _):
-            let element = Self.element(of: structure)
+            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
                 try skeleton(of: value, as: element, place: place.appending(index: index))
             })
@@ -289,20 +289,6 @@ struct TimedValueBuilder: Sendable {
         guard case let .list(elements) = value, elements.indices.contains(index) else { return nil }
 
         return elements[index]
-    }
-
-    // A list of choices is a list whose every element is that choice.
-    private static func element(of structure: ValueStructure) -> ValueStructure {
-        switch structure {
-        case let .list(element):
-            element
-
-        case .choice:
-            structure
-
-        case .anyValue, .leaf, .object, .map, .forms:
-            .anyValue
-        }
     }
 
     private static func structure(

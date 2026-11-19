@@ -19,6 +19,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case speedWithTimeRemap(place: Place, kind: PlaceKind)
     case soundWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case pictureOffWithoutSound(place: Place, kind: PlaceKind)
+    case audioFilterWithoutSound(place: Place, kind: PlaceKind)
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
@@ -115,6 +116,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .pictureOffWithoutSound(place, kind):
             "\(place) (\(kind.label)): \"picture\": false takes only the media's sound, and this media holds none, so "
                 + "the clip would play nothing"
+
+        case let .audioFilterWithoutSound(place, kind):
+            "\(place) (\(kind.label)): this clip plays no sound, so \"audioFilter\" would do nothing"
 
         case let .rangeWithTimeRemap(place, kind, key):
             "\(place) (\(kind.label)): a media clip with \"timeRemap\" takes no \"\(key)\", since its keys give the "

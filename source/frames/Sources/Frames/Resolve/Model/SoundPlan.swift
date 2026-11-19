@@ -11,6 +11,7 @@
 // `volume` and `pan` are in sequence time. `fadeIn` and `fadeOut` are the ranges its volume ramps from and to 0 over,
 // at the ends of a clip's window or a storyline clip's drawn range, and `incoming` and `outgoing` are the transitions
 // it crossfades over. `nested` holds the sounds of a compound clip or a sequence document, on its own clock.
+// `audioFilter` is the timed list of entries its sound is processed with, `off` for none.
 struct SoundPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -25,6 +26,7 @@ struct SoundPlan: Equatable, Sendable {
     let incoming: Crossfade?
     let outgoing: Crossfade?
     let nested: [SoundPlan]
+    let audioFilter: TimedValue
 
     // MARK: - Initializer
     init(
@@ -39,7 +41,8 @@ struct SoundPlan: Equatable, Sendable {
         fadeOut: TimeRange?,
         incoming: Crossfade?,
         outgoing: Crossfade?,
-        nested: [SoundPlan]
+        nested: [SoundPlan],
+        audioFilter: TimedValue = .off
     ) {
         self.place = place
         self.media = media
@@ -53,6 +56,7 @@ struct SoundPlan: Equatable, Sendable {
         self.incoming = incoming
         self.outgoing = outgoing
         self.nested = nested
+        self.audioFilter = audioFilter
     }
 
     // MARK: - Public

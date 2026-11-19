@@ -358,7 +358,8 @@ struct ResolvedDocumentWriterTests {
               "fadeIn": null,
               "fadeOut": null,
               "incoming": null,
-              "outgoing": null
+              "outgoing": null,
+              "audioFilter": null
             },
             {
               "place": "clips[2]",
@@ -402,7 +403,8 @@ struct ResolvedDocumentWriterTests {
               "fadeIn": null,
               "fadeOut": null,
               "incoming": null,
-              "outgoing": null
+              "outgoing": null,
+              "audioFilter": null
             }
           ]
         }

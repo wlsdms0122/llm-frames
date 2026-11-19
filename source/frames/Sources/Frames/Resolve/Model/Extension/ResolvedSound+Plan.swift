@@ -33,7 +33,8 @@ extension ResolvedSound {
             fadeIn: plan.fadeIn,
             fadeOut: plan.fadeOut,
             incoming: plan.incoming,
-            outgoing: plan.outgoing
+            outgoing: plan.outgoing,
+            audioFilter: plan.audioFilter
         )
     }
 
