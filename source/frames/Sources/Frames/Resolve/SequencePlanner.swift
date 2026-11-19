@@ -100,7 +100,7 @@ struct SequencePlanner: Sendable {
         // Text a tracked clip finds lies in the media it follows, where it is at the value's own time, as evaluation
         // takes it, and what was found under a shape or adjustment is brought into its space once every track and
         // shape is planned.
-        let parentSpace = ParentSpacePlanner(
+        let parentSpace = try ParentSpacePlanner(
             tracked: tracked,
             written: written,
             shapes: shapes,
@@ -109,13 +109,13 @@ struct SequencePlanner: Sendable {
             positions: found.map(\.position),
             masks: found.map(\.mask)
         )
-        let placed = time.clips.indices.map { index in
+        let placed = try time.clips.indices.map { index in
             (
-                area: parentSpace.area(of: index),
-                points: parentSpace.points(of: index),
-                position: parentSpace.position(of: index),
+                area: try parentSpace.area(of: index),
+                points: try parentSpace.points(of: index),
+                position: try parentSpace.position(of: index),
                 crop: found[index].crop,
-                mask: parentSpace.mask(of: index)
+                mask: try parentSpace.mask(of: index)
             )
         }
 

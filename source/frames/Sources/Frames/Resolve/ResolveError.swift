@@ -65,6 +65,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
+    case flatParent(place: Place, kind: PlaceKind, instant: Double)
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
@@ -287,6 +288,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .neverFollowed(place, kind, visible):
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
+
+        case let .flatParent(place, kind, instant):
+            "\(place) (\(kind.label)): found by text at \(number(instant)), where its parent's transform has a scale "
+                + "of 0 on an axis and cannot be undone to bring it into the parent's space"
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"
