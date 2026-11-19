@@ -12,6 +12,7 @@ struct LeafKind: Equatable, Sendable {
     static let name = LeafKind(form: .name)
     static let boolean = LeafKind(form: .boolean)
     static let color = LeafKind(form: .color)
+    static let staticNumber = LeafKind(form: .staticNumber)
 
     let form: LeafForm
     let domain: LeafDomain

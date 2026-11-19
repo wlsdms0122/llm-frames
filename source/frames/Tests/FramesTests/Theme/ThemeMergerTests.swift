@@ -132,11 +132,11 @@ struct ThemeMergerTests {
     @Test("a layer with an unknown key stops before anything is merged")
     func refusesUnknownKey() throws {
         // Given
-        let file = try Fixture.json(#"{ "styles": { "caption": { "size": 30, "font": "Inter" } } }"#)
+        let file = try Fixture.json(#"{ "styles": { "caption": { "size": 30, "family": "Inter" } } }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == #"styles.caption (style): unknown key "font". Allowed: size, weight, color, lineHeight, stroke, background, placement, offset, align, lines"#)
+        #expect(error?.description == #"styles.caption (style): unknown key "family". Allowed: font, size, weight, italic, tracking, kerning, features, baselineShift, color, lineHeight, stroke, background, highlight, underline, placement, offset, align, lines"#)
     }
 
     @Test("a stroke whose layers together give no width stops after the merge, naming the layer that writes it")

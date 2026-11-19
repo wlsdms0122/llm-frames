@@ -28,13 +28,13 @@ extension MergedTheme {
         (value(at: ["shapes"])?.objectValue?.keys ?? []).sorted()
     }
 
-    // Where the font list was written, which a stop on it names.
-    var fontPlace: Place {
-        place(of: Place(components: [.key("font")]))
-    }
-
     // MARK: - Initializer
     // MARK: - Public
+    // Where a style's font list was written, its own or the theme's, which a stop on it names.
+    func fontPlace(ofStyle name: String) -> Place {
+        place(of: fontPath(ofStyle: name))
+    }
+
     // The length scale of a place `width` wide: theme lengths are points at `baseWidth`.
     func lengthScale(at width: Double) -> Double {
         width / baseWidth
@@ -79,28 +79,38 @@ extension MergedTheme {
     }
 
     // A style's character attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
-    // value: regular, the `text` colour and no stroke, and a stroke without a colour takes the `text` colour. Every
-    // style has a size, since the merged theme stopped on one without, and the typesetter stopped on a name the theme
-    // does not hold.
+    // value: the theme `font`, regular, upright, no tracking, kerned, the `text` colour, and no stroke, highlight or
+    // underline. A stroke without a colour takes the `text` colour and a highlight without one the `background`
+    // colour. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a
+    // name the theme does not hold.
     func characterStyle(
         named name: String,
         scale: Double
     ) -> CharacterStyle {
         let style = style(named: name)
-        let font = Place(components: [.key("font")])
+        let font = fontPath(ofStyle: name)
 
         return CharacterStyle(
-            families: (value(at: ["font"])?.arrayValue ?? []).compactMap(\.stringValue),
+            families: (value(at: font.components.compactMap(\.key))?.arrayValue ?? []).compactMap(\.stringValue),
             pack: pack(of: font),
-            weight: style["weight"]?.stringValue.flatMap(FontWeight.init) ?? .regular,
+            weight: style["weight"].flatMap(FontWeight.init(written:)) ?? .regular,
+            italic: style["italic"]?.boolValue ?? false,
             size: (style["size"]?.numberValue ?? 0) * scale,
+            tracking: style["tracking"]?.numberValue ?? 0,
+            isKerned: style["kerning"]?.stringValue != "none",
+            features: (style["features"]?.objectValue?.members ?? []).compactMap { member in
+                member.value.numberValue.map { FontFeature(tag: member.key, value: Int($0)) }
+            },
+            baselineShift: (style["baselineShift"]?.numberValue ?? 0) * scale,
             color: color(style["color"]?.stringValue ?? "text"),
             stroke: style["stroke"]?.objectValue.map { stroke in
                 TextStroke(
                     width: (stroke["width"]?.numberValue ?? 0) * scale,
                     color: color(stroke["color"]?.stringValue ?? "text")
                 )
-            }
+            },
+            highlight: style["highlight"]?.objectValue.map { box(of: $0, scale: scale) },
+            underline: underline(of: style["underline"], scale: scale)
         )
     }
 
@@ -116,14 +126,7 @@ extension MergedTheme {
 
         return ParagraphStyle(
             lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
-            background: style["background"]?.objectValue.map { background in
-                let padding = background["padding"]?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
-                return TextBackground(
-                    color: color(background["color"]?.stringValue ?? "background"),
-                    padding: Size(width: padding[1] * scale, height: padding[0] * scale),
-                    radius: (background["radius"]?.numberValue ?? 0) * scale
-                )
-            },
+            background: style["background"]?.objectValue.map { box(of: $0, scale: scale) },
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
             lines: style["lines"]?.numberValue.map { Int($0) }
         )
@@ -135,9 +138,49 @@ extension MergedTheme {
     }
 
     // MARK: - Private
+    private func fontPath(ofStyle name: String) -> Place {
+        let path = Place(components: [.key("styles"), .key(name), .key("font")])
+
+        return style(named: name)["font"] == nil ? Place(components: [.key("font")]) : path
+    }
 
     private func style(named name: String) -> JSONObject {
         value(at: ["styles", name])?.objectValue ?? JSONObject()
+    }
+
+    // A highlight or a background: without `color` the `background` colour, without `padding` or `radius` 0.
+    private func box(
+        of written: JSONObject,
+        scale: Double
+    ) -> TextBackground {
+        let padding = written["padding"]?.arrayValue?.compactMap(\.numberValue) ?? [0, 0]
+
+        return TextBackground(
+            color: color(written["color"]?.stringValue ?? "background"),
+            padding: Size(width: padding[1] * scale, height: padding[0] * scale),
+            radius: (written["radius"]?.numberValue ?? 0) * scale
+        )
+    }
+
+    // `true` and an object are an underline, each leaf it leaves out given by the run's face and colour.
+    private func underline(
+        of written: JSONValue?,
+        scale: Double
+    ) -> TextUnderline? {
+        switch written {
+        case .bool(true):
+            return TextUnderline(width: nil, offset: nil, color: nil)
+
+        case let .object(underline):
+            return TextUnderline(
+                width: underline["width"]?.numberValue.map { $0 * scale },
+                offset: underline["offset"]?.numberValue.map { $0 * scale },
+                color: underline["color"]?.stringValue.map(color)
+            )
+
+        default:
+            return nil
+        }
     }
 
     private func number(at path: [String]) -> Double {

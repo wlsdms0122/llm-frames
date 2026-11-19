@@ -58,24 +58,24 @@ struct FontFinderTests {
         let sut = FontFinder(shaper: ShaperTable(installed: ["Inter"]), library: directory.library())
 
         // When
-        let face = try sut.face(for: style(["Inter"], pack: "shorts"), place: .root)
+        let faces = try sut.faces(for: style(["Inter"], pack: "shorts"), place: .root)
 
         // Then
-        #expect(face == ShaperTable.face("Inter", .bold, file: fontFile))
+        #expect(faces == [ShaperTable.face("Inter", .bold, file: fontFile)])
     }
 
-    @Test("the first family in the list that the pack carries or the machine has is chosen")
-    func takesFirstFamilyFound() throws {
+    @Test("every family in the list that the pack carries or the machine has gives a face, in the list's order")
+    func takesFamiliesFound() throws {
         // Given
         let sut = FontFinder(shaper: ShaperTable(installed: ["Apple SD Gothic Neo"]), library: directory.library())
 
         // When
-        let machine = try sut.face(for: style(["Missing", "Apple SD Gothic Neo", "Inter"], pack: "shorts"), place: .root)
-        let withoutPack = try sut.face(for: style(["Inter", "Apple SD Gothic Neo"], pack: nil), place: .root)
+        let packed = try sut.faces(for: style(["Missing", "Apple SD Gothic Neo", "Inter"], pack: "shorts"), place: .root)
+        let withoutPack = try sut.faces(for: style(["Inter", "Apple SD Gothic Neo"], pack: nil), place: .root)
 
         // Then
-        #expect(machine == ShaperTable.face("Apple SD Gothic Neo", .bold))
-        #expect(withoutPack == ShaperTable.face("Apple SD Gothic Neo", .bold))
+        #expect(packed == [ShaperTable.face("Apple SD Gothic Neo", .bold), ShaperTable.face("Inter", .bold, file: fontFile)])
+        #expect(withoutPack == [ShaperTable.face("Apple SD Gothic Neo", .bold)])
     }
 
     @Test("a list with no family in the pack or on the machine stops, naming the families")
@@ -86,10 +86,10 @@ struct FontFinderTests {
 
         // When, Then
         let error = #expect(throws: TextError.self) {
-            try sut.face(for: style(["Missing", "Other"], pack: "shorts"), place: place)
+            try sut.faces(for: style(["Missing", "Other"], pack: "shorts"), place: place)
         }
         #expect(error?.description == #"""
-            shorts/shorts: font (theme): no family of "Missing", "Other" is in its pack or on the machine in bold
+            shorts/shorts: font (theme): no family of "Missing", "Other" is in its pack or on the machine
             """#)
     }
 

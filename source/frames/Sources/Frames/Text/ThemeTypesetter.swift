@@ -37,7 +37,7 @@ struct ThemeTypesetter: Sendable {
     ) throws -> TextLayout {
         try check(name, place: stylePlace, theme: theme, kind: kind)
 
-        var faces: [String: FontFace] = [:]
+        var faces: [String: [FontFace]] = [:]
         let textRuns = try runs.enumerated().map { index, run in
             let runStyle = run.style ?? name
             if let named = run.style {
@@ -45,10 +45,10 @@ struct ThemeTypesetter: Sendable {
             }
 
             let style = theme.characterStyle(named: runStyle, scale: scale)
-            let face = try faces[runStyle] ?? fonts.face(for: style, place: theme.fontPlace)
-            faces[runStyle] = face
+            let runFaces = try faces[runStyle] ?? fonts.faces(for: style, place: theme.fontPlace(ofStyle: runStyle))
+            faces[runStyle] = runFaces
 
-            return TextRun(text: run.text, style: style, face: face)
+            return TextRun(text: run.text, style: style, faces: runFaces)
         }
 
         return try typesetter.layout(

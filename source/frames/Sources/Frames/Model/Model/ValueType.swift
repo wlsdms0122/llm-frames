@@ -57,4 +57,8 @@ indirect enum ValueType: Equatable, Sendable {
     // A preset name, `{preset, args}`, or a list of at least one of those without `"none"`.
     case filterChoice
     case filterOperation
+    // A whole number from 100 to 900 or the name of an OpenType weight class.
+    case fontWeight
+    // OpenType feature settings: four-character tags, `kern` aside, each to a whole number 0 or more.
+    case fontFeatures
 }

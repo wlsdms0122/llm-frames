@@ -36,8 +36,14 @@ enum ThemeKeyTable {
     static let style = ObjectTable(
         kind: "style",
         rules: [
+            KeyRule("font", .list(.name)),
             KeyRule("size", .number),
-            KeyRule("weight", .literal(["regular", "bold"])),
+            KeyRule("weight", .fontWeight),
+            KeyRule("italic", .bool),
+            KeyRule("tracking", .number),
+            KeyRule("kerning", .literal(["metrics", "none"])),
+            KeyRule("features", .fontFeatures),
+            KeyRule("baselineShift", .number),
             KeyRule("color", .color),
             KeyRule("lineHeight", .number),
             KeyRule("stroke", .oneOf([
@@ -58,6 +64,28 @@ enum ThemeKeyTable {
                         KeyRule("color", .color),
                         KeyRule("padding", .numbers(2)),
                         KeyRule("radius", .number)
+                    ]
+                ))
+            ])),
+            KeyRule("highlight", .oneOf([
+                .exactly(.bool(false)),
+                .object(ObjectTable(
+                    kind: "highlight",
+                    rules: [
+                        KeyRule("color", .color),
+                        KeyRule("padding", .numbers(2)),
+                        KeyRule("radius", .number)
+                    ]
+                ))
+            ])),
+            KeyRule("underline", .oneOf([
+                .bool,
+                .object(ObjectTable(
+                    kind: "underline",
+                    rules: [
+                        KeyRule("width", .number),
+                        KeyRule("offset", .number),
+                        KeyRule("color", .color)
                     ]
                 ))
             ])),

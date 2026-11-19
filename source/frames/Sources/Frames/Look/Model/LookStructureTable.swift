@@ -59,13 +59,31 @@ enum LookStructureTable {
         ("radius", .leaf(.length()))
     ]))
 
+    static let highlight = background
+
+    static let underline = ValueStructure.object(ObjectStructure(
+        [
+            ("width", .leaf(.length(.positive))),
+            ("offset", .leaf(.length(.any))),
+            ("color", .leaf(.color))
+        ],
+        shorthands: [.on]
+    ))
+
     static let textStyle = ValueStructure.object(ObjectStructure([
         ("font", .list(.leaf(.name))),
         ("size", .leaf(.length(.positive))),
         ("weight", .leaf(.name)),
+        ("italic", .leaf(.boolean)),
+        ("tracking", .leaf(.number())),
+        ("kerning", .leaf(.name)),
+        ("features", .map(.leaf(.staticNumber))),
+        ("baselineShift", .leaf(.length(.any))),
         ("color", .leaf(.color)),
         ("lineHeight", .leaf(.length(.positive))),
         ("stroke", textStroke),
+        ("highlight", highlight),
+        ("underline", underline),
         ("background", background),
         ("placement", .leaf(.name)),
         ("offset", .leaf(.length())),

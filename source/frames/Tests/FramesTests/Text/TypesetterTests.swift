@@ -36,6 +36,7 @@ struct TypesetterTests {
             lineCount: 1,
             runs: [
                 GlyphRun(
+                    source: 0,
                     face: face,
                     size: 40,
                     color: text,
@@ -58,8 +59,9 @@ struct TypesetterTests {
 
         // Then
         #expect(layout.runs == [
-            GlyphRun(face: face, size: 40, color: text, stroke: nil, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
+            GlyphRun(source: 0, face: face, size: 40, color: text, stroke: nil, glyphs: [glyph("a", 0, 32), glyph(" ", 20, 32)]),
             GlyphRun(
+                source: 1,
                 face: face,
                 size: 20,
                 color: accent,
@@ -276,6 +278,125 @@ struct TypesetterTests {
         #expect(layout.runs.map { $0.glyphs.map(\.x) } == [[0], [20], [40]])
     }
 
+    @Test("tracking follows every grapheme cluster but the last on its line, so a centred line keeps its place")
+    func tracksBetweenClusters() throws {
+        // Given
+        let runs = [run("ab", style: character(tracking: 100))]
+
+        // When
+        let left = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+        let centred = try sut.layout(runs, paragraph: paragraph(align: .center), width: 100, place: place, kind: "title")
+
+        // Then
+        #expect(left.size.width == 44)
+        #expect(left.runs.flatMap(\.glyphs).map(\.x) == [0, 24])
+        #expect(centred.runs.flatMap(\.glyphs).map(\.x) == [28, 52])
+    }
+
+    @Test("a cluster of several scalars takes the tracking once")
+    func tracksClustersOnce() throws {
+        // Given
+        let runs = [run("e\u{301}b", style: character(tracking: 100))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.flatMap(\.glyphs).map(\.x) == [0, 20, 44])
+    }
+
+    @Test("lines break at the widest tracking a run takes and its glyphs are placed at its static tracking")
+    func breaksAtWidestTracking() throws {
+        // Given
+        let widest = TextRun(text: "aa aa", style: character(), faces: [face], widestTracking: 500)
+
+        // When
+        let still = try sut.layout([run("aa aa")], paragraph: paragraph(), width: 120, place: place, kind: "title")
+        let moving = try sut.layout([widest], paragraph: paragraph(), width: 120, place: place, kind: "title")
+
+        // Then
+        #expect(still.lineCount == 1)
+        #expect(moving.lineCount == 2)
+        #expect(moving.runs.map { $0.glyphs.map(\.x) } == [[0, 20, 40], [0, 20]])
+    }
+
+    @Test("the optional ligatures are off in a tracked run unless its features turn them on, and on otherwise")
+    func turnsLigaturesOffUnderTracking() throws {
+        // Given
+        let plain = run("fi")
+        let tracked = run("fi", style: character(tracking: 50))
+        let ligated = run("fi", style: character(tracking: 50, features: [FontFeature(tag: "liga", value: 1)]))
+
+        // When
+        let counts = try [plain, tracked, ligated].map { run in
+            try sut.layout([run], paragraph: paragraph(), width: nil, place: place, kind: "title").runs.flatMap(\.glyphs).count
+        }
+
+        // Then
+        #expect(counts == [1, 2, 1])
+    }
+
+    @Test("kerning off sets each glyph at its own advance")
+    func turnsKerningOff() throws {
+        // Given
+        let kerned = run("AV")
+        let unkerned = run("AV", style: character(isKerned: false))
+
+        // When
+        let widths = try [kerned, unkerned].map { run in
+            try sut.layout([run], paragraph: paragraph(), width: nil, place: place, kind: "title").size.width
+        }
+
+        // Then
+        #expect(widths == [36, 40])
+    }
+
+    @Test("characters a run's face lacks are set in the later faces of its font list before the provider's fallback")
+    func fallsBackThroughFontList() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(lacks: ["Apple SD Gothic Neo": ["b"]]))
+        let other = ShaperTable.face("Inter", .bold)
+        let runs = [TextRun(text: "ab", style: character(), faces: [face, other])]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map(\.face) == [face, other])
+    }
+
+    @Test("a highlight is one piece per line from the run's ascent to its descent, the spaces ending a line left out")
+    func cutsHighlightPerLine() throws {
+        // Given
+        let highlight = TextBackground(color: accent, padding: Size(width: 8, height: 2), radius: 4)
+        let runs = [run("aa bb", style: character(highlight: highlight))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 60, place: place, kind: "title")
+        let plain = try sut.layout([run("aa bb")], paragraph: paragraph(), width: 60, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map(\.highlights) == [
+            [Rectangle(x: 0, y: 0, width: 40, height: 40)],
+            [Rectangle(x: 0, y: 50, width: 40, height: 40)]
+        ])
+        #expect(layout.size == plain.size)
+        #expect(layout.runs.map(\.glyphs) == plain.runs.map(\.glyphs))
+    }
+
+    @Test("an underline piece spans its run's glyphs on the baseline, spaces inside the line included")
+    func cutsUnderlineOnBaseline() throws {
+        // Given
+        let underline = TextUnderline(width: nil, offset: nil, color: nil)
+        let runs = [run("a"), run(" bb ", style: character(underline: underline)), run("c")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map(\.underlines) == [[], [UnderlinePiece(x: 20, y: 32, width: 60)], []])
+    }
+
     @Test("a one-line style never wraps, and without a width takes a line of any length")
     func keepsOneLine() throws {
         // Given
@@ -370,16 +491,26 @@ struct TypesetterTests {
 
     private func character(
         size: Double = 40,
+        tracking: Double = 0,
+        isKerned: Bool = true,
+        features: [FontFeature] = [],
         color: Color? = nil,
-        stroke: TextStroke? = nil
+        stroke: TextStroke? = nil,
+        highlight: TextBackground? = nil,
+        underline: TextUnderline? = nil
     ) -> CharacterStyle {
         CharacterStyle(
             families: ["Apple SD Gothic Neo"],
             pack: nil,
             weight: .bold,
             size: size,
+            tracking: tracking,
+            isKerned: isKerned,
+            features: features,
             color: color ?? text,
-            stroke: stroke
+            stroke: stroke,
+            highlight: highlight,
+            underline: underline
         )
     }
 
@@ -387,7 +518,7 @@ struct TypesetterTests {
         _ text: String,
         style: CharacterStyle? = nil
     ) -> TextRun {
-        TextRun(text: text, style: style ?? character(), face: face)
+        TextRun(text: text, style: style ?? character(), faces: [face])
     }
 
     private func glyph(

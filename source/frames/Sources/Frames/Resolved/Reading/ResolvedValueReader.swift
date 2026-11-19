@@ -407,7 +407,7 @@ struct ResolvedValueReader: Sendable {
         case let .numbers(count):
             .numbers(try value.numbers(count: count))
 
-        case .number, .name, .boolean, .file:
+        case .number, .name, .boolean, .file, .staticNumber:
             .number(try value.number())
         }
     }

@@ -157,7 +157,7 @@ struct ClipLookPlanner: Sendable {
         case .numbers:
             return .numbers((value.arrayValue ?? []).compactMap(\.numberValue).map { $0 * length })
 
-        case .number, .name, .boolean, .file:
+        case .number, .name, .boolean, .file, .staticNumber:
             return .number((value.numberValue ?? 0) * length)
         }
     }

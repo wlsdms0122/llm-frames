@@ -291,6 +291,12 @@ struct KeyChecker: Sendable {
 
         case .filterChoice:
             try checkFilterChoice(value, place: place, kind: kind, scope: &scope)
+
+        case .fontWeight:
+            try checkFontWeight(value, place: place, kind: kind)
+
+        case .fontFeatures:
+            try checkFontFeatures(value, place: place, kind: kind)
         }
     }
 
@@ -559,6 +565,51 @@ struct KeyChecker: Sendable {
     }
 
     // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
+    private func checkFontWeight(
+        _ value: JSONValue,
+        place: Place,
+        kind: String
+    ) throws {
+        if let name = value.stringValue {
+            let names = FontWeight.names.map(\.name)
+            guard names.contains(name) else {
+                throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: names)
+            }
+            return
+        }
+        guard let number = value.numberValue, let weight = Int(exactly: number), (100...900).contains(weight) else {
+            throw wrongType(value, .fontWeight, place, kind)
+        }
+    }
+
+    // `kern` is a key of its own, `kerning`, so a style cannot set it twice.
+    private func checkFontFeatures(
+        _ value: JSONValue,
+        place: Place,
+        kind: String
+    ) throws {
+        guard let object = value.objectValue else { throw wrongType(value, .fontFeatures, place, kind) }
+
+        for member in object.members {
+            let tagPlace = place.appending(key: member.key)
+            guard member.key != "kern" else {
+                throw ModelError.invalidValue(place: tagPlace, kind: "features", reason: "`kern` is set by `kerning`")
+            }
+            let isTag = member.key.unicodeScalars.count == 4
+                && member.key.unicodeScalars.allSatisfy { (0x20...0x7E).contains($0.value) }
+            guard isTag else {
+                throw ModelError.invalidValue(
+                    place: tagPlace,
+                    kind: "features",
+                    reason: "a feature tag is four printable ASCII characters"
+                )
+            }
+            guard let number = member.value.numberValue, Int(exactly: number) != nil, number >= 0 else {
+                throw wrongType(member.value, .nonNegativeInteger, tagPlace, "features")
+            }
+        }
+    }
+
     private func checkMargin(
         _ value: JSONValue,
         place: Place,
@@ -1210,6 +1261,9 @@ struct KeyChecker: Sendable {
         case (.filterChoice, .string), (.filterChoice, .object), (.filterChoice, .array):
             true
 
+        case (.fontWeight, .number), (.fontWeight, .string), (.fontFeatures, .object):
+            true
+
         default:
             false
         }
@@ -1327,6 +1381,12 @@ struct KeyChecker: Sendable {
 
         case .filterChoice:
             "a preset name, {preset, args} or a list of them"
+
+        case .fontWeight:
+            "a whole number from 100 to 900 or a weight name"
+
+        case .fontFeatures:
+            "an object of feature tags"
         }
     }
 

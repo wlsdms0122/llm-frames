@@ -5,7 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Each run is shaped on its own, and lines break by UAX #14 over the text of all runs together.
+// Each run is shaped on its own, and lines break by UAX #14 over the text of all runs together. Tracking is added after
+// every grapheme cluster but the last on its line, so it widens no line past its last character and moves no centred
+// or right-aligned line off its place.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -17,8 +19,9 @@ struct Typesetter: Sendable {
     }
 
     // MARK: - Public
-    // `width` is the width of the text box in output pixels, and the text wraps at it. Without it the text breaks
-    // only at `\n` and the box is as wide as the widest line. A piece of a word wider than `width` that cannot break
+    // `width` is the width of the text box in output pixels, and the text wraps at it with each run at its widest
+    // tracking, while glyphs are placed at its static tracking. Without it the text breaks only at `\n` and the box
+    // is as wide as the widest line. A piece of a word wider than `width` that cannot break
     // widens the box to hold it. Text that takes more lines than its paragraph style's `lines`, counting every `\n`,
     // stops. A style of one line wraps at no width, and is too wide when it is wider than `width`. Lines lie the line
     // height apart, baseline to baseline: the first baseline is its line's largest ascent below the top, and the box
@@ -69,15 +72,23 @@ struct Typesetter: Sendable {
 
     // MARK: - Private
     // `\n` ends a paragraph, whichever run it is in. Each paragraph begins with a piece of the run its first scalar or
-    // the `\n` before it lies in, empty or not, so a line with no glyphs takes that run's extent.
-    private func paragraphs(of runs: [TextRun]) -> [[TextRun]] {
-        runs.reduce(into: [[TextRun]]()) { paragraphs, run in
+    // the `\n` before it lies in, empty or not, so a line with no glyphs takes that run's extent. Each piece keeps
+    // the index of its run.
+    private func paragraphs(of runs: [TextRun]) -> [[(source: Int, run: TextRun)]] {
+        runs.enumerated().reduce(into: [[(source: Int, run: TextRun)]]()) { paragraphs, element in
+            let (source, run) = element
             for (index, piece) in run.text.components(separatedBy: "\n").enumerated() {
-                let text = TextRun(text: piece, style: run.style, face: run.face)
+                let text = TextRun(
+                    text: piece,
+                    style: run.style,
+                    faces: run.faces,
+                    widestTracking: run.widestTracking,
+                    isSpacedApart: run.isSpacedApart
+                )
                 if index > 0 || paragraphs.isEmpty {
-                    paragraphs.append([text])
+                    paragraphs.append([(source, text)])
                 } else if !piece.isEmpty {
-                    paragraphs[paragraphs.count - 1].append(text)
+                    paragraphs[paragraphs.count - 1].append((source, text))
                 }
             }
         }
@@ -87,12 +98,12 @@ struct Typesetter: Sendable {
     // wider than the width starts a line of its own and breaks inside where UAX #14 allows, and a piece of it still
     // wider overflows alone. Without a width only a mandatory break ends a line.
     private func lines(
-        of paragraph: [TextRun],
+        of paragraph: [(source: Int, run: TextRun)],
         width: Double?,
         place: Place,
         kind: String
     ) throws -> [TextLine] {
-        let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
+        let scalars = paragraph.flatMap { Array($0.run.text.unicodeScalars) }
         let glyphs = try shaped(paragraph, place: place, kind: kind)
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
@@ -102,7 +113,7 @@ struct Typesetter: Sendable {
         for (index, start) in starts.enumerated() {
             let end = starts.indices.contains(index + 1) ? starts[index + 1] : scalars.count
             let word = glyphs.filter { (start..<end).contains($0.glyph.offset) }
-            let isTooWide = width.map { visibleWidth(of: word, scalars: scalars) > $0 } ?? false
+            let isTooWide = width.map { breakWidth(of: word) > $0 } ?? false
             if isTooWide && !current.isEmpty {
                 lines.append(current)
                 current = []
@@ -110,7 +121,7 @@ struct Typesetter: Sendable {
 
             for piece in isTooWide ? pieces(of: word, breaks: breaks) : [word] {
                 let candidate = current + piece
-                let overflows = width.map { !current.isEmpty && visibleWidth(of: candidate, scalars: scalars) > $0 }
+                let overflows = width.map { !current.isEmpty && breakWidth(of: candidate) > $0 }
 
                 if overflows ?? false {
                     lines.append(current)
@@ -127,12 +138,12 @@ struct Typesetter: Sendable {
         lines.append(current)
 
         // A line with no glyphs is a paragraph with no text, and takes the extent of the run it begins in.
-        let home = paragraph.first.map { [TextExtent(face: $0.face, size: $0.style.size)] } ?? []
+        let home = paragraph.first.map { [TextExtent(face: $0.run.faces[0], size: $0.run.style.size)] } ?? []
         return lines.map { glyphs in
             let extents = glyphs.isEmpty ? home : glyphs.map { TextExtent(face: $0.face, size: $0.style.size) }
             return TextLine(
                 glyphs: glyphs,
-                width: visibleWidth(of: glyphs, scalars: scalars),
+                width: visibleWidth(of: glyphs, tracking: \.tracking),
                 ascent: extents.map(\.ascent).reduce(0, max),
                 descent: extents.map(\.descent).reduce(0, max)
             )
@@ -156,14 +167,14 @@ struct Typesetter: Sendable {
     // Each run is shaped on its own, since a run boundary ends a shaping run, and its glyphs are told by the scalar
     // they start at in the whole paragraph.
     private func shaped(
-        _ paragraph: [TextRun],
+        _ paragraph: [(source: Int, run: TextRun)],
         place: Place,
         kind: String
     ) throws -> [StyledGlyph] {
         var start = 0
         var glyphs: [StyledGlyph] = []
-        for run in paragraph {
-            let shapedRuns = try Result { try shaper.shape(run.text, face: run.face, size: run.style.size) }
+        for (source, run) in paragraph {
+            let shapedRuns = try Result { try shape(run) }
                 .mapError { error in
                     ProviderError.failed(
                         provider: .shaping,
@@ -174,15 +185,23 @@ struct Typesetter: Sendable {
                     )
                 }
                 .get()
-            
-            for shaped in shapedRuns {
-                glyphs += shaped.glyphs.map { glyph in
-                    StyledGlyph(
-                        glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
-                        face: shaped.face,
-                        style: run.style
-                    )
-                }
+            let runGlyphs = shapedRuns.flatMap { shaped in shaped.glyphs.map { (face: shaped.face, glyph: $0) } }
+            let clusters = clusterCounts(of: run.text, glyphOffsets: runGlyphs.map(\.glyph.offset))
+            let scalars = Array(run.text.unicodeScalars)
+            let em = run.style.size / 1000
+
+            glyphs += zip(runGlyphs, clusters).map { element, count in
+                let (face, glyph) = element
+                return StyledGlyph(
+                    glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
+                    isSpace: scalars[glyph.offset].properties.isWhitespace,
+                    face: face,
+                    source: source,
+                    style: run.style,
+                    runFace: run.faces[0],
+                    tracking: Double(count) * run.style.tracking * em,
+                    widestTracking: Double(count) * run.widestTracking * em
+                )
             }
             start += run.text.unicodeScalars.count
         }
@@ -190,12 +209,65 @@ struct Typesetter: Sendable {
         return glyphs
     }
 
+    // The number of grapheme clusters that end in each glyph: a cluster ends in the last glyph that starts at or
+    // before its last scalar, so a ligature over two clusters takes the tracking of both.
+    private func clusterCounts(
+        of text: String,
+        glyphOffsets: [Int]
+    ) -> [Int] {
+        var counts = Array(repeating: 0, count: glyphOffsets.count)
+        var end = 0
+        for character in text {
+            end += character.unicodeScalars.count
+            if let index = glyphOffsets.lastIndex(where: { $0 <= end - 1 }) {
+                counts[index] += 1
+            }
+        }
+
+        return counts
+    }
+
+    // The style's features over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced
+    // apart. A later setting of a tag replaces an earlier one.
+    private func shape(_ run: TextRun) throws -> [ShapedRun] {
+        let style = run.style
+        let ligatures = run.isSpacedApart ? ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) } : []
+        let settings = [FontFeature(tag: "kern", value: style.isKerned ? 1 : 0)] + ligatures + style.features
+        let features = settings.reduce(into: [FontFeature]()) { features, feature in
+            features.removeAll { $0.tag == feature.tag }
+            features.append(feature)
+        }
+
+        return try shaper.shape(
+            run.text,
+            faces: run.faces,
+            size: style.size,
+            features: features,
+            weight: style.weight,
+            italic: style.italic
+        )
+    }
+
+    // The glyphs that end a line on spaces hang outside it.
+    private func visibleGlyphs(of glyphs: [StyledGlyph]) -> ArraySlice<StyledGlyph> {
+        let hanging = glyphs.reversed().prefix(while: \.isSpace).count
+
+        return glyphs.dropLast(hanging)
+    }
+
+    // The advances and the tracking between the visible glyphs, without the tracking after the last.
     private func visibleWidth(
         of glyphs: [StyledGlyph],
-        scalars: [Unicode.Scalar]
+        tracking: KeyPath<StyledGlyph, Double>
     ) -> Double {
-        let hanging = glyphs.reversed().prefix { scalars[$0.glyph.offset].properties.isWhitespace }.count
-        return glyphs.dropLast(hanging).map(\.glyph.advance).reduce(0, +)
+        let visible = visibleGlyphs(of: glyphs)
+        let width = visible.map { $0.glyph.advance + $0[keyPath: tracking] }.reduce(0, +)
+
+        return width - (visible.last?[keyPath: tracking] ?? 0)
+    }
+
+    private func breakWidth(of glyphs: [StyledGlyph]) -> Double {
+        visibleWidth(of: glyphs, tracking: \.widestTracking)
     }
 
     private func alignmentOffset(
@@ -215,24 +287,26 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Glyphs of one line in one face, size, colour and stroke make one run, and the runs of a line share its baseline.
+    // Glyphs of one line of one text run in one face make one glyph run, and the runs of a line share its baseline.
+    // The pieces of a text run's highlight and underline span its glyphs on the line, from the origin of the first to
+    // the end of the advance of the last, the spaces that end the line excluded.
     private func placed(
         _ line: TextLine,
         origin: Point
     ) -> [GlyphRun] {
         var runs: [GlyphRun] = []
         var x = origin.x
-        for glyph in line.glyphs {
+        var spans: [(source: Int, run: Int, from: Double, to: Double)] = []
+        let visibleCount = visibleGlyphs(of: line.glyphs).count
+        for (index, glyph) in line.glyphs.enumerated() {
             let positioned = PositionedGlyph(id: glyph.glyph.id, x: x, y: origin.y)
-            x += glyph.glyph.advance
+            let end = x + glyph.glyph.advance
+            x = end + glyph.tracking
 
-            let style = glyph.style
-            let isSameLook = runs.last.map { last in
-                last.face == glyph.face && last.size == style.size && last.color == style.color
-                    && last.stroke == style.stroke
-            } ?? false
-            if let last = runs.last, isSameLook {
+            let isSameRun = runs.last.map { $0.source == glyph.source && $0.face == glyph.face } ?? false
+            if let last = runs.last, isSameRun {
                 runs[runs.count - 1] = GlyphRun(
+                    source: last.source,
                     face: last.face,
                     size: last.size,
                     color: last.color,
@@ -241,13 +315,49 @@ struct Typesetter: Sendable {
                 )
             } else {
                 runs.append(GlyphRun(
+                    source: glyph.source,
                     face: glyph.face,
-                    size: style.size,
-                    color: style.color,
-                    stroke: style.stroke,
+                    size: glyph.style.size,
+                    color: glyph.style.color,
+                    stroke: glyph.style.stroke,
                     glyphs: [positioned]
                 ))
             }
+
+            guard index < visibleCount else { continue }
+            if let last = spans.last, last.source == glyph.source {
+                spans[spans.count - 1].to = end
+            } else {
+                spans.append((glyph.source, runs.count - 1, positioned.x, end))
+            }
+        }
+
+        for span in spans {
+            let run = runs[span.run]
+            let glyph = line.glyphs.first { $0.source == span.source }
+            guard let style = glyph?.style, let face = glyph?.runFace else { continue }
+            let extent = TextExtent(face: face, size: style.size)
+            let highlights = style.highlight == nil ? [] : [
+                Rectangle(
+                    x: span.from,
+                    y: origin.y - extent.ascent,
+                    width: span.to - span.from,
+                    height: extent.ascent + extent.descent
+                )
+            ]
+            let underlines = style.underline == nil ? [] : [
+                UnderlinePiece(x: span.from, y: origin.y, width: span.to - span.from)
+            ]
+            runs[span.run] = GlyphRun(
+                source: run.source,
+                face: run.face,
+                size: run.size,
+                color: run.color,
+                stroke: run.stroke,
+                glyphs: run.glyphs,
+                highlights: highlights,
+                underlines: underlines
+            )
         }
 
         return runs

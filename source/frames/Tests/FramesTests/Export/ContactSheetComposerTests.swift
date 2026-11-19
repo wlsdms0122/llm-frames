@@ -14,7 +14,7 @@ import Testing
 @Suite("ContactSheetComposer Tests")
 struct ContactSheetComposerTests {
     // MARK: - Property
-    private let face = FontFace(file: "/Fonts/Label.ttc", name: "Label-Medium", ascent: 0.8, descent: 0.2)
+    private let face = ShaperTable.face("Label", FontWeight(500), file: "/Fonts/Label.ttc")
     private let sut: ContactSheetComposer
     private let size = Size(width: 160, height: 90)
 

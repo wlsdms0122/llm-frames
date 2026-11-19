@@ -147,6 +147,53 @@ struct MergedThemeValueTests {
         #expect(style.pack == "shorts")
     }
 
+    @Test("a style's typography is read with its lengths times the scale, and a highlight without colour takes `background`")
+    func readsTypography() throws {
+        // Given
+        let sut = try theme(#"""
+            { "styles": { "caption": { "size": 40, "font": ["Inter"], "weight": 300, "italic": true, "tracking": 40,
+                                       "kerning": "none", "features": { "tnum": 1, "liga": 0 }, "baselineShift": 8,
+                                       "highlight": { "padding": [2, 8], "radius": 4 },
+                                       "underline": { "width": 2, "color": "accent" } } } }
+            """#)
+
+        // When
+        let character = sut.characterStyle(named: "caption", scale: 0.5)
+
+        // Then
+        #expect(character == CharacterStyle(
+            families: ["Inter"],
+            pack: nil,
+            weight: FontWeight(300),
+            italic: true,
+            size: 20,
+            tracking: 40,
+            isKerned: false,
+            features: [FontFeature(tag: "tnum", value: 1), FontFeature(tag: "liga", value: 0)],
+            baselineShift: 4,
+            color: Color(written: "#FFFFFF"),
+            stroke: nil,
+            highlight: TextBackground(color: Color(written: "#000000"), padding: Size(width: 4, height: 1), radius: 2),
+            underline: TextUnderline(width: 1, offset: nil, color: Color(written: "#FFFFFF"))
+        ))
+        #expect(sut.fontPlace(ofStyle: "caption") == Place(components: [.key("styles"), .key("caption"), .key("font")]))
+    }
+
+    @Test("`underline: true` leaves every leaf to the face and the run's colour, and a weight name is its number")
+    func readsUnderlineOn() throws {
+        // Given
+        let sut = try theme(#"{ "styles": { "caption": { "size": 40, "weight": "semibold", "underline": true } } }"#)
+
+        // When
+        let character = sut.characterStyle(named: "caption", scale: 1)
+
+        // Then
+        #expect(character.underline == TextUnderline(width: nil, offset: nil, color: nil))
+        #expect(character.weight == FontWeight(600))
+        #expect(character.italic == false)
+        #expect(character.isKerned)
+    }
+
     @Test("a style without a size stops when the theme is merged, unless a weaker theme gives it one")
     func refusesStyleWithoutSize() throws {
         // Given

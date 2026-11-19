@@ -49,7 +49,7 @@ struct ContactSheetComposer: Sendable {
             )
             let item = PictureItem(source: cells[index].picture, rectangle: nil, destination: picture)
             let layout = try typesetter.layout(
-                [TextRun(text: cells[index].label, style: character, face: face)],
+                [TextRun(text: cells[index].label, style: character, faces: [face])],
                 paragraph: paragraph,
                 width: nil,
                 place: .root,
