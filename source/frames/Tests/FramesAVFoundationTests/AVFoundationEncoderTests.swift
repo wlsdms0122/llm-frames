@@ -223,7 +223,7 @@ struct AVFoundationEncoderTests {
         #expect(!FileManager.default.fileExists(atPath: abandoned))
     }
 
-    @Test("this machine can encode every target")
+    @Test("this machine can encode every target, HDR ones included")
     func checksTargets() throws {
         // Given
         let sut = AVFoundationEncoder()
@@ -232,10 +232,14 @@ struct AVFoundationEncoderTests {
             .master(path: "b.mov", alpha: true),
             .delivery(path: "c.mp4"),
             .compressed(path: "d.mp4", codec: .h264, quality: .medium, size: size),
-            .compressed(path: "e.mp4", codec: .hevc, quality: .medium, size: size)
+            .compressed(path: "e.mp4", codec: .hevc, quality: .medium, size: size),
+            .master(path: "j.mov", alpha: false, output: ColorConversion(space: .rec2100PQ)),
+            .delivery(path: "k.mp4", output: ColorConversion(space: .rec2100HLG)),
+            .compressed(path: "l.mp4", codec: .hevc, quality: .medium, size: size, output: ColorConversion(space: .rec2100PQ))
         ]
         let images: [ImageTarget] = [
             .png(path: "f.png", size: size),
+            .png(path: "m.png", size: size, depth: .sixteen, output: ColorConversion(space: .rec2100PQ)),
             .jpeg(path: "g.jpg", size: size, quality: .medium),
             .heic(path: "h.heic", size: size, quality: .medium)
         ]

@@ -38,7 +38,7 @@ struct CommandUsageTests {
             track     <video> --at <t> --area <area> [--to <t>]
             extract   <video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]
             sheet     <video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]
-            transcode <in> -o <out> [--quality high|medium|low] [--max <px>] [--codec h264|hevc]
+            transcode <in> -o <out> [--quality high|medium|low] [--max <px>] [--codec h264|hevc] [--color-space <name>]
             presets   [<kind>] [<name>]
             packs     [<pack>]
             theme
