@@ -45,7 +45,7 @@ decode(V) = V / 12.92                                  when |V| ≤ 0.04045
 | --- | --- | --- | --- | --- | --- | --- |
 | `srgb` | BT.709 | sRGB (IEC 61966-2-1) | SDR | yes, the default | yes | yes, the default |
 | `display-p3` | P3 D65 (SMPTE EG 432-1) | sRGB | SDR | yes | yes | yes |
-| `rec2020` | BT.2020 | the BT.2020 transfer, which is the BT.709 OETF | SDR | yes | yes | yes |
+| `rec2020` | BT.2020 | BT.1886, decoded by its EOTF and encoded by its inverse | SDR | yes | yes | yes |
 | `rec709` | BT.709 | BT.1886, decoded by its EOTF and encoded by its inverse | SDR | yes | yes | yes |
 | `rec2100-pq` | BT.2020 | PQ (SMPTE ST 2084, as BT.2100 gives it) | HDR | yes | yes | yes |
 | `rec2100-hlg` | BT.2020 | HLG (ARIB STD-B67, as BT.2100 gives it) | HDR | yes | yes | yes |
@@ -87,17 +87,16 @@ linear BT.2020 to linear sRGB:
 | Transfer | encode(L) | decode(V) |
 | --- | --- | --- |
 | sRGB | the extended sRGB transfer ([Working values](#working-values)) | its inverse there |
-| BT.2020, with α = 1.09929682680944 and β = 0.018053968510807, as CSS Color 4 gives them | 4.5 × L when \|L\| < β, otherwise sign(L) × (α × \|L\|^0.45 - (α - 1)) | V / 4.5 when \|V\| < 4.5 × β, otherwise sign(V) × ((\|V\| + α - 1) / α)^(1/0.45) |
 | BT.1886 at a white of 1 and a black of 0 | sign(L) × \|L\|^(1/2.4) | sign(V) × \|V\|^2.4 |
 
-`rec709` is display-referred both ways, as Premiere Pro and DaVinci Resolve take Rec. 709 at gamma 2.4: its decode is the EOTF of BT.1886, L = a × max(V + b, 0)^2.4 with a white L_W of 1 and a black L_B of 0, so a = 1 and b = 0, taken to all real numbers with the sign kept, and its encode is the inverse of that EOTF:
+`rec709` and `rec2020` are display-referred both ways, as Premiere Pro and DaVinci Resolve take Rec. 709 and SDR Rec. 2020 at gamma 2.4, and as BT.2020 names BT.1886 as its reference display: their decode is the EOTF of BT.1886, L = a × max(V + b, 0)^2.4 with a white L_W of 1 and a black L_B of 0, so a = 1 and b = 0, taken to all real numbers with the sign kept, and their encode is the inverse of that EOTF:
 
 ```
-decode_rec709(V) = sign(V) × |V|^2.4
-encode_rec709(L) = sign(L) × |L|^(1/2.4)
+decode_BT1886(V) = sign(V) × |V|^2.4
+encode_BT1886(L) = sign(L) × |L|^(1/2.4)
 ```
 
-An `rec709` sequence's output read back as `rec709` media therefore gives its working values back, to the rounding of the file's code values.
+An `rec709` or `rec2020` sequence's output read back as media of the same space therefore gives its working values back, to the rounding of the file's code values.
 
 A working value is converted to an SDR space S by L_S = M × decode_sRGB(E), V = encode_S(L_S), with M the matrix from linear sRGB to S, and back by the same steps in reverse. For `srgb` V is E itself, so no rounding is added. For `rec709` M is the identity, since its primaries are those of sRGB.
 
@@ -206,7 +205,7 @@ HEXDIG is a hexadecimal digit of either case, DIGIT a decimal digit and SP a spa
 
 - A hex colour is sRGB, as in CSS: `#RRGGBB` is the encoded working value R' = RR / 255, G' = GG / 255, B' = BB / 255 with alpha 1, and `#RRGGBBAA` takes alpha AA / 255.
 - `color(<space> c1 c2 c3 / a)` is CSS Color 4's `color()` with its components as numbers: c1, c2 and c3 are the red, green and blue of `<space>` encoded as CSS Color 4 defines it, any real number, so `color(display-p3 1 0 0)` is the red of P3 and `color(srgb-linear 2 2 2)` is twice reference white. `a` is alpha, from 0 to 1, and 1 when it is left out. A component that is not finite, or an alpha outside 0 to 1, stops at `check`.
-- `srgb` is the encoded working value itself: R' = c1, G' = c2, B' = c3. `srgb-linear` is the linear form: R' = encode(c1), and so on. `display-p3` and `rec2020` are converted from their space as [Colour spaces](#colour-spaces) gives (the sRGB transfer and the P3 primaries for `display-p3`, the BT.2020 transfer and primaries for `rec2020`).
+- `srgb` is the encoded working value itself: R' = c1, G' = c2, B' = c3. `srgb-linear` is the linear form: R' = encode(c1), and so on. `display-p3` and `rec2020` are converted from their space as [Colour spaces](#colour-spaces) gives (the sRGB transfer and the P3 primaries for `display-p3`, the BT.1886 transfer and the BT.2020 primaries for `rec2020`, the `rec2020` row of the table).
 - A theme colour is any of these but a name, and a value that names it is its colour ([FRAMES-22](../FRAMES-22/SPEC.md)).
 - **The resolved document and display lists write every colour as `color(srgb r g b / a)`**: the encoded working value, its four numbers in the number form of [FRAMES-19](../FRAMES-19/SPEC.md), alpha always written, one space between the parts and around `/`. A colour of another form there stops reading, naming its place.
 
@@ -306,6 +305,8 @@ CSS Color 4's whole `color()` grammar (percentages, `none`, `xyz`, `lab`, `oklch
 ## Notes
 
 **Note.** Measured on the reference machine: AVFoundation's linear output of HDR video is not BT.2408 display light (PQ at 203 cd/m² reads as 2.0, HLG at 0.75 as 3.17 scene light), while its PQ output agrees with BT.2408. The decoder reads HDR video as PQ and converts it in frames by the formulas above, and frames tone maps itself. Half-float and float bitmaps in extended sRGB and extended linear sRGB, with text and paths drawn into them, hold working values.
+
+**Note.** `color(rec2020 ...)` takes the `rec2020` row of this table, BT.1886 both ways. CSS Color 4 as published defines its `rec2020` by the BT.2020 OETF and its inverse, which the CSS Working Group has agreed is not the display-referred form (w3c/csswg-drafts issue 12574), so a component written for a browser's `rec2020` can name a slightly different colour here.
 
 **Note.** Players that decode a video tagged with the BT.709 transfer (1) by the inverse of the BT.709 OETF, as QuickTime-style players do, show an `rec709` sequence's output lighter than a BT.1886 display does. frames writes the standard tags and does not compensate.
 
