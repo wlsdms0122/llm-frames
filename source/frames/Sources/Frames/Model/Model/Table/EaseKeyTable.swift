@@ -13,6 +13,6 @@ enum EaseKeyTable {
 
     private static let bounce = ObjectTable(
         kind: "spring",
-        rules: [KeyRule("bounce", .openSignedFraction, isRequired: true)]
+        rules: [KeyRule("bounce", .number(.between(-1, 1)), isRequired: true)]
     )
 }

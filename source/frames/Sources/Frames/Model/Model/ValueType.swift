@@ -10,15 +10,7 @@ indirect enum ValueType: Equatable, Sendable {
     case anyObject
     case exactly(JSONValue)
     case bool
-    case number
-    case positiveNumber
-    case nonNegativeNumber
-    // A number from 0 to 1.
-    case fraction
-    // A number from -1 to 1.
-    case signedFraction
-    // A number greater than -1 and less than 1.
-    case openSignedFraction
+    case number(LeafDomain)
     case integer
     case nonNegativeInteger
     case text
@@ -28,13 +20,8 @@ indirect enum ValueType: Equatable, Sendable {
     case identifier
     case ease
     case literal([String])
-    case numbers(Int)
-    // A look leaf's number, which `LeafDomain.check` stops outside the leaf's domain.
-    case leafNumber(LeafDomain)
-    // A look leaf's list of that many numbers, each of which `LeafDomain.check` stops outside the leaf's domain.
-    case leafNumbers(Int, LeafDomain)
-    // A list of that many numbers, each from 0 to 1.
-    case fractions(Int)
+    // A list of that many numbers, each in the domain.
+    case numbers(Int, LeafDomain)
     // A list of at least two points, each as `position` takes it.
     case points
     // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke

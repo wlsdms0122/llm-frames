@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// The values a timed leaf may take. A static value, or a leaf one keyframe writes, is checked against the domain; a
-// leaf two keyframes or more write against its `sampled` domain, since such a keyframe is one end of a change. A sampled
-// value is clamped to the sampled domain.
+// The numbers a value may take, a timed leaf's or a key's the key tables declare. For a timed leaf, a static value, or
+// a leaf one keyframe writes, is checked against the domain; a leaf two keyframes or more write against its `sampled`
+// domain, since such a keyframe is one end of a change. A sampled value is clamped to the sampled domain.
 enum LeafDomain: Equatable, Sendable {
     case any
     case nonNegative
@@ -70,6 +70,11 @@ enum LeafDomain: Equatable, Sendable {
         case let .between(lower, upper):
             lower < number && number < upper
         }
+    }
+
+    // The words every stop gives for a number outside the domain, the key check's and the look's alike.
+    func refusal(of number: Double) -> String {
+        "\(Self.written(number)) is not \(description)"
     }
 
     // Each number of a leaf's value as written, a list's at its index.

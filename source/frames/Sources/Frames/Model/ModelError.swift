@@ -10,6 +10,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingKey(place: Place, kind: String, keys: [String])
     case conflictingKeys(place: Place, kind: String, keys: [String])
     case wrongType(place: Place, kind: String, expected: String, found: String)
+    case outsideDomain(place: Place, kind: String, value: Double, domain: LeafDomain)
     case unknownValue(place: Place, kind: String, value: String, allowed: [String])
     case invalidValue(place: Place, kind: String, reason: String)
     case duplicateIdentifier(place: Place, kind: String, id: String, first: Place)
@@ -42,6 +43,9 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .wrongType(place, kind, expected, found):
             "\(place) (\(kind)): expected \(expected), found \(found)"
+
+        case let .outsideDomain(place, kind, value, domain):
+            "\(place) (\(kind)): \(domain.refusal(of: value))"
 
         case let .unknownValue(place, kind, value, allowed):
             "\(place) (\(kind)): unknown value \"\(value)\". Allowed: \(allowed.joined(separator: ", "))"

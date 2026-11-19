@@ -353,8 +353,8 @@ struct SequenceCheckTests {
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "join": "square" } }"#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "head": 8 } }"#, #"clips[0].stroke (stroke): unknown key "head""#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): expected a list of 2 numbers, each from 0 to 1, found 1.5"#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each from 0 to 1"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): 1.5 is not within 0 to 1"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each within 0 to 1"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": "soft" }"#, #"clips[0].shadow (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": { "blur": 4 } }"#, #"clips[0].shadow (shadow): unknown key "blur""#),
             (#"{ "shape": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two points"#),
@@ -379,27 +379,27 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 0 } } ] }"#,
-                "clips[0].stroke.width: 0 is not above 0"
+                "clips[0].stroke.width (stroke): 0 is not above 0"
             ),
             (
                 ##"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "outset": -1 } ] }"##,
-                "clips[0].outset: -1 is not 0 or more"
+                "clips[0].outset (rect): -1 is not 0 or more"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": { "radial": { "radius": 0 } } } ] }"#,
-                "clips[0].fill.radial.radius: 0 is not above 0"
+                "clips[0].fill.radial.radius (radial gradient): 0 is not above 0"
             ),
             (
                 #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "radius": -8 } ] }"#,
-                "clips[0].radius: -8 is not 0 or more"
+                "clips[0].radius (image): -8 is not 0 or more"
             ),
             (
                 #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 } } ] }"#,
-                "clips[0].mask.feather: -1 is not 0 or more"
+                "clips[0].mask.feather (rect mask): -1 is not 0 or more"
             ),
             (
                 #"{ "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "width": 0, "height": 10, "position": [5, 5] } } ] }"#,
-                "clips[0].mask.width: 0 is not above 0"
+                "clips[0].mask.width (rect mask): 0 is not above 0"
             )
         ]
     )
@@ -411,7 +411,7 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
 
         // When, Then
-        let error = #expect(throws: LookError.self) { try sut.check(document: document) }
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == message)
     }
 
@@ -540,7 +540,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "clips[0].pan (audio): expected a number from -1 to 1, found 1.5")
+        #expect(error?.description == "clips[0].pan (audio): 1.5 is not within -1 to 1")
     }
 
     @Test("a still takes no `pan`, since it plays no sound")
@@ -709,15 +709,15 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 0, 10] } ] }"#,
-                "clips[0].area[2] (rect): expected a number above 0, found 0"
+                "clips[0].area[2] (rect): 0 is not above 0"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "area": [0, 0, 10, -1] } ] } ] }"#,
-                "clips[0].keyframes[0].area[3] (keyframe): expected a number above 0, found -1"
+                "clips[0].keyframes[0].area[3] (keyframe): -1 is not above 0"
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "text": "a", "padding": -1 } } ] }"#,
-                "storyline[0].track.padding (text area): expected a number, 0 or more, found -1"
+                "storyline[0].track.padding (text area): -1 is not 0 or more"
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "toNth": -1 } } ] }"#,
@@ -810,7 +810,7 @@ struct SequenceCheckTests {
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): needs one of args, by, stagger"#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation choice): missing key "args""#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, by, stagger"#),
-            (#"{ "clips": [ { "title": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): expected a number, 0 or more, found -0.1"#),
+            (#"{ "clips": [ { "title": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): -0.1 is not 0 or more"#),
             (#"{ "theme": { "defaults": { "animation": { "shape": { "preset": "frames/pop", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args"#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
@@ -863,9 +863,9 @@ struct SequenceCheckTests {
     @Test(
         "a spring ease with a bounce outside its range or another key stops where it is written",
         arguments: [
-            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1"),
-            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found -1"),
-            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found "0.5""#),
+            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): 1 is not above -1 and below 1"),
+            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): -1 is not above -1 and below 1"),
+            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number above -1 and below 1, found "0.5""#),
             (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
             (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
         ]
@@ -912,15 +912,15 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 0 } } ] }"#,
-                "storyline[0].media.fps (image sequence): expected a number above 0, found 0"
+                "storyline[0].media.fps (image sequence): 0 is not above 0"
             ),
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": -24 } } ] }"#,
-                "storyline[0].media.fps (image sequence): expected a number above 0, found -24"
+                "storyline[0].media.fps (image sequence): -24 is not above 0"
             ),
             (
                 #"{ "kind": "sequence", "format": { "fps": 0 }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                "format.fps (format): expected a number above 0, found 0"
+                "format.fps (format): 0 is not above 0"
             )
         ]
     )
@@ -959,16 +959,16 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "storyline[1].transition.seconds (transition choice): expected a number above 0, found 0")
+        #expect(error?.description == "storyline[1].transition.seconds (transition choice): 0 is not above 0")
     }
 
     @Test(
         "a media clip's width and height are above 0",
         arguments: [
-            (#""width": 0"#, "clips[0].width (image): expected a number above 0, found 0"),
-            (#""width": -300"#, "clips[0].width (image): expected a number above 0, found -300"),
-            (#""height": 0"#, "clips[0].height (image): expected a number above 0, found 0"),
-            (#""width": 300, "height": -1"#, "clips[0].height (image): expected a number above 0, found -1")
+            (#""width": 0"#, "clips[0].width (image): 0 is not above 0"),
+            (#""width": -300"#, "clips[0].width (image): -300 is not above 0"),
+            (#""height": 0"#, "clips[0].height (image): 0 is not above 0"),
+            (#""width": 300, "height": -1"#, "clips[0].height (image): -1 is not above 0")
         ]
     )
     func refusesEmptyMediaBox(
@@ -994,7 +994,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "clips[0].width (title): expected a number above 0, found 0")
+        #expect(error?.description == "clips[0].width (title): 0 is not above 0")
     }
 
     @Test("a title is a list of runs, each its text with a style or without one")

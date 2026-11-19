@@ -141,19 +141,19 @@ struct ThemeValidatorTests {
     @Test(
         "a theme's length outside its domain stops where it is written",
         arguments: [
-            (#"{ "border": { "width": 0 } }"#, "border.width: 0 is not above 0"),
-            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius: -1 is not 0 or more"),
-            (#"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#, "styles.note.stroke.width: -2 is not above 0"),
-            (#"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#, "styles.note.highlight.radius: -4 is not 0 or more"),
+            (#"{ "border": { "width": 0 } }"#, "border.width (border): 0 is not above 0"),
+            (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius (shadow): -1 is not 0 or more"),
+            (#"{ "styles": { "note": { "stroke": { "width": -2 } } } }"#, "styles.note.stroke.width (stroke): -2 is not above 0"),
+            (#"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#, "styles.note.highlight.radius (highlight): -4 is not 0 or more"),
             (
                 #"{ "styles": { "note": { "highlight": { "padding": [2, -4] } } } }"#,
-                "styles.note.highlight.padding[1]: -4 is not 0 or more"
+                "styles.note.highlight.padding[1] (highlight): -4 is not 0 or more"
             ),
-            (#"{ "baseWidth": 0 }"#, "baseWidth: 0 is not above 0"),
-            (#"{ "placement": { "padding": -8 } }"#, "placement.padding: -8 is not 0 or more"),
-            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size: 0 is not above 0"),
-            (#"{ "styles": { "note": { "lineHeight": -10 } } }"#, "styles.note.lineHeight: -10 is not above 0"),
-            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset: -1 is not 0 or more")
+            (#"{ "baseWidth": 0 }"#, "baseWidth (theme): 0 is not above 0"),
+            (#"{ "placement": { "padding": -8 } }"#, "placement.padding (placement): -8 is not 0 or more"),
+            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size (style): 0 is not above 0"),
+            (#"{ "styles": { "note": { "lineHeight": -10 } } }"#, "styles.note.lineHeight (style): -10 is not above 0"),
+            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset (style): -1 is not 0 or more")
         ]
     )
     func refusesLookLengthOutsideDomain(theme: String, message: String) throws {
@@ -161,7 +161,7 @@ struct ThemeValidatorTests {
         let layer = ThemeLayer(value: try Fixture.json(theme), place: .root)
 
         // When, Then
-        let error = #expect(throws: LookError.self) { try sut.checkKeys(of: layer) }
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
         #expect(error?.description == message)
     }
 

@@ -90,13 +90,14 @@ struct TitleKeyframeTests {
             """#
 
         // When
-        let writtenError = #expect(throws: LookError.self) { try title(written) }
+        let writtenError = #expect(throws: ModelError.self) { try title(written) }
         let keyframedError = #expect(throws: LookError.self) { try title(keyframed) }
 
         // Then
         #expect(writtenError == .outsideDomain(
             place: Place.root.appending(key: "clips").appending(index: 0)
                 .appending(key: "character").appending(key: "highlight").appending(key: "padding").appending(index: 0),
+            kind: "highlight",
             value: -4,
             domain: .nonNegative
         ))
@@ -106,7 +107,8 @@ struct TitleKeyframeTests {
             value: -4,
             domain: .nonNegative
         ))
-        #expect(writtenError?.description == "clips[0].character.highlight.padding[0]: -4 is not 0 or more")
+        #expect(writtenError?.description == "clips[0].character.highlight.padding[0] (highlight): -4 is not 0 or more")
+        #expect(keyframedError?.description == "clips[0].keyframes[0].character.highlight.padding[0]: -4 is not 0 or more")
     }
 
     @Test("`null` for a title's `character` in a keyframe stops, since it stands for a leaf")

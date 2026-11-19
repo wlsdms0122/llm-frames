@@ -7,13 +7,13 @@
 
 enum AreaKeyTable {
     // A point as `position` takes it: `[x, y]`, or the named point of an area.
-    static let point = ValueType.oneOf([.numbers(2), .object(namedPoint)])
+    static let point = ValueType.oneOf([.numbers(2, .any), .object(namedPoint)])
     static let text = ObjectTable(
         kind: "text area",
         rules: [
             KeyRule("text", .text, isRequired: true),
             KeyRule("nth", .nonNegativeInteger),
-            KeyRule("padding", .nonNegativeNumber)
+            KeyRule("padding", .number(.nonNegative))
         ]
     )
     static let range = ObjectTable(
@@ -23,14 +23,14 @@ enum AreaKeyTable {
             KeyRule("to", .text, isRequired: true),
             KeyRule("fromNth", .nonNegativeInteger),
             KeyRule("toNth", .nonNegativeInteger),
-            KeyRule("padding", .nonNegativeNumber)
+            KeyRule("padding", .number(.nonNegative))
         ]
     )
     static let clip = ObjectTable(
         kind: "clip area",
         rules: [
             KeyRule("clip", .text, isRequired: true),
-            KeyRule("padding", .nonNegativeNumber)
+            KeyRule("padding", .number(.nonNegative))
         ]
     )
     // The keys of the text forms, which a clip area does not mix with.
@@ -38,7 +38,7 @@ enum AreaKeyTable {
     static let cropScale = ObjectTable(
         kind: "crop",
         rules: [
-            KeyRule("scale", .positiveNumber, isRequired: true)
+            KeyRule("scale", .number(.positive), isRequired: true)
         ]
     )
     static let namedPoint = ObjectTable(

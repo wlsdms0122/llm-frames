@@ -213,8 +213,8 @@ struct MergedThemeValueTests {
         )
 
         // When, Then
-        let error = #expect(throws: LookError.self) { try ThemeMerger().merge([layer]) }
-        #expect(error?.description == "doc.json: theme.styles.note.highlight.padding[1]: -4 is not 0 or more")
+        let error = #expect(throws: ModelError.self) { try ThemeMerger().merge([layer]) }
+        #expect(error?.description == "doc.json: theme.styles.note.highlight.padding[1] (highlight): -4 is not 0 or more")
     }
 
     // MARK: - Private

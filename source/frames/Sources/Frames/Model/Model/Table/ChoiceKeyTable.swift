@@ -18,7 +18,7 @@ enum ChoiceKeyTable {
             kind: "transition choice",
             rules: [
                 KeyRule("preset", .name),
-                KeyRule("seconds", .positiveNumber),
+                KeyRule("seconds", .number(.positive)),
                 KeyRule("args", arguments)
             ],
             groups: [KeyGroup(keys: ["seconds", "args"], isExclusive: false)]
@@ -35,7 +35,7 @@ enum ChoiceKeyTable {
                 KeyRule("preset", .name),
                 KeyRule("args", arguments),
                 KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
-                KeyRule("stagger", .nonNegativeNumber)
+                KeyRule("stagger", .number(.nonNegative))
             ],
             groups: [KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)]
         )),
@@ -57,7 +57,7 @@ enum ChoiceKeyTable {
             rules: [
                 KeyRule("preset", .name),
                 KeyRule("args", arguments),
-                KeyRule("mix", .fraction)
+                KeyRule("mix", .number(.range(0...1)))
             ],
             groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
         ))
@@ -71,7 +71,7 @@ enum ChoiceKeyTable {
             rules: [
                 KeyRule("preset", .name),
                 KeyRule("args", arguments),
-                KeyRule("mix", .fraction)
+                KeyRule("mix", .number(.range(0...1)))
             ],
             groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
         ))

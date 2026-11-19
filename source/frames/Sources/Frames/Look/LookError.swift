@@ -60,7 +60,7 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place): written as a static value and in every keyframe that writes it, so the static value never shows"
 
         case let .outsideDomain(place, value, domain):
-            "\(place): \(JSONValue.number(value).written) is not \(domain.description)"
+            "\(place): \(domain.refusal(of: value))"
 
         case let .failedCheck(place, check, failure):
             switch failure {

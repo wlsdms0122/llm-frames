@@ -155,7 +155,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
-            (#"{ "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 1.5 } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1.5"),
+            (#"{ "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 1.5 } } }"#, "ease.spring.bounce (spring): 1.5 is not above -1 and below 1"),
             (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, "audio (transition): expected one of constant-power, constant-gain, found an object")
         ]
     )
@@ -381,9 +381,9 @@ struct PresetReaderTests {
         "a preset is checked with each parameter at its default, where a value its place does not take stops",
         arguments: [
             (#"{ "type": "number", "default": 0, "description": "the p" }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
-            (#"{ "type": "number", "default": 1.5, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): expected a number from 0 to 1, found 1.5"),
+            (#"{ "type": "number", "default": 1.5, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): 1.5 is not within 0 to 1"),
             (#"{ "type": "number", "default": 2, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
-            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): expected a number greater than -1 and less than 1, found 1")
+            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): 1 is not above -1 and below 1")
         ]
     )
     func refusesBrokenDefault(

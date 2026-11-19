@@ -45,13 +45,13 @@ struct ValueTypeStructureTests {
                 rules: [
                     KeyRule("color", .color),
                     KeyRule("gradient", Self.gradient),
-                    KeyRule("width", .leafNumber(.positive)),
+                    KeyRule("width", .number(.positive)),
                     KeyRule("join", .literal(Self.joins)),
                     KeyRule("cap", .literal(Self.caps)),
                     KeyRule("start", .literal(Self.ends)),
                     KeyRule("end", .literal(Self.ends)),
                     KeyRule("dash", .dash(isKeyframed: false)),
-                    KeyRule("dashOffset", .number)
+                    KeyRule("dashOffset", .number(.any))
                 ],
                 groups: [KeyGroup(keys: ["color", "gradient"], isExclusive: true, isOptional: true)]
             ))
@@ -62,8 +62,8 @@ struct ValueTypeStructureTests {
             rules: [
                 KeyRule("fill", fill),
                 KeyRule("stroke", stroke),
-                KeyRule("radius", .leafNumber(.nonNegative)),
-                KeyRule("outset", .leafNumber(.nonNegative)),
+                KeyRule("radius", .number(.nonNegative)),
+                KeyRule("outset", .number(.nonNegative)),
                 KeyRule("shadow", shadow)
             ]
         ))
@@ -78,7 +78,7 @@ struct ValueTypeStructureTests {
         // Then
         #expect(border == .object(ObjectTable(
             kind: "border",
-            rules: [KeyRule("width", .leafNumber(.positive)), KeyRule("color", .color)]
+            rules: [KeyRule("width", .number(.positive)), KeyRule("color", .color)]
         )))
         #expect(shadow == Self.shadow)
     }
@@ -94,14 +94,14 @@ struct ValueTypeStructureTests {
                 .exactly(.bool(false)),
                 .object(ObjectTable(
                     kind: kind,
-                    rules: [KeyRule("color", .color), KeyRule("padding", .leafNumbers(2, .nonNegative)), KeyRule("radius", .leafNumber(.nonNegative))]
+                    rules: [KeyRule("color", .color), KeyRule("padding", .numbers(2, .nonNegative)), KeyRule("radius", .number(.nonNegative))]
                 ))
             ])
         }
         #expect(rules == [
             .oneOf([
                 .exactly(.bool(false)),
-                .object(ObjectTable(kind: "stroke", rules: [KeyRule("width", .leafNumber(.positive)), KeyRule("color", .color)]))
+                .object(ObjectTable(kind: "stroke", rules: [KeyRule("width", .number(.positive)), KeyRule("color", .color)]))
             ]),
             box("background"),
             box("highlight"),
@@ -109,7 +109,7 @@ struct ValueTypeStructureTests {
                 .bool,
                 .object(ObjectTable(
                     kind: "underline",
-                    rules: [KeyRule("width", .leafNumber(.positive)), KeyRule("offset", .number), KeyRule("color", .color)]
+                    rules: [KeyRule("width", .number(.positive)), KeyRule("offset", .number(.any)), KeyRule("color", .color)]
                 ))
             ])
         ])
@@ -129,23 +129,23 @@ struct ValueTypeStructureTests {
                 kind: "compressor",
                 rules: [
                     operation,
-                    KeyRule("threshold", .number),
-                    KeyRule("ratio", .number),
-                    KeyRule("knee", .number),
-                    KeyRule("attack", .number),
-                    KeyRule("release", .number),
-                    KeyRule("makeup", .number)
+                    KeyRule("threshold", .number(.any)),
+                    KeyRule("ratio", .number(.any)),
+                    KeyRule("knee", .number(.any)),
+                    KeyRule("attack", .number(.any)),
+                    KeyRule("release", .number(.any)),
+                    KeyRule("makeup", .number(.any))
                 ]
             ),
             ObjectTable(
                 kind: "gate",
                 rules: [
                     operation,
-                    KeyRule("threshold", .number),
-                    KeyRule("range", .number),
-                    KeyRule("attack", .number),
-                    KeyRule("hold", .number),
-                    KeyRule("release", .number)
+                    KeyRule("threshold", .number(.any)),
+                    KeyRule("range", .number(.any)),
+                    KeyRule("attack", .number(.any)),
+                    KeyRule("hold", .number(.any)),
+                    KeyRule("release", .number(.any))
                 ]
             )
         ])
@@ -153,9 +153,9 @@ struct ValueTypeStructureTests {
         #expect(bands == MixBandType.allCases.map { band in
             ObjectTable(
                 kind: "band",
-                rules: [type, KeyRule("frequency", .number)]
-                    + (band.takesGain ? [KeyRule("gain", .number)] : [])
-                    + [KeyRule("q", .number)]
+                rules: [type, KeyRule("frequency", .number(.any))]
+                    + (band.takesGain ? [KeyRule("gain", .number(.any))] : [])
+                    + [KeyRule("q", .number(.any))]
             )
         })
     }
@@ -166,7 +166,7 @@ struct ValueTypeStructureTests {
         let tables = FilterKeyTable.operations.map(FilterKeyTable.table(for:))
 
         // Then
-        let number = { (name: String) in KeyRule(name, .number) }
+        let number = { (name: String) in KeyRule(name, .number(.any)) }
         let parameters: [String: [KeyRule]] = [
             "exposure": [number("ev")],
             "contrast": [number("amount")],
@@ -174,7 +174,7 @@ struct ValueTypeStructureTests {
             "temperature": [number("kelvin")],
             "hue": [number("degrees")],
             "sepia": [number("amount")],
-            "levels": [KeyRule("input", .numbers(2)), KeyRule("output", .numbers(2))],
+            "levels": [KeyRule("input", .numbers(2, .any)), KeyRule("output", .numbers(2, .any))],
             "lut": [KeyRule("file", .name), number("amount")],
             "blur": [number("radius")],
             "sharpen": [number("amount"), number("radius")],
@@ -198,19 +198,19 @@ struct ValueTypeStructureTests {
         let shape = KeyRule("shape", .literal(VocabularyTable.shapes))
         let box = [
             KeyRule("area", .area),
-            KeyRule("width", .leafNumber(.positive)),
-            KeyRule("height", .leafNumber(.positive)),
+            KeyRule("width", .number(.positive)),
+            KeyRule("height", .number(.positive)),
             KeyRule("position", AreaKeyTable.point)
         ]
         let look = [
-            KeyRule("feather", .leafNumber(.nonNegative)),
+            KeyRule("feather", .number(.nonNegative)),
             KeyRule("invert", .bool),
             KeyRule("mode", .literal(MaskMode.allCases.map(\.rawValue)))
         ]
         let groups = ["width", "height", "position"].map { key in
             KeyGroup(keys: ["area", key], isExclusive: true, isOptional: true)
         }
-        let radius = KeyRule("radius", .leafNumber(.nonNegative))
+        let radius = KeyRule("radius", .number(.nonNegative))
         #expect(ShapeKind.allCases == [.rect, .ellipse, .path])
         #expect(tables == [
             ObjectTable(kind: "rect mask", rules: [shape] + box + [radius] + look, groups: groups),
@@ -231,9 +231,9 @@ struct ValueTypeStructureTests {
 
         // Then
         #expect(media.rule(named: "border")?.type == .oneOf([.exactly(.bool(true)), .color]))
-        #expect(media.rule(named: "radius")?.type == .leafNumber(.nonNegative))
-        #expect(rect.rule(named: "radius")?.type == .leafNumber(.nonNegative))
-        #expect(rect.rule(named: "outset")?.type == .leafNumber(.nonNegative))
+        #expect(media.rule(named: "radius")?.type == .number(.nonNegative))
+        #expect(rect.rule(named: "radius")?.type == .number(.nonNegative))
+        #expect(rect.rule(named: "outset")?.type == .number(.nonNegative))
     }
 
     @Test("a theme's plain keys and a text style's are read from their structures, key by key")
@@ -244,28 +244,28 @@ struct ValueTypeStructureTests {
 
         // Then
         #expect(theme == [
-            .leafNumber(.positive),
+            .number(.positive),
             .list(.name),
-            .object(ObjectTable(kind: "placement", rules: [KeyRule("padding", .leafNumber(.nonNegative))]))
+            .object(ObjectTable(kind: "placement", rules: [KeyRule("padding", .number(.nonNegative))]))
         ])
         #expect(ThemeKeyTable.style.rules.map(\.name) == LookStructureTable.textStyle.keys.map(\.name))
         #expect(style == [
             KeyRule("font", .list(.name)),
-            KeyRule("size", .leafNumber(.positive)),
+            KeyRule("size", .number(.positive)),
             KeyRule("weight", .leaf(.fontWeight)),
             KeyRule("italic", .bool),
-            KeyRule("tracking", .number),
+            KeyRule("tracking", .number(.any)),
             KeyRule("kerning", .literal(["metrics", "none"])),
             KeyRule("features", .leaf(.fontFeatures)),
-            KeyRule("baselineShift", .number),
+            KeyRule("baselineShift", .number(.any)),
             KeyRule("color", .color),
-            KeyRule("lineHeight", .leafNumber(.positive)),
+            KeyRule("lineHeight", .number(.positive)),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
-            KeyRule("offset", .leafNumber(.nonNegative)),
+            KeyRule("offset", .number(.nonNegative)),
             KeyRule("align", .literal(["left", "center", "right"])),
             KeyRule("lines", .leaf(.positiveInteger))
         ])
-        #expect(ThemeKeyTable.character.rule(named: "size")?.type == .leafNumber(.positive))
+        #expect(ThemeKeyTable.character.rule(named: "size")?.type == .number(.positive))
         #expect(ThemeKeyTable.paragraph.rule(named: "align")?.type == .literal(["left", "center", "right"]))
     }
 
@@ -286,10 +286,10 @@ struct ValueTypeStructureTests {
         #expect(sut == .object(ObjectTable(
             kind: "test",
             rules: [
-                KeyRule("ratio", .leafNumber(.range(1...Double.infinity))),
-                KeyRule("frequency", .leafNumber(.between(0, 24000))),
-                KeyRule("pair", .leafNumbers(2, .range(-1...1))),
-                KeyRule("any", .numbers(2))
+                KeyRule("ratio", .number(.range(1...Double.infinity))),
+                KeyRule("frequency", .number(.between(0, 24000))),
+                KeyRule("pair", .numbers(2, .range(-1...1))),
+                KeyRule("any", .numbers(2, .any))
             ]
         )))
     }
@@ -297,9 +297,9 @@ struct ValueTypeStructureTests {
     @Test(
         "the key check stops a number outside its leaf's domain, whatever its range, where it is written",
         arguments: [
-            (#"{ "ratio": 0.5 }"#, "ratio: 0.5 is not 1 or more"),
-            (#"{ "frequency": 24000 }"#, "frequency: 24000 is not above 0 and below 24000"),
-            (#"{ "pair": [0, 1.5] }"#, "pair[1]: 1.5 is not within -1 to 1")
+            (#"{ "ratio": 0.5 }"#, "ratio (test): 0.5 is not 1 or more"),
+            (#"{ "frequency": 24000 }"#, "frequency (test): 24000 is not above 0 and below 24000"),
+            (#"{ "pair": [0, 1.5] }"#, "pair[1] (test): 1.5 is not within -1 to 1")
         ]
     )
     func checksLeafDomains(
@@ -316,7 +316,7 @@ struct ValueTypeStructureTests {
         ])), kind: "test")
 
         // When, Then
-        let error = #expect(throws: LookError.self) { try sut.check(json, as: type, place: .root, kind: "test") }
+        let error = #expect(throws: ModelError.self) { try sut.check(json, as: type, place: .root, kind: "test") }
         #expect(error?.description == message)
     }
 
@@ -327,16 +327,16 @@ struct ValueTypeStructureTests {
             KeyRule("linear", .object(ObjectTable(
                 kind: "linear gradient",
                 rules: [
-                    KeyRule("from", .numbers(2)),
-                    KeyRule("to", .numbers(2)),
+                    KeyRule("from", .numbers(2, .any)),
+                    KeyRule("to", .numbers(2, .any)),
                     KeyRule("stops", .stops(isKeyframed: false))
                 ]
             ))),
             KeyRule("radial", .object(ObjectTable(
                 kind: "radial gradient",
                 rules: [
-                    KeyRule("center", .numbers(2)),
-                    KeyRule("radius", .leafNumber(.positive)),
+                    KeyRule("center", .numbers(2, .any)),
+                    KeyRule("radius", .number(.positive)),
                     KeyRule("stops", .stops(isKeyframed: false))
                 ]
             )))
@@ -346,6 +346,6 @@ struct ValueTypeStructureTests {
 
     private static let shadow = ValueType.object(ObjectTable(
         kind: "shadow",
-        rules: [KeyRule("radius", .leafNumber(.nonNegative)), KeyRule("offset", .numbers(2)), KeyRule("color", .color)]
+        rules: [KeyRule("radius", .number(.nonNegative)), KeyRule("offset", .numbers(2, .any)), KeyRule("color", .color)]
     ))
 }

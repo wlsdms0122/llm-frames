@@ -125,7 +125,7 @@ enum ClipKeyTable {
     ) -> ObjectTable {
         let properties = keyframable(for: kind, in: place)
         let rules = [
-            KeyRule("at", .number, isRequired: true),
+            KeyRule("at", .number(.any), isRequired: true),
             KeyRule("ease", .ease)
         ] + properties.map { property in
             let type = type(of: property, for: kind, in: place)
@@ -244,7 +244,7 @@ enum ClipKeyTable {
             .media
 
         case "at":
-            takesSingleStart(kind) ? .oneOf([.number, .numbers(2)]) : .numbers(2)
+            takesSingleStart(kind) ? .oneOf([.number(.any), .numbers(2, .any)]) : .numbers(2, .any)
 
         case "lane":
             .integer
@@ -278,7 +278,7 @@ enum ClipKeyTable {
             ShapeKeyTable.stroke
 
         case "trim":
-            .fractions(2)
+            .numbers(2, .range(0...1))
 
         case "points":
             .points
@@ -331,27 +331,27 @@ enum ClipKeyTable {
 
         // A number is the same factor on both axes, and a pair a factor along each.
         case "scale":
-            .oneOf([.number, .numbers(2)])
+            .oneOf([.number(.any), .numbers(2, .any)])
 
         // A box is drawn or wraps text, so it has some size.
         case "width", "height":
-            .positiveNumber
+            .number(.positive)
 
         case "radius", "outset":
             ValueType(structure: LookStructureTable.length, kind: name)
 
         // A sound sits between the left channel (-1) and the right (1).
         case "pan":
-            .signedFraction
+            .number(.range(-1...1))
 
         case "split":
             .object(ObjectTable(
                 kind: "split",
-                rules: [KeyRule("before", .nonNegativeNumber), KeyRule("after", .nonNegativeNumber)]
+                rules: [KeyRule("before", .number(.nonNegative)), KeyRule("after", .number(.nonNegative))]
             ))
 
         default:
-            choice(ofKey: name) ?? .number
+            choice(ofKey: name) ?? .number(.any)
         }
     }
 
@@ -383,11 +383,11 @@ enum ClipKeyTable {
                 groups: table.groups
             ))
 
-        case .leafNumber:
-            .number
+        case .number:
+            .number(.any)
 
-        case let .leafNumbers(count, _):
-            .numbers(count)
+        case let .numbers(count, _):
+            .numbers(count, .any)
 
         case .stops:
             .stops(isKeyframed: true)
