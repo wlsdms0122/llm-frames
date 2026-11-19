@@ -640,9 +640,9 @@ struct SequencePlannerTests {
             scale: .value(1),
             rotation: .value(0),
             blend: "normal",
-            radius: 0,
-            border: nil,
-            shadow: nil
+            radius: .off,
+            border: .off,
+            shadow: .off
         ))
     }
 
@@ -678,12 +678,12 @@ struct SequencePlannerTests {
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius == 12 * scale)
-        #expect(appearance.border == MediaBorder(width: theme.borderWidth * scale, color: theme.borderColor))
-        #expect(appearance.shadow == DropShadow(
-            radius: theme.shadowRadius * scale,
-            offset: Point(x: theme.shadowOffset.x * scale, y: theme.shadowOffset.y * scale),
-            color: theme.shadowColor
+        #expect(appearance.radius.number() == 12 * scale)
+        #expect(appearance.border.border() == MediaBorder(width: 4 * scale, color: theme.color("accent")))
+        #expect(appearance.shadow.shadow() == DropShadow(
+            radius: 32 * scale,
+            offset: Point(x: 0, y: 12 * scale),
+            color: theme.color("shadow")
         ))
     }
 

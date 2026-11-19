@@ -31,9 +31,9 @@ struct Clip: Equatable, Sendable {
     let width: Double?
     let height: Double?
     let conform: Conform?
-    let radius: Double?
-    let border: BorderForm?
-    let shadow: ShadowForm?
+    let radius: LookProperty?
+    let border: LookProperty?
+    let shadow: LookProperty?
     let opacity: PropertyValue<Double>?
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
@@ -62,9 +62,9 @@ struct Clip: Equatable, Sendable {
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,
-        radius: Double? = nil,
-        border: BorderForm? = nil,
-        shadow: ShadowForm? = nil,
+        radius: LookProperty? = nil,
+        border: LookProperty? = nil,
+        shadow: LookProperty? = nil,
         opacity: PropertyValue<Double>? = nil,
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,

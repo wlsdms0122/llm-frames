@@ -64,9 +64,9 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
             JSONMember(key: "blend", value: .string(entry.blend)),
             JSONMember(key: "filter", value: values.filter(entry.filter)),
-            JSONMember(key: "radius", value: .number(entry.radius)),
-            JSONMember(key: "border", value: entry.border.map(border) ?? .null),
-            JSONMember(key: "shadow", value: entry.shadow.map(shadow) ?? .null),
+            JSONMember(key: "radius", value: values.timed(entry.radius)),
+            JSONMember(key: "border", value: values.timed(entry.border)),
+            JSONMember(key: "shadow", value: values.timed(entry.shadow)),
             JSONMember(key: "transition", value: entry.transition.map(transition) ?? .null)
         ]))
     }
@@ -176,25 +176,10 @@ struct ResolvedSequenceWriter: Sendable {
     private func appearance(_ appearance: ResolvedMediaAppearance) -> [JSONMember] {
         [
             JSONMember(key: "conform", value: .string(appearance.conform.rawValue)),
-            JSONMember(key: "radius", value: .number(appearance.radius)),
-            JSONMember(key: "border", value: appearance.border.map(border) ?? .null),
-            JSONMember(key: "shadow", value: appearance.shadow.map(shadow) ?? .null)
+            JSONMember(key: "radius", value: values.timed(appearance.radius)),
+            JSONMember(key: "border", value: values.timed(appearance.border)),
+            JSONMember(key: "shadow", value: values.timed(appearance.shadow))
         ]
-    }
-
-    private func border(_ border: MediaBorder) -> JSONValue {
-        .object(JSONObject(members: [
-            JSONMember(key: "width", value: .number(border.width)),
-            JSONMember(key: "color", value: values.color(border.color))
-        ]))
-    }
-
-    private func shadow(_ shadow: DropShadow) -> JSONValue {
-        .object(JSONObject(members: [
-            JSONMember(key: "radius", value: .number(shadow.radius)),
-            JSONMember(key: "offset", value: values.point(shadow.offset)),
-            JSONMember(key: "color", value: values.color(shadow.color))
-        ]))
     }
 
     // A remapped clip's keys give the media time at every instant of its window, so it has no `in`, `out` or `loop`,

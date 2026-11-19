@@ -71,8 +71,8 @@ struct ClipEvaluatorTests {
         let appearance = ResolvedMediaAppearance(
             conform: .fit,
             radius: 0,
-            border: MediaBorder(width: 4, color: white),
-            shadow: DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white)
+            border: .border(MediaBorder(width: 4, color: white)),
+            shadow: .shadow(DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white))
         )
         let clip = ResolvedClip(
             place: "clips[0]",
@@ -184,7 +184,7 @@ struct ClipEvaluatorTests {
                     media: .pinned(media),
                     timing: nil,
                     filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20)),

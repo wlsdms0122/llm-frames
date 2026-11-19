@@ -207,9 +207,9 @@ package struct Evaluator: Sendable {
                 rectangle: entry.crop(at: time),
                 destination: box,
                 filter: entry.filter,
-                radius: entry.radius,
-                border: entry.border,
-                shadow: entry.shadow
+                radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                border: MediaBorder(sampled: entry.border.sampled(at: time, as: LookStructureTable.border)),
+                shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow))
             ))
         } else if let solid = entry.solid {
             content = .path(PathItem(filling: box, color: solid))

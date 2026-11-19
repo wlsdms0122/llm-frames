@@ -86,9 +86,9 @@ struct SequenceReader: Sendable {
             rotation: property("rotation", of: object, read: \.numberValue),
             opacity: property("opacity", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            radius: object["radius"]?.numberValue,
-            border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
+            radius: look("radius", of: object),
+            border: look("border", of: object),
+            shadow: look("shadow", of: object),
             connected: connected
         )
     }
@@ -121,9 +121,9 @@ struct SequenceReader: Sendable {
             width: object["width"]?.numberValue,
             height: object["height"]?.numberValue,
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
-            radius: object["radius"]?.numberValue,
-            border: object["border"].flatMap(BorderForm.init(value:)),
-            shadow: object["shadow"].flatMap(ShadowForm.init(value:)),
+            radius: look("radius", of: object),
+            border: look("border", of: object),
+            shadow: look("shadow", of: object),
             opacity: property("opacity", of: object, read: \.numberValue),
             scale: property("scale", of: object, read: \.numberValue),
             rotation: property("rotation", of: object, read: \.numberValue),

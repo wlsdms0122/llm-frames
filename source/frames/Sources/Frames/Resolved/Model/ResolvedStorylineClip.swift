@@ -37,9 +37,9 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let scale: [Keyframe<Double>]
     let rotation: [Keyframe<Double>]
     let blend: String
-    let radius: Double
-    let border: MediaBorder?
-    let shadow: DropShadow?
+    let radius: TimedValue
+    let border: TimedValue
+    let shadow: TimedValue
     let transition: ResolvedTransition?
 
     // The media time it shows at a sequence time, nil for a solid: `in` at `start`, at `speed`, on the same line in the
@@ -73,9 +73,9 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         scale: [Keyframe<Double>],
         rotation: [Keyframe<Double>],
         blend: String,
-        radius: Double,
-        border: MediaBorder?,
-        shadow: DropShadow?,
+        radius: TimedValue,
+        border: TimedValue,
+        shadow: TimedValue,
         transition: ResolvedTransition?
     ) {
         self.place = place

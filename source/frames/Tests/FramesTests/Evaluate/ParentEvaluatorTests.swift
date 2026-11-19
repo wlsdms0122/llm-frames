@@ -91,7 +91,7 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: nil,
                 filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
@@ -210,7 +210,7 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
                 filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
@@ -259,7 +259,7 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
                 filter: [],
-                appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             end: 1,
             box: ResolvedBox(

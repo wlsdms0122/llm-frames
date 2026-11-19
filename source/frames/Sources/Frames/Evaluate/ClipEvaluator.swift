@@ -105,9 +105,9 @@ struct ClipEvaluator: Sendable {
                 rectangle: clip.crop(at: time),
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: media.filter,
-                radius: media.appearance.radius,
-                border: media.appearance.border,
-                shadow: media.appearance.shadow
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                border: MediaBorder(sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border)),
+                shadow: DropShadow(sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow))
             )
             // The border lies inside the box, so only the shadow reaches past it.
             let receiver = item.shadow.map { item.destination.union($0.castBounds(of: item.destination)) }

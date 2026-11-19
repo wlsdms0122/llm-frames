@@ -231,9 +231,9 @@ struct ResolvedSequenceReader: Sendable {
             scale: try values.numbers(entry.member("scale")),
             rotation: try values.numbers(entry.member("rotation")),
             blend: try entry.member("blend").string(),
-            radius: try entry.member("radius").number(),
-            border: try entry.member("border").optional(border),
-            shadow: try entry.member("shadow").optional(shadow),
+            radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
+            border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
+            shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow"),
             transition: try entry.member("transition").optional(transition)
         )
     }
@@ -328,30 +328,11 @@ struct ResolvedSequenceReader: Sendable {
             filter: try values.filter(clip.member("filter")),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
-                radius: try clip.member("radius").number(),
-                border: try clip.member("border").optional(border),
-                shadow: try clip.member("shadow").optional(shadow)
+                radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
+                border: try values.timed(clip.member("border"), as: LookStructureTable.border, kind: "border"),
+                shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
             )
         ))
-    }
-
-    private func border(_ value: PlacedJSONValue) throws -> MediaBorder {
-        let border = try value.object(keys: ["width", "color"])
-
-        return MediaBorder(
-            width: try border.member("width").number(),
-            color: try values.color(border.member("color"))
-        )
-    }
-
-    private func shadow(_ value: PlacedJSONValue) throws -> DropShadow {
-        let shadow = try value.object(keys: ["radius", "offset", "color"])
-
-        return DropShadow(
-            radius: try shadow.member("radius").number(),
-            offset: try values.point(shadow.member("offset")),
-            color: try values.color(shadow.member("color"))
-        )
     }
 
     // A shape's kind and geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its

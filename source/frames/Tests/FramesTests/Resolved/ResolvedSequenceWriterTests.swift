@@ -211,15 +211,15 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["anchor"] == .array([.number(150), .number(150)]))
         #expect(clip["crop"] == keyframes(at: 0, Rectangle(x: 0, y: 135, width: 1080, height: 1080)))
         #expect(clip["conform"] == .string("fill"))
-        #expect(clip["radius"] == .number(6.75))
+        #expect(clip["radius"] == held(.number(6.75)))
         #expect(clip["border"] == .object(JSONObject(members: [
-            JSONMember(key: "width", value: .number(2.25)),
-            JSONMember(key: "color", value: .string("#FFFFFFFF"))
+            JSONMember(key: "width", value: held(.number(2.25))),
+            JSONMember(key: "color", value: held(.string("#FFFFFFFF")))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
-            JSONMember(key: "radius", value: .number(18)),
-            JSONMember(key: "offset", value: .array([.number(0), .number(6.75)])),
-            JSONMember(key: "color", value: .string("#00000080"))
+            JSONMember(key: "radius", value: held(.number(18))),
+            JSONMember(key: "offset", value: held(.array([.number(0), .number(6.75)]))),
+            JSONMember(key: "color", value: held(.string("#00000080")))
         ])))
     }
 
@@ -239,7 +239,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let colors = clips.map { $0.objectValue?["border"]?.objectValue?["color"] }
-        #expect(colors == [.string("#101418FF"), .string("#FF0000FF")])
+        #expect(colors == [held(.string("#101418FF")), held(.string("#FF0000FF"))])
     }
 
     @Test("a solid storyline clip carries its colour as #RRGGBBAA, a theme colour by its value")

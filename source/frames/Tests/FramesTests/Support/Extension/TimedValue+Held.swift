@@ -52,6 +52,15 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         ])
     }
 
+    static func border(_ border: MediaBorder?) -> TimedValue {
+        guard let border else { return .off }
+
+        return .object([
+            TimedMember(key: "width", value: .held(.number(border.width))),
+            TimedMember(key: "color", value: .held(.color(border.color)))
+        ])
+    }
+
     func fillColor(at time: Double = 0) -> Color? {
         guard case let .form(_, color) = sampled(at: time, as: LookStructureTable.fill) else { return nil }
 
@@ -64,6 +73,10 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
 
     func shadow(at time: Double = 0) -> DropShadow? {
         DropShadow(sampled: sampled(at: time, as: LookStructureTable.shadow))
+    }
+
+    func border(at time: Double = 0) -> MediaBorder? {
+        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border))
     }
 
     func number(at time: Double = 0) -> Double? {

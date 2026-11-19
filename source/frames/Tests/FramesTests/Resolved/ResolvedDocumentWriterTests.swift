@@ -124,10 +124,22 @@ struct ResolvedDocumentWriterTests {
                   "radius": 2.25
                 }
               ],
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "transition": null
@@ -219,10 +231,22 @@ struct ResolvedDocumentWriterTests {
               },
               "filter": [],
               "conform": "fit",
-              "radius": 0,
+              "radius": null,
               "border": {
-                "width": 2.25,
-                "color": "#FFFFFFFF"
+                "width": [
+                  {
+                    "at": 0,
+                    "value": 2.25,
+                    "ease": "linear"
+                  }
+                ],
+                "color": [
+                  {
+                    "at": 0,
+                    "value": "#FFFFFFFF",
+                    "ease": "linear"
+                  }
+                ]
               },
               "shadow": null,
               "start": 0,

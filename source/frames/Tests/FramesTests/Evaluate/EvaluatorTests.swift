@@ -702,7 +702,7 @@ struct EvaluatorTests {
         let media = mediaClip(
             timing: nil,
             filter: [.blur(radius: 2)],
-            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: border, shadow: shadow),
+            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: .border(border), shadow: .shadow(shadow)),
             blend: "screen"
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
@@ -1183,7 +1183,7 @@ struct EvaluatorTests {
         mask: [Keyframe<[ResolvedMask]>]? = nil,
         opacity: Double = 1,
         blend: String = "normal",
-        radius: Double = 0,
+        radius: TimedValue = .off,
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
@@ -1209,8 +1209,8 @@ struct EvaluatorTests {
             rotation: entry.rotation,
             blend: blend,
             radius: radius,
-            border: border,
-            shadow: shadow,
+            border: .border(border),
+            shadow: .shadow(shadow),
             transition: entry.transition
         )
     }
@@ -1294,7 +1294,7 @@ struct EvaluatorTests {
         timing: MediaTiming?,
         start: Double = 0,
         filter: [ResolvedFilterOperation] = [],
-        appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil),
+        appearance: ResolvedMediaAppearance = ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off),
         blend: String = "normal",
         track: ResolvedTrack? = nil
     ) -> ResolvedClip {

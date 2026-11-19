@@ -48,19 +48,25 @@ enum ClipKeyTable {
     ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
-            ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "pan", "timeRemap"]
+            [
+                "crop", "position", "scale", "rotation", "opacity", "mask", "radius", "border", "shadow", "volume", "pan",
+                "timeRemap"
+            ]
 
         case (.storyline, .media):
-            ["crop", "position", "scale", "rotation", "opacity", "mask"]
+            ["crop", "position", "scale", "rotation", "opacity", "mask", "radius", "border", "shadow"]
 
         case (_, .media(.audio)):
             ["volume", "pan"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
-            ["position", "scale", "rotation", "opacity", "crop", "mask", "volume", "pan", "timeRemap"]
+            [
+                "position", "scale", "rotation", "opacity", "crop", "mask", "radius", "border", "shadow", "volume", "pan",
+                "timeRemap"
+            ]
 
         case (_, .media):
-            ["position", "scale", "rotation", "opacity", "crop", "mask"]
+            ["position", "scale", "rotation", "opacity", "crop", "mask", "radius", "border", "shadow"]
 
         case (_, .title):
             ["position", "scale", "rotation", "opacity", "mask"]
@@ -114,7 +120,7 @@ enum ClipKeyTable {
 
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
-    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow"]
+    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border"]
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [

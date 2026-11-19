@@ -28,9 +28,9 @@ struct StorylineClip: Equatable, Sendable {
     let rotation: PropertyValue<Double>?
     let opacity: PropertyValue<Double>?
     let blend: String?
-    let radius: Double?
-    let border: BorderForm?
-    let shadow: ShadowForm?
+    let radius: LookProperty?
+    let border: LookProperty?
+    let shadow: LookProperty?
     let connected: [Clip]
 
     // MARK: - Initializer
@@ -53,9 +53,9 @@ struct StorylineClip: Equatable, Sendable {
         rotation: PropertyValue<Double>? = nil,
         opacity: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        radius: Double? = nil,
-        border: BorderForm? = nil,
-        shadow: ShadowForm? = nil,
+        radius: LookProperty? = nil,
+        border: LookProperty? = nil,
+        shadow: LookProperty? = nil,
         connected: [Clip]
     ) {
         self.place = place

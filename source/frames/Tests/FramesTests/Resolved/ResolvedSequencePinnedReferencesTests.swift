@@ -49,7 +49,7 @@ struct ResolvedSequencePinnedReferencesTests {
                     media: .nested(nested),
                     timing: nil,
                     filter: [],
-                    appearance: ResolvedMediaAppearance(conform: .fit, radius: 0, border: nil, shadow: nil)
+                    appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],
             audio: [sound("clips[2]", media: music)]
