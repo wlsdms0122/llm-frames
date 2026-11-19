@@ -75,20 +75,20 @@ struct ResolvedValueWriter: Sendable {
         }
     }
 
-    // A clip's masks as a keyframe list of mask lists, or `null` for none.
-    func masks(_ keyframes: [Keyframe<[ResolvedMask]>]?) -> JSONValue {
-        guard let keyframes else { return .null }
+    // A clip's masks in order, or `null` for none. Each number of a mask's geometry and its feather is a keyframe list:
+    // a rect's or an ellipse's `rect`, or its box `width`, `height` and `position`, a rect's `radius`, and each point of
+    // a path, a closed polyline.
+    func masks(_ masks: [ResolvedMask]?) -> JSONValue {
+        guard let masks else { return .null }
 
-        return self.keyframes(keyframes) { masks in
-            .array(masks.map { mask in
-                .object(JSONObject(members: [
-                    JSONMember(key: "geometry", value: geometry(mask.geometry)),
-                    JSONMember(key: "feather", value: .number(mask.feather)),
-                    JSONMember(key: "invert", value: .bool(mask.isInverted)),
-                    JSONMember(key: "mode", value: .string(mask.mode.rawValue))
-                ]))
-            })
-        }
+        return .array(masks.map { mask in
+            .object(JSONObject(members: [
+                JSONMember(key: "geometry", value: geometry(mask.geometry)),
+                JSONMember(key: "feather", value: numbers(mask.feather)),
+                JSONMember(key: "invert", value: .bool(mask.isInverted)),
+                JSONMember(key: "mode", value: .string(mask.mode.rawValue))
+            ]))
+        })
     }
 
     func size(_ size: Size) -> JSONValue {
@@ -278,6 +278,40 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // MARK: - Private
+    private func geometry(_ geometry: ResolvedMaskGeometry) -> JSONValue {
+        let form = { (name: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        }
+
+        switch geometry {
+        case let .rect(rectangle, radius):
+            return form("rect", members(of: rectangle) + [JSONMember(key: "radius", value: numbers(radius))])
+
+        case let .ellipse(rectangle):
+            return form("ellipse", members(of: rectangle))
+
+        case let .polyline(points):
+            return form("polyline", [
+                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: point) })),
+                JSONMember(key: "closed", value: .bool(true))
+            ])
+        }
+    }
+
+    private func members(of rectangle: ResolvedMaskRectangle) -> [JSONMember] {
+        switch rectangle {
+        case let .area(area):
+            [JSONMember(key: "rect", value: keyframes(area, value: self.rectangle))]
+
+        case let .box(width, height, position):
+            [
+                JSONMember(key: "width", value: numbers(width)),
+                JSONMember(key: "height", value: numbers(height)),
+                JSONMember(key: "position", value: keyframes(position, value: point))
+            ]
+        }
+    }
+
     private func stroke(_ stroke: TextStroke) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "width", value: .number(stroke.width)),

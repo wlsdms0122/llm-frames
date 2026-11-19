@@ -19,7 +19,7 @@ struct StorylineClip: Equatable, Sendable {
     let transition: JSONValue?
     let keyframes: [KeyframeInstant]
     let crop: PropertyValue<CropForm>?
-    let mask: PropertyValue<[ClipMask]>?
+    let mask: LookProperty?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
     let filter: LookProperty?
@@ -44,7 +44,7 @@ struct StorylineClip: Equatable, Sendable {
         transition: JSONValue?,
         keyframes: [KeyframeInstant],
         crop: PropertyValue<CropForm>? = nil,
-        mask: PropertyValue<[ClipMask]>? = nil,
+        mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
         filter: LookProperty? = nil,

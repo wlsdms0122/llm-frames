@@ -101,6 +101,30 @@ enum LookStructureTable {
 
     static let animation = ValueStructure.choice(offNames: ["none"])
 
+    // A clip's masks in order. Each mask's geometry is one form, `area`, the box `width`, `height` and `position`, or
+    // `points`, which a keyframe may not change; an area, a position and each point move as one leaf. Its `shape`,
+    // `invert` and `mode` are static.
+    static let mask = ValueStructure.list(.object(ObjectStructure(
+        [
+            ("shape", .leaf(.name(among: VocabularyTable.shapes))),
+            ("area", .leaf(.numbers(count: 4))),
+            ("width", .leaf(.number(.positive))),
+            ("height", .leaf(.number(.positive))),
+            ("position", .leaf(.numbers(count: 2))),
+            ("points", .list(.leaf(.numbers(count: 2)))),
+            ("radius", .leaf(.number(.nonNegative))),
+            ("feather", .leaf(.length())),
+            ("invert", .leaf(.boolean)),
+            ("mode", .leaf(.name(among: MaskMode.allCases.map(\.rawValue))))
+        ],
+        required: ["shape"],
+        exclusive: [
+            ["area", "width"], ["area", "height"], ["area", "position"], ["area", "points"],
+            ["points", "width"], ["points", "height"], ["points", "position"]
+        ],
+        plain: ["radius": .number(0), "feather": .number(0), "invert": .bool(false), "mode": .string("add")]
+    )))
+
     static let theme = ValueStructure.object(ObjectStructure([
         ("baseWidth", .leaf(.number(.positive))),
         ("font", .list(.leaf(.name))),
@@ -154,9 +178,10 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, each in its range, a length a theme length. A sampled length
-    // at 0 leaves the picture as it is, so a length is 0 or more once it moves. An entry written in place also takes
-    // `mix`.
+    // An op's parameters, in the order of the op table, a length a theme length. Each leaf's domain is its parameter's
+    // range: `PresetReader.checkRanges` stops on a value outside it and a sample is clamped to it. A length is above 0
+    // where it holds and 0 or more once it moves, since a sampled length at 0 leaves the picture as it is. An entry
+    // written in place also takes `mix`.
     static func filterOperation(
         _ name: String,
         mixed: Bool = false

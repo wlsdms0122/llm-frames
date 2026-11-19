@@ -28,7 +28,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let start: Double
     let end: Double
     let crop: [Keyframe<Crop>]
-    let mask: [Keyframe<[ResolvedMask]>]?
+    let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let filter: TimedValue
@@ -64,7 +64,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         start: Double,
         end: Double,
         crop: [Keyframe<Crop>],
-        mask: [Keyframe<[ResolvedMask]>]?,
+        mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         filter: TimedValue,

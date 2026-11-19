@@ -157,21 +157,19 @@ struct ResolvedValueReader: Sendable {
         return feather
     }
 
-    // A clip's masks: `null`, or a keyframe list of lists of at least one mask.
-    func masks(_ value: PlacedJSONValue) throws -> [Keyframe<[ResolvedMask]>]? {
-        try value.optional { value in
-            try keyframes(value) { list in
-                let elements = try list.elements()
-                guard !elements.isEmpty else {
-                    throw ModelError.invalidValue(
-                        place: list.place,
-                        kind: list.kind,
-                        reason: "a mask list holds at least one mask, and a clip without one has null"
-                    )
-                }
-
-                return try elements.map(mask)
+    // A clip's masks: `null`, or a list of at least one mask.
+    func masks(_ value: PlacedJSONValue) throws -> [ResolvedMask]? {
+        try value.optional { list in
+            let elements = try list.elements()
+            guard !elements.isEmpty else {
+                throw ModelError.invalidValue(
+                    place: list.place,
+                    kind: list.kind,
+                    reason: "a mask list holds at least one mask, and a clip without one has null"
+                )
             }
+
+            return try elements.map(mask)
         }
     }
 
@@ -416,10 +414,64 @@ struct ResolvedValueReader: Sendable {
         let mask = try value.object(kind: "mask", keys: ["geometry", "feather", "invert", "mode"])
 
         return ResolvedMask(
-            geometry: try maskGeometry(mask.member("geometry")),
-            feather: try maskFeather(mask.member("feather")),
+            geometry: try timedMaskGeometry(mask.member("geometry")),
+            feather: try keyframes(mask.member("feather"), read: maskFeather),
             isInverted: try mask.member("invert").bool(),
             mode: try mask.member("mode").name(among: MaskMode.allCases.map(\.rawValue), MaskMode.init(rawValue:))
+        )
+    }
+
+    // A resolved mask's geometry, one member named by its form, each number a keyframe list: a rect or an ellipse by
+    // its `rect` or its box `width`, `height` and `position`, and a path as a closed polyline through at least three
+    // points.
+    private func timedMaskGeometry(_ value: PlacedJSONValue) throws -> ResolvedMaskGeometry {
+        let geometry = try value.object(keys: Self.geometryForms)
+        let written = Self.geometryForms.filter(geometry.contains)
+        guard let name = written.first else {
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
+        }
+        guard written.count == 1 else {
+            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
+        }
+
+        let form = try geometry.member(name)
+        switch name {
+        case "rect":
+            let rect = try form.object(keys: ["rect", "width", "height", "position", "radius"])
+            return .rect(try maskRectangle(rect), radius: try numbers(rect.member("radius")))
+
+        case "ellipse":
+            return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
+
+        default:
+            let polyline = try form.object(keys: ["points", "closed"])
+            let written = try polyline.member("points")
+            let points = try written.elements().map { try keyframes($0, read: point) }
+            guard try polyline.member("closed").bool(), points.count >= 3 else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "a path mask is a closed polyline through at least three points"
+                )
+            }
+
+            return .polyline(points)
+        }
+    }
+
+    private func maskRectangle(_ object: PlacedJSONObject) throws -> ResolvedMaskRectangle {
+        if object.contains("rect") {
+            if let box = ["width", "height", "position"].first(where: object.contains) {
+                throw ModelError.conflictingKeys(place: object.place, kind: object.kind, keys: ["rect", box])
+            }
+
+            return .area(try keyframes(object.member("rect"), read: rectangle))
+        }
+
+        return .box(
+            width: try numbers(object.member("width")),
+            height: try numbers(object.member("height")),
+            position: try keyframes(object.member("position"), read: point)
         )
     }
 

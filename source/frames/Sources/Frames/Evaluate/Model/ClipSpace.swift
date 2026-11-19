@@ -71,13 +71,13 @@ struct ClipSpace: Sendable {
     }
 
     func masks(
-        of keyframes: [Keyframe<[ResolvedMask]>],
+        of masks: [ResolvedMask],
         track: ResolvedTrack?,
         at time: Double
-    ) -> [ResolvedMask] {
-        guard let track, let clock else { return keyframes.value(at: time) }
+    ) -> [MaskSample] {
+        guard let track, let clock else { return masks.map { $0.sampled(at: time) } }
 
-        return track.masks(of: keyframes, on: clock, at: time)
+        return track.masks(of: masks, on: clock, at: time)
     }
 
     // A box clip's anchor point, `position + anchor`.

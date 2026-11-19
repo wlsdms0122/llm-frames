@@ -7,15 +7,15 @@
 
 // What resolve finds of a connected or sequence clip's geometry before tracks and parents' spaces are planned, every
 // text form searched. `area`, a path's `points` and `position` are in the space the clip's parent gives, `crop` in its
-// own media and `mask` in its own coordinate space. Under content fit output pixels are the measuring space, so a clip
-// with `isInOutputPixels` moves with the content.
+// own media and `mask` in the space its geometry is searched in. Under content fit output pixels are the measuring
+// space, so a clip with `isInOutputPixels` moves with the content.
 struct FoundGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<FoundArea>?
     let points: PropertyValue<[Point]>?
     let position: PropertyValue<Point>?
     let crop: PropertyValue<FoundArea>?
-    let mask: PropertyValue<[ResolvedMask]>?
+    let mask: [FoundMask]?
     let isInOutputPixels: Bool
 
     // MARK: - Initializer
@@ -24,7 +24,7 @@ struct FoundGeometry: Equatable, Sendable {
         points: PropertyValue<[Point]>?,
         position: PropertyValue<Point>?,
         crop: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [FoundMask]?,
         isInOutputPixels: Bool
     ) {
         self.area = area

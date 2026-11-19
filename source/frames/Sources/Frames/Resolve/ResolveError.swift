@@ -50,8 +50,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
     case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
-    case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
-    case masksDiffer(place: Place, kind: PlaceKind, property: String)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
@@ -206,15 +204,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
-
-        case let .maskCountsDiffer(place, kind, counts):
-            "\(place) (\(kind.label)): the keyframes of \"mask\" hold "
-                + counts.map { "\($0)" }.joined(separator: " and ")
-                + " masks, and masks interpolate one by one, so every keyframe holds the clip's every mask"
-
-        case let .masksDiffer(place, kind, property):
-            "\(place) (\(kind.label)): this mask differs from the first keyframe's in its \(property), "
-                + "and a keyframed mask changes only its geometry's values, its radius and its feather"
 
         case let .textMaskInOwnBox(place, kind):
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"

@@ -118,12 +118,12 @@ struct ResolvedDocumentReaderTests {
               { "adjust": "mine/grade", "parent": "screen", "mask": [
                   { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
                   { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
-              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "keyframes": [
-                  { "at": 0, "ease": "ease-out", "mask": { "shape": "ellipse", "area": { "text": "Total" }, "feather": 1 } },
-                  { "at": 2, "mask": { "shape": "ellipse", "area": [0, 0, 50, 50], "feather": 3 } } ] },
-              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "keyframes": [
-                  { "at": 0, "mask": { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } },
-                  { "at": 1, "mask": { "shape": "path", "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
+              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
+                  { "at": 0, "ease": "ease-out", "mask": { "area": { "text": "Total" }, "feather": 1 } },
+                  { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
+              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
+                  { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
+                  { "at": 1, "mask": { "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
         """#,
         // Track mattes: a storyline clip cut by a title's alpha, a still by a shape's inverted luma, and the shape by
         // the title in turn, so the title is the matte of two clips and the end of a chain.
@@ -397,24 +397,31 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "top level (resolved document): expected an object, found a list of 0")
     }
 
+    private static let point = #"[ { "at": 0, "value": [0, 0], "ease": "linear" } ]"#
+    private static let rect = #"[ { "at": 0, "value": [0, 0, 10, 10], "ease": "linear" } ]"#
+
     @Test(
-        "a mask that is not a closed polyline through three points, has a negative feather or has an unknown mode stops",
+        "a mask that is not a closed polyline through three points, has a negative feather, an unknown mode or both a rect and a box stops",
         arguments: [
             (
-                #"{ "polyline": { "points": [[0, 0], [10, 0], [5, 10]], "closed": false } }"#, "0", #""add""#,
-                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
             ),
             (
-                #"{ "polyline": { "points": [[0, 0], [10, 0]], "closed": true } }"#, "0", #""add""#,
-                "clips[0].mask[0].value[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
             ),
             (
-                #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 0 } }"#, "-1", #""add""#,
-                "clips[0].mask[0].value[0].feather (mask): a feather is 0 or more, found -1"
+                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } }"#, "-1", #""add""#,
+                "clips[0].mask[0].feather[0].value (mask): a feather is 0 or more, found -1"
             ),
             (
-                #"{ "ellipse": { "rect": [0, 0, 10, 10] } }"#, "0", #""multiply""#,
-                #"clips[0].mask[0].value[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""multiply""#,
+                #"clips[0].mask[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
+            ),
+            (
+                #"{ "ellipse": { "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] } }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry.ellipse (mask): takes only one of "rect", "width""#
             )
         ]
     )
@@ -426,7 +433,7 @@ struct ResolvedDocumentReaderTests {
     ) throws {
         // Given
         let mask = #"""
-            [ { "at": 0, "value": [ { "geometry": \#(geometry), "feather": \#(feather), "invert": false, "mode": \#(mode) } ], "ease": "linear" } ]
+            [ { "geometry": \#(geometry), "feather": [ { "at": 0, "value": \#(feather), "ease": "linear" } ], "invert": false, "mode": \#(mode) } ]
             """#
         let text = try replacing("mask", ofClip: 0, with: mask, in: written(Self.documents[4]))
 
@@ -443,7 +450,7 @@ struct ResolvedDocumentReaderTests {
         let text = try replacing(
             "mask",
             ofClip: 0,
-            with: #"[ { "at": 0, "value": [], "ease": "linear" } ]"#,
+            with: "[]",
             in: written(Self.documents[4])
         )
 
@@ -451,7 +458,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
 
         // Then
-        #expect(error?.description == "clips[0].mask[0].value (clip): a mask list holds at least one mask, and a clip without one has null")
+        #expect(error?.description == "clips[0].mask (clip): a mask list holds at least one mask, and a clip without one has null")
     }
 
     @Test(

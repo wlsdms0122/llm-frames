@@ -7,7 +7,7 @@
 
 // The bounding box of a clip's masks: the union of each mask's rectangle, or of the box of its points for a path, in
 // the clip's own coordinate space and without feather. Nil for no masks.
-extension Array where Element == ResolvedMask {
+extension Array where Element == MaskSample {
     // MARK: - Property
     var bounds: Rectangle? {
         let boxes = map { mask in

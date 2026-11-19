@@ -34,10 +34,10 @@ struct TrackPlanner: Sendable {
     func plan(
         _ time: TimePlan,
         storylineCrops: [PropertyValue<FoundArea>?],
-        storylineMasks: [PropertyValue<[ResolvedMask]>?],
+        storylineMasks: [[ResolvedMask]?],
         crops: [PropertyValue<FoundArea>?],
         areas: [PropertyValue<FoundArea>?],
-        masks: [PropertyValue<[ResolvedMask]>?]
+        masks: [[ResolvedMask]?]
     ) throws -> TrackPlan {
         let storyline = try time.storyline.indices.map { index in
             try track(
@@ -70,7 +70,7 @@ struct TrackPlanner: Sendable {
         _ plan: StorylinePlan,
         written: StorylineClip,
         crop: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [ResolvedMask]?,
         fps: Double
     ) throws -> Track? {
         guard let target = written.track else { return nil }
@@ -123,7 +123,7 @@ struct TrackPlanner: Sendable {
         written: Clip,
         crop: PropertyValue<FoundArea>?,
         area: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [ResolvedMask]?,
         time: TimePlan,
         fps: Double
     ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
@@ -174,7 +174,7 @@ struct TrackPlanner: Sendable {
         written: Clip,
         target: TrackTarget,
         area: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [ResolvedMask]?,
         time: TimePlan,
         fps: Double
     ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
@@ -252,37 +252,25 @@ struct TrackPlanner: Sendable {
         return present.first?.value
     }
 
-    // The bounding box of every mask's geometry, without feather, at each value's time, as the area `true` follows: a
-    // keyframe's at its own time, and a static mask at the clip's instant.
+    // The bounding box of every mask's geometry, without feather, as the area `true` follows. The target is found
+    // where the masks start: at the first time a keyframe gives a geometry leaf, a leaf no keyframe moves being at the
+    // clip's instant.
     private func area(
-        of mask: PropertyValue<[ResolvedMask]>,
+        of masks: [ResolvedMask],
         on clock: MediaClock,
         instant: Double
     ) -> PropertyValue<FoundArea> {
-        let found = { (masks: [ResolvedMask], time: Double) in
-            let bounds = masks.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
-            return FoundArea(
-                rectangle: bounds,
-                target: bounds,
-                mediaTime: clock.mediaTime(atSequenceTime: time),
-                lines: []
-            )
-        }
+        let start = masks.flatMap(\.geometryTimes).min() ?? instant
+        let bounds = masks.map { $0.sampled(at: start) }.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
+        let found = FoundArea(
+            rectangle: bounds,
+            target: bounds,
+            mediaTime: clock.mediaTime(atSequenceTime: start),
+            lines: []
+        )
+        guard start != instant else { return .value(found) }
 
-        switch mask {
-        case let .value(masks):
-            return .value(found(masks, instant))
-
-        case let .keyframes(keyframes):
-            return .keyframes(keyframes.map { keyframe in
-                PropertyKeyframe(
-                    index: keyframe.index,
-                    at: keyframe.at,
-                    value: found(keyframe.value, keyframe.at),
-                    ease: keyframe.ease
-                )
-            })
-        }
+        return .keyframes([PropertyKeyframe(index: 0, at: start, value: found, ease: .linear)])
     }
 
     // The target before padding and the sequence time it is found at: for `true` the one of the clip's own candidates

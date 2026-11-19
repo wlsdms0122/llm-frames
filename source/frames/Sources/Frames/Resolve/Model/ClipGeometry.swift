@@ -17,7 +17,7 @@ struct ClipGeometry: Equatable, Sendable {
     let position: PropertyValue<Point>?
     let box: ClipBox?
     let crop: PropertyValue<FoundArea>?
-    let mask: PropertyValue<[ResolvedMask]>?
+    let mask: [ResolvedMask]?
     let track: TrackedMedia?
     let isInOutputPixels: Bool
     let title: TextLayout?
@@ -31,7 +31,7 @@ struct ClipGeometry: Equatable, Sendable {
         position: PropertyValue<Point>?,
         box: ClipBox?,
         crop: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [ResolvedMask]?,
         track: TrackedMedia?,
         isInOutputPixels: Bool,
         title: TextLayout?,

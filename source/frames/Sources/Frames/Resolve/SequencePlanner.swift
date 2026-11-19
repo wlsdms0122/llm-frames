@@ -86,7 +86,7 @@ struct SequencePlanner: Sendable {
             storylineMasks: storylineMasks,
             crops: found.map(\.crop),
             areas: found.map(\.area),
-            masks: found.map(\.mask)
+            masks: found.map { $0.mask?.map(\.mask) }
         )
         try checkKeyframes(of: tracked.time)
         let shapes = try tracked.time.clips.indices.map { index in
@@ -416,78 +416,24 @@ struct SequencePlanner: Sendable {
         written: StorylineClip,
         nested: SequencePlan?,
         lengthScale: Double
-    ) throws -> PropertyValue<[ResolvedMask]>? {
+    ) throws -> [ResolvedMask]? {
         guard let mask = written.mask, let media = plan.source.media else { return nil }
 
-        try checkMasks(mask, place: written.place, kind: plan.source.kind)
         let picture = try self.picture(
             of: media,
             kind: plan.source.kind,
             nested: nested,
             place: plan.place.appending(key: "media")
         )
-        return try finder.masks(
-            mask,
-            in: picture,
-            pictureClock: .storyline(plan),
+        let planner = MaskPlanner(
+            finder: finder,
+            place: written.place,
+            kind: .clip(plan.source.kind),
             clock: plan.map,
             instant: plan.instant,
-            lengthScale: lengthScale,
-            place: written.place,
-            kind: plan.source.kind.label
+            lengthScale: lengthScale
         )
-    }
-
-    // Keyframes of `mask` hold the clip's every mask and interpolate mask by mask, so each holds as many masks as the
-    // first written, and each mask keeps its shape, how its geometry is given, its number of points, its inversion and
-    // its mode.
-    private func checkMasks(
-        _ mask: PropertyValue<[ClipMask]>,
-        place: Place,
-        kind: ClipKind
-    ) throws {
-        guard case let .keyframes(keyframes) = mask, let first = keyframes.first else { return }
-
-        for keyframe in keyframes.dropFirst() {
-            let keyframePlace = place.appending(key: "keyframes")
-                .appending(index: keyframe.index)
-                .appending(key: "mask")
-            guard keyframe.value.count == first.value.count else {
-                throw ResolveError.maskCountsDiffer(
-                    place: keyframePlace,
-                    kind: .clip(kind),
-                    counts: [first.value.count, keyframe.value.count]
-                )
-            }
-
-            for (firstMask, mask) in zip(first.value, keyframe.value) {
-                let maskPlace = mask.index.map { keyframePlace.appending(index: $0) } ?? keyframePlace
-                let property: String? = if mask.shape != firstMask.shape {
-                    "shape"
-                } else if mask.geometry.key != firstMask.geometry.key {
-                    "geometry form"
-                } else if mask.isInverted != firstMask.isInverted {
-                    "invert"
-                } else if mask.mode != firstMask.mode {
-                    "mode"
-                } else {
-                    nil
-                }
-                if let property {
-                    throw ResolveError.masksDiffer(place: maskPlace, kind: .clip(kind), property: property)
-                }
-                if case let .points(points) = mask.geometry,
-                    case let .points(firstPoints) = firstMask.geometry,
-                    points.count != firstPoints.count
-                {
-                    throw ResolveError.pointCountsDiffer(
-                        place: maskPlace.appending(key: "points"),
-                        kind: .clip(kind),
-                        counts: [firstPoints.count, points.count]
-                    )
-                }
-            }
-        }
+        return try planner.masks(mask, in: picture, pictureClock: .storyline(plan))?.map(\.mask)
     }
 
     // A storyline clip has no parent, so its position is in output pixels and a text form stops.
@@ -599,33 +545,32 @@ struct SequencePlanner: Sendable {
             }
         }
 
-        let mask = try written.mask.map { mask in
-            try checkMasks(mask, place: written.place, kind: plan.kind)
-            let maskSpace: (picture: Picture, clock: PictureClock)
-            if plan.space == .media, let picture {
-                maskSpace = (picture, plan.mediaClock.map { .media($0) } ?? .still)
-            } else if plan.space == .box {
-                if let text = byText(mask, place: written.place) {
-                    throw ResolveError.textMaskInOwnBox(place: text, kind: .clip(plan.kind))
-                }
-                let box = Picture(name: plan.id ?? written.place.description, source: .space, size: format.size)
-                maskSpace = (box, .still)
-            } else {
-                if space.isOutputPixels, let text = byText(mask, place: written.place) {
-                    throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
-                }
-                maskSpace = (space.picture, space.clock)
+        let planner = MaskPlanner(
+            finder: finder,
+            place: written.place,
+            kind: .clip(plan.kind),
+            clock: plan.clock,
+            instant: plan.instant,
+            lengthScale: lengthScale
+        )
+        let mask: [FoundMask]?
+        if plan.space == .media, let picture {
+            mask = try planner.masks(
+                written.mask,
+                in: picture,
+                pictureClock: plan.mediaClock.map { .media($0) } ?? .still
+            )
+        } else if plan.space == .box {
+            let box = Picture(name: plan.id ?? written.place.description, source: .space, size: format.size)
+            mask = try planner.masks(written.mask, in: box, pictureClock: .still) { place in
+                .textMaskInOwnBox(place: place, kind: .clip(plan.kind))
             }
-
-            return try finder.masks(
-                mask,
-                in: maskSpace.picture,
-                pictureClock: maskSpace.clock,
-                clock: plan.clock,
-                instant: plan.instant,
-                lengthScale: lengthScale,
-                place: written.place,
-                kind: plan.kind.label
+        } else {
+            mask = try planner.masks(
+                written.mask,
+                in: space.picture,
+                pictureClock: space.clock,
+                textStop: space.isOutputPixels ? { .textAreaInOutputPixels(place: $0, kind: .clip(plan.kind)) } : nil
             )
         }
 
@@ -637,31 +582,6 @@ struct SequencePlanner: Sendable {
             mask: mask,
             isInOutputPixels: space.isOutputPixels
         )
-    }
-
-    // The place of the first mask given by text.
-    private func byText(
-        _ mask: PropertyValue<[ClipMask]>,
-        place: Place
-    ) -> Place? {
-        let at = { (masks: [ClipMask], place: Place) in
-            masks.first(where: \.geometry.isFoundByText).map { mask in
-                mask.index.map { place.appending(index: $0) } ?? place
-            }
-        }
-
-        switch mask {
-        case let .value(masks):
-            return at(masks, place.appending(key: "mask"))
-
-        case let .keyframes(keyframes):
-            return keyframes.lazy.compactMap { keyframe in
-                let keyframePlace = place.appending(key: "keyframes")
-                    .appending(index: keyframe.index)
-                    .appending(key: "mask")
-                return at(keyframe.value, keyframePlace)
-            }.first
-        }
     }
 
     // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is

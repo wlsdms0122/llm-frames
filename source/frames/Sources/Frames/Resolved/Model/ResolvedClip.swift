@@ -25,7 +25,7 @@ struct ResolvedClip: Equatable, Sendable {
     let parent: String?
     let box: ResolvedBox?
     let crop: [Keyframe<Crop>]?
-    let mask: [Keyframe<[ResolvedMask]>]?
+    let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let opacity: [Keyframe<Double>]
@@ -57,7 +57,7 @@ struct ResolvedClip: Equatable, Sendable {
         parent: String?,
         box: ResolvedBox?,
         crop: [Keyframe<Crop>]?,
-        mask: [Keyframe<[ResolvedMask]>]?,
+        mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         opacity: [Keyframe<Double>],

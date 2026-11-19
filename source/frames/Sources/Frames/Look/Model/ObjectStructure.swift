@@ -6,7 +6,8 @@
 //
 
 // An object value's keys in the order it is written out, the keys the merged value requires, the groups of keys that
-// are one leaf (a stroke's `color` and `gradient`), so writing one replaces the others, its shorthands, and the plain
+// are one leaf (a stroke's `color` and `gradient`), so writing one replaces the others and each is a form of that
+// leaf, its shorthands, and the plain
 // value of each key that has one, which timing gives a key no layer writes, as a filter entry's `mix` is 1.
 struct ObjectStructure: Sendable {
     // MARK: - Property
@@ -36,9 +37,9 @@ struct ObjectStructure: Sendable {
         keys.first { $0.name == key }?.structure
     }
 
-    // The keys that are one leaf with `key`, itself left out.
+    // The keys that are one leaf with `key` in any of its groups, itself left out.
     func partners(of key: String) -> [String] {
-        exclusive.first { $0.contains(key) }?.filter { $0 != key } ?? []
+        exclusive.filter { $0.contains(key) }.flatMap { $0.filter { $0 != key } }
     }
 
     // MARK: - Private

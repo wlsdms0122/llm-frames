@@ -148,7 +148,7 @@ struct ParentEvaluatorTests {
             id: "bar",
             content: content,
             parent: "shot",
-            mask: isShape ? nil : [Keyframe(at: 0, value: [mask])]
+            mask: isShape ? nil : [mask]
         )
         let child = fill(parent: "bar")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
@@ -480,7 +480,7 @@ struct ParentEvaluatorTests {
         start: Double = 0,
         end: Double = 4,
         parent: String? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,

@@ -912,12 +912,12 @@ struct EvaluatorTests {
             .adjustment(.filter([.blur(radius: 3)])),
             storyline: 0,
             parent: "shot",
-            mask: [Keyframe(at: 0, value: [ResolvedMask(
+            mask: [ResolvedMask(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 200, height: 100), radius: 0),
                 feather: 0,
                 isInverted: false,
                 mode: .add
-            )])],
+            )],
             opacity: 0.5
         )
         let sequence = sequence([storylineClip(.pinned(first), id: "shot", start: 0, end: 4)], clips: [adjustment])
@@ -977,7 +977,7 @@ struct EvaluatorTests {
         let entry = transformed(
             storylineClip(.pinned(first), start: 0, end: 4),
             scale: [Keyframe(at: 0, value: 0.5)],
-            mask: [Keyframe(at: 0, value: [mask])]
+            mask: [mask]
         )
 
         // When
@@ -1015,7 +1015,7 @@ struct EvaluatorTests {
             storylineClip(.pinned(first), in: 1, start: 0, end: 2),
             transformed(
                 storylineClip(.pinned(second), in: 1, start: 2, end: 4, transition: transition),
-                mask: [Keyframe(at: 2, value: [mask])]
+                mask: [mask]
             )
         ])
 
@@ -1041,17 +1041,10 @@ struct EvaluatorTests {
             TrackedFrame(time: 1, rectangle: Rectangle(x: 20, y: 0, width: 10, height: 10)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 35, y: -5, width: 20, height: 20))
         ])
-        let mask = [
-            Keyframe(at: 0, value: [
-                ResolvedMask(geometry: .ellipse(target), feather: 2, isInverted: false, mode: .add)
-            ]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .ellipse(Rectangle(x: 55, y: -5, width: 20, height: 20)),
-                feather: 2,
-                isInverted: false,
-                mode: .add
-            )])
-        ]
+        let mask = [ResolvedMask(samples: [
+            (at: 0, geometry: .ellipse(target), feather: 2),
+            (at: 2, geometry: .ellipse(Rectangle(x: 55, y: -5, width: 20, height: 20)), feather: 2)
+        ])]
         let entry = transformed(storylineClip(.pinned(first), start: 0, end: 4, track: track), mask: mask)
 
         // When
@@ -1079,17 +1072,10 @@ struct EvaluatorTests {
             TrackedFrame(time: 1, rectangle: Rectangle(x: 100, y: 60, width: 40, height: 20)),
             TrackedFrame(time: 2, rectangle: Rectangle(x: 100, y: 20, width: 40, height: 20))
         ])
-        let mask = [
-            Keyframe(at: 0, value: [
-                ResolvedMask(geometry: .rect(target, radius: 0), feather: 0, isInverted: false, mode: .add)
-            ]),
-            Keyframe(at: 2, value: [ResolvedMask(
-                geometry: .rect(Rectangle(x: 140, y: 20, width: 40, height: 20), radius: 0),
-                feather: 0,
-                isInverted: false,
-                mode: .add
-            )])
-        ]
+        let mask = [ResolvedMask(samples: [
+            (at: 0, geometry: .rect(target, radius: 0), feather: 0),
+            (at: 2, geometry: .rect(Rectangle(x: 140, y: 20, width: 40, height: 20), radius: 0), feather: 0)
+        ])]
         let shape = ResolvedShape(area: [Keyframe(at: 0, value: whole)], fill: red)
         let sequence = sequence(
             [storylineClip(.pinned(first), id: "shot", start: 0, end: 4)],
@@ -1180,7 +1166,7 @@ struct EvaluatorTests {
         _ entry: ResolvedStorylineClip,
         position: [Keyframe<Point>]? = nil,
         scale: [Keyframe<Double>]? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        mask: [ResolvedMask]? = nil,
         opacity: Double = 1,
         blend: String = "normal",
         radius: TimedValue = .off,
@@ -1259,7 +1245,7 @@ struct EvaluatorTests {
         lane: Int = 1,
         storyline: Int? = nil,
         parent: String? = nil,
-        mask: [Keyframe<[ResolvedMask]>]? = nil,
+        mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
         crop: [Keyframe<Crop>]? = nil,
         track: ResolvedTrack? = nil,

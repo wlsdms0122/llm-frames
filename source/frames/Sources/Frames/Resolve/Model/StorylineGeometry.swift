@@ -11,7 +11,7 @@
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?
-    let mask: PropertyValue<[ResolvedMask]>?
+    let mask: [ResolvedMask]?
     let track: Track?
     let nested: SequencePlan?
     let filter: TimedValue
@@ -21,7 +21,7 @@ struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Initializer
     init(
         crop: PropertyValue<FoundArea>?,
-        mask: PropertyValue<[ResolvedMask]>?,
+        mask: [ResolvedMask]?,
         track: Track?,
         nested: SequencePlan?,
         filter: TimedValue = .off,

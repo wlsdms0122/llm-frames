@@ -34,7 +34,7 @@ extension ResolvedClip {
                 ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
             },
             crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
-            mask: geometry.mask?.keyframes(at: instant) { $0 },
+            mask: geometry.mask,
             trackMatte: plan.trackMatte,
             track: try geometry.track.map { try ResolvedTrack(track: $0, hashes: hashes) },
             opacity: appearance.opacity.keyframes(at: instant) { $0 },

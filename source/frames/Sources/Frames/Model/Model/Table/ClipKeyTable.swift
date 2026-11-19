@@ -120,7 +120,7 @@ enum ClipKeyTable {
 
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
-    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust"]
+    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask"]
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
@@ -305,7 +305,16 @@ enum ClipKeyTable {
     // A look key's type in a keyframe: each leaf may be `null`, and a length may be 0 or less, since timing checks a
     // leaf two keyframes write against its domain and one a single keyframe writes as a static value.
     private static func keyframed(_ type: ValueType) -> ValueType {
-        type == ChoiceKeyTable.filter ? ChoiceKeyTable.filterKeyframe : .oneOf([.exactly(.null), loosened(type)])
+        switch type {
+        case ChoiceKeyTable.filter:
+            ChoiceKeyTable.filterKeyframe
+
+        case .masks:
+            .oneOf([.exactly(.null), loosened(.object(MaskKeyTable.keyframe)), .list(loosened(.object(MaskKeyTable.keyframe)))])
+
+        default:
+            .oneOf([.exactly(.null), loosened(type)])
+        }
     }
 
     private static func loosened(_ type: ValueType) -> ValueType {
