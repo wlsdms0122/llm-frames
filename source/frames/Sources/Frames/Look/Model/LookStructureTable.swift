@@ -185,11 +185,29 @@ enum LookStructureTable {
             : .object(ObjectStructure(parameters))
     }
 
-    // An audio filter of ops written in place, each with its `mix`; its structure is static, so its ops and the number
-    // and types of its bands are as the clip writes them.
-    static let audioFilter = ValueStructure.choice(offNames: [], forms: AudioFilterKeyTable.operations.map { name in
-        ("op:" + name, audioOperation(name, mixed: true))
-    })
+    // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are
+    // numbers, each taking its default where no layer writes it. Its structure is static, so its presets, its ops and
+    // the number and types of its bands are as the clip writes them.
+    static func audioFilter(presets: [(name: String, parameters: [Parameter])]) -> ValueStructure {
+        let presetForms = presets.map { preset in
+            let arguments = preset.parameters.map { parameter in
+                (name: parameter.name, structure: ValueStructure.leaf(.number()))
+            }
+            let defaults = preset.parameters.reduce(into: [String: JSONValue]()) { defaults, parameter in
+                defaults[parameter.name] = parameter.defaultValue
+            }
+            let body = ObjectStructure(
+                [("args", .object(ObjectStructure(arguments, plain: defaults))), ("mix", mix)],
+                plain: ["args": .object(JSONObject()), "mix": .number(1)]
+            )
+            return ("preset:" + preset.name, ValueStructure.object(body))
+        }
+        let operationForms = AudioFilterKeyTable.operations.map { name in
+            ("op:" + name, audioOperation(name, mixed: true))
+        }
+
+        return .choice(offNames: [], forms: presetForms + operationForms)
+    }
 
     // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with.
     static let resolvedAudioFilter = ValueStructure.list(.object(ObjectStructure([

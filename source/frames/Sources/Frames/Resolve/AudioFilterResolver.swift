@@ -5,14 +5,22 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// Resolves a clip's audio filter to the timed list of entries `{ops, mix}` its sound is processed with, each the one
-// op written in place with its defaults written. A static parameter is checked against its range where the clip writes
-// it; a keyframed one is checked by timing.
+// Resolves a clip's audio filter to the timed list of entries `{ops, mix}` its sound is processed with: a preset's ops
+// with its arguments in place, or the one op written in place, each op with its defaults written. A static op
+// parameter is checked against its range where the clip writes it, and a keyframed one by timing. A preset is read
+// with the arguments the choice writes, and again with each keyframe's over them, so a stop names the choice or the
+// keyframe.
 struct AudioFilterResolver: Sendable {
     // MARK: - Property
     static let key = "audioFilter"
 
+    private let presets: any PresetProvider
+
     // MARK: - Initializer
+    init(presets: any PresetProvider) {
+        self.presets = presets
+    }
+
     // MARK: - Public
     func timed(
         _ property: LookProperty?,
@@ -21,69 +29,166 @@ struct AudioFilterResolver: Sendable {
         guard let property else { return .off }
 
         let place = looks.place.appending(key: Self.key)
-        if let written = property.written {
-            try check(written, place: place, kind: looks.kind)
+        let isList = property.written?.arrayValue != nil
+        let entries = property.written.map { $0.arrayValue ?? [$0] } ?? []
+        var published: [String: PublishedPreset<AudioPreset>] = [:]
+        for (index, entry) in entries.enumerated() {
+            let entryPlace = isList ? place.appending(index: index) : place
+            if let instance = PresetInstance(value: entry, place: entryPlace) {
+                published[instance.name] = try preset(instance, kind: looks.kind)
+            } else {
+                let name = entry.objectValue?["op"]?.stringValue ?? ""
+                try LookStructureTable.audioOperation(name, mixed: true).checkDomains(of: entry, place: entryPlace)
+            }
         }
+        try checkArguments(of: property, entries: entries, isList: isList, looks: looks)
 
-        let timed = try looks.timed(property, key: Self.key, as: LookStructureTable.audioFilter)
-        let entries = if case let .list(entries) = timed { entries } else { [timed] }
+        let structure = LookStructureTable.audioFilter(
+            presets: published.keys.sorted().compactMap { name in published[name].map { (name, $0.parameters) } }
+        )
+        let timed = try looks.timed(property, key: Self.key, as: structure)
+        let elements = if case let .list(elements) = timed { elements } else { [timed] }
 
-        return .list(entries.map(entry))
+        return .list(try elements.map { element in try entry(element, published: published, looks: looks) })
     }
 
     // MARK: - Private
-    // Each entry is an op written in place, in its range.
-    private func check(
-        _ written: JSONValue,
-        place: Place,
+    private func preset(
+        _ instance: PresetInstance,
         kind: PlaceKind
-    ) throws {
-        let isList = written.arrayValue != nil
-        for (index, entry) in (written.arrayValue ?? [written]).enumerated() {
-            let entryPlace = isList ? place.appending(index: index) : place
-            guard let object = entry.objectValue, let name = object["op"]?.stringValue else {
-                let name = entry.stringValue ?? entry.objectValue?["preset"]?.stringValue ?? ""
-                throw ResolveError.unknownPreset(place: entryPlace, kind: kind, presetKind: "audio", name: name)
-            }
+    ) throws -> PublishedPreset<AudioPreset> {
+        guard try presets.audio(instance) != nil, let published = try presets.publishedAudio(named: instance.name) else {
+            throw ResolveError.unknownPreset(place: instance.place, kind: kind, presetKind: "audio", name: instance.name)
+        }
 
-            try checkRange(entry, as: LookStructureTable.audioOperation(name, mixed: true), place: entryPlace)
+        return published
+    }
+
+    // A preset entry's arguments are checked by reading the preset with each keyframe's over the choice's. An argument
+    // two keyframes or more write is one end of a change, so its value is checked as its samples are.
+    private func checkArguments(
+        of property: LookProperty,
+        entries: [JSONValue],
+        isList: Bool,
+        looks: ClipLookPlanner
+    ) throws {
+        for (index, entry) in entries.enumerated() {
+            guard let instance = PresetInstance(value: entry, place: looks.place) else { continue }
+
+            let written = property.keyframes.compactMap { keyframe -> (place: Place, arguments: JSONObject)? in
+                let values = keyframe.value.arrayValue ?? [keyframe.value]
+                guard index < values.count, let arguments = values[index].objectValue?["args"]?.objectValue else {
+                    return nil
+                }
+
+                let place = looks.place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: Self.key)
+                return (isList ? place.appending(index: index) : place, arguments)
+            }
+            let names = written.flatMap { $0.arguments.members.map(\.key) }
+            let sampled = Set(names.filter { name in names.filter { $0 == name }.count > 1 })
+            for (place, arguments) in written {
+                let given = arguments.members.filter { $0.value != .null }
+                let merged = given.reduce(instance.arguments) { merged, member in
+                    merged.setting(member.key, to: member.value)
+                }
+                let keyframed = PresetInstance(name: instance.name, arguments: merged, place: place, sampled: sampled)
+                _ = try preset(keyframed, kind: looks.kind)
+            }
         }
     }
 
-    private func checkRange(
-        _ value: JSONValue,
-        as structure: ValueStructure,
-        place: Place
-    ) throws {
-        switch (value, structure) {
-        case let (.object(object), .object(structure)):
-            for (key, memberStructure) in structure.keys {
-                guard let member = object[key] else { continue }
-
-                try checkRange(member, as: memberStructure, place: place.appending(key: key))
-            }
-
-        case let (.array(elements), .list(element)):
-            for (index, value) in elements.enumerated() {
-                try checkRange(value, as: element, place: place.appending(index: index))
-            }
-
-        case let (.number(number), .leaf(kind)):
-            guard kind.domain.isSeen(number) else { throw LookError.outsideDomain(place: place, value: number) }
-
-        default:
-            break
-        }
-    }
-
-    // An op's `mix` belongs to its entry, so the entry is its op and the `mix` it is heard with.
-    private func entry(_ value: TimedValue) -> TimedValue {
+    // An op's `mix` belongs to its entry, so the entry is its ops and the `mix` they are heard with.
+    private func entry(
+        _ value: TimedValue,
+        published: [String: PublishedPreset<AudioPreset>],
+        looks: ClipLookPlanner
+    ) throws -> TimedValue {
         guard case let .form(name, .object(members)) = value else { return value }
 
-        let operation = TimedValue.form(name, .object(members.filter { $0.key != "mix" }))
+        let operations: [TimedValue]
+        if name.hasPrefix("op:") {
+            operations = [.form(name, .object(members.filter { $0.key != "mix" }))]
+        } else if let preset = published[String(name.dropFirst("preset:".count))] {
+            let arguments = members.first { $0.key == "args" }?.value
+            operations = try self.operations(of: preset, arguments: arguments, looks: looks)
+        } else {
+            operations = []
+        }
+
         return .object([
-            TimedMember(key: "ops", value: .list([operation])),
+            TimedMember(key: "ops", value: .list(operations)),
             TimedMember(key: "mix", value: members.first { $0.key == "mix" }?.value ?? .off)
         ])
+    }
+
+    private func operations(
+        of preset: PublishedPreset<AudioPreset>,
+        arguments: TimedValue?,
+        looks: ClipLookPlanner
+    ) throws -> [TimedValue] {
+        let objects = preset.value.objectValue?["ops"]?.arrayValue?.compactMap(\.objectValue) ?? []
+
+        return try objects.enumerated().map { index, object in
+            let name = object["op"]?.stringValue ?? ""
+            let body = try timed(
+                .object(object),
+                as: LookStructureTable.audioOperation(name),
+                at: preset.place.appending(key: "ops").appending(index: index),
+                references: preset.references,
+                arguments: arguments,
+                looks: looks
+            )
+            return .form("op:" + name, body)
+        }
+    }
+
+    // A preset's op with its arguments in place: a parameter an argument fills takes the argument's keyframes, and
+    // every other leaf is held, a default written where the op leaves it out.
+    private func timed(
+        _ value: JSONValue,
+        as structure: ValueStructure,
+        at place: Place,
+        references: [ParameterReference],
+        arguments: TimedValue?,
+        looks: ClipLookPlanner
+    ) throws -> TimedValue {
+        if let reference = references.first(where: { $0.place == place }) {
+            return arguments?[reference.name] ?? .off
+        }
+
+        switch (value, structure) {
+        case let (.object(object), .object(structure)):
+            return .object(try structure.keys.compactMap { key, child in
+                guard let member = object[key] ?? structure.plain[key] else { return nil }
+
+                let timed = try self.timed(
+                    member,
+                    as: child,
+                    at: place.appending(key: key),
+                    references: references,
+                    arguments: arguments,
+                    looks: looks
+                )
+                return TimedMember(key: key, value: timed)
+            })
+
+        case let (.array(elements), .list(element)):
+            return .list(try elements.enumerated().map { index, value in
+                try timed(
+                    value,
+                    as: element,
+                    at: place.appending(index: index),
+                    references: references,
+                    arguments: arguments,
+                    looks: looks
+                )
+            })
+
+        case let (_, .leaf(kind)):
+            return try looks.timed(value, kind: kind, place: looks.place.appending(key: Self.key))
+
+        default:
+            return .fixed(value)
+        }
     }
 }

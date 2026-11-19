@@ -294,6 +294,11 @@ struct KeyChecker: Sendable {
 
         case .audioFilterChoice:
             try checkAudioFilterChoice(value, place: place, kind: kind, scope: &scope)
+
+        case .audioOperation:
+            guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
+
+            try checkAudioOperation(object, place: place, mixed: false, scope: &scope)
         }
     }
 
@@ -1097,8 +1102,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A list applies at least one entry. An object naming `op` is an op written in place, which takes `mix` beside
-    // its parameters, and an `eq` holds at least one band, each taking the keys of its `type`.
+    // A list applies at least one entry, and an object naming `op` is an op written in place.
     private func checkAudioFilterChoice(
         _ value: JSONValue,
         place: Place,
@@ -1128,10 +1132,23 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
-        guard let object = value.objectValue, let operationValue = object["op"] else {
+        guard let object = value.objectValue, object.contains("op") else {
             try check(value, as: ChoiceKeyTable.audioFilterPreset, place: place, kind: kind, scope: &scope)
             return
         }
+
+        try checkAudioOperation(object, place: place, mixed: true, scope: &scope)
+    }
+
+    // An op written in place takes `mix` beside its parameters, and a preset's op does not. An `eq` holds at least one
+    // band, each taking the keys of its `type`.
+    private func checkAudioOperation(
+        _ object: JSONObject,
+        place: Place,
+        mixed: Bool,
+        scope: inout DocumentScope
+    ) throws {
+        let operationValue = object["op"] ?? .null
         guard let operation = operationValue.stringValue else {
             throw wrongType(operationValue, .name, place.appending(key: "op"), "audio operation")
         }
@@ -1144,9 +1161,9 @@ struct KeyChecker: Sendable {
             )
         }
 
-        let parameters = JSONObject(members: object.members.filter { $0.key != "mix" })
+        let parameters = JSONObject(members: object.members.filter { !mixed || $0.key != "mix" })
         try checkObject(parameters, as: AudioFilterKeyTable.table(for: operation), place: place, scope: &scope)
-        if let mix = object["mix"] {
+        if mixed, let mix = object["mix"] {
             let mixPlace = place.appending(key: "mix")
             try check(mix, as: .fraction, place: mixPlace, kind: AudioFilterKeyTable.kind, scope: &scope)
         }
@@ -1289,7 +1306,7 @@ struct KeyChecker: Sendable {
             true
 
         case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
-             (.filterOperation, .object), (.document, .object):
+             (.filterOperation, .object), (.audioOperation, .object), (.document, .object):
             true
 
         case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
@@ -1423,6 +1440,9 @@ struct KeyChecker: Sendable {
 
         case .audioFilterChoice:
             "an audio preset name, {preset, args, mix}, an audio op or a list of them"
+
+        case .audioOperation:
+            "an audio operation"
         }
     }
 

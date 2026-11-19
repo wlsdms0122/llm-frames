@@ -59,4 +59,5 @@ indirect enum ValueType: Equatable, Sendable {
     // An audio preset name, `{preset, args, mix}`, an audio op, or a list of at least one of those.
     case audioFilterChoice
     case filterOperation
+    case audioOperation
 }

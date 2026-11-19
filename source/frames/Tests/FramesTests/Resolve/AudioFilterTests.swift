@@ -85,6 +85,86 @@ struct AudioFilterTests {
         #expect(band["gain"]?.number == 6)
     }
 
+    @Test("a preset entry is its preset's ops with its arguments in place and their defaults written, and its mix")
+    func expandsPreset() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": [ "mine/voice", { "preset": "mine/voice", "args": { "cut": 120 }, "mix": 0.5 } ] } ] }
+            """#)
+
+        // Then
+        let filter = plan.sound[1].audioFilter.sampled(at: 0, as: LookStructureTable.resolvedAudioFilter)
+        guard case let .list(entries) = filter, entries.count == 2 else {
+            Issue.record("expected two entries, got \(filter)")
+            return
+        }
+        #expect(entries[0]["mix"]?.number == 1)
+        #expect(entries[1]["mix"]?.number == 0.5)
+        guard case let .list(operations) = entries[1]["ops"], operations.count == 2,
+            case let .form("op:eq", eq) = operations[0], case let .form("op:compressor", compressor) = operations[1],
+            case let .list(bands) = eq["bands"]
+        else {
+            Issue.record("expected an eq and a compressor, got \(entries[1])")
+            return
+        }
+        #expect(bands[0]["frequency"]?.number == 120)
+        #expect(bands[0]["q"]?.number == 0.7071)
+        #expect(compressor["ratio"]?.number == 3)
+        #expect(compressor["knee"]?.number == 0)
+        let first = try #require(band(of: plan.sound[1].audioFilter, at: 0))
+        #expect(first["frequency"]?.number == 80)
+    }
+
+    @Test("a preset argument keyframed sweeps the parameter it fills, in log space for a frequency")
+    func sweepsPresetArgument() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": "mine/voice",
+                "keyframes": [ { "at": 0, "audioFilter": { "args": { "cut": 100 } } }, { "at": 2, "audioFilter": { "args": { "cut": 10000 } } } ] } ] }
+            """#)
+
+        // Then
+        let band = try #require(band(of: plan.sound[1].audioFilter, at: 1))
+        let frequency = try #require(band["frequency"]?.number)
+        #expect(abs(frequency - 1000) < 1e-6)
+    }
+
+    @Test("a preset argument outside the range of the parameter it fills stops, statically and in a keyframe")
+    func refusesPresetArgumentOutOfRange() throws {
+        // When, Then
+        #expect(throws: PresetError.self) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "preset": "mine/voice", "args": { "squash": 0.5 } } } ] }
+                """#)
+        }
+        let error = #expect(throws: PresetError.self) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": "mine/voice",
+                    "keyframes": [ { "at": 0, "audioFilter": { "args": { "squash": 0.5 } } } ] } ] }
+                """#)
+        }
+        guard case let .rejectedArguments(place, _, _, _) = error else {
+            Issue.record("expected rejected arguments, got \(String(describing: error))")
+            return
+        }
+        #expect(place == clip.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter"))
+    }
+
+    @Test("an audio preset that no pack holds stops as an unknown audio preset")
+    func refusesUnknownPreset() throws {
+        // When, Then
+        #expect(throws: ResolveError.unknownPreset(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), presetKind: "audio", name: "mine/none")) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": "mine/none" } ] }
+                """#)
+        }
+    }
+
     @Test("a band whose frequency neither the clip nor its keyframes write stops")
     func refusesBandWithoutFrequency() throws {
         // When, Then

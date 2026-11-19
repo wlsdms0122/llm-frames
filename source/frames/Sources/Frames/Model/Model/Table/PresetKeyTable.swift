@@ -41,6 +41,14 @@ enum PresetKeyTable {
             KeyRule("ops", .list(.filterOperation), isRequired: true)
         ]
     )
+    static let audio = ObjectTable(
+        kind: "audio preset",
+        rules: [
+            KeyRule("description", .text, isRequired: true),
+            KeyRule("params", .parameters(ParameterKeyTable.audioPreset)),
+            KeyRule("ops", .list(.audioOperation), isRequired: true)
+        ]
+    )
     static let spanKey = ObjectTable(
         kind: "span key",
         rules: [KeyRule("t", .number, isRequired: true)] + motionProperties.map { property in

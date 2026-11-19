@@ -16,6 +16,7 @@ package struct PresetLibrary: PresetProvider {
     private let transitions = PresetCache<TransitionPreset>()
     private let animations = PresetCache<AnimationPreset>()
     private let filters = PresetCache<FilterPreset>()
+    private let audios = PresetCache<AudioPreset>()
 
     // MARK: - Initializer
     package init(packs: PackLibrary) {
@@ -39,6 +40,18 @@ package struct PresetLibrary: PresetProvider {
         try filters.preset(named: name) {
             try value(named: name, kind: "filter").map { value in
                 try reader.publishedFilter(from: value, place: Place(file: name, components: []))
+            }
+        }
+    }
+
+    func audio(_ instance: PresetInstance) throws -> AudioPreset? {
+        try publishedAudio(named: instance.name).map { try reader.audio($0, instance: instance) }
+    }
+
+    func publishedAudio(named name: String) throws -> PublishedPreset<AudioPreset>? {
+        try audios.preset(named: name) {
+            try value(named: name, kind: PresetKind.audio.rawValue).map { value in
+                try reader.publishedAudio(from: value, place: Place(file: name, components: []))
             }
         }
     }
@@ -96,6 +109,11 @@ package struct PresetLibrary: PresetProvider {
 
         case .filter:
             try publishedFilter(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
+
+        case .audio:
+            try publishedAudio(named: name).map { preset in
                 PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
             }
         }

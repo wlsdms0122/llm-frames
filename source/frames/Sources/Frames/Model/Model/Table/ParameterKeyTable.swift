@@ -37,4 +37,13 @@ enum ParameterKeyTable {
             KeyRule("description", .text, isRequired: true)
         ]
     )
+    // No audio op takes a colour or an ease, so an audio preset's parameters are numbers.
+    static let audioPreset = ObjectTable(
+        kind: kind,
+        rules: [
+            KeyRule("type", .literal(["number"]), isRequired: true),
+            KeyRule("default", .anyValue, isRequired: true),
+            KeyRule("description", .text, isRequired: true)
+        ]
+    )
 }

@@ -9,9 +9,13 @@
 // clips with sound, then the sequence clips with sound. Gains are multiplied when the mix is evaluated, not here.
 struct SoundPlanner: Sendable {
     // MARK: - Property
-    private let audioFilters = AudioFilterResolver()
+    private let audioFilters: AudioFilterResolver
 
     // MARK: - Initializer
+    init(presets: any PresetProvider) {
+        self.audioFilters = AudioFilterResolver(presets: presets)
+    }
+
     // MARK: - Public
     // `time` is the plan whose windows tracking narrowed, `written` its clips as `time.clips` lists them, and the nested
     // plans those of its storyline clips and its other clips.

@@ -84,6 +84,9 @@ enum ChoiceKeyTable {
         case filter, filterPreset:
             .filter
 
+        case audioFilter, audioFilterPreset:
+            .audio
+
         default:
             nil
         }

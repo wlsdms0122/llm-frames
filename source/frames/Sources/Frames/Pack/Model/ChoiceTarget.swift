@@ -70,8 +70,8 @@ enum ChoiceTarget: Equatable, Sendable {
 
     // MARK: - Public
     // MARK: - Private
-    // The choice is under the clip key that takes it, and a side of an animation or an item of a filter list is a
-    // whole choice of its own.
+    // The choice is under the clip key that takes it, and a side of an animation or an item of a filter or audio filter
+    // list is a whole choice of its own.
     private static func preset(of reference: ParameterReference) -> ChoiceTarget? {
         let components = reference.place.components
         guard
@@ -85,7 +85,7 @@ enum ChoiceTarget: Equatable, Sendable {
         var choice = Array(components[...index])
         var rest = components[(index + 1)...]
         switch (kind, rest.first) {
-        case (.animation, .key("entrance")?), (.animation, .key("exit")?), (.filter, .index?):
+        case (.animation, .key("entrance")?), (.animation, .key("exit")?), (.filter, .index?), (.audio, .index?):
             choice.append(rest.removeFirst())
 
         default:
