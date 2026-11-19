@@ -56,11 +56,11 @@ struct SplitEditTests {
         #expect(sound.played.map.clipTime(atSequenceTime: 3) == 2)
     }
 
-    @Test("across a transition the clip's own side of the crossfade moves with its edge, and the neighbour's stays")
+    @Test("across a transition the clip's own side of the crossfade and its fade-in move with its edge, and the neighbour's stay")
     func movesOwnCrossfade() throws {
         // When
-        let split = try plan(storyline(second: #""split": { "before": 0.25 }, "transition": "frames/wipe-right""#))
-        let plain = try plan(storyline(second: #""transition": "frames/wipe-right""#))
+        let split = try plan(storyline(second: #""split": { "before": 0.25 }, "transition": "frames/wipe-right", "fadeIn": 0.5"#))
+        let plain = try plan(storyline(second: #""transition": "frames/wipe-right", "fadeIn": 0.5"#))
 
         // Then
         let first = { (plan: SequencePlan) in plan.sound.first { $0.place == Place(components: [.key("storyline"), .index(0, id: nil)]) } }
@@ -70,8 +70,38 @@ struct SplitEditTests {
         #expect(moved.range == TimeRange(start: incoming.range.start - 0.25, end: incoming.range.end - 0.25))
         #expect(moved.curve == incoming.curve)
         #expect(sound(split)?.range.start == (sound(plain)?.range.start ?? 0) - 0.25)
+        let fadeIn = try #require(sound(plain)?.fadeIn)
+        #expect(sound(split)?.fadeIn == TimeRange(start: fadeIn.start - 0.25, end: fadeIn.end - 0.25))
         #expect(first(split)?.outgoing == first(plain)?.outgoing)
         #expect(first(split)?.range == first(plain)?.range)
+        #expect(first(split)?.fadeOut == first(plain)?.fadeOut)
+    }
+
+    @Test("a J cut's overlap is mixed from both sounds, each segment over it at its own media time")
+    func mixesOverlap() throws {
+        // Given
+        let plan = try plan(storyline(second: #""split": { "before": 1 }"#))
+
+        // When
+        let mix = MixPlanner().mix(of: try ResolvedSequence(plan: plan, hashes: FileHashTable()))
+
+        // Then
+        let overlapping = mix.segments.filter { $0.start < 4 && $0.end > 3 }
+        #expect(overlapping.map { [$0.start, $0.end, $0.mediaStart] } == [[0, 4, 2], [3, 8, 1]])
+    }
+
+    @Test("a resolved split clip's sound starts and ends where its split moves its edges")
+    func resolvesMovedEdges() throws {
+        // Given
+        let plan = try plan(storyline(second: #""split": { "before": 1, "after": 0.5 }"#))
+
+        // When
+        let resolved = try ResolvedSequence(plan: plan, hashes: FileHashTable())
+
+        // Then
+        let sound = try #require(resolved.audio.first { $0.place == second.description })
+        #expect([sound.start, sound.end] == [3, 8.5])
+        #expect(sound.audible == TimeRange(start: 3, end: 8.5))
     }
 
     @Test("a connected clip's split starts its sound before its picture, on its time map")
