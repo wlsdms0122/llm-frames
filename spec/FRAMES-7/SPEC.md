@@ -71,7 +71,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` on a connected clip ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
@@ -80,7 +80,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | run (an item of a `title` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| split (on a storyline clip or a connected media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
