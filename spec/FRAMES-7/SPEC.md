@@ -69,7 +69,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
 | storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
-| storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
+| storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
@@ -77,7 +77,10 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| stroke | `color, width, join, cap, start, end` |
+| stroke | `color, width, join, cap, start, end, dash, dashOffset` |
+| gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
+| linear gradient | `from, to, stops` |
+| radial gradient | `center, radius, stops` |
 | adjustment clip | every clip with a picture's, `adjust` |
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
@@ -101,14 +104,15 @@ Keyframable properties:
 
 | Clip | Properties |
 | --- | --- |
-| storyline clip with media | `crop, position, scale, rotation, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
-| media clip | `position, scale, rotation, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
+| storyline clip with media | `crop, position, scale, rotation, opacity, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media |
+| storyline clip, solid | `solid` |
+| media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media |
 | audio clip | `volume, pan` |
 | title clip | `position, scale, rotation, opacity, mask` |
-| shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, mask` |
-| adjustment clip | `opacity, mask` |
+| shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
+| adjustment clip | `opacity, mask, adjust` |
 
-`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)).
+`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)). In the same way `filter`, `adjust`, `fill`, `stroke`, `shadow` and `border` in a keyframe are the clip's whole value of that key at that instant, read as the same value written statically would be, and two keyframes of one key hold the same names in the same places ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
 Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A property written both as a static value and in a keyframe stops, since the static value would never show.
 

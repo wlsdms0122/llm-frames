@@ -85,8 +85,8 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 
 | Property | Form |
 | --- | --- |
-| `fill` | a colour, or `false` for none |
-| `stroke` | `{color, width, join, cap, start, end}`, or `false` for none |
+| `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
+| `stroke` | `{color, width, join, cap, start, end, dash, dashOffset}`, its `color` a colour or a gradient, or `false` for none |
 | `radius` | a theme length: the corner radius of a `rect` |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |

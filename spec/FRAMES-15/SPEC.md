@@ -66,6 +66,7 @@ A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-1
 
 - A list holds at least one entry and no `"none"`. An empty list, or one that holds `"none"`, stops.
 - The same preset may appear twice in a list, each time with its own arguments.
+- A filter choice is keyframable on every clip that takes one, and so is an adjustment clip's `adjust` ([FRAMES-7](../FRAMES-7/SPEC.md)). Each keyframe's choice is read as a static one, its preset's ops with that keyframe's arguments, and between two keyframes every op parameter that is a number or a colour interpolates by the keyframe's ease ([FRAMES-4](../FRAMES-4/SPEC.md)). The keyframes of one clip's filter name the same presets in the same order, so their op lists hold the same ops and the same `lut` files, and a keyframe that names another preset, or `"none"` where another names a preset, stops. A sampled parameter is clamped to its op's range, and a length to 0 or more, where 0 leaves the picture as it is.
 
 ```json
 "filter": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
