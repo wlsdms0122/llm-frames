@@ -5,13 +5,16 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What a role draws for one frame. `size` is in output pixels and `items` are bottom first. `seed` is the number of
-// the output frame being drawn, the seed of every `grain` operation in the list, and a nested list carries its outer
-// frame's seed.
+// What a role draws for one frame. `size` is in output pixels and `items` are bottom first. `colorSpace` is the space
+// the encoder writes the frame in, carried by the outermost list only and nil in a nested one, and `compositing` the
+// form its items' sums of colours are taken in. `seed` is the number of the output frame being drawn, the seed of every
+// `grain` operation in the list, and a nested list carries its outer frame's seed.
 package struct DisplayList: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
     package let background: Color
+    package let colorSpace: ColorSpace?
+    package let compositing: Compositing
     package let seed: Int
     package let items: [DisplayItem]
 
@@ -19,11 +22,15 @@ package struct DisplayList: Equatable, Sendable {
     package init(
         size: Size,
         background: Color,
+        colorSpace: ColorSpace? = nil,
+        compositing: Compositing = .encoded,
         seed: Int,
         items: [DisplayItem]
     ) {
         self.size = size
         self.background = background
+        self.colorSpace = colorSpace
+        self.compositing = compositing
         self.seed = seed
         self.items = items
     }

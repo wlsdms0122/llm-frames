@@ -65,6 +65,8 @@ struct ContactSheetComposer: Sendable {
                 height: labelSize * 2 + length(of: rowCount, size.height, gap: labelSize)
             ),
             background: Self.sheetBackground,
+            colorSpace: .srgb,
+            compositing: .encoded,
             // The sheet draws no grain of its own.
             seed: 0,
             items: items

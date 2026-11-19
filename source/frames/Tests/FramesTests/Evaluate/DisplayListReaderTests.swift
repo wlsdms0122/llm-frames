@@ -259,11 +259,13 @@ struct DisplayListReaderTests {
         // Given
         let inner = list(
             size: Size(width: 400, height: 300),
+            colorSpace: nil,
             seed: 12,
             items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
         let nested = list(
             size: Size(width: 1080, height: 1500),
+            colorSpace: nil,
             seed: 12,
             items: [
                 Self.items[0],
@@ -300,6 +302,7 @@ struct DisplayListReaderTests {
     func readsTrackMatte() throws {
         // Given
         let source = list(
+            colorSpace: nil,
             seed: 7,
             items: [Self.items[5], DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
@@ -307,7 +310,7 @@ struct DisplayListReaderTests {
             seed: 7,
             items: [
                 DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .luma, isInverted: true), content: Self.items[2].content),
-                DisplayItem(trackMatte: ItemTrackMatte(source: list(seed: 7, items: []), mode: .alpha, isInverted: false), content: Self.items[2].content)
+                DisplayItem(trackMatte: ItemTrackMatte(source: list(colorSpace: nil, seed: 7, items: []), mode: .alpha, isInverted: false), content: Self.items[2].content)
             ]
         )
 
@@ -321,7 +324,7 @@ struct DisplayListReaderTests {
     @Test("a track matte is written as {source: {list}, mode, invert} after the mask, and an item without one as null")
     func writesTrackMatteMembers() throws {
         // Given
-        let source = list(items: [])
+        let source = list(colorSpace: nil, items: [])
         let list = list(items: [
             DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content),
             Self.items[2]
@@ -333,7 +336,8 @@ struct DisplayListReaderTests {
         // Then
         #expect(items?.first?.keys.prefix(8) == ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
         #expect(items?.first?["trackMatte"] == (try Fixture.json(#"""
-            { "source": { "list": { "size": [1080, 1920], "background": "color(srgb 0 0 0 / 1)", "items": [] } }, "mode": "alpha", "invert": false }
+            { "source": { "list": { "size": [1080, 1920], "background": "color(srgb 0 0 0 / 1)", "compositing": "encoded", "items": [] } },
+              "mode": "alpha", "invert": false }
             """#)))
         #expect(items?.last?["trackMatte"] == .null)
     }
@@ -341,7 +345,7 @@ struct DisplayListReaderTests {
     @Test("a track matte's source of another size than the list holding its item stops, naming both sizes")
     func refusesTrackMatteSize() throws {
         // Given
-        let source = list(size: Size(width: 540, height: 960), items: [])
+        let source = list(size: Size(width: 540, height: 960), colorSpace: nil, items: [])
         let list = list(items: [
             DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: Self.items[2].content)
         ])
@@ -434,7 +438,8 @@ struct DisplayListReaderTests {
     ) throws {
         // Given
         let text = #"""
-            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "items": [
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "compositing": "encoded", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
                 "fill": "color(srgb 1 1 1 / 1)", "stroke": null, "trim": [0, 1], "shadow": null } ] }
@@ -451,6 +456,7 @@ struct DisplayListReaderTests {
     func refusesDifferentSeed() throws {
         // Given
         let inner = list(
+            colorSpace: nil,
             seed: 4,
             items: [DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.3, size: 2)])])))]
         )
@@ -629,7 +635,8 @@ struct DisplayListReaderTests {
         ]
         members[member] = written
         let text = #"""
-            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "items": [
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "compositing": "encoded", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
                 "fill": "color(srgb 1 1 1 / 1)",
@@ -644,12 +651,14 @@ struct DisplayListReaderTests {
     }
 
     // MARK: - Private
+    // The outermost list by default, which carries a colour space; a nested one carries none.
     private func list(
         size: Size = Size(width: 1080, height: 1920),
+        colorSpace: ColorSpace? = .srgb,
         seed: Int = 0,
         items: [DisplayItem]
     ) -> DisplayList {
-        DisplayList(size: size, background: Color(written: "#000000"), seed: seed, items: items)
+        DisplayList(size: size, background: Color(written: "#000000"), colorSpace: colorSpace, seed: seed, items: items)
     }
 
     private func written() -> String {

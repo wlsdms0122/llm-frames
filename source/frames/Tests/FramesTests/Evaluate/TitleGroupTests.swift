@@ -29,8 +29,8 @@ struct TitleGroupTests {
         let whole = animated(clip, entrance: fade, stagger: nil)
 
         // When
-        let items = sut.items(of: byWord, in: space, picture: nil, trackMatte: nil, seed: 7, at: 1)
-        let single = try #require(sut.items(of: whole, in: space, picture: nil, trackMatte: nil, seed: 7, at: 1).first)
+        let items = sut.items(of: byWord, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: 1)
+        let single = try #require(sut.items(of: whole, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: 1).first)
 
         // Then
         let group = try #require(items.first)
@@ -184,6 +184,7 @@ struct TitleGroupTests {
             in: space,
             picture: nil,
             trackMatte: nil,
+            compositing: .encoded,
             seed: 0,
             at: 0.25
         ).first)
@@ -224,6 +225,7 @@ struct TitleGroupTests {
             in: space,
             picture: nil,
             trackMatte: nil,
+            compositing: .encoded,
             seed: 0,
             at: 1
         ).first)
@@ -255,7 +257,7 @@ struct TitleGroupTests {
             self.animated(clip, entrance: self.fade, loop: AnimationSpan(length: 1, span: half), stagger: stagger)
         }
         let title = try #require(
-            sut.items(of: animation(nil), in: space, picture: nil, trackMatte: nil, seed: 0, at: 1).first
+            sut.items(of: animation(nil), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1).first
         )
 
         // When
@@ -278,8 +280,9 @@ struct TitleGroupTests {
         let list = DisplayList(
             size: Size(width: 1920, height: 1080),
             background: Color(written: "#000000"),
+            colorSpace: .srgb,
             seed: 0,
-            items: sut.items(of: animated(clip, entrance: fade, stagger: 0.1), in: space, picture: nil, trackMatte: nil, seed: 0, at: 0.2)
+            items: sut.items(of: animated(clip, entrance: fade, stagger: 0.1), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 0.2)
         )
 
         // When
@@ -308,6 +311,7 @@ struct TitleGroupTests {
                     in: self.space,
                     picture: nil,
                     trackMatte: nil,
+                    compositing: .encoded,
                     seed: 0,
                     at: 1
                 )
@@ -348,7 +352,7 @@ struct TitleGroupTests {
         at time: Double
     ) throws -> DisplayList {
         let item = try #require(
-            sut.items(of: clip, in: space ?? self.space, picture: nil, trackMatte: nil, seed: 0, at: time).first
+            sut.items(of: clip, in: space ?? self.space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time).first
         )
         guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
             Issue.record("the title draws a group")

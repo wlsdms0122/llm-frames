@@ -24,12 +24,13 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         picture: PictureItemSource?,
         trackMatte: ItemTrackMatte?,
+        compositing: Compositing,
         seed: Int,
         at time: Double
     ) -> [DisplayItem] {
         let mask = masks(of: clip, in: space, at: time)
 
-        return drawn(clip, in: space, picture: picture, seed: seed, at: time)
+        return drawn(clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
             .map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
@@ -83,6 +84,7 @@ struct ClipEvaluator: Sendable {
         _ clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
+        compositing: Compositing,
         seed: Int,
         at time: Double
     ) -> [DisplayItem] {
@@ -113,6 +115,7 @@ struct ClipEvaluator: Sendable {
                 glyphs: glyphs,
                 schedule: schedule,
                 in: space,
+                compositing: compositing,
                 seed: seed,
                 at: time
             )]
@@ -171,6 +174,7 @@ struct ClipEvaluator: Sendable {
         glyphs: GlyphsItem,
         schedule: UnitSchedule,
         in space: ClipSpace,
+        compositing: Compositing,
         seed: Int,
         at time: Double
     ) -> DisplayItem {
@@ -221,6 +225,7 @@ struct ClipEvaluator: Sendable {
         let list = DisplayList(
             size: Size(width: space.frame.width, height: space.frame.height),
             background: .transparent,
+            compositing: compositing,
             seed: seed,
             items: [background] + passes
         )

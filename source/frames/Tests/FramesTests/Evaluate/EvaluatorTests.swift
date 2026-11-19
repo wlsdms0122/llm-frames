@@ -62,6 +62,7 @@ struct EvaluatorTests {
         #expect(list == DisplayList(
             size: size,
             background: background,
+            colorSpace: .srgb,
             seed: seed,
             items: [storylineItem([mediaItem(media, frame: frame)], seed: seed)]
         ))
@@ -206,7 +207,7 @@ struct EvaluatorTests {
             isInverted: true
         )
         let coverPicture = PictureItem(
-            source: .media(MediaFrame(media: stinger, index: 1)),
+            source: .media(MediaFrame(media: stinger, index: 1, targetPeak: 203)),
             rectangle: nil,
             destination: frame
         )

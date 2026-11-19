@@ -6,7 +6,7 @@
 //
 
 // Writes a display list in the layout and number form of a resolved document, so the same list gives the same bytes.
-// A nested list has the same shape without the version.
+// A nested list has the same shape without the version and the colour space, which only the outermost carries.
 package struct DisplayListWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -31,8 +31,10 @@ package struct DisplayListWriter: Sendable {
         [
             JSONMember(key: "size", value: values.size(list.size)),
             JSONMember(key: "background", value: values.color(list.background)),
+            list.colorSpace.map { JSONMember(key: "colorSpace", value: .string($0.rawValue)) },
+            JSONMember(key: "compositing", value: .string(list.compositing.rawValue)),
             JSONMember(key: "items", value: .array(list.items.map { item(of: $0, seed: list.seed) }))
-        ]
+        ].compactMap { $0 }
     }
 
     private func item(
@@ -201,7 +203,9 @@ package struct DisplayListWriter: Sendable {
         case let .media(frame):
             .object(JSONObject(members: [
                 JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
-                JSONMember(key: "frame", value: .number(Double(frame.index)))
+                JSONMember(key: "frame", value: .number(Double(frame.index))),
+                JSONMember(key: "colorSpace", value: frame.colorSpace.map { .string($0.rawValue) } ?? .null),
+                JSONMember(key: "targetPeak", value: frame.targetPeak.map(JSONValue.number) ?? .null)
             ]))
 
         case let .displayList(list):

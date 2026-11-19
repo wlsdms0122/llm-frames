@@ -8,10 +8,11 @@
 // Reads a display list as `DisplayListWriter` writes it. The version is checked before anything else, and a member
 // that is missing or of another type, or a key the writer never writes there, stops naming its place. The list and
 // every list nested in it share one seed: the first `grain` written gives it, and a `grain` with another stops. A list
-// with no `grain` reads with seed 0, since only `grain` reads the seed.
+// with no `grain` reads with seed 0, since only `grain` reads the seed. Only the outermost list carries `colorSpace`.
 package struct DisplayListReader: Sendable {
     // MARK: - Property
-    private static let listKeys = ["size", "background", "items"]
+    private static let listKeys = ["size", "background", "compositing", "items"]
+    private static let outermostKeys = ["size", "background", "colorSpace", "compositing", "items"]
     private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
@@ -50,7 +51,13 @@ package struct DisplayListReader: Sendable {
             try values.member("seed", of: grain, kind: grain.kind).integer()
         } ?? 0
 
-        return try list(root.object(keys: ["displayList"] + Self.listKeys), seed: seed)
+        let list = try root.object(keys: ["displayList"] + Self.outermostKeys)
+
+        return try self.list(
+            list,
+            colorSpace: try list.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init),
+            seed: seed
+        )
     }
 
     // MARK: - Private
@@ -93,6 +100,7 @@ package struct DisplayListReader: Sendable {
 
     private func list(
         _ object: PlacedJSONObject,
+        colorSpace: ColorSpace?,
         seed: Int
     ) throws -> DisplayList {
         let size = try values.size(object.member("size"))
@@ -100,6 +108,8 @@ package struct DisplayListReader: Sendable {
         return DisplayList(
             size: size,
             background: try values.color(object.member("background")),
+            colorSpace: colorSpace,
+            compositing: try object.member("compositing").name(among: VocabularyTable.compositings, Compositing.init),
             seed: seed,
             items: try object.member("items").elements().map { element in
                 try item(element, in: size, seed: seed)
@@ -314,7 +324,17 @@ package struct DisplayListReader: Sendable {
         seed: Int
     ) throws -> PictureItemSource {
         guard value.value.objectValue?.contains("list") == true else {
-            return .media(try frame(of: value.object(keys: ["media", "frame"]), mediaKey: "media"))
+            let source = try value.object(keys: ["media", "frame", "colorSpace", "targetPeak"])
+            let frame = try frame(of: source, mediaKey: "media")
+
+            return .media(MediaFrame(
+                media: frame.media,
+                index: frame.index,
+                colorSpace: try source.member("colorSpace").optional { value in
+                    try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
+                },
+                targetPeak: try source.member("targetPeak").optional(targetPeak)
+            ))
         }
 
         return .displayList(try nestedList(value, seed: seed))
@@ -326,7 +346,7 @@ package struct DisplayListReader: Sendable {
     ) throws -> DisplayList {
         let list = try value.object(keys: ["list"]).member("list").object(kind: "display list", keys: Self.listKeys)
 
-        return try self.list(list, seed: seed)
+        return try self.list(list, colorSpace: nil, seed: seed)
     }
 
     // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it.
@@ -343,6 +363,20 @@ package struct DisplayListReader: Sendable {
         }
 
         return MediaFrame(media: media, index: index)
+    }
+
+    // The peak an HDR picture is tone mapped to, in cd/m², above 0.
+    private func targetPeak(_ value: PlacedJSONValue) throws -> Double {
+        let peak = try value.number()
+        guard peak > 0 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a target peak is above 0 cd/m², found \(value.value.written)"
+            )
+        }
+
+        return peak
     }
 
     // An image sequence has a frame per file, a video one per frame time, and a still the one frame 0.

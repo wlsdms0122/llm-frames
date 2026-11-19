@@ -8,28 +8,46 @@
 // Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed, and a
 // storyline picture's and a track matte's a transparent background, so what such a list leaves uncovered shows what
 // lies below its picture. A clip used as a track matte draws no item of its own, and its children are drawn as usual.
+// The outermost list carries the sequence's colour space, and every list the compositing of the sequence whose items
+// it holds, a compound clip's or a template instance's its own. An HDR picture is tone mapped to `targetPeak`, the peak
+// of the outermost sequence's colour space, where its clip's `toneMap` is true, and a transition cover's always is.
 package struct Evaluator: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
     private let seeder = GrainSeeder()
     private let transitionSampler = TransitionSampler()
+    private let targetPeak: Double
 
     // MARK: - Initializer
-    package init() { }
+    package init() {
+        self.init(targetPeak: ColorSpace.srgb.peakLuminance)
+    }
+
+    private init(targetPeak: Double) {
+        self.targetPeak = targetPeak
+    }
 
     // MARK: - Public
     package func displayList(
         of sequence: ResolvedSequence,
         at time: Double
     ) -> DisplayList {
-        displayList(of: sequence, at: time, seed: seeder.seed(at: time, fps: sequence.format.fps))
+        let colorSpace = sequence.format.colorSpace
+
+        return Evaluator(targetPeak: colorSpace.peakLuminance).displayList(
+            of: sequence,
+            at: time,
+            seed: seeder.seed(at: time, fps: sequence.format.fps),
+            colorSpace: colorSpace
+        )
     }
 
     // MARK: - Private
     private func displayList(
         of sequence: ResolvedSequence,
         at time: Double,
-        seed: Int
+        seed: Int,
+        colorSpace: ColorSpace?
     ) -> DisplayList {
         let format = sequence.format
         let transition = ActiveTransition(storyline: sequence.storyline, at: time)
@@ -39,7 +57,14 @@ package struct Evaluator: Sendable {
             + coverItems(of: transition, in: format.frame, at: time)
             + clipItems(of: sequence, parents: parents, side: .above, at: time, seed: seed)
 
-        return DisplayList(size: format.size, background: format.background, seed: seed, items: items)
+        return DisplayList(
+            size: format.size,
+            background: format.background,
+            colorSpace: colorSpace,
+            compositing: format.compositing,
+            seed: seed,
+            items: items
+        )
     }
 
     private func clipItems(
@@ -62,7 +87,14 @@ package struct Evaluator: Sendable {
             }
             .flatMap { _, clip in
                 let trackMatte = trackMatte(clip.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
-                return items(of: clip, parents: parents, trackMatte: trackMatte, at: time, seed: seed)
+                return items(
+                    of: clip,
+                    parents: parents,
+                    trackMatte: trackMatte,
+                    compositing: sequence.format.compositing,
+                    at: time,
+                    seed: seed
+                )
             }
     }
 
@@ -70,6 +102,7 @@ package struct Evaluator: Sendable {
         of clip: ResolvedClip,
         parents: ParentEvaluator,
         trackMatte: ItemTrackMatte?,
+        compositing: Compositing,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
@@ -77,8 +110,16 @@ package struct Evaluator: Sendable {
         let picture = picture(of: clip, at: time, seed: seed)
         let origin = ItemOrigin(clip: clip)
 
-        return clipEvaluator.items(of: clip, in: space, picture: picture, trackMatte: trackMatte, seed: seed, at: time)
-            .map { $0.drawn(by: origin) }
+        return clipEvaluator.items(
+            of: clip,
+            in: space,
+            picture: picture,
+            trackMatte: trackMatte,
+            compositing: compositing,
+            seed: seed,
+            at: time
+        )
+        .map { $0.drawn(by: origin) }
     }
 
     // A matte's source list is the size of the list the matted item sits in; `DisplayListReader` rejects any other.
@@ -91,11 +132,19 @@ package struct Evaluator: Sendable {
     ) -> ItemTrackMatte? {
         sequence.matteChain(from: trackMatte).reversed().reduce(ItemTrackMatte?.none) { inner, link in
             let items = TimeRange(start: link.clip.start, end: link.clip.end).contains(time)
-                ? self.items(of: link.clip, parents: parents, trackMatte: inner, at: time, seed: seed)
+                ? self.items(
+                    of: link.clip,
+                    parents: parents,
+                    trackMatte: inner,
+                    compositing: sequence.format.compositing,
+                    at: time,
+                    seed: seed
+                )
                 : []
             let source = DisplayList(
                 size: sequence.format.size,
                 background: .transparent,
+                compositing: sequence.format.compositing,
                 seed: seed,
                 items: items.map { $0.normallyBlended() }
             )
@@ -112,7 +161,13 @@ package struct Evaluator: Sendable {
     ) -> PictureItemSource? {
         guard case let .media(media) = clip.content else { return nil }
 
-        return source(of: media.media, at: media.clock?.mediaTime(atSequenceTime: time) ?? 0, seed: seed)
+        return source(
+            of: media.media,
+            colorSpace: media.colorSpace,
+            isToneMapped: media.isToneMapped,
+            at: media.clock?.mediaTime(atSequenceTime: time) ?? 0,
+            seed: seed
+        )
     }
 
     // Out of a transition the entries' ranges are their edit ranges, so at most one holds the time.
@@ -174,7 +229,13 @@ package struct Evaluator: Sendable {
         let entry = sequence.storyline[index]
         let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
         let items = innerItems(of: entry, trackMatte: trackMatte, at: time, seed: seed)
-        let list = DisplayList(size: sequence.format.size, background: .transparent, seed: seed, items: items)
+        let list = DisplayList(
+            size: sequence.format.size,
+            background: .transparent,
+            compositing: sequence.format.compositing,
+            seed: seed,
+            items: items
+        )
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
         let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
@@ -203,7 +264,13 @@ package struct Evaluator: Sendable {
         let content: DisplayContent
         if let media = entry.media {
             content = .picture(PictureItem(
-                source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
+                source: source(
+                    of: media,
+                    colorSpace: entry.colorSpace,
+                    isToneMapped: entry.isToneMapped,
+                    at: entry.mediaTime(at: time),
+                    seed: seed
+                ),
                 rectangle: entry.crop(at: time),
                 destination: box,
                 filter: FilterEntry.entries(of: entry.filter, at: time),
@@ -235,17 +302,25 @@ package struct Evaluator: Sendable {
         return [item]
     }
 
+    // A nested sequence's list carries no colour space, since its pictures carry what the decoder needs.
     private func source(
         of media: ResolvedMediaContent,
+        colorSpace: ColorSpace?,
+        isToneMapped: Bool?,
         at mediaTime: Double,
         seed: Int
     ) -> PictureItemSource {
         switch media {
         case let .pinned(media):
-            .media(MediaFrame(media: media, mediaTime: mediaTime))
+            .media(MediaFrame(
+                media: media,
+                mediaTime: mediaTime,
+                colorSpace: colorSpace,
+                targetPeak: isToneMapped == true ? targetPeak : nil
+            ))
 
         case let .nested(sequence):
-            .displayList(displayList(of: sequence, at: mediaTime, seed: seed))
+            .displayList(displayList(of: sequence, at: mediaTime, seed: seed, colorSpace: nil))
         }
     }
 
@@ -276,7 +351,7 @@ package struct Evaluator: Sendable {
 
         case let .media(media):
             let picture = PictureItem(
-                source: .media(MediaFrame(media: media, progress: progress)),
+                source: .media(MediaFrame(media: media, progress: progress, targetPeak: targetPeak)),
                 rectangle: nil,
                 destination: frame
             )
