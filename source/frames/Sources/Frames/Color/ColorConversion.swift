@@ -8,7 +8,8 @@
 // Converts between working values and the encoded values of one colour space, as FRAMES-26 gives: a working value in
 // its encoded form, red, green and blue on BT.709 primaries, taken to linear light by the extended sRGB transfer, to
 // the space's primaries by matrix, and encoded by the space's transfer. An HDR space holds display light, 203 cd/m²
-// for a working value of 1. Alpha is not taken: a picture's colour is unpremultiplied before a conversion.
+// for a working value of 1. `peak` is the sequence's peak in cd/m², which an output in an HDR space is clipped to.
+// Alpha is not taken: a picture's colour is unpremultiplied before a conversion.
 package struct ColorConversion: Equatable, Sendable {
     // MARK: - Property
     // Display light of a working value of 1, the reference white of BT.2408.
@@ -18,12 +19,18 @@ package struct ColorConversion: Equatable, Sendable {
     private static let fromBT2020 = ColorMatrix(from: .bt2020, to: .bt709)
 
     package let space: ColorSpace
+    package let peak: Double
     private let toSpace: ColorMatrix
     private let fromSpace: ColorMatrix
 
     // MARK: - Initializer
-    package init(space: ColorSpace) {
+    // `peak` is the space's own where none is given.
+    package init(
+        space: ColorSpace,
+        peak: Double? = nil
+    ) {
         self.space = space
+        self.peak = peak ?? space.peakLuminance
         self.toSpace = ColorMatrix(from: .bt709, to: space.primaries)
         self.fromSpace = ColorMatrix(from: space.primaries, to: .bt709)
     }
@@ -39,16 +46,14 @@ package struct ColorConversion: Equatable, Sendable {
         case .displayP3, .rec2020, .rec709:
             return transferFunction.encode(toSpace.applied(to: TransferFunction.sRGB.decode(working)))
 
-        case .rec2100PQ:
-            return PerceptualQuantizer().encoded(displayLight: displayLight(ofWorking: working))
-
-        case .rec2100HLG:
-            return HybridLogGamma().encoded(displayLight: displayLight(ofWorking: working))
+        case .rec2100PQ, .rec2100HLG:
+            return encoded(displayLight: displayLight(ofWorking: working, clippedTo: space.transferRange ?? 0...peak))
         }
     }
 
     // The encoded value the output writes, each channel from 0 to 1: an SDR space's linear value clipped to 0 to 1
-    // and then encoded, an `srgb` working value clipped to 0 to 1, and an HDR value as `encoded` gives it.
+    // and then encoded, an `srgb` working value clipped to 0 to 1, and an HDR value's display light clipped to 0 to
+    // `peak` and then encoded.
     package func output(_ working: RGB) -> RGB {
         switch space {
         case .srgb:
@@ -59,8 +64,19 @@ package struct ColorConversion: Equatable, Sendable {
             return transferFunction.encode(linear.clipped(to: 0...1))
 
         case .rec2100PQ, .rec2100HLG:
-            return encoded(working)
+            return encoded(displayLight: displayLight(ofWorking: working, clippedTo: 0...peak))
         }
+    }
+
+    // The analysis picture's value of a frame's working value, every channel from 0 to 1 in sRGB: an SDR space's frame
+    // encoded as an `srgb` output, and an HDR space's encoded as its own output and then tone mapped from `peak` to
+    // reference white, so its light at `peak` is white.
+    package func analysis(_ working: RGB) -> RGB {
+        guard space.isHighDynamicRange else { return working.clipped(to: 0...1) }
+
+        let mapping = ToneMapping(sourcePeak: peak, targetPeak: Self.referenceWhite)
+
+        return toneMapped(output(working), by: mapping).clipped(to: 0...1)
     }
 
     // The working value of the space's encoded value. An HDR value is clipped to 0 to 1 first, so it names finite
@@ -114,10 +130,20 @@ package struct ColorConversion: Equatable, Sendable {
         space.transferFunction ?? .sRGB
     }
 
-    // The display light of a working value in an HDR space, clipped to the space's range.
-    private func displayLight(ofWorking working: RGB) -> RGB {
+    // The display light of a working value in an HDR space, each channel clipped to `range`.
+    private func displayLight(
+        ofWorking working: RGB,
+        clippedTo range: ClosedRange<Double>
+    ) -> RGB {
         let light = Self.toBT2020.applied(to: TransferFunction.sRGB.decode(working)).scaled(by: Self.referenceWhite)
 
-        return light.clipped(to: 0...space.peakLuminance)
+        return light.clipped(to: range)
+    }
+
+    // An HDR space's encoded value of display light within its transfer's range.
+    private func encoded(displayLight: RGB) -> RGB {
+        space == .rec2100PQ
+            ? PerceptualQuantizer().encoded(displayLight: displayLight)
+            : HybridLogGamma().encoded(displayLight: displayLight)
     }
 }

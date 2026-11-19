@@ -26,6 +26,7 @@ enum DocumentKeyTable {
             KeyRule("background", .color),
             KeyRule("conform", .literal(VocabularyTable.conforms)),
             KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
+            KeyRule("peak", .number(.range(400...10000))),
             KeyRule("compositing", .literal(VocabularyTable.compositings))
         ]
     )

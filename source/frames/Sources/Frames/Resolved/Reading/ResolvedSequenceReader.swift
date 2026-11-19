@@ -174,8 +174,9 @@ struct ResolvedSequenceReader: Sendable {
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
-            keys: ["size", "fps", "duration", "background", "conform", "colorSpace", "compositing"]
+            keys: ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"]
         )
+        let colorSpace = try format.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init)
 
         return ResolvedFormat(
             size: try values.size(format.member("size")),
@@ -183,9 +184,39 @@ struct ResolvedSequenceReader: Sendable {
             duration: try duration(format.member("duration")),
             background: try values.color(format.member("background")),
             conform: try conform(format.member("conform")),
-            colorSpace: try format.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init),
+            colorSpace: colorSpace,
+            peak: try peak(format.member("peak"), colorSpace: colorSpace),
             compositing: try format.member("compositing").name(among: VocabularyTable.compositings, Compositing.init)
         )
+    }
+
+    // A `rec2100-pq` sequence's mastering peak, from 400 to 10000 cd/m², and null in any other space.
+    private func peak(
+        _ value: PlacedJSONValue,
+        colorSpace: ColorSpace
+    ) throws -> Double? {
+        guard colorSpace == .rec2100PQ else {
+            guard value.isNull else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "only a rec2100-pq sequence has a peak, so it is null in a \(colorSpace.rawValue) one"
+                )
+            }
+
+            return nil
+        }
+
+        let peak = try value.number()
+        guard (400...10000).contains(peak) else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a peak lies from 400 to 10000 cd/m², found \(value.value.written)"
+            )
+        }
+
+        return peak
     }
 
     // The sequence end, above 0: a nested sequence holds its media time inside `[0, duration)`.

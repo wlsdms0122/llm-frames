@@ -64,7 +64,7 @@ struct DisplayListColorTests {
         "a picture's source carries its clip's colour space, and the outermost sequence's peak where its clip tone maps",
         arguments: [
             ("srgb", "true", 203.0 as Double?),
-            ("rec2100-pq", "true", 10000),
+            ("rec2100-pq", "true", 1000),
             ("rec2100-hlg", "true", 1000),
             ("srgb", "false", nil),
             ("rec2100-pq", "false", nil)
@@ -110,7 +110,7 @@ struct DisplayListColorTests {
             return
         }
         #expect(frame.colorSpace == nil)
-        #expect(frame.targetPeak == 10000)
+        #expect(frame.targetPeak == 1000)
         let matte = try #require(pictures.compactMap(\.matte).first)
         #expect(matte.frame.colorSpace == nil)
         #expect(matte.frame.targetPeak == nil)
@@ -136,7 +136,7 @@ struct DisplayListColorTests {
         let written = try #require(try JSONReader().read(writer.write(list)).objectValue)
 
         // Then
-        #expect(written.keys == ["displayList", "size", "background", "colorSpace", "compositing", "items"])
+        #expect(written.keys == ["displayList", "size", "background", "colorSpace", "peak", "compositing", "items"])
         #expect(written["colorSpace"] == .string("display-p3"))
         #expect(written["compositing"] == .string("linear"))
         let nested = try #require(written["items"]?.arrayValue?.first?.objectValue?["source"]?.objectValue?["list"]?.objectValue)

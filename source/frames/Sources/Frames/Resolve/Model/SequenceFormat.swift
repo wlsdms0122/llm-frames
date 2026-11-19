@@ -16,6 +16,7 @@ struct SequenceFormat: Equatable, Sendable {
     let conform: Conform?
     let background: String?
     let colorSpace: ColorSpace?
+    let peak: Double?
     let compositing: Compositing?
 
     // MARK: - Initializer
@@ -25,6 +26,7 @@ struct SequenceFormat: Equatable, Sendable {
         conform: Conform? = nil,
         background: String? = nil,
         colorSpace: ColorSpace? = nil,
+        peak: Double? = nil,
         compositing: Compositing? = nil
     ) {
         self.fps = fps
@@ -32,6 +34,7 @@ struct SequenceFormat: Equatable, Sendable {
         self.conform = conform
         self.background = background
         self.colorSpace = colorSpace
+        self.peak = peak
         self.compositing = compositing
     }
 

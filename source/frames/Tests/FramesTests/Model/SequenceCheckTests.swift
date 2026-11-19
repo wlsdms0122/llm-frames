@@ -73,14 +73,14 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "format": { "inset": [10, 10, 10, 10] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                #"format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, compositing"#
+                #"format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
             ),
             (
                 #"""
                 { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "format": { "size": [640, 480], "inset": [10, 10, 10, 10] },
                   "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
                 """#,
-                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, compositing"#
+                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
             )
         ]
     )

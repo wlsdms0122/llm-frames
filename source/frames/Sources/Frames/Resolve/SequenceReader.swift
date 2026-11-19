@@ -228,6 +228,7 @@ struct SequenceReader: Sendable {
             conform: object["conform"]?.stringValue.flatMap(Conform.init),
             background: object["background"]?.stringValue,
             colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init),
+            peak: object["peak"]?.numberValue,
             compositing: object["compositing"]?.stringValue.flatMap(Compositing.init)
         )
     }

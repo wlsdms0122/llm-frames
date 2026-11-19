@@ -12,7 +12,7 @@
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "compositing", "items"]
-    private static let outermostKeys = ["size", "background", "colorSpace", "compositing", "items"]
+    private static let outermostKeys = ["size", "background", "colorSpace", "peak", "compositing", "items"]
     private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
@@ -56,6 +56,7 @@ package struct DisplayListReader: Sendable {
         return try self.list(
             list,
             colorSpace: try list.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init),
+            peak: try list.member("peak").optional { try $0.number() },
             seed: seed
         )
     }
@@ -101,6 +102,7 @@ package struct DisplayListReader: Sendable {
     private func list(
         _ object: PlacedJSONObject,
         colorSpace: ColorSpace?,
+        peak: Double? = nil,
         seed: Int
     ) throws -> DisplayList {
         let size = try values.size(object.member("size"))
@@ -109,6 +111,7 @@ package struct DisplayListReader: Sendable {
             size: size,
             background: try values.color(object.member("background")),
             colorSpace: colorSpace,
+            peak: peak,
             compositing: try object.member("compositing").name(among: VocabularyTable.compositings, Compositing.init),
             seed: seed,
             items: try object.member("items").elements().map { element in

@@ -16,6 +16,7 @@ extension ResolvedFormat {
             background: plan.background,
             conform: plan.conform,
             colorSpace: plan.colorSpace,
+            peak: plan.peak,
             compositing: plan.compositing
         )
     }

@@ -439,7 +439,7 @@ struct DisplayListReaderTests {
         // Given
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
-              "compositing": "encoded", "items": [
+              "peak": null, "compositing": "encoded", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
                 "fill": "color(srgb 1 1 1 / 1)", "stroke": null, "trim": [0, 1], "shadow": null } ] }
@@ -636,7 +636,7 @@ struct DisplayListReaderTests {
         members[member] = written
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
-              "compositing": "encoded", "items": [
+              "peak": null, "compositing": "encoded", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
                 "fill": "color(srgb 1 1 1 / 1)",
