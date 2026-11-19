@@ -38,11 +38,10 @@ indirect enum TimedValue: Equatable, Sendable {
             return .fixed(value)
 
         case let (.track(keyframes), .leaf(kind)):
-            let value = KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
-            return .leaf(value.clamped(to: kind.domain))
+            return .leaf(kind.interpolation.value(of: keyframes, at: time).clamped(to: kind.domain))
 
         case let (.track(keyframes), _):
-            return .leaf(KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value)
+            return .leaf(LeafInterpolation.linear.value(of: keyframes, at: time))
 
         case let (.object(members), _):
             return .object(Dictionary(
@@ -51,7 +50,8 @@ indirect enum TimedValue: Equatable, Sendable {
             ))
 
         case let (.list(elements), .leaf(kind)):
-            let numbers = elements.compactMap { $0.sampled(at: time, as: .leaf(.number(kind.domain))).number }
+            let element = LeafKind(form: .number, domain: kind.domain, interpolation: kind.interpolation)
+            let numbers = elements.compactMap { $0.sampled(at: time, as: .leaf(element)).number }
             return .leaf(.numbers(numbers))
 
         case let (.list(elements), .list(element)):

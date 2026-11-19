@@ -209,4 +209,95 @@ enum LookStructureTable {
             ? .object(ObjectStructure(parameters + [("mix", mix)], plain: ["mix": .number(1)]))
             : .object(ObjectStructure(parameters))
     }
+
+    // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are
+    // numbers, each taking its default where no layer writes it. Its structure is static, so its presets, its ops and
+    // the number and types of its bands are as the clip writes them.
+    static func audioFilter(presets: [(name: String, parameters: [Parameter])]) -> ValueStructure {
+        let presetForms = presets.map { preset in
+            let arguments = preset.parameters.map { parameter in
+                (name: parameter.name, structure: ValueStructure.leaf(.number()))
+            }
+            let defaults = preset.parameters.reduce(into: [String: JSONValue]()) { defaults, parameter in
+                defaults[parameter.name] = parameter.defaultValue
+            }
+            let body = ObjectStructure(
+                [("args", .object(ObjectStructure(arguments, plain: defaults))), ("mix", mix)],
+                plain: ["args": .object(JSONObject()), "mix": .number(1)]
+            )
+            return ("preset:" + preset.name, ValueStructure.object(body))
+        }
+        let operationForms = AudioFilterKeyTable.operations.map { name in
+            ("op:" + name, audioOperation(name, mixed: true))
+        }
+
+        return .choice(offNames: [], forms: presetForms + operationForms)
+    }
+
+    // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with.
+    static let resolvedAudioFilter = ValueStructure.list(.object(ObjectStructure([
+        ("ops", .list(.choice(offNames: [], forms: AudioFilterKeyTable.operations.map { name in
+            ("op:" + name, audioOperation(name))
+        }))),
+        ("mix", mix)
+    ])))
+
+    // An audio op's parameters in the order of the op table, each in its range with its default written. A band's
+    // `frequency` and `q` are heard by their ratio, so they move geometrically.
+    static func audioOperation(
+        _ name: String,
+        mixed: Bool = false
+    ) -> ValueStructure {
+        let seconds = LeafKind.number(.positive)
+        let (parameters, defaults): ([(name: String, structure: ValueStructure)], [String: JSONValue]) = switch name {
+        case "eq":
+            ([("bands", .list(band))], [:])
+
+        case "compressor":
+            (
+                [
+                    ("threshold", .leaf(.number())),
+                    ("ratio", .leaf(.number(.range(1...Double.infinity)))),
+                    ("knee", .leaf(.number(.nonNegative))),
+                    ("attack", .leaf(seconds)),
+                    ("release", .leaf(seconds)),
+                    ("makeup", .leaf(.number()))
+                ],
+                ["knee": .number(0), "attack": .number(0.01), "release": .number(0.1), "makeup": .number(0)]
+            )
+
+        default:
+            (
+                [
+                    ("threshold", .leaf(.number())),
+                    ("range", .leaf(.number(.range(-Double.infinity...0)))),
+                    ("attack", .leaf(seconds)),
+                    ("hold", .leaf(.number(.nonNegative))),
+                    ("release", .leaf(seconds))
+                ],
+                ["range": .number(-80), "attack": .number(0.001), "hold": .number(0.05), "release": .number(0.1)]
+            )
+        }
+
+        return mixed
+            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: defaults.merging(["mix": .number(1)]) { $1 }))
+            : .object(ObjectStructure(parameters, plain: defaults))
+    }
+
+    // A band is a form by its `type`, each requiring the keys its type takes but `q`, which defaults to 1/√2. A band's
+    // `frequency` lies above 0 and below half of 48 kHz.
+    private static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
+        let keys: [(name: String, structure: ValueStructure)] = [
+            ("frequency", .leaf(LeafKind(form: .number, domain: .between(0, 24000), interpolation: .geometric))),
+            ("gain", .leaf(.number())),
+            ("q", .leaf(.ratio))
+        ]
+        let taken = keys.filter { $0.name != "gain" || type.takesGain }
+        let body = ObjectStructure(
+            taken,
+            required: taken.map(\.name).filter { $0 != "q" },
+            plain: ["q": .number(0.7071)]
+        )
+        return ("type:" + type.rawValue, .object(body))
+    })
 }

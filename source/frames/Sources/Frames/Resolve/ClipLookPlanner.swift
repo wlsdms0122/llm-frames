@@ -61,7 +61,9 @@ struct ClipLookPlanner: Sendable {
         }
 
         do {
-            let given = try merger.merge([merged] + keyframes.map(\.value), as: structure, place: place) ?? merged
+            let given = try keyframes.reduce(merged) { given, keyframe in
+                try merger.merge(keyframe: keyframe.value, over: given, as: structure, place: place)
+            }
             try merger.checkRequired(in: given, as: structure, place: place)
         } catch let LookError.missingLeaf(_, missing) {
             let layer = below == .off ? style.map { path in

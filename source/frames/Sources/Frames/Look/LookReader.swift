@@ -46,8 +46,8 @@ struct LookReader: Sendable {
         case let .forms(forms):
             return self.forms(json, as: forms)
 
-        case let .choice(offNames, _):
-            return choice(json, offNames: offNames)
+        case let .choice(offNames, forms):
+            return choice(json, offNames: offNames, forms: forms, as: structure)
         }
     }
 
@@ -98,29 +98,38 @@ struct LookReader: Sendable {
         return .form(form.name, value(of: member.value, as: form.structure))
     }
 
+    // A form's body is read by the structure its form declares, and a partial choice's keys by the structure of the
+    // first form that declares each, so a list in it is a list wherever it is written.
     private func choice(
         _ json: JSONValue,
-        offNames: [String]
+        offNames: [String],
+        forms: [(name: String, structure: ValueStructure)],
+        as structure: ValueStructure
     ) -> LookValue {
         switch json {
         case let .string(name):
             return offNames.contains(name) ? .off : .form("preset:" + name, .object([]))
 
         case let .array(elements):
-            return .list(elements.map { choice($0, offNames: offNames) })
+            return .list(elements.map { choice($0, offNames: offNames, forms: forms, as: structure) })
 
         case let .object(object):
-            for key in ["preset", "op"] {
-                guard let name = object[key]?.stringValue else { continue }
-
-                let rest = object.members.filter { $0.key != key }
-                return .form(key + ":" + name, free(.object(JSONObject(members: rest))))
+            if let form = structure.form(of: object) {
+                let body = structure.structure(ofForm: form.name) ?? .anyValue
+                return .form(form.name, value(of: .object(form.body), as: body))
             }
             guard !object.contains("entrance"), !object.contains("exit") else {
                 return .form("sides", free(json))
             }
 
-            return free(json)
+            return .object(object.members.map { member in
+                let structure = forms.lazy.compactMap { form -> ValueStructure? in
+                    guard case let .object(body) = form.structure else { return nil }
+
+                    return body.structure(of: member.key)
+                }.first
+                return LookMember(key: member.key, value: value(of: member.value, as: structure ?? .anyValue))
+            })
 
         default:
             return .leaf(json)

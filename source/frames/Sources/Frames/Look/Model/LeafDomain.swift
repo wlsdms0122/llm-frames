@@ -13,6 +13,9 @@ enum LeafDomain: Equatable, Sendable {
     case nonNegative
     case positive
     case range(ClosedRange<Double>)
+    // Greater than the first bound and less than the second, at every sample too: a value interpolated geometrically
+    // has no 0.
+    case between(Double, Double)
 
     // MARK: - Property
     // MARK: - Initializer
@@ -27,6 +30,9 @@ enum LeafDomain: Equatable, Sendable {
 
         case let .range(range):
             range.contains(number)
+
+        case let .between(lower, upper):
+            lower < number && number < upper
         }
     }
 
@@ -46,6 +52,9 @@ enum LeafDomain: Equatable, Sendable {
 
         case let .range(range):
             min(max(number, range.lowerBound), range.upperBound)
+
+        case let .between(lower, upper):
+            min(max(number, lower.nextUp), upper.nextDown)
         }
     }
 

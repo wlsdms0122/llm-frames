@@ -109,6 +109,15 @@ enum Fixture {
         filters: [
             "frames/warm": #"{"description": "", "ops": []}"#,
             "mine/grade": #"{"description": "", "ops": [{"op": "saturation", "amount": 1.25}, {"op": "blur", "radius": 4}]}"#
+        ],
+        audio: [
+            "mine/voice": #"""
+                { "description": "", "params": {
+                    "cut": { "type": "number", "default": 80, "description": "the rumble cut" },
+                    "squash": { "type": "number", "default": 3, "description": "the ratio" } },
+                  "ops": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": { "param": "cut" } } ] },
+                           { "op": "compressor", "threshold": -18, "ratio": { "param": "squash" } } ] }
+                """#
         ]
     )
 

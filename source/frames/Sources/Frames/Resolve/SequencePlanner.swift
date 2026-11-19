@@ -13,7 +13,7 @@ struct SequencePlanner: Sendable {
     private let finder: GeometryFinder
     private let tracker: TrackPlanner
     private let text: ThemeTypesetter
-    private let sound = SoundPlanner()
+    private let sound: SoundPlanner
     private let appearances: ClipAppearancePlanner
     private let contentFit = ContentFitPlanner()
     private let cropChecker = CropChecker()
@@ -30,6 +30,7 @@ struct SequencePlanner: Sendable {
         self.finder = GeometryFinder(ocr: ocr, languages: languages)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr, languages: languages)
         self.text = ThemeTypesetter(shaper: shaper, library: library)
+        self.sound = SoundPlanner(presets: presets)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
 
@@ -201,7 +202,7 @@ struct SequencePlanner: Sendable {
             )
         }
 
-        let sound = self.sound.sound(
+        let sound = try self.sound.sound(
             of: tracked.time,
             written: written,
             storylineNested: storylineNested,

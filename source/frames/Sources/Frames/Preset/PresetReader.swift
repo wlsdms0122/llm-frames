@@ -14,6 +14,8 @@ struct PresetReader: Sendable {
     private let reader = JSONReader()
     private let checker = KeyChecker()
     private let filler: ParameterFiller
+    private let lookReader = LookReader()
+    private let merger = LookMerger()
 
     // MARK: - Initializer
     init() {
@@ -101,6 +103,23 @@ struct PresetReader: Sendable {
         let sampled = preset.references.filter { instance.sampled.contains($0.name) }.map(\.place)
         return try read(preset, instance: instance, kind: "filter choice") { value in
             try plainFilter(from: value, place: preset.place, sampled: Set(sampled))
+        }
+    }
+
+    func publishedAudio(
+        from value: JSONValue,
+        place: Place
+    ) throws -> PublishedPreset<AudioPreset> {
+        try published(value, as: PresetKeyTable.audio, place: place) { try plainAudio(from: $0, place: place) }
+    }
+
+    func audio(
+        _ preset: PublishedPreset<AudioPreset>,
+        instance: PresetInstance
+    ) throws -> AudioPreset {
+        let sampled = preset.references.filter { instance.sampled.contains($0.name) }.map(\.place)
+        return try read(preset, instance: instance, kind: AudioFilterKeyTable.kind) { value in
+            try plainAudio(from: value, place: preset.place, sampled: Set(sampled))
         }
     }
 
@@ -242,6 +261,42 @@ struct PresetReader: Sendable {
 
         let operations = objects.map(operation)
         return FilterPreset(description: object["description"]?.stringValue ?? "", operations: operations)
+    }
+
+    // Each op's numbers are in the ranges of its look structure. `sampled` holds the places of the op parameters that
+    // sampled arguments fill.
+    private func plainAudio(
+        from value: JSONValue,
+        place: Place,
+        sampled: Set<Place> = []
+    ) throws -> AudioPreset {
+        try checker.check(value, as: PresetKeyTable.audio, place: place)
+
+        let object = value.objectValue ?? JSONObject()
+        let operations = (object["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
+        for (index, operation) in operations.enumerated() {
+            let structure = LookStructureTable.audioOperation(operation["op"]?.stringValue ?? "")
+            let operationPlace = place.appending(key: "ops").appending(index: index)
+            try structure.checkDomains(of: .object(operation), place: operationPlace, sampled: sampled)
+            try checkRequired(of: operation, as: structure, place: operationPlace)
+        }
+
+        return AudioPreset(description: object["description"]?.stringValue ?? "", operations: operations)
+    }
+
+    // A preset has no keyframes, so a leaf its op's structure requires, a band's `frequency` and `gain`, is written in
+    // the preset.
+    private func checkRequired(
+        of operation: JSONObject,
+        as structure: ValueStructure,
+        place: Place
+    ) throws {
+        do {
+            let value = lookReader.value(of: .object(operation), as: structure)
+            try merger.checkRequired(in: value, as: structure, place: place)
+        } catch let LookError.missingLeaf(place, key) {
+            throw ModelError.missingKey(place: place, kind: "band", keys: [key])
+        }
     }
 
     private func animationSpan(

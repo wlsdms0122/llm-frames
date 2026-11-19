@@ -16,13 +16,36 @@ enum ClipKeyTable {
         for kind: ClipKind,
         in place: ClipPlace
     ) -> ObjectTable {
-        let names = keys(for: kind, in: place)
+        let names = keys(for: kind, in: place).filter { takes($0, kind: kind) }
         let rules = names.map { name in
             // Which kind of text a title is belongs to the document, so it names its style.
             KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style" && kind == .title)
         }
 
         return ObjectTable(kind: kind.label, rules: rules)
+    }
+
+    // A media clip of a video or a compound clip written with `"picture": false`, which takes only its media's sound
+    // and so an audio clip's keys, and `picture`.
+    // A compound clip's or a template instance's sound is a mix of several sounds, which takes no `audioFilter`.
+    static func soundTable(
+        of media: MediaKind,
+        in place: ClipPlace
+    ) -> ObjectTable {
+        let audio = table(for: .media(.audio), in: place)
+        let picture = KeyRule("picture", .bool)
+        guard media == .sequence else { return ObjectTable(kind: audio.kind, rules: audio.rules + [picture]) }
+
+        let keyframes = keyframeTable(for: .media(.audio), in: place)
+        let mixed = ObjectTable(
+            kind: keyframes.kind,
+            rules: keyframes.rules.filter { $0.name != "audioFilter" },
+            group: KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)
+        )
+        let rules = audio.rules.filter { $0.name != "audioFilter" }.map { rule in
+            rule.name == "keyframes" ? KeyRule("keyframes", .list(.object(mixed))) : rule
+        }
+        return ObjectTable(kind: audio.kind, rules: rules + [picture])
     }
 
     // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
@@ -33,6 +56,9 @@ enum ClipKeyTable {
 
         case "filter", "adjust":
             ChoiceKeyTable.filter
+
+        case "audioFilter":
+            ChoiceKeyTable.audioFilter
 
         case "transition":
             ChoiceKeyTable.transition
@@ -46,23 +72,30 @@ enum ClipKeyTable {
         for kind: ClipKind,
         in place: ClipPlace
     ) -> [String] {
+        keyframableKeys(for: kind, in: place).filter { takes($0, kind: kind) }
+    }
+
+    private static func keyframableKeys(
+        for kind: ClipKind,
+        in place: ClipPlace
+    ) -> [String] {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             [
                 "crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow",
-                "volume", "pan", "timeRemap"
+                "volume", "pan", "audioFilter", "timeRemap"
             ]
 
         case (.storyline, .media):
             ["crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .media(.audio)):
-            ["volume", "pan"]
+            ["volume", "pan", "audioFilter"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
             [
                 "position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow",
-                "volume", "pan", "timeRemap"
+                "volume", "pan", "audioFilter", "timeRemap"
             ]
 
         case (_, .media):
@@ -120,7 +153,7 @@ enum ClipKeyTable {
 
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
-    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask"]
+    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter"]
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
@@ -144,7 +177,7 @@ enum ClipKeyTable {
             return [
                 "id", "metadata", "media", "in", "out", "speed", "crop", "filter", "transition", "anchor", "position",
                 "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius", "border", "shadow",
-                "volume", "pan", "fadeIn", "fadeOut", "keyframes", "connected"
+                "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes", "connected"
             ]
 
         case (_, .solid):
@@ -160,14 +193,14 @@ enum ClipKeyTable {
         case (_, .media(.audio)):
             return [
                 "id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut",
-                "keyframes"
+                "audioFilter", "keyframes"
             ]
 
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
-                "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "placement", "position",
-                "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height", "radius", "border",
-                "shadow"
+                "media", "picture", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "audioFilter",
+                "split", "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height",
+                "radius", "border", "shadow"
             ]
 
         case (_, .media):
@@ -223,7 +256,7 @@ enum ClipKeyTable {
         case "solid":
             .color
 
-        case "loop", "closed":
+        case "loop", "closed", "picture":
             .bool
 
         // A media clip's and a storyline clip's shadow take the same forms as a shape's.
@@ -297,6 +330,12 @@ enum ClipKeyTable {
         case "pan":
             .signedFraction
 
+        case "split":
+            .object(ObjectTable(
+                kind: "split",
+                rules: [KeyRule("before", .nonNegativeNumber), KeyRule("after", .nonNegativeNumber)]
+            ))
+
         default:
             choice(ofKey: name) ?? .number
         }
@@ -306,7 +345,7 @@ enum ClipKeyTable {
     // leaf two keyframes write against its domain and one a single keyframe writes as a static value.
     private static func keyframed(_ type: ValueType) -> ValueType {
         switch type {
-        case ChoiceKeyTable.filter:
+        case ChoiceKeyTable.filter, ChoiceKeyTable.audioFilter:
             ChoiceKeyTable.filterKeyframe
 
         case .masks:
@@ -351,6 +390,14 @@ enum ClipKeyTable {
         case .none:
             []
         }
+    }
+
+    // A compound clip's sound is a mix of several sounds, so it takes no `audioFilter`; its clips take their own.
+    private static func takes(
+        _ key: String,
+        kind: ClipKind
+    ) -> Bool {
+        key != "audioFilter" || kind != .media(.sequence)
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {

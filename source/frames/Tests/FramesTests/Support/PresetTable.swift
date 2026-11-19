@@ -7,23 +7,26 @@
 
 @testable import Frames
 
-// A fake preset library: the transitions, animations and filters it holds, by name, each filter the JSON a pack
-// publishes.
+// A fake preset library: the transitions, animations, filters and audio presets it holds, by name, each filter and
+// audio preset the JSON a pack publishes.
 struct PresetTable: PresetProvider {
     // MARK: - Property
     let transitions: [String: TransitionPreset]
     let animations: [String: AnimationPreset]
     let filters: [String: String]
+    let audio: [String: String]
 
     // MARK: - Initializer
     init(
         transitions: [String: TransitionPreset],
         animations: [String: AnimationPreset],
-        filters: [String: String]
+        filters: [String: String],
+        audio: [String: String] = [:]
     ) {
         self.transitions = transitions
         self.animations = animations
         self.filters = filters
+        self.audio = audio
     }
 
     // MARK: - Public
@@ -46,6 +49,16 @@ struct PresetTable: PresetProvider {
         guard let text = filters[name] else { return nil }
 
         return try PresetReader().publishedFilter(from: JSONReader().read(text), place: Place(file: name, components: []))
+    }
+
+    func audio(_ instance: PresetInstance) throws -> AudioPreset? {
+        try publishedAudio(named: instance.name).map { try PresetReader().audio($0, instance: instance) }
+    }
+
+    func publishedAudio(named name: String) throws -> PublishedPreset<AudioPreset>? {
+        guard let text = audio[name] else { return nil }
+
+        return try PresetReader().publishedAudio(from: JSONReader().read(text), place: Place(file: name, components: []))
     }
 
     // MARK: - Private

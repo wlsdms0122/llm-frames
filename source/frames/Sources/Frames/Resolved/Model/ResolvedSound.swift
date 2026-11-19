@@ -9,7 +9,8 @@
 // plays its played range over `start` to `end` in sequence time, and is heard only over `audible`. The range's
 // `origin` need not be `start`, as when tracking narrowed its clip's window.
 // `volume` and `pan` are in sequence time, `fadeIn` and `fadeOut` are the ranges it ramps from and to 0 over, and
-// `incoming` and `outgoing` the transitions it crossfades over.
+// `incoming` and `outgoing` the transitions it crossfades over. `audioFilter` is its timed list of entries `{ops, mix}`
+// in sequence time, `off` for none.
 struct ResolvedSound: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -25,6 +26,7 @@ struct ResolvedSound: Equatable, Sendable {
     let fadeOut: TimeRange?
     let incoming: Crossfade?
     let outgoing: Crossfade?
+    let audioFilter: TimedValue
 
     // MARK: - Initializer
     init(
@@ -40,7 +42,8 @@ struct ResolvedSound: Equatable, Sendable {
         fadeIn: TimeRange?,
         fadeOut: TimeRange?,
         incoming: Crossfade?,
-        outgoing: Crossfade?
+        outgoing: Crossfade?,
+        audioFilter: TimedValue = .off
     ) {
         self.place = place
         self.media = media
@@ -55,6 +58,7 @@ struct ResolvedSound: Equatable, Sendable {
         self.fadeOut = fadeOut
         self.incoming = incoming
         self.outgoing = outgoing
+        self.audioFilter = audioFilter
     }
 
     // MARK: - Public

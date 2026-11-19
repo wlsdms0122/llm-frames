@@ -90,8 +90,8 @@ struct DocumentCommandTests {
         #expect(code == 0)
         #expect(sut.standardOutput == """
             duration 1.5
-            storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  speed 1  transition none
-            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  speed 1  transition frames/fade 0.5
+            storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  sound -  speed 1  transition none
+            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  sound -  speed 1  transition frames/fade 0.5
 
             """)
     }

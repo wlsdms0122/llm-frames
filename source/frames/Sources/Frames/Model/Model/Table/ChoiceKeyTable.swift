@@ -52,6 +52,20 @@ enum ChoiceKeyTable {
             group: KeyGroup(keys: ["args", "mix"], isExclusive: false)
         ))
     ])
+    static let audioFilter = ValueType.audioFilterChoice
+    // One preset of an audio filter choice, alone or in its list. An op written in place is checked by its op's table.
+    static let audioFilterPreset = ValueType.oneOf([
+        .name,
+        .object(ObjectTable(
+            kind: AudioFilterKeyTable.kind,
+            rules: [
+                KeyRule("preset", .name),
+                KeyRule("args", arguments),
+                KeyRule("mix", .fraction)
+            ],
+            group: KeyGroup(keys: ["args", "mix"], isExclusive: false)
+        ))
+    ])
     // A filter choice in a keyframe writes the leaves it moves over the clip's choice: an object of an entry's
     // arguments, op parameters and `mix`, `null` or a list of those. A name stops when it is timed, since an entry's
     // preset and op are static.
@@ -69,6 +83,9 @@ enum ChoiceKeyTable {
 
         case filter, filterPreset:
             .filter
+
+        case audioFilter, audioFilterPreset:
+            .audio
 
         default:
             nil

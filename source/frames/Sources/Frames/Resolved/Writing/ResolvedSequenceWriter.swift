@@ -226,7 +226,8 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "fadeIn", value: values.range(sound.fadeIn)),
             JSONMember(key: "fadeOut", value: values.range(sound.fadeOut)),
             JSONMember(key: "incoming", value: sound.incoming.map(crossfade) ?? .null),
-            JSONMember(key: "outgoing", value: sound.outgoing.map(crossfade) ?? .null)
+            JSONMember(key: "outgoing", value: sound.outgoing.map(crossfade) ?? .null),
+            JSONMember(key: "audioFilter", value: values.timed(sound.audioFilter))
         ]))
     }
 
