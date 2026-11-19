@@ -73,6 +73,31 @@ struct ResolvedValueReader: Sendable {
         return Point(x: numbers[0], y: numbers[1])
     }
 
+    // An area as numbers or a clip area `{clip, padding}`.
+    func geometryArea(_ value: PlacedJSONValue) throws -> GeometryArea {
+        guard value.value.objectValue != nil else { return .rectangle(try rectangle(value)) }
+
+        return .clip(try clipArea(value))
+    }
+
+    // A point as numbers or a placement name.
+    func geometryAnchor(_ value: PlacedJSONValue) throws -> GeometryAnchor {
+        guard value.value.stringValue != nil else { return .point(try point(value)) }
+
+        let names = VocabularyTable.placementNames
+        return .named(try value.name(among: names) { names.contains($0) ? $0 : nil })
+    }
+
+    // A point as numbers or a point of a clip area `{area, point}`.
+    func geometryPoint(_ value: PlacedJSONValue) throws -> GeometryPoint {
+        guard value.value.objectValue != nil else { return .point(try point(value)) }
+
+        let object = try value.object(keys: ["area", "point"])
+        let names = VocabularyTable.placementNames
+        let name = try object.member("point").name(among: names) { names.contains($0) ? $0 : nil }
+        return .clip(try clipArea(object.member("area")), point: name)
+    }
+
     // Four corners, top left, top right, bottom right and bottom left.
     func quad(_ value: PlacedJSONValue) throws -> Quad {
         let corners = try value.elements()
@@ -254,7 +279,7 @@ struct ResolvedValueReader: Sendable {
         return ease
     }
 
-    func keyframes<Value: Interpolable>(
+    func keyframes<Value: Equatable & Sendable>(
         _ value: PlacedJSONValue,
         read: (PlacedJSONValue) throws -> Value
     ) throws -> [Keyframe<Value>] {
@@ -461,6 +486,11 @@ struct ResolvedValueReader: Sendable {
     }
 
     // MARK: - Private
+    private func clipArea(_ value: PlacedJSONValue) throws -> ClipArea {
+        let object = try value.object(keys: ["clip", "padding"])
+        return ClipArea(clip: try object.member("clip").string(), padding: try object.member("padding").number())
+    }
+
     private func leaf(
         _ value: PlacedJSONValue,
         as kind: LeafKind

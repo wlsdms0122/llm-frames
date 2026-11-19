@@ -19,7 +19,7 @@ extension ResolvedShape {
     ) {
         self.init(
             kind: .rect,
-            geometry: .area(area, outset: 0, placement: GeometryPlacement()),
+            geometry: .area(area.map { $0.map(GeometryArea.rectangle) }, outset: 0, placement: GeometryPlacement()),
             radius: .off,
             trim: [Keyframe(at: 0, value: .whole)],
             fill: .fill(fill),

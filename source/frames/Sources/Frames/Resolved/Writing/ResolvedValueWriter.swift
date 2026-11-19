@@ -48,6 +48,40 @@ struct ResolvedValueWriter: Sendable {
         numbers([point.x, point.y])
     }
 
+    // A clip area keeps its form, its padding in output pixels, and a point of one keeps `{area, point}`.
+    func geometryArea(_ area: GeometryArea) -> JSONValue {
+        switch area {
+        case let .rectangle(rectangle):
+            self.rectangle(rectangle)
+
+        case let .clip(area):
+            clipArea(area)
+        }
+    }
+
+    func geometryAnchor(_ anchor: GeometryAnchor) -> JSONValue {
+        switch anchor {
+        case let .point(point):
+            self.point(point)
+
+        case let .named(name):
+            .string(name)
+        }
+    }
+
+    func geometryPoint(_ point: GeometryPoint) -> JSONValue {
+        switch point {
+        case let .point(point):
+            self.point(point)
+
+        case let .clip(area, name):
+            .object(JSONObject(members: [
+                JSONMember(key: "area", value: clipArea(area)),
+                JSONMember(key: "point", value: .string(name))
+            ]))
+        }
+    }
+
     func quad(_ quad: Quad) -> JSONValue {
         .array(quad.corners.map(point))
     }
@@ -310,6 +344,13 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // MARK: - Private
+    private func clipArea(_ area: ClipArea) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "clip", value: .string(area.clip)),
+            JSONMember(key: "padding", value: .number(area.padding))
+        ]))
+    }
+
     private func geometry(_ geometry: ResolvedMaskGeometry) -> JSONValue {
         let form = { (name: String, members: [JSONMember]) in
             JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))

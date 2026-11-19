@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-struct Keyframe<Value: Interpolable>: Equatable, Sendable {
+struct Keyframe<Value: Equatable & Sendable>: Equatable, Sendable {
     // MARK: - Property
     let at: Double
     let value: Value

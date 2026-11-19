@@ -11,18 +11,18 @@
 // space, so a clip with `isInOutputPixels` moves with the content.
 struct FoundGeometry: Equatable, Sendable {
     // MARK: - Property
-    let area: PropertyValue<FoundArea>?
-    let points: PropertyValue<[Point]>?
-    let position: PropertyValue<Point>?
+    let area: PropertyValue<AreaValue>?
+    let points: PropertyValue<[GeometryPoint]>?
+    let position: PropertyValue<GeometryPoint>?
     let crop: PropertyValue<FoundArea>?
     let mask: [FoundMask]?
     let isInOutputPixels: Bool
 
     // MARK: - Initializer
     init(
-        area: PropertyValue<FoundArea>?,
-        points: PropertyValue<[Point]>?,
-        position: PropertyValue<Point>?,
+        area: PropertyValue<AreaValue>?,
+        points: PropertyValue<[GeometryPoint]>?,
+        position: PropertyValue<GeometryPoint>?,
         crop: PropertyValue<FoundArea>?,
         mask: [FoundMask]?,
         isInOutputPixels: Bool

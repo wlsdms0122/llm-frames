@@ -26,6 +26,15 @@ enum AreaKeyTable {
             KeyRule("padding", .nonNegativeNumber)
         ]
     )
+    static let clip = ObjectTable(
+        kind: "clip area",
+        rules: [
+            KeyRule("clip", .text, isRequired: true),
+            KeyRule("padding", .nonNegativeNumber)
+        ]
+    )
+    // The keys of the text forms, which a clip area does not mix with.
+    static let textKeys = ["text", "nth", "from", "to", "fromNth", "toNth"]
     static let cropScale = ObjectTable(
         kind: "crop",
         rules: [

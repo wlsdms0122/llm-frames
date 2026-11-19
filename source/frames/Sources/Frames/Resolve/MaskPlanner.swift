@@ -41,12 +41,15 @@ struct MaskPlanner: Sendable {
     }
 
     // MARK: - Public
-    // `textStop` is the stop for a text form where the clip's masks are not in a picture that can be searched.
+    // `textStop` is the stop for a text form where the clip's masks are not in a picture that can be searched, and
+    // `clipStop` the stop for a clip area where the masks are in the space the clip is drawn in. Anywhere else a clip
+    // area stops as an area searched in a picture.
     func masks(
         _ property: LookProperty?,
         in picture: Picture,
         pictureClock: PictureClock,
-        textStop: ((Place) -> ResolveError)? = nil
+        textStop: ((Place) -> ResolveError)? = nil,
+        clipStop: ((Place) -> ResolveError)? = nil
     ) throws -> [FoundMask]? {
         guard let property else { return nil }
 
@@ -94,7 +97,8 @@ struct MaskPlanner: Sendable {
                         in: picture,
                         pictureClock: pictureClock,
                         place: placed(source.written),
-                        textStop: textStop
+                        textStop: textStop,
+                        clipStop: clipStop
                     )
                     if let index = found.index, let text = found.text {
                         textTimes[index, default: [:]][text, default: []].insert(source.time)
@@ -125,7 +129,8 @@ struct MaskPlanner: Sendable {
         in picture: Picture,
         pictureClock: PictureClock,
         place: Place,
-        textStop: ((Place) -> ResolveError)?
+        textStop: ((Place) -> ResolveError)?,
+        clipStop: ((Place) -> ResolveError)?
     ) throws -> (value: LeafValue, index: Int?, text: MaskLeaf?) {
         let path = source.place.path.components
         guard path.count >= 2, case let .index(index, _) = path[0], case let .key(key) = path[1] else {
@@ -141,6 +146,9 @@ struct MaskPlanner: Sendable {
 
             if form.isFoundByText, let textStop {
                 throw textStop(place)
+            }
+            if form.clip != nil, let clipStop {
+                throw clipStop(place)
             }
             let rectangle = try finder.area(form, in: picture, at: mediaTime, place: place, kind: kind.label).rectangle
             return (
@@ -169,6 +177,9 @@ struct MaskPlanner: Sendable {
 
         if position.isFoundByText, let textStop {
             throw textStop(place)
+        }
+        if position.clip != nil, let clipStop {
+            throw clipStop(place)
         }
         let point = try finder.point(position, in: picture, at: mediaTime, place: place, kind: kind.label)
         return (.numbers([point.x, point.y]), index, position.isFoundByText ? maskLeaf : nil)

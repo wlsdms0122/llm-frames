@@ -201,7 +201,7 @@ struct ContentFitPlanner: Sendable {
     ) -> StorylineGeometry {
         let appearance = geometry.appearance
         let box = appearance.box.map { box in
-            ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
+            ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
         }
 
         return StorylineGeometry(
@@ -225,7 +225,8 @@ struct ContentFitPlanner: Sendable {
     }
 
     // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
-    // by its geometry. A title's or a box shape's is in its box and a media clip's in its media.
+    // by its geometry. A title's or a box shape's is in its box and a media clip's in its media. A clip area moves with
+    // the clip it names.
     private func moved(
         _ geometry: ClipGeometry,
         in space: OwnSpace,
@@ -233,17 +234,19 @@ struct ContentFitPlanner: Sendable {
     ) -> ClipGeometry {
         ClipGeometry(
             area: geometry.area?.map { area in
-                FoundArea(
-                    rectangle: moved(area.rectangle, by: offset),
-                    target: moved(area.target, by: offset),
-                    mediaTime: area.mediaTime,
-                    lines: area.lines
-                )
+                area.map { area in
+                    FoundArea(
+                        rectangle: moved(area.rectangle, by: offset),
+                        target: moved(area.target, by: offset),
+                        mediaTime: area.mediaTime,
+                        lines: area.lines
+                    )
+                }
             },
-            points: geometry.points?.map { points in points.map { moved($0, by: offset) } },
-            position: geometry.position?.map { moved($0, by: offset) },
+            points: geometry.points?.map { points in points.map { $0.map { moved($0, by: offset) } } },
+            position: geometry.position?.map { $0.map { moved($0, by: offset) } },
             box: geometry.box.map { box in
-                ClipBox(size: box.size, position: box.position.map { moved($0, by: offset) }, anchor: box.anchor)
+                ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
             },
             crop: geometry.crop,
             mask: space == .parent

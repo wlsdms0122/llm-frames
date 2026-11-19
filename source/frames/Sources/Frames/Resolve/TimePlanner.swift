@@ -14,6 +14,7 @@ struct TimePlanner: Sendable {
     private let reader = SequenceReader()
     private let parentFinder = ParentFinder()
     private let matteFinder = TrackMatteFinder()
+    private let areaFinder = ClipAreaFinder()
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
@@ -70,18 +71,25 @@ struct TimePlanner: Sendable {
             try plan(clip, owner: nil, storyline: storyline, duration: duration, defaults: defaults, theme: merged)
         }
         let planned = connected + clips
-        let parents = try parentFinder.parents(
-            of: planned,
-            written: sequence.storyline.flatMap(\.connected) + sequence.clips,
-            storyline: storyline
+        let written = sequence.storyline.flatMap(\.connected) + sequence.clips
+        let parents = try parentFinder.parents(of: planned, written: written, storyline: storyline)
+        let parented = zip(planned, parents).map { plan, parent in plan.parented(by: parent) }
+        let storylineLinks = storyline.map(TrackMatteLink.init(plan:))
+        let links = planned.map(TrackMatteLink.init(plan:))
+        try matteFinder.check(storylineLinks + links)
+        try areaFinder.check(
+            storyline: sequence.storyline,
+            clips: parented,
+            written: written,
+            links: links,
+            storylineLinks: storylineLinks
         )
-        try matteFinder.check(storyline.map(TrackMatteLink.init(plan:)) + planned.map(TrackMatteLink.init(plan:)))
 
         return TimePlan(
             duration: duration,
             fps: sequence.format.frameRate(of: sources.compactMap(\.media)),
             storyline: storyline,
-            clips: zip(planned, parents).map { plan, parent in plan.parented(by: parent) },
+            clips: parented,
             sequence: sequence,
             theme: merged,
             defaults: defaults

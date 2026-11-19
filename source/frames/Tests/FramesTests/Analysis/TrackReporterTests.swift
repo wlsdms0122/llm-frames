@@ -157,7 +157,7 @@ struct TrackReporterTests {
         ("/abs/clip.mov", "Total", 0.5, nil, "--area: line 1, column 1: "),
         ("/abs/clip.mov", #"{"text": "Total", "nht": 1}"#, 0.5, nil, #"--area (text area): unknown key "nht". "#),
         ("/abs/clip.mov", #""Total""#, 0.5, nil, #"--area (area): expected an area, found "Total""#),
-        ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from"),
+        ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from, clip"),
         ("/abs/clip.mov", #"{"text": "Missing"}"#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
         ("/abs/clip.mov", #"{"text": "Send"}"#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
         ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is an image, and only a video has frames"#),

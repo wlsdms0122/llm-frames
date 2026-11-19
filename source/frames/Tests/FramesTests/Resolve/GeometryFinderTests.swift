@@ -182,13 +182,14 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: plan.clips[0].window.start,
+            lengthScale: 1,
             place: clip.place,
             kind: "rect"
         )
 
         // Then
         #expect(area.firstValue.rectangle == Rectangle(x: -50, y: -50, width: 500, height: 340))
-        #expect(position == .value(Point(x: -50, y: -50)))
+        #expect(position == .value(.point(Point(x: -50, y: -50))))
     }
 
     @Test("a position by an area is the point it names on the area, padding included")
@@ -206,12 +207,13 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: plan.clips[0].window.start,
+            lengthScale: 1,
             place: clip.place,
             kind: "title"
         )
 
         // Then
-        #expect(position == .value(Point(x: 314, y: 120)))
+        #expect(position == .value(.point(Point(x: 314, y: 120))))
     }
 
     @Test(
@@ -245,12 +247,13 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: plan.clips[0].window.start,
+            lengthScale: 1,
             place: clip.place,
             kind: "title"
         )
 
         // Then
-        #expect(position == .value(point))
+        #expect(position == .value(.point(point)))
     }
 
     @Test("an area under a remapped storyline clip is searched at the media time its instant maps to through the remap")
@@ -330,8 +333,9 @@ struct GeometryFinderTests {
             pictureClock: .storyline(plan.storyline[0]),
             clock: plan.clips[0].clock,
             instant: instant,
+            lengthScale: 1,
             place: plan.clips[0].place,
             kind: "rect"
-        )
+        ).map { try #require($0.found) }
     }
 }

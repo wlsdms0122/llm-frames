@@ -42,7 +42,7 @@ struct ClipAppearancePlanner: Sendable {
     func box(
         of plan: ClipPlan,
         written: Clip,
-        position: PropertyValue<Point>?,
+        position: PropertyValue<GeometryPoint>?,
         crop: PropertyValue<FoundArea>?,
         title: TextLayout?,
         picture: Picture?,
@@ -94,8 +94,7 @@ struct ClipAppearancePlanner: Sendable {
             }
 
             let anchor = bounds.point(named: written.anchor ?? "center")
-            let placed = position.map { topLeft(of: $0, anchor: anchor) } ?? .value(Point(x: 0, y: 0))
-            return ClipBox(size: size, position: placed, anchor: anchor)
+            return ClipBox(size: size, position: position ?? .value(.point(anchor)), anchor: anchor)
         }
 
         // A title takes its style's placement by default, so a style that gives none leaves it no place.
@@ -106,13 +105,14 @@ struct ClipAppearancePlanner: Sendable {
 
         let placement = named ?? "center"
         let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
-        let placed = position.map { topLeft(of: $0, anchor: anchor) } ?? .value(self.placed(
+        let placed = position ?? .value(.point(self.placed(
             bounds,
+            anchor: anchor,
             at: placement,
             offset: style.flatMap(theme.offset(ofStyle:)),
             format: format,
             theme: theme
-        ))
+        )))
 
         return ClipBox(size: size, position: placed, anchor: anchor)
     }
@@ -267,8 +267,8 @@ struct ClipAppearancePlanner: Sendable {
         )
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
-        let placed = position.map { topLeft(of: $0, anchor: anchor) }
-            ?? .value(format.isMeasured ? Point(x: 0, y: 0) : topLeft(of: format.frame.center, anchor: anchor))
+        let placed = position.map { $0.map(GeometryPoint.point) }
+            ?? .value(.point(format.isMeasured ? anchor : format.frame.center))
 
         return StorylineAppearance(
             box: ClipBox(size: box, position: placed, anchor: anchor),
@@ -374,11 +374,12 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // The top left of a box placed by name inside the output frame, inset by the placement padding on the edges the
-    // name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is centred on
-    // the whole frame.
+    // Where the anchor point goes of a box placed by name inside the output frame, inset by the placement padding on
+    // the edges the name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is
+    // centred on the whole frame.
     private func placed(
         _ box: Rectangle,
+        anchor: Point,
         at name: String,
         offset: Double?,
         format: FormatPlan,
@@ -395,7 +396,7 @@ struct ClipAppearancePlanner: Sendable {
             ? edge
             : name.hasPrefix("bottom") ? size.height - edge - box.height : (size.height - box.height) / 2
 
-        return Point(x: x, y: y)
+        return Point(x: x + anchor.x, y: y + anchor.y)
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole
@@ -459,21 +460,6 @@ struct ClipAppearancePlanner: Sendable {
             border: try border(written.border, looks: looks, theme: theme),
             shadow: try shadow(written.shadow, looks: looks, theme: theme)
         )
-    }
-
-    // Where a box's top left goes when its anchor point goes to each position.
-    private func topLeft(
-        of position: PropertyValue<Point>,
-        anchor: Point
-    ) -> PropertyValue<Point> {
-        position.map { point in topLeft(of: point, anchor: anchor) }
-    }
-
-    private func topLeft(
-        of point: Point,
-        anchor: Point
-    ) -> Point {
-        Point(x: point.x - anchor.x, y: point.y - anchor.y)
     }
 
     // A property not written takes its plain value, and keyframes move from the clip's clock to sequence time.
