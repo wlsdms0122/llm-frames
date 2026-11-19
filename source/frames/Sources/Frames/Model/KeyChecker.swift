@@ -175,9 +175,6 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
-        case .positiveInteger:
-            try check(value, by: .positiveInteger, as: type, place: place, kind: kind)
-
         case .color, .hexColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
@@ -313,11 +310,8 @@ struct KeyChecker: Sendable {
 
             try checkAudioOperation(object, place: place, mixed: false, scope: &scope)
 
-        case .fontWeight:
-            try check(value, by: .fontWeight, as: type, place: place, kind: kind)
-
-        case .fontFeatures:
-            try check(value, by: .fontFeatures, as: type, place: place, kind: kind)
+        case let .leaf(check):
+            try self.check(value, by: check, as: type, place: place, kind: kind)
         }
     }
 
@@ -1391,8 +1385,11 @@ struct KeyChecker: Sendable {
             parameterType == "color"
 
         case .number, .positiveNumber, .nonNegativeNumber, .fraction, .signedFraction, .openSignedFraction, .integer,
-             .nonNegativeInteger, .positiveInteger, .margin:
+             .nonNegativeInteger, .margin:
             parameterType == "number"
+
+        case let .leaf(check):
+            parameterType == "number" && check.takesNumber
 
         default:
             false
@@ -1440,7 +1437,7 @@ struct KeyChecker: Sendable {
 
         case (.number, .number), (.positiveNumber, .number), (.nonNegativeNumber, .number), (.fraction, .number),
              (.signedFraction, .number),
-             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
+             (.openSignedFraction, .number), (.integer, .number), (.nonNegativeInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.hexColor, .string),
@@ -1466,8 +1463,8 @@ struct KeyChecker: Sendable {
              (.audioFilterChoice, .string), (.audioFilterChoice, .object), (.audioFilterChoice, .array):
             true
 
-        case (.fontWeight, .number), (.fontWeight, .string), (.fontFeatures, .object):
-            true
+        case let (.leaf(check), _):
+            check.failure(of: value) != .wrongValue
 
         default:
             false
@@ -1523,9 +1520,6 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeInteger:
             "a whole number, 0 or more"
-
-        case .positiveInteger:
-            LeafCheck.positiveInteger.expectation
 
         case .text, .name, .identifier:
             "a string"
@@ -1603,11 +1597,8 @@ struct KeyChecker: Sendable {
         case .audioOperation:
             "an audio operation"
 
-        case .fontWeight:
-            LeafCheck.fontWeight.expectation
-
-        case .fontFeatures:
-            LeafCheck.fontFeatures.expectation
+        case let .leaf(check):
+            check.expectation
         }
     }
 

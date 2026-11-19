@@ -252,18 +252,18 @@ struct ValueTypeStructureTests {
         #expect(style == [
             KeyRule("font", .list(.name)),
             KeyRule("size", .positiveNumber),
-            KeyRule("weight", .fontWeight),
+            KeyRule("weight", .leaf(.fontWeight)),
             KeyRule("italic", .bool),
             KeyRule("tracking", .number),
             KeyRule("kerning", .literal(["metrics", "none"])),
-            KeyRule("features", .fontFeatures),
+            KeyRule("features", .leaf(.fontFeatures)),
             KeyRule("baselineShift", .number),
             KeyRule("color", .color),
             KeyRule("lineHeight", .positiveNumber),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .nonNegativeNumber),
             KeyRule("align", .literal(["left", "center", "right"])),
-            KeyRule("lines", .positiveInteger)
+            KeyRule("lines", .leaf(.positiveInteger))
         ])
         #expect(ThemeKeyTable.character.rule(named: "size")?.type == .positiveNumber)
         #expect(ThemeKeyTable.paragraph.rule(named: "align")?.type == .literal(["left", "center", "right"]))
