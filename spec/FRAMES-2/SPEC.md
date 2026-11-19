@@ -18,7 +18,7 @@ An area is given in one of these forms, in the coordinate space of the clip that
 
 | Form | Meaning |
 | --- | --- |
-| `[x, y, w, h]` | that rectangle: its top left corner at `(x, y)`, `w` wide and `h` tall. `w` and `h` are above 0, and 0 or more in a keyframe ([FRAMES-4](../FRAMES-4/SPEC.md)) |
+| `[x, y, w, h]` | that rectangle: its top left corner at `(x, y)`, `w` wide and `h` tall. `w` and `h` are above 0, and 0 or more in a key of two keyframes or more ([FRAMES-4](../FRAMES-4/SPEC.md)) |
 | `{"text": "...", "nth": n, "padding": p}` | the recognised line that contains the text. With `nth`, the nth line (from 0) among the lines that contain it, counted top to bottom by row and left to right within a row, where lines whose vertical centres lie within half the shorter one's height of each other are one row |
 | `{"clip": "<id>", "padding": p}` | the box of the clip with that `id` at the same instant, grown by `padding` ([Clip areas](#clip-areas)) |
 | `{"from": "...", "to": "...", "fromNth": a, "toNth": b, "padding": p}` | the rectangle around the `from` line and the `to` line, each found as the `text` form finds its line (`fromNth` and `toNth` acting as its `nth`), and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
