@@ -50,6 +50,29 @@ struct ParameterRangeTests {
         #expect(ranges == expected)
     }
 
+    @Test(
+        "a range is worded by the domain its numbers lie in, as the key check and timing word a domain",
+        arguments: [
+            (LeafKind.number(.range(0...1)), NumberDomain.range(0...1).description),
+            (LeafKind.length(.positive), NumberDomain.positive.description),
+            (LeafKind.length(.nonNegative), NumberDomain.nonNegative.description),
+            (LeafKind.numbers(count: 2, domain: .range(0...1)), NumberDomain.range(0...1).description + " with black below white")
+        ]
+    )
+    func wordsRangeByDomain(
+        kind: LeafKind,
+        expected: String
+    ) throws {
+        // Given
+        let sut = try #require(ParameterRange(kind: kind))
+
+        // When
+        let description = sut.description
+
+        // Then
+        #expect(description == expected)
+    }
+
     @Test("a length a keyframe moves may be 0, and the other ranges stay as declared")
     func widensSampledLength() {
         // Given

@@ -15,19 +15,7 @@ enum ParameterRange: Sendable {
 
     // MARK: - Property
     var description: String {
-        switch self {
-        case .unit:
-            "within 0 to 1"
-
-        case .positive:
-            "above 0"
-
-        case .nonNegative:
-            "0 or more"
-
-        case .levels:
-            "within 0 to 1 with black below white"
-        }
+        self == .levels ? "\(domain.description) with black below white" : domain.description
     }
 
     // The range of a sampled value, where a length or size may be 0.
@@ -77,6 +65,20 @@ enum ParameterRange: Sendable {
     }
 
     // MARK: - Private
+    // The domain each number of the parameter lies in, whose description words the range.
+    private var domain: NumberDomain {
+        switch self {
+        case .unit, .levels:
+            .range(0...1)
+
+        case .positive:
+            .positive
+
+        case .nonNegative:
+            .nonNegative
+        }
+    }
+
     private func isLevels(_ numbers: [Double]) -> Bool {
         guard numbers.count == 2 else { return false }
 
