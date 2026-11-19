@@ -8,9 +8,10 @@
 import Foundation
 
 // Renders a resolved sequence through the roles: one frame of it to a PNG, or every frame to a master and, when asked,
-// a delivery from the same frames in the same pass. Everything that can refuse does before the first frame, in this
-// order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the renderer on
-// every frame's display list, the mixer on the mix plan, and the encoder on each target.
+// a delivery from the same frames in the same pass, both in the sequence's colour space and clipped to its peak.
+// Everything that can refuse does before the first frame, in this order: the output paths and the time, every pinned
+// file's hash, the decoder on every pinned media, the renderer on every frame's display list, the mixer on the mix
+// plan, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let renderer: any Renderer
@@ -104,8 +105,8 @@ package struct RenderPipeline: Sendable {
         let plan = planner.mix(of: sequence)
         try mixer.check(plan)
 
-        let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque)
-        let targets = [master] + (delivery.map { [EncodeTarget.delivery(path: $0)] } ?? [])
+        let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)
+        let targets = [master] + (delivery.map { [EncodeTarget.delivery(path: $0, output: format.output)] } ?? [])
         for target in targets {
             try encoder.check(target)
         }

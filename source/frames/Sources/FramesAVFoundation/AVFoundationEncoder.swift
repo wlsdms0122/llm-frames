@@ -178,6 +178,9 @@ extension AVFoundationEncoder: Encoder {
         guard canEncode(format.codecType) else {
             throw EncoderError.unencodable(file: format.path, codec: format.codecName)
         }
+        if format.codecType == kCMVideoCodecType_H264, target.output.space.isHighDynamicRange {
+            throw EncoderError.highDynamicRange(file: format.path, codec: format.codecName, colorSpace: target.output.space)
+        }
         if let settings = format.fixedAudioSettings, !canWriteSound(settings, fileType: format.fileType) {
             throw EncoderError.unwritable(file: format.path, reason: "its sound format is not written")
         }
