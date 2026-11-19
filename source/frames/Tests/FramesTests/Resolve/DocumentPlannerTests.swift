@@ -363,4 +363,51 @@ struct DocumentPlannerTests {
         let error = #expect(throws: ModelError.self) { try sut.plan(document) }
         #expect(error?.description == #"storyline[0].media.template (storyline clip): unknown template "shorts/none""#)
     }
+
+    @Test("a title's `character.font` inside a pack's template looks in that pack's fonts before the machine's")
+    func findsCharacterFontInTemplatePack() throws {
+        // Given
+        let font = try directory.write("", in: "shorts", at: "fonts/Inter-Regular.otf").path
+        try directory.write(
+            #"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "title": "Hi", "style": "title", "character": { "font": ["Inter"] }, "position": [400, 225], "at": [0, 1] } ] }
+            """#,
+            in: "shorts",
+            at: "templates/card.json"
+        )
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/card" } } ] }"#)
+
+        // When
+        let plan = try sut.plan(document)
+
+        // Then
+        let title = try #require(plan.storyline[0].nested?.clips[0].title)
+        #expect(title.runs.map(\.face.file) == [font])
+    }
+
+    @Test("a title's `character.font` in a document looks at the machine's fonts only, and its stop names it")
+    func refusesCharacterFontOutsidePack() throws {
+        // Given
+        let font = try directory.write("", in: "shorts", at: "fonts/Inter-Regular.otf").path
+        try directory.write(#"{ "font": ["Inter"] }"#, in: "shorts", at: "themes/inter.json")
+        let styled = try Fixture.json(#"""
+            { "kind": "sequence", "theme": "shorts/inter", "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "title", "position": [400, 225], "at": [0, 1] } ] }
+            """#)
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "theme": "shorts/inter", "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "title", "character": { "font": ["Inter"] }, "position": [400, 225], "at": [0, 1] } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(styled)
+
+        // Then
+        #expect(plan.clips[0].title?.runs.map(\.face.file) == [font])
+        let error = #expect(throws: TextError.self) { try sut.plan(document) }
+        #expect(error?.description == #"""
+            clips[0].character.font (title): no family of "Inter" is in its pack or on the machine
+            """#)
+    }
 }

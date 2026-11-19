@@ -5,14 +5,12 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A theme style's character attributes. `families` is its font list and `pack` the pack of the theme that wrote that
-// list, whose fonts come before the machine's. `size`, `baselineShift` and the lengths of the stroke, highlight and
+// A theme style's character attributes. `families` is its font list. `size`, `baselineShift` and the lengths of the stroke, highlight and
 // underline are in output pixels, already multiplied by the length scale of the place the text is drawn. `tracking`
 // is in thousandths of an em, and `features` are the style's own settings, without `kern`.
 struct CharacterStyle: Equatable, Sendable {
     // MARK: - Property
     let families: [String]
-    let pack: String?
     let weight: FontWeight
     let italic: Bool
     let size: Double
@@ -28,7 +26,6 @@ struct CharacterStyle: Equatable, Sendable {
     // MARK: - Initializer
     init(
         families: [String],
-        pack: String?,
         weight: FontWeight,
         italic: Bool = false,
         size: Double,
@@ -42,7 +39,6 @@ struct CharacterStyle: Equatable, Sendable {
         underline: TextUnderline? = nil
     ) {
         self.families = families
-        self.pack = pack
         self.weight = weight
         self.italic = italic
         self.size = size

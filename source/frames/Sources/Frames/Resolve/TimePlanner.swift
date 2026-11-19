@@ -18,6 +18,7 @@ struct TimePlanner: Sendable {
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
     private let choices = ClipChoiceMerger()
+    private let pack: String?
 
     // MARK: - Initializer
     init(
@@ -29,6 +30,7 @@ struct TimePlanner: Sendable {
         self.themes = DocumentThemeResolver(library: library)
         self.resolver = MediaResolver(mediaFacts: mediaFacts, presets: presets, library: library)
         self.values = PresetValueResolver(library: library)
+        self.pack = library.pack
     }
 
     // MARK: - Public
@@ -84,7 +86,8 @@ struct TimePlanner: Sendable {
             clips: zip(planned, parents).map { plan, parent in plan.parented(by: parent) },
             sequence: sequence,
             theme: merged,
-            defaults: defaults
+            defaults: defaults,
+            pack: pack
         )
     }
 

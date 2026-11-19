@@ -164,7 +164,7 @@ struct SequencePlanner: Sendable {
             )
         }
         let clips = try tracked.time.clips.indices.map { index in
-            let title = try title(of: written[index], format: format, theme: time.theme)
+            let title = try title(of: written[index], format: format, time: time)
             let shape = shapes[index]
             let box = try appearances.box(
                 of: tracked.time.clips[index],
@@ -764,16 +764,17 @@ struct SequencePlanner: Sendable {
     private func title(
         of written: Clip,
         format: FormatPlan,
-        theme: MergedTheme
+        time: TimePlan
     ) throws -> TextLayout? {
         guard case let .title(title) = written.content else { return nil }
 
         return try text.layout(
             title,
             clip: written.place,
+            pack: time.pack,
             width: written.width,
-            theme: theme,
-            scale: theme.lengthScale(at: format.size.width),
+            theme: time.theme,
+            scale: time.theme.lengthScale(at: format.size.width),
             kind: ClipKind.title.label
         )
     }

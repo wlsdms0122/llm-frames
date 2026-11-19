@@ -30,9 +30,11 @@ extension MergedTheme {
 
     // MARK: - Initializer
     // MARK: - Public
-    // Where a style's font list was written, its own or the theme's, which a stop on it names.
-    func fontPlace(ofStyle name: String) -> Place {
-        place(of: fontPath(ofStyle: name))
+    // Where a style's font list was written, its own or the theme's, in the pack of the theme that wrote it.
+    func fontList(ofStyle name: String) -> FontListOrigin {
+        let path = fontPath(ofStyle: name)
+
+        return FontListOrigin(place: place(of: path), kind: "theme", pack: pack(of: path))
     }
 
     // The length scale of a place `width` wide: theme lengths are points at `baseWidth`.
@@ -87,21 +89,16 @@ extension MergedTheme {
         named name: String,
         scale: Double
     ) -> CharacterStyle {
-        characterStyle(of: style(named: name), named: name, scale: scale)
+        characterStyle(of: style(named: name), scale: scale)
     }
 
-    // `style` is the style `name` with a title's `character` merged over it. Its fonts are looked for in the pack of
-    // the theme that wrote the style's font list.
+    // `style` is a style with a title's `character` merged over it.
     func characterStyle(
         of style: JSONObject,
-        named name: String,
         scale: Double
     ) -> CharacterStyle {
-        let font = fontPath(ofStyle: name)
-
-        return CharacterStyle(
+        CharacterStyle(
             families: (style["font"] ?? value(at: ["font"]))?.arrayValue?.compactMap(\.stringValue) ?? [],
-            pack: pack(of: font),
             weight: style["weight"].flatMap(FontWeight.init(written:)) ?? .regular,
             italic: style["italic"]?.boolValue ?? false,
             size: (style["size"]?.numberValue ?? 0) * scale,
@@ -142,8 +139,7 @@ extension MergedTheme {
         size: Double,
         scale: Double
     ) -> ParagraphStyle {
-
-        return ParagraphStyle(
+        ParagraphStyle(
             lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
             background: style["background"]?.objectValue.map { box(of: $0, scale: scale) },
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
@@ -167,7 +163,6 @@ extension MergedTheme {
 
         return style(named: name)["font"] == nil ? Place(components: [.key("font")]) : path
     }
-
 
     // A highlight or a background: without `color` the `background` colour, without `padding` or `radius` 0.
     private func box(

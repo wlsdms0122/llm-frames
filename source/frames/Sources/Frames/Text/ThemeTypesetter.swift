@@ -25,12 +25,14 @@ struct ThemeTypesetter: Sendable {
     }
 
     // MARK: - Public
-    // `clip` is the place of the title's clip. A run without a style is in the clip's, and a run's style is named at
-    // its index in the title's list. A style the theme does not hold stops where it is named. The default line height
-    // follows the size of the clip's style with `character` merged over it.
+    // `clip` is the place of the title's clip and `pack` the pack of the document it is written in. A run without a
+    // style is in the clip's, and a run's style is named at its index in the title's list. A style the theme does not
+    // hold stops where it is named. The default line height follows the size of the clip's style with `character`
+    // merged over it.
     func layout(
         _ title: ClipTitle,
         clip: Place,
+        pack: String?,
         width: Double?,
         theme: MergedTheme,
         scale: Double,
@@ -49,8 +51,9 @@ struct ThemeTypesetter: Sendable {
 
             let written = theme.style(named: runStyle)
             let merged = try merged(title.character, over: written, as: character, key: "character", clip: clip)
-            let style = theme.characterStyle(of: merged, named: runStyle, scale: scale)
-            let runFaces = try faces[runStyle] ?? fonts.faces(for: style, place: theme.fontPlace(ofStyle: runStyle))
+            let style = theme.characterStyle(of: merged, scale: scale)
+            let origin = fontList(of: title, runStyle: runStyle, clip: clip, pack: pack, theme: theme, kind: kind)
+            let runFaces = try faces[runStyle] ?? fonts.faces(for: style, from: origin)
             faces[runStyle] = runFaces
 
             return TextRun(text: run.text, style: style, faces: runFaces)
@@ -76,6 +79,23 @@ struct ThemeTypesetter: Sendable {
     }
 
     // MARK: - Private
+    // A list the title's `character` writes replaces the style's, so it looks in the pack of the document the title is
+    // written in rather than in that of the theme that wrote the style's.
+    private func fontList(
+        of title: ClipTitle,
+        runStyle: String,
+        clip: Place,
+        pack: String?,
+        theme: MergedTheme,
+        kind: String
+    ) -> FontListOrigin {
+        guard title.character?.written?.objectValue?["font"] == nil else {
+            return FontListOrigin(place: clip.appending(key: "character").appending(key: "font"), kind: kind, pack: pack)
+        }
+
+        return theme.fontList(ofStyle: runStyle)
+    }
+
     // A title's static `character` or `paragraph` merged over a style, leaf by leaf. A leaf the merged value requires
     // and no layer gives stops.
     private func merged(

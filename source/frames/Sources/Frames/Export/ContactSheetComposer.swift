@@ -74,7 +74,7 @@ struct ContactSheetComposer: Sendable {
     // MARK: - Private
     // The face is given, so the style's families and weight are not read.
     private func characterStyle(size: Double) -> CharacterStyle {
-        CharacterStyle(families: [], pack: nil, weight: .regular, size: size, color: Self.textColor, stroke: nil)
+        CharacterStyle(families: [], weight: .regular, size: size, color: Self.textColor, stroke: nil)
     }
 
     // The line box is the face's ascent and descent at the size, and the background lies around it.

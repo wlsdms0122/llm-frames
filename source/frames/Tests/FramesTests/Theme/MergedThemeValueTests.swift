@@ -26,7 +26,6 @@ struct MergedThemeValueTests {
         // Then
         #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
-            pack: nil,
             weight: .regular,
             size: 40,
             color: Color(written: "#FFFFFF"),
@@ -73,7 +72,6 @@ struct MergedThemeValueTests {
         // Then
         #expect(character == CharacterStyle(
             families: ["Helvetica Neue", "Apple SD Gothic Neo"],
-            pack: nil,
             weight: .bold,
             size: 20,
             color: Color(written: "#FFFFFF"),
@@ -141,10 +139,11 @@ struct MergedThemeValueTests {
 
         // When
         let style = sut.characterStyle(named: "label", scale: 1)
+        let origin = sut.fontList(ofStyle: "label")
 
         // Then
         #expect(style.families == ["Inter", "Apple SD Gothic Neo"])
-        #expect(style.pack == "shorts")
+        #expect(origin == FontListOrigin(place: Place(components: [.key("font")]), kind: "theme", pack: "shorts"))
     }
 
     @Test("a style's typography is read with its lengths times the scale, and a highlight without colour takes `background`")
@@ -163,7 +162,6 @@ struct MergedThemeValueTests {
         // Then
         #expect(character == CharacterStyle(
             families: ["Inter"],
-            pack: nil,
             weight: FontWeight(300),
             italic: true,
             size: 20,
@@ -176,7 +174,7 @@ struct MergedThemeValueTests {
             highlight: TextBackground(color: Color(written: "#000000"), padding: Size(width: 4, height: 1), radius: 2),
             underline: TextUnderline(width: 1, offset: nil, color: Color(written: "#FFFFFF"))
         ))
-        #expect(sut.fontPlace(ofStyle: "caption") == Place(components: [.key("styles"), .key("caption"), .key("font")]))
+        #expect(sut.fontList(ofStyle: "caption").place == Place(components: [.key("styles"), .key("caption"), .key("font")]))
     }
 
     @Test("`underline: true` leaves every leaf to the face and the run's colour, and a weight name is its number")

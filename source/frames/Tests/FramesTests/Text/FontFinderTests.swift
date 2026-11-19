@@ -58,7 +58,7 @@ struct FontFinderTests {
         let sut = FontFinder(shaper: ShaperTable(installed: ["Inter"]), library: directory.library())
 
         // When
-        let faces = try sut.faces(for: style(["Inter"], pack: "shorts"), place: .root)
+        let faces = try sut.faces(for: style(["Inter"]), from: origin("shorts"))
 
         // Then
         #expect(faces == [ShaperTable.face("Inter", .bold, file: fontFile)])
@@ -70,8 +70,8 @@ struct FontFinderTests {
         let sut = FontFinder(shaper: ShaperTable(installed: ["Apple SD Gothic Neo"]), library: directory.library())
 
         // When
-        let packed = try sut.faces(for: style(["Missing", "Apple SD Gothic Neo", "Inter"], pack: "shorts"), place: .root)
-        let withoutPack = try sut.faces(for: style(["Inter", "Apple SD Gothic Neo"], pack: nil), place: .root)
+        let packed = try sut.faces(for: style(["Missing", "Apple SD Gothic Neo", "Inter"]), from: origin("shorts"))
+        let withoutPack = try sut.faces(for: style(["Inter", "Apple SD Gothic Neo"]), from: origin(nil))
 
         // Then
         #expect(packed == [ShaperTable.face("Apple SD Gothic Neo", .bold), ShaperTable.face("Inter", .bold, file: fontFile)])
@@ -86,7 +86,7 @@ struct FontFinderTests {
 
         // When, Then
         let error = #expect(throws: TextError.self) {
-            try sut.faces(for: style(["Missing", "Other"], pack: "shorts"), place: place)
+            try sut.faces(for: style(["Missing", "Other"]), from: origin("shorts", place: place))
         }
         #expect(error?.description == #"""
             shorts/shorts: font (theme): no family of "Missing", "Other" is in its pack or on the machine
@@ -94,13 +94,16 @@ struct FontFinderTests {
     }
 
     // MARK: - Private
-    private func style(
-        _ families: [String],
-        pack: String?
-    ) -> CharacterStyle {
+    private func origin(
+        _ pack: String?,
+        place: Place = .root
+    ) -> FontListOrigin {
+        FontListOrigin(place: place, kind: "theme", pack: pack)
+    }
+
+    private func style(_ families: [String]) -> CharacterStyle {
         CharacterStyle(
             families: families,
-            pack: pack,
             weight: .bold,
             size: 40,
             color: Color(written: "#000000"),

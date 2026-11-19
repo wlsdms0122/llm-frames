@@ -501,7 +501,6 @@ struct TypesetterTests {
     ) -> CharacterStyle {
         CharacterStyle(
             families: ["Apple SD Gothic Neo"],
-            pack: nil,
             weight: .bold,
             size: size,
             tracking: tracking,
