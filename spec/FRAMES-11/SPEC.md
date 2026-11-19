@@ -122,7 +122,7 @@ An adjustment clip applies a filter choice (`adjust`, [FRAMES-15](../FRAMES-15/S
 
 ### Blend modes
 
-`blend` composites a clip with a picture with what is below it: a storyline clip with media, a media clip, a title, a shape, or an adjustment clip's filtered result. The modes and their formulas are those of W3C Compositing and Blending Level 1: `normal` (default), `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`. Light leaks and film burns come in this way, as media with `screen` or `plus-lighter`.
+`blend` composites a clip with a picture with what is below it: a storyline clip with media, a media clip, a title, a shape, or an adjustment clip's filtered result. The modes and their formulas are those of W3C Compositing and Blending Level 1: `normal` (default), `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, and the non-separable modes `hue`, `saturation`, `color` and `luminosity`. A non-separable mode mixes the three channels of a colour together: it is computed with W3C's `Lum` (the weights 0.3, 0.59 and 0.11), `Sat`, `SetLum`, `SetSat` and `ClipColor` on the working space's sRGB-encoded values ([FRAMES-21](../FRAMES-21/SPEC.md)), as every other mode is. Light leaks and film burns come in this way, as media with `screen` or `plus-lighter`, and a colour wash as a rect over the frame filled with one colour and blended with `color`, which keeps the luminosity of what is below.
 
 ## Interactions
 
