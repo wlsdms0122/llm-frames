@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A clip of a document as its track matte chains see it: its place and kind as messages name them, its id, the track
-// matte it names, and `refusal`, the kind that keeps it from being a track matte, nil for a connected or sequence media
-// clip, title or shape (FRAMES-11).
+// A clip of a document as its track matte chains see it, its place and kind as messages name them. `refusal` is the
+// kind that keeps it from being a track matte, nil for a connected or sequence media clip, title or shape.
 struct TrackMatteLink: Equatable, Sendable {
     // MARK: - Property
     let place: Place

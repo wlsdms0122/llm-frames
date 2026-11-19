@@ -6,12 +6,11 @@
 //
 
 // A source of sound on the sequence clock: a storyline clip, a connected or sequence media clip, or an audio clip.
-// `played` plays its media from `in` at its own speed up to `out`. `range` is where it plays: a clip's visible window or
-// a storyline clip's drawn range, cut at the end of the sequence. `audible` is the part of that range where its media
-// exists, so a handle that runs out of media is silent outside it. `volume` and `pan` are in sequence time. `fadeIn`
-// and `fadeOut` are the ranges its volume ramps from and to 0 over, at the ends of a clip's window or a storyline clip's
-// drawn range, and `incoming` and `outgoing` are the transitions it crossfades over. `nested` holds the sounds of a
-// compound clip or a sequence document, on its own clock.
+// `range` is where it plays: a clip's visible window or a storyline clip's drawn range, cut at the end of the sequence.
+// `audible` is the part of that range where its media exists, so a handle that runs out of media is silent outside it.
+// `volume` and `pan` are in sequence time. `fadeIn` and `fadeOut` are the ranges its volume ramps from and to 0 over,
+// at the ends of a clip's window or a storyline clip's drawn range, and `incoming` and `outgoing` are the transitions
+// it crossfades over. `nested` holds the sounds of a compound clip or a sequence document, on its own clock.
 struct SoundPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place

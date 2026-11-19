@@ -1,5 +1,5 @@
 {
-  "description": "Crisper text edges, for a screenshot shown larger than it was taken",
+  "description": "Crisper edges and fine detail.",
   "ops": [
     { "op": "sharpen", "amount": 0.6, "radius": 1 }
   ]

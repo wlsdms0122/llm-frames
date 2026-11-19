@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The one parameter object of templates and presets, with the limits each owner sets on it.
+// The parameter object of templates and presets, with the limits each owner sets on it.
 enum ParameterKeyTable {
     static let kind = "parameter"
     static let template = ObjectTable(

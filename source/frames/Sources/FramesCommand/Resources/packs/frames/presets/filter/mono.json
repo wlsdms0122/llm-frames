@@ -1,5 +1,5 @@
 {
-  "description": "Black and white, every colour turned to its grey",
+  "description": "Black and white, every colour turned to its grey.",
   "ops": [
     { "op": "saturation", "amount": 0 }
   ]

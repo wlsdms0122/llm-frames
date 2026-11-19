@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The media of a clip, its edit points as written, in media time, its `timeRemap`, and how its sound plays. Each is nil
-// when left to its default. `timeRemap`, `volume` and `pan` keyframes are on the clip's clock, and `fadeIn` and
-// `fadeOut` are sequence seconds.
+// The media of a clip and how it plays, each value nil when left to its default. `in` and `out` are clip time,
+// `timeRemap`, `volume` and `pan` keyframes are on the clip's clock, and `fadeIn` and `fadeOut` are sequence seconds.
 struct ClipMedia: Equatable, Sendable {
     // MARK: - Property
     let source: MediaSource

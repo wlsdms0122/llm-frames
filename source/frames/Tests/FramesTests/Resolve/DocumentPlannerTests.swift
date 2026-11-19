@@ -51,6 +51,7 @@ struct DocumentPlannerTests {
             mediaFacts: mediaFacts,
             presets: Fixture.presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: directory.library(mediaFacts: mediaFacts)

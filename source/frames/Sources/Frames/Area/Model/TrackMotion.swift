@@ -7,10 +7,9 @@
 
 import Foundation
 
-// A track's motion on one frame (FRAMES-12): the similarity, a move, one uniform scale and one rotation, that takes the
-// target's quad at the instant nearest by least squares to its quad on the frame. `transform` is the motion M as a
-// matrix, always of the form `[a, b, -b, a, tx, ty]`, and `origin` is the target's centroid p̄ at the instant. The
-// point tracker fits its two track points by the same least squares.
+// A track's motion on one frame: the similarity, a move, one uniform scale and one rotation, that takes the target's
+// quad at the instant nearest by least squares to its quad on the frame. `transform` is the motion M as a matrix,
+// always of the form `[a, b, -b, a, tx, ty]`, and `origin` is the target's centroid p̄ at the instant.
 package struct TrackMotion: Equatable, Sendable {
     // MARK: - Property
     static let identity = TrackMotion(transform: .identity, origin: Point(x: 0, y: 0))
@@ -61,9 +60,9 @@ package struct TrackMotion: Equatable, Sendable {
         self.init(from: target.corners, to: frame.corners)
     }
 
-    // The least-squares fit of points to points in the same order: with each taken about its centroid, `a` and `b` are
-    // the sums of FRAMES-12 and `spread` is Σ |pᵢ'|², so s cos θ = a / spread and s sin θ = b / spread. The same points
-    // give the identity exactly.
+    // The least-squares fit of points to points in the same order: with each taken about its centroid, `a` is Σ pᵢ' ·
+    // qᵢ', `b` is Σ pᵢ' × qᵢ' and `spread` is Σ |pᵢ'|², so s cos θ = a / spread and s sin θ = b / spread. The same
+    // points give the identity exactly.
     package init(
         from starts: [Point],
         to ends: [Point]

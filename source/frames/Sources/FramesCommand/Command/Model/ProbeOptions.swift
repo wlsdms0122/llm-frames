@@ -5,11 +5,15 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `probe <media> [--json]`
 struct ProbeOptions: CommandOptions, Equatable {
     // MARK: - Property
-    static let rules = [OptionRule("--json")]
-    static let placeholders = ["<media>"]
+    static let rules = [OptionRule.json]
+    static let positionals = [
+        PositionalRule(
+            "<media>",
+            help: "An image, video or audio file, or a directory of frames as an image sequence, as an absolute path."
+        )
+    ]
 
     let media: String
     let isMachineOutput: Bool

@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// How a shape entry is placed (FRAMES-11), its keyframes in sequence time: a rect or an ellipse by its box, `width` by
-// `height` in output pixels, or by its `area` in its coordinate space, or a path by its `points`, joined back to the
-// first when `isClosed`. A rect's or an ellipse's `outset`, in output pixels, grows only the outline it draws on every
-// side, and its box is as written. A shape placed by its area or its points carries where it goes.
+// How a shape entry is placed, its keyframes in sequence time: a rect or an ellipse by its box, `width` by `height` in
+// output pixels, or by its `area` in its coordinate space, or a path by its `points`, joined back to the first when
+// `isClosed`. A rect's or an ellipse's `outset`, in output pixels, grows only the outline it draws on every side, and
+// its box is as written. A shape placed by its area or its points carries where it goes.
 enum ShapeGeometry: Equatable, Sendable {
     case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: Double)
     case area([Keyframe<Rectangle>], outset: Double, placement: GeometryPlacement)

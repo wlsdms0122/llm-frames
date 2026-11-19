@@ -41,7 +41,7 @@ struct ClipAnimationTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw", "media": "frames/fade" } } },
+              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe", "media": "frames/fade" } } },
               "storyline": [ { "media": "/abs/run.mp4" } ],
               "clips": [
                 { "at": [0, 1], "title": "a", "style": "subtitle" },
@@ -57,7 +57,7 @@ struct ClipAnimationTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["frames/pop", nil, "frames/draw", "frames/fade", nil, nil])
+        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["frames/pop", nil, "frames/wipe", "frames/fade", nil, nil])
         #expect(plan.clips[5].animation == .none)
     }
 

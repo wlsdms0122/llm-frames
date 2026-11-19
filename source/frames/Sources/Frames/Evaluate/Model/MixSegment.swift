@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A stretch of one media file heard in the output: from sequence time `start` to `end`, playing from media time
-// `mediaStart` at `speed`, at the gain its envelope gives and the pan, from -1 (left) to 1 (right), its pan envelope
-// gives. Both envelopes' points are in sequence time from `start` to `end`, joined in straight lines.
+// A stretch of one media file heard in the output, from sequence time `start` to `end`, playing from media time
+// `mediaStart`. Pans run from -1 (left) to 1 (right). Both envelopes' points are in sequence time from `start` to
+// `end`, joined in straight lines.
 package struct MixSegment: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia

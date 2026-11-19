@@ -5,12 +5,10 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Reads a display list from its JSON text as `DisplayListWriter` writes it, by the rule a resolved document is read
-// by: its version is checked before anything else, and a member that is missing or of another type, or a key the
-// writer never writes there, stops naming its place. The list keeps one seed for itself and every list nested in it,
-// so the seed of the first `grain` written is taken and a `grain` with another stops. A list with no `grain` reads
-// with seed 0, since only `grain` reads the seed. A track matte's source of another size than the list holding its
-// item stops.
+// Reads a display list as `DisplayListWriter` writes it. The version is checked before anything else, and a member
+// that is missing or of another type, or a key the writer never writes there, stops naming its place. The list and
+// every list nested in it share one seed: the first `grain` written gives it, and a `grain` with another stops. A list
+// with no `grain` reads with seed 0, since only `grain` reads the seed.
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "items"]
@@ -82,7 +80,6 @@ package struct DisplayListReader: Sendable {
         return nil
     }
 
-    // The first `grain` in the list a source `{list}` holds.
     private func nestedGrain(in source: PlacedJSONValue) -> PlacedJSONValue? {
         (try? values.member("list", of: source, kind: "display list")).flatMap(firstGrain)
     }
@@ -107,8 +104,7 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // `item` names what an item draws, which decides the keys it holds besides those every item has. `size` is the size
-    // of the list that holds it.
+    // `size` is the size of the list that holds the item.
     private func item(
         _ value: PlacedJSONValue,
         in size: Size,
@@ -279,7 +275,6 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // `[a, b]`, each from 0 to 1.
     private func trim(_ value: PlacedJSONValue) throws -> Trim {
         let numbers = try value.numbers(count: 2)
         for (element, number) in zip(try value.elements(), numbers) where !(0...1).contains(number) {
@@ -303,14 +298,12 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // A name among the literals a stroke or mask key takes.
     private func literal<Literal: CaseIterable & RawRepresentable>(
         _ value: PlacedJSONValue
     ) throws -> Literal where Literal.RawValue == String {
         try value.name(among: Literal.allCases.map(\.rawValue), Literal.init(rawValue:))
     }
 
-    // `{media, frame}` for a frame of media and `{list}` for a nested list.
     private func source(
         _ value: PlacedJSONValue,
         seed: Int
@@ -322,7 +315,6 @@ package struct DisplayListReader: Sendable {
         return .displayList(try nestedList(value, seed: seed))
     }
 
-    // `{list}`, a list without the version, which takes the seed of the list holding it.
     private func nestedList(
         _ value: PlacedJSONValue,
         seed: Int
@@ -375,7 +367,6 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // Every `grain` carries the list's seed, and one with another seed stops.
     private func filter(
         _ value: PlacedJSONValue,
         seed: Int

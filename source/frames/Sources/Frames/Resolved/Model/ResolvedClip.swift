@@ -11,8 +11,8 @@
 // shape given by `width` and `height`, and a shape placed by its geometry carries it in its content. `crop` is a media
 // clip's every crop conformed to its box. `mask` is the clip's masks in its own coordinate space, nil for none, a
 // keyframe's where it lies at its own time when tracked, and `trackMatte` its track matte, nil for none. Keyframes are
-// in sequence time. `scale`, `rotation` and `blend` belong to anything but an adjustment, and each is nil where its
-// entry has no such key.
+// in sequence time. `scale` and `rotation` belong to anything but an adjustment, and each is nil where its entry has no
+// such key.
 struct ResolvedClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -31,7 +31,7 @@ struct ResolvedClip: Equatable, Sendable {
     let opacity: [Keyframe<Double>]
     let scale: [Keyframe<Double>]?
     let rotation: [Keyframe<Double>]?
-    let blend: String?
+    let blend: String
     let animation: ResolvedAnimation
     // The clip's own coordinate space, which its mask is in and which it gives its children.
     var space: OwnSpace {
@@ -63,7 +63,7 @@ struct ResolvedClip: Equatable, Sendable {
         opacity: [Keyframe<Double>],
         scale: [Keyframe<Double>]?,
         rotation: [Keyframe<Double>]?,
-        blend: String?,
+        blend: String,
         animation: ResolvedAnimation
     ) {
         self.place = place

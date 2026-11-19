@@ -1,5 +1,5 @@
 {
-  "description": "Stronger colour and a little more contrast, to make a flat picture pop",
+  "description": "Stronger colour and a little more contrast.",
   "ops": [
     { "op": "saturation", "amount": 1.35 },
     { "op": "contrast", "amount": 1.08 }

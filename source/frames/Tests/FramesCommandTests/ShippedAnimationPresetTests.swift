@@ -18,7 +18,7 @@ import Testing
 struct ShippedAnimationPresetTests {
     // MARK: - Property
     private static let names = [
-        "none", "fade", "pop", "stamp", "zoom", "draw", "wipe",
+        "none", "fade", "pop", "stamp", "zoom", "wipe",
         "rise", "drop", "slide-left", "bounce", "pulse", "blink", "shake"
     ]
 
@@ -39,7 +39,7 @@ struct ShippedAnimationPresetTests {
     }
 
     // MARK: - Test
-    @Test("the shipped animations are exactly the 14 that FRAMES-16 names")
+    @Test("the shipped animations are exactly the 13 that FRAMES-16 names")
     func namesShippedAnimations() throws {
         // Given, When
         let names = try sut.presets(of: .animation).map(\.name)
@@ -48,14 +48,16 @@ struct ShippedAnimationPresetTests {
         #expect(names.sorted() == Self.names.map { "frames/\($0)" }.sorted())
     }
 
-    @Test("every shipped animation reads and says in one line how it looks", arguments: names)
+    @Test("every shipped animation reads and says in one capitalised sentence how it looks", arguments: names)
     func readsAnimation(name: String) throws {
         // Given, When
         let preset = try #require(try sut.animation(PresetInstance(name: "frames/\(name)")))
 
         // Then
-        #expect(!preset.description.isEmpty)
         #expect(!preset.description.contains("\n"))
+        #expect(preset.description.first?.isUppercase == true)
+        #expect(preset.description.hasSuffix("."))
+        #expect(!preset.description.dropLast().contains(". "))
     }
 
     @Test("none has no span, so a clip simply shows")
@@ -123,18 +125,22 @@ struct ShippedAnimationPresetTests {
         #expect(isInPlace(end))
     }
 
-    @Test("pulse jabs an arrow forward with nudge and back while it pulses")
-    func pulseJabsArrow() throws {
+    @Test("pulse swells and settles back to size in each period, moving nothing but its scale")
+    func pulseSwellsAndSettles() throws {
         // Given
         let preset = try #require(try sut.animation(PresetInstance(name: "frames/pulse")))
         let loop = try #require(preset.loop)
 
         // When
-        let nudges = stride(from: 0.0, through: 1, by: 0.05).map { evaluator.motion(of: loop.span, at: $0).value(of: .nudge) }
+        let motions = stride(from: 0.0, through: 1, by: 0.05).map { evaluator.motion(of: loop.span, at: $0) }
+        let scales = motions.map { $0.value(of: .scale) }
 
         // Then
-        #expect(nudges.max() ?? 0 > 0)
-        #expect(nudges.min() == 0)
+        #expect(scales.max() ?? 1 > 1)
+        #expect(scales.allSatisfy { $0 >= 1 })
+        #expect(motions.allSatisfy { motion in
+            MotionProperty.allCases.filter { $0 != .scale }.allSatisfy { motion.value(of: $0) == $0.defaultValue }
+        })
     }
 
     @Test("a sequence with a title that names the shipped pop resolves on the base theme alone, and the title pops in with it")

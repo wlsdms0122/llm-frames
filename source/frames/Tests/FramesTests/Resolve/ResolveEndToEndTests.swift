@@ -150,6 +150,7 @@ struct ResolveEndToEndTests {
             mediaFacts: decoder,
             presets: Fixture.presets,
             ocr: VisionOCR(decoder: decoder),
+            languages: ["ko-KR", "en-US"].compactMap(LanguageTag.init),
             tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),
             library: library

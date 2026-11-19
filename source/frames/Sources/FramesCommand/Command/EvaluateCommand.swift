@@ -11,6 +11,9 @@ import Frames
 struct EvaluateCommand: Command {
     // MARK: - Property
     let name = "evaluate"
+    let synopsis = "<document.json> --at <t> [--args <args.json>]"
+    let summary = "Prints the display list at a sequence time as JSON, bottom first: each item, the clip or op that "
+        + "drew it, and the output rectangle it covers."
 
     // MARK: - Initializer
     init() { }

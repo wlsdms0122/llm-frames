@@ -44,6 +44,7 @@ struct FrameRangeTests {
         arguments: [
             (FrameRange(step: 0), ExportError.nonPositiveStep(0)),
             (FrameRange(step: 0.0000001), ExportError.nonPositiveStep(0.0000001)),
+            (FrameRange(step: 0.0000006), ExportError.nonPositiveStep(0.0000006)),
             (FrameRange(from: -1), ExportError.timeOutside(option: "--from", time: -1, end: 3, kind: "video")),
             (FrameRange(from: 3), ExportError.timeOutside(option: "--from", time: 3, end: 3, kind: "video")),
             (FrameRange(to: 3.5), ExportError.endPastEnd(time: 3.5, end: 3, kind: "video")),
@@ -60,6 +61,19 @@ struct FrameRangeTests {
 
         // When, Then
         #expect(throws: expected) { try sut.times(end: 3, kind: "video") }
+    }
+
+    @Test("each time is given rounded to the microsecond, so it is the time its label reads")
+    func roundsToMicrosecond() throws {
+        // Given
+        let sut = FrameRange(step: 0.3)
+
+        // When
+        let times = try sut.times(end: 2, kind: "sequence")
+
+        // Then
+        #expect(0 + 6 * 0.3 != 1.8)
+        #expect(times == [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8])
     }
 
     @Test("a stop names the option and the time")

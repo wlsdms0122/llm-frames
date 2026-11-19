@@ -5,8 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The measures resolve takes of a rectangle once it is found: its edges, growing it, cutting it to a picture, and the
-// rectangle around two or around points.
 extension Rectangle {
     // MARK: - Property
     var maxX: Double {

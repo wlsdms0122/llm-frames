@@ -27,6 +27,7 @@ An area is given in one of these forms, in the coordinate space of the clip that
 - A text form without `nth` that matches more than one line stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` form.
 - Text that matches no line, or an `nth` past the last match, stops, naming the media, the text and the nth.
 - A text form's area grows outward on every side by its `padding`, in pixels of the picture searched, once the area is found. A tracker follows the area as found, before padding ([FRAMES-12](../FRAMES-12/SPEC.md)).
+- An area keeps what is written or found, also where it reaches past the picture's edges. A shape, a mask and a point drawn from it are where it says, and the part of a crop beyond the picture is transparent ([FRAMES-9](../FRAMES-9/SPEC.md)). OCR and the tracker read only the picture's pixels.
 
 ### Where text forms are allowed
 

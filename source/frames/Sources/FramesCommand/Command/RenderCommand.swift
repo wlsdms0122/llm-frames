@@ -12,6 +12,9 @@ import Frames
 struct RenderCommand: Command {
     // MARK: - Property
     let name = "render"
+    let synopsis = "<document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]"
+    let summary = "Renders a sequence: every frame to a .mov master, or the frame at --at to a .png at the frame's "
+        + "size and without a time label."
 
     // MARK: - Initializer
     init() { }

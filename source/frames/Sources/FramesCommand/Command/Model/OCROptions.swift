@@ -7,29 +7,47 @@
 
 import Frames
 
-// `ocr <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--json]`. A range is any of `--from`, `--to` and
-// `--step`, which it needs, and `--at` reads one frame, so it takes none of them.
 struct OCROptions: CommandOptions, Equatable {
     // MARK: - Property
     private static let rangeOptions = ["--from", "--to", "--step"]
 
     static let rules = [
-        OptionRule("--at", value: "<t>"),
-        OptionRule("--from", value: "<t>"),
-        OptionRule("--to", value: "<t>"),
-        OptionRule("--step", value: "<s>"),
-        OptionRule("--json")
+        OptionRule(
+            "--at",
+            value: "<t>",
+            help: "The media time a video is read at, in [0, duration). Default: 0."
+        ),
+        OptionRule.from,
+        OptionRule.to,
+        OptionRule(
+            "--step",
+            value: "<s>",
+            help: "The seconds between the frames of a range, at least a microsecond. A range needs it."
+        ),
+        OptionRule(
+            "--languages",
+            value: "<tag>[,<tag>...]",
+            help: "The recognition languages, BCP 47 tags in order of preference. Default: the global --ocr-languages."
+        ),
+        OptionRule.json
     ]
-    static let placeholders = ["<image | video>"]
+    static let positionals = [
+        PositionalRule(
+            "<image | video>",
+            help: "An image, read whole, or a video, read at --at or over a range, as an absolute path."
+        )
+    ]
 
     let media: String
     let selection: TimeSelection
+    let languages: [LanguageTag]?
     let isMachineOutput: Bool
 
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.media = try arguments.requiredPositionalPath(at: 0)
         self.selection = try Self.selection(of: arguments)
+        self.languages = try arguments.languages(of: "--languages")
         self.isMachineOutput = arguments.isSet("--json")
     }
 

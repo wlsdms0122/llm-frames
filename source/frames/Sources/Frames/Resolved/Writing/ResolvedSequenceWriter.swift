@@ -72,14 +72,14 @@ struct ResolvedSequenceWriter: Sendable {
     }
 
     // What a clip draws comes after its id, a media clip's timing, filter and appearance with it, and a shape's
-    // geometry and appearance. Scale, rotation and a blend mode belong to anything drawn but an adjustment. A shape
+    // geometry and appearance. Scale and rotation belong to anything drawn but an adjustment. A shape
     // placed by its geometry writes its position and anchor where a box would, and its area with its own keys.
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
         let transform = [
             clip.scale.map { JSONMember(key: "scale", value: number($0)) },
             clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
-            clip.blend.map { JSONMember(key: "blend", value: .string($0)) }
+            JSONMember(key: "blend", value: .string(clip.blend))
         ].compactMap { $0 }
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement

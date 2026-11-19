@@ -1,99 +1,103 @@
 # pr-evidence
 
-A screenshot or a short recording that proves what a pull request changes.
+A screenshot or a short recording that proves what a pull request changes, with the claim written above the picture and the lines that prove it outlined.
 
 ## What it is for
 
-The reviewers of a pull request watch it, in the pull request's description or in a review comment on the code host (GitHub, GitLab), shown inline at the width of the page, about 900 pixels on a desktop. They look at it before or beside the code and decide from it whether the change does what the title says. People come back to it later from the history, without the context of the review. So it states one claim and shows the proof of that claim, and nothing in it can be read as something else.
+The reviewers of a pull request watch it, in the pull request's description or in a review comment on the code host, shown inline at the width of the page, about 900 pixels on a desktop and often muted. They look at it before or beside the code and decide from it whether the change does what the title says. People come back to it later from the history, without the context of the review. So it states one claim and shows the proof of that claim, and nothing in it can be read as something else.
 
 ## Theme
 
 `pr-evidence/pr-evidence`. Every document of this form writes `"theme": "pr-evidence/pr-evidence"`.
 
-It changes only `shapes.label.sides`, to `["right", "bottom", "left"]`. A label never goes above a box, where it would cover the line above, and the line above is often the one that gives the boxed line its meaning. Everything else is the base theme: red boxes with white-on-red labels, a white banner with black text, the base `fill` colour, and no default presets but `frames/pop` on labels.
+- `baseWidth` is 1206, the width of a phone screenshot at 3x, so on a picture 1206 pixels wide every theme length is a pixel of the picture. On a wider or narrower picture the outlines and labels scale with it and keep their size relative to the text they mark.
+- Black text on white (`text`, `background`) and a red `accent`.
+- Text styles: `lead` (44, bold) for the conclusion, `body` (38) for the reason, both on a 64 line and one line long, and `label` (36, bold, white on a red rounded box, one line) for a label.
+- Shape styles: `outline` (a red stroke 8 wide, corners rounded 18), `cover` (opaque black fill) and `dim` (black at 60% opacity).
+- `border` is 3 wide and light grey, for a screenshot whose white background would otherwise meet the white page.
+- No default transition, filter or animation, as in the base theme. A reviewer who pauses on any frame sees every mark whole.
 
 ## Format
 
-**A screenshot** is an `image` document on the screenshot, in this order of operations:
+The frame is measured from the content: `"size": { "fit": "content" }` with a white background. The picture is the first storyline clip, so its width gives the length scale.
 
-1. `crop` to a band: `{"crop": {"band": <area>}}`, the area usually `{"from": "<first line>", "to": "<last line>"}` around the lines that make the claim and the lines that give them their meaning.
-2. The covers: a `fill` with an opaque `color` over every piece of personal data the crop keeps.
-3. The boxes, one on each reason line, with a `label` when the line alone does not say why it is boxed.
-4. The banner: `{"banner": [{"text": "<conclusion>", "style": "bannerHead"}, "<reason>"], "edge": "top"}`.
-5. `{"border": true}`, so a screenshot with a white background keeps its edge on a white page.
+**The picture.** A screenshot is a storyline clip with a `duration` of 1, a recording a storyline clip with `in`, `out` and `"volume": 0`. Each takes `"border": true`. Crop a screenshot to the rows that make the claim and the rows that give them their meaning, across the whole width of the picture: `"crop": [0, y, W, h]`, with `W` the picture's width and `y` and `h` read from `frames ocr <picture>`, which prints every line's rectangle. A crop found by text is only as wide as its lines, and the length scale would follow that width, so the outlines and labels would come out thin. A recording is usually shown whole.
 
-Its size is the source's. Leave out `resize`: the code host scales the picture to the page, and text captured at 2x stays sharp when it does.
+**The header.** The template `pr-evidence/header` is a white strip 1206 by 208 with the conclusion in `lead` and the reason in `body` below it, both 40 from its left edge. It is a sequence clip in `clips`, as wide as the picture and set on its top edge:
 
-**Two states** (before and after) are a `layout` with `"columns": 2`, the headings `Before` and `After`, each item an image document made as above without its own banner, and the banner in the layout's `banner`.
+```json
+{ "media": { "template": "pr-evidence/header",
+             "args": { "conclusion": "Total includes shipping", "reason": "42,000 is the item total plus 4,000 shipping" } },
+  "width": 1206, "anchor": "bottom-left", "position": [0, 0] }
+```
 
-**A recording** is a `sequence` whose top band is the banner, built from titles:
+Under content fit the frame grows to hold it, so the picture keeps every pixel of its own below it. `width` is the picture's width (1280 for a 1280 by 720 recording). The template is drawn at 1206 wide and scaled to `width`, so at 1206 its text is sharpest.
 
-- `size` is the recording's width `W` and its height plus the band, `[W, H + B]`, with `"conform": "fit"` and `"background": "#FFFFFF"`. The recording's `crop` is `[0, -B, W, H + B]`, the frame's shape reaching `B` above the picture, so the band above it is transparent and shows the white background, and the recording keeps its own pixels below it.
-- With `s = W / 1206` (the theme's `baseWidth`), the band for a conclusion and one reason line is `B = 208 × s`, rounded up to an even number: 40 points of room, two lines of 64, and 40 points of room. Each more reason line adds `64 × s`.
-- The banner lines are sequence clips without `at`, so they hold for the whole video: the conclusion in `bannerHead` at `"position": [40 × s, 40 × s]` with `"anchor": "top-left"`, and each reason line in `banner` 64 × s below the one before it.
-- For a 1280 by 720 recording, `s` is 1.0614, the size is `[1280, 942]`, the crop `[0, -222, 1280, 942]`, and the lines sit at `[42, 42]` and `[42, 110]`.
+**The marks.** Every mark is a connected clip parented to the picture's clip, so its area is found by text in the picture's media pixels and moves with it:
+
+- An **outline** is a rect in the `outline` style on a reason line: `{ "shape": "rect", "style": "outline", "parent": "checkout", "area": { "from": "Item total", "to": "38,000", "padding": 16 } }`. `from` and `to` take the label at the left of a row and its value at the right, so the outline holds the whole row.
+- A **label** is a title in the `label` style parented to its outline, set at a point of the same area: `"position": { "area": <the outline's area>, "point": "bottom-right" }, "anchor": "top-right"`, without `width`, so its background hugs its text. Put it on the side where the picture has room, so it covers no line a reader needs.
+- A **cover** is a rect in the `cover` style over personal data: `{ "shape": "rect", "style": "cover", "parent": "checkout", "area": { "text": "jane@example.com", "padding": 12 } }`.
+- A **dim** darkens everything but the reason lines: a rect in the `dim` style over the crop, with an inverted mask of the lines, `{ "shape": "rect", "style": "dim", "parent": "checkout", "area": [0, 130, 1206, 800], "mask": { "shape": "rect", "area": <the lines' area>, "radius": 18, "invert": true } }`. It comes before the outlines, so they draw over it.
+
+**Two states.** Before and after are two pictures side by side: the before picture as the storyline clip, and the after picture as a connected media clip with the same `crop` and `border`, `"anchor": "top-left"` and `"position": [W + 40, 0]`. Its marks are parented to it. Each takes a heading above it, a title in `lead` with `"width": 600`, `"anchor": "bottom-left"`, at `[40, -16]` and `[W + 80, -16]`. The header sits above the headings, at `"position": [0, -80]` and `"width": 1206`. Cover the personal data in both pictures.
 
 ## Rules
 
 ### Text
 
-- The conclusion comes first, in `bannerHead`, as one sentence of what is now true ("Total includes shipping"). A reviewer reads the first line and may stop there.
-- The reason follows in one or two `banner` lines and says what in the picture proves the conclusion. A conclusion without its proof is a claim, not evidence.
-- No run in another style in the banner or in labels. An emphasis colour such as yellow cannot be read on the white band.
-- A label is one to four words and names the fact its box shows ("42,000 = 38,000 + 4,000", "now 4,000"). A label is one line, and one that does not fit stops.
+- The conclusion comes first, as one sentence of what is now true ("Total includes shipping"). A reviewer reads the first line and may stop there.
+- The reason follows in one line and says what in the picture proves the conclusion. A conclusion without its proof is a claim, not evidence.
+- Each fits on one line of the header. The styles take one line, so a longer one stops, and a reason that needs two lines is two claims.
+- No run in another style in the header or in labels. One weight and one colour read fastest on a white strip.
+- A label is one to four words and names the fact its outline shows ("38,000 + 4,000", "now 4,000"). It is read beside the line, not instead of it.
 - Write in the language of the pull request. A reviewer reads the evidence beside its description.
 
-### Emphasis
+### Marks
 
-- Only the reason lines get a box. A box on anything else asks the reviewer to check something that proves nothing.
-- One box per reason line, with a label only where the line alone does not say why it matters. A picture full of boxes points at nothing.
-- A `dim` around the reason lines is used only when the crop still holds much more than they do. It darkens the context the reader may need, so it is the exception.
-- Personal data is covered with an opaque `fill` at opacity 1 with no animation (`"color": "#000000"`, or the colour of the screen behind it, and `"animation": "none"` on a sequence), on every clip and every frame that shows it. Evidence is posted where many people read it, and one frame is enough to leak it.
-- On video, a cover follows a line that moves with the data and stays on screen the whole time, such as a total in the same list: `{"shape": "fill", "area": "jane@example.com", "track": "Total", ...}`. The cover's area is found where the data is, and the line's motion carries it, so it slides off an edge with the data and comes back with it. `"track": true` follows the data itself and suits only data that never reaches an edge: the tracker loses text as it leaves the screen, the cover ends while part of the text still shows, and it does not come back when the text does.
+- Only the reason lines get an outline. An outline on anything else asks the reviewer to check something that proves nothing.
+- One outline per reason line, with a label only where the line alone does not say why it matters. A picture full of outlines points at nothing.
+- A dim is used only when the crop still holds much more than the reason lines. It darkens the context the reader may need, so it is the exception.
+- Personal data is covered with a `cover` at full opacity with `"animation": "none"`, on every clip and every frame that shows it. Evidence is posted where many people read it, and one frame is enough to leak it.
+- On a recording, a cover follows a line that moves with the data and stays on screen the whole time, such as the total in the same list: `"track": { "text": "Total" }`. The cover's area is found where the data is and the line's motion carries it, so it leaves an edge with the data and comes back with it. `"track": true` follows the data itself and suits only data that never reaches an edge, since the tracker loses text as it leaves the screen.
 - When nothing that moves with the data stays on screen, cut or crop the recording so the data never crosses an edge.
-- A template is a closed box, so a recording given to one is covered first: render it with its covers to a master and pass that file. The template cannot cover what it cannot see.
-- The finished file is checked with `ocr` (`frames ocr out.png`, and on a video over every frame, `--from 0 --to <duration> --step <1 / fps>`), and no covered text may come back. A cover that misses by a frame or a few pixels shows in text recognition before a person sees it.
-- On a video, also look at a `sheet` of every frame where covered data crosses an edge of the recording (`--step <1 / fps>` over that stretch). Text cut in half by an edge does not come back in `ocr`, and people can still read it.
+- A template is a closed box whose text cannot be found from outside, so a recording given to one is covered first: render it with its covers to a master and pass that file.
+- Check the finished file with `frames ocr <out.png>`, and on a video over every frame (`--from 0 --to <duration> --step <1 / fps>`): no covered text may come back. Then look at a `sheet` of the rendered master at the same step wherever covered data crosses an edge. Text cut in half by an edge does not come back in `ocr`, and people can still read it.
 
 ### Cuts
 
-- Crops are bands (`{"band": ...}`), since evidence keeps whole lines. A line cut in half can be read as hiding its other half.
+- A screenshot's crop keeps whole rows across the whole width. A line cut in half can be read as hiding its other half.
 - A recording is cut to the action: from just before the input to just after the result shows, at speed 1. Speeding it up changes what it proves about time.
 - Cut a recording only where nothing changes on the screen, and put a `frames/fade` at the cut. A cut that hides itself looks like something was taken out.
-- Transitions are `frames/fade` at 0.3 to 0.5 seconds. A plain dissolve shows that time passed without telling a story.
 - No filters. The colours of a screen are part of what it shows.
-- No music, and a recording's own sound is turned off (`"volume": 0`) unless the sound is the evidence. Reviewers watch inline and muted, and sound that proves nothing is noise.
+
+### Sound
+
+- No music, and a recording's own sound is off (`"volume": 0`) unless the sound is the evidence. Reviewers watch inline and muted, and sound that proves nothing is noise.
 
 ### Length
 
-- One claim per picture or video. A second claim is a second piece of evidence, since the banner states one conclusion.
+- One claim per picture or video. A second claim is a second piece of evidence, since the header states one conclusion.
 - A recording runs at most 30 seconds, and under 15 is better. It plays inline and is watched more than once.
 - A still is enough when the result does not move. A recording is for what happens over time: an animation, a sequence of states, something that loads.
 
 ## Presets
 
-- Use `frames/fade` between recording parts, at 0.3 to 0.5 seconds: `{"preset": "frames/fade", "seconds": 0.4}`.
-- Labels keep the theme's default `frames/pop`. It lands the label once and then holds still.
-- Boxes and covers take no animation. The theme leaves `shape` at `none`, so a reviewer who pauses on any frame sees the box whole. Write `"animation": "none"` on covers anyway, so a `--theme` given on the command line cannot animate them.
+- Use `frames/fade` at a cut inside a recording, at 0.3 to 0.5 seconds: `{ "preset": "frames/fade", "seconds": 0.4 }`. It shows that time passed without telling a story.
+- Marks take no animation. A label on a recording may take `frames/fade` to come in where its line changes, never on a still: a still is the frame at 0, where an entrance has not begun.
 - Do not use filters, for the reason in Cuts.
 - Do not use moving transitions (`frames/push-*`, `frames/slide-*`, `frames/uncover-left`, `frames/wipe-*`, `frames/zoom-*`), `frames/flash` or `frames/dip-black`. They make an edit look like a story and pull the eye from the proof.
-- Do not use `frames/pulse`, `frames/blink` or `frames/shake`. They draw the eye away from the reason lines, and the frame a reviewer pauses on may catch them mid-motion.
+- Do not use `frames/pulse`, `frames/blink` or `frames/shake`. The frame a reviewer pauses on may catch them mid-motion.
 
 ## Example
 
 Two examples are in `examples/`. They name their media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before they run:
 
-- `/path/to/checkout.png`: a screenshot of an order summary with the lines `Order summary`, `Ship to` and an email address, `Item total 38,000`, `Shipping 4,000` and `Total 42,000`, one above the other.
-- `/path/to/checkout.mov`: a 1280 by 720 recording of an order summary, at least 1.4 seconds long, that shows the line `Total 42,000` on its first frame. A recording of another size changes `size`, `crop` and the title positions as Format says.
+- `/path/to/checkout.png`: a screenshot 1206 pixels wide of an order summary with the rows `Order summary`, `Ship to` with `jane@example.com`, `Item total` with `38,000`, `Shipping` with `4,000`, `Total` with `42,000` and `Arrives in 2 days`, and a `Pay 42,000` button below them. Rows are read with their label at the left and their value at the right.
+- `/path/to/checkout.mov`: a 1280 by 720 recording, at least 2.8 seconds long, of the same summary on a desktop, where `Add shipping` is clicked at 1 second, the `Shipping` row appears and `Total` turns from `38,000` to `42,000`, and the list then scrolls up so that the email leaves the top edge.
 
-`examples/screenshot.json` is the screenshot form, its operations in the order Format gives. The band crop runs from `Order summary` to `Total`, so it keeps the heading for context and the address line with it, and the address is covered before anything is boxed:
+`examples/screenshot.json` is a screenshot: the crop `[0, 130, 1206, 800]` keeps the rows from the heading to `Arrives in 2 days` across the whole width, the email is covered, the three reason rows are outlined, and only the total, whose row alone does not say why it is outlined, takes the label `38,000 + 4,000`. `"toNth": 0` picks the row's `42,000` and not the button's. The header is set on the picture's top edge. On your own screenshot change the crop's `y` and `h` to your rows.
 
-```json
-{ "shape": "fill", "id": "address", "area": "Ship to", "color": "#000000" }
-```
+`examples/recording.json` is a recording from 0.4 to 2.8 seconds with its sound off. The cover on the email follows `Total`, so it scrolls off the top with the email. The outline and its label come in at 1.2 seconds, once the total reads `42,000`, and follow the row with `"track": true`, since the row stays on screen. The header is 1280 wide, the recording's width.
 
-The three reason lines each get a box, and only the total, whose box alone does not say why it is boxed, gets a label (`38,000 + 4,000`). The banner gives the conclusion, then the reason.
-
-`examples/recording.json` is the recording form for a 1280 by 720 recording: `size` `[1280, 942]` and the recording's `crop` `[0, -222, 1280, 942]` make the band, and two sequence clips without `at` write the banner into it for the whole video, the conclusion at `[42, 42]` and the reason at `[42, 110]`. The recording plays at speed 1 with its sound off, and the box on `Total` is connected to it, so it stays on the line.
-
-Check each with `frames timeline` and `frames still` (the screenshot is checked by putting it in a one-clip sequence, or by rendering it to a PNG). Render, then run `frames ocr` on the result and make sure the address does not come back.
+Check each with `frames timeline` and `frames still --at 0` (and `frames sheet` over a recording), render it, and run `frames ocr` on the result to make sure the email does not come back.

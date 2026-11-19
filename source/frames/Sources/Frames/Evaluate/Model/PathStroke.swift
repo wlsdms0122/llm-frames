@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A stroke centred on an outline: its width and colour, how it turns at corners and ends, and what it draws at its
-// start and end.
+// A stroke centred on an outline.
 package struct PathStroke: Equatable, Sendable {
     // MARK: - Property
     package let width: Double

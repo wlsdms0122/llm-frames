@@ -16,6 +16,7 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case themeOnTemplate(place: Place, kind: String)
     case argumentsWithoutTemplate(place: Place, kind: String)
     case argumentOfWrongKind(place: Place, kind: String, name: String, type: String, found: MediaKind)
+    case unknownOption(place: Place, kind: String, name: String, option: JSONValue, target: String)
 
     // MARK: - Property
     var description: String {
@@ -53,6 +54,9 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .argumentOfWrongKind(place, kind, name, type, found):
             "\(place) (\(kind)): parameter \(quoted(name)) takes \(type) media, found \(found.rawValue)"
+
+        case let .unknownOption(place, kind, name, option, target):
+            "\(place) (\(kind)): parameter \(quoted(name)) offers \(option.written), and there is no \(target) of that name"
         }
     }
 

@@ -40,6 +40,23 @@ enum ChoiceKeyTable {
     // One preset of a filter choice, alone or in its list.
     static let filterPreset = ValueType.oneOf([.name, .object(presetWithArguments(filterKind))])
 
+    // The kind of preset a choice of `type` names, nil for a type that is not a preset choice.
+    static func presetKind(of type: ValueType) -> PresetKind? {
+        switch type {
+        case transition:
+            .transition
+
+        case animation, animationSide:
+            .animation
+
+        case filter, filterPreset:
+            .filter
+
+        default:
+            nil
+        }
+    }
+
     private static func presetWithArguments(_ kind: String) -> ObjectTable {
         ObjectTable(
             kind: kind,

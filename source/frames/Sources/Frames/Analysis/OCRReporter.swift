@@ -5,21 +5,25 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Recognises the lines of an image or of video frames with the OCR provider and reports them as `ocr` prints them, in
-// reading order, the order a text area's `nth` counts them in. Each frame is the one shown at its media time.
+// Recognises the lines of an image or of video frames with the OCR provider in the recognition languages, nil where
+// the provider detects them, and reports them as `ocr` prints them, in reading order, the order a text area's `nth`
+// counts them in. Each frame is the one shown at its media time.
 package struct OCRReporter: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
     private let ocr: any OCRProvider
+    private let languages: [LanguageTag]?
     private let order = ReadingOrder()
 
     // MARK: - Initializer
     package init(
         mediaFacts: any MediaFactProvider,
-        ocr: any OCRProvider
+        ocr: any OCRProvider,
+        languages: [LanguageTag]?
     ) {
         self.mediaFacts = mediaFacts
         self.ocr = ocr
+        self.languages = languages
     }
 
     // MARK: - Public
@@ -32,13 +36,43 @@ package struct OCRReporter: Sendable {
 
         let file = MediaFile(path: path, probed: probed)
         let frames = try times(selection, in: probed, file: path).map { time in
-            OCRFrame(time: time, lines: order.sorted(try ocr.lines(in: file, atMediaTime: time)))
+            OCRFrame(time: time, lines: order.sorted(try lines(in: file, atMediaTime: time, asked: selection)))
         }
 
-        return OCRReport(size: size, frames: frames)
+        return OCRReport(size: size, languages: languages, frames: frames)
     }
 
     // MARK: - Private
+    // A failure names the option that chose the frame, or the command when none did.
+    private func lines(
+        in file: MediaFile,
+        atMediaTime time: Double,
+        asked selection: TimeSelection
+    ) throws -> [RecognisedLine] {
+        let option = switch selection {
+        case .start:
+            "ocr"
+
+        case .at:
+            "--at"
+
+        case .range:
+            "--from"
+        }
+
+        return try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages) }
+            .mapError { error in
+                ProviderError.failed(
+                    provider: .ocr,
+                    place: Place(components: [.key(option)]),
+                    kind: nil,
+                    picture: ProviderPicture(media: file.path, mediaTime: time),
+                    message: "\(error)"
+                )
+            }
+            .get()
+    }
+
     private func times(
         _ selection: TimeSelection,
         in probed: ProbedMedia,

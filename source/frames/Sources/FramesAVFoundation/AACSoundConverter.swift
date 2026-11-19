@@ -10,8 +10,7 @@ import Foundation
 import Frames
 
 // Fits sound to what a compressed file stores in AAC: one or two channels at up to 48 kHz. More channels are downmixed
-// to stereo by ITU-R BS.775, as the mixer downmixes them, and a higher rate is converted to 48 kHz. Sound that fits
-// already is kept as it is.
+// to stereo by ITU-R BS.775, and a higher rate is converted to 48 kHz. Sound that fits already is kept as it is.
 struct AACSoundConverter: Sendable {
     // MARK: - Property
     private static let maximumSampleRate: Double = 48_000

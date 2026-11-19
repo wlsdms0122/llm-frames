@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"locate": "1.0.0", hits}`, the object `locate` prints, each hit `{place, id, kind}` and for a picture of media
+// `{"locate": "1.0.0", hits}`, the object `locate` prints, each hit `{place, id, kind, item}` and for a picture of media
 // also `media`, the file its frame is read from, `mediaTime` and `point`, `[x, y]` in that media's pixels or `null`.
 extension LocationReport {
     // MARK: - Property
@@ -31,6 +31,8 @@ extension LocationReport {
             ]
         }
 
-        return .object(JSONObject(members: hit.origin.machineOutput + (media ?? [])))
+        let item = JSONMember(key: "item", value: .string(hit.item.rawValue))
+
+        return .object(JSONObject(members: hit.origin.machineOutput + [item] + (media ?? [])))
     }
 }

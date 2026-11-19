@@ -8,7 +8,7 @@
 import Foundation
 
 // Finds packs and the files they hold. Installed packs live in `installed`, and the packs that ship with frames in
-// `shipped`, found as if installed. Every file a named thing is read from is read here.
+// `shipped`, found as if installed.
 package struct PackLibrary: Sendable {
     // MARK: - Property
     private let installed: URL

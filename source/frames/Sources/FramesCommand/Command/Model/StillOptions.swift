@@ -5,15 +5,18 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `still <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]`
 struct StillOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--at", value: "<t>[,<t>...]"),
-        OptionRule("-o", value: "<out.png>"),
-        OptionRule("--args", value: "<args.json>")
+        OptionRule(
+            "--at",
+            value: "<t>[,<t>...]",
+            help: "The sequence times, separated by commas, each in [0, duration). Their frames go left to right."
+        ),
+        OptionRule("-o", value: "<out.png>", help: "The PNG written, as an absolute path."),
+        OptionRule.arguments
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let times: [Double]

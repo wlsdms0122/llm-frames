@@ -53,7 +53,7 @@ struct TrackReporterTests {
     @Test("the machine output is the track object FRAMES-23 gives, a rectangle followed over the whole video")
     func writesMachineOutput() throws {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: OCRTable([:]), tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, ocr: OCRTable([:]), languages: nil, tracker: tracker)
 
         // When
         let report = try sut.report(of: "/abs/clip.mov", area: "[10, 20, 100, 50]", at: 0.25)
@@ -75,6 +75,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(
             mediaFacts: facts,
             ocr: OCRTable([:]),
+            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0, 0.25]], turn: 360)
         )
 
@@ -97,6 +98,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(
             mediaFacts: facts,
             ocr: OCRTable([:]),
+            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0]])
         )
 
@@ -122,7 +124,7 @@ struct TrackReporterTests {
     )
     func followsFoundArea(area: String, line: Int) throws {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
         let found = [total, sends[0], sends[1]][line]
 
         // When
@@ -142,7 +144,7 @@ struct TrackReporterTests {
     ])
     func followsToTime(at: Double, to: Double, followed: [Double]) throws {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
 
         // When
         let report = try sut.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: at, to: to)
@@ -171,7 +173,7 @@ struct TrackReporterTests {
         message: String
     ) {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
 
         // When
         let error = #expect(throws: (any Error).self) { try sut.report(of: file, area: area, at: at, to: to) }
@@ -179,6 +181,32 @@ struct TrackReporterTests {
         // Then
         let description = error.map { String(describing: $0) } ?? ""
         #expect(description.hasPrefix(message), "\(description)")
+    }
+
+    @Test("a failing tracker or OCR provider stops, naming `--area`, the video and the media time of `--at`")
+    func namesFailingProvider() {
+        // Given
+        let failure = ProviderFailure("no model")
+        let failingTracker = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: FailingTracker(failure))
+        let failingOCR = TrackReporter(mediaFacts: facts, ocr: FailingOCR(failure), languages: nil, tracker: tracker)
+
+        // When
+        let trackerError = #expect(throws: ProviderError.self) {
+            try failingTracker.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
+        }
+        let ocrError = #expect(throws: ProviderError.self) {
+            try failingOCR.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
+        }
+
+        // Then
+        #expect(
+            trackerError?.description
+                == #"--area (area): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
+        )
+        #expect(
+            ocrError?.description
+                == #"--area (area): the OCR provider failed on "/abs/clip.mov" at media second 0.5: no model"#
+        )
     }
 
     @Test("a real scrolling line is found by Vision and followed by the point tracker over every frame")
@@ -191,6 +219,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(
             mediaFacts: decoder,
             ocr: VisionOCR(decoder: decoder),
+            languages: nil,
             tracker: PointTracker(decoder: decoder)
         )
 

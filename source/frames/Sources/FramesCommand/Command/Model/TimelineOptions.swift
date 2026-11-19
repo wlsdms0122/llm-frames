@@ -5,14 +5,13 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `timeline <document.json> [--args <args.json>] [--json]`
 struct TimelineOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--args", value: "<args.json>"),
-        OptionRule("--json")
+        OptionRule.arguments,
+        OptionRule.json
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let arguments: String?

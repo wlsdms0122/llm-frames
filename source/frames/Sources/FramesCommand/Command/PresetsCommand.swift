@@ -12,6 +12,9 @@ import Frames
 struct PresetsCommand: Command {
     // MARK: - Property
     let name = "presets"
+    let synopsis = "[<kind>] [<name>]"
+    let summary = "Lists the presets of every pack by kind, each with the name a document gives it and its "
+        + "description, or prints one preset's JSON."
 
     // MARK: - Initializer
     init() { }

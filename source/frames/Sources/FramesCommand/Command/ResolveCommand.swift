@@ -13,6 +13,9 @@ import Frames
 struct ResolveCommand: Command {
     // MARK: - Property
     let name = "resolve"
+    let synopsis = "<document.json> -o <resolved.json> [--args <args.json>]"
+    let summary = "Writes the resolved document: everything found, laid out and planned, with the files it uses "
+        + "pinned."
 
     // MARK: - Initializer
     init() { }

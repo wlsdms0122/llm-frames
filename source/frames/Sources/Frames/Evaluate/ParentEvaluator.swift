@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Evaluates the space a clip's coordinates are in at a sequence time: P(t), its parent's map to output pixels, composed
-// down the parent chain. Each parent is evaluated at the same instant whether or not it is visible, and outside its
-// window it holds the values at the window's edge. A storyline parent's chain passes through its transition motion,
-// held at the edges of its drawn range. Opacity and reveal take no part.
+// The space a clip's coordinates are in: its parent's map to output pixels, composed down the parent chain. A parent
+// outside its window holds its values at the window's edge, and a storyline parent's map includes its transition
+// motion. Opacity and reveal take no part.
 struct ParentEvaluator: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -21,7 +20,6 @@ struct ParentEvaluator: Sendable {
     }
 
     // MARK: - Public
-    // The chain is walked up to a storyline clip or an unparented clip, then composed from the outermost parent down.
     func space(
         of clip: ResolvedClip,
         at time: Double
@@ -54,8 +52,6 @@ struct ParentEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // A storyline entry's map from its space to output pixels: its own map to the frame, then its transition motion.
-    // Its keyframes hold their edge values outside its drawn range, and so does its motion.
     private func transform(
         of index: Int,
         at time: Double

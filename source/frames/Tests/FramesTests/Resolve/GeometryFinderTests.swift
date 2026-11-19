@@ -18,7 +18,7 @@ struct GeometryFinderTests {
             (from: 0, lines: [RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 100, width: 200, height: 40))]),
             (from: 2, lines: [RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 700, width: 200, height: 40))])
         ]
-    ]))
+    ]), languages: nil)
     private let screen = Picture(
         name: "/abs/screen.mp4",
         source: .mediaFile(MediaFile(path: "/abs/screen.mp4")),
@@ -150,6 +150,47 @@ struct GeometryFinderTests {
         #expect(found.rectangle == Rectangle(x: 60, y: 60, width: 280, height: 120))
     }
 
+    @Test("a numeric crop past the picture is the same region as the {scale} crop that names it")
+    func findsNumericCropAsScale() throws {
+        // Given
+        let numericPlan = try plan(nil, storylineKeys: #""crop": [-603, -1311, 2412, 5244],"#)
+        let scalePlan = try plan(nil, storylineKeys: #""crop": { "scale": 0.5 },"#)
+
+        // When
+        let numeric = try crops(of: numericPlan)
+        let scale = try crops(of: scalePlan)
+
+        // Then
+        #expect(numeric == scale)
+        #expect(numeric.firstValue.rectangle == Rectangle(x: -603, y: -1311, width: 2412, height: 5244))
+    }
+
+    @Test("a text area at the picture's edge grows by its padding on every side, and a point on it lies past the edge")
+    func growsTextAreaPastPicture() throws {
+        // Given
+        let plan = try plan(#"""
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total", "padding": 150 },
+              "position": { "area": { "text": "Total", "padding": 150 }, "point": "top-left" } }
+            """#)
+        let clip = plan.sequence.storyline[0].connected[0]
+
+        // When
+        let area = try find(clip.area, plan: plan, instant: plan.clips[0].window.start)
+        let position = try sut.positions(
+            clip.position ?? .value(.point(Point(x: 0, y: 0))),
+            in: screen,
+            pictureClock: .storyline(plan.storyline[0]),
+            clock: plan.clips[0].clock,
+            instant: plan.clips[0].window.start,
+            place: clip.place,
+            kind: "rect"
+        )
+
+        // Then
+        #expect(area.firstValue.rectangle == Rectangle(x: -50, y: -50, width: 500, height: 340))
+        #expect(position == .value(Point(x: -50, y: -50)))
+    }
+
     @Test("a position by an area is the point it names on the area, padding included")
     func findsPositionOnArea() throws {
         // Given
@@ -263,6 +304,18 @@ struct GeometryFinderTests {
         return try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { \#(storylineKeys) "id": "screen", "media": "/abs/screen.mp4", "in": 1\#(clips) } ] }
             """#))
+    }
+
+    private func crops(of plan: TimePlan) throws -> PropertyValue<FoundArea> {
+        try sut.crops(
+            plan.sequence.storyline[0].crop ?? .value(.scale(1)),
+            in: screen,
+            pictureClock: .storyline(plan.storyline[0]),
+            clock: plan.storyline[0].map,
+            instant: plan.storyline[0].edit.start,
+            place: plan.storyline[0].place,
+            kind: "video"
+        )
     }
 
     private func find(

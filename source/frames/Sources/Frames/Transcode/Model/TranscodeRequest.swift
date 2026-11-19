@@ -17,7 +17,6 @@ package struct TranscodeRequest: Equatable, Sendable {
     package let maximumSide: Int?
     package let codec: VideoCodec?
 
-    // The output's extension, whatever its case.
     var outputExtension: String {
         URL(fileURLWithPath: output).pathExtension.lowercased()
     }

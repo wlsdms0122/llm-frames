@@ -1,5 +1,5 @@
 {
-  "description": "The next clip pushes the previous one out to the left, both moving as one strip. Eases in and out like a camera pan. Moving on to the next step.",
+  "description": "The next clip pushes the previous one out to the left, both moving as one strip.",
   "seconds": 0.45,
   "ease": "ease-in-out",
   "incoming": { "keys": [ { "t": 0, "x": 1 }, { "t": 1, "x": 0 } ] },

@@ -5,10 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// What a shape clip writes of its own, beside the keys every clip with a picture takes: its kind, its geometry (a
-// rect's or an ellipse's `width` and `height`, or a path's `points` and `closed`; an `area` is the clip's), the shape
-// style it names, and the appearance keys written on it, each nil where not written. Keyframes are on the clip's
-// clock. Lengths are theme lengths, not yet scaled.
+// What a shape clip writes of its own, each value nil where not written; an `area` is the clip's. Keyframes are on the
+// clip's clock, and lengths are theme lengths, not yet scaled.
 struct ClipShape: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind

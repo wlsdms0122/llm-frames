@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// How far text set in a face at a size reaches above and below its baseline.
 struct TextExtent: Equatable, Sendable {
     // MARK: - Property
     let ascent: Double

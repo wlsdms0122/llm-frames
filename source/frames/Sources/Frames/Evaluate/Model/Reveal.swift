@@ -6,7 +6,7 @@
 //
 
 // How much of a receiver of `reveal` shows, from 0 (nothing) to 1 (everything). An eased value past either end is held
-// at it, since nothing shows less than nothing or more than everything.
+// at it.
 struct Reveal: Equatable, Sendable {
     // MARK: - Property
     static let full = Reveal(amount: 1)

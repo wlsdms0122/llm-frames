@@ -6,7 +6,7 @@
 //
 
 // A quadrilateral (quad) in media pixels: a target's top left, top right, bottom right and bottom left corners in that
-// order, as the target faces on the frame it was found (FRAMES-21).
+// order, as the target faces on the frame it was found.
 package struct Quad: Equatable, Sendable {
     // MARK: - Property
     package let topLeft: Point

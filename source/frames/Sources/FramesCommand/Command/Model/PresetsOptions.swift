@@ -5,11 +5,21 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `presets [<kind>] [<name>]`
+import Frames
+
 struct PresetsOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []
-    static let placeholders = ["<kind>", "<name>"]
+    static let positionals = [
+        PositionalRule(
+            "<kind>",
+            help: "Lists one kind (\(PresetKind.allCases.map(\.rawValue).joined(separator: ", "))). Default: every kind."
+        ),
+        PositionalRule(
+            "<name>",
+            help: "Prints the JSON of the preset of that kind named <pack>/<name>, its params included."
+        )
+    ]
 
     let kind: String?
     let name: String?

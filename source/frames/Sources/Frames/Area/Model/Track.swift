@@ -41,11 +41,12 @@ struct Track: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The motion on the frame shown at the media time: the last frame followed at or before it.
+    // The motion on the frame shown at the media time: the last frame followed at or before it, compared to the
+    // microsecond as the frame drawn is picked, so the motion and the picture come from the same frame.
     func motion(atMediaTime time: Double) -> TrackMotion {
         guard let first = samples.first else { return .identity }
 
-        return (samples.last { $0.time <= time } ?? first).motion
+        return (samples.last { $0.time.roundedTime <= time.roundedTime } ?? first).motion
     }
 
     // MARK: - Private

@@ -1,0 +1,17 @@
+{
+  "kind": "sequence",
+  "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
+  "theme": "demo/demo",
+  "params": {
+    "area": { "type": "text", "default": "Checkout", "description": "the first line, small and in the highlight colour: the part of the product" },
+    "feature": { "type": "text", "default": "Totals now include shipping", "description": "the second line: what the feature does" },
+    "length": { "type": "number", "default": 2, "description": "seconds on screen" }
+  },
+  "storyline": [
+    { "solid": "#000000", "duration": { "param": "length" },
+      "connected": [
+        { "title": [ { "text": { "param": "area" }, "style": "kicker" }, { "text": "\n" }, { "text": { "param": "feature" } } ],
+          "style": "title", "placement": "center", "animation": "frames/fade" }
+      ] }
+  ]
+}

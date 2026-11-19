@@ -8,8 +8,7 @@
 import Foundation
 
 // Finds a preset by the name a document or theme gives it: `<pack>/<name>` in that pack's presets, or an absolute
-// path. Each preset is read and checked once for the library's life, which is one resolve, and each choice fills in
-// its arguments.
+// path. Each preset is read and checked once for the library's life, and each choice fills in its arguments.
 package struct PresetLibrary: PresetProvider {
     // MARK: - Property
     private let packs: PackLibrary

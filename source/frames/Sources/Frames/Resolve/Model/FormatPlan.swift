@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The output frame of a sequence in output pixels, with how storyline crops fill it, the colour behind everything, the
-// frame rate it renders at alone, and its duration, the sequence end. `margin` is the room a content-fit frame leaves
-// round what it measures, and nil for a frame of a written or default size.
+// The output frame of a sequence in output pixels. `conform` is how storyline crops fill it. `margin` is the room a
+// content-fit frame leaves round what it measures, nil for a frame of a written or default size.
 struct FormatPlan: Equatable, Sendable {
     // MARK: - Property
     let size: Size

@@ -27,9 +27,9 @@ package struct CoreTextShaper: Sendable {
 
     // MARK: - Public
     // MARK: - Private
-    // The face of the family as CSS font matching narrows it: the width closest to normal, then upright, then the
-    // weight closest to the one asked for. Ties go to the PostScript name, so the same family always gives the same
-    // face whatever order CoreText lists them in.
+    // The face of the family with the width closest to normal, then upright, then the weight closest to the one asked
+    // for. Ties go to the PostScript name, so the same family always gives the same face whatever order CoreText lists
+    // them in.
     private func closest(
         among descriptors: [CTFontDescriptor],
         family: String,
@@ -101,7 +101,6 @@ package struct CoreTextShaper: Sendable {
         (CTFontCopyAttribute(font, kCTFontURLAttribute) as? URL)?.path
     }
 
-    // The face's font at `size`, read from its own file.
     private func font(
         of face: FontFace,
         size: Double

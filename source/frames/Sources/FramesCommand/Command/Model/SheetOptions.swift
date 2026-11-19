@@ -7,19 +7,22 @@
 
 import Frames
 
-// `sheet <video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]`
 struct SheetOptions: CommandOptions, Equatable {
     // MARK: - Property
-    private static let defaultColumns = 6
+    static let defaultColumns = 6
 
     static let rules = [
-        OptionRule("-o", value: "<out.png>"),
-        OptionRule("--from", value: "<t>"),
-        OptionRule("--to", value: "<t>"),
-        OptionRule("--step", value: "<s>"),
-        OptionRule("--cols", value: "<n>")
+        OptionRule("-o", value: "<out.png>", help: "The PNG written, as an absolute path."),
+        OptionRule.from,
+        OptionRule.to,
+        OptionRule.step,
+        OptionRule(
+            "--cols",
+            value: "<n>",
+            help: "The number of columns, or one per frame when there are fewer frames. Default: \(defaultColumns)."
+        )
     ]
-    static let placeholders = ["<video | document.json>"]
+    static let positionals = [PositionalRule.frameSource]
 
     let source: String
     let output: String

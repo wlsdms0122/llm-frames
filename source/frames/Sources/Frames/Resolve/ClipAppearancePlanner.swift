@@ -12,6 +12,7 @@ struct ClipAppearancePlanner: Sendable {
     // MARK: - Property
     private let filters: FilterResolver
     private let conformer = CropConformer()
+    private let cropChecker = CropChecker()
 
     // MARK: - Initializer
     init(
@@ -23,11 +24,11 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Public
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
-    // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where its position puts its anchor point,
-    // or where its placement sets it: a title by default where its style places it, and media and shapes in the
-    // centre. Under content fit there is no frame to place on, so a placement stops and a box without a position has
-    // its top left at the origin. A shape placed by its geometry or an adjustment has none, and an audio clip is not
-    // drawn.
+    // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where
+    // its position puts its anchor point, or where its placement sets it: a title by default where its style places it,
+    // and media and shapes in the centre. Under content fit there is no frame to place on, so a placement stops and a
+    // box without a position has its top left at the origin. A shape placed by its geometry or an adjustment has none,
+    // and an audio clip is not drawn.
     func box(
         of plan: ClipPlan,
         written: Clip,
@@ -106,12 +107,12 @@ struct ClipAppearancePlanner: Sendable {
         return ClipBox(size: size, position: placed, anchor: anchor)
     }
 
-    // How a shape clip is drawn (FRAMES-11), nil for any other clip. Its geometry is checked first: a rect or an
-    // ellipse takes `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds
-    // as many points. Keys written on the clip win over its style's, each whole, and without a style nothing but colour
-    // names comes from the theme. Theme lengths come out in output pixels, so they stay under a parent's zoom, and a
-    // stroke takes the `accent` colour, round joins, butt caps and no arrowheads unless written. A shape with neither a
-    // fill nor a stroke after its style stops.
+    // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
+    // `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds as many points.
+    // Keys written on the clip win over its style's, each whole, and without a style nothing but colour names comes
+    // from the theme. Theme lengths come out in output pixels, so they stay under a parent's zoom, and a stroke takes
+    // the `accent` colour, round joins, butt caps and no arrowheads unless written. A shape with neither a fill nor a
+    // stroke after its style stops.
     func shape(
         of plan: ClipPlan,
         written: Clip,
@@ -200,10 +201,10 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A storyline clip's box is `box`, which its conformed crop fills, and its anchor point, `center` unless written,
-    // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its
-    // transform fills the frame exactly, and under content fit the box's top left lies at the origin. Its radius,
-    // border and shadow are drawn as a media clip's. A solid has no box, and takes no transform (FRAMES-9), so it keeps
-    // the plain values and its transform is the identity, as its children's space is output pixels (FRAMES-10).
+    // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its transform
+    // fills the frame exactly, and under content fit the box's top left lies at the origin. Its radius, border and
+    // shadow are drawn as a media clip's. A solid has no box and takes no transform, so it keeps the plain values and
+    // its transform is the identity, as its children's space is output pixels.
     func appearance(
         of plan: StorylinePlan,
         written: StorylineClip,
@@ -305,7 +306,7 @@ struct ClipAppearancePlanner: Sendable {
 
     // The top left of a box placed by name inside the output frame, inset by the placement padding on the edges the
     // name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is centred on
-    // the whole frame, which the even insets leave the same.
+    // the whole frame.
     private func placed(
         _ box: Rectangle,
         at name: String,
@@ -344,6 +345,15 @@ struct ClipAppearancePlanner: Sendable {
         try checkColor(of: written.shadow, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         try checkColor(of: written.border, place: written.place, kind: PlaceKind.clip(kind).label, theme: theme)
         let conform = written.conform ?? .fit
+        try cropChecker.check(
+            crop,
+            of: picture,
+            box: box.size,
+            conform: conform,
+            isTracked: written.track != nil,
+            place: written.place.appending(key: "crop"),
+            kind: .clip(kind)
+        )
         let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
         let crops: PropertyValue<Rectangle>

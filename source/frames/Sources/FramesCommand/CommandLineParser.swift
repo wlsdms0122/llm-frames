@@ -5,21 +5,28 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Frames
+
 // Reads a command line into what it asks for. The global options come before the command, each with a value, and
 // the first argument that is not one of them is the command's name, so everything after it is the command's own.
 struct CommandLineParser: Sendable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--theme", value: "<pack/name | /abs/theme.json>"),
-        OptionRule("--decoder", value: "<name>"),
-        OptionRule("--renderer", value: "<name>"),
-        OptionRule("--mixer", value: "<name>"),
-        OptionRule("--encoder", value: "<name>"),
-        OptionRule("--ocr", value: "<name>"),
-        OptionRule("--shaper", value: "<name>"),
-        OptionRule("--tracker", value: "<name>")
+        OptionRule(
+            "--theme",
+            value: "<pack/name | /abs/theme.json>",
+            help: "A theme merged under every document's own theme: a pack theme or a JSON file as an absolute path."
+        )
+    ] + RoleFactory().rules + [
+        OptionRule(
+            "--ocr-languages",
+            value: "<tag>[,<tag>...]",
+            help: "The OCR provider's recognition languages, BCP 47 tags in order of preference. "
+                + "Without it the provider detects the language of each picture."
+        )
     ]
 
+    static let help = "--help"
     private static let version = "--version"
 
     // MARK: - Initializer
@@ -47,11 +54,11 @@ struct CommandLineParser: Sendable {
 
             return .version
         }
-        guard !name.hasPrefix("-") || name == "-" else {
+        guard !name.hasPrefix("-") || name == "-" || name == Self.help else {
             throw CommandError.unknownOption(
                 command: nil,
                 option: name,
-                allowed: Self.rules.map(\.name) + [Self.version]
+                allowed: Self.rules.map(\.name) + [Self.version, Self.help]
             )
         }
 
@@ -62,13 +69,31 @@ struct CommandLineParser: Sendable {
             mixer: values["--mixer"],
             encoder: values["--encoder"],
             ocr: values["--ocr"],
+            ocrLanguages: try values["--ocr-languages"].map(languages),
             shaper: values["--shaper"],
             tracker: values["--tracker"],
             written: Array(arguments[..<index])
         )
+        guard name != Self.help else {
+            guard rest.isEmpty else { throw CommandError.argumentsAfterHelp(arguments: rest) }
+
+            return .help(options: options)
+        }
 
         return .command(name: name, arguments: rest, options: options)
     }
 
     // MARK: - Private
+    private func languages(_ value: String) throws -> [LanguageTag] {
+        guard let languages = [LanguageTag](commaSeparated: value) else {
+            throw CommandError.invalidValue(
+                command: nil,
+                option: "--ocr-languages",
+                value: value,
+                expected: "BCP 47 tags separated by commas"
+            )
+        }
+
+        return languages
+    }
 }

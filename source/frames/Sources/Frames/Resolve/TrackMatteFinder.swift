@@ -5,11 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// Checks the clip each track matte names in the same document (FRAMES-11): a connected or sequence media clip, title
-// or shape. An id that names no clip stops, and so does one that names a storyline clip, an adjustment clip or an
-// audio clip. A clip in a nested document has its own ids, so naming it from outside names no clip. A chain of track
-// mattes is followed to its end, and one that comes back to a clip already in it stops and names the clips in the
-// cycle. A clip used as a matte by two clips is fine.
+// Checks the clip each track matte names in the same document. A clip in a nested document has its own ids, so naming
+// it from outside names no clip. A chain of track mattes that comes back to a clip already in it stops, and a clip
+// used as a matte by two clips is fine.
 struct TrackMatteFinder: Sendable {
     // MARK: - Property
     // MARK: - Initializer

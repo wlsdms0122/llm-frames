@@ -5,7 +5,6 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The file a role reads for a media file found at `path`, with the frame rate, size and frame times its probe gave.
 extension MediaFile {
     // MARK: - Property
     // MARK: - Initializer

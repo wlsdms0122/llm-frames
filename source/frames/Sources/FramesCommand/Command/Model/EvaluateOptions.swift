@@ -5,14 +5,13 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `evaluate <document.json> --at <t> [--args <args.json>]`
 struct EvaluateOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--at", value: "<t>"),
-        OptionRule("--args", value: "<args.json>")
+        OptionRule("--at", value: "<t>", help: "The sequence time, in [0, duration)."),
+        OptionRule.arguments
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let time: Double

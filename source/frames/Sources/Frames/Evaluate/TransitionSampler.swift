@@ -5,8 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A transition at one instant. Its progress runs in a straight line from 0 at its start to 1 at its end, and each of
-// its incoming, outgoing, cover and matte bends that progress by its own ease.
+// Each of a transition's incoming, outgoing, cover and matte bends the linear progress by its own ease.
 struct TransitionSampler: Sendable {
     // MARK: - Property
     private let evaluator = SpanEvaluator()
@@ -15,7 +14,6 @@ struct TransitionSampler: Sendable {
     init() { }
 
     // MARK: - Public
-    // Held at 0 before the transition and at 1 after it.
     func progress(
         through range: TimeRange,
         at time: Double
@@ -23,9 +21,7 @@ struct TransitionSampler: Sendable {
         min(max((time - range.start) / range.length, 0), 1)
     }
 
-    // The transition motion of storyline entry `index`: its incoming transition's span for its side while that
-    // transition runs, its outgoing one's while that runs, and none between or for a side the transition gives no span.
-    // Outside its drawn range it holds the motion at the range's edge.
+    // Out of the entry's drawn range this holds the motion at the range's edge.
     func motion(
         of index: Int,
         in storyline: [ResolvedStorylineClip],

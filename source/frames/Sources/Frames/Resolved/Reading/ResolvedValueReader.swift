@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Reads the values a resolved sequence and a resolved picture share, as `ResolvedValueWriter` writes them: geometry,
-// colours, eases, keyframe lists, filter operations, spans, animations, shaped text, and pinned files.
+// Reads the values a resolved sequence, a display list and a mix plan share, as `ResolvedValueWriter` writes them:
+// geometry, colours, eases, keyframe lists, filter operations, spans, animations, shaped text, and pinned files.
 struct ResolvedValueReader: Sendable {
     // MARK: - Property
     // The keys of pinned media, which an object holding it carries beside its own.

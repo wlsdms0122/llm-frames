@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// The Metal functions of the filter operations of FRAMES-15, on sRGB-encoded premultiplied samples. A colour
-// operation unpremultiplies, computes on v, clamps v to 0 to 1 and premultiplies by the alpha it was given.
+// The Metal functions of the filter operations, on sRGB-encoded premultiplied samples. A colour operation
+// unpremultiplies, computes on v, clamps v to 0 to 1 and premultiplies by the alpha it was given.
 enum FilterKernelSource {
     static let text = """
         static inline float filterLuma(float3 v) {

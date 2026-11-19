@@ -10,12 +10,10 @@ import CoreImage
 import Foundation
 import Frames
 
-// Draws the masks of an item as one coverage value for each pixel of a region of output pixels, the masks' result
-// there: each mask's geometry carried by its transform and filled anti-aliased by the nonzero rule, a polyline closed,
-// blurred by a Gaussian whose standard deviation is its feather, then inverted when it is, and the masks combined in
-// list order by their modes (`MaskMode`), in floating point. A feathered mask is drawn over the region grown on every
-// side by four times its feather, so its blur sees the geometry past the region's edge: the frame does not cut a
-// mask, and an inverted mask's outside goes on past it.
+// Draws the masks of an item as one coverage value for each pixel of a region of output pixels, in floating point.
+// Each mask is blurred by a Gaussian whose standard deviation is its feather, then inverted when it is. A feathered
+// mask is drawn over the region grown on every side by four times its feather, so its blur sees the geometry past the
+// region's edge: the frame does not cut a mask, and an inverted mask's outside goes on past it.
 struct MaskDrawer {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
@@ -23,14 +21,16 @@ struct MaskDrawer {
 
     // MARK: - Initializer
     // MARK: - Public
-    // `region` is in output pixels, in whole pixels. The values are rows from the top.
+    // `region` is in whole pixels of the raster the item's list is drawn on, which the masks' output pixels are carried
+    // into, their feather scaled with them. The values are rows from the top.
     func values(
         of masks: [ItemMask],
-        over region: CGRect
+        over region: CGRect,
+        on raster: CGAffineTransform
     ) throws -> [Double] {
         var result = [Double](repeating: masks.first?.mode.startValue ?? 1, count: Int(region.width) * Int(region.height))
         for mask in masks {
-            let coverage = try self.coverage(of: mask, over: region)
+            let coverage = try self.coverage(of: mask, over: region, on: raster)
             for index in result.indices {
                 let value = Double(coverage[index])
                 result[index] = mask.mode.combine(result[index], with: mask.isInverted ? 1 - value : value)
@@ -44,13 +44,15 @@ struct MaskDrawer {
     // The mask's blurred coverage at each pixel of the region, rows from the top, before it is inverted.
     private func coverage(
         of mask: ItemMask,
-        over region: CGRect
+        over region: CGRect,
+        on raster: CGAffineTransform
     ) throws -> [Float] {
-        let margin = mask.feather > 0 ? Int((Self.reach * mask.feather).rounded(.up)) : 0
+        let feather = mask.feather * raster.lengthScale
+        let margin = feather > 0 ? Int((Self.reach * feather).rounded(.up)) : 0
         let width = Int(region.width)
         let height = Int(region.height)
-        let drawn = try fill(mask, over: region.insetBy(dx: CGFloat(-margin), dy: CGFloat(-margin)))
-        guard mask.feather > 0 else { return drawn }
+        let drawn = try fill(mask, over: region.insetBy(dx: CGFloat(-margin), dy: CGFloat(-margin)), on: raster)
+        guard feather > 0 else { return drawn }
 
         let image = CIImage(
             bitmapData: drawn.withUnsafeBufferPointer { Data(buffer: $0) },
@@ -61,7 +63,7 @@ struct MaskDrawer {
         )
         // Outside its extent the drawn image is transparent, so the blur reads 0 coverage there. The margin is even on
         // every side, so the region is the same rectangle whichever way rows are counted.
-        let blurred = image.applyingGaussianBlur(sigma: mask.feather)
+        let blurred = image.applyingGaussianBlur(sigma: feather)
         var coverage = [Float](repeating: 0, count: width * height)
         coverage.withUnsafeMutableBytes { buffer in
             guard let pointer = buffer.baseAddress else { return }
@@ -79,10 +81,11 @@ struct MaskDrawer {
         return coverage
     }
 
-    // The mask's geometry filled white on black over `area` in output pixels, rows from the top.
+    // The mask's geometry filled white on black over `area` in the raster's pixels, rows from the top.
     private func fill(
         _ mask: ItemMask,
-        over area: CGRect
+        over area: CGRect,
+        on raster: CGAffineTransform
     ) throws -> [Float] {
         let width = Int(area.width)
         let height = Int(area.height)
@@ -106,6 +109,7 @@ struct MaskDrawer {
 
             context.translateBy(x: -area.minX, y: area.maxY)
             context.scaleBy(x: 1, y: -1)
+            context.concatenate(raster)
             context.concatenate(CGAffineTransform(mask.transform))
             context.addPath(PathOutline(mask.geometry).fillPath)
             context.setFillColor(gray: 1, alpha: 1)

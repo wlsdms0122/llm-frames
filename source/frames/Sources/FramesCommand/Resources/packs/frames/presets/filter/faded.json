@@ -1,5 +1,5 @@
 {
-  "description": "Washed-out film, with lifted blacks and muted colour",
+  "description": "Washed-out film, with lifted blacks and muted colour.",
   "ops": [
     { "op": "saturation", "amount": 0.75 },
     { "op": "levels", "input": [0, 1], "output": [0.1, 0.94] }

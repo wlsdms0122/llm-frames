@@ -44,14 +44,14 @@ struct OCRReporterTests {
     @Test("the machine output is the ocr object FRAMES-23 gives, an image's one frame at time 0")
     func writesMachineOutput() throws {
         // Given
-        let sut = OCRReporter(mediaFacts: facts, ocr: ocr)
+        let sut = OCRReporter(mediaFacts: facts, ocr: ocr, languages: nil)
 
         // When
         let report = try sut.report(of: "/abs/card.png")
 
         // Then
         let expected = #"""
-            {"ocr": "1.0.0", "size": [400, 300], "frames": [{"time": 0, "lines": [\#
+            {"ocr": "1.0.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
             {"text": "First", "rect": [10, 20, 100, 30]}]}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -64,14 +64,14 @@ struct OCRReporterTests {
             text: "Send",
             rectangle: Rectangle(x: 93.99999999268294, y: 187.99999997439016, width: 128, height: 42.000000000000014)
         )
-        let sut = OCRReporter(mediaFacts: facts, ocr: OCRTable(file: "/abs/card.png", lines: [noisy]))
+        let sut = OCRReporter(mediaFacts: facts, ocr: OCRTable(file: "/abs/card.png", lines: [noisy]), languages: nil)
 
         // When
         let report = try sut.report(of: "/abs/card.png")
 
         // Then
         let expected = #"""
-            {"ocr": "1.0.0", "size": [400, 300], "frames": [{"time": 0, "lines": [\#
+            {"ocr": "1.0.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
             {"text": "Send", "rect": [94, 188, 128, 42]}]}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -82,7 +82,7 @@ struct OCRReporterTests {
         // Given
         let right = RecognisedLine(text: "Right", rectangle: Rectangle(x: 200, y: 22, width: 50, height: 30))
         let below = RecognisedLine(text: "Below", rectangle: Rectangle(x: 0, y: 200, width: 50, height: 30))
-        let sut = OCRReporter(mediaFacts: facts, ocr: OCRTable(file: "/abs/card.png", lines: [below, right, first]))
+        let sut = OCRReporter(mediaFacts: facts, ocr: OCRTable(file: "/abs/card.png", lines: [below, right, first]), languages: nil)
 
         // When
         let report = try sut.report(of: "/abs/card.png")
@@ -100,7 +100,7 @@ struct OCRReporterTests {
     ])
     func readsTimes(selection: TimeSelection, times: [Double]) throws {
         // Given
-        let sut = OCRReporter(mediaFacts: facts, ocr: ocr)
+        let sut = OCRReporter(mediaFacts: facts, ocr: ocr, languages: nil)
 
         // When
         let report = try sut.report(of: "/abs/clip.mov", at: selection)
@@ -113,7 +113,7 @@ struct OCRReporterTests {
     @Test("the text gives the size, then each line, and each frame of a range under its media time")
     func writesText() throws {
         // Given
-        let sut = OCRReporter(mediaFacts: facts, ocr: ocr)
+        let sut = OCRReporter(mediaFacts: facts, ocr: ocr, languages: nil)
 
         // When
         let single = try sut.report(of: "/abs/clip.mov", at: .at(0.5))
@@ -162,7 +162,7 @@ struct OCRReporterTests {
     )
     func refusesBadTimes(file: String, selection: TimeSelection, message: String) {
         // Given
-        let sut = OCRReporter(mediaFacts: facts, ocr: ocr)
+        let sut = OCRReporter(mediaFacts: facts, ocr: ocr, languages: nil)
 
         // When
         let error = #expect(throws: AnalysisError.self) { try sut.report(of: file, at: selection) }
@@ -185,7 +185,7 @@ struct OCRReporterTests {
         let recording = ScreenRecording(scale: 0.5)
         let scrolled = try await recording.write(to: video)
         let decoder = AVFoundationDecoder()
-        let sut = OCRReporter(mediaFacts: decoder, ocr: VisionOCR(decoder: decoder))
+        let sut = OCRReporter(mediaFacts: decoder, ocr: VisionOCR(decoder: decoder), languages: nil)
 
         // When
         let stillReport = try sut.report(of: still)
@@ -200,6 +200,30 @@ struct OCRReporterTests {
         #expect(videoReport.size == recording.size)
         #expect(lines.count == 2 && lines.first?.text == "Send message" && total.text.hasPrefix("Total"))
         #expect(isNear(total.rectangle, scrolled[15]), "\(total) drawn at \(scrolled[15])")
+    }
+
+    @Test("a failing provider stops, naming the option that chose the frame, the media and its media time", arguments: [
+        ("/abs/card.png", TimeSelection.start, #"ocr: the OCR provider failed on "/abs/card.png" at media second 0: no model"#),
+        ("/abs/clip.mov", TimeSelection.at(0.5), #"--at: the OCR provider failed on "/abs/clip.mov" at media second 0.5: no model"#),
+        (
+            "/abs/clip.mov",
+            TimeSelection.range(FrameRange(from: 0.25, to: 0.75, step: 0.25)),
+            #"--from: the OCR provider failed on "/abs/clip.mov" at media second 0.25: no model"#
+        )
+    ])
+    func namesFailingProvider(
+        file: String,
+        selection: TimeSelection,
+        message: String
+    ) {
+        // Given
+        let sut = OCRReporter(mediaFacts: facts, ocr: FailingOCR(ProviderFailure("no model")), languages: nil)
+
+        // When
+        let error = #expect(throws: ProviderError.self) { try sut.report(of: file, at: selection) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     // MARK: - Private

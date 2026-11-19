@@ -8,13 +8,15 @@
 import CoreImage
 import Frames
 
-// Applies a picture's filter operations in order to an image in the working space, each by its FRAMES-15 formula on
-// sRGB-encoded values, its result clamped to 0 to 1 and cropped to the image's extent. Colour operations work on the
-// unpremultiplied colour and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so a
-// transparent pixel weighs nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended
-// outward.
+// Applies a picture's filter operations in order to an image in the working space, each on sRGB-encoded values, its
+// result clamped to 0 to 1 and cropped to the image's extent. Colour operations work on the unpremultiplied colour
+// and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so a transparent pixel weighs
+// nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended outward.
 struct FilterChain: Sendable {
     // MARK: - Property
+    // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
+    private static let blurReach = 4.0
+
     private let tables: LookUpTableCache
 
     // MARK: - Initializer
@@ -23,19 +25,50 @@ struct FilterChain: Sendable {
     }
 
     // MARK: - Public
-    // `seed` is the display list's, which every `grain` operation draws its noise from.
+    // `seed` is the display list's, which every `grain` operation draws its noise from. `scale` is the image's pixels
+    // per unit of the operations' lengths. `frame` is the picture the operations stand for, in the image's
+    // coordinates, which a vignette centres on and grains and pixelate blocks lie on a grid from, the image's extent
+    // when nil; it differs when the image holds part of the picture at another scale.
     func apply(
         _ operations: [ResolvedFilterOperation],
         to image: CIImage,
-        seed: Int
+        seed: Int,
+        scale: Double = 1,
+        frame: CGRect? = nil
     ) throws -> CIImage {
         let library = KernelLibrary.shared
+        let frame = frame ?? image.extent
         var result = image
         for operation in operations {
-            result = try apply(operation, to: result, seed: seed, library: library).cropped(to: image.extent)
+            result = try apply(
+                operation,
+                to: result,
+                seed: seed,
+                scale: scale,
+                frame: frame,
+                library: library
+            )
+            .cropped(to: image.extent)
         }
 
         return result
+    }
+
+    // How far, in the operations' lengths, the chain reads pixels from: what lies further than this past a picture's
+    // edge does not change the picture.
+    func reach(of operations: [ResolvedFilterOperation]) -> Double {
+        operations.reduce(0) { reach, operation in
+            switch operation {
+            case let .blur(radius), let .sharpen(_, radius), let .bloom(_, radius, _):
+                reach + Self.blurReach * radius
+
+            case let .pixelate(size):
+                reach + size
+
+            case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .lut, .vignette, .grain:
+                reach
+            }
+        }
     }
 
     // MARK: - Private
@@ -43,6 +76,8 @@ struct FilterChain: Sendable {
         _ operation: ResolvedFilterOperation,
         to image: CIImage,
         seed: Int,
+        scale: Double,
+        frame: CGRect,
         library: KernelLibrary
     ) throws -> CIImage {
         switch operation {
@@ -75,38 +110,38 @@ struct FilterChain: Sendable {
             return try lookUp(image, table: try tables.table(of: file), amount: amount, library: library)
 
         case let .blur(radius):
-            return try color("filterClamp", blurred(image, radius: radius), [], library)
+            return try color("filterClamp", blurred(image, radius: radius * scale), [], library)
 
         case let .sharpen(amount, radius):
-            return try color("filterSharpen", image, [blurred(image, radius: radius), amount], library)
+            return try color("filterSharpen", image, [blurred(image, radius: radius * scale), amount], library)
 
         case let .bloom(amount, radius, tint):
             let bright = try color("filterBloomBright", image, [], library)
-            let glow = blurred(bright, radius: radius)
+            let glow = blurred(bright, radius: radius * scale)
             let tint = tint.map { CIVector(premultiplied: $0) } ?? CIVector(x: 1, y: 1, z: 1, w: 1)
 
             return try color("filterBloomAdd", image, [glow, amount, tint], library)
 
         case let .vignette(amount, radius):
-            let extent = image.extent
-            let centre = CIVector(x: extent.midX, y: extent.midY)
-            let halfDiagonal = (extent.width * extent.width + extent.height * extent.height).squareRoot() / 2
+            let centre = CIVector(x: frame.midX, y: frame.midY)
+            let halfDiagonal = (frame.width * frame.width + frame.height * frame.height).squareRoot() / 2
 
             return try color("filterVignette", image, [amount, radius, centre, halfDiagonal], library)
 
         case let .pixelate(size):
-            return try color("filterClamp", pixelated(image, size: size, library: library), [], library)
+            let pixelated = try pixelated(image, size: size * scale, frame: frame, library: library)
+
+            return try color("filterClamp", pixelated, [], library)
 
         case let .grain(amount, size):
-            let topLeft = CIVector(x: image.extent.minX, y: image.extent.maxY)
+            let topLeft = CIVector(x: frame.minX, y: frame.maxY)
             let bits = UInt32(truncatingIfNeeded: seed)
             let seed = CIVector(x: Double(bits & 0xFFFF), y: Double(bits >> 16))
 
-            return try color("filterGrain", image, [amount, size, topLeft, seed], library)
+            return try color("filterGrain", image, [amount, size * scale, topLeft, seed], library)
         }
     }
 
-    // Applies the colour kernel `name` over the image's extent, the image first and then `arguments`.
     private func color(
         _ name: String,
         _ image: CIImage,
@@ -151,14 +186,25 @@ struct FilterChain: Sendable {
         return result
     }
 
-    // Square blocks `size` pixels across on a grid from the extent's top left corner, each the mean of the pixels
-    // whose centres lie in it: a box average at block resolution, then each pixel takes its block's mean.
+    // Square blocks `size` pixels across on a grid from the frame's top left corner, each the mean of the pixels
+    // whose centres lie in it: a box average at block resolution, then each pixel takes its block's mean. When the
+    // grid does not start at the image's top left corner, the image's edge pixels extended out to the grid fill the
+    // blocks its left and top edges cut.
     private func pixelated(
         _ image: CIImage,
         size: Double,
+        frame: CGRect,
         library: KernelLibrary
     ) throws -> CIImage {
-        let extent = image.extent
+        let left = frame.minX + ((image.extent.minX - frame.minX) / size).rounded(.down) * size
+        let top = frame.maxY - ((frame.maxY - image.extent.maxY) / size).rounded(.down) * size
+        let extent = CGRect(
+            x: left,
+            y: image.extent.minY,
+            width: image.extent.maxX - left,
+            height: top - image.extent.minY
+        )
+        let image = extent == image.extent ? image : image.clampedToExtent().cropped(to: extent)
         let bounds = CIVector(x: extent.minX, y: extent.minY, z: extent.width, w: extent.height)
         let blockExtent = CGRect(
             x: 0,

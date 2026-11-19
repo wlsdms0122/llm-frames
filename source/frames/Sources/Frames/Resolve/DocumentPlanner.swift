@@ -15,6 +15,7 @@ package struct DocumentPlanner: Sendable {
     private let sequencePlanner: SequencePlanner
     private let checker: KeyChecker
     private let reader: TemplateReader
+    private let optionChecker: ChoiceOptionChecker
     private let instantiator: TemplateInstantiator
     private let merger = ThemeMerger()
 
@@ -23,6 +24,7 @@ package struct DocumentPlanner: Sendable {
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider,
         ocr: any OCRProvider,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         library: ReferenceLibrary
@@ -31,6 +33,7 @@ package struct DocumentPlanner: Sendable {
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
         self.sequencePlanner = SequencePlanner(
             ocr: ocr,
+            languages: languages,
             tracker: tracker,
             shaper: shaper,
             presets: presets,
@@ -38,15 +41,18 @@ package struct DocumentPlanner: Sendable {
         )
         self.checker = KeyChecker(mediaKinds: library)
         self.reader = TemplateReader(mediaKinds: library)
+        self.optionChecker = ChoiceOptionChecker(presets: presets, library: library)
         self.instantiator = TemplateInstantiator(mediaKinds: library)
     }
 
     // The planner a command plans with: presets from `presets`, and what a document names found in `packs`, with the
-    // facts of its media from `mediaFacts`.
+    // facts of its media from `mediaFacts`, and text found in the recognition languages `languages`, nil where the OCR
+    // provider detects them.
     package init(
         mediaFacts: any MediaFactProvider,
         presets: PresetLibrary,
         ocr: any OCRProvider,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         packs: PackLibrary
@@ -55,6 +61,7 @@ package struct DocumentPlanner: Sendable {
             mediaFacts: mediaFacts,
             presets: presets,
             ocr: ocr,
+            languages: languages,
             tracker: tracker,
             shaper: shaper,
             library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts)
@@ -81,6 +88,8 @@ package struct DocumentPlanner: Sendable {
             return try sequencePlanner.plan(try planner.plan(document: document, theme: merged))
         }
         guard theme == nil else { throw PackError.themeOnTemplate(place: .root, kind: documentKind) }
+
+        try optionChecker.check(template)
 
         let argumentPlace = arguments?.place ?? .root
         if let arguments {

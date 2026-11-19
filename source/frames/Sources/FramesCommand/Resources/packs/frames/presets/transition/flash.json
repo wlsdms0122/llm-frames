@@ -1,5 +1,5 @@
 {
-  "description": "A quick white flash, the scene changing at its peak, that fades off onto the next clip. Lands a result or a reveal.",
+  "description": "A quick white flash, the clips changing at its peak, that fades off onto the next clip.",
   "seconds": 0.3,
   "ease": "linear",
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.3, "opacity": 0 }, { "t": 0.3, "opacity": 1 } ] },

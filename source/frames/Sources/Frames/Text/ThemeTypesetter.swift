@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Lays a title's runs out in named theme styles, with each style's lengths multiplied by the length scale of the place
-// the text is drawn: each run in its own style's character attributes and the face its font query finds, and the whole
-// title in the paragraph attributes of the clip's style.
+// `scale` is the length scale of the place the text is drawn, which multiplies each style's lengths. Each run takes its
+// own style's character attributes, and the whole title the paragraph attributes of the clip's style.
 struct ThemeTypesetter: Sendable {
     // MARK: - Property
     private let fonts: FontFinder
@@ -59,27 +58,6 @@ struct ThemeTypesetter: Sendable {
             place: place,
             kind: kind
         )
-    }
-
-    // The box of set text along a line, placed by its style's alignment, its top on the line's.
-    func frame(
-        of layout: TextLayout,
-        style name: String,
-        theme: MergedTheme,
-        along line: Rectangle
-    ) -> Rectangle {
-        let x = switch theme.paragraphStyle(named: name, scale: 1).align {
-        case .left:
-            line.x
-
-        case .center:
-            line.center.x - layout.size.width / 2
-
-        case .right:
-            line.maxX - layout.size.width
-        }
-
-        return Rectangle(x: x, y: line.y, width: layout.size.width, height: layout.size.height)
     }
 
     // MARK: - Private

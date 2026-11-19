@@ -57,6 +57,7 @@ extension TimelineReport {
             JSONMember(key: "kind", value: .string(entry.kind)),
             JSONMember(key: "visible", value: output(entry.visible)),
             JSONMember(key: "lane", value: entry.lane.map { .number(Double($0)) } ?? .null),
+            JSONMember(key: "storyline", value: text(entry.storyline)),
             JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
         ]

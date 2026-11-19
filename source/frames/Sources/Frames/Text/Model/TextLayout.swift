@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Text as resolve set it: the box it fills in output pixels, its background's padding included, the number of lines,
-// its glyph runs placed in that box, each with its own stroke, and the background behind them.
+// `size` is the box the text fills in output pixels, its background's padding included, and `runs` are placed in that
+// box.
 struct TextLayout: Equatable, Sendable {
     // MARK: - Property
     let size: Size

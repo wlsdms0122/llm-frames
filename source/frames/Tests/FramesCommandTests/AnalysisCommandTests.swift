@@ -65,6 +65,10 @@ struct AnalysisCommandTests {
         let textCode = sut.run(["ocr", image])
         let text = sut.standardOutput
         let machineCode = sut.run(["ocr", image, "--json"])
+        let machine = sut.standardOutput
+        let languagesCode = sut.run(["--ocr-languages", "ko-KR", "ocr", image, "--languages", "en-US", "--json"])
+        let languages = try JSONReader().read(sut.standardOutput).objectValue?["languages"]
+        let unsupportedCode = sut.run(["ocr", image, "--languages", "tlh-AQ"])
 
         // Then
         let lines = text.split(separator: "\n")
@@ -72,8 +76,13 @@ struct AnalysisCommandTests {
         #expect(machineCode == 0)
         #expect(lines.first == "size 720x400")
         #expect(lines.count == 2 && lines.last?.hasSuffix("]  Send message") == true)
-        #expect(try keys(of: sut.standardOutput) == ["ocr", "size", "frames"])
-        #expect(sut.standardOutput.contains(#""text": "Send message""#))
+        #expect(try keys(of: machine) == ["ocr", "size", "languages", "frames"])
+        #expect(machine.contains(#""languages": null"#))
+        #expect(machine.contains(#""text": "Send message""#))
+        #expect(languagesCode == 0)
+        #expect(languages == .array([.string("en-US")]))
+        #expect(unsupportedCode == 1)
+        #expect(sut.standardError.contains("cannot recognise the language tlh-AQ"))
     }
 
     @Test("ocr of an image with --at stops with the reporter's reason")

@@ -8,11 +8,14 @@
 import Foundation
 import Frames
 
-// Lists the shipped and installed packs with what their `pack.json` says, or what one pack holds, by kind, each thing by the name
-// a document gives it, and under each preset and template the parameters it publishes.
+// Lists the shipped and installed packs with what their `pack.json` says, or what one pack holds, by kind, each thing
+// by the name a document gives it, and under each preset and template the parameters it publishes.
 struct PacksCommand: Command {
     // MARK: - Property
     let name = "packs"
+    let synopsis = "[<pack>]"
+    let summary = "Lists the packs, the one that ships with frames and the installed ones, or what one pack holds, "
+        + "with the parameters each preset and template publishes."
 
     // MARK: - Initializer
     init() { }

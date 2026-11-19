@@ -11,6 +11,10 @@ import Frames
 struct TimelineCommand: Command {
     // MARK: - Property
     let name = "timeline"
+    let synopsis = "<document.json> [--args <args.json>] [--json]"
+    let summary = "Resolves without rendering and prints the plan of time: every storyline clip's edit, drawn and "
+        + "clip ranges, speed and incoming transition, and every other clip's visible range, kind, lane, "
+        + "animation, place and parent. It writes no file."
 
     // MARK: - Initializer
     init() { }

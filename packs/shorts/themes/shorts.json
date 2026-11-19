@@ -1,25 +1,22 @@
 {
   "baseWidth": 1080,
   "font": ["Apple SD Gothic Neo"],
-  "colors": { "accent": "#FF3B30", "emphasis": "#FFE14D" },
+  "colors": { "accent": "#FF3B30", "highlight": "#FFE14D" },
   "styles": {
-    "subtitle": { "size": 66, "weight": "bold", "background": false,
-                  "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
-    "subtitle-emphasis": { "size": 66, "weight": "bold", "color": "emphasis", "stroke": { "width": 7, "color": "#000000" } },
-    "headline": { "size": 84, "weight": "bold", "color": "#FFFFFF",
-                  "stroke": { "width": 6, "color": "#000000" }, "placement": "top", "offset": 110, "align": "center" },
-    "headline-emphasis": { "size": 84, "weight": "bold", "color": "emphasis", "stroke": { "width": 6, "color": "#000000" } },
+    "subtitle": { "size": 66, "weight": "bold", "stroke": { "width": 7, "color": "#000000" }, "offset": 330 },
+    "subtitle-highlight": { "size": 66, "weight": "bold", "color": "highlight", "stroke": { "width": 7, "color": "#000000" } },
+    "headline": { "size": 84, "weight": "bold", "lineHeight": 104, "placement": "top", "offset": 110, "align": "center", "lines": 2 },
+    "headline-highlight": { "size": 84, "weight": "bold", "color": "highlight" },
     "label": { "size": 40, "weight": "bold", "color": "#FFFFFF",
                "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
   },
-  "shapes": { "outline": { "stroke": { "width": 10, "color": "accent" }, "radius": 18 } },
+  "shapes": {
+    "outline": { "stroke": { "width": 10 }, "radius": 18 },
+    "bar": { "fill": "#000000" }
+  },
   "placement": { "padding": 40 },
   "defaults": {
     "transition": { "preset": "frames/push-up", "seconds": 0.3 },
-    "animation": {
-      "title": { "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" },
-      "shape": "frames/draw",
-      "media": "frames/pop"
-    }
+    "animation": { "title": { "subtitle": "frames/pop", "label": "frames/pop" }, "media": "frames/pop" }
   }
 }

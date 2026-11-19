@@ -39,7 +39,7 @@ struct AVFoundationMixerTests {
     // 16 bit rounding of the written tone, and of a gain applied after it.
     private let tolerance: Float = 2.0 / 32_768
     private let rate = 48_000
-    // Each channel's gain for a mono source at the centre, cos(π/4).
+    // Each channel's gain for a mono source at the centre.
     private let centre = Float(cos(Double.pi / 4))
 
     // MARK: - Initializer
@@ -425,7 +425,7 @@ struct AVFoundationMixerTests {
         )
     }
 
-    // A mono sound of `file` heard from `start` to `end`, playing `in` at `start`, at volume 1 and centred.
+    // A sound of `file` heard from `start` to `end`, playing media time `in` at `start`, at volume 1 and centred.
     private func sound(
         _ file: String,
         in: Double,
@@ -469,7 +469,7 @@ struct AVFoundationMixerTests {
         )
     }
 
-    // The whole of a file's sound as the decoder reads it.
+    // The first second of a file's sound as the decoder reads it.
     private func decoded(_ file: String) throws -> SoundBuffer {
         try AVFoundationDecoder().sound(of: MediaFile(media: segment(of: file, from: 0, to: 1).media), from: 0, to: 1)
     }
@@ -481,7 +481,6 @@ struct AVFoundationMixerTests {
         stride(from: channel, to: sound.samples.count, by: sound.channels).map { sound.samples[$0] }
     }
 
-    // The mean square of samples.
     private func power(of samples: [Float]) -> Double {
         samples.reduce(0) { $0 + Double($1) * Double($1) } / Double(max(samples.count, 1))
     }

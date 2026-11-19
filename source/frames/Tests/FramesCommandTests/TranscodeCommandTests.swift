@@ -52,8 +52,8 @@ struct TranscodeCommandTests {
         #expect(try sut.standardOutput == line(of: movie, source: video, format: "H.264"))
     }
 
-    @Test("an output that is not smaller than its source says so at the end of its line")
-    func saysNotSmaller() {
+    @Test("an output that is not smaller than its source gives its share above 100% and nothing more")
+    func givesShareAboveWhole() {
         // Given
         let result = TranscodeResult(path: "/abs/out.png", byteCount: 1500, sourceByteCount: 1200, format: .png)
 
@@ -61,7 +61,7 @@ struct TranscodeCommandTests {
         let line = TranscodeLine(result).description
 
         // Then
-        #expect(line == "/abs/out.png  1.5 kB  PNG  125.0% of 1.2 kB, not smaller than the source")
+        #expect(line == "/abs/out.png  1.5 kB  PNG  125.0% of 1.2 kB")
     }
 
     @Test("a smaller output gives its share of the source with one decimal")
@@ -110,7 +110,7 @@ struct TranscodeCommandTests {
         // Then
         #expect(code == 1)
         #expect(sut.standardError == """
-            frames: "\(output)": --max 1 makes the video 1x1, and a video's sides are at least 2 pixels
+            frames: "\(output)": --max 1 makes the video 0x0, and a video's sides are at least 2 pixels
 
             """)
         #expect(!FileManager.default.fileExists(atPath: output))
@@ -125,9 +125,7 @@ struct TranscodeCommandTests {
         let bytes = try byteCount(of: path)
         let sourceBytes = try byteCount(of: source)
         let percentage = String(format: "%.1f%%", Double(bytes) / Double(sourceBytes) * 100)
-        let line = "\(path)  \(FileSize(bytes: bytes))  \(format)  \(percentage) of \(FileSize(bytes: sourceBytes))"
-
-        return (bytes < sourceBytes ? line : line + ", not smaller than the source") + "\n"
+        return "\(path)  \(FileSize(bytes: bytes))  \(format)  \(percentage) of \(FileSize(bytes: sourceBytes))\n"
     }
 
     private func byteCount(of path: String) throws -> Int64 {

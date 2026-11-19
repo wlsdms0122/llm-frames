@@ -7,8 +7,8 @@
 
 import Foundation
 
-// The gains a crossfade curve gives at progress u through its transition, from 0 at its start to 1 at its end at an
-// even pace (FRAMES-13). Every gain a crossfade puts on a sound comes from here.
+// `progress` runs from 0 at the transition's start to 1 at its end at an even pace. Every gain a crossfade puts on a
+// sound comes from here.
 extension CrossfadeCurve {
     // MARK: - Property
     // MARK: - Initializer

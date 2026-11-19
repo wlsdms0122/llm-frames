@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"evaluate": "1.0.0", time, size, items}`, the object `evaluate` prints, each item `{place, id, kind, bounds,
-// opacity}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers nothing.
+// `{"evaluate": "1.0.0", time, size, items}`, the object `evaluate` prints, each item `{place, id, kind, item,
+// bounds, opacity}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers nothing.
 extension EvaluationReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -27,6 +27,7 @@ extension EvaluationReport {
         }
 
         return .object(JSONObject(members: item.origin.machineOutput + [
+            JSONMember(key: "item", value: .string(item.item.rawValue)),
             JSONMember(key: "bounds", value: bounds ?? .null),
             JSONMember(key: "opacity", value: .measure(item.opacity))
         ]))

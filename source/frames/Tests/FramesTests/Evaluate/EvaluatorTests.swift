@@ -1267,9 +1267,7 @@ struct EvaluatorTests {
         blend: String = "normal",
         animation: ResolvedAnimation = .none
     ) -> ResolvedClip {
-        let isAdjustment = if case .adjustment = content { true } else { false }
-
-        return ResolvedClip(
+        ResolvedClip(
             place: "clips[0]",
             id: id,
             content: content,
@@ -1286,7 +1284,7 @@ struct EvaluatorTests {
             opacity: [Keyframe(at: 0, value: opacity)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: 1)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
-            blend: isAdjustment ? nil : blend,
+            blend: blend,
             animation: animation
         )
     }

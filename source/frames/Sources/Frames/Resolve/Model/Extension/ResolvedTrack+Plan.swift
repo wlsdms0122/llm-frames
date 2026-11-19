@@ -17,7 +17,6 @@ extension ResolvedTrack {
         self.init(media: try PinnedMedia(file: file, hashes: hashes), track: track)
     }
 
-    // A connected or sequence clip's track, in its tracked media.
     init(
         track: TrackedMedia,
         hashes: any FileHashProvider

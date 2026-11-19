@@ -1,5 +1,5 @@
 {
-  "description": "Starts small and pops to size with a slight overshoot, then fades out quickly.",
+  "description": "Starts small and pops to size with a slight overshoot, then shrinks a little as it fades out.",
   "entrance": { "seconds": 0.3, "ease": "back-out", "keys": [ { "t": 0, "scale": 0.5, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "scale": 1 } ] },
   "exit": { "seconds": 0.15, "keys": [ { "t": 0, "scale": 1, "opacity": 1 }, { "t": 1, "scale": 0.8, "opacity": 0 } ] }
 }

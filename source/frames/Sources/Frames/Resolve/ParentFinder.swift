@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Finds the clip each parented clip names in the same document: any storyline clip, or a connected or sequence clip
-// with a picture. An id that names no clip stops, and so does one that names an audio clip. A chain is followed to its
-// end, and one that comes back to a clip already in it stops and names the clips in the cycle.
+// Finds the clip each parented clip names in the same document: any storyline clip, or any connected or sequence clip
+// but an audio clip. A chain that comes back to a clip already in it stops and names the clips in the cycle.
 struct ParentFinder: Sendable {
     // MARK: - Property
     // MARK: - Initializer

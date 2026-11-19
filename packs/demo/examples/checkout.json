@@ -1,35 +1,28 @@
 {
   "kind": "sequence",
+  "theme": "demo/demo",
   "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
-  "theme": {
-    "styles": {
-      "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
-                 "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 },
-      "feature": { "size": 96, "weight": "bold", "color": "#FFE14D" }
-    },
-    "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } }
-  },
   "storyline": [
-    { "id": "title-card", "solid": "#000000", "duration": 1.5,
+    { "id": "title-card", "media": { "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } },
+    { "id": "add", "media": "/path/to/checkout.mov", "in": 0, "out": 2.8, "volume": 0, "transition": "frames/fade",
       "connected": [
-        { "title": [ { "text": "Checkout\n" }, { "text": "Totals now include shipping", "style": "feature" } ], "style": "title",
-          "placement": "center" }
+        { "at": [0, 1.1], "title": "Click Add shipping", "style": "subtitle" },
+        { "at": [0.2, 1.1], "shape": "rect", "style": "outline", "parent": "add", "area": { "text": "Add shipping", "padding": 22 } },
+        { "at": [1.1, 2.8], "title": "The total adds the shipping at once", "style": "subtitle" },
+        { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total-box", "parent": "add", "track": true,
+          "area": { "from": "Total", "to": "42,000", "padding": 10 } },
+        { "at": [1.4, 2.8], "title": "38,000 + 4,000", "style": "label", "parent": "total-box",
+          "position": { "area": { "from": "Total", "to": "42,000", "padding": 10 }, "point": "bottom-right" }, "anchor": "top-right" }
       ] },
-    { "id": "open", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "transition": "frames/fade",
+    { "id": "mobile", "media": "/path/to/checkout.png", "duration": 3, "transition": "frames/fade",
+      "keyframes": [
+        { "at": 0.6, "crop": { "scale": 1 }, "ease": "ease-in-out" },
+        { "at": 1.4, "crop": { "from": "Item total", "to": "42,000", "toNth": 0, "padding": 160 } }
+      ],
       "connected": [
-        { "at": [0.2, 1.4], "title": "Open the order summary", "style": "subtitle" }
+        { "at": [0, 3], "title": "The order summary on mobile shows the same total", "style": "subtitle" }
       ] },
-    { "id": "total", "media": "/path/to/checkout.png", "duration": 4,
-      "connected": [
-        { "at": [0, 1.5], "title": "Item total and shipping are listed", "style": "subtitle" },
-        { "at": [1.5, 4], "title": "and the total adds them up", "style": "subtitle", "placement": "top" },
-        { "at": [1.8, 4], "shape": "rect", "style": "outline", "id": "total-box", "parent": "total", "area": { "text": "Total", "padding": 14 } },
-        { "at": [1.8, 4], "title": "38,000 + 4,000", "style": "label", "parent": "total-box",
-          "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
-      ] },
-    { "id": "end-card", "solid": "#000000", "duration": 1.5, "transition": "frames/fade",
-      "connected": [
-        { "title": "Available in version 2.4", "style": "title", "placement": "center" }
-      ] }
+    { "id": "end-card", "media": { "template": "demo/end-card", "args": { "headline": "Available in version 2.4", "detail": "Settings > Checkout > Shipping" } },
+      "transition": "frames/fade" }
   ]
 }

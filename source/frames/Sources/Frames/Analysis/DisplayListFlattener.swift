@@ -11,7 +11,7 @@
 // covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
 // arrowheads, a glyphs item's box, and an adjustment's list frame, each cut to the region its masks bound
 // (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
-// source is not drawn as items of the list, and does not cut what its item covers (FRAMES-23).
+// source is not drawn as items of the list, and does not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -39,6 +39,7 @@ struct DisplayListFlattener: Sendable {
             ? []
             : [FlattenedItem(
                 origin: state.origin,
+                item: .background,
                 opacity: state.opacity,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
@@ -70,7 +71,12 @@ struct DisplayListFlattener: Sendable {
             coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
         }
 
-        return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage)]
+        return [FlattenedItem(
+            origin: own.origin,
+            item: ItemKind(content: item.content),
+            opacity: own.opacity,
+            coverage: coverage
+        )]
     }
 
     private func items(
@@ -85,7 +91,13 @@ struct DisplayListFlattener: Sendable {
             }
             let placement = MediaPlacement(frame: media, transform: transform)
             let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
-            return [FlattenedItem(origin: own.origin, opacity: own.opacity, coverage: coverage, media: placement)]
+            return [FlattenedItem(
+                origin: own.origin,
+                item: .picture,
+                opacity: own.opacity,
+                coverage: coverage,
+                media: placement
+            )]
 
         case let .displayList(list):
             let rectangle = picture.rectangle

@@ -337,13 +337,13 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a numeric area under a shape or adjustment parent is cut at the edges of the media they are written in",
+        "a numeric area under a shape or adjustment parent keeps what is written past the edges of the media it is in",
         arguments: [
             #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
             #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
-    func cutsAreaUnderShape(parent: String) throws {
+    func keepsAreaUnderShape(parent: String) throws {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
@@ -355,10 +355,10 @@ struct SequencePlannerTests {
             Issue.record("the area was not found")
             return
         }
-        #expect(area.rectangle == Rectangle(x: 0, y: 0, width: 1206, height: 2622))
+        #expect(area.rectangle == Rectangle(x: -50, y: -50, width: 5000, height: 5000))
     }
 
-    @Test("a numeric area under a title parent is kept whole, since a space has no edges to cut it at")
+    @Test("a numeric area under a title parent keeps what is written")
     func keepsAreaInSpace() throws {
         // When
         let plan = try plan(#"""
@@ -447,8 +447,8 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a title wraps at its width, by default the output width less the placement padding on each side",
-        arguments: [("", 2), (#", "width": 1200"#, 1)]
+        "a title wraps at its width, and without one runs on one line however long",
+        arguments: [("", 1), (#", "width": 600"#, 2)]
     )
     func wrapsTitle(
         width: String,
@@ -921,6 +921,50 @@ struct SequencePlannerTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a failing provider stops, naming the place that asked it, the media and its media time, then its message",
+        arguments: [
+            (
+                ProviderKind.ocr,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "crop": { "text": "Total" } } ] }"#,
+                #"storyline[0].crop (video): the OCR provider failed on "/abs/screen.mp4" at media second 0: no model"#
+            ),
+            (
+                ProviderKind.tracker,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "track": { "text": "Total" } } ] }"#,
+                #"storyline[0].track (video): the tracker failed on "/abs/screen.mp4" at media second 0: no model"#
+            ),
+            (
+                ProviderKind.shaping,
+                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "Hi", "style": "title", "at": [0, 1] } ] } ] }"#,
+                "storyline[0].connected[0].title (title): the shaping provider failed: no model"
+            )
+        ]
+    )
+    func namesFailingProvider(
+        provider: ProviderKind,
+        document: String,
+        message: String
+    ) throws {
+        // Given
+        let failure = ProviderFailure("no model")
+        let sut = SequencePlanner(
+            ocr: provider == .ocr ? FailingOCR(failure) as any OCRProvider : Fixture.ocr,
+            languages: nil,
+            tracker: provider == .tracker ? FailingTracker(failure) as any TrackerProvider : Fixture.tracker,
+            shaper: provider == .shaping ? FailingShaper(failure) as any ShapingProvider : Fixture.shaper,
+            presets: Fixture.presets,
+            library: Fixture.library
+        )
+        let time = try Fixture.planner.plan(document: Fixture.json(document))
+
+        // When
+        let error = #expect(throws: ProviderError.self) { try sut.plan(time) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     // MARK: - Private
     private func mask(
         _ geometry: PathGeometry,
@@ -937,6 +981,7 @@ struct SequencePlannerTests {
     private func planner(followed: ClosedRange<Double>) -> SequencePlanner {
         SequencePlanner(
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: TrackerTable(
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 followed: ["/abs/screen.mp4": followed]

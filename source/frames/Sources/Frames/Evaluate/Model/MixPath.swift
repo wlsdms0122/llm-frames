@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One way a sound is heard in the output: the sounds whose gains and pans reach it, outermost first, the range of
-// outermost sequence time where all of them are heard, and the clock from outermost sequence time (sequence time) to the
-// time played there (clip time), which is media time for a media file and nested sequence time for a nested sequence.
+// One way a sound is heard in the output. `layers` are the sounds whose gains and pans reach it, outermost first, and
+// `heard` is where all of them are heard, in outermost sequence time. `clock` maps outermost sequence time to the time
+// played there, media time for a media file and nested sequence time for a nested sequence.
 struct MixPath: Equatable, Sendable {
     // MARK: - Property
     let layers: [MixLayer]

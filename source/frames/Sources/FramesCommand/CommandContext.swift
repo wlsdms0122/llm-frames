@@ -38,6 +38,7 @@ struct CommandContext: Sendable {
             mediaFacts: roles.decoder,
             presets: presets,
             ocr: roles.ocr,
+            languages: options.ocrLanguages,
             tracker: roles.tracker,
             shaper: roles.shaper,
             packs: packs
@@ -68,7 +69,6 @@ struct CommandContext: Sendable {
     }
 
     // MARK: - Public
-    // The face `still` and `sheet` set their time labels in.
     func labelFace() throws -> FontFace {
         guard let face = roles.shaper.face(named: Self.labelFaceName, in: Self.labelFile) else {
             throw CommandError.missingLabelFace(name: Self.labelFaceName, file: Self.labelFile)

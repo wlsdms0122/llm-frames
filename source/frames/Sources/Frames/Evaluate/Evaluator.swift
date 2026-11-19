@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Evaluates a resolved sequence into the display list of one output frame at a sequence time, every value sampled.
-// Lists nested in it, for storyline pictures, compound clips and track mattes, carry its seed. A clip used as a track
-// matte draws no item of its own, and its children are drawn as usual.
+// Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed. A clip used
+// as a track matte draws no item of its own, and its children are drawn as usual.
 package struct Evaluator: Sendable {
     // MARK: - Property
     // Behind a nested list, so what it leaves uncovered shows what lies below its picture.
@@ -29,7 +28,6 @@ package struct Evaluator: Sendable {
     }
 
     // MARK: - Private
-    // Bottom first: clips on negative lanes, the storyline pictures, the transition cover, and clips on positive lanes.
     private func displayList(
         of sequence: ResolvedSequence,
         at time: Double,
@@ -46,8 +44,6 @@ package struct Evaluator: Sendable {
         return DisplayList(size: format.size, background: format.background, seed: seed, items: items)
     }
 
-    // The items of the connected and sequence clips on the negative or positive lanes, visible at the time and not
-    // used as a track matte, bottom first by lane and then in document order, each in the space its parent gives it.
     private func clipItems(
         of sequence: ResolvedSequence,
         parents: ParentEvaluator,
@@ -57,7 +53,7 @@ package struct Evaluator: Sendable {
     ) -> [DisplayItem] {
         sequence.clips.enumerated()
             .filter { _, clip in
-                // Every clip drawn has a lane.
+                // Resolution sets every clip's lane.
                 let lane = clip.lane ?? 1
                 return (side == .below ? lane < 0 : lane > 0)
                     && TimeRange(start: clip.start, end: clip.end).contains(time)
@@ -72,7 +68,6 @@ package struct Evaluator: Sendable {
             }
     }
 
-    // A clip's items in the space its parent gives it, cut by its masks and `trackMatte`.
     private func items(
         of clip: ResolvedClip,
         parents: ParentEvaluator,
@@ -88,9 +83,7 @@ package struct Evaluator: Sendable {
             .map { $0.drawn(by: origin) }
     }
 
-    // A track matte at the time, its chain folded from its end: each matte clip's items as it would draw them, cut by
-    // its own track matte and blended normally, on a transparent list the size of the sequence's, and none outside
-    // its visible window.
+    // A matte's source list is the size of the list the matted item sits in; `DisplayListReader` rejects any other.
     private func trackMatte(
         _ trackMatte: TrackMatte?,
         in sequence: ResolvedSequence,
@@ -113,7 +106,7 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A media clip's picture at the time: a still's one frame, or the frame or nested list at its media time.
+    // A still has no clock and shows media time 0.
     private func picture(
         of clip: ResolvedClip,
         at time: Double,
@@ -124,9 +117,7 @@ package struct Evaluator: Sendable {
         return source(of: media.media, at: media.clock?.mediaTime(atSequenceTime: time) ?? 0, seed: seed)
     }
 
-    // The storyline pictures visible at the time, bottom first. During a transition the two it joins are visible,
-    // stacked as its `over` says, and the incoming one takes its matte. Elsewhere the drawn ranges are the edit ranges,
-    // so the one entry whose edit range holds the time is.
+    // Out of a transition the entries' ranges are their edit ranges, so at most one holds the time.
     private func storylineItems(
         of sequence: ResolvedSequence,
         parents: ParentEvaluator,
@@ -170,9 +161,9 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A storyline picture is two items: the outer one a picture of a nested list the size of the frame, carrying the
-    // clip's blend and its transition motion about the centre of the frame, the motion's opacity and reveal, and the
-    // matte; the inner one, the one item of that list, its media or its solid's rect with its own transform.
+    // A storyline picture is two items. The inner one carries the clip's own transform, opacity, masks and track matte
+    // inside a nested list the size of the frame; the outer one draws that list and carries the blend, the transition
+    // motion and the matte, so the transition motion acts on everything inside it.
     private func storylineItem(
         of index: Int,
         in sequence: ResolvedSequence,
@@ -200,10 +191,6 @@ package struct Evaluator: Sendable {
         )
     }
 
-    // A storyline entry's own picture in its box: its media's conformed crop with its filter, rounded corners, border
-    // and shadow, or a solid's rect filled with its colour, carried into the frame by its own transform and opacity,
-    // blended normally, and cut by its masks and `trackMatte` before the outer item's transition motion, since the
-    // list that holds it is the frame. A solid has no mask and no track matte.
     private func innerItems(
         of entry: ResolvedStorylineClip,
         trackMatte: ItemTrackMatte?,
@@ -255,7 +242,6 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // The matte's frame follows the transition's progress, and the luminance it shows below follows its own ease.
     private func matte(
         of matte: ResolvedMatte,
         at progress: Double
@@ -268,8 +254,6 @@ package struct Evaluator: Sendable {
         )
     }
 
-    // A transition's cover over both storyline pictures: its colour or its media's frame stretched over the frame, at the opacity its
-    // keys give.
     private func coverItems(
         of transition: ActiveTransition?,
         in frame: Rectangle,

@@ -1,5 +1,5 @@
 {
-  "description": "The previous clip slides away to the left and uncovers the next one, which waits still beneath. Eases in and out. Dismissing a screen.",
+  "description": "The previous clip slides away to the left and uncovers the next one, which waits still beneath.",
   "seconds": 0.45,
   "ease": "ease-in-out",
   "over": "outgoing",

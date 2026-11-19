@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The media time a timed media clip shows at a sequence time, the one answer every stage asks: its playback's time
-// clamped to `frames`, the first and last media time a picture exists at, so a decoder is only asked for frames that
-// exist. `frames` is nil for sound, which has no frames to hold.
+// The media time a timed media clip shows at a sequence time: its playback's time clamped to `frames`, the first and
+// last media time a picture exists at, so a decoder is only asked for frames that exist. `frames` is nil for sound.
 struct MediaClock: Equatable, Sendable {
     // MARK: - Property
     let playback: MediaPlayback

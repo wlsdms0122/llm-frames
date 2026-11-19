@@ -5,9 +5,6 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A media file heard along a path. Each envelope has a point at both ends, at every breakpoint of every layer and at
-// every frame time `k / fps` where some layer's value moves, each the exact value at its time, so straight lines stand
-// in for eases and curves at the frame rate, and a value that holds has no points between its bends.
 extension MixSegment {
     // MARK: - Property
     // MARK: - Initializer

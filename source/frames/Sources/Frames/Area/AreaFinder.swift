@@ -5,17 +5,22 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Finds an area in a picture at one media time: a rectangle as written, or text through the OCR provider. An area
-// found by text grows by its padding, in the picture's pixels. Every area is cut to the picture, and one wholly
-// outside it stops.
+// Finds an area in a picture at one media time: a rectangle as written, or text through the OCR provider in the
+// recognition languages, nil where the provider detects them. An area found by text grows by its padding on every
+// side, in the picture's pixels. Neither is cut to the picture, so an area may reach past its edges.
 struct AreaFinder: Sendable {
     // MARK: - Property
     private let ocr: any OCRProvider
+    private let languages: [LanguageTag]?
     private let order = ReadingOrder()
 
     // MARK: - Initializer
-    init(ocr: any OCRProvider) {
+    init(
+        ocr: any OCRProvider,
+        languages: [LanguageTag]?
+    ) {
         self.ocr = ocr
+        self.languages = languages
     }
 
     // MARK: - Public
@@ -28,13 +33,12 @@ struct AreaFinder: Sendable {
     ) throws -> FoundArea {
         switch form {
         case let .rectangle(rectangle):
-            let cut = try cut(rectangle, to: picture, place: place, kind: kind)
-            return FoundArea(rectangle: cut, target: cut, mediaTime: time, lines: [])
+            return FoundArea(rectangle: rectangle, target: rectangle, mediaTime: time, lines: [])
 
         case let .text(text, nth, padding):
             let lines = try recognisedLines(in: picture, atMediaTime: time, place: place, kind: kind)
             let line = try line(text, nth: nth, among: lines, picture: picture, time: time, place: place, kind: kind)
-            return try textArea([line], in: picture, atMediaTime: time, padding: padding, place: place, kind: kind)
+            return textArea([line], atMediaTime: time, padding: padding)
 
         case let .range(from, fromNth, to, toNth, padding):
             let lines = try recognisedLines(in: picture, atMediaTime: time, place: place, kind: kind)
@@ -48,14 +52,7 @@ struct AreaFinder: Sendable {
                 !ends.contains(line) && (top...bottom).contains(line.rectangle.center.y)
             }
 
-            return try textArea(
-                ends + between,
-                in: picture,
-                atMediaTime: time,
-                padding: padding,
-                place: place,
-                kind: kind
-            )
+            return textArea(ends + between, atMediaTime: time, padding: padding)
         }
     }
 
@@ -68,7 +65,19 @@ struct AreaFinder: Sendable {
     ) throws -> [RecognisedLine] {
         switch picture.source {
         case let .mediaFile(file):
-            return order.sorted(try ocr.lines(in: file, atMediaTime: time))
+            let lines = try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages) }
+                .mapError { error in
+                    ProviderError.failed(
+                        provider: .ocr,
+                        place: place,
+                        kind: kind,
+                        picture: ProviderPicture(media: picture.name, mediaTime: time),
+                        message: "\(error)"
+                    )
+                }
+                .get()
+            
+            return order.sorted(lines)
 
         case .document:
             throw AreaError.textInDocument(place: place, kind: kind, picture: picture.name)
@@ -81,17 +90,14 @@ struct AreaFinder: Sendable {
     // The rectangle around the lines, grown by the padding. The target is the same rectangle before padding.
     private func textArea(
         _ lines: [RecognisedLine],
-        in picture: Picture,
         atMediaTime time: Double,
-        padding: Double,
-        place: Place,
-        kind: String
-    ) throws -> FoundArea {
+        padding: Double
+    ) -> FoundArea {
         let rectangle = lines.dropFirst().reduce(lines[0].rectangle) { $0.union($1.rectangle) }
 
         return FoundArea(
-            rectangle: try cut(rectangle.grown(by: padding), to: picture, place: place, kind: kind),
-            target: try cut(rectangle, to: picture, place: place, kind: kind),
+            rectangle: rectangle.grown(by: padding),
+            target: rectangle,
             mediaTime: time,
             lines: lines
         )
@@ -129,21 +135,6 @@ struct AreaFinder: Sendable {
         guard matches.indices.contains(nth) else { throw noMatch }
 
         return matches[nth]
-    }
-
-    private func cut(
-        _ rectangle: Rectangle,
-        to picture: Picture,
-        place: Place,
-        kind: String
-    ) throws -> Rectangle {
-        // A space has no edges to cut at.
-        guard picture.source != .space else { return rectangle }
-        guard let cut = rectangle.intersection(picture.bounds) else {
-            throw AreaError.outsidePicture(place: place, kind: kind, rectangle: rectangle, size: picture.size)
-        }
-
-        return cut
     }
 
     private func withoutWhitespace(_ text: String) -> String {

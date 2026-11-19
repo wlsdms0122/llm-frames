@@ -5,9 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What every clip takes at one instant before it draws: its visible window, its animation at the instant over that
-// window, its keyframed opacity, its blend mode, `normal` for an adjustment, which takes none, and its own scale times
-// its animation's, which its lengths and its masks' feather are drawn at and a parent's scale is not (FRAMES-10).
+// `ownScale` is the clip's own scale times its animation's, which its lengths and its masks' feather are drawn at;
+// a parent's scale is not in it.
 struct ClipSample: Equatable, Sendable {
     // MARK: - Property
     let window: TimeRange
@@ -27,7 +26,7 @@ struct ClipSample: Equatable, Sendable {
         self.window = window
         self.animation = animation
         self.opacity = clip.opacity.opacity(at: time)
-        self.blend = clip.blend ?? "normal"
+        self.blend = clip.blend
         self.ownScale = (clip.scale.map { $0.value(at: time) } ?? 1) * animation.motion.value(of: .scale)
     }
 

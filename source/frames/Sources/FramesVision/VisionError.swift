@@ -7,12 +7,17 @@
 
 package enum VisionError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadablePicture(file: String, index: Int)
+    case unsupportedLanguage(tag: String, supported: [String])
 
     // MARK: - Property
     package var description: String {
         switch self {
         case let .unreadablePicture(file, index):
             "frame \(index) of media \(file) cannot be given to Vision"
+
+        case let .unsupportedLanguage(tag, supported):
+            "the vision OCR provider cannot recognise the language \(tag). It recognises "
+                + supported.joined(separator: ", ")
         }
     }
 

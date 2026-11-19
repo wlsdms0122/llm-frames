@@ -1,16 +1,17 @@
 {
   "baseWidth": 1206,
-  "font": ["Apple SD Gothic Neo"],
-  "colors": { "text": "#000000", "background": "#FFFFFF", "accent": "#ED2929", "shadow": "#00000059" },
+  "colors": { "text": "#000000", "background": "#FFFFFF", "accent": "#ED2929" },
   "styles": {
-    "lead": { "size": 44, "weight": "bold", "lineHeight": 64 },
-    "body": { "size": 38, "lineHeight": 64 },
+    "lead": { "size": 44, "weight": "bold", "lineHeight": 64, "lines": 1 },
+    "body": { "size": 38, "lineHeight": 64, "lines": 1 },
     "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
                "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
   },
-  "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } },
+  "shapes": {
+    "outline": { "stroke": { "width": 8 }, "radius": 18 },
+    "cover": { "fill": "#000000" },
+    "dim": { "fill": "#00000099" }
+  },
   "placement": { "padding": 40 },
-  "border": { "width": 3, "color": "#D9D9D9" },
-  "shadow": { "radius": 24, "offset": [0, 8], "color": "shadow" },
-  "defaults": { "animation": { "title": { "label": "frames/pop" } } }
+  "border": { "width": 3, "color": "#D9D9D9" }
 }

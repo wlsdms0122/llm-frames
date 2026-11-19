@@ -5,10 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Lays a title's runs out as one text: each run shaped on its own by the shaping provider in its character style,
-// lines broken by UAX #14 over the text of all runs together with words kept whole as `word-break: keep-all` keeps
-// them, at `\n` and at the wrapping width, and placed in a box by the paragraph style's line height, alignment and
-// background.
+// Each run is shaped on its own, and lines break by UAX #14 over the text of all runs together.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -20,10 +17,12 @@ struct Typesetter: Sendable {
     }
 
     // MARK: - Public
-    // `width` is the wrapping width in output pixels, and nil keeps the text on one line. Text that takes more lines
-    // than its paragraph style's `lines`, counting every `\n`, stops. A style of one line wraps at no width, and is too
-    // wide when it is wider than `width`. Lines lie the line height apart, baseline to baseline: the first baseline is
-    // its line's largest ascent below the top, and the box ends the last line's largest descent below the last.
+    // `width` is the width of the text box in output pixels, and the text wraps at it. Without it the text breaks
+    // only at `\n` and the box is as wide as the widest line. A piece of a word wider than `width` that cannot break
+    // widens the box to hold it. Text that takes more lines than its paragraph style's `lines`, counting every `\n`,
+    // stops. A style of one line wraps at no width, and is too wide when it is wider than `width`. Lines lie the line
+    // height apart, baseline to baseline: the first baseline is its line's largest ascent below the top, and the box
+    // ends the last line's largest descent below the last.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
@@ -31,19 +30,19 @@ struct Typesetter: Sendable {
         place: Place,
         kind: String
     ) throws -> TextLayout {
-        let limit = width == nil ? 1 : style.lines
-        let isOneLine = limit == 1
+        let isOneLine = style.lines == 1
         let lines = try paragraphs(of: runs).flatMap { paragraph in
-            try self.lines(of: paragraph, width: isOneLine ? nil : width)
+            try self.lines(of: paragraph, width: isOneLine ? nil : width, place: place, kind: kind)
         }
-        if let limit, lines.count > limit {
+        if let limit = style.lines, lines.count > limit {
             throw TextError.tooManyLines(place: place, kind: kind, count: lines.count, limit: limit)
         }
 
-        let textWidth = lines.map(\.width).reduce(0, max)
-        if isOneLine, let width, textWidth > width {
-            throw TextError.tooWide(place: place, kind: kind, width: textWidth, room: width)
+        let widest = lines.map(\.width).reduce(0, max)
+        if isOneLine, let width, widest > width {
+            throw TextError.tooWide(place: place, kind: kind, width: widest, room: width)
         }
+        let textWidth = max(width ?? 0, widest)
 
         let padding = style.background?.padding ?? Size(width: 0, height: 0)
         let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
@@ -89,10 +88,12 @@ struct Typesetter: Sendable {
     // wider overflows alone. Without a width only a mandatory break ends a line.
     private func lines(
         of paragraph: [TextRun],
-        width: Double?
+        width: Double?,
+        place: Place,
+        kind: String
     ) throws -> [TextLine] {
         let scalars = paragraph.flatMap { Array($0.text.unicodeScalars) }
-        let glyphs = try shaped(paragraph)
+        let glyphs = try shaped(paragraph, place: place, kind: kind)
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + scalars.indices.filter { $0 > 0 && [.allowed, .mandatory].contains(breaks[$0]) }
 
@@ -154,11 +155,27 @@ struct Typesetter: Sendable {
 
     // Each run is shaped on its own, since a run boundary ends a shaping run, and its glyphs are told by the scalar
     // they start at in the whole paragraph.
-    private func shaped(_ paragraph: [TextRun]) throws -> [StyledGlyph] {
+    private func shaped(
+        _ paragraph: [TextRun],
+        place: Place,
+        kind: String
+    ) throws -> [StyledGlyph] {
         var start = 0
         var glyphs: [StyledGlyph] = []
         for run in paragraph {
-            for shaped in try shaper.shape(run.text, face: run.face, size: run.style.size) {
+            let shapedRuns = try Result { try shaper.shape(run.text, face: run.face, size: run.style.size) }
+                .mapError { error in
+                    ProviderError.failed(
+                        provider: .shaping,
+                        place: place,
+                        kind: kind,
+                        picture: nil,
+                        message: "\(error)"
+                    )
+                }
+                .get()
+            
+            for shaped in shapedRuns {
                 glyphs += shaped.glyphs.map { glyph in
                     StyledGlyph(
                         glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),

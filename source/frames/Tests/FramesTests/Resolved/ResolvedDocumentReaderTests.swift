@@ -273,7 +273,27 @@ struct ResolvedDocumentReaderTests {
         #expect(transitionError?.description == #"storyline[1].transition (transition): unknown key "audio". Allowed: start, end, over, incoming, outgoing, cover, matte"#)
     }
 
-    @Test("scale, rotation and blend are read for anything drawn, and not for an adjustment")
+    @Test("an adjustment's blend is written, read back as written, and given to the item it draws")
+    func keepsAdjustmentBlend() throws {
+        // Given
+        let text = try written(#"""
+            { "kind": "sequence", "format": { "size": [160, 90] },
+              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "adjust": "mine/grade", "at": [0, 2], "blend": "screen" } ] }
+            """#)
+
+        // When
+        let sequence = try sut.read(text)
+        let list = Evaluator().displayList(of: sequence, at: 1)
+
+        // Then
+        let entry = try JSONReader().read(text).objectValue?["clips"]?.arrayValue?.first?.objectValue
+        #expect(entry?["blend"] == .string("screen"))
+        #expect(sequence.clips.map(\.blend) == ["screen"])
+        #expect(list.items.last?.blend == "screen")
+    }
+
+    @Test("scale and rotation are read for anything drawn, and not for an adjustment")
     func refusesKeyOfAnotherClipKind() throws {
         // Given
         let text = try replacingFirst(#""adjust":"#, with: #""scale": [], "adjust":"#, in: written(Self.documents[2]))
@@ -617,6 +637,7 @@ struct ResolvedDocumentReaderTests {
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

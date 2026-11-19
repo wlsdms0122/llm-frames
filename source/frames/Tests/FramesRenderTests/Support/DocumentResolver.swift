@@ -19,7 +19,6 @@ import FramesVision
 // roles.
 struct DocumentResolver {
     // MARK: - Property
-    // The base theme's defaults name it, so a theme without it stops.
     private static let pop = #"""
         { "description": "pops in", "entrance": { "seconds": 0.25, "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 1, "scale": 1 } ] } }
         """#
@@ -66,6 +65,7 @@ struct DocumentResolver {
             mediaFacts: decoder,
             presets: PresetLibrary(packs: packs),
             ocr: VisionOCR(decoder: decoder),
+            languages: nil,
             tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),
             library: library

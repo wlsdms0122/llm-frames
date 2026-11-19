@@ -25,6 +25,23 @@ enum ClipKeyTable {
         return ObjectTable(kind: kind.label, rules: rules)
     }
 
+    // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
+    static func choice(ofKey name: String) -> ValueType? {
+        switch name {
+        case "animation":
+            ChoiceKeyTable.animation
+
+        case "filter", "adjust":
+            ChoiceKeyTable.filter
+
+        case "transition":
+            ChoiceKeyTable.transition
+
+        default:
+            nil
+        }
+    }
+
     static func keyframable(
         for kind: ClipKind,
         in place: ClipPlace
@@ -33,7 +50,7 @@ enum ClipKeyTable {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             ["crop", "position", "scale", "rotation", "opacity", "mask", "volume", "pan", "timeRemap"]
 
-        case (.storyline, _):
+        case (.storyline, .media):
             ["crop", "position", "scale", "rotation", "opacity", "mask"]
 
         case (_, .media(.audio)):
@@ -52,8 +69,11 @@ enum ClipKeyTable {
             ["area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "mask"]
                 .filter(keys(for: kind, in: place).contains)
 
-        case (_, .adjust), (_, .solid):
+        case (_, .adjust):
             ["opacity", "mask"]
+
+        case (_, .solid):
+            []
         }
     }
 
@@ -83,25 +103,22 @@ enum ClipKeyTable {
         ]
     )
 
-    // Properties written only in keyframes, so a static value stops (FRAMES-4).
+    // Properties written only in keyframes, so a static value stops.
     static let keyframedOnly = ["timeRemap"]
 
-    private static let everyClip = ["id", "metadata", "at", "lane", "parent", "opacity", "animation", "keyframes"]
+    // The keys of every clip with a picture, which each kind's row starts with.
+    private static let everyClip = [
+        "id", "metadata", "at", "lane", "parent", "opacity", "blend", "mask", "trackMatte", "track", "animation",
+        "keyframes"
+    ]
 
-    // The keys every shape kind takes, then those of its geometry (FRAMES-11): a box for a rect or an ellipse, points
-    // for a path. A key a kind does not take stops as an unknown key.
+    // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, points for a path. A
+    // key a kind does not take stops as an unknown key.
     private static let everyShape = [
-        "track", "blend", "mask", "trackMatte", "shape", "style", "anchor", "position", "scale", "rotation", "fill",
-        "stroke", "trim", "shadow"
+        "shape", "style", "position", "anchor", "fill", "stroke", "trim", "shadow", "scale", "rotation"
     ]
 
-    // A storyline clip with media takes a transform and draws its box as a media clip does, with no placement and no
-    // parent.
-    private static let storylineTransform = [
-        "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border",
-        "shadow"
-    ]
-
+    // Each row is the specification's key table row, in its order, so the two are compared line by line.
     private static func keys(
         for kind: ClipKind,
         in place: ClipPlace
@@ -109,15 +126,20 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
-                "id", "metadata", "media", "in", "track", "out", "speed", "crop", "filter", "transition"
-            ] + storylineTransform + ["volume", "pan", "fadeIn", "fadeOut", "keyframes", "connected"]
+                "id", "metadata", "media", "in", "out", "speed", "crop", "filter", "transition", "anchor", "position",
+                "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius", "border", "shadow",
+                "volume", "pan", "fadeIn", "fadeOut", "keyframes", "connected"
+            ]
 
-        case (.storyline, .solid):
+        case (_, .solid):
             return ["id", "metadata", "solid", "duration", "transition", "connected"]
 
-        case (.storyline, _):
-            return ["id", "metadata", "media", "duration", "crop", "filter", "transition"] + storylineTransform
-                + ["keyframes", "connected"]
+        case (.storyline, .media):
+            return [
+                "id", "metadata", "media", "duration", "crop", "filter", "transition", "anchor", "position", "scale",
+                "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border", "shadow", "keyframes",
+                "connected"
+            ]
 
         case (_, .media(.audio)):
             return [
@@ -127,29 +149,25 @@ enum ClipKeyTable {
 
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
-                "track", "anchor", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut",
-                "placement", "position", "scale", "rotation", "crop", "conform", "filter", "blend", "mask",
-                "trackMatte", "width", "height", "radius", "border", "shadow"
+                "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut", "placement", "position",
+                "anchor", "scale", "rotation", "crop", "conform", "filter", "width", "height", "radius", "border",
+                "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
-                "track", "anchor", "media", "placement", "position", "scale", "rotation", "crop",
-                "conform", "filter", "blend", "mask", "trackMatte", "width", "height", "radius", "border",
-                "shadow"
+                "media", "placement", "position", "anchor", "scale", "rotation", "crop", "conform", "filter", "width",
+                "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
-            return everyClip + [
-                "track", "anchor", "title", "style", "width", "placement", "position", "scale",
-                "rotation", "blend", "mask", "trackMatte"
-            ]
+            return everyClip + ["title", "style", "width", "placement", "position", "anchor", "scale", "rotation"]
 
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
 
-        case (_, .adjust), (_, .solid):
-            return everyClip + ["adjust", "mask", "trackMatte", "track"]
+        case (_, .adjust):
+            return everyClip + ["adjust"]
         }
     }
 
@@ -174,9 +192,6 @@ enum ClipKeyTable {
         case "lane":
             .integer
 
-        case "animation":
-            ChoiceKeyTable.animation
-
         case "keyframes":
             .list(.object(keyframeTable(for: kind, in: place)))
 
@@ -188,12 +203,6 @@ enum ClipKeyTable {
 
         case "crop":
             .crop
-
-        case "filter", "adjust":
-            ChoiceKeyTable.filter
-
-        case "transition":
-            ChoiceKeyTable.transition
 
         case "solid":
             .color
@@ -269,7 +278,7 @@ enum ClipKeyTable {
             .signedFraction
 
         default:
-            .number
+            choice(ofKey: name) ?? .number
         }
     }
 

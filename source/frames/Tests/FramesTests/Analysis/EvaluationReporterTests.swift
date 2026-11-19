@@ -118,10 +118,30 @@ struct EvaluationReporterTests {
         // Then
         // The nested background and the fill without a clip of its own are the compound clip's picture.
         #expect(report.items == [
-            EvaluationItem(origin: nil, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1),
-            EvaluationItem(origin: entry, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 0.5),
-            EvaluationItem(origin: nested, bounds: Rectangle(x: 0, y: 0, width: 100, height: 50), opacity: 0.5),
-            EvaluationItem(origin: entry, bounds: Rectangle(x: 100, y: 50, width: 100, height: 50), opacity: 0.5)
+            EvaluationItem(
+                origin: nil,
+                item: .background,
+                bounds: Rectangle(x: 0, y: 0, width: 200, height: 100),
+                opacity: 1
+            ),
+            EvaluationItem(
+                origin: entry,
+                item: .background,
+                bounds: Rectangle(x: 0, y: 0, width: 200, height: 100),
+                opacity: 0.5
+            ),
+            EvaluationItem(
+                origin: nested,
+                item: .path,
+                bounds: Rectangle(x: 0, y: 0, width: 100, height: 50),
+                opacity: 0.5
+            ),
+            EvaluationItem(
+                origin: entry,
+                item: .path,
+                bounds: Rectangle(x: 100, y: 50, width: 100, height: 50),
+                opacity: 0.5
+            )
         ])
     }
 
@@ -145,7 +165,7 @@ struct EvaluationReporterTests {
 
         // Then
         #expect(report.items == [
-            EvaluationItem(origin: nested, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1)
+            EvaluationItem(origin: nested, item: .path, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1)
         ])
     }
 
@@ -195,18 +215,42 @@ struct EvaluationReporterTests {
         #expect(report.time == 1.5)
         #expect(report.size == Size(width: 1080, height: 1920))
         #expect(report.items == [
-            EvaluationItem(origin: nil, bounds: frame, opacity: 1),
+            EvaluationItem(origin: nil, item: .background, bounds: frame, opacity: 1),
             EvaluationItem(
                 origin: ItemOrigin(place: "storyline[0]#intro", id: "intro", kind: "video"),
+                item: .picture,
                 bounds: frame,
                 opacity: 1
             ),
             EvaluationItem(
                 origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "rect"),
+                item: .path,
                 bounds: Rectangle(x: 100, y: 200, width: 300, height: 400),
                 opacity: 1
             )
         ])
+    }
+
+    @Test("each item names the FRAMES-20 item kind it draws, and the background is a background item, in both commands")
+    func namesItemKinds() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920], "background": "#101010" },
+              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
+              "clips": [
+                { "at": [0, 4], "title": "Top", "style": "title" },
+                { "at": [0, 4], "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50] },
+                { "at": [0, 4], "adjust": "mine/grade" } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1.5)
+        let hits = try LocationReporter().report(of: document, at: 1.5, point: Point(x: 25, y: 25)).hits
+
+        // Then
+        #expect(report.items.map(\.item) == [.background, .picture, .glyphs, .path, .adjust])
+        #expect(report.items.map { $0.origin?.kind } == [nil, "video", "title", "rect", "adjustment"])
+        #expect(hits.map(\.item) == [.adjust, .path, .picture, .background])
     }
 
     @Test("a clip used as a track matte reports no item, and the clip it cuts is bounded as without it, and so located")
@@ -293,6 +337,7 @@ struct EvaluationReporterTests {
                   "place": null,
                   "id": null,
                   "kind": null,
+                  "item": "background",
                   "bounds": [0, 0, 200, 100],
                   "opacity": 1
                 },
@@ -300,6 +345,7 @@ struct EvaluationReporterTests {
                   "place": "clips[0]#title",
                   "id": "title",
                   "kind": "title",
+                  "item": "path",
                   "bounds": [90, 30, 20, 40],
                   "opacity": 0.3
                 }

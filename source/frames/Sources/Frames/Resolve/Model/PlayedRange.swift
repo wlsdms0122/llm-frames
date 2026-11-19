@@ -6,7 +6,7 @@
 //
 
 // How a timed media clip that is not on the storyline plays, and how any sound plays: clip time `in` at sequence time
-// `origin` along `map`, up to `out` in media time. Past `out` a looping clip repeats from `in` and any other holds the
+// `origin` along `map`, up to clip time `out`. Past `out` a looping clip repeats from `in` and any other holds the
 // last frame before `out`. `origin` is the start of the clip's window before tracking narrowed it, so it can lie before
 // the clip's `start`.
 struct PlayedRange: Equatable, Sendable {
@@ -58,7 +58,6 @@ struct PlayedRange: Equatable, Sendable {
         return Double(timeTicks: inTicks + (clipTime.timeTicks - inTicks) % period)
     }
 
-    // The same range starting at another sequence time.
     func starting(at origin: Double) -> PlayedRange {
         PlayedRange(map: TimeMap(origin: origin, in: map.in, speed: map.speed), out: out, loop: loop)
     }

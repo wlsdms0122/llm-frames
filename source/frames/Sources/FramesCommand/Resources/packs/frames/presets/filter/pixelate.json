@@ -1,5 +1,5 @@
 {
-  "description": "Square blocks, as a pixel art look",
+  "description": "Square blocks.",
   "ops": [
     { "op": "pixelate", "size": 16 }
   ]

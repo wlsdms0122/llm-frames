@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A display item's track matte (FRAMES-20): `source` the items its matte clip draws at the time, a nested list the
-// size of the list that holds the item and drawn in that list's output pixels, empty outside the matte clip's visible
-// window. At each point the item's alpha is multiplied by the source's alpha or luma there, as `mode` says, or by 1
-// minus that when inverted.
+// `source` is a nested list the size of the list that holds the item, in that list's output pixels, and empty outside
+// the matte clip's visible window. At each point the item's alpha is multiplied by the source's alpha or luma there,
+// as `mode` says, or by 1 minus that when inverted.
 package struct ItemTrackMatte: Equatable, Sendable {
     // MARK: - Property
     package let source: DisplayList

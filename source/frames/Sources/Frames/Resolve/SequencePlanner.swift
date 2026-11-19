@@ -5,11 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans what resolve decides for one sequence before evaluation, from its time plan: the documents it nests, its
-// format, the areas, positions and crops found in their pictures, tracking, the stop on keyframes outside the windows
-// tracking leaves, what was found under a shape or adjustment brought into its space, its titles set, where each clip
-// is placed and how it is drawn, and its sound. A content-fit sequence is planned in its measuring space on a frame the
-// size of its first storyline picture's box, which gives its length scale, and then measured.
+// Plans what resolve decides for one sequence before evaluation, from its time plan. A content-fit sequence is planned
+// in its measuring space on a frame the size of its first storyline picture's box, which gives its length scale, and
+// then measured.
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
@@ -18,17 +16,19 @@ struct SequencePlanner: Sendable {
     private let sound = SoundPlanner()
     private let appearances: ClipAppearancePlanner
     private let contentFit = ContentFitPlanner()
+    private let cropChecker = CropChecker()
 
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         presets: any PresetProvider,
         library: ReferenceLibrary
     ) {
-        self.finder = GeometryFinder(ocr: ocr)
-        self.tracker = TrackPlanner(tracker: tracker, ocr: ocr)
+        self.finder = GeometryFinder(ocr: ocr, languages: languages)
+        self.tracker = TrackPlanner(tracker: tracker, ocr: ocr, languages: languages)
         self.text = ThemeTypesetter(shaper: shaper, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
@@ -120,7 +120,22 @@ struct SequencePlanner: Sendable {
         }
 
         let storyline = try time.storyline.indices.map { index in
-            StorylineGeometry(
+            let box = try box(
+                of: time.storyline[index],
+                crop: crops[index],
+                nested: storylineNested[index],
+                format: format
+            )
+            try checkCrop(
+                crops[index],
+                of: time.storyline[index],
+                written: time.sequence.storyline[index],
+                box: box,
+                nested: storylineNested[index],
+                format: format
+            )
+
+            return StorylineGeometry(
                 crop: crops[index],
                 mask: storylineMasks[index],
                 track: tracked.storyline[index],
@@ -138,12 +153,7 @@ struct SequencePlanner: Sendable {
                     of: time.storyline[index],
                     written: time.sequence.storyline[index],
                     position: storylinePositions[index],
-                    box: try box(
-                        of: time.storyline[index],
-                        crop: crops[index],
-                        nested: storylineNested[index],
-                        format: format
-                    ),
+                    box: box,
                     format: format,
                     scale: lengthScale,
                     theme: time.theme
@@ -269,6 +279,34 @@ struct SequencePlanner: Sendable {
         guard format.isMeasured else { return format.size }
 
         return try pictureBox(of: plan, crop: crop, nested: nested)
+    }
+
+    // A storyline clip's crop fills its box by the format's `conform`.
+    private func checkCrop(
+        _ crop: PropertyValue<FoundArea>?,
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        box: Size?,
+        nested: SequencePlan?,
+        format: FormatPlan
+    ) throws {
+        guard crop != nil, let box, let media = plan.source.media else { return }
+
+        let picture = try self.picture(
+            of: media,
+            kind: plan.source.kind,
+            nested: nested,
+            place: plan.place.appending(key: "media")
+        )
+        try cropChecker.check(
+            crop,
+            of: picture,
+            box: box,
+            conform: format.conform,
+            isTracked: written.track != nil,
+            place: written.place.appending(key: "crop"),
+            kind: .clip(plan.source.kind)
+        )
     }
 
     // The pixel size of a storyline clip's crop at scale 1, nil for a solid, which has no picture of its own.
@@ -398,9 +436,9 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // Keyframes of `mask` hold the clip's every mask and interpolate mask by mask (FRAMES-11), so each holds as many
-    // masks as the first written, and each mask keeps its shape, how its geometry is given, its number of points, its
-    // inversion and its mode.
+    // Keyframes of `mask` hold the clip's every mask and interpolate mask by mask, so each holds as many masks as the
+    // first written, and each mask keeps its shape, how its geometry is given, its number of points, its inversion and
+    // its mode.
     private func checkMasks(
         _ mask: PropertyValue<[ClipMask]>,
         place: Place,
@@ -478,9 +516,9 @@ struct SequencePlanner: Sendable {
     // picture nor a clip with a box. A text form is searched in the parent's picture, the media of a storyline or media
     // clip, at the media time the parent's clock gives, and under a shape or adjustment what it finds is where it lies
     // in that media until `ParentSpacePlanner` brings it into the parent's space. A media clip's crop is in its own
-    // picture. A mask is in the clip's own coordinate space (FRAMES-11): a media clip's media, a title's or a box
-    // shape's box, which has no picture to search, and for a shape placed by its geometry or an adjustment the space
-    // its parent gives, searched as its area is.
+    // picture. A mask is in the clip's own coordinate space: a media clip's media, a title's or a box shape's box,
+    // which has no picture to search, and for a shape placed by its geometry or an adjustment the space its parent
+    // gives, searched as its area is.
     private func geometry(
         of plan: ClipPlan,
         written: Clip,
@@ -599,7 +637,7 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // The place of the first mask given by text, which only a clip whose mask is in media takes.
+    // The place of the first mask given by text.
     private func byText(
         _ mask: PropertyValue<[ClipMask]>,
         place: Place
@@ -625,10 +663,10 @@ struct SequencePlanner: Sendable {
     }
 
     // The picture a clip's space is searched in, how sequence time becomes its media time, and whether that space is
-    // output pixels (FRAMES-10): a storyline clip's media, a media clip's media, a title's text box as a space with no
-    // picture, and for a shape or adjustment the space its geometry is written in, its own parent's. An unparented
-    // clip's space and a solid's are output pixels. The chain is walked up past every shape placed by its geometry and
-    // every adjustment, and ParentFinder has ruled out a cycle, so it ends.
+    // output pixels: a storyline clip's media, a media clip's media, a title's text box as a space with no picture, and
+    // for a shape or adjustment the space its geometry is written in, its own parent's. An unparented clip's space and
+    // a solid's are output pixels. The chain is walked up past every shape placed by its geometry and every adjustment,
+    // and ParentFinder has ruled out a cycle, so it ends.
     private func space(
         of parent: ClipParent?,
         time: TimePlan,
@@ -669,7 +707,7 @@ struct SequencePlanner: Sendable {
         return shape.points
     }
 
-    // The place of the first point given by an area written with text, which only a parented clip takes.
+    // The place of the first point given by an area written with text.
     private func byText(
         _ points: PropertyValue<[PositionForm]>,
         place: Place
@@ -689,7 +727,7 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The place of the first area written with text, which only a parented clip takes.
+    // The place of the first area written with text.
     private func byText(
         _ area: PropertyValue<AreaForm>,
         place: Place
@@ -705,7 +743,7 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // The place of the first position given by an area written with text, which only a parented clip takes.
+    // The place of the first position given by an area written with text.
     private func byText(
         _ position: PropertyValue<PositionForm>,
         place: Place
@@ -721,24 +759,19 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // A title wraps at its `width`, by default the output width less the placement padding on each side, which a
-    // content-fit frame does not have yet.
     private func title(
         of written: Clip,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
         guard case let .title(runs, style) = written.content else { return nil }
-        guard written.width != nil || !format.isMeasured else {
-            throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
-        }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(
             runs,
             style: style,
             stylePlace: written.place.appending(key: "style"),
-            width: written.width ?? format.size.width - theme.placementPadding * scale * 2,
+            width: written.width,
             theme: theme,
             scale: scale,
             place: written.place.appending(key: "title"),
@@ -747,7 +780,7 @@ struct SequencePlanner: Sendable {
     }
 
     // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
-    // value. It is judged on the windows tracking leaves, since what is visible is what counts.
+    // value. It is judged on the windows tracking leaves.
     private func checkKeyframes(of time: TimePlan) throws {
         for plan in time.storyline {
             try checkKeyframes(plan.keyframes, visible: plan.drawn, place: plan.place, kind: plan.source.kind)

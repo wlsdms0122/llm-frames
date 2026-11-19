@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `lane` is nil for a sound, and `parent` is the place of the storyline clip a parented clip is composited with.
+// `lane` is nil for a sound, `storyline` is the place of the storyline clip a connected clip belongs to, and `parent`
+// is the place of the clip whose space a parented clip is placed in.
 struct TimelineClipEntry: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -13,6 +14,7 @@ struct TimelineClipEntry: Equatable, Sendable {
     let kind: String
     let visible: TimeRange
     let lane: Int?
+    let storyline: String?
     let parent: String?
     let animation: TimelineAnimation?
     let nested: TimelineReport?
@@ -24,6 +26,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         kind: String,
         visible: TimeRange,
         lane: Int?,
+        storyline: String?,
         parent: String?,
         animation: TimelineAnimation?,
         nested: TimelineReport?
@@ -33,6 +36,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         self.kind = kind
         self.visible = visible
         self.lane = lane
+        self.storyline = storyline
         self.parent = parent
         self.animation = animation
         self.nested = nested

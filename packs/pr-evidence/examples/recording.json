@@ -1,17 +1,21 @@
 {
   "kind": "sequence",
   "theme": "pr-evidence/pr-evidence",
-  "format": { "size": [1280, 942], "fps": 30, "background": "#FFFFFF", "conform": "fit" },
+  "format": { "size": { "fit": "content" }, "fps": 30, "background": "#FFFFFF" },
   "storyline": [
-    { "id": "checkout", "media": "/path/to/checkout.mov", "in": 0, "out": 1.4, "volume": 0, "crop": [0, -222, 1280, 942],
+    { "id": "checkout", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0, "border": true,
       "connected": [
-        { "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "area": { "text": "Total", "padding": 14 } },
-        { "title": "38,000 + 4,000", "style": "label", "parent": "total",
-          "position": { "area": { "text": "Total", "padding": 14 }, "point": "right" }, "anchor": "left" }
+        { "shape": "rect", "style": "cover", "parent": "checkout", "animation": "none",
+          "area": { "text": "jane@example.com", "padding": 8 }, "track": { "text": "Total" } },
+        { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "track": true,
+          "area": { "from": "Total", "to": "42,000", "padding": 12 } },
+        { "at": [1.2, 2.8], "title": "38,000 + 4,000", "style": "label", "parent": "total",
+          "position": { "area": { "from": "Total", "to": "42,000", "padding": 12 }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
   ],
   "clips": [
-    { "id": "conclusion", "title": "Total includes shipping", "style": "lead", "position": [42, 42], "anchor": "top-left" },
-    { "id": "reason", "title": "42,000 is the item total plus 4,000 shipping", "style": "body", "position": [42, 110], "anchor": "top-left" }
+    { "media": { "template": "pr-evidence/header",
+                 "args": { "conclusion": "Adding shipping updates the total", "reason": "The total goes from 38,000 to 42,000 as shipping is added" } },
+      "width": 1280, "anchor": "bottom-left", "position": [0, 0] }
   ]
 }

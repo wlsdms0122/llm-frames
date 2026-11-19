@@ -1,5 +1,5 @@
 {
-  "description": "Darker edges that pull the eye to the centre, for a subject in the middle",
+  "description": "Darker towards the edges and corners.",
   "ops": [
     { "op": "vignette", "amount": 0.4, "radius": 0.45 }
   ]

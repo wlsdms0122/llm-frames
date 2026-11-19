@@ -23,7 +23,7 @@ struct SequenceCheckTests {
             {
               "kind": "sequence",
               "format": { "size": [1080, 1920], "fps": 30, "background": "#000000", "conform": "fit" },
-              "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/draw" } } },
+              "theme": { "defaults": { "transition": "frames/push-up", "filter": "frames/vivid", "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe" } } },
               "storyline": [
                 { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "volume": 0,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],
@@ -65,7 +65,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, animation, keyframes, track, blend, mask, trackMatte, shape, style, anchor, position, scale, rotation, fill, stroke, trim, shadow, points, closed"#)
+        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#)
     }
 
     @Test(
@@ -444,7 +444,7 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, track, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
@@ -932,6 +932,25 @@ struct SequenceCheckTests {
         // When, Then
         try sut.check(document: written)
         try sut.check(document: keyframed)
+    }
+
+    @Test("an adjustment clip takes every key of a clip with a picture, a blend mode among them")
+    func acceptsAdjustmentPictureKeys() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "storyline": [ { "id": "shot", "media": "/abs/run.mp4",
+                "connected": [ { "id": "matte", "title": "a", "style": "headline", "at": [0, 2] },
+                               { "id": "grade", "metadata": { "by": "x" }, "adjust": "frames/vivid", "at": [0, 2],
+                                 "lane": 2, "parent": "shot", "blend": "screen",
+                                 "mask": { "shape": "rect", "area": [0, 0, 10, 10] },
+                                 "trackMatte": { "clip": "matte", "mode": "alpha" }, "track": true,
+                                 "animation": "frames/fade", "keyframes": [ { "at": 0, "opacity": 1 } ] },
+                               { "adjust": "frames/vivid", "at": [0, 2], "opacity": 0.5 } ] } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
     }
 
     @Test(

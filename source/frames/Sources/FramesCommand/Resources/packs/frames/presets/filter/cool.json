@@ -1,5 +1,5 @@
 {
-  "description": "Cooler light, towards blue, for a calm or clinical feel",
+  "description": "Cooler light, towards blue.",
   "ops": [
     { "op": "temperature", "kelvin": -1500 }
   ]

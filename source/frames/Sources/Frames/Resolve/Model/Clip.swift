@@ -5,13 +5,10 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// A connected or sequence clip as written, with the geometry resolve finds and the text it sets. `area`, `position`,
-// `crop` and `mask` are as written, their keyframes on the clip's clock. `parent` is the id of the clip it names as its
-// parent, and `trackMatte` its track matte as written. `placement` and `anchor` are the names written.
-// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` (the
-// theme border or the colour written) and `shadow` are a media clip's. `opacity`, `scale` and `rotation` are as
-// written, their keyframes on the clip's clock, and `filter` the filter choice: a media clip's `filter`, or an
-// adjustment's `adjust`. What a shape writes of its own is in its content.
+// A connected or sequence clip as written, its keyframes on the clip's clock. `parent` is the id the clip names.
+// `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` and
+// `shadow` are a media clip's; a shape's own keys are in its content. `filter` is a media clip's `filter` or an
+// adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place

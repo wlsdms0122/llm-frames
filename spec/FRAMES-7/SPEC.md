@@ -82,7 +82,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
-| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with `seconds` and `args` optional |
+| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
 | animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}` |
 | filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args}`, a list of those, or `"none"` |
 | arguments (`args` of a preset choice or a template instance) | the names of the parameters the preset or template publishes ([FRAMES-17](../FRAMES-17/SPEC.md)) |

@@ -158,12 +158,12 @@ struct ClipEvaluatorTests {
     )
     func carriesMaskInClipSpace(kind: String) throws {
         // Given
-        // Under the parent, a box clip's anchor point is carried and its box keeps its size. A title's 100 x 40
-        // box anchored at (50, 40) on (100, 200) lands with its top left at (160, 360). The media clip's 80 x 40 box
-        // shows the crop (100, 50, 200, 100) of its media at 0.4 of its size, its top left at (70, 60). The box
-        // shape's 40 x 20 box anchored at its centre on (60, 30) has its top left at (110, 50). The area shape turns a
-        // quarter about the centre (60, 30) of its area, and the adjustment doubles about the centre of its mask's
-        // bounds, before the parent's map.
+        // Under the parent, the anchor point of a clip with a box of its own is carried and its box keeps its size. A
+        // title's 100 x 40 box anchored at (50, 40) on (100, 200) lands with its top left at (160, 360). The media
+        // clip's 80 x 40 box shows the crop (100, 50, 200, 100) of its media at 0.4 of its size, its top left at
+        // (70, 60). The rect's 40 x 20 box anchored at its centre on (60, 30) has its top left at (110, 50). The area
+        // shape turns a quarter about the centre (60, 30) of its area, and the adjustment doubles about the centre of
+        // its mask's bounds, before the parent's map.
         let clip: ResolvedClip
         let geometry: PathGeometry
         let expected: [(Point, Point)]
@@ -409,7 +409,7 @@ struct ClipEvaluatorTests {
             opacity: [Keyframe(at: 0, value: 1)],
             scale: isAdjustment ? nil : [Keyframe(at: 0, value: scale ?? 1)],
             rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
-            blend: isAdjustment ? nil : "normal",
+            blend: "normal",
             animation: animation
         )
     }
