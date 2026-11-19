@@ -102,6 +102,23 @@ struct ContentFitTests {
         #expect(plan.format.size == Size(width: (right / 2).rounded(.up) * 2, height: 800))
     }
 
+    @Test("a title is measured with its highlights, which may reach past its text box")
+    func measuresTitleHighlight() throws {
+        // Given
+        let plan = try plan(#"""
+            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "title": "Hello", "style": "title", "at": [0, 1], "position": [1200, 0], "anchor": "top-left",
+                           "character": { "highlight": { "padding": [0, 96] } } } ] }
+            """#)
+
+        // When
+        let size = plan.format.size
+
+        // Then
+        // The padding is 96 theme lengths, 50 output pixels at the length scale, past the 125 wide box.
+        #expect(size == Size(width: 1376, height: 800))
+    }
+
     @Test("a clip used as a track matte is not drawn, so it is not measured")
     func skipsTrackMatte() throws {
         // Given

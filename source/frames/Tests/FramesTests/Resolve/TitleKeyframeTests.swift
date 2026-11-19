@@ -365,7 +365,122 @@ struct TitleKeyframeTests {
         ))
     }
 
+    @Test("a title's reach holds its highlights and underlines, and its box grown by half its widest stroke")
+    func boundsDecorations() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": { "offset": 10 } } }
+            """#)
+
+        // When
+        let sut = GlyphsItem(text: text, at: 0)
+
+        // Then
+        #expect(sut.filledRects() == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: -4, y: -2, width: 48, height: 44),
+            Rectangle(x: 0, y: 42, width: 40, height: 2)
+        ])
+        #expect(sut.drawnBounds() == Rectangle(x: -4, y: -2, width: 48, height: 46))
+    }
+
+    @Test("an animation over a title whose line height opens offsets it by its box then and scales it about its anchor point, which stays")
+    func animatesBoxAtInstant() throws {
+        // Given
+        let resolved = try resolvedClip(#"""
+            { "title": "a\nb", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 100 } } ] }
+            """#)
+        let clip = animated(resolved, by: Motion(values: [.scale: 2, .y: 1]))
+        guard case let .title(text) = clip.content else {
+            Issue.record("the clip is a title")
+            return
+        }
+
+        // When
+        let items = ClipEvaluator().items(
+            of: clip,
+            in: ClipSpace(frame: Rectangle(x: 0, y: 0, width: 1920, height: 1080)),
+            picture: nil,
+            trackMatte: nil,
+            at: 1
+        )
+
+        // Then
+        // The static box is w by h about its centre at (400, 225), and at 1 it is 50 taller below. Scaled by 2 about
+        // that centre its top left lies at (400 - w, 225 - h), and the offset moves it down by the box's height then.
+        let item = try #require(items.first)
+        guard case let .glyphs(glyphs) = item.content else {
+            Issue.record("the item draws glyphs")
+            return
+        }
+        #expect(glyphs.size == Size(width: text.size.width, height: text.size.height + 50))
+        #expect(item.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 400 - text.size.width, y: 275))
+    }
+
+    @Test("a child of a title whose padding grows follows the title's box at that instant")
+    func carriesChildByBoxAtInstant() throws {
+        // Given
+        let document = document(#"""
+            { "id": "t", "title": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225], "at": [0, 2],
+              "paragraph": { "background": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
+                             { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] },
+            { "title": "c", "style": "caption", "parent": "t", "anchor": "top-left", "position": [0, 0] }
+            """#)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+
+        // When
+        let list = Evaluator().displayList(of: resolved, at: 1)
+
+        // Then
+        let items = list.items.filter { item in
+            guard case .glyphs = item.content else { return false }
+
+            return true
+        }
+        #expect(items.count == 2)
+        #expect(items.last?.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 380, y: 215))
+    }
+
     // MARK: - Private
+    // `clip` with an entrance that holds `motion` over its whole window.
+    private func animated(
+        _ clip: ResolvedClip,
+        by motion: Motion
+    ) -> ResolvedClip {
+        let keys = [SpanKey(t: 0, values: motion.values), SpanKey(t: 1, values: motion.values)]
+        let entrance = AnimationSpan(length: clip.end - clip.start, span: Span(ease: .linear, keys: keys))
+
+        return ResolvedClip(
+            place: clip.place,
+            id: clip.id,
+            content: clip.content,
+            start: clip.start,
+            end: clip.end,
+            lane: clip.lane,
+            storyline: clip.storyline,
+            parent: clip.parent,
+            box: clip.box,
+            crop: clip.crop,
+            mask: clip.mask,
+            trackMatte: clip.trackMatte,
+            track: clip.track,
+            opacity: clip.opacity,
+            scale: clip.scale,
+            rotation: clip.rotation,
+            blend: clip.blend,
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+        )
+    }
+
+    private func resolvedClip(_ clip: String) throws -> ResolvedClip {
+        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
+
+        return try #require(try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips.first)
+    }
+
     private func resolvedText(_ clip: String) throws -> ResolvedText {
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips

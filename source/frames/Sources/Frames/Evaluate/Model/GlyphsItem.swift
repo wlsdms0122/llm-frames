@@ -60,12 +60,39 @@ package struct GlyphsItem: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The box grown by half the widest stroke, since a stroke is centred on outlines that reach the box's edges.
+    // The box and every highlight and underline rectangle, each cut to its band where there are bands, a rectangle
+    // outside its band left out: what the item covers without its strokes.
+    package func filledRects() -> [Rectangle] {
+        let pieces = runs.flatMap { run in
+            cut(run.highlight?.rects ?? [], to: run.highlight?.bands)
+                + cut(run.underline?.rects ?? [], to: run.underline?.bands)
+        }
+
+        return [Rectangle(x: 0, y: 0, width: size.width, height: size.height)] + pieces
+    }
+
+    // The filled rectangles with the box grown by half the widest stroke, since a stroke is centred on outlines that
+    // reach the box's edges.
     package func drawnBounds() -> Rectangle {
         let half = (runs.compactMap(\.stroke).map(\.width).max() ?? 0) / 2
+        let stroked = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: half)
 
-        return Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: half)
+        return filledRects().reduce(stroked) { $0.union($1) }
     }
 
     // MARK: - Private
+    private func cut(
+        _ rects: [Rectangle],
+        to bands: [ClosedRange<Double>]?
+    ) -> [Rectangle] {
+        guard let bands else { return rects }
+
+        return zip(rects, bands).compactMap { rect, band in
+            let start = max(rect.x, band.lowerBound)
+            let end = min(rect.x + rect.width, band.upperBound)
+            guard start < end else { return nil }
+
+            return Rectangle(x: start, y: rect.y, width: end - start, height: rect.height)
+        }
+    }
 }

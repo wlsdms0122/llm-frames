@@ -9,9 +9,10 @@ import Foundation
 
 // Measures a content-fit frame from a sequence planned in its measuring space, and moves what is written in that
 // space onto the measured frame. Each clip's extent is its geometry at sequence time 0 without animation or transition
-// motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's text
-// box, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills the frame and an adjustment
-// applies to it, so neither is measured, and nor is a clip used as a track matte, which is not drawn.
+// motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's box
+// with its highlights and underlines, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills
+// the frame and an adjustment applies to it, so neither is measured, and nor is a clip used as a track matte, which is
+// not drawn.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -140,11 +141,12 @@ struct ContentFitPlanner: Sendable {
         in space: ClipSpace
     ) -> Rectangle? {
         switch clip.content {
-        case .title:
-            guard let box = clip.box else { return nil }
-
+        case let .title(text):
+            // The child map places the title's box at the time, which its glyphs item fills.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
-            return bounds(of: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height), by: transform)
+            return GlyphsItem(text: text, at: 0).filledRects()
+                .map { bounds(of: $0, by: transform) }
+                .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
         case .media:
             guard let box = clip.box else { return nil }
