@@ -139,7 +139,7 @@ A level detector by RMS, or one per channel: an RMS window is one more parameter
 
 Processing on a compound clip, a bus or the master (a limiter, a loudness target): each processes a mix of several sounds, which needs a bus in the mix plan and a mixer that sums before it processes. It is left out (README), and the sounds inside a compound clip take their own audio filters.
 
-A split edit as an audio clip of the shot's sound beside its storyline clip, with the storyline clip's `volume` keyframed down where the audio clip takes over: the one fact that a shot's sound leads or trails its picture would be written in two places that must stay complementary, since the same media at the same time played twice is about 6 dB louder, and a trim of the edit point would have to change both. `split` is one value on the clip, and moves with its edit point.
+A split edit as an audio clip of the shot's sound beside its storyline clip, with the storyline clip's `volume` keyframed down where the audio clip takes over: the one fact that a shot's sound leads or trails its picture would be written in two places that must stay complementary, since the same media at the same time played twice is about 6 dB louder, and a trim of the edit point would have to change both. `split` keeps the fact one value on the clip ([FRAMES-25](../FRAMES-25/SPEC.md)), and it moves with its edit point.
 
 Effects after the fader: a compressor after a fade would lift the fade back up, and an NLE's clip effects sit before its volume.
 

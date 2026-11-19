@@ -144,6 +144,8 @@ Trimming the fill with the stroke, as After Effects trims a whole shape: drawing
 
 Gradient points in the shape's coordinate space, as SVG's `userSpaceOnUse`: a gradient would stay where it was written while its shape moves or grows, and a template's bar would need its gradient written again for every size. Fractions of the box, as SVG's `objectBoundingBox` and CSS's gradients on an element, follow the shape. A radial radius as a fraction of the box's width keeps the gradient round, where `objectBoundingBox` stretches it over a box that is not square.
 
+Gradients left to extensions, as bands of flat colour stacked or an image made outside and laid in: one ramp would be spread over many clips or baked into media, and its colours, its direction and the box it follows would no longer be values of one shape ([FRAMES-25](../FRAMES-25/SPEC.md)).
+
 Dashes laid from the outline's start and uncovered by `trim`: a dashed line drawn on would show the same, but a trim whose start moves would cut a dash anywhere along its length. Laid along the stroke as drawn, as After Effects lays dashes on a trimmed path, the stroke always starts with a whole dash, and `dashOffset` moves the pattern where that is wanted.
 
 ## Notes
