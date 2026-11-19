@@ -49,7 +49,7 @@ A document passes arguments in its preset choices:
 | filter choice | [FRAMES-15](../FRAMES-15/SPEC.md) |
 
 - A preset name is `<pack>/<name>` or an absolute path.
-- In an object choice `preset` is required, and so is at least one of the other keys: `{preset}` alone stops, since the name alone is that choice.
+- An object choice needs at least one key besides `preset`: `{preset}` alone stops, since the name alone is that choice. An object without `preset` on a clip merges over the theme's default choice for that clip, and in a theme over the weaker theme's ([FRAMES-22](../FRAMES-22/SPEC.md)), so `{"by": "word"}` plays the default animation by word. Where nothing below gives a choice it stops.
 - `seconds` in a transition choice replaces the preset's own. It is above 0, as a preset's own is, and 0 or less stops.
 - `args` maps parameter names to values. An unknown name stops, a value of the wrong type stops (a choice value that is not one of its options included), and a parameter with no argument takes its default. An empty `args` gives every parameter its default.
 - A choice is the same wherever it is written: on a clip ([FRAMES-7](../FRAMES-7/SPEC.md)), in a theme's `defaults` ([FRAMES-22](../FRAMES-22/SPEC.md)), or as a template's argument or option ([FRAMES-17](../FRAMES-17/SPEC.md)).

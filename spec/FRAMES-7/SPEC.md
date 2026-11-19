@@ -89,9 +89,9 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
-| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
+| transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args`, `preset` left out to merge over the theme's default ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-22](../FRAMES-22/SPEC.md)) |
+| animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. `preset` may be left out of an object to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)). On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
+| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, `preset` left out to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)), a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
 | filter op | `op`, the parameters the op table of [FRAMES-15](../FRAMES-15/SPEC.md) gives that op, and `mix` where a choice writes it (not in a preset's `ops`) |
 | audio filter choice (`audioFilter`) | an audio preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, an audio op, or a list of those ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | audio op | `op`, `mix` where a choice writes it (not in a preset's `ops`), and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate` |

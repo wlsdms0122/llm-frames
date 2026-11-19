@@ -62,7 +62,7 @@ A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-1
 | --- | --- |
 | `"none"` | no filter. On a clip it turns off the theme's default filter |
 | a preset name | that preset with its defaults: `<pack>/<name>` or an absolute path |
-| `{preset, args, mix}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them, and its `mix`. At least one of `args` and `mix` is required, since the name alone is the form above |
+| `{preset, args, mix}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them, and its `mix`. At least one of `args` and `mix` is required, since the name alone is the form above. Without `preset` it merges over the theme's default filter when that is one entry ([FRAMES-22](../FRAMES-22/SPEC.md)), so `{"mix": 0.5}` is the default filter at half strength |
 | an op | one operation of the op table above written in place, `{"op": ..., ..., "mix": m}`, as a preset's `ops` holds it, with numbers where a preset would take `{"param"}`, and its `mix` |
 | a list of names, `{preset, args}` and ops | each in turn, the first applied first |
 
