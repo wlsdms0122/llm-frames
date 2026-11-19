@@ -260,13 +260,13 @@ package struct DisplayListReader: Sendable {
     private func path(_ item: PlacedJSONObject) throws -> PathItem {
         PathItem(
             geometry: try values.geometry(item.member("geometry")),
-            fill: try item.member("fill").optional(values.color),
+            fill: try item.member("fill").optional(values.paint),
             stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end", "dash", "dashOffset"])
+                let stroke = try value.object(keys: ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
 
                 return PathStroke(
                     width: try stroke.member("width").number(),
-                    color: try values.color(stroke.member("color")),
+                    paint: try values.paint(stroke.member("paint")),
                     join: try literal(stroke.member("join")),
                     cap: try literal(stroke.member("cap")),
                     start: try literal(stroke.member("start")),

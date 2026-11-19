@@ -83,7 +83,7 @@ struct DisplayListReaderTests {
         DisplayItem(
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 1080, height: 1920), radius: 16),
-                fill: Color(written: "#00000099"),
+                fill: .color(Color(written: "#00000099")),
                 stroke: nil,
                 shadow: DropShadow(radius: 4, offset: Point(x: 2, y: 3), color: Color(written: "#00000080"))
             )),
@@ -100,7 +100,7 @@ struct DisplayListReaderTests {
                 fill: nil,
                 stroke: PathStroke(
                     width: 6,
-                    color: Color(written: "#FF3B30"),
+                    paint: .color(Color(written: "#FF3B30")),
                     join: .miter,
                     cap: .square,
                     start: .none,
@@ -112,7 +112,7 @@ struct DisplayListReaderTests {
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 240, y: 175), Point(x: 300, y: 175)], isClosed: false),
             fill: nil,
-            stroke: PathStroke(width: 6, color: Color(written: "#FF3B30"), join: .round, cap: .round, start: .none, end: .arrow),
+            stroke: PathStroke(width: 6, paint: .color(Color(written: "#FF3B30")), join: .round, cap: .round, start: .none, end: .arrow),
             trim: Trim(start: 0, end: 0.6)
         ))),
         DisplayItem(
@@ -136,10 +136,32 @@ struct DisplayListReaderTests {
         DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.saturation(amount: 0)])]))),
         DisplayItem(content: .path(PathItem(
             geometry: .polyline([Point(x: 0, y: 0), Point(x: 40, y: 0), Point(x: 20, y: 30)], isClosed: true),
-            fill: Color(written: "#3366CC"),
-            stroke: PathStroke(width: 2.5, color: Color(written: "#FFFFFF80"), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
+            fill: .color(Color(written: "#3366CC")),
+            stroke: PathStroke(width: 2.5, paint: .color(Color(written: "#FFFFFF80")), join: .bevel, cap: .butt, start: .arrow, end: .arrow),
             trim: Trim(start: 0.75, end: 0.25),
             shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 0), color: Color(written: "#000000"))
+        ))),
+        DisplayItem(content: .path(PathItem(
+            geometry: .rect(Rectangle(x: 10, y: 20, width: 200, height: 100), radius: 0),
+            fill: .gradient(Gradient(
+                shape: .linear(from: Point(x: 10, y: 20), to: Point(x: 210, y: 20)),
+                stops: [GradientStop(offset: 0, color: Color(written: "#FF000000")), GradientStop(offset: 1, color: Color(written: "#0000FF"))]
+            )),
+            stroke: PathStroke(
+                width: 4,
+                paint: .gradient(Gradient(
+                    shape: .radial(center: Point(x: 110, y: 70), radius: 111.8),
+                    stops: [
+                        GradientStop(offset: 0, color: Color(written: "#FFFFFF")),
+                        GradientStop(offset: 0.5, color: Color(written: "#FFFFFF")),
+                        GradientStop(offset: 0.5, color: Color(written: "#00000080"))
+                    ]
+                )),
+                join: .round,
+                cap: .butt,
+                start: .none,
+                end: .arrow
+            )
         )))
     ]
 
@@ -497,8 +519,27 @@ struct DisplayListReaderTests {
         #expect(item["fill"] == .null)
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
-        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end", "dash", "dashOffset"])
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")
+    func writesPaint() throws {
+        // Given
+        let list = list(items: [Self.items[Self.items.count - 1]])
+
+        // When
+        let item = try #require(writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        #expect(item["fill"] == (try Fixture.json(##"""
+            { "linear": { "from": [10, 20], "to": [210, 20], "stops": [[0, "#FF000000"], [1, "#0000FFFF"]] } }
+            """##)))
+        #expect(item["stroke"]?.objectValue?["paint"] == (try Fixture.json(##"""
+            { "radial": { "center": [110, 70], "radius": 111.8, "stops": [[0, "#FFFFFFFF"], [0.5, "#FFFFFFFF"], [0.5, "#00000080"]] } }
+            """##)))
+        let colored = try #require(writer.document(self.list(items: [Self.items[5]])).objectValue?["items"]?.arrayValue?.first?.objectValue)
+        #expect(colored["stroke"]?.objectValue?["paint"] == .string("#FF3B30FF"))
     }
 
     @Test(
@@ -526,19 +567,29 @@ struct DisplayListReaderTests {
                 #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "color": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                ##"{ "width": 2, "paint": "#FFFFFFFF", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
                 "stroke",
                 #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
+            ),
+            (
+                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#FFFFFFFF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                "items[0].stroke.paint.linear.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
+            ),
+            (
+                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "#FFFFFFFF"], [0.2, "#000000FF"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             ("[0, 1.5]", "trim", "items[0].trim[1] (path): a trim runs from 0 to 1, found 1.5"),
             ("[-0.25, 1]", "trim", "items[0].trim[0] (path): a trim runs from 0 to 1, found -0.25"),

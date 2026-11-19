@@ -146,7 +146,7 @@ package struct DisplayListWriter: Sendable {
         let stroke = path.stroke.map { stroke in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "width", value: .number(stroke.width)),
-                JSONMember(key: "color", value: values.color(stroke.color)),
+                JSONMember(key: "paint", value: values.paint(stroke.paint)),
                 JSONMember(key: "join", value: .string(stroke.join.rawValue)),
                 JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
                 JSONMember(key: "start", value: .string(stroke.start.rawValue)),
@@ -158,7 +158,7 @@ package struct DisplayListWriter: Sendable {
 
         return [
             JSONMember(key: "geometry", value: values.geometry(path.geometry)),
-            JSONMember(key: "fill", value: path.fill.map(values.color) ?? .null),
+            JSONMember(key: "fill", value: path.fill.map(values.paint) ?? .null),
             JSONMember(key: "stroke", value: stroke ?? .null),
             JSONMember(key: "trim", value: values.numbers([path.trim.start, path.trim.end])),
             JSONMember(key: "shadow", value: shadow(path.shadow))

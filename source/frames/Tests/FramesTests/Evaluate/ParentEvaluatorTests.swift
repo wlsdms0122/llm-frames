@@ -224,7 +224,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -274,7 +274,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "card",
             track: track
@@ -318,7 +318,7 @@ struct ParentEvaluatorTests {
             content: .shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: target)],
                 fill: nil,
-                stroke: PathStroke(width: 2, color: red, join: .round, cap: .butt, start: .none, end: .none)
+                stroke: PathStroke(width: 2, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
             )),
             parent: "shot",
             track: track

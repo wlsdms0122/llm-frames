@@ -18,7 +18,7 @@ struct ShapeEvaluatorTests {
     private static let red = Color(written: "#FF0000")
     private static let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
     private static let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
-    private static let stroke = PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none)
+    private static let stroke = PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
     private static let shadow = DropShadow(radius: 6, offset: Point(x: 2, y: 4), color: red)
 
     private let sut = ShapeEvaluator()
@@ -288,7 +288,7 @@ struct ShapeEvaluatorTests {
             radius: 0,
             trim: [Keyframe(at: 0, value: trim)],
             fill: .off,
-            stroke: .stroke(PathStroke(width: 4, color: Self.red, join: .round, cap: .butt, start: .none, end: .arrow)),
+            stroke: .stroke(PathStroke(width: 4, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .arrow)),
             shadow: .off
         )
         let clip = clip(shape, box: nil, entrance: entrance)
@@ -320,7 +320,7 @@ struct ShapeEvaluatorTests {
         // Given
         // The shape's transform is its own scale, whose length factor is its scale factor, so a carried length is
         // written as it is.
-        let stroke = PathStroke(width: 2, color: Self.red, join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
+        let stroke = PathStroke(width: 2, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),

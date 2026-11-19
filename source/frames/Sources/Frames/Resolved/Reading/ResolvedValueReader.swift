@@ -6,7 +6,8 @@
 //
 
 // Reads the values a resolved sequence, a display list and a mix plan share, as `ResolvedValueWriter` writes them:
-// geometry, colours, eases, keyframe lists, filter operations, spans, animations, shaped text, and pinned files.
+// geometry, colours, paints, eases, keyframe lists, filter operations, spans, animations, shaped text, and pinned
+// files.
 struct ResolvedValueReader: Sendable {
     // MARK: - Property
     // The keys of pinned media, which an object holding it carries beside its own.
@@ -86,6 +87,57 @@ struct ResolvedValueReader: Sendable {
         let points = try corners.map(point)
 
         return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
+    }
+
+    // A path item's fill or stroke paint: a colour, or a gradient as one member named by its kind, `linear` or
+    // `radial` of a radius 0 or more, its stops at least two `[offset, colour]` with offsets from 0 to 1 in order.
+    func paint(_ value: PlacedJSONValue) throws -> Paint {
+        guard value.value.objectValue != nil else { return .color(try color(value)) }
+
+        let forms = ["linear", "radial"]
+        let paint = try value.object(keys: forms)
+        let written = forms.filter(paint.contains)
+        guard let name = written.first else {
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: forms)
+        }
+        guard written.count == 1 else {
+            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
+        }
+
+        let form = try paint.member(name)
+        let body = try form.object(keys: name == "linear" ? ["from", "to", "stops"] : ["center", "radius", "stops"])
+        let shape: GradientShape
+        if name == "linear" {
+            shape = .linear(from: try point(body.member("from")), to: try point(body.member("to")))
+        } else {
+            let radius = try body.member("radius")
+            guard try radius.number() >= 0 else {
+                throw ModelError.invalidValue(place: radius.place, kind: radius.kind, reason: "a radius is 0 or more")
+            }
+            shape = .radial(center: try point(body.member("center")), radius: try radius.number())
+        }
+
+        let list = try body.member("stops")
+        let stops = try list.elements().map { element in
+            let pair = try element.elements()
+            guard pair.count == 2 else { throw element.wrongType("[offset, colour]") }
+
+            return GradientStop(offset: try pair[0].number(), color: try color(pair[1]))
+        }
+        let offsets = stops.map(\.offset)
+        guard
+            stops.count >= 2,
+            offsets.allSatisfy({ (0...1).contains($0) }),
+            zip(offsets, offsets.dropFirst()).allSatisfy({ $0 <= $1 })
+        else {
+            throw ModelError.invalidValue(
+                place: list.place,
+                kind: list.kind,
+                reason: "a gradient has at least two stops, their offsets from 0 to 1 and in order"
+            )
+        }
+
+        return .gradient(Gradient(shape: shape, stops: stops))
     }
 
     // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `polyline`, which runs

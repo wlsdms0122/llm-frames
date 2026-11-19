@@ -31,18 +31,14 @@ struct ShapeEvaluator: Sendable {
         let factor = sample.lengthFactor
 
         let trim = shape.trim.value(at: time)
-        let fill: Color? = if case let .form(_, color) = shape.fill.sampled(at: time, as: LookStructureTable.fill) {
-            color.color
-        } else {
-            nil
-        }
         let path = PathItem(
             geometry: laid.geometry,
-            fill: fill,
+            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.fill), box: laid.box),
             stroke: PathStroke(
                 sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
                 factor: factor,
-                carried: carried
+                carried: carried,
+                box: laid.box
             ),
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
             shadow: DropShadow(
@@ -75,14 +71,15 @@ struct ShapeEvaluator: Sendable {
 
     // MARK: - Private
     // `carried` is what a length the transform carries is multiplied by, nil where the transform flattens the plane;
-    // the geometry then takes none.
+    // the geometry then takes none. `box` is the shape's box as written, before its outset, in the geometry's
+    // coordinates.
     private func laid(
         _ shape: ResolvedShape,
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
-    ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, carried: Double?)? {
+    ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?)? {
         let tracked = space.tracked(by: clip.parentTrack, at: time)
         let geometry: (Double) -> PathGeometry
         let bounds: Rectangle
@@ -130,7 +127,7 @@ struct ShapeEvaluator: Sendable {
         ).concatenating(tracked.transform)
         let carried = carried(by: transform, sample: sample)
 
-        return (geometry(carried ?? 0), transform, sample.opacity * motion.value(of: .opacity), carried)
+        return (geometry(carried ?? 0), bounds, transform, sample.opacity * motion.value(of: .opacity), carried)
     }
 
     // While the box changes size the anchor point stays the same fraction of it.
@@ -144,7 +141,7 @@ struct ShapeEvaluator: Sendable {
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
-    ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, carried: Double?) {
+    ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?) {
         let size = Size(width: width.value(at: time), height: height.value(at: time))
         let anchor = Point(
             x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
@@ -160,13 +157,13 @@ struct ShapeEvaluator: Sendable {
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
         let carried = carried(by: presentation.transform, sample: sample)
-        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
-            .grown(by: length(outset, at: time) * (carried ?? 0))
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let outline = box.grown(by: length(outset, at: time) * (carried ?? 0))
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
             : .rect(outline, radius: length(shape.radius, at: time) * (carried ?? 0))
 
-        return (geometry, presentation.transform, presentation.opacity, carried)
+        return (geometry, box, presentation.transform, presentation.opacity, carried)
     }
 
     // A carried length at the clip's scale factor over the transform's length factor, nil where the transform

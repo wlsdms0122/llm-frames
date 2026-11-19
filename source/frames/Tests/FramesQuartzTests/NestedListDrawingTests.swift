@@ -82,13 +82,13 @@ struct NestedListDrawingTests {
     func stretchesNestedStroke() throws {
         // Given
         let transform = Frames.AffineTransform(a: 3, b: 0, c: 0, d: 1.5, tx: -6, ty: 4)
-        let stroke = PathStroke(width: 1.3, color: Self.white, join: .miter, cap: .butt, start: .none, end: .none)
+        let stroke = PathStroke(width: 1.3, paint: .color(Self.white), join: .miter, cap: .butt, start: .none, end: .none)
         let stroked = PathItem(
             geometry: .polyline([Point(x: 1.7, y: 18.2), Point(x: 17.9, y: 1.4)], isClosed: false),
             fill: nil,
             stroke: stroke
         )
-        let filled = PathItem(geometry: band(), fill: Self.white, stroke: nil)
+        let filled = PathItem(geometry: band(), fill: .color(Self.white), stroke: nil)
 
         // When
         let line = try sut.frame(of: list(size: 40, items: [shown(stroked, by: transform)]))
@@ -257,10 +257,10 @@ struct NestedListDrawingTests {
     private func scene() -> DisplayList {
         let ellipse = PathItem(
             geometry: .ellipse(Rectangle(x: 2.3, y: 3.1, width: 12.4, height: 9.7)),
-            fill: Color(written: "#FF0000"),
+            fill: .color(Color(written: "#FF0000")),
             stroke: nil
         )
-        let line = PathItem(geometry: band(), fill: Color(written: "#0000FF"), stroke: nil)
+        let line = PathItem(geometry: band(), fill: .color(Color(written: "#0000FF")), stroke: nil)
         let square = PathItem(filling: Rectangle(x: 13.2, y: 12.6, width: 5.1, height: 4.3), color: Color(written: "#00FF00"))
 
         return DisplayList(size: Size(width: 20, height: 20), background: Self.clear, seed: 0, items: [
@@ -293,7 +293,7 @@ struct NestedListDrawingTests {
     private func effects() -> DisplayList {
         let shadowed = PathItem(
             geometry: .rect(Rectangle(x: 6, y: 6, width: 14, height: 10), radius: 0),
-            fill: Color(written: "#FF0000"),
+            fill: .color(Color(written: "#FF0000")),
             stroke: nil,
             shadow: DropShadow(radius: 2, offset: Point(x: 3, y: 2), color: Self.black)
         )
@@ -306,7 +306,7 @@ struct NestedListDrawingTests {
         )
         let ellipse = PathItem(
             geometry: .ellipse(Rectangle(x: 20, y: 18, width: 14, height: 14)),
-            fill: Color(written: "#0000FF"),
+            fill: .color(Color(written: "#0000FF")),
             stroke: nil
         )
         let inner = DisplayList(size: Size(width: 10, height: 10), background: Self.clear, seed: 0, items: [
@@ -322,7 +322,7 @@ struct NestedListDrawingTests {
         let matteSource = DisplayList(size: Size(width: 40, height: 40), background: Self.clear, seed: 0, items: [
             DisplayItem(content: .path(PathItem(
                 geometry: .ellipse(Rectangle(x: 24, y: 4, width: 12, height: 12)),
-                fill: Self.black,
+                fill: .color(Self.black),
                 stroke: nil
             )))
         ])

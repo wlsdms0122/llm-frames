@@ -27,7 +27,7 @@ struct FrameDrawerTests {
         // At scale 2 the square is (45, 45, 10, 10) on the output and its shadow's offset (30, 20).
         let path = PathItem(
             geometry: .rect(Rectangle(x: 22.5, y: 22.5, width: 5, height: 5), radius: 0),
-            fill: Self.white,
+            fill: .color(Self.white),
             stroke: nil,
             shadow: DropShadow(radius: 3, offset: Point(x: 15, y: 10), color: Self.black)
         )
@@ -66,7 +66,7 @@ struct FrameDrawerTests {
         // Given
         let path = PathItem(
             geometry: .rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 0),
-            fill: Self.white,
+            fill: .color(Self.white),
             stroke: nil,
             shadow: DropShadow(radius: 0, offset: Point(x: 4, y: 4), color: Self.black)
         )
@@ -89,14 +89,14 @@ struct FrameDrawerTests {
             reveal: Rectangle(x: 10, y: 10, width: 20, height: 10),
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 10, y: 10, width: 40, height: 10), radius: 0),
-                fill: Self.white,
+                fill: .color(Self.white),
                 stroke: nil,
                 shadow: DropShadow(radius: 0, offset: Point(x: 0, y: 20), color: Self.black)
             ))
         )
         let outside = DisplayItem(content: .path(PathItem(
             geometry: .rect(Rectangle(x: -30, y: 50, width: 20, height: 10), radius: 0),
-            fill: Self.white,
+            fill: .color(Self.white),
             stroke: nil,
             shadow: DropShadow(radius: 0, offset: Point(x: 40, y: 0), color: Self.black)
         )))
@@ -126,7 +126,7 @@ struct FrameDrawerTests {
             )],
             content: .path(PathItem(
                 geometry: .rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 0),
-                fill: Self.white,
+                fill: .color(Self.white),
                 stroke: nil,
                 shadow: DropShadow(radius: 0, offset: Point(x: 10, y: 0), color: Self.black)
             ))

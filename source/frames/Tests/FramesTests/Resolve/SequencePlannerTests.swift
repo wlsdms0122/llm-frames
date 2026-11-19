@@ -621,7 +621,7 @@ struct SequencePlannerTests {
             fill: .off,
             stroke: .stroke(PathStroke(
                 width: 8 * MergedTheme.base.lengthScale(at: 2160),
-                color: MergedTheme.base.color("accent"),
+                paint: .color(MergedTheme.base.color("accent")),
                 join: .round,
                 cap: .butt,
                 start: .none,

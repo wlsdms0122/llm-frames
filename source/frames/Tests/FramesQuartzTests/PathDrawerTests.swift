@@ -31,7 +31,7 @@ struct PathDrawerTests {
             let angle = (-90 + 144 * Double(index)) * .pi / 180
             return Point(x: 50 + 40 * cos(angle), y: 50 + 40 * sin(angle))
         }
-        let path = PathItem(geometry: .polyline(points, isClosed: true), fill: Self.black, stroke: nil)
+        let path = PathItem(geometry: .polyline(points, isClosed: true), fill: .color(Self.black), stroke: nil)
 
         // When
         let bitmap = try sut.frame(of: list([path]))
@@ -46,7 +46,7 @@ struct PathDrawerTests {
     func fillsOpenPolylineClosed() throws {
         // Given
         let points = [Point(x: 10, y: 10), Point(x: 90, y: 10), Point(x: 10, y: 90)]
-        let path = PathItem(geometry: .polyline(points, isClosed: false), fill: Self.black, stroke: nil)
+        let path = PathItem(geometry: .polyline(points, isClosed: false), fill: .color(Self.black), stroke: nil)
 
         // When
         let bitmap = try sut.frame(of: list([path]))
@@ -278,7 +278,7 @@ struct PathDrawerTests {
         let arrow = PathItem(
             geometry: .polyline([Point(x: 10, y: 20), Point(x: 90, y: 20)], isClosed: false),
             fill: nil,
-            stroke: PathStroke(width: 4, color: color, join: .round, cap: .round, start: .none, end: .arrow)
+            stroke: PathStroke(width: 4, paint: .color(color), join: .round, cap: .round, start: .none, end: .arrow)
         )
         let crossing = PathItem(
             geometry: .polyline(
@@ -286,7 +286,7 @@ struct PathDrawerTests {
                 isClosed: false
             ),
             fill: nil,
-            stroke: PathStroke(width: 6, color: color, join: .round, cap: .butt, start: .none, end: .none)
+            stroke: PathStroke(width: 6, paint: .color(color), join: .round, cap: .butt, start: .none, end: .none)
         )
 
         // When
@@ -305,10 +305,10 @@ struct PathDrawerTests {
         // Given
         let path = PathItem(
             geometry: .rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 0),
-            fill: Color(written: "#FF0000"),
+            fill: .color(Color(written: "#FF0000")),
             stroke: PathStroke(
                 width: 8,
-                color: Color(written: "#0000FF"),
+                paint: .color(Color(written: "#0000FF")),
                 join: .miter,
                 cap: .butt,
                 start: .none,
@@ -463,7 +463,7 @@ struct PathDrawerTests {
         let end = isScaled ? Point(x: 50, y: 50) : Point(x: 90, y: 50)
         let stroke = PathStroke(
             width: 4,
-            color: Self.black,
+            paint: .color(Self.black),
             join: .miter,
             cap: .butt,
             start: .none,
@@ -491,7 +491,7 @@ struct PathDrawerTests {
     func drawsArrowheadOverDashes() throws {
         // Given
         // The head runs from x = 74 to its tip at 90; the dashes of 2 every 32 fall at 10, 42 and 74.
-        let stroke = PathStroke(width: 4, color: Self.black, join: .miter, cap: .butt, start: .none, end: .arrow, dash: [2, 30])
+        let stroke = PathStroke(width: 4, paint: .color(Self.black), join: .miter, cap: .butt, start: .none, end: .arrow, dash: [2, 30])
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
 
         // When
@@ -518,7 +518,7 @@ struct PathDrawerTests {
         inked: [Bool]
     ) throws {
         // Given
-        let stroke = PathStroke(width: 10, color: Self.black, join: .miter, cap: cap, start: .none, end: .none, dash: [0, 20])
+        let stroke = PathStroke(width: 10, paint: .color(Self.black), join: .miter, cap: cap, start: .none, end: .none, dash: [0, 20])
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
 
         // When
@@ -534,7 +534,7 @@ struct PathDrawerTests {
     func carriesDashesOnStretchedEllipse() throws {
         // Given
         let quarter = Double.pi * 10
-        let stroke = PathStroke(width: 4, color: Self.black, join: .miter, cap: .butt, start: .none, end: .none, dash: [quarter, quarter])
+        let stroke = PathStroke(width: 4, paint: .color(Self.black), join: .miter, cap: .butt, start: .none, end: .none, dash: [quarter, quarter])
         let path = PathItem(geometry: .ellipse(Rectangle(x: 30, y: 30, width: 40, height: 40)), fill: nil, stroke: stroke)
         let item = DisplayItem(transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: -50, ty: 0), content: .path(path))
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
@@ -569,7 +569,7 @@ struct PathDrawerTests {
         PathItem(
             geometry: geometry,
             fill: nil,
-            stroke: PathStroke(width: width, color: Self.black, join: join, cap: cap, start: start, end: end),
+            stroke: PathStroke(width: width, paint: .color(Self.black), join: join, cap: cap, start: start, end: end),
             trim: trim
         )
     }

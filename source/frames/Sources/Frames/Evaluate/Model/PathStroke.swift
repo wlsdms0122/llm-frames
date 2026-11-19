@@ -5,13 +5,13 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A stroke centred on an outline. `dash` is nil for a whole stroke, or an even number of lengths, the dashes and gaps
-// in turn, laid from the start of the stroke as drawn and moved back along it by `dashOffset`. The dash lengths are
-// in the item's own coordinates, carried by its transform with the outline.
+// A stroke centred on an outline, its `paint` colouring its arrowheads too. `dash` is nil for a whole stroke, or an
+// even number of lengths, the dashes and gaps in turn, laid from the start of the stroke as drawn and moved back along
+// it by `dashOffset`. The dash lengths are in the item's own coordinates, carried by its transform with the outline.
 package struct PathStroke: Equatable, Sendable {
     // MARK: - Property
     package let width: Double
-    package let color: Color
+    package let paint: Paint
     package let join: StrokeJoin
     package let cap: StrokeCap
     package let start: StrokeEnd
@@ -22,7 +22,7 @@ package struct PathStroke: Equatable, Sendable {
     // MARK: - Initializer
     package init(
         width: Double,
-        color: Color,
+        paint: Paint,
         join: StrokeJoin,
         cap: StrokeCap,
         start: StrokeEnd,
@@ -31,7 +31,7 @@ package struct PathStroke: Equatable, Sendable {
         dashOffset: Double = 0
     ) {
         self.width = width
-        self.color = color
+        self.paint = paint
         self.join = join
         self.cap = cap
         self.start = start

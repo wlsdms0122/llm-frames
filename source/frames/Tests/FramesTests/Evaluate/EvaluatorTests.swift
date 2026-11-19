@@ -565,7 +565,7 @@ struct EvaluatorTests {
                         radius: 2,
                         trim: [Keyframe(at: 0, value: .whole)],
                         fill: .off,
-                        stroke: .stroke(PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none)),
+                        stroke: .stroke(PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)),
                         shadow: .off
                     )),
                     storyline: 0,
@@ -663,7 +663,7 @@ struct EvaluatorTests {
     @Test("a rect placed by its area under a turned shape on a picture stretched along x is skewed by the whole map, its stroke not")
     func skewsGeometryThroughParent() throws {
         // Given
-        let stroke = PathStroke(width: 4, color: red, join: .miter, cap: .butt, start: .none, end: .none)
+        let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .none)
         let card = geometryClip(
             id: "card",
             parent: "shot",

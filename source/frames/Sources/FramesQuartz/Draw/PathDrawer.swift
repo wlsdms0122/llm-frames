@@ -27,7 +27,7 @@ struct PathDrawer {
     ) {
         let outline = PathOutline(item.geometry)
 
-        if let fill = item.fill {
+        if case let .color(fill) = item.fill {
             context.addPath(outline.fillPath)
             context.setFillColor(fill.cgColor)
             context.fillPath(using: .winding)
@@ -35,6 +35,7 @@ struct PathDrawer {
 
         guard
             let stroke = item.stroke,
+            case let .color(color) = stroke.paint,
             let back = transform.inverse,
             case let (carried, drawn)? = item.carriedStroke(by: transform),
             drawn.isDrawn,
@@ -45,7 +46,7 @@ struct PathDrawer {
         guard let placed = shape.copy(using: &matrix) else { return }
 
         context.addPath(placed)
-        context.setFillColor(stroke.color.cgColor)
+        context.setFillColor(color.cgColor)
         context.fillPath(using: .winding)
     }
 
@@ -116,7 +117,7 @@ struct PathDrawer {
         return parts.dropFirst().reduce(base) { shape, dot in shape.union(dot, using: .winding) }
     }
 
-    // A dash of no length, as SVG draws it: its caps alone, a circle for `round` and a square along the outline's
+    // A dash of no length: its caps alone, a circle for `round` and a square along the outline's
     // direction for `square`, and nothing for `butt`.
     private func dot(
         of stroke: PathStroke,

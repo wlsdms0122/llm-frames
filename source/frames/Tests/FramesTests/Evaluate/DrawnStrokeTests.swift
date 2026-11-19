@@ -15,7 +15,7 @@ struct DrawnStrokeTests {
     // MARK: - Property
     private static let stroke = PathStroke(
         width: 2,
-        color: Color(written: "#FF0000"),
+        paint: .color(Color(written: "#FF0000")),
         join: .round,
         cap: .butt,
         start: .arrow,
@@ -64,7 +64,7 @@ struct DrawnStrokeTests {
     @Test("a stroke with no width or no part of its outline draws nothing")
     func drawsNothing() {
         // Given
-        let thin = PathStroke(width: 0, color: Self.stroke.color, join: .round, cap: .butt, start: .none, end: .none)
+        let thin = PathStroke(width: 0, paint: Self.stroke.paint, join: .round, cap: .butt, start: .none, end: .none)
 
         // When
         let empty = DrawnStroke(stroke: Self.stroke, trim: Trim(start: 0.5, end: 0.5), isClosed: false)

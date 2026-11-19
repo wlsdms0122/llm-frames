@@ -28,7 +28,7 @@ struct ShapeKeyframeTests {
         // Then
         #expect(shape.stroke.stroke(at: 0.5) == PathStroke(
             width: 4,
-            color: Color(written: "#808080"),
+            paint: .color(Color(written: "#808080")),
             join: .round,
             cap: .butt,
             start: .none,
@@ -65,7 +65,7 @@ struct ShapeKeyframeTests {
 
         // Then
         #expect(shape.stroke.stroke(at: 0.5)?.width == 2)
-        #expect(shape.stroke.stroke(at: 0.5)?.color == MergedTheme.base.color("accent"))
+        #expect(shape.stroke.stroke(at: 0.5)?.paint == .color(MergedTheme.base.color("accent")))
     }
 
     @Test("fill colours interpolate per channel and a static fill colour stays under keyframes of another key")
@@ -77,7 +77,7 @@ struct ShapeKeyframeTests {
             """##)
 
         // Then
-        #expect(moved.fill.fillColor(at: 0.5) == Color(written: "#800080"))
+        #expect(moved.fill.fill(at: 0.5) == .color(Color(written: "#800080")))
     }
 
     @Test("shadow true in a keyframe is the merged shadow, so a shadow moves from a written radius to the style's")

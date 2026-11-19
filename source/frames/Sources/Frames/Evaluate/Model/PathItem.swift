@@ -10,7 +10,7 @@
 package struct PathItem: Equatable, Sendable {
     // MARK: - Property
     package let geometry: PathGeometry
-    package let fill: Color?
+    package let fill: Paint?
     package let stroke: PathStroke?
     package let trim: Trim
     package let shadow: DropShadow?
@@ -18,7 +18,7 @@ package struct PathItem: Equatable, Sendable {
     // MARK: - Initializer
     package init(
         geometry: PathGeometry,
-        fill: Color?,
+        fill: Paint?,
         stroke: PathStroke?,
         trim: Trim = .whole,
         shadow: DropShadow? = nil
@@ -35,7 +35,7 @@ package struct PathItem: Equatable, Sendable {
         filling rectangle: Rectangle,
         color: Color
     ) {
-        self.init(geometry: .rect(rectangle, radius: 0), fill: color, stroke: nil)
+        self.init(geometry: .rect(rectangle, radius: 0), fill: .color(color), stroke: nil)
     }
 
     // MARK: - Public

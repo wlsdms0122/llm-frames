@@ -36,8 +36,16 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
             TimedMember(key: "dash", value: .list(lengths.map { .held(.number($0)) }))
         }
 
+        let paint: TimedMember = switch stroke.paint {
+        case let .color(color):
+            TimedMember(key: "color", value: .held(.color(color)))
+
+        case .gradient:
+            TimedMember(key: "gradient", value: .off)
+        }
+
         return .object([
-            TimedMember(key: "color", value: .held(.color(stroke.color))),
+            paint,
             TimedMember(key: "width", value: .held(.number(stroke.width))),
             TimedMember(key: "join", value: .fixed(.string(stroke.join.rawValue))),
             TimedMember(key: "cap", value: .fixed(.string(stroke.cap.rawValue))),
@@ -118,14 +126,18 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         return .form("op:" + name, .object(members))
     }
 
-    func fillColor(at time: Double = 0) -> Color? {
-        guard case let .form(_, color) = sampled(at: time, as: LookStructureTable.fill) else { return nil }
-
-        return color.color
+    func fill(
+        at time: Double = 0,
+        box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
+    ) -> Paint? {
+        Paint(sampled: sampled(at: time, as: LookStructureTable.fill), box: box)
     }
 
-    func stroke(at time: Double = 0) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1)
+    func stroke(
+        at time: Double = 0,
+        box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
+    ) -> PathStroke? {
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {
