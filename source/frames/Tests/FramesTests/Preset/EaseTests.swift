@@ -109,6 +109,28 @@ struct EaseTests {
         #expect((peak > 1 + 1e-12) == overshoots, "bounce \(bounce) peaked at \(peak)")
     }
 
+    @Test(
+        "an ease's range over a span of progress is its extremes there, overshoots included",
+        arguments: [
+            Ease.linear, .easeIn, .easeOut, .easeInOut, .backOut, .bounceOut, .step,
+            .cubicBezier(x1: 0.3, y1: -0.6, x2: 0.7, y2: 1.6), .cubicBezier(x1: 0.25, y1: 0.1, x2: 0.25, y2: 1),
+            .spring(bounce: -0.5), .spring(bounce: 0), .spring(bounce: 0.3), .spring(bounce: 0.7)
+        ]
+    )
+    func givesRange(sut: Ease) {
+        for (start, end) in [(0.0, 1.0), (0.1, 0.5), (0.5, 0.9), (0.4, 0.4)] {
+            // When
+            let range = sut.range(from: start, to: end)
+
+            // Then
+            let sampled = (0...4000).map { sut.value(at: start + (end - start) * Double($0) / 4000) }
+            let low = sampled.min() ?? 0
+            let high = sampled.max() ?? 0
+            #expect(range.lowerBound <= low + 1e-12 && range.lowerBound > low - 1e-2, "\(sut) from \(start) to \(end)")
+            #expect(range.upperBound >= high - 1e-12 && range.upperBound < high + 1e-2, "\(sut) from \(start) to \(end)")
+        }
+    }
+
     @Test("an ease is read from its name or from four numbers")
     func readsFromJSON() {
         // Given

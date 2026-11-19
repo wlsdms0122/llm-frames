@@ -58,7 +58,7 @@ struct ResolveEndToEndTests {
             #expect(abs(along) <= trackTolerance, "frame \(index) moved \(along) along the line")
         }
 
-        let title = try #require(plan.clips[1].title)
+        let title = try #require(plan.clips[1].title?.layout)
         #expect(title.runs.map(\.face.name) == ["AppleSDGothicNeo-Bold", "HelveticaNeue-Bold", "AppleSDGothicNeo-Bold"])
         #expect(title.runs.allSatisfy { FileManager.default.fileExists(atPath: $0.face.file) })
         #expect(title.runs.flatMap(\.glyphs).count == "결제 완료".unicodeScalars.count)
@@ -83,7 +83,7 @@ struct ResolveEndToEndTests {
         let plan = try sut.plan(document)
 
         // Then
-        let title = try #require(plan.clips[0].title)
+        let title = try #require(plan.clips[0].title?.layout)
         #expect(title.runs.map(\.face.name) == ["HelveticaNeue-Bold", "HelveticaNeue", "HelveticaNeue"])
         #expect(title.runs.map(\.size) == [48, 36, 36])
         #expect(title.runs.map { $0.glyphs.count } == [3, 5, 8])

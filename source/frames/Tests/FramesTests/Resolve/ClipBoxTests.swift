@@ -65,7 +65,7 @@ struct ClipBoxTests {
         let geometry = try geometry(of: #"{ "title": "Hello", "style": "subtitle", "at": [0, 3] }"#)
 
         // Then
-        let size = try #require(geometry.title?.size)
+        let size = try #require(geometry.title?.layout.size)
         #expect(geometry.box?.size == size)
         #expect(geometry.box?.position == .value(.point(Point(x: 603, y: 2622 - 108 * (1206 / 1920.0)))))
         #expect(geometry.box?.anchor == Point(x: size.width / 2, y: size.height))

@@ -234,7 +234,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, seed: 0, at: time)
 
         // Then
         let item = try #require(items.first)
@@ -328,7 +328,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, seed: 0, at: time)
 
         // Then
         let item = try #require(items.first)

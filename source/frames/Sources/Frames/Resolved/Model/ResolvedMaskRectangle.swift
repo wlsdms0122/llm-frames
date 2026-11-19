@@ -6,10 +6,11 @@
 //
 
 // The rectangle of a rect or an ellipse mask, as the clip gives it: an area, or a box of `width` by `height` centred on
-// `position`, each a keyframe list of its own.
+// `position`, each a keyframe list of its own. An area or a position may be a clip area, which evaluation takes at
+// each instant before it samples the mask.
 enum ResolvedMaskRectangle: Equatable, Sendable {
-    case area([Keyframe<Rectangle>])
-    case box(width: [Keyframe<Double>], height: [Keyframe<Double>], position: [Keyframe<Point>])
+    case area([Keyframe<GeometryArea>])
+    case box(width: [Keyframe<Double>], height: [Keyframe<Double>], position: [Keyframe<GeometryPoint>])
 
     // MARK: - Property
     // MARK: - Initializer
@@ -18,7 +19,7 @@ enum ResolvedMaskRectangle: Equatable, Sendable {
     func sampled(at time: Double) -> Rectangle {
         switch self {
         case let .area(area):
-            let rectangle = area.value(at: time)
+            let rectangle = area.map { $0.map(\.fixed) }.value(at: time)
             return Rectangle(
                 x: rectangle.x,
                 y: rectangle.y,
@@ -28,7 +29,7 @@ enum ResolvedMaskRectangle: Equatable, Sendable {
 
         case let .box(width, height, position):
             return Rectangle(
-                center: position.value(at: time),
+                center: position.map { $0.map(\.fixed) }.value(at: time),
                 width: max(width.value(at: time), 0),
                 height: max(height.value(at: time), 0)
             )

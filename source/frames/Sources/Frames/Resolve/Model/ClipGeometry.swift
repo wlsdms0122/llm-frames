@@ -20,7 +20,7 @@ struct ClipGeometry: Equatable, Sendable {
     let mask: [ResolvedMask]?
     let track: TrackedMedia?
     let isInOutputPixels: Bool
-    let title: TextLayout?
+    let title: TitlePlan?
     let nested: SequencePlan?
     let appearance: ClipAppearance
 
@@ -34,7 +34,7 @@ struct ClipGeometry: Equatable, Sendable {
         mask: [ResolvedMask]?,
         track: TrackedMedia?,
         isInOutputPixels: Bool,
-        title: TextLayout?,
+        title: TitlePlan?,
         nested: SequencePlan?,
         appearance: ClipAppearance
     ) {

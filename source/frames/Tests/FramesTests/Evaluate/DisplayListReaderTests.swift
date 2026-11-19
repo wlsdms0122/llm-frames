@@ -120,12 +120,23 @@ struct DisplayListReaderTests {
             opacity: 0.75,
             content: .glyphs(GlyphsItem(
                 size: Size(width: 120, height: 48),
-                runs: [ResolvedGlyphRun(
+                runs: [DrawnGlyphRun(
                     font: PinnedFile(path: "/abs/Inter.ttf", sha256: hash),
                     face: "Inter-Bold",
                     size: 32,
                     color: Color(written: "#FFFFFF"),
                     stroke: TextStroke(width: 2, color: Color(written: "#000000")),
+                    highlight: DrawnHighlight(
+                        rects: [Rectangle(x: 10, y: 4, width: 50, height: 40)],
+                        radius: 4,
+                        color: Color(written: "#F2B705"),
+                        bands: [12...30]
+                    ),
+                    underline: DrawnUnderline(
+                        rects: [Rectangle(x: 12, y: 40, width: 46, height: 2)],
+                        color: Color(written: "#FFFFFF"),
+                        bands: nil
+                    ),
                     glyphs: [PositionedGlyph(id: 43, x: 12, y: 36), PositionedGlyph(id: 76, x: 34.5, y: 36)]
                 )],
                 background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "#111111CC"))
@@ -162,7 +173,8 @@ struct DisplayListReaderTests {
                 start: .none,
                 end: .arrow
             )
-        )))
+        ))),
+        DisplayItem(content: .glyphs(GlyphsItem(size: Size(width: 10, height: 10), runs: [], layer: .strokes, background: nil)))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -484,7 +496,8 @@ struct DisplayListReaderTests {
             (#""blend": "multiply""#, #""blend": "add""#, #"items[0].blend (picture): unknown value "add". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter, hue, saturation, color, luminosity"#),
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
-            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#)
+            (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
+            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#)
         ]
     )
     func refusesUnreadableMember(
@@ -526,7 +539,7 @@ struct DisplayListReaderTests {
     @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")
     func writesPaint() throws {
         // Given
-        let list = list(items: [Self.items[Self.items.count - 1]])
+        let list = list(items: [Self.items[10]])
 
         // When
         let item = try #require(writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue)

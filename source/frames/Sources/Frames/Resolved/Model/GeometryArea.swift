@@ -27,10 +27,10 @@ enum GeometryArea: Equatable, Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
-    func map(_ transform: (Rectangle) -> Rectangle) -> GeometryArea {
+    func map(_ transform: (Rectangle) throws -> Rectangle) rethrows -> GeometryArea {
         guard case let .rectangle(rectangle) = self else { return self }
 
-        return .rectangle(transform(rectangle))
+        return .rectangle(try transform(rectangle))
     }
 
     // MARK: - Private

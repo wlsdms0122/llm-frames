@@ -30,7 +30,7 @@ struct ResolveCommand: Command {
         }
 
         let document = try context.document(options.document, arguments: options.arguments, command: name)
-        let resolved = try document.resolved(by: context.planner)
+        let resolved = try document.resolved(in: context)
 
         try context.write(ResolvedDocumentWriter().write(resolved), to: options.output)
         try context.reportWritten(options.output)

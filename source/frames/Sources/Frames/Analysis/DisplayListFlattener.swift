@@ -9,8 +9,8 @@
 // list is replaced by that list's background and items, carried through the picture's source rect, destination and
 // transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
 // covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
-// arrowheads, a glyphs item's box, and an adjustment's list frame, each cut to the region its masks bound
-// (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
+// arrowheads, a glyphs item's box (a unit's item cut to its unit's box by its reveal), and an adjustment's list frame,
+// each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
 // source is not drawn as items of the list, and does not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
@@ -63,7 +63,12 @@ struct DisplayListFlattener: Sendable {
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
 
         case let .glyphs(glyphs):
-            let box = Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
+            // A title's background drawn alone, under its units, covers only its rect, or nothing without one.
+            let box = glyphs.runs.isEmpty && glyphs.layer == nil
+                ? glyphs.background?.rectangle
+                : Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
+            guard let box else { return [] }
+
             coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
 
         case .adjust:

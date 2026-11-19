@@ -242,6 +242,12 @@ struct ResolvedValueWriter: Sendable {
 
                 case let .numbers(numbers):
                     self.numbers(numbers)
+
+                case let .area(area):
+                    geometryArea(.clip(area))
+
+                case let .point(area, name):
+                    geometryPoint(.clip(area, point: name))
                 }
             }
 
@@ -298,7 +304,8 @@ struct ResolvedValueWriter: Sendable {
         ]
     }
 
-    // An entrance and an exit by their `seconds`, a loop by its `period`.
+    // An entrance and an exit by their `seconds`, a loop by its `period`, and `by` and `stagger` `null` unless a title
+    // plays by unit.
     func animation(_ animation: ResolvedAnimation) -> JSONValue {
         let span = { (span: AnimationSpan?, length: String) -> JSONValue in
             span.map { span in
@@ -309,36 +316,123 @@ struct ResolvedValueWriter: Sendable {
         return .object(JSONObject(members: [
             JSONMember(key: "entrance", value: span(animation.entrance, "seconds")),
             JSONMember(key: "loop", value: span(animation.loop, "period")),
-            JSONMember(key: "exit", value: span(animation.exit, "seconds"))
+            JSONMember(key: "exit", value: span(animation.exit, "seconds")),
+            JSONMember(key: "by", value: animation.units.map { .string($0.by.rawValue) } ?? .null),
+            JSONMember(key: "stagger", value: animation.units.map { .number($0.stagger) } ?? .null)
         ]))
     }
 
-    // Glyph runs carry their font file pinned, the face in it, size, colour and stroke, and each glyph as `[id, x, y]`,
-    // its baseline origin in the text's box.
+    // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
+    // underline pieces, and each glyph as `[id, x, y]`, its baseline origin in the text's box. A unit's part is
+    // `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "color", value: color(background.color)),
-                JSONMember(key: "padding", value: size(background.padding)),
-                JSONMember(key: "radius", value: .number(background.radius))
+                JSONMember(key: "color", value: timed(background.color)),
+                JSONMember(key: "padding", value: timed(background.padding)),
+                JSONMember(key: "radius", value: timed(background.radius))
             ]))
+        }
+
+        let lines = text.lines.map { lines in
+            JSONValue.array(lines.map { line in
+                .object(JSONObject(members: [
+                    JSONMember(key: "width", value: .number(line.width)),
+                    JSONMember(key: "baseline", value: .number(line.baseline)),
+                    JSONMember(key: "clusters", value: .array(line.clusters.map { cluster in
+                        numbers([Double(cluster.run), Double(cluster.first), Double(cluster.count)])
+                    }))
+                ]))
+            })
+        }
+
+        let units = text.units.map { units in
+            JSONValue.array(units.map { unit in
+                .object(JSONObject(members: [
+                    JSONMember(key: "box", value: rectangle(unit.box)),
+                    JSONMember(key: "glyphs", value: .array(unit.glyphs.map { glyphs in
+                        numbers([Double(glyphs.run), Double(glyphs.first), Double(glyphs.count)])
+                    })),
+                    JSONMember(key: "parts", value: .array(unit.parts.map { part in
+                        numbers([Double(part.run), Double(part.piece), part.span.lowerBound, part.span.upperBound])
+                    }))
+                ]))
+            })
         }
 
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
+            JSONMember(key: "textBox", value: rectangle(text.textBox)),
+            JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "align", value: .string(text.align.rawValue)),
+            JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
+            JSONMember(key: "lines", value: lines ?? .null),
+            JSONMember(key: "units", value: units ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))
     }
 
     func runs(_ runs: [ResolvedGlyphRun]) -> JSONValue {
         .array(runs.map { run in
+            let highlight = run.highlight.map { highlight in
+                JSONValue.object(JSONObject(members: [
+                    JSONMember(key: "color", value: timed(highlight.color)),
+                    JSONMember(key: "padding", value: timed(highlight.padding)),
+                    JSONMember(key: "radius", value: timed(highlight.radius)),
+                    JSONMember(key: "rects", value: .array(highlight.rects.map(rectangle)))
+                ]))
+            }
+            let underline = run.underline.map { underline in
+                JSONValue.object(JSONObject(members: [
+                    JSONMember(key: "color", value: timed(underline.color)),
+                    JSONMember(key: "width", value: timed(underline.width)),
+                    JSONMember(key: "offset", value: timed(underline.offset)),
+                    JSONMember(key: "rects", value: .array(underline.rects.map { numbers([$0.x, $0.y, $0.width]) }))
+                ]))
+            }
+
+            return .object(JSONObject(members: [JSONMember(key: "source", value: .number(Double(run.source)))]
+                + pinned(run.font)
+                + [
+                    JSONMember(key: "face", value: .string(run.face)),
+                    JSONMember(key: "size", value: .number(run.size)),
+                    JSONMember(key: "color", value: timed(run.color)),
+                    JSONMember(key: "stroke", value: timed(run.stroke)),
+                    JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
+                    JSONMember(key: "tracking", value: timed(run.tracking)),
+                    JSONMember(key: "highlight", value: highlight ?? .null),
+                    JSONMember(key: "underline", value: underline ?? .null),
+                    JSONMember(key: "glyphs", value: glyphs(run.glyphs))
+                ]
+            ))
+        })
+    }
+
+    // A `glyphs` item's runs at one instant, each with its colour and stroke.
+    func drawnRuns(_ runs: [DrawnGlyphRun]) -> JSONValue {
+        .array(runs.map { run in
             .object(JSONObject(members: pinned(run.font) + [
                 JSONMember(key: "face", value: .string(run.face)),
                 JSONMember(key: "size", value: .number(run.size)),
                 JSONMember(key: "color", value: color(run.color)),
                 JSONMember(key: "stroke", value: run.stroke.map(stroke) ?? .null),
-                JSONMember(key: "glyphs", value: .array(run.glyphs.map { numbers([Double($0.id), $0.x, $0.y]) }))
+                JSONMember(key: "highlight", value: run.highlight.map { highlight in
+                    .object(JSONObject(members: [
+                        JSONMember(key: "rects", value: .array(highlight.rects.map(rectangle))),
+                        JSONMember(key: "radius", value: .number(highlight.radius)),
+                        JSONMember(key: "color", value: color(highlight.color)),
+                        JSONMember(key: "bands", value: bands(highlight.bands))
+                    ]))
+                } ?? .null),
+                JSONMember(key: "underline", value: run.underline.map { underline in
+                    .object(JSONObject(members: [
+                        JSONMember(key: "rects", value: .array(underline.rects.map(rectangle))),
+                        JSONMember(key: "color", value: color(underline.color)),
+                        JSONMember(key: "bands", value: bands(underline.bands))
+                    ]))
+                } ?? .null),
+                JSONMember(key: "glyphs", value: glyphs(run.glyphs))
             ]))
         })
     }
@@ -365,7 +459,7 @@ struct ResolvedValueWriter: Sendable {
 
         case let .polyline(points):
             return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: point) })),
+                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: geometryPoint) })),
                 JSONMember(key: "closed", value: .bool(true))
             ])
         }
@@ -374,15 +468,23 @@ struct ResolvedValueWriter: Sendable {
     private func members(of rectangle: ResolvedMaskRectangle) -> [JSONMember] {
         switch rectangle {
         case let .area(area):
-            [JSONMember(key: "rect", value: keyframes(area, value: self.rectangle))]
+            [JSONMember(key: "rect", value: keyframes(area, value: geometryArea))]
 
         case let .box(width, height, position):
             [
                 JSONMember(key: "width", value: numbers(width)),
                 JSONMember(key: "height", value: numbers(height)),
-                JSONMember(key: "position", value: keyframes(position, value: point))
+                JSONMember(key: "position", value: keyframes(position, value: geometryPoint))
             ]
         }
+    }
+
+    private func bands(_ bands: [ClosedRange<Double>]?) -> JSONValue {
+        bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
+    }
+
+    private func glyphs(_ glyphs: [PositionedGlyph]) -> JSONValue {
+        .array(glyphs.map { numbers([Double($0.id), $0.x, $0.y]) })
     }
 
     private func stroke(_ stroke: TextStroke) -> JSONValue {

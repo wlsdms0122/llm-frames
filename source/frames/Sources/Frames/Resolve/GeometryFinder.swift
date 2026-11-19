@@ -34,8 +34,8 @@ struct GeometryFinder: Sendable {
         kind: String
     ) throws -> PropertyValue<AreaValue> {
         try values(property, key: key, clock: clock, instant: instant, place: place) { form, time, place in
-            if case let .clip(clip, padding) = form {
-                return .clip(ClipArea(clip: clip, padding: padding * lengthScale))
+            if let area = ClipArea(form: form, lengthScale: lengthScale) {
+                return .clip(area)
             }
 
             return .found(try area(
@@ -159,11 +159,11 @@ struct GeometryFinder: Sendable {
         place: Place,
         kind: String
     ) throws -> GeometryPoint {
-        guard case let .area(.clip(clip, padding), name) = form else {
+        guard case let .area(area, name) = form, let area = ClipArea(form: area, lengthScale: lengthScale) else {
             return .point(try point(form, in: picture, at: mediaTime, place: place, kind: kind))
         }
 
-        return .clip(ClipArea(clip: clip, padding: padding * lengthScale), point: name)
+        return .clip(area, point: name)
     }
 
     private func values<Form, Found>(

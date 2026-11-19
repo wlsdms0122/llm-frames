@@ -468,7 +468,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.lineCount == lineCount)
+        #expect(plan.clips[0].title?.layout.lineCount == lineCount)
     }
 
     @Test("a title is set at the length scale of the output")
@@ -481,8 +481,68 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.size == Size(width: 38, height: 76))
-        #expect(plan.clips[0].title?.runs.first?.size == 76)
+        #expect(plan.clips[0].title?.layout.size == Size(width: 38, height: 76))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 76)
+    }
+
+    @Test("a title's `character` merges over every run's style leaf by leaf and keeps what it does not write")
+    func mergesCharacterOverRuns() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "colors": { "accent": "#FFD43B" },
+                         "styles": { "caption": { "size": 40, "stroke": { "width": 4, "color": "#000000" } },
+                                     "small": { "size": 20 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption",
+                           "character": { "color": "accent", "stroke": { "width": 2 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title)
+        let characters = title.characters.map { $0.sampled(at: 0, as: LookStructureTable.character) }
+        #expect(characters.map { $0["color"]?.color } == [Color(written: "#FFD43B"), Color(written: "#FFD43B")])
+        #expect(title.layout.runs.map(\.size) == [40, 20])
+        #expect(characters.map { $0["stroke"]?["width"]?.number } == [2, 2])
+        #expect(characters.map { $0["stroke"]?["color"]?.color } == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+    }
+
+    @Test("a title's `paragraph` merges over its style's paragraph attributes, and its default line height follows `character`")
+    func mergesParagraphOverStyle() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "align": "left",
+                                                  "background": { "color": "#000000", "padding": [10, 20] } } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "a\nb", "style": "caption", "width": 200, "character": { "size": 80 },
+                           "paragraph": { "align": "right", "background": { "radius": 6 } },
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let title = try #require(plan.clips[0].title?.layout)
+        #expect(title.background == TextBackground(
+            color: Color(written: "#000000"),
+            padding: Size(width: 20, height: 10),
+            radius: 6
+        ))
+        #expect(title.runs.map { $0.glyphs.map(\.x) } == [[180], [180]])
+        #expect(title.runs.map { $0.glyphs.map(\.y) } == [[74], [174]])
+    }
+
+    @Test("a title's `character` stroke over a run style without one stops when it gives no width")
+    func refusesCharacterStrokeWithoutWidth() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "Hi", "style": "title", "character": { "stroke": { "color": "#FF0000" } },
+                           "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        #expect(throws: ResolveError.self) { try plan(document) }
     }
 
     @Test("a title naming a style the theme does not hold stops at its style, listing the styles the theme holds")
@@ -528,7 +588,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        let title = try #require(plan.clips[0].title)
+        let title = try #require(plan.clips[0].title?.layout)
         #expect(title.size == Size(width: 40, height: 176))
         #expect(title.background == nil)
         #expect(title.runs.map(\.size) == [80, 60])
@@ -562,7 +622,7 @@ struct SequencePlannerTests {
             """#)
 
         // Then
-        #expect(plan.clips[0].title?.runs.first?.size == 40 * (1206 / 1920.0))
+        #expect(plan.clips[0].title?.layout.runs.first?.size == 40 * (1206 / 1920.0))
     }
 
     @Test("a nested document is planned on its own, with its own format, for a storyline clip and another clip")
@@ -1015,7 +1075,7 @@ struct SequencePlannerTests {
         let box = ResolvedMaskRectangle.box(
             width: [Keyframe(at: 0, value: width)],
             height: [Keyframe(at: 0, value: height)],
-            position: [Keyframe(at: 0, value: position)]
+            position: [Keyframe(at: 0, value: .point(position))]
         )
         let geometry: ResolvedMaskGeometry = shape == .rect ? .rect(box, radius: [Keyframe(at: 0, value: 0)]) : .ellipse(box)
 

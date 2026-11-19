@@ -162,5 +162,11 @@ package struct AffineTransform: Equatable, Sendable {
         Quad(rectangle).applying(self).corners
     }
 
+    // How far a disc of `radius` about a point reaches from it along each axis once carried by the transform: the half
+    // width and half height of the ellipse it lands on.
+    func reach(ofDisc radius: Double) -> Size {
+        Size(width: radius * (a * a + c * c).squareRoot(), height: radius * (b * b + d * d).squareRoot())
+    }
+
     // MARK: - Private
 }

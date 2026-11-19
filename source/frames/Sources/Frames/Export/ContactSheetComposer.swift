@@ -49,7 +49,7 @@ struct ContactSheetComposer: Sendable {
             )
             let item = PictureItem(source: cells[index].picture, rectangle: nil, destination: picture)
             let layout = try typesetter.layout(
-                [TextRun(text: cells[index].label, style: character, face: face)],
+                [TextRun(text: cells[index].label, style: character, faces: [face])],
                 paragraph: paragraph,
                 width: nil,
                 place: .root,
@@ -74,7 +74,7 @@ struct ContactSheetComposer: Sendable {
     // MARK: - Private
     // The face is given, so the style's families and weight are not read.
     private func characterStyle(size: Double) -> CharacterStyle {
-        CharacterStyle(families: [], pack: nil, weight: .regular, size: size, color: Self.textColor, stroke: nil)
+        CharacterStyle(families: [], weight: .regular, size: size)
     }
 
     // The line box is the face's ascent and descent at the size, and the background lies around it.
@@ -107,9 +107,11 @@ struct ContactSheetComposer: Sendable {
             height: layout.size.height
         )
 
+        let text = try ResolvedText(layout: layout, color: Self.textColor, hashes: hasher)
+
         return DisplayItem(
             transform: AffineTransform(mapping: layout.size, onto: frame),
-            content: .glyphs(GlyphsItem(text: try ResolvedText(layout: layout, hashes: hasher)))
+            content: .glyphs(GlyphsItem(text: text, factor: 1, at: 0))
         )
     }
 

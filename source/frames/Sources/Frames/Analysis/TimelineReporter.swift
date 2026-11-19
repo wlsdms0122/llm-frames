@@ -122,7 +122,8 @@ package struct TimelineReporter: Sendable {
                 : TimelineAnimation(
                     entrance: animation.entrance.map(span),
                     loop: animation.loop.map(span),
-                    exit: animation.exit.map(span)
+                    exit: animation.exit.map(span),
+                    units: animation.units
                 ),
             nested: geometry.nested.map { report(of: $0) }
         )
@@ -191,7 +192,8 @@ package struct TimelineReporter: Sendable {
                 : TimelineAnimation(
                     entrance: animation.entrance.map(span),
                     loop: animation.loop.map(span),
-                    exit: animation.exit.map(span)
+                    exit: animation.exit.map(span),
+                    units: animation.units
                 ),
             nested: media.flatMap(nestedReport(of:))
         )

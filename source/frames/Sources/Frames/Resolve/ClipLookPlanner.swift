@@ -51,28 +51,12 @@ struct ClipLookPlanner: Sendable {
         defaults: JSONValue? = nil
     ) throws -> TimedValue {
         let place = self.place.appending(key: key)
-        let below = style.flatMap(theme.value(at:)).map { reader.value(of: $0, as: structure) }
-        let (written, keyframes) = read(property, as: structure)
-
-        let lookPlace = LookPlace(clip: self.place, key: key)
-        let merged = try builder.merged(
-            over: below,
-            written: written,
-            keyframes: keyframes,
-            as: structure,
-            place: lookPlace
-        )
-        guard let merged, merged != .off else { return .off }
-
-        do {
-            try merger.checkRequired(in: merged, keyframes: keyframes, as: structure, place: lookPlace)
-        } catch let LookError.missingLeaf(_, missing) {
-            let layer = below == .off ? style.map { path in
-                theme.place(of: path.reduce(Place.root) { $0.appending(key: $1) })
-            } : nil
-            throw ResolveError.missingLookLeaf(place: place, kind: kind, key: missing, layer: layer)
+        guard let merged = try self.merged(property, key: key, as: structure, style: style), merged != .off else {
+            return .off
         }
 
+        let (written, keyframes) = read(property, as: structure)
+        let lookPlace = LookPlace(clip: self.place, key: key)
         let completed = try defaults.map { defaults in
             try merger.merge(reader.value(of: defaults, as: structure), merged, as: structure, place: place)
         } ?? merged
@@ -88,21 +72,67 @@ struct ClipLookPlanner: Sendable {
         )
     }
 
+    // The clip's own layer merged over the theme value at `style`, nil where no layer writes the key. A key the merged
+    // value requires must be given by a layer or by the keyframes, which give a value at every instant. Only the keys
+    // the structure declares are read from the theme value, since a text style holds the character and the paragraph
+    // attributes in one object.
+    func merged(
+        _ property: LookProperty?,
+        key: String,
+        as structure: ValueStructure,
+        style: [String]? = nil
+    ) throws -> LookValue? {
+        let place = self.place.appending(key: key)
+        let below = style.flatMap(theme.value(at:)).map { reader.value(of: declared($0, as: structure), as: structure) }
+        let (written, keyframes) = read(property, as: structure)
+
+        let lookPlace = LookPlace(clip: self.place, key: key)
+        let merged = try builder.merged(
+            over: below,
+            written: written,
+            keyframes: keyframes,
+            as: structure,
+            place: lookPlace
+        )
+        guard let merged, merged != .off else { return merged }
+
+        do {
+            try merger.checkRequired(in: merged, keyframes: keyframes, as: structure, place: lookPlace)
+        } catch let LookError.missingLeaf(_, missing) {
+            let layer = below == .off ? style.map { path in
+                theme.place(of: path.reduce(Place.root) { $0.appending(key: $1) })
+            } : nil
+            throw ResolveError.missingLookLeaf(place: place, kind: kind, key: missing, layer: layer)
+        }
+
+        return merged
+    }
+
     // A key timed over a merged value its caller gives, as a choice merged over the theme's default is: the clip's
-    // static value is its own layer, and its keyframes write the leaves of the merged value.
+    // static value is its own layer, and its keyframes write the leaves of the merged value, completed over
+    // `defaults`, so a `null` in them may point at a default.
     func timed(
         _ property: LookProperty?,
         key: String,
         over merged: LookValue,
-        as structure: ValueStructure
+        as structure: ValueStructure,
+        defaults: JSONValue? = nil
     ) throws -> TimedValue {
         let lookPlace = LookPlace(clip: place, key: key)
         let (written, keyframes) = read(property, as: structure)
-        _ = try builder.ownLayer(written: merged, keyframes: keyframes, as: structure, place: lookPlace)
+        let completed = try defaults.map { defaults in
+            try merger.merge(
+                reader.value(of: defaults, as: structure),
+                merged,
+                as: structure,
+                place: place.appending(key: key)
+            )
+        } ?? merged
+        _ = try builder.ownLayer(written: completed, keyframes: keyframes, as: structure, place: lookPlace)
         guard merged != .off else { return .off }
 
         return try builder.timed(
-            merged,
+            completed,
             written: written,
             keyframes: keyframes,
             as: structure,
@@ -142,6 +172,15 @@ struct ClipLookPlanner: Sendable {
         return (written, keyframes)
     }
 
+    private func declared(
+        _ value: JSONValue,
+        as structure: ValueStructure
+    ) -> JSONValue {
+        guard case let .object(object) = structure, let members = value.objectValue?.members else { return value }
+
+        return .object(JSONObject(members: members.filter { object.structure(of: $0.key) != nil }))
+    }
+
     private func leaf(
         _ value: JSONValue,
         kind leaf: LeafKind,
@@ -160,7 +199,7 @@ struct ClipLookPlanner: Sendable {
         case .numbers:
             return .numbers((value.arrayValue ?? []).compactMap(\.numberValue).map { $0 * length })
 
-        case .number, .name, .boolean, .file:
+        case .number, .name, .boolean, .file, .staticNumber:
             return .number((value.numberValue ?? 0) * length)
         }
     }

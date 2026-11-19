@@ -65,7 +65,7 @@ struct ResolvedMask: Equatable, Sendable {
 
     // The same mask with each keyframe of its geometry carried to another space at its own time: an area, a box's
     // centre and each point by `area` and `point`, and a box's size and a rect's radius by the factor `scale` gives.
-    // The feather is in output pixels and stays.
+    // A clip area is in the space the clip is drawn in, so it stays, and the feather is in output pixels and stays.
     func carried(
         area: (Rectangle, Double, MaskLeaf) throws -> Rectangle,
         point: (Point, Double, MaskLeaf) throws -> Point,
@@ -83,7 +83,7 @@ struct ResolvedMask: Equatable, Sendable {
 
         case let .polyline(points):
             .polyline(try points.enumerated().map { index, keyframes in
-                try carried(keyframes) { try point($0, $1, .point(index)) }
+                try carried(keyframes) { value, time in try value.map { try point($0, time, .point(index)) } }
             })
         }
 
@@ -99,18 +99,18 @@ struct ResolvedMask: Equatable, Sendable {
     ) rethrows -> ResolvedMaskRectangle {
         switch rectangle {
         case let .area(keyframes):
-            .area(try carried(keyframes) { try area($0, $1, .area) })
+            .area(try carried(keyframes) { value, time in try value.map { try area($0, time, .area) } })
 
         case let .box(width, height, position):
             .box(
                 width: try carried(width) { try $0 * scale($1) },
                 height: try carried(height) { try $0 * scale($1) },
-                position: try carried(position) { try point($0, $1, .position) }
+                position: try carried(position) { value, time in try value.map { try point($0, time, .position) } }
             )
         }
     }
 
-    private func carried<Value: Interpolable>(
+    private func carried<Value>(
         _ keyframes: [Keyframe<Value>],
         by carry: (Value, Double) throws -> Value
     ) rethrows -> [Keyframe<Value>] {

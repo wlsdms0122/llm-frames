@@ -72,6 +72,7 @@ struct ClipSpace: Sendable {
         track: ResolvedTrack?,
         at time: Double
     ) -> [MaskSample] {
+        let masks = areas.map { areas in masks.map { $0.taking(areas, at: time) } } ?? masks
         guard let track, let clock else { return masks.map { $0.sampled(at: time) } }
 
         return track.masks(of: masks, on: clock, at: time)

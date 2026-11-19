@@ -14,6 +14,7 @@ struct LeafKind: Equatable, Sendable {
     static let color = LeafKind(form: .color)
     // A positive number heard by its ratio, as a frequency is, which moves geometrically between keyframes.
     static let ratio = LeafKind(form: .number, domain: .between(0, .infinity), interpolation: .geometric)
+    static let staticNumber = LeafKind(form: .staticNumber)
 
     let form: LeafForm
     let domain: LeafDomain

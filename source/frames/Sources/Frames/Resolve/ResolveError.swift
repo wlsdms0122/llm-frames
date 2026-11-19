@@ -56,6 +56,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
     case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
+    case unitsOnNonTitle(place: Place, kind: PlaceKind)
+    case staggerWithoutBy(place: Place, kind: PlaceKind)
+    case unitsWithoutSpan(place: Place, kind: PlaceKind)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
@@ -68,7 +71,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
     case clipAreaOnStoryline(place: Place, kind: PlaceKind)
-    case clipAreaInMask(place: Place, kind: PlaceKind)
     case textUnderClipArea(place: Place, kind: PlaceKind, parent: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
@@ -258,6 +260,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .partialChoiceOverList(place, kind, layer):
             "\(place) (\(kind.label)): a choice without a preset over the theme's default list (\(layer)), where which entry it changes is ambiguous"
 
+        case let .unitsOnNonTitle(place, kind):
+            "\(place) (\(kind.label)): `by` plays a title's animation by unit, and this clip is not a title"
+
+        case let .staggerWithoutBy(place, kind):
+            "\(place) (\(kind.label)): `stagger` spaces a title's units, and the choice names no unit with `by`"
+
+        case let .unitsWithoutSpan(place, kind):
+            "\(place) (\(kind.label)): `by` plays the entrance and the exit by unit, and the choice has neither"
+
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"
 
@@ -303,9 +314,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .clipAreaOnStoryline(place, kind):
             "\(place) (\(kind.label)): a storyline clip is placed by the storyline in output pixels, so it takes "
                 + "no clip area"
-
-        case let .clipAreaInMask(place, kind):
-            "\(place) (\(kind.label)): a clip area in a mask is not drawn by this version of frames"
 
         case let .textUnderClipArea(place, kind, parent):
             "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "

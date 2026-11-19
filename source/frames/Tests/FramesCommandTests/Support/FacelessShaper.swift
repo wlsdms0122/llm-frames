@@ -14,12 +14,11 @@ struct FacelessShaper: ShapingProvider {
     init() { }
 
     // MARK: - Public
-    func face(
+    func faces(
         family: String,
-        weight: FontWeight,
         in files: [String]
-    ) -> FontFace? {
-        nil
+    ) -> [FontFace] {
+        []
     }
 
     func face(
@@ -29,17 +28,17 @@ struct FacelessShaper: ShapingProvider {
         nil
     }
 
-    func installedFace(
-        family: String,
-        weight: FontWeight
-    ) -> FontFace? {
-        nil
+    func installedFaces(family: String) -> [FontFace] {
+        []
     }
 
     func shape(
         _ text: String,
-        face: FontFace,
-        size: Double
+        faces: [FontFace],
+        size: Double,
+        features: [FontFeature],
+        weight: FontWeight,
+        italic: Bool
     ) -> [ShapedRun] {
         []
     }

@@ -7,7 +7,8 @@
 
 // The time plan of a sequence. `clips` are in document order: each storyline clip's connected clips, then the
 // sequence clips. `sequence` is the document it was planned from and `theme` the theme merged for it, which the rest of
-// resolve reads on, with the `defaults` it gives.
+// resolve reads on, with the `defaults` it gives. `pack` is the pack the document is read from, whose fonts a font list
+// written in it looks in before the machine's, nil for a document outside every pack.
 struct TimePlan: Equatable, Sendable {
     // MARK: - Property
     let duration: Double
@@ -17,6 +18,7 @@ struct TimePlan: Equatable, Sendable {
     let sequence: SequenceDocument
     let theme: MergedTheme
     let defaults: ThemeDefaults
+    let pack: String?
 
     // MARK: - Initializer
     init(
@@ -26,7 +28,8 @@ struct TimePlan: Equatable, Sendable {
         clips: [ClipPlan],
         sequence: SequenceDocument,
         theme: MergedTheme,
-        defaults: ThemeDefaults
+        defaults: ThemeDefaults,
+        pack: String?
     ) {
         self.duration = duration
         self.fps = fps
@@ -35,6 +38,7 @@ struct TimePlan: Equatable, Sendable {
         self.sequence = sequence
         self.theme = theme
         self.defaults = defaults
+        self.pack = pack
     }
 
     // MARK: - Public
@@ -51,7 +55,8 @@ struct TimePlan: Equatable, Sendable {
             clips: clips,
             sequence: sequence,
             theme: theme,
-            defaults: defaults
+            defaults: defaults,
+            pack: pack
         )
     }
 

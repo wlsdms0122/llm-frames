@@ -17,22 +17,25 @@ struct ClipEvaluator: Sendable {
 
     // MARK: - Public
     // `picture` is a media clip's picture at the time, and nil for any other clip. `trackMatte` is the clip's track
-    // matte at the time, which cuts its items after its masks.
+    // matte at the time, which cuts its items after its masks. `seed` is the seed of the list the items are drawn in,
+    // which a list nested for a title's units takes.
     func items(
         of clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
         trackMatte: ItemTrackMatte?,
+        seed: Int,
         at time: Double
     ) -> [DisplayItem] {
         let mask = masks(of: clip, in: space, at: time)
 
-        return drawn(clip, in: space, picture: picture, at: time).map { $0.cut(by: mask, trackMatte: trackMatte) }
+        return drawn(clip, in: space, picture: picture, seed: seed, at: time)
+            .map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
-    // The map from the space the clip gives its children to output pixels: a title's text box, a media clip's media
-    // pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in. Opacity
-    // and reveal take no part.
+    // The map from the space the clip gives its children to output pixels: a title's box at the time, a media clip's
+    // media pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in.
+    // Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -41,15 +44,19 @@ struct ClipEvaluator: Sendable {
         let sample = ClipSample(clip: clip, at: time)
 
         switch clip.content {
-        case .title:
+        case let .title(text):
             guard let box = clip.box else { return space.transform }
 
-            return presentation(of: clip, box: box, sample: sample, in: space, at: time).transform
+            let drawn = text.box(at: time)
+            let size = Size(width: drawn.width, height: drawn.height)
+            let transform = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time).transform
+            return AffineTransform(translation: Point(x: drawn.x, y: drawn.y)).concatenating(transform)
 
         case .media:
             guard let box = clip.box else { return space.transform }
 
-            let transform = presentation(of: clip, box: box, sample: sample, in: space, at: time).transform
+            let transform = presentation(of: clip, box: box, size: box.size, sample: sample, in: space, at: time)
+                .transform
             guard let crop = clip.crop(at: time) else { return transform }
 
             return AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
@@ -76,6 +83,7 @@ struct ClipEvaluator: Sendable {
         _ clip: ResolvedClip,
         in space: ClipSpace,
         picture: PictureItemSource?,
+        seed: Int,
         at time: Double
     ) -> [DisplayItem] {
         let sample = ClipSample(clip: clip, at: time)
@@ -85,14 +93,27 @@ struct ClipEvaluator: Sendable {
             // A title carries its box.
             guard let box = clip.box else { return [] }
 
-            let glyphs = GlyphsItem(text: text)
-            return [boxItem(
+            let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
+            let item = boxItem(
                 of: clip,
                 box: box,
-                receiver: glyphs.drawnBounds(),
+                drawn: text.box(at: time),
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
+                at: time
+            ) { glyphs.drawnBounds(carriedBy: $0) }
+            guard let schedule = sample.schedule, let units = text.units else { return [item] }
+
+            return [group(
+                of: clip,
+                text: text,
+                units: units,
+                title: item,
+                glyphs: glyphs,
+                schedule: schedule,
+                in: space,
+                seed: seed,
                 at: time
             )]
 
@@ -121,12 +142,12 @@ struct ClipEvaluator: Sendable {
             return [boxItem(
                 of: clip,
                 box: box,
-                receiver: receiver ?? item.destination,
+                drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 sample: sample,
                 in: space,
                 content: .picture(item),
                 at: time
-            )]
+            ) { _ in receiver ?? item.destination }]
 
         case let .shape(shape):
             return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
@@ -136,32 +157,108 @@ struct ClipEvaluator: Sendable {
         }
     }
 
-    // `receiver` is what the item draws in its box's own pixels, which the reveal wipes across.
+    // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
+    // the title's opacity and blend, and its masks and track matte once they cut it, so its units do not show through
+    // each other. Inside, every item is in `title`'s box and takes its transform: the background as it is, and each
+    // unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. The loop
+    // plays only while every unit rests, so `title`'s reveal, the loop's, cuts every item in the title's box.
+    private func group(
+        of clip: ResolvedClip,
+        text: ResolvedText,
+        units: [PlacedUnit],
+        title item: DisplayItem,
+        glyphs: GlyphsItem,
+        schedule: UnitSchedule,
+        in space: ClipSpace,
+        seed: Int,
+        at time: Double
+    ) -> DisplayItem {
+        let origin = ItemOrigin(clip: clip)
+        let sampler = UnitSampler()
+        let cut = { (rectangle: Rectangle) -> Rectangle in
+            guard let reveal = item.reveal else { return rectangle }
+
+            return reveal.intersection(rectangle) ?? Rectangle(x: rectangle.x, y: rectangle.y, width: 0, height: 0)
+        }
+        let unitItems = units.indices.map { index in
+            let box = text.unitBox(of: index, at: time)
+            let sample = sampler.unit(index, of: clip.animation, schedule: schedule, at: time)
+            let presentation = ItemPresentation(area: box, opacity: 1, motion: sample.motion, carriedBy: item.transform)
+            let factor = Scale(sample.motion.value(of: .scale)).factor
+            let parts = text.parts(of: index, at: time)
+            let reveal = cut(sample.reveal.rectangle(wiping: box, from: sample.revealFrom) ?? box)
+
+            return GlyphLayer.allCases.map { layer in
+                DisplayItem(
+                    transform: presentation.transform,
+                    opacity: presentation.opacity,
+                    reveal: reveal,
+                    content: .glyphs(GlyphsItem(
+                        carrying: units[index].glyphs,
+                        parts: parts,
+                        of: glyphs,
+                        layer: layer,
+                        factor: factor
+                    )),
+                    origin: origin
+                )
+            }
+        }
+        let background = DisplayItem(
+            transform: item.transform,
+            reveal: item.reveal,
+            content: .glyphs(GlyphsItem(size: glyphs.size, runs: [], background: glyphs.background)),
+            origin: origin
+        )
+        let passes = GlyphLayer.allCases.indices.flatMap { layer in unitItems.map { $0[layer] } }
+        let list = DisplayList(
+            size: Size(width: space.frame.width, height: space.frame.height),
+            background: Color(written: "#00000000"),
+            seed: seed,
+            items: [background] + passes
+        )
+
+        return DisplayItem(
+            opacity: item.opacity,
+            blend: item.blend,
+            content: .picture(PictureItem(source: .displayList(list), rectangle: space.frame, destination: space.frame))
+        )
+    }
+
+    // `drawn` is the item's own box at the time, in the clip's box at its placed size, and `receiver` what the item
+    // draws in its own pixels under the item's transform, which the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
-        receiver: Rectangle,
+        drawn: Rectangle,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
-        at time: Double
+        at time: Double,
+        receiver: (AffineTransform) -> Rectangle
     ) -> DisplayItem {
-        let presentation = presentation(of: clip, box: box, sample: sample, in: space, at: time)
+        let size = Size(width: drawn.width, height: drawn.height)
+        let presentation = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time)
+        let transform = AffineTransform(translation: Point(x: drawn.x, y: drawn.y))
+            .concatenating(presentation.transform)
 
         return DisplayItem(
-            transform: presentation.transform,
+            transform: transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: receiver, from: sample.animation.revealFrom),
+            reveal: sample.animation.reveal.rectangle(wiping: receiver(transform), from: sample.animation.revealFrom),
             content: content
         )
     }
 
     // The box keeps its size in output pixels under a parent and its tracked motion: its anchor point goes where they
-    // carry it, and it turns by their map's rotation on top of its own, never mirrored.
+    // carry it, and it turns by their map's rotation on top of its own, never mirrored. `size` is the box's size at the
+    // time, which the animation's offset is in multiples of. A title's anchor point stays where resolve placed it while
+    // its box changes, so scale and rotation act about it.
     private func presentation(
         of clip: ResolvedClip,
         box: ResolvedBox,
+        size: Size,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
@@ -175,7 +272,7 @@ struct ClipEvaluator: Sendable {
             opacity: sample.opacity
         )
 
-        return ItemPresentation(box: box.size, anchor: box.anchor, values: values, motion: sample.animation.motion)
+        return ItemPresentation(box: size, anchor: box.anchor, values: values, motion: sample.animation.motion)
     }
 
     // Its opacity mixes the filtered result with what is below, and its blend composites the filtered result onto the

@@ -25,7 +25,7 @@ struct StillCommand: Command {
         in context: CommandContext
     ) throws {
         let document = try context.document(options.document, arguments: options.arguments, command: name)
-        let resolved = try document.resolved(by: context.planner)
+        let resolved = try document.resolved(in: context)
 
         try context.exporter.still(
             resolved,

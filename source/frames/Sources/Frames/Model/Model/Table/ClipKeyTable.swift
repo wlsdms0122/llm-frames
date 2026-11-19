@@ -102,7 +102,7 @@ enum ClipKeyTable {
             ["position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .title):
-            ["position", "scale", "rotation", "opacity", "mask"]
+            ["position", "scale", "rotation", "opacity", "mask"] + titleLookKeys
 
         case (_, .shape):
             [
@@ -153,7 +153,12 @@ enum ClipKeyTable {
 
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
-    static let lookKeys = ["radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter"]
+    static let lookKeys = [
+        "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter"
+    ] + titleLookKeys
+
+    // A title's character and paragraph attributes, merged over its styles' as every look key is.
+    static let titleLookKeys = ["character", "paragraph"]
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
@@ -210,7 +215,10 @@ enum ClipKeyTable {
             ]
 
         case (_, .title):
-            return everyClip + ["title", "style", "width", "placement", "position", "anchor", "scale", "rotation"]
+            return everyClip + [
+                "title", "style", "character", "paragraph", "width", "placement", "position", "anchor", "scale",
+                "rotation"
+            ]
 
         case let (_, .shape(shape)):
             return everyClip + everyShape + shapeKeys(of: shape)
@@ -308,6 +316,12 @@ enum ClipKeyTable {
 
         case "title":
             .runs
+
+        case "character":
+            .object(ThemeKeyTable.character)
+
+        case "paragraph":
+            .object(ThemeKeyTable.paragraph)
 
         case "style", "parent":
             .name

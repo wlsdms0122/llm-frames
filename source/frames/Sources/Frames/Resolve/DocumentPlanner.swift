@@ -47,7 +47,8 @@ package struct DocumentPlanner: Sendable {
 
     // The planner a command plans with: presets from `presets`, and what a document names found in `packs`, with the
     // facts of its media from `mediaFacts`, and text found in the recognition languages `languages`, nil where the OCR
-    // provider detects them.
+    // provider detects them. `pack` is the pack the document is read from, whose fonts its themes and titles look in
+    // first.
     package init(
         mediaFacts: any MediaFactProvider,
         presets: PresetLibrary,
@@ -55,7 +56,8 @@ package struct DocumentPlanner: Sendable {
         languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
-        packs: PackLibrary
+        packs: PackLibrary,
+        pack: String? = nil
     ) {
         self.init(
             mediaFacts: mediaFacts,
@@ -64,7 +66,7 @@ package struct DocumentPlanner: Sendable {
             languages: languages,
             tracker: tracker,
             shaper: shaper,
-            library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts)
+            library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, pack: pack)
         )
     }
 

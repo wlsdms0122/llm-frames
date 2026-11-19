@@ -100,12 +100,14 @@ struct GlyphDrawerTests {
     func refusesMissingFace() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let run = ResolvedGlyphRun(
+        let run = DrawnGlyphRun(
             font: PinnedFile(path: Self.file, sha256: ""),
             face: "Helvetica-Missing",
             size: Self.size,
             color: Color(written: "#FF0000"),
             stroke: nil,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 0)]
         )
         let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], background: nil)
@@ -126,13 +128,15 @@ struct GlyphDrawerTests {
         glyph: CGGlyph,
         x: Double = Self.baseline.x,
         stroke: TextStroke? = nil
-    ) -> ResolvedGlyphRun {
-        ResolvedGlyphRun(
+    ) -> DrawnGlyphRun {
+        DrawnGlyphRun(
             font: PinnedFile(path: Self.file, sha256: ""),
             face: Self.face,
             size: Self.size,
             color: Color(written: "#FF0000"),
             stroke: stroke,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: Int(glyph), x: x, y: Self.baseline.y)]
         )
     }

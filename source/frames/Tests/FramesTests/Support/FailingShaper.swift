@@ -19,12 +19,11 @@ struct FailingShaper: ShapingProvider {
     }
 
     // MARK: - Public
-    func face(
+    func faces(
         family: String,
-        weight: FontWeight,
         in files: [String]
-    ) -> FontFace? {
-        faces.face(family: family, weight: weight, in: files)
+    ) -> [FontFace] {
+        faces.faces(family: family, in: files)
     }
 
     func face(
@@ -34,17 +33,17 @@ struct FailingShaper: ShapingProvider {
         faces.face(named: name, in: file)
     }
 
-    func installedFace(
-        family: String,
-        weight: FontWeight
-    ) -> FontFace? {
-        faces.installedFace(family: family, weight: weight)
+    func installedFaces(family: String) -> [FontFace] {
+        faces.installedFaces(family: family)
     }
 
     func shape(
         _ text: String,
-        face: FontFace,
-        size: Double
+        faces: [FontFace],
+        size: Double,
+        features: [FontFeature],
+        weight: FontWeight,
+        italic: Bool
     ) throws -> [ShapedRun] {
         throw failure
     }

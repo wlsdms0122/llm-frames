@@ -39,7 +39,7 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 
 | Provider | Takes | Gives |
 | --- | --- | --- |
-| shaping | a family, in a pack's font files or among the installed fonts; and a run of text, a font file, a face, a size and OpenType feature settings | the family's faces, each with the width, style and weight its OS/2 table declares, which resolve chooses among ([FRAMES-5](../FRAMES-5/SPEC.md)); and the run's glyph ids and advances, each glyph with the place in the text it was set from |
+| shaping | a family, in a pack's font files or among the installed fonts; and a run of text, the faces it is tried in (the style's face, then those of the later families of its `font` list, each a font file and a face), a size, the style's weight and italic, and OpenType feature settings | the family's faces, each with the width, style and weight its OS/2 table declares, which resolve chooses among ([FRAMES-5](../FRAMES-5/SPEC.md)); and the run's glyph ids and advances, each glyph with the place in the text it was set from and the face it was set in: the first of the faces given that has its character, else a face the provider finds on the machine for the weight and italic |
 | tracker | pictures from the decoder around one frame, and a quadrilateral on that frame | the target's quadrilateral in media pixels on each frame before and after it, out to where it reports the target lost in each direction |
 | OCR | a picture from the decoder, and the recognition languages | recognised lines: each a text and a rectangle in media pixels |
 

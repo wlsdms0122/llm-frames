@@ -112,4 +112,36 @@ struct KeyframeTrackTests {
         #expect(before == 0)
         #expect(at == 1)
     }
+
+    @Test("a track's range over a time range reads only the part of each span inside it, held past its keyframes")
+    func givesRangeOverVisibleSpan() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [Keyframe(at: 1, value: 0.0), Keyframe(at: 3, value: 100.0)])
+
+        // When
+        let inside = sut.range(over: TimeRange(start: 1.5, end: 2))
+        let before = sut.range(over: TimeRange(start: 0, end: 0.5))
+        let across = sut.range(over: TimeRange(start: 0, end: 9))
+
+        // Then
+        #expect(inside == 25...50)
+        #expect(before == 0...0)
+        #expect(across == 0...100)
+    }
+
+    @Test("a track's range takes an ease's overshoot only where it falls inside the time range")
+    func givesOvershootInsideRange() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [Keyframe(at: 0, value: 0.0, ease: .backOut), Keyframe(at: 1, value: 60.0)])
+        let turn = 1 - 2 * 1.70158 / (3 * 2.70158)
+
+        // When
+        let whole = sut.range(over: TimeRange(start: 0, end: 2))
+        let early = sut.range(over: TimeRange(start: 0, end: 0.5))
+
+        // Then
+        #expect(abs(whole.upperBound - 60 * Ease.backOut.value(at: turn)) < 1e-9)
+        #expect(whole.upperBound > 65.9)
+        #expect(abs(early.upperBound - 60 * Ease.backOut.value(at: 0.5)) < 1e-9)
+    }
 }

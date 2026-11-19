@@ -154,6 +154,127 @@ struct ClipAreaEndToEndTests {
         #expect(isClose(drawn, Rectangle(x: area.x, y: area.center.y - area.height, width: area.width * 2, height: area.height * 2)))
     }
 
+    @Test(
+        "a bar follows its title's box at each instant as the title's padding, line height or tracking moves",
+        arguments: [
+            ##""paragraph": { "background": { "color": "#FF0000" } }, "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } }, { "at": 2, "paragraph": { "background": { "padding": [10, 20] } } } ]"##,
+            #""keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 2, "paragraph": { "lineHeight": 100 } } ]"#,
+            #""keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 200 } } ]"#
+        ]
+    )
+    func followsKeyframedTitleBox(keys: String) throws {
+        // Given
+        let title = #"""
+            { "id": "name", "title": "Jane\nDoe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+              \#(keys) }
+            """#
+        let sut = try resolved(clips: [title, bar])
+
+        // When
+        let start = try drawn("bar", in: sut, at: 0)
+        let middle = try drawn("bar", in: sut, at: 1)
+
+        // Then
+        let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(isClose(start, try box(of: "name", in: sut, at: 0).grown(by: padding)))
+        #expect(isClose(middle, try box(of: "name", in: sut, at: 1).grown(by: padding)))
+        #expect(!isClose(start, middle))
+    }
+
+    @Test("a bar parented to its title fits the title's box at each instant as its padding grows")
+    func followsParentTitleBox() throws {
+        // Given
+        let title = #"""
+            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+              "paragraph": { "background": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
+                             { "at": 2, "paragraph": { "background": { "padding": [10, 20] } } } ] }
+            """#
+        let bar = ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
+        let sut = try resolved(clips: [title, bar])
+
+        // When
+        let start = try drawn(at: 0, in: sut)
+        let middle = try drawn(at: 1, in: sut)
+
+        // Then
+        let padding = 10 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(isClose(start, try box(of: "name", in: sut, at: 0).grown(by: padding)))
+        #expect(isClose(middle, try box(of: "name", in: sut, at: 1).grown(by: padding)))
+        #expect(middle.width > start.width)
+    }
+
+    @Test(
+        "a mask of a shape placed by its area or of an adjustment clip takes its clip area at each instant",
+        arguments: [
+            ##"{ "id": "cut", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080], "mask": { "shape": "rect", "area": { "clip": "name", "padding": 24 } } }"##,
+            ##"{ "id": "cut", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } } ] }"##
+        ]
+    )
+    func masksByClipArea(clip: String) throws {
+        // Given
+        let sut = try resolved(clips: [movingTitle, clip])
+
+        // When
+        let start = try masked("cut", in: sut, at: 0)
+        let middle = try masked("cut", in: sut, at: 1)
+
+        // Then
+        let size = try #require(sut.clips[0].box?.size)
+        let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(isClose(start, Rectangle(x: 100, y: 600, width: size.width, height: size.height).grown(by: padding)))
+        #expect(isClose(middle, Rectangle(x: 200, y: 600, width: size.width, height: size.height).grown(by: padding)))
+    }
+
+    @Test("a box mask centred on a point of a clip area and a path mask through its corners follow the named clip")
+    func masksByClipPoints() throws {
+        // Given
+        let box = ##"""
+            { "id": "box", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+              "mask": { "shape": "ellipse", "width": 40, "height": 20, "position": { "area": { "clip": "name" }, "point": "center" } } }
+            """##
+        let path = ##"""
+            { "id": "path", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+              "mask": { "shape": "path", "points": [ { "area": { "clip": "name" }, "point": "top-left" },
+                                                     { "area": { "clip": "name" }, "point": "top-right" },
+                                                     { "area": { "clip": "name" }, "point": "bottom-left" } ] } }
+            """##
+        let sut = try resolved(clips: [movingTitle, box, path])
+
+        // When
+        let ellipse = try masked("box", in: sut, at: 1)
+        let triangle = try masked("path", in: sut, at: 1)
+
+        // Then
+        let size = try #require(sut.clips[0].box?.size)
+        let named = Rectangle(x: 200, y: 600, width: size.width, height: size.height)
+        #expect(isClose(ellipse, Rectangle(center: named.center, width: 40, height: 20)))
+        #expect(isClose(triangle, named))
+    }
+
+    @Test("a mask's clip area is written as {clip, padding} and a point of one as {area, point}, and reads back the same")
+    func roundTripsMaskClipArea() throws {
+        // Given
+        let clip = ##"""
+            { "id": "cut", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+              "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } },
+                        { "shape": "path", "points": [ [0, 0], { "area": { "clip": "name" }, "point": "top-right" }, [0, 10] ] } ] }
+            """##
+        let masks = try resolved(clips: [movingTitle, clip]).clips[1].mask
+        let place = Place.root.appending(key: "clips").appending(index: 1).appending(key: "mask")
+
+        // When
+        let written = ResolvedValueWriter().masks(masks)
+        let read = try ResolvedValueReader().masks(PlacedJSONValue(written, place: place, kind: "rect"))
+
+        // Then
+        let area = written.arrayValue?.first?.objectValue?["geometry"]?.objectValue?["rect"]?.objectValue?["rect"]
+        let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
+        #expect(area?.arrayValue?.first?.objectValue?["value"]?.objectValue?["clip"] == .string("name"))
+        #expect(area?.arrayValue?.first?.objectValue?["value"]?.objectValue?["padding"] == .number(padding))
+        #expect(read == masks)
+    }
+
     @Test("outside the named clip's window the area holds the box the clip has at the window's edge")
     func holdsOutsideNamedWindow() throws {
         // Given
@@ -232,9 +353,16 @@ struct ClipAreaEndToEndTests {
             (
                 [
                     #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "shape": "rect", "area": { "clip": "name" } } }"##
+                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "shape": "rect", "area": { "clip": "nobody" } } }"##
                 ],
-                "clips[1].mask"
+                "clips[1].mask.area (rect): no clip of this document has the id \"nobody\""
+            ),
+            (
+                [
+                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
+                    ##"{ "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "clip": "back" }, "point": "center" } } ] }"##
+                ],
+                "clips[1].mask[1].position.area"
             ),
             (
                 [
@@ -301,6 +429,13 @@ struct ClipAreaEndToEndTests {
     }
 
     // MARK: - Private
+    private var movingTitle: String {
+        #"""
+            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "anchor": "top-left",
+              "keyframes": [ { "at": 0, "position": [100, 600] }, { "at": 2, "position": [300, 600] } ] }
+            """#
+    }
+
     private func title(_ text: String) -> String {
         #"{ "id": "name", "title": "\#(text)", "style": "title", "at": [0, 4], "position": [200, 900], "anchor": "top-left" }"#
     }
@@ -335,6 +470,30 @@ struct ClipAreaEndToEndTests {
         return Rectangle(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y, width: box.size.width, height: box.size.height)
     }
 
+    // An unparented title's box with its background at `time`, in output pixels before its transform: its text box at
+    // that instant about the anchor point resolve placed.
+    private func box(
+        of id: String,
+        in sequence: ResolvedSequence,
+        at time: Double
+    ) throws -> Rectangle {
+        let clip = try #require(sequence.clips.first { $0.id == id })
+        let box = try #require(clip.box)
+        guard case let .title(text) = clip.content else {
+            Issue.record("the clip is a title")
+            return Rectangle(x: 0, y: 0, width: 0, height: 0)
+        }
+
+        let anchor = box.position[0].value.fixed
+        let drawn = text.box(at: time)
+        return Rectangle(
+            x: anchor.x - box.anchor.x + drawn.x,
+            y: anchor.y - box.anchor.y + drawn.y,
+            width: drawn.width,
+            height: drawn.height
+        )
+    }
+
     // The rectangle a rect clip draws at `time`, in output pixels.
     private func drawn(
         _ id: String,
@@ -348,6 +507,23 @@ struct ClipAreaEndToEndTests {
         }
 
         return Rectangle(bounding: item.transform.apply(toCornersOf: rectangle))
+    }
+
+    // What the first mask of a clip's item cuts at `time`, bounded, in output pixels.
+    private func masked(
+        _ id: String,
+        in sequence: ResolvedSequence,
+        at time: Double
+    ) throws -> Rectangle {
+        let item = try #require(evaluator.displayList(of: sequence, at: time).items.last { $0.origin?.id == id })
+        let mask = try #require(item.mask.first)
+        switch mask.geometry {
+        case let .rect(rectangle, _), let .ellipse(rectangle):
+            return Rectangle(bounding: mask.transform.apply(toCornersOf: rectangle))
+
+        case let .polyline(points, _):
+            return Rectangle(bounding: points.map { mask.transform.apply(to: $0) })
+        }
     }
 
     // The rect the last path item draws at `time`, for a clip that has no id.
