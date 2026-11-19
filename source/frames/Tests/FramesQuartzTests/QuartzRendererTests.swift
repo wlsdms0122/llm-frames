@@ -159,7 +159,7 @@ struct QuartzRendererTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "hue", content: .path(fill))])
+        let nested = list(size: 1, items: [DisplayItem(content: .path(fill)), DisplayItem(blend: "add", content: .path(fill))])
         let picture = PictureItem(
             source: .displayList(nested),
             rectangle: nil,
@@ -170,7 +170,7 @@ struct QuartzRendererTests {
         let checking = { try sut.check(list(size: 1, items: [DisplayItem(content: .picture(picture))])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].source.items[1].blend")) {
+        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].source.items[1].blend")) {
             try checking()
         }
     }
@@ -180,14 +180,14 @@ struct QuartzRendererTests {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
-        let source = list(size: 1, items: [DisplayItem(blend: "hue", content: .path(fill))])
+        let source = list(size: 1, items: [DisplayItem(blend: "add", content: .path(fill))])
         let item = DisplayItem(trackMatte: ItemTrackMatte(source: source, mode: .alpha, isInverted: false), content: .path(fill))
 
         // When
         let checking = { try sut.check(list(size: 1, items: [item])) }
 
         // Then
-        #expect(throws: QuartzError.unsupportedBlend(name: "hue", place: "items[0].trackMatte.source.items[0].blend")) {
+        #expect(throws: QuartzError.unsupportedBlend(name: "add", place: "items[0].trackMatte.source.items[0].blend")) {
             try checking()
         }
     }

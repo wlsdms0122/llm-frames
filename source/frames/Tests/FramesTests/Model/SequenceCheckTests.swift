@@ -551,6 +551,17 @@ struct SequenceCheckTests {
         #expect(throws: ModelError.self) { try sut.check(document: document) }
     }
 
+    @Test("a clip takes the non-separable blend modes", arguments: ["hue", "saturation", "color", "luminosity"])
+    func acceptsNonSeparableBlend(mode: String) throws {
+        // Given
+        let document = try Fixture.json(
+            #"{ "kind": "sequence", "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "\#(mode)" } ] }"#
+        )
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
     @Test(
         "an area written in a removed form, or with a size or padding it cannot take, stops where it is written",
         arguments: [
