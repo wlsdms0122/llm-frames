@@ -94,13 +94,12 @@ struct TimedValueBuilder: Sendable {
             return .object(timed)
 
         case let (.list(elements), _):
-            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
                 try timed(
                     value,
                     written: written.flatMap { Self.element(index, of: $0) },
                     keyframes: keyframes.compactMap { keyframe in Self.element(index, of: keyframe.value).map(keyframe.with) },
-                    as: element,
+                    as: structure.element(at: index),
                     instant: instant,
                     place: place.appending(index: index),
                     leaf: leaf
@@ -153,9 +152,9 @@ struct TimedValueBuilder: Sendable {
     ) throws -> LookValue {
         switch (layer, skeleton, structure) {
         case let (.list(elements), .list(skeletons), _) where elements.count == skeletons.count:
-            let element = structure.element
             return .list(try zip(elements, skeletons).enumerated().map { index, pair in
-                try self.layer(pair.0, over: pair.1, as: element, place: place.appending(index: index))
+                let element = structure.element(at: index)
+                return try self.layer(pair.0, over: pair.1, as: element, place: place.appending(index: index))
             })
 
         case let (.object, .object(members), .object):
@@ -262,9 +261,8 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.list(elements), _):
-            let element = structure.element
             return .list(try elements.enumerated().map { index, value in
-                try skeleton(of: value, as: element, place: place.appending(index: index))
+                try skeleton(of: value, as: structure.element(at: index), place: place.appending(index: index))
             })
 
         case let (.form(name, body), _):
@@ -306,9 +304,8 @@ struct TimedValueBuilder: Sendable {
                 throw LookError.lengthsDiffer(place: place, counts: [elements.count, others.count])
             }
 
-            let element = structure.element
             for (index, pair) in zip(elements, others).enumerated() {
-                try checkAgreement(pair.0, pair.1, as: element, place: place.appending(index: index))
+                try checkAgreement(pair.0, pair.1, as: structure.element(at: index), place: place.appending(index: index))
             }
 
         case let (.object, .object(members)):
@@ -348,7 +345,7 @@ struct TimedValueBuilder: Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

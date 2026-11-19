@@ -36,7 +36,7 @@ struct Clip: Equatable, Sendable {
     let border: LookProperty?
     let shadow: LookProperty?
     let opacity: PropertyValue<Double>?
-    let scale: PropertyValue<Double>?
+    let scale: PropertyValue<Scale>?
     let rotation: PropertyValue<Double>?
     let blend: String?
     let filter: LookProperty?
@@ -67,7 +67,7 @@ struct Clip: Equatable, Sendable {
         border: LookProperty? = nil,
         shadow: LookProperty? = nil,
         opacity: PropertyValue<Double>? = nil,
-        scale: PropertyValue<Double>? = nil,
+        scale: PropertyValue<Scale>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
         filter: LookProperty? = nil

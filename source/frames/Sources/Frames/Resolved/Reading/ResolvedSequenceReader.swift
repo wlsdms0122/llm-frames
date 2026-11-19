@@ -228,7 +228,7 @@ struct ResolvedSequenceReader: Sendable {
                 anchor: try values.point(entry.member("anchor"))
             ),
             opacity: try values.numbers(entry.member("opacity")),
-            scale: try values.numbers(entry.member("scale")),
+            scale: try values.scales(entry.member("scale")),
             rotation: try values.numbers(entry.member("rotation")),
             blend: try entry.member("blend").string(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
@@ -279,7 +279,7 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try clip.member("trackMatte").optional(trackMatte),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
-            scale: isTransformed ? try values.numbers(clip.member("scale")) : nil,
+            scale: isTransformed ? try values.scales(clip.member("scale")) : nil,
             rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
             blend: try clip.member("blend").string(),
             animation: try values.animation(clip.member("animation"))

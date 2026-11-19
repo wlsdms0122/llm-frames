@@ -6,9 +6,9 @@
 //
 
 // The outset grows only the outline a shape draws: its anchor point, the space its children see and the fractions of
-// its box its animation moves it by are taken on the box as written. A shape placed by its geometry is carried whole by
-// its parent's map, so its lengths (outset, radius, stroke width, shadow) are divided by that map's scale to keep the
-// parent's scale out of them.
+// its box its animation moves it by are taken on the box as written. A shape's lengths come out at its scale factor and
+// not its parent's: its stroke width and shadow radius are written in output pixels, and the lengths its item's
+// transform carries (outset, radius, shadow offset) at that size over the transform's length factor.
 struct ShapeEvaluator: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -22,49 +22,42 @@ struct ShapeEvaluator: Sendable {
         in space: ClipSpace,
         at time: Double
     ) -> [DisplayItem] {
-        // A space at scale 0 flattens a shape placed by its geometry to a point, where its lengths cannot be kept, so
-        // it draws nothing.
-        guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time) else { return [] }
+        // A transform at scale 0 flattens the shape to a point, where its carried lengths cannot be kept, so it draws
+        // nothing.
+        guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time), let carried = laid.carried else {
+            return []
+        }
+
+        let factor = sample.lengthFactor
 
         let trim = shape.trim.value(at: time)
-        let fill: Color? = if case let .form(_, color) = shape.fill.sampled(at: time, as: LookStructureTable.fill) {
-            color.color
-        } else {
-            nil
-        }
         let path = PathItem(
             geometry: laid.geometry,
-            fill: fill,
-            stroke: PathStroke(sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke)).map { stroke in
-                PathStroke(
-                    width: stroke.width / laid.scale,
-                    color: stroke.color,
-                    join: stroke.join,
-                    cap: stroke.cap,
-                    start: stroke.start,
-                    end: stroke.end
-                )
-            },
+            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.fill), box: laid.box),
+            stroke: PathStroke(
+                sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
+                factor: factor,
+                carried: carried,
+                box: laid.box
+            ),
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
-            shadow: DropShadow(sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow)).map { shadow in
-                DropShadow(
-                    radius: shadow.radius / laid.scale,
-                    offset: Point(x: shadow.offset.x / laid.scale, y: shadow.offset.y / laid.scale),
-                    color: shadow.color
-                )
-            }
+            shadow: DropShadow(
+                sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                factor: factor,
+                carried: carried
+            )
         )
 
         return [DisplayItem(
             transform: laid.transform,
             opacity: laid.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: receiverBox(of: path), from: sample.animation.revealFrom),
+            reveal: sample.animation.reveal.rectangle(wiping: receiverBox(of: path, carriedBy: laid.transform), from: sample.animation.revealFrom),
             content: .path(path)
         )]
     }
 
-    // At a space scale of 0 every point lands on one whatever the shape's own motion, so the space's map stands in.
+    // At a scale of 0 every point lands on one, so the space's map stands in.
     func transform(
         of shape: ResolvedShape,
         clip: ResolvedClip,
@@ -77,16 +70,18 @@ struct ShapeEvaluator: Sendable {
     }
 
     // MARK: - Private
-    // `scale` is what the item's lengths are divided by.
+    // `carried` is what a length the transform carries is multiplied by, nil where the transform flattens the plane;
+    // the geometry then takes none. `box` is the shape's box as written, before its outset, in the geometry's
+    // coordinates.
     private func laid(
         _ shape: ResolvedShape,
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
-    ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double)? {
+    ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?)? {
         let tracked = space.tracked(by: clip.parentTrack, at: time)
-        let geometry: PathGeometry
+        let geometry: (Double) -> PathGeometry
         let bounds: Rectangle
         let placement: GeometryPlacement
         switch shape.geometry {
@@ -107,21 +102,18 @@ struct ShapeEvaluator: Sendable {
             }
 
         case let .area(area, outset, areaPlacement):
-            guard tracked.scale > 0 else { return nil }
-
             bounds = space.area(of: area, track: clip.parentTrack, at: time)
             placement = areaPlacement
-            let drawn = bounds.grown(by: length(outset, at: time) / tracked.scale)
-            let radius = length(shape.radius, at: time) / tracked.scale
-            geometry = shape.kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: radius)
+            geometry = { [kind = shape.kind, radius = shape.radius] carried in
+                let drawn = bounds.grown(by: length(outset, at: time) * carried)
+                return kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: length(radius, at: time) * carried)
+            }
 
         case let .points(keyframes, isClosed, pointsPlacement):
-            guard tracked.scale > 0 else { return nil }
-
             let points = space.points(of: keyframes, track: clip.parentTrack, at: time)
             bounds = Rectangle(bounding: points)
             placement = pointsPlacement
-            geometry = .polyline(points, isClosed: isClosed)
+            geometry = { _ in .polyline(points, isClosed: isClosed) }
         }
 
         let motion = sample.animation.motion
@@ -133,8 +125,9 @@ struct ShapeEvaluator: Sendable {
             rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
             moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
         ).concatenating(tracked.transform)
+        let carried = carried(by: transform, sample: sample)
 
-        return (geometry, transform, sample.opacity * motion.value(of: .opacity), tracked.scale)
+        return (geometry(carried ?? 0), bounds, transform, sample.opacity * motion.value(of: .opacity), carried)
     }
 
     // While the box changes size the anchor point stays the same fraction of it.
@@ -148,7 +141,7 @@ struct ShapeEvaluator: Sendable {
         sample: ClipSample,
         in space: ClipSpace,
         at time: Double
-    ) -> (geometry: PathGeometry, transform: AffineTransform, opacity: Double, scale: Double) {
+    ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?) {
         let size = Size(width: width.value(at: time), height: height.value(at: time))
         let anchor = Point(
             x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
@@ -158,17 +151,31 @@ struct ShapeEvaluator: Sendable {
         let point = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
         let values = KeyframedValues(
             position: Point(x: point.x - anchor.x, y: point.y - anchor.y),
-            scale: clip.scale.map { $0.value(at: time) } ?? 1,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.rotation,
+            scale: clip.scale.map { $0.value(at: time) } ?? .identity,
+            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation,
             opacity: sample.opacity
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
-        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: length(outset, at: time))
+        let carried = carried(by: presentation.transform, sample: sample)
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let outline = box.grown(by: length(outset, at: time) * (carried ?? 0))
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
-            : .rect(outline, radius: length(shape.radius, at: time))
+            : .rect(outline, radius: length(shape.radius, at: time) * (carried ?? 0))
 
-        return (geometry, presentation.transform, presentation.opacity, 1)
+        return (geometry, box, presentation.transform, presentation.opacity, carried)
+    }
+
+    // A carried length at the clip's scale factor over the transform's length factor, nil where the transform
+    // flattens the plane.
+    private func carried(
+        by transform: AffineTransform,
+        sample: ClipSample
+    ) -> Double? {
+        let length = transform.lengthFactor
+        guard length > 0 else { return nil }
+
+        return sample.lengthFactor / length
     }
 
     private func length(
@@ -178,8 +185,11 @@ struct ShapeEvaluator: Sendable {
         value.sampled(at: time, as: LookStructureTable.length).number ?? 0
     }
 
-    private func receiverBox(of path: PathItem) -> Rectangle {
-        let drawn = path.drawnBounds()
+    private func receiverBox(
+        of path: PathItem,
+        carriedBy transform: AffineTransform
+    ) -> Rectangle {
+        let drawn = path.drawnBounds(carriedBy: transform)
         guard let shadow = path.shadow else { return drawn }
 
         return drawn.union(shadow.castBounds(of: drawn))

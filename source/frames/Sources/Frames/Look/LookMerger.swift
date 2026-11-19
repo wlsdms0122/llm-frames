@@ -50,7 +50,8 @@ struct LookMerger: Sendable {
         try merge(merged, keyframe, as: structure, place: place, byElement: true)
     }
 
-    // Every key the structure requires, wherever the value holds an object of it, has a value after the merge.
+    // Every key the structure requires, wherever the value holds an object of it, has a value after the merge, and no
+    // list of lengths it keeps from zeros holds only zeros.
     func checkRequired(
         in value: LookValue,
         as structure: ValueStructure,
@@ -60,6 +61,15 @@ struct LookMerger: Sendable {
         case let (.object(members), .object(object)):
             for key in object.required where (value[key] ?? .unset) == .unset {
                 throw LookError.missingLeaf(place: place, key: key)
+            }
+            for key in object.nonZero {
+                guard
+                    case let .list(elements)? = value[key],
+                    !elements.isEmpty,
+                    elements.allSatisfy({ element in element == .leaf(.number(0)) })
+                else { continue }
+
+                throw LookError.allZero(place: place.appending(key: key))
             }
             for member in members {
                 guard let child = object.structure(of: member.key) else { continue }
@@ -72,9 +82,9 @@ struct LookMerger: Sendable {
                 try checkRequired(in: member.value, as: element, place: place.appending(key: member.key))
             }
 
-        case let (.list(elements), .list), let (.list(elements), .choice):
+        case let (.list(elements), .list), let (.list(elements), .tuple), let (.list(elements), .choice):
             for (index, value) in elements.enumerated() {
-                try checkRequired(in: value, as: structure.element, place: place.appending(index: index))
+                try checkRequired(in: value, as: structure.element(at: index), place: place.appending(index: index))
             }
 
         case let (.form(name, body), .forms), let (.form(name, body), .choice):
@@ -131,7 +141,13 @@ struct LookMerger: Sendable {
 
         case let (_, .list(elements), .list(others)) where byElement && elements.count == others.count:
             return .list(try zip(elements, others).enumerated().map { index, pair in
-                try merge(pair.0, pair.1, as: structure.element, place: place.appending(index: index), byElement: true)
+                try merge(
+                    pair.0,
+                    pair.1,
+                    as: structure.element(at: index),
+                    place: place.appending(index: index),
+                    byElement: true
+                )
             })
 
         default:
@@ -149,7 +165,9 @@ struct LookMerger: Sendable {
         try over.members.reduce(under) { merged, member in
             let child = childStructure(of: member.key, in: structure)
             let partners = if case let .object(object) = structure { object.partners(of: member.key) } else { [String]() }
-            let cleared = member.value == .unset ? merged : partners.reduce(merged) { $0.setting($1, to: nil) }
+            // A leaf only keyframes write is `unset` in the clip's own layer and still replaces its partners, so
+            // keyframes of a stroke's `color` take a colour paint over a style's gradient.
+            let cleared = partners.reduce(merged) { $0.setting($1, to: nil) }
             let value = try merge(
                 cleared[member.key],
                 member.value,
@@ -173,7 +191,7 @@ struct LookMerger: Sendable {
         case let .map(element):
             element
 
-        case .anyValue, .leaf, .list, .forms, .choice:
+        case .anyValue, .leaf, .list, .tuple, .forms, .choice:
             .anyValue
         }
     }

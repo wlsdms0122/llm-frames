@@ -608,7 +608,7 @@ struct SequencePlannerTests {
             PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
             PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
         ]))
-        #expect(title.scale == .value(2))
+        #expect(title.scale == .value(Scale(2)))
         #expect(title.rotation == .value(0))
         #expect(title.blend == "screen")
         #expect(title.shape == nil)
@@ -621,7 +621,7 @@ struct SequencePlannerTests {
             fill: .off,
             stroke: .stroke(PathStroke(
                 width: 8 * MergedTheme.base.lengthScale(at: 2160),
-                color: MergedTheme.base.color("accent"),
+                paint: .color(MergedTheme.base.color("accent")),
                 join: .round,
                 cap: .butt,
                 start: .none,
@@ -643,7 +643,7 @@ struct SequencePlannerTests {
         #expect(plan.storyline[0].appearance == StorylineAppearance(
             box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 0, y: 0)), anchor: Point(x: 540, y: 960)),
             opacity: .value(1),
-            scale: .value(1),
+            scale: .value(.identity),
             rotation: .value(0),
             blend: "normal",
             radius: .off,
@@ -678,8 +678,8 @@ struct SequencePlannerTests {
             anchor: Point(x: 0, y: 0)
         ))
         #expect(appearance.scale == .keyframes([
-            PropertyKeyframe(index: 0, at: 1, value: 1, ease: .linear),
-            PropertyKeyframe(index: 1, at: 3, value: 0.5, ease: .linear)
+            PropertyKeyframe(index: 0, at: 1, value: Scale(1), ease: .linear),
+            PropertyKeyframe(index: 1, at: 3, value: Scale(0.5), ease: .linear)
         ]))
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))

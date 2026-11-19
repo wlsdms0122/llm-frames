@@ -13,7 +13,8 @@ import Frames
 // destination's size, masked by its matte, its corners rounded and its border inside the destination's edge. A
 // picture with no filter or matte is drawn straight from its source, so it is resampled once on its way to the
 // output. A filtered picture is filtered at the scale the context shows its destination at, its filter's lengths
-// scaled with it, so it is as sharp as the source it is drawn from.
+// scaled with it, so it is as sharp as the source it is drawn from. `transform` carries the item's coordinates to output
+// pixels, which the border's width is in.
 struct PictureDrawer {
     // MARK: - Property
     // The filtered destination's bitmap holds at most this many times the context's pixels, past its own size.
@@ -33,6 +34,7 @@ struct PictureDrawer {
         source: SourceImage?,
         matte: CGImage?,
         seed: Int,
+        carriedBy transform: Frames.AffineTransform,
         in context: CGContext
     ) throws {
         let destination = CGRect(item.destination)
@@ -45,7 +47,7 @@ struct PictureDrawer {
             placement = placed
         }
         guard !item.filter.isEmpty || item.matte != nil else {
-            framed(item, in: context) { context in
+            framed(item, carriedBy: transform, in: context) { context in
                 guard let source else { return }
 
                 context.concatenate(placement)
@@ -86,7 +88,7 @@ struct PictureDrawer {
         )
         let finished = try FrameContext(holding: size)
         finished.context.concatenate(local)
-        framed(item, in: finished.context) { context in
+        framed(item, carriedBy: transform, in: finished.context) { context in
             context.drawUpright(filtered, in: bounds)
         }
         context.drawUpright(try finished.image(), in: bounds)
@@ -110,29 +112,32 @@ struct PictureDrawer {
     // What `drawing` draws cut to the destination with its corners rounded, and the border over it.
     private func framed(
         _ item: PictureItem,
+        carriedBy transform: Frames.AffineTransform,
         in context: CGContext,
         drawing: (CGContext) -> Void
     ) {
-        let destination = item.destination
+        let outline = PathOutline(.rect(item.destination, radius: item.radius))
         context.saveGState()
-        context.addPath(PathOutline(.rect(destination, radius: item.radius)).path)
+        context.addPath(outline.path)
         context.clip()
         drawing(context)
+
+        // The border is the inside half of a stroke twice its width along the carried outline, so its outer edge
+        // follows the rounded corners and it is as wide on every side in output pixels.
+        if let border = item.border, border.width > 0, let back = transform.inverse {
+            var matrix = CGAffineTransform(back)
+            let band = outline.carried(by: transform).path.copy(
+                strokingWithWidth: CGFloat(2 * border.width),
+                lineCap: .butt,
+                lineJoin: .miter,
+                miterLimit: CGFloat(StrokeJoin.miterLimit)
+            )
+            if let placed = band.copy(using: &matrix) {
+                context.addPath(placed)
+                context.setFillColor(border.color.cgColor)
+                context.fillPath(using: .winding)
+            }
+        }
         context.restoreGState()
-
-        guard let border = item.border else { return }
-
-        // A stroke centred `width / 2` in from the destination's edge, so its outer edge follows the destination's
-        // rounded corners.
-        let half = border.width / 2
-        let edge = Rectangle(
-            x: destination.x + half,
-            y: destination.y + half,
-            width: destination.width - border.width,
-            height: destination.height - border.width
-        )
-        let stroke = PathStroke(width: border.width, color: border.color, join: .miter, cap: .butt, start: .none, end: .none)
-        let path = PathItem(geometry: .rect(edge, radius: max(0, item.radius - half)), fill: nil, stroke: stroke)
-        PathDrawer().draw(path, in: context)
     }
 }

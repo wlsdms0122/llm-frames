@@ -27,7 +27,7 @@ struct ItemPresentation: Equatable, Sendable {
             y: values.position.y + motion.value(of: .y) * size.height
         )
 
-        self.transform = AffineTransform(scale: values.scale * motion.value(of: .scale), about: anchor)
+        self.transform = AffineTransform(scale: values.scale.multiplied(by: motion.value(of: .scale)), about: anchor)
             .concatenating(AffineTransform(rotation: values.rotation + motion.value(of: .rotation), about: anchor))
             .concatenating(AffineTransform(translation: offset))
         self.opacity = values.opacity * motion.value(of: .opacity)

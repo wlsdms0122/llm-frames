@@ -14,7 +14,7 @@ struct StorylineAppearance: Equatable, Sendable {
     // MARK: - Property
     let box: ClipBox?
     let opacity: PropertyValue<Double>
-    let scale: PropertyValue<Double>
+    let scale: PropertyValue<Scale>
     let rotation: PropertyValue<Double>
     let blend: String
     let radius: TimedValue
@@ -25,7 +25,7 @@ struct StorylineAppearance: Equatable, Sendable {
     init(
         box: ClipBox?,
         opacity: PropertyValue<Double>,
-        scale: PropertyValue<Double>,
+        scale: PropertyValue<Scale>,
         rotation: PropertyValue<Double>,
         blend: String,
         radius: TimedValue,

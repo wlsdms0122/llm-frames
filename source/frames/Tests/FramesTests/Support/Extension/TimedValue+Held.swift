@@ -32,14 +32,26 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     static func stroke(_ stroke: PathStroke?) -> TimedValue {
         guard let stroke else { return .off }
 
+        let dash = stroke.dash.map { lengths in
+            TimedMember(key: "dash", value: .list(lengths.map { .held(.number($0)) }))
+        }
+
+        let paint: TimedMember = switch stroke.paint {
+        case let .color(color):
+            TimedMember(key: "color", value: .held(.color(color)))
+
+        case .gradient:
+            TimedMember(key: "gradient", value: .off)
+        }
+
         return .object([
-            TimedMember(key: "color", value: .held(.color(stroke.color))),
+            paint,
             TimedMember(key: "width", value: .held(.number(stroke.width))),
             TimedMember(key: "join", value: .fixed(.string(stroke.join.rawValue))),
             TimedMember(key: "cap", value: .fixed(.string(stroke.cap.rawValue))),
             TimedMember(key: "start", value: .fixed(.string(stroke.start.rawValue))),
             TimedMember(key: "end", value: .fixed(.string(stroke.end.rawValue)))
-        ])
+        ] + [dash].compactMap { $0 } + [TimedMember(key: "dashOffset", value: .held(.number(stroke.dashOffset)))])
     }
 
     static func shadow(_ shadow: DropShadow?) -> TimedValue {
@@ -114,22 +126,26 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         return .form("op:" + name, .object(members))
     }
 
-    func fillColor(at time: Double = 0) -> Color? {
-        guard case let .form(_, color) = sampled(at: time, as: LookStructureTable.fill) else { return nil }
-
-        return color.color
+    func fill(
+        at time: Double = 0,
+        box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
+    ) -> Paint? {
+        Paint(sampled: sampled(at: time, as: LookStructureTable.fill), box: box)
     }
 
-    func stroke(at time: Double = 0) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke))
+    func stroke(
+        at time: Double = 0,
+        box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
+    ) -> PathStroke? {
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {
-        DropShadow(sampled: sampled(at: time, as: LookStructureTable.shadow))
+        DropShadow(sampled: sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
     }
 
     func border(at time: Double = 0) -> MediaBorder? {
-        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border))
+        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1)
     }
 
     func filter(at time: Double = 0) -> [FilterEntry] {

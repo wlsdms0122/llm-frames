@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Writes the values a resolved sequence, a display list and a mix plan share: geometry, colours, eases, keyframe lists,
-// filter operations, spans, animations, shaped text, and files pinned by their absolute path and SHA-256.
+// Writes the values a resolved sequence, a display list and a mix plan share: geometry, colours, paints, eases,
+// keyframe lists, filter operations, spans, animations, shaped text, and files pinned by their absolute path and
+// SHA-256.
 struct ResolvedValueWriter: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -49,6 +50,32 @@ struct ResolvedValueWriter: Sendable {
 
     func quad(_ quad: Quad) -> JSONValue {
         .array(quad.corners.map(point))
+    }
+
+    // A path item's fill or stroke paint: a colour, or a gradient as one member named by its kind, its stops
+    // `[offset, colour]`.
+    func paint(_ paint: Paint) -> JSONValue {
+        switch paint {
+        case let .color(color):
+            return self.color(color)
+
+        case let .gradient(gradient):
+            let stops = JSONMember(key: "stops", value: .array(gradient.stops.map { stop in
+                .array([.number(stop.offset), color(stop.color)])
+            }))
+            let (name, members) = switch gradient.shape {
+            case let .linear(from, to):
+                ("linear", [JSONMember(key: "from", value: point(from)), JSONMember(key: "to", value: point(to)), stops])
+
+            case let .radial(center, radius):
+                (
+                    "radial",
+                    [JSONMember(key: "center", value: point(center)), JSONMember(key: "radius", value: .number(radius)), stops]
+                )
+            }
+
+            return .object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        }
     }
 
     // A path item's or a mask's geometry, one member named by its form.
@@ -152,6 +179,11 @@ struct ResolvedValueWriter: Sendable {
 
     func numbers(_ keyframes: [Keyframe<Double>]) -> JSONValue {
         self.keyframes(keyframes) { .number($0) }
+    }
+
+    // A scale is written as its pair, `[sx, sy]`.
+    func scales(_ keyframes: [Keyframe<Scale>]) -> JSONValue {
+        self.keyframes(keyframes) { scale in numbers([scale.x, scale.y]) }
     }
 
     // A timed value: each timed leaf as its keyframe list, each static leaf as its value, `off` as `null`, the colour

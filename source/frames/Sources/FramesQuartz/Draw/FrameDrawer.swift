@@ -137,7 +137,8 @@ final class FrameDrawer {
             return
         }
 
-        try paint(item, drawing: drawing, castingFromLayer: CastShadow(shadow, through: matrix), on: raster, in: context)
+        let cast = CastShadow(shadow, through: matrix, rasterScale: raster.transform.lengthScale)
+        try paint(item, drawing: drawing, castingFromLayer: cast, on: raster, in: context)
     }
 
     private func shadow(of content: DisplayContent) -> DropShadow? {
@@ -210,14 +211,21 @@ final class FrameDrawer {
             let source = try image(of: picture, shownBy: matrix(of: item, on: raster), on: raster)
             let matte = try picture.matte.map { try pictures.image(of: $0.frame) }
             return { [tables] context in
-                try PictureDrawer(tables: tables).draw(picture, source: source, matte: matte, seed: seed, in: context)
+                try PictureDrawer(tables: tables).draw(
+                    picture,
+                    source: source,
+                    matte: matte,
+                    seed: seed,
+                    carriedBy: item.transform,
+                    in: context
+                )
             }
 
         case let .path(path):
-            return { context in PathDrawer().draw(path, in: context) }
+            return { context in PathDrawer().draw(path, carriedBy: item.transform, in: context) }
 
         case let .glyphs(glyphs):
-            return { [glyphDrawer] context in try glyphDrawer.draw(glyphs, in: context) }
+            return { [glyphDrawer] context in try glyphDrawer.draw(glyphs, carriedBy: item.transform, in: context) }
 
         case let .adjust(adjust):
             return try adjusted(adjust, transform: item.transform, over: frame, on: raster, seed: seed)
@@ -239,7 +247,7 @@ final class FrameDrawer {
             let size = CGSize(width: list.size.width, height: list.size.height)
             guard let placement = picture.placement(ofSourceSized: size) else { return nil }
 
-            let margin = reach(of: picture, through: matrix)
+            let margin = reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale)
             let region = picture.rectangle.map(CGRect.init) ?? CGRect(origin: .zero, size: size)
             let listMargin = reach(of: list)
             guard
@@ -273,11 +281,12 @@ final class FrameDrawer {
     // it shows read past what is drawn of the list.
     private func reach(
         of picture: PictureItem,
-        through matrix: CGAffineTransform
+        through matrix: CGAffineTransform,
+        rasterScale: CGFloat
     ) -> CGFloat {
         let scale = matrix.axisScale
         let filter = FilterChain(tables: tables).reach(of: picture.filter) * max(scale.width, scale.height)
-        let shadow = picture.shadow.map { CGFloat(CastShadow($0, through: matrix).margin) } ?? 0
+        let shadow = picture.shadow.map { CGFloat(CastShadow($0, through: matrix, rasterScale: rasterScale).margin) } ?? 0
         var items = 0.0
         if
             case let .displayList(list) = picture.source,
@@ -304,7 +313,9 @@ final class FrameDrawer {
             }
             if let trackMatte = item.trackMatte {
                 let shadow = shadow(of: item.content)
-                    .map { CGFloat(CastShadow($0, through: CGAffineTransform(item.transform)).margin) } ?? 0
+                    .map { shadow in
+                        CGFloat(CastShadow(shadow, through: CGAffineTransform(item.transform), rasterScale: 1).margin)
+                    } ?? 0
                 mattes = max(mattes, reach(of: trackMatte.source) + shadow)
             }
         }

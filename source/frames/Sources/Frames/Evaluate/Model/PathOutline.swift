@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The outline of a path's geometry in y-down coordinates, clockwise as seen on the output from a fixed start, which
-// trim fractions count from: a rect from the start of its top edge after the top left corner's arc, an ellipse from its
+// The outline of a path's geometry in y-down coordinates, clockwise in them from a fixed start, which trim fractions
+// count from: a rect from the start of its top edge after the top left corner's arc, an ellipse from its
 // top, a polyline from its first point along its points, the closing segment last. Segments of no length are left out,
 // so every segment has a direction.
 package struct PathOutline: Equatable, Sendable {
@@ -19,6 +19,8 @@ package struct PathOutline: Equatable, Sendable {
     // MARK: - Initializer
     package init(_ geometry: PathGeometry) {
         let segments: [OutlineSegment]
+        let start: Point
+        let isClosed: Bool
         switch geometry {
         case let .rect(rectangle, radius):
             let frame = Self.standardized(rectangle)
@@ -41,11 +43,52 @@ package struct PathOutline: Equatable, Sendable {
             isClosed = closed
         }
 
-        self.segments = segments.filter { $0.length > 0 }
-        self.length = self.segments.map(\.length).reduce(0, +)
+        self.init(isClosed: isClosed, start: start, segments: segments.filter { $0.length > 0 })
+    }
+
+    private init(
+        isClosed: Bool,
+        start: Point,
+        segments: [OutlineSegment]
+    ) {
+        self.isClosed = isClosed
+        self.start = start
+        self.segments = segments
+        self.length = segments.map(\.length).reduce(0, +)
     }
 
     // MARK: - Public
+    // The outline carried by a map that does not flatten the plane, segment by segment, so its distances correspond
+    // to this one's through `distance(_:onto:)`. A mirroring map turns its direction on the output.
+    package func carried(by transform: AffineTransform) -> PathOutline {
+        PathOutline(
+            isClosed: isClosed,
+            start: transform.apply(to: start),
+            segments: segments.map { $0.carried(by: transform) }
+        )
+    }
+
+    // The distance along `other`, this outline carried or the one this was carried from, to the point this outline
+    // reaches at `distance`.
+    package func distance(
+        _ distance: Double,
+        onto other: PathOutline
+    ) -> Double {
+        guard distance < length else { return other.length }
+
+        var offset = 0.0
+        var otherOffset = 0.0
+        for (segment, otherSegment) in zip(segments, other.segments) {
+            if distance < offset + segment.length {
+                return otherOffset + otherSegment.distance(distance - offset, from: segment)
+            }
+            offset += segment.length
+            otherOffset += otherSegment.length
+        }
+
+        return other.length
+    }
+
     package func point(at distance: Double) -> Point {
         guard let found = segment(at: distance, leaving: true) else { return start }
 
