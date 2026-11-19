@@ -1406,6 +1406,7 @@ struct EvaluatorTests {
 
     private func run() -> ResolvedGlyphRun {
         ResolvedGlyphRun(
+            source: 0,
             font: PinnedFile(path: "/abs/font.ttf", sha256: String(repeating: "0", count: 64)),
             face: "Font-Bold",
             size: 30,

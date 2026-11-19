@@ -210,6 +210,7 @@ struct ResolvedDocumentWriterTests {
                 "lines": null,
                 "runs": [
                   {
+                    "source": 0,
                     "file": "/System/Apple SD Gothic Neo.ttc",
                     "sha256": "41aa0c9e5d17",
                     "face": "Apple SD Gothic Neo-bold",

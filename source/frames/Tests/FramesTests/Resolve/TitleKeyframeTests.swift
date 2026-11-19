@@ -157,7 +157,13 @@ struct TitleKeyframeTests {
         let run = try #require(text.runs.first)
 
         // When
-        let sut = DrawnGlyphRun(run: run, at: 0.5, moves: run.glyphs.map { _ in Point(x: 0, y: 0) })
+        let still = Point(x: 0, y: 0)
+        let sut = DrawnGlyphRun(
+            run: run,
+            at: 0.5,
+            moves: run.glyphs.map { _ in still },
+            pieceMove: PieceMove(start: still, end: still)
+        )
 
         // Then
         #expect(sut.glyphs.map(\.y) == run.glyphs.map { $0.y - 5 })
@@ -330,6 +336,33 @@ struct TitleKeyframeTests {
         })
         #expect(item.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 380, y: 215))
         #expect(item.transform.apply(to: Point(x: 20, y: 10)) == Point(x: 400, y: 225))
+    }
+
+    @Test("evaluation draws highlight and underline pieces over their glyphs where they are at an instant")
+    func movesPiecesWithGlyphs() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
+              "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": true },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let sut = GlyphsItem(text: text, at: 0.5)
+
+        // Then
+        let run = try #require(sut.runs.first)
+        #expect(run.highlight == DrawnHighlight(
+            rects: [Rectangle(x: -4, y: -2, width: 50, height: 44)],
+            radius: 0,
+            color: Color(written: "#FF0000FF"),
+            bands: nil
+        ))
+        #expect(run.underline == DrawnUnderline(
+            rects: [Rectangle(x: 0, y: 36, width: 42, height: 2)],
+            color: Color(written: "#000000FF"),
+            bands: nil
+        ))
     }
 
     // MARK: - Private

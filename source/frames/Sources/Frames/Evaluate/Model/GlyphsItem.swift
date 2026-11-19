@@ -31,14 +31,20 @@ package struct GlyphsItem: Equatable, Sendable {
     ) {
         let box = text.box(at: time)
         let moves = text.glyphMoves(at: time)
+        let pieceMoves = text.pieceMoves(of: moves)
+        let placed = { (move: Point) in Point(x: move.x - box.x, y: move.y - box.y) }
 
         self.init(
             size: Size(width: box.width, height: box.height),
-            runs: zip(text.runs, moves).map { run, moves in
+            runs: text.runs.indices.map { index in
                 DrawnGlyphRun(
-                    run: run,
+                    run: text.runs[index],
                     at: time,
-                    moves: moves.map { move in Point(x: move.x - box.x, y: move.y - box.y) }
+                    moves: moves[index].map(placed),
+                    pieceMove: PieceMove(
+                        start: placed(pieceMoves[index].start),
+                        end: placed(pieceMoves[index].end)
+                    )
                 )
             },
             background: text.background.flatMap { background in

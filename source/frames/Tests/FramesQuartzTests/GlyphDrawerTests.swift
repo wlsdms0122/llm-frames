@@ -106,6 +106,8 @@ struct GlyphDrawerTests {
             size: Self.size,
             color: Color(written: "#FF0000"),
             stroke: nil,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 0)]
         )
         let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], background: nil)
@@ -133,6 +135,8 @@ struct GlyphDrawerTests {
             size: Self.size,
             color: Color(written: "#FF0000"),
             stroke: stroke,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: Int(glyph), x: x, y: Self.baseline.y)]
         )
     }

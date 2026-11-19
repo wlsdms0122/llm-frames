@@ -126,6 +126,17 @@ struct DisplayListReaderTests {
                     size: 32,
                     color: Color(written: "#FFFFFF"),
                     stroke: TextStroke(width: 2, color: Color(written: "#000000")),
+                    highlight: DrawnHighlight(
+                        rects: [Rectangle(x: 10, y: 4, width: 50, height: 40)],
+                        radius: 4,
+                        color: Color(written: "#F2B705"),
+                        bands: [12...30]
+                    ),
+                    underline: DrawnUnderline(
+                        rects: [Rectangle(x: 12, y: 40, width: 46, height: 2)],
+                        color: Color(written: "#FFFFFF"),
+                        bands: nil
+                    ),
                     glyphs: [PositionedGlyph(id: 43, x: 12, y: 36), PositionedGlyph(id: 76, x: 34.5, y: 36)]
                 )],
                 background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 120, height: 48), radius: 6, color: Color(written: "#111111CC"))

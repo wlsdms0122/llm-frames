@@ -9,9 +9,9 @@ import CoreGraphics
 import CoreText
 import Frames
 
-// Draws a glyphs item in its text's own box: the background, then the outline of every glyph of every run with a
-// stroke, then every glyph's fill, so no stroke covers a fill. Glyphs are drawn at their written baseline origins and
-// shaped no further.
+// Draws a glyphs item in its text's own box: the background, then every run's highlight rectangles in run order, then
+// every run's underline rectangles, then the outline of every glyph of every run with a stroke, then every glyph's fill,
+// so no stroke covers a fill. Glyphs are drawn at their written baseline origins and shaped no further.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -30,6 +30,16 @@ struct GlyphDrawer {
             context.addPath(PathOutline(.rect(background.rectangle, radius: background.radius)).path)
             context.setFillColor(background.color.cgColor)
             context.fillPath()
+        }
+        for run in item.runs {
+            guard let highlight = run.highlight else { continue }
+
+            fill(highlight.rects, radius: highlight.radius, color: highlight.color, bands: highlight.bands, in: context)
+        }
+        for run in item.runs {
+            guard let underline = run.underline else { continue }
+
+            fill(underline.rects, radius: 0, color: underline.color, bands: underline.bands, in: context)
         }
 
         let runs = try item.runs.map { run in
@@ -75,4 +85,29 @@ struct GlyphDrawer {
     }
 
     // MARK: - Private
+    // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands.
+    private func fill(
+        _ rects: [Rectangle],
+        radius: Double,
+        color: Color,
+        bands: [ClosedRange<Double>]?,
+        in context: CGContext
+    ) {
+        for (index, rect) in rects.enumerated() {
+            context.saveGState()
+            if let bands, index < bands.count {
+                let band = bands[index]
+                context.clip(to: CGRect(
+                    x: band.lowerBound,
+                    y: rect.y,
+                    width: band.upperBound - band.lowerBound,
+                    height: rect.height
+                ))
+            }
+            context.addPath(PathOutline(.rect(rect, radius: radius)).path)
+            context.setFillColor(color.cgColor)
+            context.fillPath()
+            context.restoreGState()
+        }
+    }
 }

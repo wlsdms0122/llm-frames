@@ -203,6 +203,7 @@ struct ResolvedSequencePinnedReferencesTests {
 
     private func text() -> ResolvedText {
         let run = ResolvedGlyphRun(
+            source: 0,
             font: font,
             face: "Font-Bold",
             size: 20,

@@ -5,12 +5,13 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A run of shaped glyphs in one face and size, each glyph's origin in its text's own box with the baseline shift not
-// applied. `color` and `baselineShift` are keyframe lists, `stroke` is off or a timed `{width, color}`, and `tracking`
-// is off or a keyframe list of the tracking added after each grapheme cluster beyond the static tracking, in output
-// pixels.
+// A run of shaped glyphs in one face and size, set from the text's run at `source`, each glyph's origin in its text's
+// own box with the baseline shift not applied. `color` and `baselineShift` are keyframe lists, `stroke` is off or a
+// timed `{width, color}`, and `tracking` is off or a keyframe list of the tracking added after each grapheme cluster
+// beyond the static tracking, in output pixels.
 struct ResolvedGlyphRun: Equatable, Sendable {
     // MARK: - Property
+    let source: Int
     let font: PinnedFile
     let face: String
     let size: Double
@@ -24,6 +25,7 @@ struct ResolvedGlyphRun: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
+        source: Int,
         font: PinnedFile,
         face: String,
         size: Double,
@@ -35,6 +37,7 @@ struct ResolvedGlyphRun: Equatable, Sendable {
         underline: ResolvedUnderline?,
         glyphs: [PositionedGlyph]
     ) {
+        self.source = source
         self.font = font
         self.face = face
         self.size = size

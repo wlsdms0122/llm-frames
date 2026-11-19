@@ -448,12 +448,17 @@ struct ResolvedValueReader: Sendable {
 
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
         let run = try value.object(keys: [
-            "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight", "underline",
-            "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight",
+            "underline", "glyphs"
         ])
         let length = ValueStructure.leaf(.length(.any))
 
+        guard let source = Int(exactly: try run.member("source").number()), source >= 0 else {
+            throw try run.member("source").wrongType("a run index")
+        }
+
         return ResolvedGlyphRun(
+            source: source,
             font: try pinned(run),
             face: try run.member("face").string(),
             size: try run.member("size").number(),
@@ -490,7 +495,9 @@ struct ResolvedValueReader: Sendable {
     }
 
     private func drawnRun(_ value: PlacedJSONValue) throws -> DrawnGlyphRun {
-        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
+        let run = try value.object(keys: [
+            "file", "sha256", "face", "size", "color", "stroke", "highlight", "underline", "glyphs"
+        ])
 
         return DrawnGlyphRun(
             font: try pinned(run),
@@ -502,8 +509,39 @@ struct ResolvedValueReader: Sendable {
 
                 return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
             },
+            highlight: try run.member("highlight").optional { value in
+                let highlight = try value.object(keys: ["rects", "radius", "color", "bands"])
+
+                return DrawnHighlight(
+                    rects: try highlight.member("rects").elements().map(rectangle),
+                    radius: try highlight.member("radius").number(),
+                    color: try color(highlight.member("color")),
+                    bands: try bands(highlight.member("bands"))
+                )
+            },
+            underline: try run.member("underline").optional { value in
+                let underline = try value.object(keys: ["rects", "color", "bands"])
+
+                return DrawnUnderline(
+                    rects: try underline.member("rects").elements().map(rectangle),
+                    color: try color(underline.member("color")),
+                    bands: try bands(underline.member("bands"))
+                )
+            },
             glyphs: try glyphs(run.member("glyphs"))
         )
+    }
+
+    // A band is `[x0, x1]`, x0 no greater than x1.
+    private func bands(_ value: PlacedJSONValue) throws -> [ClosedRange<Double>]? {
+        try value.optional { value in
+            try value.elements().map { element in
+                let numbers = try element.numbers(count: 2)
+                guard numbers[0] <= numbers[1] else { throw element.wrongType("[x0, x1] with x0 no greater than x1") }
+
+                return numbers[0]...numbers[1]
+            }
+        }
     }
 
     // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.

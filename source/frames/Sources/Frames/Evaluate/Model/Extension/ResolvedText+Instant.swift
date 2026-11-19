@@ -48,6 +48,28 @@ extension ResolvedText {
         return moves
     }
 
+    // How far each run's pieces move with the glyph moves `moves`: a piece's start with the run's first glyph, and its
+    // end with the last visible glyph of the run's `source` on its line.
+    func pieceMoves(of moves: [[Point]]) -> [PieceMove] {
+        let still = PieceMove(start: Point(x: 0, y: 0), end: Point(x: 0, y: 0))
+        var pieces = runs.map { _ in still }
+        guard let lines else { return pieces }
+
+        for line in lines {
+            var ends: [Int: Point] = [:]
+            for cluster in line.clusters where cluster.count > 0 {
+                ends[runs[cluster.run].source] = moves[cluster.run][cluster.first + cluster.count - 1]
+            }
+            for run in Set(line.clusters.map(\.run)) {
+                guard let start = moves[run].first, let end = ends[runs[run].source] else { continue }
+
+                pieces[run] = PieceMove(start: start, end: end)
+            }
+        }
+
+        return pieces
+    }
+
     // MARK: - Private
     // A title with a width keeps it, and one without is as wide as its widest line then, keeping the edge or the
     // centre `align` names. The top edge stays, and the box ends as far below the last line's baseline as it did.

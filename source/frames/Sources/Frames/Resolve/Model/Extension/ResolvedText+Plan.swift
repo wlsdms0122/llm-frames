@@ -46,6 +46,7 @@ extension ResolvedText {
                 let color = character["color"] ?? .off
 
                 return ResolvedGlyphRun(
+                    source: run.source,
                     font: try PinnedFile(path: run.face.file, hashes: hashes),
                     face: run.face.name,
                     size: run.size,
@@ -106,6 +107,7 @@ extension ResolvedText {
             lines: nil,
             runs: try layout.runs.map { run in
                 ResolvedGlyphRun(
+                    source: run.source,
                     font: try PinnedFile(path: run.face.file, hashes: hashes),
                     face: run.face.name,
                     size: run.size,

@@ -301,17 +301,20 @@ struct ResolvedValueWriter: Sendable {
                 ]))
             }
 
-            return .object(JSONObject(members: pinned(run.font) + [
-                JSONMember(key: "face", value: .string(run.face)),
-                JSONMember(key: "size", value: .number(run.size)),
-                JSONMember(key: "color", value: timed(run.color)),
-                JSONMember(key: "stroke", value: timed(run.stroke)),
-                JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
-                JSONMember(key: "tracking", value: timed(run.tracking)),
-                JSONMember(key: "highlight", value: highlight ?? .null),
-                JSONMember(key: "underline", value: underline ?? .null),
-                JSONMember(key: "glyphs", value: glyphs(run.glyphs))
-            ]))
+            return .object(JSONObject(members: [JSONMember(key: "source", value: .number(Double(run.source)))]
+                + pinned(run.font)
+                + [
+                    JSONMember(key: "face", value: .string(run.face)),
+                    JSONMember(key: "size", value: .number(run.size)),
+                    JSONMember(key: "color", value: timed(run.color)),
+                    JSONMember(key: "stroke", value: timed(run.stroke)),
+                    JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
+                    JSONMember(key: "tracking", value: timed(run.tracking)),
+                    JSONMember(key: "highlight", value: highlight ?? .null),
+                    JSONMember(key: "underline", value: underline ?? .null),
+                    JSONMember(key: "glyphs", value: glyphs(run.glyphs))
+                ]
+            ))
         })
     }
 
@@ -323,12 +326,31 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "size", value: .number(run.size)),
                 JSONMember(key: "color", value: color(run.color)),
                 JSONMember(key: "stroke", value: run.stroke.map(stroke) ?? .null),
+                JSONMember(key: "highlight", value: run.highlight.map { highlight in
+                    .object(JSONObject(members: [
+                        JSONMember(key: "rects", value: .array(highlight.rects.map(rectangle))),
+                        JSONMember(key: "radius", value: .number(highlight.radius)),
+                        JSONMember(key: "color", value: color(highlight.color)),
+                        JSONMember(key: "bands", value: bands(highlight.bands))
+                    ]))
+                } ?? .null),
+                JSONMember(key: "underline", value: run.underline.map { underline in
+                    .object(JSONObject(members: [
+                        JSONMember(key: "rects", value: .array(underline.rects.map(rectangle))),
+                        JSONMember(key: "color", value: color(underline.color)),
+                        JSONMember(key: "bands", value: bands(underline.bands))
+                    ]))
+                } ?? .null),
                 JSONMember(key: "glyphs", value: glyphs(run.glyphs))
             ]))
         })
     }
 
     // MARK: - Private
+    private func bands(_ bands: [ClosedRange<Double>]?) -> JSONValue {
+        bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
+    }
+
     private func glyphs(_ glyphs: [PositionedGlyph]) -> JSONValue {
         .array(glyphs.map { numbers([Double($0.id), $0.x, $0.y]) })
     }

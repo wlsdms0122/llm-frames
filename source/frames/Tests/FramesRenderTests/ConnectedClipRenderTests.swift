@@ -247,6 +247,8 @@ struct ConnectedClipRenderTests {
                                 size: run.size,
                                 color: run.color,
                                 stroke: nil,
+                                highlight: nil,
+                                underline: nil,
                                 glyphs: run.glyphs
                             )
                         },
