@@ -14,13 +14,22 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 `theme` prints the base theme, and that output is also the list of every group a theme can hold. The keys of a text style and of a shape style are the tables below. Its values are part of this contract, like the presets of [FRAMES-16](../FRAMES-16/SPEC.md), so a template that leaves a key unset gets the same value on every frames of the same major version. `colors`, `styles`, `shapes` and `defaults.animation.title` (keyed by text style name) are open maps: any name may be added. A name that is referred to must exist: a colour, a text style, a shape style, or a `title` key that names no text style stops. So does a preset named by `defaults` that is not there, whether or not a clip takes that default, and the stop names the default's place in the theme. So does a theme colour such a preset names with the default's arguments applied (a cover or a bloom `color`) that the merged theme, its own colours and those it is merged over, does not hold. A theme file and a document's `theme` hold only the keys they change, and an unknown key stops. `--theme` and a document's `theme` take `<pack>/<name>` or an absolute path, and a document's `theme` also takes a theme object.
 
-Merging goes key by key through the theme's own structure: the top-level groups, each key of `placement`, `border` and `shadow`, each colour, each text style and its properties, each shape style and its properties, each entry of `defaults`, each entry of `defaults.animation`, and each style in its `title` map. Below that every value replaces the one under it whole: a `background`, a `stroke`, a shape style's `shadow` object, a preset choice like `{preset, seconds}`, a style's `features`, `highlight` and `underline`, a list such as `font`.
+**Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's keys over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), a title's `character` over its runs' styles ([FRAMES-11](../FRAMES-11/SPEC.md)), and a keyframe over the value below it ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
+
+- An object takes the upper layer's keys over the lower one's, key by key and inside nested objects: the top-level groups, each colour, each text style and shape style and each of their properties, a `stroke`, a `shadow`, a `background`, a `highlight`, an `underline`, a style's `features`, each entry of `defaults` and of `defaults.animation`, and each style in its `title` map. So a stronger theme that writes `{"stroke": {"color": "red"}}` for a shape style keeps the weaker theme's stroke `width`.
+- Every other value replaces the one under it: a number, a colour, a name, a list such as `font`, a `dash` or a gradient's `stops`.
+- A value of another form replaces the one under it whole: a colour over a gradient, a linear gradient over a radial one, `true` over a shadow or underline object, a preset name over a preset choice object, and a choice of one preset over a choice of another, whose arguments are another preset's parameters. Over `false`, or where the layer below has no value, the upper value stands alone.
+- A stroke's `color` and `gradient` are one paint leaf: writing either replaces the other.
+- `false` turns the value below off.
+- A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops.
 
 Precedence, from weakest:
 
 ```
 base theme < --theme file < document theme < keys on the clip
 ```
+
+The keys on the clip are a shape's appearance keys over its shape style, a media clip's `border` and `shadow` over the theme's, and a title's `character` over its runs' styles.
 
 A document inside another starts from the theme in effect where it is written: a compound clip from its document's, and a document given as a template argument from the caller's, not the template's. A template starts from the base theme ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
@@ -63,7 +72,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
 
 ### Styles
 
-A text style is a named set of text properties. Any name is allowed. A run's style gives that run its character properties, and the clip's style gives the paragraph properties ([FRAMES-5](../FRAMES-5/SPEC.md)).
+A text style is a named set of text properties. Any name is allowed. A run's style gives that run its character properties, and the clip's style gives the paragraph properties ([FRAMES-5](../FRAMES-5/SPEC.md)). A title's `character` merges over every run's style ([FRAMES-11](../FRAMES-11/SPEC.md)).
 
 | Property | Kind | Meaning |
 | --- | --- | --- |
@@ -89,7 +98,7 @@ A style without `size` stops when the theme is merged, wherever it is written, s
 
 ### Shape styles
 
-A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. A key written on the clip merges over its style's value leaf by leaf, statically and in each keyframe, and `false` turns it off ([FRAMES-11](../FRAMES-11/SPEC.md)). Themes merge over each other as above, a shape style's `stroke`, `fill` and `shadow` each replaced whole by a stronger theme's.
+A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. A key written on the clip merges over its style's value leaf by leaf, statically and in each keyframe, and `false` turns it off ([FRAMES-11](../FRAMES-11/SPEC.md)). Themes merge over each other by the same rule ([above](#rules)).
 
 | Property | Form |
 | --- | --- |

@@ -24,7 +24,7 @@ A title's text ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs
 
 - A string is one run in the clip's `style`.
 - A run is `{text, style}`. `text` is a string. `style` names a theme text style ([FRAMES-22](../FRAMES-22/SPEC.md)) and is optional: without it the run is in the clip's `style`. A style a run names that the theme in effect does not hold stops.
-- A run's style gives that run its character attributes: `font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color`, `stroke`, `highlight` and `underline` ([FRAMES-22](../FRAMES-22/SPEC.md), [below](#highlights-and-underlines)). Every other attribute is a paragraph attribute and comes from the clip's `style` alone: `placement`, `offset`, `align`, `lineHeight`, `lines` and `background`. A run style's paragraph attributes are not read.
+- A run's style gives that run its character attributes: `font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color`, `stroke`, `highlight` and `underline` ([FRAMES-22](../FRAMES-22/SPEC.md), [below](#highlights-and-underlines)), with the title's `character` merged over them ([FRAMES-11](../FRAMES-11/SPEC.md)). Every other attribute is a paragraph attribute and comes from the clip's `style` alone: `placement`, `offset`, `align`, `lineHeight`, `lines` and `background`. A run style's paragraph attributes are not read.
 - The runs are laid out as one text, in order. A run's text may hold `\n`, and a line may hold parts of several runs.
 - An empty list of runs stops, since it is a title with nothing to show.
 
