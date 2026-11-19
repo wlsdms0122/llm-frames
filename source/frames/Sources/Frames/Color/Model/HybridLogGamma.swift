@@ -14,6 +14,8 @@ import Foundation
 package struct HybridLogGamma: Equatable, Sendable {
     // MARK: - Property
     package static let nominalPeakLuminance = 1000.0
+    // The Y row of BT.2020's normalized primary matrix, rounded as BT.2100 gives it.
+    package static let bt2020Luminance = RGB(red: 0.2627, green: 0.6780, blue: 0.0593)
 
     private static let a = 0.17883277
     private static let b = 1 - 4 * a
@@ -40,9 +42,14 @@ package struct HybridLogGamma: Equatable, Sendable {
         return (exp((value - Self.c) / Self.a) + Self.b) / 12
     }
 
-    // The OOTF, 0 where the scene light's luminance is 0.
-    package func displayLight(sceneLight: RGB) -> RGB {
-        let luminance = Self.luminance(of: sceneLight)
+    // The OOTF, 0 where the scene light's luminance is 0. Luminance weighs red, green and blue by
+    // `luminanceCoefficients`, the Y row of the normalized primary matrix of the light's primaries.
+    package func displayLight(
+        sceneLight: RGB,
+        luminanceCoefficients: RGB = Self.bt2020Luminance
+    ) -> RGB {
+        let luminance = luminanceCoefficients.red * sceneLight.red + luminanceCoefficients.green * sceneLight.green
+            + luminanceCoefficients.blue * sceneLight.blue
         guard luminance > 0 else { return RGB(red: 0, green: 0, blue: 0) }
 
         return sceneLight.scaled(by: Self.nominalPeakLuminance * pow(luminance, Self.systemGamma - 1))
@@ -71,6 +78,6 @@ package struct HybridLogGamma: Equatable, Sendable {
     // MARK: - Private
     // The luminance of light on BT.2020 primaries.
     private static func luminance(of light: RGB) -> Double {
-        0.2627 * light.red + 0.6780 * light.green + 0.0593 * light.blue
+        bt2020Luminance.red * light.red + bt2020Luminance.green * light.green + bt2020Luminance.blue * light.blue
     }
 }
