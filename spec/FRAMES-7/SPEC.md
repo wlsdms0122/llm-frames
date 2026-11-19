@@ -104,7 +104,7 @@ Which keys each shape kind takes, the forms of masks and track mattes, and `radi
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
-Keyframable properties:
+Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) gives them (a key evaluation reads at each instant whose value is built from numbers and colours). The table is written for reference, and where it and the principle differ the principle decides:
 
 | Clip | Properties |
 | --- | --- |
