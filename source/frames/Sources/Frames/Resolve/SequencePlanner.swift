@@ -720,24 +720,19 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    // A title wraps at its `width`, by default the output width less the placement padding on each side, which a
-    // content-fit frame does not have yet.
     private func title(
         of written: Clip,
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> TextLayout? {
         guard case let .title(runs, style) = written.content else { return nil }
-        guard written.width != nil || !format.isMeasured else {
-            throw ResolveError.titleWidthUnderContentFit(place: written.place, kind: .clip(.title))
-        }
 
         let scale = theme.lengthScale(at: format.size.width)
         return try self.text.layout(
             runs,
             style: style,
             stylePlace: written.place.appending(key: "style"),
-            width: written.width ?? format.size.width - theme.placementPadding * scale * 2,
+            width: written.width,
             theme: theme,
             scale: scale,
             place: written.place.appending(key: "title"),

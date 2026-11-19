@@ -17,10 +17,12 @@ struct Typesetter: Sendable {
     }
 
     // MARK: - Public
-    // `width` is the wrapping width in output pixels, and nil keeps the text on one line. Text that takes more lines
-    // than its paragraph style's `lines`, counting every `\n`, stops. A style of one line wraps at no width, and is too
-    // wide when it is wider than `width`. Lines lie the line height apart, baseline to baseline: the first baseline is
-    // its line's largest ascent below the top, and the box ends the last line's largest descent below the last.
+    // `width` is the width of the text box in output pixels, and the text wraps at it. Without it the text breaks
+    // only at `\n` and the box is as wide as the widest line. A piece of a word wider than `width` that cannot break
+    // widens the box to hold it. Text that takes more lines than its paragraph style's `lines`, counting every `\n`,
+    // stops. A style of one line wraps at no width, and is too wide when it is wider than `width`. Lines lie the line
+    // height apart, baseline to baseline: the first baseline is its line's largest ascent below the top, and the box
+    // ends the last line's largest descent below the last.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
@@ -28,19 +30,19 @@ struct Typesetter: Sendable {
         place: Place,
         kind: String
     ) throws -> TextLayout {
-        let limit = width == nil ? 1 : style.lines
-        let isOneLine = limit == 1
+        let isOneLine = style.lines == 1
         let lines = try paragraphs(of: runs).flatMap { paragraph in
             try self.lines(of: paragraph, width: isOneLine ? nil : width, place: place, kind: kind)
         }
-        if let limit, lines.count > limit {
+        if let limit = style.lines, lines.count > limit {
             throw TextError.tooManyLines(place: place, kind: kind, count: lines.count, limit: limit)
         }
 
-        let textWidth = lines.map(\.width).reduce(0, max)
-        if isOneLine, let width, textWidth > width {
-            throw TextError.tooWide(place: place, kind: kind, width: textWidth, room: width)
+        let widest = lines.map(\.width).reduce(0, max)
+        if isOneLine, let width, widest > width {
+            throw TextError.tooWide(place: place, kind: kind, width: widest, room: width)
         }
+        let textWidth = max(width ?? 0, widest)
 
         let padding = style.background?.padding ?? Size(width: 0, height: 0)
         let firstBaseline = padding.height + (lines.first?.ascent ?? 0)

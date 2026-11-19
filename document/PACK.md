@@ -143,7 +143,7 @@ A template is a sequence document with published parameters, as an NLE's motion 
   },
   "storyline": [
     { "solid": { "param": "background" }, "duration": 2,
-      "connected": [ { "title": { "param": "title" }, "style": "title", "animation": { "param": "entrance" } } ] }
+      "connected": [ { "title": { "param": "title" }, "style": "title", "width": 1600, "animation": { "param": "entrance" } } ] }
   ] }
 ```
 

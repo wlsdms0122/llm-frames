@@ -9,7 +9,7 @@
           "area": { "text": "jane@example.com", "padding": 8 }, "track": { "text": "Total" } },
         { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "track": true,
           "area": { "from": "Total", "to": "42,000", "padding": 12 } },
-        { "at": [1.2, 2.8], "title": "38,000 + 4,000", "style": "label", "width": 600, "parent": "total",
+        { "at": [1.2, 2.8], "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "from": "Total", "to": "42,000", "padding": 12 }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
   ],

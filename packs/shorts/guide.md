@@ -37,8 +37,8 @@ Viewers scrolling a vertical feed on a phone watch it: YouTube Shorts, Instagram
 
 ### Text
 
-- The headline is one or two lines of at most 10 syllables each, broken with `\n` where you want the break. It is the hook, read in the first second, and a line that wraps by itself breaks where it likes.
-- A subtitle is one spoken phrase on one line of at most 14 syllables, two lines at the most. Viewers read it while they watch, and 15 syllables fill the width.
+- The headline is one or two lines of at most 10 syllables each, broken with `\n` where you want the break. It is the hook, read in the first second. It has no `width`, so it breaks only at `\n`, and a longer line runs toward the frame's edges.
+- A subtitle is one spoken phrase on one line of at most 14 syllables, two lines at the most, the second after a `\n`. Viewers read it while they watch, and 15 syllables fill the width. It has no `width`, so it does not wrap by itself.
 - Subtitles follow the voice, in spoken Korean (해요체), without a full stop at the end. They stand in for a voice that many viewers have muted.
 - Numbers are written as digits (`42,000원`, `3초`). Digits are read faster than words.
 - Labels are one to three words. A label is one line, and one that does not fit stops.
