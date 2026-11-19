@@ -89,7 +89,8 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
 | animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
-| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args}`, a list of those, or `"none"` |
+| filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args}`, a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
+| filter op | `op`, and the parameters the op table of [FRAMES-15](../FRAMES-15/SPEC.md) gives that op |
 | audio filter choice (`audioFilter`) | an audio preset as `<pack>/<name>` or an absolute path, `{preset, args}`, an audio op, or a list of those ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | audio op | `op`, and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate` |
 | EQ band | `type, frequency, gain, q`, `gain` for `lowShelf`, `highShelf` and `peak` only |
