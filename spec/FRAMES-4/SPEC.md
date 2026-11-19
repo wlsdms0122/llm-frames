@@ -45,7 +45,7 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 | a number (`opacity`, `rotation`, `radius`, `volume`, `pan`, a `width` or `height`) | per component: `a + (b - a) × e` |
 | `scale`, a number or `[sx, sy]` | per component, a number s taken as `[s, s]`, so a keyframe of one form may follow a keyframe of the other ([FRAMES-1](../FRAMES-1/SPEC.md)) |
 | a colour | per channel, as a number: red, green, blue and alpha, straight (not premultiplied), on their sRGB-encoded values from 0 to 1, the working space ([FRAMES-21](../FRAMES-21/SPEC.md)) |
-| a value with leaves (a `stroke`, a `fill`, a `shadow`, a `border`, a `filter` or `adjust`, a solid's colour) | leaf by leaf: each number and each colour as above, every other leaf the same in both keyframes. A filter interpolates its op lists op by op, parameter by parameter |
+| a value with leaves (a `stroke`, a `fill`, a `shadow`, a `border`, a `filter` or `adjust`) | leaf by leaf: each number and each colour as above, every other leaf the same in both keyframes. A filter interpolates its op lists op by op, parameter by parameter |
 | `timeRemap` | as a number: the media time shown moves from one key's value to the next along the ease. Two keys with the same value hold a frame, a lower next value plays backwards, and eased keys give speed ramps ([FRAMES-8](../FRAMES-8/SPEC.md)) |
 | a point, `[x, y]` | per component |
 | an area, `[x, y, w, h]` | per component |
