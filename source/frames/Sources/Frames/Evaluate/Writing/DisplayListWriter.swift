@@ -32,6 +32,7 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "size", value: values.size(list.size)),
             JSONMember(key: "background", value: values.color(list.background)),
             list.colorSpace.map { JSONMember(key: "colorSpace", value: .string($0.rawValue)) },
+            list.colorSpace.map { _ in JSONMember(key: "peak", value: list.peak.map { .number($0) } ?? .null) },
             JSONMember(key: "compositing", value: .string(list.compositing.rawValue)),
             JSONMember(key: "items", value: .array(list.items.map { item(of: $0, seed: list.seed) }))
         ].compactMap { $0 }

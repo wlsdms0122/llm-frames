@@ -18,6 +18,9 @@ package protocol MediaDecoder: Sendable {
         reading: PictureReading
     ) throws -> Bitmap
 
+    // How the pictures of `file`, a video, a still or an image sequence directory, are taken to working values.
+    func colorReading(of file: MediaFile) throws -> ColorReading
+
     // Refuses, before any frame is read, a file it cannot read or a video whose frames count differently from the
     // pinned `frameTimes`.
     func check(_ file: MediaFile) throws

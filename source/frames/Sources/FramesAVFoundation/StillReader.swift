@@ -61,6 +61,12 @@ struct StillReader {
         CIImage(cgImage: try cgImage(path: path), options: [.colorSpace: NSNull()]).oriented(orientation)
     }
 
+    // The picture as it is displayed, tagged with its file's colour space, which Core Image's colour management
+    // converts from.
+    func taggedImage(path: String) throws -> CIImage {
+        CIImage(cgImage: try cgImage(path: path)).oriented(orientation)
+    }
+
     func taggedColor(path: String) throws -> TaggedColor {
         let profile = isTagged ? try cgImage(path: path).colorSpace?.copyICCData() : nil
 

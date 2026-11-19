@@ -16,6 +16,18 @@ struct TaggedColor: Equatable, Sendable {
     let masteringDisplayPeak: Double?
     let probed: ProbedColorSpace
 
+    // How the file's pictures are taken to working values: by the formulas of what it names, or by the platform's
+    // colour management where no fixed formula converts it.
+    var colorReading: ColorReading {
+        switch color {
+        case let .success(color):
+            .formulas(color.colorSpace)
+
+        case .failure:
+            .platform
+        }
+    }
+
     // MARK: - Initializer
     init(
         color: Result<MediaColor, ColorRefusal>,

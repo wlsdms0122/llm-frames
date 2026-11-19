@@ -55,6 +55,7 @@ struct TranscoderTests {
         }
         #expect(log.calls == [
             .checkMedia(path: input),
+            .readPicture(path: input, frame: 0, reading: .working(colorSpace: nil, targetPeak: 203)),
             .checkImageTarget(target),
             .writeImageTarget(target, frame: 0)
         ])
@@ -138,10 +139,184 @@ struct TranscoderTests {
                 SoundTarget(path: output, quality: .medium, layout: silence.layout, sampleRate: silence.sampleRate)
             ),
             .videoWriter(target, size: Size(width: 40, height: 30), fps: 10, sound: silence)
-        ] + [0, 0, 0, 1, 1].map { .append(path: output, frame: $0) } + [
+        ] + [0, 0, 0, 1, 1].flatMap { frame -> [RoleCall] in
+            [
+                .readPicture(path: input, frame: frame, reading: .working(colorSpace: nil, targetPeak: 203)),
+                .append(path: output, frame: frame)
+            ]
+        } + [
             .finish(path: output)
         ])
         #expect(result.format == .video(codec: written, hasSound: true))
+    }
+
+    @Test(
+        "an image is written in the source's colour space, srgb outside the table, or the one --color-space names",
+        arguments: [
+            (ColorReading.formulas(.rec2100PQ), nil as ColorSpace?, ColorSpace.rec2100PQ, BitDepth.sixteen),
+            (.formulas(.displayP3), nil, .displayP3, .eight),
+            (.formulas(nil), nil, .srgb, .eight),
+            (.formulas(.rec2100HLG), .srgb, .srgb, .eight),
+            (.formulas(.srgb), .rec2100HLG, .rec2100HLG, .sixteen)
+        ]
+    )
+    func writesImageInColorSpace(
+        colorReading: ColorReading,
+        colorSpace: ColorSpace?,
+        written: ColorSpace,
+        depth: BitDepth
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "in.png")
+        let output = directory.file("out.png")
+        let sut = transcoder(log: log, facts: [input: image(width: 40, height: 30)], colorReading: colorReading)
+
+        // When
+        _ = try sut.transcode(TranscodeRequest(input: input, output: output, colorSpace: colorSpace))
+
+        // Then
+        let conversion = ColorConversion(space: written)
+        let target = ImageTarget.png(path: output, size: Size(width: 40, height: 30), depth: depth, output: conversion)
+        #expect(log.calls == [
+            .checkMedia(path: input),
+            .readPicture(path: input, frame: 0, reading: .working(colorSpace: nil, targetPeak: conversion.peak)),
+            .checkImageTarget(target),
+            .writeImageTarget(target, frame: 0)
+        ])
+    }
+
+    @Test("an SDR PNG takes the bit depth the source probes at, not the depth of the picture read", arguments: [8, 16])
+    func writesProbedDepth(bitDepth: Int) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "in.png")
+        let output = directory.file("out.png")
+        let probed = ProbedColorSpace(
+            name: .srgb,
+            primaries: nil,
+            transfer: nil,
+            matrix: nil,
+            bitDepth: bitDepth,
+            isHighDynamicRange: false
+        )
+        let facts = [input: ProbedMedia(kind: .image, size: Size(width: 40, height: 30), colorSpace: probed)]
+        let sut = transcoder(log: log, facts: facts)
+
+        // When
+        _ = try sut.transcode(TranscodeRequest(input: input, output: output))
+
+        // Then
+        let target = ImageTarget.png(
+            path: output,
+            size: Size(width: 40, height: 30),
+            depth: BitDepth(holding: bitDepth),
+            output: ColorConversion(space: .srgb)
+        )
+        #expect(log.calls.contains(.writeImageTarget(target, frame: 0)))
+    }
+
+    @Test("a source no formula reads is read once by the platform's colour management into the output's space")
+    func readsByPlatform() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "in.mov")
+        let output = directory.file("out.mov")
+        let sut = transcoder(log: log, facts: [input: video(hasSound: false)], colorReading: .platform)
+
+        // When
+        _ = try sut.transcode(TranscodeRequest(input: input, output: output, colorSpace: .rec2100HLG))
+
+        // Then
+        let reads = log.calls.filter { if case .readPicture = $0 { true } else { false } }
+        #expect(reads == [0, 0, 0, 1, 1].map {
+            .readPicture(path: input, frame: $0, reading: .platform(colorSpace: .rec2100HLG))
+        })
+    }
+
+    @Test(
+        "a video in an HDR colour space is HEVC by default, and in an SDR one H.264",
+        arguments: [(ColorSpace.rec2100PQ, VideoCodec.hevc), (.rec2020, .h264)]
+    )
+    func choosesCodecByColorSpace(
+        space: ColorSpace,
+        codec: VideoCodec
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "in.mov")
+        let output = directory.file("out.mp4")
+        let sut = transcoder(log: log, facts: [input: video(hasSound: false)], colorReading: .formulas(space))
+
+        // When
+        let result = try sut.transcode(TranscodeRequest(input: input, output: output))
+
+        // Then
+        let target = EncodeTarget.compressed(
+            path: output,
+            codec: codec,
+            quality: .medium,
+            size: Size(width: 40, height: 30),
+            output: ColorConversion(space: space)
+        )
+        #expect(log.calls.contains(.checkTarget(target)))
+        #expect(result.format == .video(codec: codec, hasSound: false))
+    }
+
+    @Test("--codec h264 and a .jpg output in an HDR colour space stop, naming what carries HDR", arguments: [
+        ("in.mov", "out.mp4", VideoCodec.h264 as VideoCodec?, nil as ColorSpace?),
+        ("in.mov", "out.mp4", .h264, .rec2100HLG),
+        ("in.png", "out.jpg", nil, nil),
+        ("in.png", "out.jpg", nil, .rec2100PQ)
+    ])
+    func stopsOnHighDynamicRange(
+        inputName: String,
+        outputName: String,
+        codec: VideoCodec?,
+        colorSpace: ColorSpace?
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try source(in: directory, name: inputName)
+        let output = try existingOutput(in: directory, name: outputName)
+        let isVideo = inputName == "in.mov"
+        let media = isVideo ? video(hasSound: true) : image(width: 40, height: 30)
+        let written = colorSpace ?? .rec2100PQ
+
+        // When
+        let request = TranscodeRequest(input: input, output: output, codec: codec, colorSpace: colorSpace)
+
+        // Then
+        try expectStop(
+            request,
+            facts: [input: media],
+            colorReading: .formulas(.rec2100PQ),
+            error: isVideo
+                ? .highDynamicRangeCodec(path: output, colorSpace: written)
+                : .highDynamicRangeJPEG(path: output, colorSpace: written)
+        )
+    }
+
+    @Test("--color-space for an output of sound only stops", arguments: [("in.wav", "out.m4a"), ("in.mov", "out.m4a")])
+    func stopsOnColorSpaceWithoutPicture(
+        inputName: String,
+        outputName: String
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try source(in: directory, name: inputName)
+        let output = try existingOutput(in: directory, name: outputName)
+        let media = inputName == "in.wav" ? ProbedMedia(kind: .audio, duration: 1, sound: stereo) : video(hasSound: true)
+
+        // When
+        let request = TranscodeRequest(input: input, output: output, colorSpace: .displayP3)
+
+        // Then
+        try expectStop(request, facts: [input: media], error: .colorSpaceWithoutPicture(path: output))
     }
 
     @Test("a video without sound is written without sound", arguments: ["mp4", "mov", "m4v"])
@@ -562,10 +737,11 @@ struct TranscoderTests {
     private func transcoder(
         log: RoleCallLog,
         facts files: [String: ProbedMedia],
-        refusal: RoleRefusal? = nil
+        refusal: RoleRefusal? = nil,
+        colorReading: ColorReading = .formulas(.srgb)
     ) -> Transcoder {
         Transcoder(
-            decoder: RecordingDecoder(log: log, refuses: refusal == .decoder),
+            decoder: RecordingDecoder(log: log, refuses: refusal == .decoder, colorReading: colorReading),
             facts: MediaFactTable(files: files),
             encoder: RecordingEncoder(log: log, refuses: refusal == .encoder)
         )
@@ -619,10 +795,11 @@ struct TranscoderTests {
     private func expectStop(
         _ request: TranscodeRequest,
         facts: [String: ProbedMedia],
+        colorReading: ColorReading = .formulas(.srgb),
         error: TranscodeError
     ) throws {
         let log = RoleCallLog()
-        let sut = transcoder(log: log, facts: facts)
+        let sut = transcoder(log: log, facts: facts, colorReading: colorReading)
 
         let thrown = #expect(throws: TranscodeError.self) {
             try sut.transcode(request)

@@ -106,10 +106,10 @@ struct ToneMappingTests {
     }
 
     @Test(
-        "each colour space's peak: reference white for SDR, 1000 cd/m² for HLG and 10000 cd/m² for PQ",
+        "each colour space's peak: reference white for SDR, 1000 cd/m² for HLG and the default 1000 cd/m² for PQ",
         arguments: [
             (ColorSpace.srgb, 203.0), (.displayP3, 203), (.rec2020, 203), (.rec709, 203), (.rec2100HLG, 1000),
-            (.rec2100PQ, 10000)
+            (.rec2100PQ, 1000)
         ]
     )
     func givesPeak(

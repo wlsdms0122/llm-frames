@@ -17,6 +17,9 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
     case srgbLinear = "srgb-linear"
 
     // MARK: - Property
+    // The `format.peak` of a `rec2100-pq` sequence that writes none.
+    package static let defaultMasteringPeak = 1000.0
+
     package var primaries: ColorPrimaries {
         switch self {
         case .srgb, .rec709, .srgbLinear:
@@ -51,18 +54,32 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
         transferFunction == nil
     }
 
-    // The peak of an output in this space, in cd/m²: reference white for an SDR space, and the most display light an
-    // HDR space holds. An HDR picture is tone mapped to it.
+    // The peak of a sequence in this space, in cd/m²: reference white for an SDR space, the fixed 1000 cd/m² of
+    // HLG's OOTF, and the default `format.peak` for PQ, whose sequence names its own.
     package var peakLuminance: Double {
         switch self {
         case .srgb, .displayP3, .rec2020, .rec709, .srgbLinear:
             ColorConversion.referenceWhite
 
         case .rec2100PQ:
-            PerceptualQuantizer.peakLuminance
+            Self.defaultMasteringPeak
 
         case .rec2100HLG:
             HybridLogGamma.nominalPeakLuminance
+        }
+    }
+
+    // The display light an HDR space's transfer names, in cd/m², nil for an SDR space.
+    package var transferRange: ClosedRange<Double>? {
+        switch self {
+        case .srgb, .displayP3, .rec2020, .rec709, .srgbLinear:
+            nil
+
+        case .rec2100PQ:
+            0...PerceptualQuantizer.peakLuminance
+
+        case .rec2100HLG:
+            0...HybridLogGamma.nominalPeakLuminance
         }
     }
 

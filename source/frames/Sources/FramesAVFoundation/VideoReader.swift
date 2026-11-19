@@ -75,6 +75,23 @@ final class VideoReader: Sendable {
         atFrame index: Int,
         path: String
     ) throws -> CIImage {
+        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path), options: [.colorSpace: NSNull()]))
+    }
+
+    // The picture of frame `index` as it is displayed, tagged with the colour its frame carries, which Core Image's
+    // colour management converts from.
+    func taggedImage(
+        atFrame index: Int,
+        path: String
+    ) throws -> CIImage {
+        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path)))
+    }
+
+    // MARK: - Private
+    private func buffer(
+        atFrame index: Int,
+        path: String
+    ) throws -> CVImageBuffer {
         let time = frames[index]
         let shown = try open.withLockUnchecked { open -> CVImageBuffer? in
             if let reader = open, reader.index == index { return reader.picture }
@@ -95,10 +112,9 @@ final class VideoReader: Sendable {
         }
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 
-        return displayed(CIImage(cvImageBuffer: shown, options: [.colorSpace: NSNull()]))
+        return shown
     }
 
-    // MARK: - Private
     private static func facts(
         of track: AVAssetTrack,
         in asset: AVAsset,

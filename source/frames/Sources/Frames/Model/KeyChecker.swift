@@ -228,6 +228,9 @@ struct KeyChecker: Sendable {
         case let .object(table):
             guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
             try checkObject(object, as: table, place: place, scope: &scope)
+            if table.kind == DocumentKeyTable.format.kind {
+                try checkPeak(of: object, place: place)
+            }
 
         case let .oneOf(types):
             try checkAlternatives(value, as: types, place: place, kind: kind, scope: &scope)
@@ -332,6 +335,23 @@ struct KeyChecker: Sendable {
             }
         guard conflicting.isEmpty else {
             throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: conflicting)
+        }
+    }
+
+    // `peak` is the mastering peak of a `rec2100-pq` sequence, so a format of any other colour space stops on it.
+    private func checkPeak(
+        of format: JSONObject,
+        place: Place
+    ) throws {
+        guard format.contains("peak") else { return }
+
+        let colorSpace = format["colorSpace"]?.stringValue ?? ColorSpace.srgb.rawValue
+        guard colorSpace == ColorSpace.rec2100PQ.rawValue else {
+            throw ModelError.invalidValue(
+                place: place.appending(key: "peak"),
+                kind: DocumentKeyTable.format.kind,
+                reason: "only a rec2100-pq sequence takes a peak, and this one's colorSpace is \(colorSpace)"
+            )
         }
     }
 

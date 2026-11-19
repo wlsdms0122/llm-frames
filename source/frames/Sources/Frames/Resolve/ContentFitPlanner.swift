@@ -48,6 +48,7 @@ struct ContentFitPlanner: Sendable {
             fps: plan.format.fps,
             duration: plan.format.duration,
             colorSpace: plan.format.colorSpace,
+            peak: plan.format.peak,
             compositing: plan.format.compositing,
             margin: margin
         )

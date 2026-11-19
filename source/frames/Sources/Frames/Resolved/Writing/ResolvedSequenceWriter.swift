@@ -38,6 +38,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "background", value: values.color(format.background)),
             JSONMember(key: "conform", value: .string(format.conform.rawValue)),
             JSONMember(key: "colorSpace", value: .string(format.colorSpace.rawValue)),
+            JSONMember(key: "peak", value: format.peak.map { .number($0) } ?? .null),
             JSONMember(key: "compositing", value: .string(format.compositing.rawValue))
         ]))
     }

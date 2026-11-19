@@ -13,6 +13,9 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
     case outputDirectory(path: String)
     case outputExtension(path: String, input: String, kind: MediaKind, allowed: [String])
     case codecWithoutVideo(path: String)
+    case colorSpaceWithoutPicture(path: String)
+    case highDynamicRangeCodec(path: String, colorSpace: ColorSpace)
+    case highDynamicRangeJPEG(path: String, colorSpace: ColorSpace)
     case noSound(path: String, input: String)
     case noFrameRate(path: String)
     case undersizedVideo(path: String, maximumSide: Int?, size: Size)
@@ -42,6 +45,17 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
 
         case let .codecWithoutVideo(path):
             "\(quoted(path)): --codec picks the codec of a video output, and this output is not a video"
+
+        case let .colorSpaceWithoutPicture(path):
+            "\(quoted(path)): --color-space names the colour space of a picture, and this output is sound only"
+
+        case let .highDynamicRangeCodec(path, colorSpace):
+            "\(quoted(path)): H.264 holds 8 bits and cannot carry HDR, so a \(colorSpace.rawValue) video is written with "
+                + "--codec hevc"
+
+        case let .highDynamicRangeJPEG(path, colorSpace):
+            "\(quoted(path)): JPEG holds 8 bits and cannot carry HDR, so a \(colorSpace.rawValue) image is written as "
+                + ".png or .heic"
 
         case let .noSound(path, input):
             "\(quoted(path)): \(quoted(input)) has no sound track to write to an .m4a file"

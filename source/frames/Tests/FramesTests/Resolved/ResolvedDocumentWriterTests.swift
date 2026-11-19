@@ -48,6 +48,7 @@ struct ResolvedDocumentWriterTests {
             "background": "color(srgb 0 0 0 / 1)",
             "conform": "fit",
             "colorSpace": "srgb",
+            "peak": null,
             "compositing": "encoded"
           },
           "storyline": [

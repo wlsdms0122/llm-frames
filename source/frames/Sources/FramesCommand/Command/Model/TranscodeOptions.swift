@@ -28,7 +28,19 @@ struct TranscodeOptions: CommandOptions, Equatable {
             value: "<px>",
             help: "The most pixels the longer side has. A smaller source is not enlarged. Default: the source's size."
         ),
-        OptionRule("--codec", value: "h264|hevc", help: "The video codec. Only for a video output. Default: h264.")
+        OptionRule(
+            "--codec",
+            value: "h264|hevc",
+            help: "The video codec. Only for a video output. Default: h264 in an SDR colour space, hevc (Main 10) in "
+                + "an HDR one."
+        ),
+        OptionRule(
+            "--color-space",
+            value: "<name>",
+            help: "The colour space of a picture output: "
+                + ColorSpace.allCases.map(\.rawValue).joined(separator: ", ")
+                + ". Default: the source's, or srgb when it is outside these."
+        )
     ]
     static let positionals = [PositionalRule("<in>", help: "The image, audio or video file, as an absolute path.")]
 
@@ -41,7 +53,8 @@ struct TranscodeOptions: CommandOptions, Equatable {
             output: try arguments.requiredPath(of: "-o"),
             quality: try arguments.choice(of: "--quality") ?? Self.defaultQuality,
             maximumSide: try arguments.integer(of: "--max"),
-            codec: try arguments.choice(of: "--codec")
+            codec: try arguments.choice(of: "--codec"),
+            colorSpace: try arguments.choice(of: "--color-space")
         )
     }
 

@@ -234,6 +234,7 @@ struct SequencePlanner: Sendable {
         crops: [PropertyValue<FoundArea>?]
     ) throws -> FormatPlan {
         let format = time.sequence.format
+        let colorSpace = format.colorSpace ?? .srgb
         let size: Size
         let margin: Margin?
         switch format.size {
@@ -266,7 +267,8 @@ struct SequencePlanner: Sendable {
             background: time.theme.color(format.background ?? "background"),
             fps: time.fps,
             duration: time.duration,
-            colorSpace: format.colorSpace ?? .srgb,
+            colorSpace: colorSpace,
+            peak: colorSpace == .rec2100PQ ? format.peak ?? colorSpace.peakLuminance : nil,
             compositing: format.compositing ?? .encoded,
             margin: margin
         )

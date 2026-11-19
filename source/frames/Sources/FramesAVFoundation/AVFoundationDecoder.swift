@@ -15,10 +15,12 @@ import os
 // working values or analysis pictures, and their sound. A still is read with ImageIO, its orientation applied, and a
 // video with AVFoundation, its preferred transform applied. Each takes its samples as the file stores them and converts
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
-// video and a sound track are loaded once and kept.
+// `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A video
+// and a sound track are loaded once and kept.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     private let converter = PictureConverter()
+    private let managedConverter = ManagedPictureConverter()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
 
@@ -54,10 +56,17 @@ package final class AVFoundationDecoder: Sendable {
         reading: PictureReading
     ) throws -> Bitmap {
         let tagged = reading.colorSpace == nil ? try still.taggedColor(path: path) : nil
+        let image: CIImage
+        if case .platform = reading {
+            image = try still.taggedImage(path: path)
+        } else {
+            image = try still.image(path: path)
+        }
 
-        return try picture(from: try still.image(path: path), tagged: tagged, path: path, reading: reading)
+        return try picture(from: image, tagged: tagged, path: path, reading: reading)
     }
 
+    // `image` is the picture with no colour matched, or tagged with its file's colour for a `platform` reading.
     // `tagged` is the file's colour, which a reading that names a colour space does not need.
     private func picture(
         from image: CIImage,
@@ -65,31 +74,40 @@ package final class AVFoundationDecoder: Sendable {
         path: String,
         reading: PictureReading
     ) throws -> Bitmap {
-        let color: MediaColor
-        if let colorSpace = reading.colorSpace {
-            color = .space(colorSpace)
-        } else {
-            do {
-                color = try tagged?.color.get() ?? .space(.srgb)
-            } catch {
-                throw DecoderError.unconvertibleColor(file: path, reason: error.reason)
-            }
-        }
-        let conversion = MediaColorConversion(color)
-
         switch reading {
-        case let .working(_, targetPeak):
+        case let .working(colorSpace, targetPeak):
+            let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
             let toneMapping = targetPeak.flatMap {
                 conversion.toneMapping(masteringDisplayPeak: tagged?.masteringDisplayPeak, targetPeak: $0)
             }
             return converter.picture(from: image, conversion: conversion, toneMapping: toneMapping)
 
-        case .analysis:
+        case let .analysis(colorSpace):
+            let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
             let toneMapping = conversion.toneMapping(
                 masteringDisplayPeak: tagged?.masteringDisplayPeak,
                 targetPeak: ColorSpace.srgb.peakLuminance
             )
             return converter.analysisPicture(from: image, conversion: conversion, toneMapping: toneMapping)
+
+        case let .platform(colorSpace):
+            return managedConverter.picture(from: image, in: colorSpace)
+        }
+    }
+
+    // The conversion from `colorSpace` where a reading names one, else from the file's tagged colour, an untagged
+    // picture being `srgb`.
+    private func conversion(
+        in colorSpace: ColorSpace?,
+        tagged: TaggedColor?,
+        path: String
+    ) throws -> MediaColorConversion {
+        if let colorSpace { return MediaColorConversion(.space(colorSpace)) }
+
+        do {
+            return MediaColorConversion(try tagged?.color.get() ?? .space(.srgb))
+        } catch {
+            throw DecoderError.unconvertibleColor(file: path, reason: error.reason)
         }
     }
 
@@ -198,13 +216,21 @@ extension AVFoundationDecoder: MediaDecoder {
         if reading.colorSpace == nil, case let .failure(refusal) = video.taggedColor.color {
             throw DecoderError.unconvertibleColor(file: file.path, reason: refusal.reason)
         }
+        let image = if case .platform = reading {
+            try video.taggedImage(atFrame: index, path: file.path)
+        } else {
+            try video.image(atFrame: index, path: file.path)
+        }
 
-        return try picture(
-            from: try video.image(atFrame: index, path: file.path),
-            tagged: video.taggedColor,
-            path: file.path,
-            reading: reading
-        )
+        return try picture(from: image, tagged: video.taggedColor, path: file.path, reading: reading)
+    }
+
+    package func colorReading(of file: MediaFile) throws -> ColorReading {
+        let path = file.frameFiles.first ?? file.path
+        if let still = try StillReader(path: path) { return try still.taggedColor(path: path).colorReading }
+        guard let video = try video(at: path) else { throw DecoderError.unreadable(file: path) }
+
+        return video.taggedColor.colorReading
     }
 
     package func check(_ file: MediaFile) throws {

@@ -104,7 +104,7 @@ struct ColorConversionTests {
         #expect(output == RGB(red: 1, green: 0, blue: 0.4))
     }
 
-    @Test("HDR display light is clipped to the space's peak", arguments: [ColorSpace.rec2100PQ, .rec2100HLG])
+    @Test("HDR display light is clipped to its transfer's range", arguments: [ColorSpace.rec2100PQ, .rec2100HLG])
     func clipsHDRToPeak(space: ColorSpace) {
         // Given
         let sut = ColorConversion(space: space)
@@ -114,7 +114,7 @@ struct ColorConversionTests {
         let light = sut.displayLight(sut.encoded(bright))
 
         // Then
-        #expect(abs(light.green - space.peakLuminance) < 1e-6)
+        #expect(abs(light.green - (space.transferRange?.upperBound ?? 0)) < 1e-6)
     }
 
     @Test("a tone mapped HLG reference white stays below SDR white and keeps grey")
@@ -165,5 +165,59 @@ struct ColorConversionTests {
 
         // Then
         #expect(pixels == [0.5, 0.5, 0.5, 0.5, 0, 0, 0, 0])
+    }
+
+    @Test("a PQ output writes reference white at 0.5806 and clips display light to the sequence's peak")
+    func clipsPQOutputToPeak() {
+        // Given
+        let sut = ColorConversion(space: .rec2100PQ, peak: 400)
+        let bright = RGB(red: 100, green: 100, blue: 100)
+
+        // When
+        let white = sut.output(Self.white)
+        let clipped = sut.displayLight(sut.output(bright))
+
+        // Then
+        #expect(abs(white.green - 0.5806) < 1e-4)
+        #expect(abs(clipped.green - 400) < 1e-6)
+    }
+
+    @Test(
+        "an HDR frame's analysis picture keeps reference white near white and takes the sequence's peak to white",
+        arguments: [
+            (ColorSpace.rec2100PQ, 1000.0, 0.898), (.rec2100PQ, 400, 0.956), (.rec2100PQ, 4000, 0.815),
+            (.rec2100HLG, 1000, 0.898)
+        ]
+    )
+    func tonemapsAnalysisPicture(
+        space: ColorSpace,
+        peak: Double,
+        expected: Double
+    ) {
+        // Given
+        let sut = ColorConversion(space: space, peak: peak)
+        let atPeak = TransferFunction.sRGB.encode(RGB(red: 1, green: 1, blue: 1).scaled(by: peak / 203))
+
+        // When
+        let white = sut.analysis(Self.white)
+        let brightest = sut.analysis(atPeak)
+
+        // Then
+        #expect(abs(white.green - expected) < 1e-3)
+        #expect(abs(white.red - white.blue) < 1e-9)
+        #expect(abs(brightest.green - 1) < 1e-3)
+    }
+
+    @Test("an SDR frame's analysis picture is its working value clipped to 0 to 1, so wide gamut is clipped")
+    func clipsSDRAnalysisPicture() {
+        // Given
+        let sut = ColorConversion(space: .displayP3)
+        let red = sut.working(RGB(red: 1, green: 0, blue: 0))
+
+        // When
+        let analysis = sut.analysis(red)
+
+        // Then
+        #expect(analysis == RGB(red: 1, green: 0, blue: 0))
     }
 }

@@ -8,9 +8,9 @@
 // Lists nested in a display list, for storyline pictures, compound clips and track mattes, carry its seed, and a
 // storyline picture's and a track matte's a transparent background, so what such a list leaves uncovered shows what
 // lies below its picture. A clip used as a track matte draws no item of its own, and its children are drawn as usual.
-// The outermost list carries the sequence's colour space, and every list the compositing of the sequence whose items
-// it holds, a compound clip's or a template instance's its own. An HDR picture is tone mapped to `targetPeak`, the peak
-// of the outermost sequence's colour space, where its clip's `toneMap` is true, and a transition cover's always is.
+// The outermost list carries the sequence's colour space and peak, and every list the compositing of the sequence whose items
+// it holds, a compound clip's or a template instance's its own. An HDR picture is tone mapped to `targetPeak`, the
+// outermost sequence's peak, where its clip's `toneMap` is true, and a transition cover's always is.
 package struct Evaluator: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -32,13 +32,14 @@ package struct Evaluator: Sendable {
         of sequence: ResolvedSequence,
         at time: Double
     ) -> DisplayList {
-        let colorSpace = sequence.format.colorSpace
+        let format = sequence.format
 
-        return Evaluator(targetPeak: colorSpace.peakLuminance).displayList(
+        return Evaluator(targetPeak: format.peakLuminance).displayList(
             of: sequence,
             at: time,
-            seed: seeder.seed(at: time, fps: sequence.format.fps),
-            colorSpace: colorSpace
+            seed: seeder.seed(at: time, fps: format.fps),
+            colorSpace: format.colorSpace,
+            peak: format.peak
         )
     }
 
@@ -47,7 +48,8 @@ package struct Evaluator: Sendable {
         of sequence: ResolvedSequence,
         at time: Double,
         seed: Int,
-        colorSpace: ColorSpace?
+        colorSpace: ColorSpace?,
+        peak: Double? = nil
     ) -> DisplayList {
         let format = sequence.format
         let transition = ActiveTransition(storyline: sequence.storyline, at: time)
@@ -61,6 +63,7 @@ package struct Evaluator: Sendable {
             size: format.size,
             background: format.background,
             colorSpace: colorSpace,
+            peak: peak,
             compositing: format.compositing,
             seed: seed,
             items: items

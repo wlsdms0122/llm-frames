@@ -96,7 +96,7 @@ final class AssetVideoWriter {
         self.audio = audio
         self.sound = sound
         self.soundConverter = try sound.map { try SoundConverter(sound: $0, path: format.path) }
-        self.frameConverter = FrameConverter(keepsAlpha: format.keepsAlpha)
+        self.frameConverter = FrameConverter(keepsAlpha: format.keepsAlpha, output: format.target.output)
 
         guard writer.startWriting() else {
             abandon()

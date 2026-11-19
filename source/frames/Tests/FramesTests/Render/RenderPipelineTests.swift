@@ -222,29 +222,62 @@ struct RenderPipelineTests {
         #expect(drawn.count == 5)
     }
 
-    @Test("a PNG is the frame at `--at`, 0 when it is left out, checked and written once", arguments: [
-        (nil as Double?, 0),
-        (1.25, 2),
-        (1.99, 3)
-    ])
+    @Test(
+        "a PNG is the frame at `--at`, 0 when it is left out, checked and written once at 16 bits in the sequence's space",
+        arguments: [
+            (nil as Double?, 0),
+            (1.25, 2),
+            (1.99, 3)
+        ]
+    )
     func rendersFrameToPNG(
         time: Double?,
         frame: Int
     ) throws {
         // Given
+        let directory = try TemporaryDirectory()
         let log = RoleCallLog()
         let sut = pipeline(log: log)
+        let output = directory.file("out.png")
 
         // When
-        try sut.render(sequence(fps: 2, duration: 2), to: image, at: time, delivery: nil)
+        try sut.render(sequence(fps: 2, duration: 2), to: output, at: time, delivery: nil)
 
         // Then
+        let target = ImageTarget.png(path: output, size: size, depth: .sixteen)
         #expect(log.calls == [
             .checkMedia(path: "/abs/run.mp4"),
             .checkList(frame: frame),
+            .checkImageTarget(target),
             .draw(frame: frame),
-            .writeImage(path: image, frame: frame)
+            .writeImageTarget(target, frame: frame)
         ])
+    }
+
+    @Test(
+        "a master, a delivery and a PNG are written in the sequence's colour space at its peak",
+        arguments: [(ColorSpace.rec2100PQ, 600 as Double?), (.rec2100HLG, nil), (.displayP3, nil)]
+    )
+    func rendersInColorSpace(
+        colorSpace: ColorSpace,
+        peak: Double?
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let sut = pipeline(log: log)
+        let sequence = sequence(fps: 2, duration: 1, colorSpace: colorSpace, peak: peak)
+        let output = directory.file("out.png")
+
+        // When
+        try sut.render(sequence, to: master, at: nil, delivery: delivery)
+        try sut.render(sequence, to: output, at: 0, delivery: nil)
+
+        // Then
+        let conversion = ColorConversion(space: colorSpace, peak: peak)
+        #expect(log.calls.contains(.checkTarget(.master(path: master, alpha: false, output: conversion))))
+        #expect(log.calls.contains(.checkTarget(.delivery(path: delivery, output: conversion))))
+        #expect(log.calls.contains(.checkImageTarget(.png(path: output, size: size, depth: .sixteen, output: conversion))))
     }
 
     @Test("`--at` outside the sequence stops before anything is read", arguments: [-0.5, 2, 3])
@@ -327,7 +360,9 @@ struct RenderPipelineTests {
         duration: Double,
         background: Color = Color(written: "#000000"),
         media: PinnedMedia? = nil,
-        audio: [ResolvedSound] = []
+        audio: [ResolvedSound] = [],
+        colorSpace: ColorSpace = .srgb,
+        peak: Double? = nil
     ) -> ResolvedSequence {
         let entry = ResolvedStorylineClip(
             place: "storyline[0]",
@@ -352,7 +387,9 @@ struct RenderPipelineTests {
                 fps: fps,
                 duration: duration,
                 background: background,
-                conform: .fit
+                conform: .fit,
+                colorSpace: colorSpace,
+                peak: peak
             ),
             storyline: [entry],
             clips: [],

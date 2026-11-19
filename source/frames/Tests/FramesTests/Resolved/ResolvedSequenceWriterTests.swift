@@ -47,7 +47,7 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "compositing"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
         #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.hasPrefix("color(srgb ") == true)
     }
