@@ -88,7 +88,7 @@ A style without `size` stops when the theme is merged, wherever it is written, s
 
 ### Shape styles
 
-A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. Keys written on the clip win over its style's ([FRAMES-11](../FRAMES-11/SPEC.md)).
+A shape style is a named set of defaults for a shape clip, as a text style is for a title. Any name is allowed, and a shape clip names one in its `style`. A key written on the clip merges over its style's value leaf by leaf, statically and in each keyframe, and `false` turns it off ([FRAMES-11](../FRAMES-11/SPEC.md)). Themes merge over each other as above, a shape style's `stroke`, `fill` and `shadow` each replaced whole by a stronger theme's.
 
 | Property | Form |
 | --- | --- |
