@@ -54,7 +54,7 @@ A filter preset is a chain of operations from this table, applied in order. The 
 
 ### Parameters
 
-A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-14/SPEC.md)), with the parameter table of [FRAMES-17](../FRAMES-17/SPEC.md). Inside `ops`, `{"param": "<name>"}` stands for a number wherever an op takes a number, an element of `input` and `output` included, and for a colour where an op takes a colour (`bloom` `color`). It never stands for an `op` name, a key or a `lut` file. A filter has no ease, so its parameters are `number` or `color`, and a `choice` stops. The ranges above are checked when the preset is read, with every parameter at its default, and again with the arguments a choice gives, naming that choice.
+A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-14/SPEC.md)), with the parameter table of [FRAMES-17](../FRAMES-17/SPEC.md). Inside `ops`, `{"param": "<name>"}` stands for a number wherever an op takes a number, an element of `input` and `output` included, and for a colour where an op takes a colour (`bloom` `color`). It never stands for an `op` name, a key or a `lut` file. A filter has no ease, so its parameters are `number` or `color`, and a `choice` stops. The ranges above are checked when the preset is read, with every parameter at its default, again with the arguments a choice gives, naming that choice, and with the arguments each keyframe gives over them, naming that keyframe, where a keyframe of a key of two keyframes or more may put a length or size at 0.
 
 ### Filter choice
 
