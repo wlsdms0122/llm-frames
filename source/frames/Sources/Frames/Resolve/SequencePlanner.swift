@@ -782,6 +782,7 @@ struct SequencePlanner: Sendable {
             looks: looks,
             pack: time.pack,
             width: written.width,
+            unit: plan.animation.units?.by,
             visible: plan.visible,
             theme: time.theme
         )

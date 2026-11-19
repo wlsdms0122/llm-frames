@@ -12,6 +12,7 @@ struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
     private let breaker = LineBreaker()
+    private let finder = UnitFinder()
 
     // MARK: - Initializer
     init(shaper: any ShapingProvider) {
@@ -25,11 +26,12 @@ struct Typesetter: Sendable {
     // Text that takes more lines than its paragraph style's `lines`, counting every `\n`, stops. A style of one line
     // wraps at no width, and is too wide when it is wider than `width`. Lines lie the line height apart, baseline to
     // baseline: the first baseline is its line's largest ascent below the top, and the box ends the last line's largest
-    // descent below the last.
+    // descent below the last. `unit` splits the text into units, for a title animated by unit.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
         width: Double?,
+        unit: TextUnit? = nil,
         place: Place,
         kind: String
     ) throws -> TextLayout {
@@ -51,6 +53,8 @@ struct Typesetter: Sendable {
         let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
         var placedRuns: [GlyphRun] = []
         var placedLines: [PlacedLine] = []
+        var placedClusters: [[PlacedCluster]] = []
+        var extents: [ClosedRange<Double>] = []
         for (index, line) in lines.enumerated() {
             let origin = Point(
                 x: padding.width + style.align.offset(of: line.width, in: textWidth),
@@ -58,7 +62,9 @@ struct Typesetter: Sendable {
             )
             let (runs, clusters) = placed(line, origin: origin, firstRun: placedRuns.count)
             placedRuns += runs
-            placedLines.append(PlacedLine(width: line.width, baseline: origin.y, clusters: clusters))
+            placedLines.append(PlacedLine(width: line.width, baseline: origin.y, clusters: clusters.map(\.glyphs)))
+            placedClusters.append(clusters)
+            extents.append((origin.y - line.ascent)...(origin.y + line.descent))
         }
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
             + (lines.first?.ascent ?? 0)
@@ -70,6 +76,7 @@ struct Typesetter: Sendable {
             width: width,
             lines: placedLines,
             runs: placedRuns,
+            units: unit.map { finder.units(by: $0, lines: placedClusters, extents: extents, runs: placedRuns) },
             background: style.background,
             align: style.align,
             lineHeight: style.lineHeight
@@ -192,11 +199,11 @@ struct Typesetter: Sendable {
                 }
                 .get()
             let runGlyphs = shapedRuns.flatMap { shaped in shaped.glyphs.map { (face: shaped.face, glyph: $0) } }
-            let clusters = clusterCounts(of: run.text, glyphOffsets: runGlyphs.map(\.glyph.offset))
+            let clusters = clusters(of: run.text, glyphOffsets: runGlyphs.map(\.glyph.offset))
             let scalars = Array(run.text.unicodeScalars)
             let em = run.style.size / 1000
 
-            glyphs += zip(runGlyphs, clusters).map { element, count in
+            glyphs += zip(runGlyphs, clusters).map { element, clusters in
                 let (face, glyph) = element
                 return StyledGlyph(
                     glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
@@ -205,9 +212,9 @@ struct Typesetter: Sendable {
                     source: source,
                     style: run.style,
                     runFace: run.faces[0],
-                    clusterCount: count,
-                    tracking: Double(count) * run.style.tracking * em,
-                    widestTracking: Double(count) * run.widestTracking * em
+                    clusters: clusters,
+                    tracking: Double(clusters.count) * run.style.tracking * em,
+                    widestTracking: Double(clusters.count) * run.widestTracking * em
                 )
             }
             start += run.text.unicodeScalars.count
@@ -216,22 +223,22 @@ struct Typesetter: Sendable {
         return glyphs
     }
 
-    // The number of grapheme clusters that end in each glyph: a cluster ends in the last glyph that starts at or
-    // before its last scalar, so a ligature over two clusters takes the tracking of both.
-    private func clusterCounts(
+    // The grapheme clusters that end in each glyph: a cluster ends in the last glyph that starts at or before its last
+    // scalar, so a ligature over two clusters takes the tracking of both.
+    private func clusters(
         of text: String,
         glyphOffsets: [Int]
-    ) -> [Int] {
-        var counts = Array(repeating: 0, count: glyphOffsets.count)
+    ) -> [[Character]] {
+        var clusters = Array(repeating: [Character](), count: glyphOffsets.count)
         var end = 0
         for character in text {
             end += character.unicodeScalars.count
             if let index = glyphOffsets.lastIndex(where: { $0 <= end - 1 }) {
-                counts[index] += 1
+                clusters[index].append(character)
             }
         }
 
-        return counts
+        return clusters
     }
 
     // The style's features over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced
@@ -285,10 +292,10 @@ struct Typesetter: Sendable {
         _ line: TextLine,
         origin: Point,
         firstRun: Int
-    ) -> (runs: [GlyphRun], clusters: [GlyphRange]) {
+    ) -> (runs: [GlyphRun], clusters: [PlacedCluster]) {
         var runs: [GlyphRun] = []
-        var clusters: [GlyphRange] = []
-        var cluster: (run: Int, first: Int, count: Int)?
+        var clusters: [PlacedCluster] = []
+        var cluster: (run: Int, first: Int, count: Int, start: Double)?
         var x = origin.x
         var spans: [(source: Int, run: Int, from: Double, to: Double)] = []
         let visibleCount = visibleGlyphs(of: line.glyphs).count
@@ -319,14 +326,24 @@ struct Typesetter: Sendable {
             // cluster and stay where they were set.
             let run = firstRun + runs.count - 1
             let first = runs[runs.count - 1].glyphs.count - 1
-            let start = cluster.flatMap { $0.run == run ? $0 : nil } ?? (run: run, first: first, count: 0)
-            cluster = (run: run, first: start.first, count: start.count + 1)
-            if glyph.clusterCount > 0 {
-                clusters.append(GlyphRange(run: run, first: start.first, count: start.count + 1))
-                clusters += Array(
-                    repeating: GlyphRange(run: run, first: first + 1, count: 0),
-                    count: glyph.clusterCount - 1
-                )
+            let start = cluster.flatMap { $0.run == run ? $0 : nil }
+                ?? (run: run, first: first, count: 0, start: positioned.x)
+            cluster = (run: run, first: start.first, count: start.count + 1, start: start.start)
+            if let character = glyph.clusters.first {
+                clusters.append(PlacedCluster(
+                    glyphs: GlyphRange(run: run, first: start.first, count: start.count + 1),
+                    character: character,
+                    start: start.start,
+                    end: end
+                ))
+                clusters += glyph.clusters.dropFirst().map { character in
+                    PlacedCluster(
+                        glyphs: GlyphRange(run: run, first: first + 1, count: 0),
+                        character: character,
+                        start: positioned.x,
+                        end: end
+                    )
+                }
                 cluster = nil
             }
 

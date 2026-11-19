@@ -7,7 +7,8 @@
 
 // `size` is the box the text fills in output pixels, its background's padding included, and `runs` are placed in that
 // box, each line placed by `align` and `lineHeight` below the one before it. `textBox` is the box inside it that the
-// lines fill, and `width` the width the text wraps at, nil for text that breaks only at `\n`.
+// lines fill, and `width` the width the text wraps at, nil for text that breaks only at `\n`. `units` are the units of a
+// title animated by unit, and nil for other text.
 struct TextLayout: Equatable, Sendable {
     // MARK: - Property
     let size: Size
@@ -15,6 +16,7 @@ struct TextLayout: Equatable, Sendable {
     let width: Double?
     let lines: [PlacedLine]
     let runs: [GlyphRun]
+    let units: [PlacedUnit]?
     let background: TextBackground?
     let align: TextAlignment
     let lineHeight: Double
@@ -30,6 +32,7 @@ struct TextLayout: Equatable, Sendable {
         width: Double?,
         lines: [PlacedLine],
         runs: [GlyphRun],
+        units: [PlacedUnit]? = nil,
         background: TextBackground?,
         align: TextAlignment,
         lineHeight: Double
@@ -39,6 +42,7 @@ struct TextLayout: Equatable, Sendable {
         self.width = width
         self.lines = lines
         self.runs = runs
+        self.units = units
         self.background = background
         self.align = align
         self.lineHeight = lineHeight

@@ -480,6 +480,40 @@ struct TypesetterTests {
         #expect(error?.description == "title (title): the text takes 3 lines, and its style allows at most 2")
     }
 
+    @Test("a unit runs across its glyphs and down its line, and one spaced apart sets no ligature")
+    func findsUnits() throws {
+        // Given
+        let joined = [run("fi x\nab")]
+        let apart = [TextRun(text: "fi", style: character(), faces: [face], isSpacedApart: true)]
+
+        // When
+        let layout = try sut.layout(joined, paragraph: paragraph(), width: nil, unit: .word, place: place, kind: "title")
+        let spaced = try sut.layout(apart, paragraph: paragraph(), width: nil, unit: .character, place: place, kind: "title")
+
+        // Then
+        #expect(layout.units == [
+            PlacedUnit(
+                glyphs: [GlyphRange(run: 0, first: 0, count: 1)],
+                box: Rectangle(x: 0, y: 0, width: 40, height: 40),
+                parts: []
+            ),
+            PlacedUnit(
+                glyphs: [GlyphRange(run: 0, first: 2, count: 1)],
+                box: Rectangle(x: 50, y: 0, width: 20, height: 40),
+                parts: []
+            ),
+            PlacedUnit(
+                glyphs: [GlyphRange(run: 1, first: 0, count: 2)],
+                box: Rectangle(x: 0, y: 50, width: 40, height: 40),
+                parts: []
+            )
+        ])
+        #expect(spaced.units?.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 1)],
+            [GlyphRange(run: 0, first: 1, count: 1)]
+        ])
+    }
+
     // MARK: - Private
     private func paragraph(
         lineHeight: Double = 50,

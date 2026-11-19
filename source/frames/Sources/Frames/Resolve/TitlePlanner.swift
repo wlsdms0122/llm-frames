@@ -27,12 +27,14 @@ struct TitlePlanner: Sendable {
     // `looks` plans the title's clip, `visible` is where it is seen in sequence time, and `pack` is the pack of the
     // document it is written in. A run without a style is in the clip's, and a run's style is named at its index in
     // the title's list. A style the theme does not hold stops where it is named. The default line height follows the
-    // size of the clip's style with `character` merged over it.
+    // size of the clip's style with `character` merged over it. `unit` is the unit a title animated by unit plays by,
+    // whose characters, under `character`, move alone.
     func plan(
         _ title: ClipTitle,
         looks: ClipLookPlanner,
         pack: String?,
         width: Double?,
+        unit: TextUnit?,
         visible: TimeRange,
         theme: MergedTheme
     ) throws -> TitlePlan {
@@ -77,7 +79,7 @@ struct TitlePlanner: Sendable {
                 style: style,
                 faces: runFaces,
                 widestTracking: range.upperBound,
-                isSpacedApart: range.lowerBound != 0 || range.upperBound != 0
+                isSpacedApart: range.lowerBound != 0 || range.upperBound != 0 || unit == .character
             ))
         }
 
@@ -91,7 +93,14 @@ struct TitlePlanner: Sendable {
         let paragraphStyle = theme.paragraphStyle(of: style, size: size, scale: looks.scale)
 
         return TitlePlan(
-            layout: try typesetter.layout(textRuns, paragraph: paragraphStyle, width: width, place: place, kind: kind),
+            layout: try typesetter.layout(
+                textRuns,
+                paragraph: paragraphStyle,
+                width: width,
+                unit: unit,
+                place: place,
+                kind: kind
+            ),
             characters: characters,
             trackingSteps: trackingSteps,
             paragraph: try timed(
@@ -132,9 +141,9 @@ struct TitlePlanner: Sendable {
     }
 
     // What a run's character attributes take where no layer gives them, in theme lengths: the `text` colour, no
-    // tracking and no baseline shift; a stroke the `text` colour; a highlight the `background` colour, no padding and no radius; an
-    // underline the thickness and the position of the face's `post` underline at the run's size. Each of the last
-    // three only where it is on, since a default would turn it on.
+    // tracking and no baseline shift; a stroke the `text` colour; a highlight the `background` colour, no padding and
+    // no radius; an underline the thickness and the position of the face's `post` underline at the run's size. Each of
+    // the last three only where it is on, since a default would turn it on.
     private func defaults(
         over written: JSONObject,
         face: FontFace
