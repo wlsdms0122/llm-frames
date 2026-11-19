@@ -12,7 +12,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 
 ## Rules
 
-`evaluate(resolved, t)` gives the display list at sequence time t: the frame size, its background, and drawing items bottom first, every value already sampled at t. Frame k of a sequence is `evaluate(resolved, k / fps)`, and a PNG is the display list at the time it is rendered at ([FRAMES-23](../FRAMES-23/SPEC.md)).
+`evaluate(resolved, t)` gives the display list at sequence time t: the frame size, its background, its `colorSpace` and `compositing`, and drawing items bottom first, every value already sampled at t. Every list, nested ones included, carries the colour space of the outermost sequence, which the decoder reads to decide whether HDR media are tone mapped, and the `compositing` its items are composited in: the sequence's, or in the list of a compound clip or a template instance that one's own ([FRAMES-26](../FRAMES-26/SPEC.md)). Frame k of a sequence is `evaluate(resolved, k / fps)`, and a PNG is the display list at the time it is rendered at ([FRAMES-23](../FRAMES-23/SPEC.md)).
 
 ### Fields every item has
 
@@ -25,7 +25,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 | `trackMatte` | `{source, mode, invert}` or `null` | `source` a nested display list, `mode` `alpha` or `luma` (below) |
 | `reveal` | `[x, y, w, h]` or `null` | the part of the item that shows, a rectangle in its own coordinates before its transform |
 
-- An item is drawn in this order: its content in its own coordinates, with its alpha cut to its `reveal` rectangle (a hard straight edge) and, for a `picture`, multiplied by its `matte`; then carried by `transform` to output pixels; then its alpha multiplied by its mask, its track matte and its `opacity`; then composited onto what is below by its `blend`, with the formulas of W3C Compositing and Blending Level 1 (source-over with the mode's blend function). `reveal` turns with the item, so a wipe on a rotated title follows the title.
+- An item is drawn in this order: its content in its own coordinates, with its alpha cut to its `reveal` rectangle (a hard straight edge) and, for a `picture`, multiplied by its `matte`; then carried by `transform` to output pixels; then its alpha multiplied by its mask, its track matte and its `opacity`; then composited onto what is below by its `blend`, with the formulas of W3C Compositing and Blending Level 1 (source-over with the mode's blend function), on the form of the working values the list's `compositing` names ([FRAMES-26](../FRAMES-26/SPEC.md)). `reveal` turns with the item, so a wipe on a rotated title follows the title.
 - An item's transform may scale its axes differently, mirror and skew ([FRAMES-1](../FRAMES-1/SPEC.md), [FRAMES-10](../FRAMES-10/SPEC.md)). Its **length factor** k is √|ad - bc|, the geometric mean of the scales it applies.
 - **The widths of the lines an item draws are in output pixels, drawn the same in every direction on its outline as the transform carries it**, as SVG draws a stroke under `vector-effect: non-scaling-stroke`: a stroke's `width`, a picture's `border` width, a run's stroke `width`, a `shadow`'s `radius`, and a mask's `feather`. The other lengths are in the item's own coordinates and are carried by the transform with its geometry ([FRAMES-1](../FRAMES-1/SPEC.md)): the lengths of the outline (a corner `radius`, a highlight's or background's `radius`, an outset already applied to the geometry, a stroke's `dash` and `dashOffset`), and, as an effect applied before a layer's transform is, a `shadow`'s `offset` and a `picture`'s filter lengths.
 - Evaluation writes lengths so that a clip's lengths come out as those of [FRAMES-1](../FRAMES-1/SPEC.md) multiplied by the clip's scale factor and its animation's scale ([FRAMES-1](../FRAMES-1/SPEC.md)), and not by its parent's ([FRAMES-10](../FRAMES-10/SPEC.md)): a length drawn in output pixels is written at that size, and a carried length at that size over k.
@@ -37,7 +37,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 
 | Item | Fields | Draws |
 | --- | --- | --- |
-| `picture` | `source` (a frame of a media file or image sequence, by index, or a nested display list), `rect` (the source region), `dest` (the rectangle it fills, in its own coordinates), `filter` (entries `{ops, mix}`, each its ops in order mixed with its input by `mix` as [FRAMES-15](../FRAMES-15/SPEC.md) says, applied at `dest` size), `matte` (`{source, frame, progress, softness, invert}` or `null`), `radius`, `border` `{width, color}` or `null`, `shadow` or `null` | a region of a picture scaled into a rectangle, filtered, then cut by its transition matte |
+| `picture` | `source` (a frame of a media file or image sequence, by index, with the colour space its clip reads it in, or a nested display list), `rect` (the source region), `dest` (the rectangle it fills, in its own coordinates), `filter` (entries `{ops, mix}`, each its ops in order mixed with its input by `mix` as [FRAMES-15](../FRAMES-15/SPEC.md) says, applied at `dest` size), `matte` (`{source, frame, progress, softness, invert}` or `null`), `radius`, `border` `{width, color}` or `null`, `shadow` or `null` | a region of a picture scaled into a rectangle, filtered, then cut by its transition matte |
 | `path` | `geometry`, `fill` (a paint or `null`), `stroke` (`{width, paint, join, cap, start, end, dash, dashOffset}` or `null`), `trim` `[a, b]`, `shadow` or `null` | a rectangle, an ellipse or a polyline, filled and stroked |
 | `glyphs` | `runs` (each: font file, face, size, colour, `stroke` `{width, color}` or `null`, `highlight` `{rects, radius, color, bands}` or `null`, `underline` `{rects, color, bands}` or `null`, glyph ids and positions), `layer` (`null`, or one of `highlights`, `underlines`, `strokes` and `fills` for a unit's item), `unitBox` (`null`, or the unit's box `[x, y, w, h]` in the title's box for a unit's item), `unitGlyphBox` (`null`, or the unit's glyph box `[x, y, w, h]` in the title's box for a unit's item), `background` `{rect, radius, color}` or `null`, `size` | glyphs, with their outlines, highlights, underlines and background |
 | `adjust` | `filter` | the filter applied to everything drawn below it in the same list |
@@ -47,7 +47,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 - Evaluation picks a media source's frame by [FRAMES-3](../FRAMES-3/SPEC.md) from the pinned timestamps at the media time the clip's time map gives, its `timeRemap` included ([FRAMES-8](../FRAMES-8/SPEC.md)), and the renderer draws that frame. Part of `rect` that lies outside the source is transparent.
 - A picture's `border` lies inside `dest`, its outer edge following the rounded corners.
 - A nested display list stands for a compound clip or a template instance at its mapped time, for a storyline picture inside its transition motion ([below](#storyline-pictures-and-transitions)), or for a title animated by unit as its group ([Glyphs and adjustments](#glyphs-and-adjustments)). A nested list has no background, so what its items leave uncovered is transparent, except the list of a compound clip or a template instance, whose background is its own `format.background` ([FRAMES-9](../FRAMES-9/SPEC.md)). It is drawn at the size it is shown at in the output, as its items would be drawn in place, so a list shown larger is as sharp as its items drawn larger and every length inside it (a shadow, a filter length, a feather) keeps its size against the list's own frame. The picture's `rect`, `dest`, `filter`, `radius`, `border` and `shadow` apply to it as to any source of the list's size.
-- A `matte` is a transition matte ([FRAMES-14](../FRAMES-14/SPEC.md)), stretched over `dest`. The picture shows where the matte's luminance in `frame` (picked from its media time) is below `progress`, with an edge `softness` wide, inverted when `invert` is true. With L the Rec. 709 luma of the matte's unpremultiplied sRGB-encoded values (1 - L when inverted), p the `progress` and s the `softness`, the picture's alpha is multiplied by clamp((p × (1 + s) - L) / s, 0, 1), and when s is 0 by its limit (1 where L < p, p where L = p, 0 where L > p), so progress 0 shows none of the picture and progress 1 all of it. `matte` and `trackMatte` are different things on purpose: the first is a wipe between two storyline pictures, the second a clip that cuts another.
+- A `matte` is a transition matte ([FRAMES-14](../FRAMES-14/SPEC.md)), stretched over `dest`. The picture shows where the matte's luminance in `frame` (picked from its media time) is below `progress`, with an edge `softness` wide, inverted when `invert` is true. With L the matte's luma ([FRAMES-26](../FRAMES-26/SPEC.md)) clamped to 0 to 1 (1 - L when inverted), p the `progress` and s the `softness`, the picture's alpha is multiplied by clamp((p × (1 + s) - L) / s, 0, 1), and when s is 0 by its limit (1 where L < p, p where L = p, 0 where L > p), so progress 0 shows none of the picture and progress 1 all of it. `matte` and `trackMatte` are different things on purpose: the first is a wipe between two storyline pictures, the second a clip that cuts another.
 
 ### Paths
 
@@ -73,7 +73,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 { "item": "path", "origin": { "place": "clips[2]", "id": "pointer", "kind": "shape" },
   "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null, "trackMatte": null, "reveal": null,
   "geometry": { "polyline": { "points": [[420, 300], [760, 520]], "closed": false } },
-  "fill": null, "stroke": { "width": 8, "paint": "#FFFFFFFF", "join": "round", "cap": "round", "start": "none", "end": "arrow",
+  "fill": null, "stroke": { "width": 8, "paint": "color(srgb 1 1 1 / 1)", "join": "round", "cap": "round", "start": "none", "end": "arrow",
               "dash": null, "dashOffset": 0 },
   "trim": [0, 0.6], "shadow": null }
 ```
@@ -96,7 +96,7 @@ A mask is `{geometry, transform, feather, invert, mode}`: `geometry` in one of t
 ### Track mattes
 
 - A `trackMatte`'s `source` is a nested display list the size of the list that holds the item, drawn in that list's output pixels: the items the matte clip draws at t ([FRAMES-11](../FRAMES-11/SPEC.md)). A clip used as a matte draws no item of its own. Outside the matte clip's visible window its source holds no item.
-- At each point of the output the matte's value v is the source's alpha for `alpha`, and for `luma` the Rec. 709 luma of the source's unpremultiplied sRGB-encoded values multiplied by its alpha, so a transparent part of a luma matte counts as black. With `invert` it is 1 - v. The item's alpha is multiplied by v.
+- At each point of the output the matte's value v is the source's alpha for `alpha`, and for `luma` the source's luma ([FRAMES-26](../FRAMES-26/SPEC.md)) clamped to 0 to 1, multiplied by its alpha, so a transparent part of a luma matte counts as black. With `invert` it is 1 - v. The item's alpha is multiplied by v.
 
 ### Storyline pictures and transitions
 
@@ -114,7 +114,7 @@ Evaluation has done everything above pixels: keyframes and eases (springs includ
 ### JSON form
 
 - In the JSON form ([FRAMES-19](../FRAMES-19/SPEC.md)) an item names what it draws under `item` (`picture`, `path`, `glyphs` or `adjust`), and carries `origin`, the clip or op that drew it as `{place, id, kind}` as `evaluate` reports it ([FRAMES-23](../FRAMES-23/SPEC.md)), or `null` for a transition cover. Every item carries every field of its kind and the common fields, `null` where it has none.
-- A `picture`'s `source` is `{media, frame}`, the pinned media and the frame's index, or `{list}`, a nested list without the version, and its `rect` is `null` where it shows the whole source. A transition matte's `source` is the pinned media. A track matte's `source` is `{list}`. A run's font is pinned as `{file, sha256}`. Colours are `#RRGGBBAA`.
+- A `picture`'s `source` is `{media, frame, colorSpace}`, the pinned media, the frame's index and its clip's `colorSpace` or `null` where the file's tags apply, or `{list}`, a nested list without the version, and its `rect` is `null` where it shows the whole source. A transition matte's `source` is the pinned media. A track matte's `source` is `{list}`. A run's font is pinned as `{file, sha256}`. Colours are `color(srgb r g b / a)` ([FRAMES-26](../FRAMES-26/SPEC.md)). A list's `colorSpace` and `compositing` follow its `size` and `background`.
 - The model keeps one seed per list, its nested lists included, so a list read back takes the seed of the first `grain` written, stops on a `grain` with another, and takes 0 when it has no `grain`. A frame index outside its media's frames stops.
 
 ### The mix plan
@@ -131,7 +131,7 @@ The mix plan is the sound of a whole sequence: a list of segments, each with a m
 
 ## Interactions
 
-It reads [FRAMES-19](../FRAMES-19/SPEC.md) and feeds the roles of [FRAMES-21](../FRAMES-21/SPEC.md). Stacking is [FRAMES-9](../FRAMES-9/SPEC.md), parent transforms [FRAMES-10](../FRAMES-10/SPEC.md), shapes, masks, track mattes and blend modes [FRAMES-11](../FRAMES-11/SPEC.md), tracked motion [FRAMES-12](../FRAMES-12/SPEC.md), the pan law and crossfade curves [FRAMES-13](../FRAMES-13/SPEC.md), transitions and reveal [FRAMES-14](../FRAMES-14/SPEC.md), filter ops [FRAMES-15](../FRAMES-15/SPEC.md).
+It reads [FRAMES-19](../FRAMES-19/SPEC.md) and feeds the roles of [FRAMES-21](../FRAMES-21/SPEC.md). Stacking is [FRAMES-9](../FRAMES-9/SPEC.md), parent transforms [FRAMES-10](../FRAMES-10/SPEC.md), shapes, masks, track mattes and blend modes [FRAMES-11](../FRAMES-11/SPEC.md), tracked motion [FRAMES-12](../FRAMES-12/SPEC.md), the pan law and crossfade curves [FRAMES-13](../FRAMES-13/SPEC.md), transitions and reveal [FRAMES-14](../FRAMES-14/SPEC.md), filter ops [FRAMES-15](../FRAMES-15/SPEC.md), colours, compositing and luma [FRAMES-26](../FRAMES-26/SPEC.md).
 
 ## Alternatives considered
 
