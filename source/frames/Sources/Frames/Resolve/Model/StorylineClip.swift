@@ -8,7 +8,7 @@
 // A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, and whether media is
 // timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
 // and `shadow` are its transform and how its box is drawn, as on a media clip. `transition` and `filter` are preset
-// choices as written, which resolve merges over the theme's defaults.
+// choices as written, which resolve merges over the theme's defaults, `filter` with its keyframes.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -22,7 +22,7 @@ struct StorylineClip: Equatable, Sendable {
     let mask: PropertyValue<[ClipMask]>?
     let trackMatte: TrackMatte?
     let track: TrackTarget?
-    let filter: JSONValue?
+    let filter: LookProperty?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
     let scale: PropertyValue<Double>?
@@ -47,7 +47,7 @@ struct StorylineClip: Equatable, Sendable {
         mask: PropertyValue<[ClipMask]>? = nil,
         trackMatte: TrackMatte? = nil,
         track: TrackTarget? = nil,
-        filter: JSONValue? = nil,
+        filter: LookProperty? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,
         scale: PropertyValue<Double>? = nil,

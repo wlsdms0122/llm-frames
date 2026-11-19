@@ -8,10 +8,12 @@
 import CoreImage
 import Frames
 
-// Applies a picture's filter operations in order to an image in the working space, each on sRGB-encoded values, its
-// result clamped to 0 to 1 and cropped to the image's extent. Colour operations work on the unpremultiplied colour
-// and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so a transparent pixel weighs
-// nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended outward.
+// Applies a picture's filter entries in order to an image in the working space, each entry its operations in order,
+// each on sRGB-encoded values, its result clamped to 0 to 1 and cropped to the image's extent. Colour operations work
+// on the unpremultiplied colour and keep alpha. Blur, sharpen, bloom and pixelate work on the premultiplied image, so
+// a transparent pixel weighs nothing in a neighbour's mean, and blur, sharpen and bloom read the edge pixels extended
+// outward. An entry's result is its input mixed with its operations' result by its `mix`, premultiplied, and the next
+// entry takes the mixed image.
 struct FilterChain: Sendable {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
@@ -30,7 +32,7 @@ struct FilterChain: Sendable {
     // coordinates, which a vignette centres on and grains and pixelate blocks lie on a grid from, the image's extent
     // when nil; it differs when the image holds part of the picture at another scale.
     func apply(
-        _ operations: [ResolvedFilterOperation],
+        _ entries: [FilterEntry],
         to image: CIImage,
         seed: Int,
         scale: Double = 1,
@@ -39,16 +41,20 @@ struct FilterChain: Sendable {
         let library = KernelLibrary.shared
         let frame = frame ?? image.extent
         var result = image
-        for operation in operations {
-            result = try apply(
-                operation,
-                to: result,
-                seed: seed,
-                scale: scale,
-                frame: frame,
-                library: library
-            )
-            .cropped(to: image.extent)
+        for entry in entries where entry.mix > 0 {
+            var filtered = result
+            for operation in entry.operations {
+                filtered = try apply(
+                    operation,
+                    to: filtered,
+                    seed: seed,
+                    scale: scale,
+                    frame: frame,
+                    library: library
+                )
+                .cropped(to: image.extent)
+            }
+            result = entry.mix < 1 ? try color("filterMix", result, [filtered, entry.mix], library) : filtered
         }
 
         return result
@@ -56,8 +62,8 @@ struct FilterChain: Sendable {
 
     // How far, in the operations' lengths, the chain reads pixels from: what lies further than this past a picture's
     // edge does not change the picture.
-    func reach(of operations: [ResolvedFilterOperation]) -> Double {
-        operations.reduce(0) { reach, operation in
+    func reach(of entries: [FilterEntry]) -> Double {
+        entries.filter { $0.mix > 0 }.flatMap(\.operations).reduce(0) { reach, operation in
             switch operation {
             case let .blur(radius), let .sharpen(_, radius), let .bloom(_, radius, _):
                 reach + Self.blurReach * radius

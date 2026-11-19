@@ -11,7 +11,9 @@
 // A `forms` value is one of several forms, named: a string is the `color` form, and an object of one key that names a
 // form is that form. A `choice` is a preset choice: a string or an object naming `preset` or `op` is that form, an
 // object naming neither is partial and merges over the form below, and `offNames` turn it off. A form's other keys
-// are `anyValue`: a value whose structure is not declared, which merges key by key at every depth and is never timed.
+// are its body, whose structure `forms` declares for the forms that are timed, such as a filter's presets and ops,
+// and is otherwise `anyValue`: a value whose structure is not declared, which merges key by key at every depth and is
+// never timed.
 indirect enum ValueStructure: Sendable {
     case anyValue
     case leaf(LeafKind)
@@ -19,7 +21,7 @@ indirect enum ValueStructure: Sendable {
     case map(ValueStructure)
     case list(ValueStructure)
     case forms([(name: String, structure: ValueStructure)])
-    case choice(offNames: [String])
+    case choice(offNames: [String], forms: [(name: String, structure: ValueStructure)] = [])
 
     // MARK: - Property
     // The name of the form a string takes.
@@ -32,8 +34,8 @@ indirect enum ValueStructure: Sendable {
         case let .forms(forms):
             forms.first { $0.name == name }?.structure
 
-        case .choice:
-            .anyValue
+        case let .choice(_, forms):
+            forms.first { $0.name == name }?.structure ?? .anyValue
 
         case .anyValue, .leaf, .object, .map, .list:
             nil

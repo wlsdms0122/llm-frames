@@ -16,11 +16,12 @@ struct ClipLookPlanner: Sendable {
     private let merger = LookMerger()
     private let builder = TimedValueBuilder()
 
-    private let place: Place
+    let place: Place
     private let kind: PlaceKind
     private let clock: TimeMap
     private let instant: Double
-    private let scale: Double
+    // Output pixels per theme length.
+    let scale: Double
     private let theme: MergedTheme
 
     // MARK: - Initializer
@@ -51,15 +52,7 @@ struct ClipLookPlanner: Sendable {
     ) throws -> TimedValue {
         let place = self.place.appending(key: key)
         let below = style.flatMap(theme.value(at:)).map { reader.value(of: $0, as: structure) }
-        let written = property?.written.map { reader.value(of: $0, as: structure) }
-        let keyframes = (property?.keyframes ?? []).map { keyframe in
-            PropertyKeyframe(
-                index: keyframe.index,
-                at: clock.sequenceTime(ofClipTime: keyframe.at),
-                value: reader.value(of: keyframe.value, as: structure),
-                ease: keyframe.ease
-            )
-        }
+        let (written, keyframes) = read(property, as: structure)
 
         let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: place)
         guard let merged = try merger.merge([below, own], as: structure, place: place), merged != .off else {
@@ -91,7 +84,60 @@ struct ClipLookPlanner: Sendable {
         )
     }
 
+    // A key timed over a merged value its caller gives, as a choice merged over the theme's default is: the clip's
+    // static value is its own layer, and its keyframes write the leaves of the merged value.
+    func timed(
+        _ property: LookProperty?,
+        key: String,
+        over merged: LookValue,
+        as structure: ValueStructure
+    ) throws -> TimedValue {
+        let place = self.place.appending(key: key)
+        let (written, keyframes) = read(property, as: structure)
+        _ = try builder.ownLayer(written: merged, keyframes: keyframes, as: structure, place: place)
+        guard merged != .off else { return .off }
+
+        return try builder.timed(
+            merged,
+            written: written,
+            keyframes: keyframes,
+            as: structure,
+            instant: instant,
+            place: place,
+            leaf: leaf(_:kind:place:)
+        )
+    }
+
+    // A leaf no keyframe moves, as `timed` gives one: a timed leaf one keyframe at the clip's instant.
+    func timed(
+        _ value: JSONValue,
+        kind: LeafKind,
+        place: Place
+    ) throws -> TimedValue {
+        guard kind.isTimed else { return .fixed(value) }
+
+        return .track([Keyframe(at: instant, value: try leaf(value, kind: kind, place: place))])
+    }
+
     // MARK: - Private
+    // The clip's static value and its keyframes' values, in sequence time.
+    private func read(
+        _ property: LookProperty?,
+        as structure: ValueStructure
+    ) -> (written: LookValue?, keyframes: [PropertyKeyframe<LookValue>]) {
+        let written = property?.written.map { reader.value(of: $0, as: structure) }
+        let keyframes = (property?.keyframes ?? []).map { keyframe in
+            PropertyKeyframe(
+                index: keyframe.index,
+                at: clock.sequenceTime(ofClipTime: keyframe.at),
+                value: reader.value(of: keyframe.value, as: structure),
+                ease: keyframe.ease
+            )
+        }
+
+        return (written, keyframes)
+    }
+
     private func leaf(
         _ value: JSONValue,
         kind leaf: LeafKind,

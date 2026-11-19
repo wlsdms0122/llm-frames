@@ -341,7 +341,7 @@ struct RenderPipelineTests {
             end: duration,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: [],
+            filter: .off,
             transition: nil,
             filling: size
         )

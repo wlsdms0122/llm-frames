@@ -90,7 +90,7 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: nil,
-                filter: [],
+                filter: .off,
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
@@ -132,7 +132,7 @@ struct ParentEvaluatorTests {
                 area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
                 fill: Color(written: "#FF0000")
             )),
-            .adjustment([.blur(radius: 3)])
+            .adjustment(.filter([.blur(radius: 3)]))
         ]
     )
     func mapsAreaParent(content: ResolvedClipContent) {
@@ -209,7 +209,7 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
-                filter: [],
+                filter: .off,
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
@@ -258,7 +258,7 @@ struct ParentEvaluatorTests {
             content: .media(ResolvedMediaClip(
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
-                filter: [],
+                filter: .off,
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             end: 1,
@@ -409,7 +409,7 @@ struct ParentEvaluatorTests {
                     end: 2,
                     crop: crop ?? [Keyframe(at: 0, value: Crop(whole))],
                     track: nil,
-                    filter: [],
+                    filter: .off,
                     transition: nil,
                     filling: size
                 ),
@@ -425,7 +425,7 @@ struct ParentEvaluatorTests {
                     end: 4,
                     crop: [],
                     track: nil,
-                    filter: [],
+                    filter: .off,
                     transition: ResolvedTransition(
                         start: 1.5,
                         end: 2.5,

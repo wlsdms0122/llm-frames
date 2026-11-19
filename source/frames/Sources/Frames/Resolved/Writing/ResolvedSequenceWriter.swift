@@ -63,7 +63,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "scale", value: values.numbers(entry.scale)),
             JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
             JSONMember(key: "blend", value: .string(entry.blend)),
-            JSONMember(key: "filter", value: values.filter(entry.filter)),
+            JSONMember(key: "filter", value: values.timed(entry.filter)),
             JSONMember(key: "radius", value: values.timed(entry.radius)),
             JSONMember(key: "border", value: values.timed(entry.border)),
             JSONMember(key: "shadow", value: values.timed(entry.shadow)),
@@ -119,14 +119,14 @@ struct ResolvedSequenceWriter: Sendable {
         case let .shape(shape):
             return self.shape(shape)
 
-        case let .adjustment(operations):
-            return [JSONMember(key: "adjust", value: values.filter(operations))]
+        case let .adjustment(filter):
+            return [JSONMember(key: "adjust", value: values.timed(filter))]
 
         case let .media(clip):
             let timing = clip.timing.map(self.timing) ?? []
 
             return [JSONMember(key: "media", value: media(clip.media))] + timing
-                + [JSONMember(key: "filter", value: values.filter(clip.filter))]
+                + [JSONMember(key: "filter", value: values.timed(clip.filter))]
                 + appearance(clip.appearance)
         }
     }

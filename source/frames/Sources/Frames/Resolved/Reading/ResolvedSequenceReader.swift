@@ -221,7 +221,7 @@ struct ResolvedSequenceReader: Sendable {
             mask: try values.masks(entry.member("mask")),
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
-            filter: try values.filter(entry.member("filter")),
+            filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
             box: ResolvedBox(
                 size: try values.size(entry.member("size")),
                 position: try values.keyframes(entry.member("position"), read: values.point),
@@ -317,7 +317,7 @@ struct ResolvedSequenceReader: Sendable {
             return .shape(try shape(clip, isPlacedByBox: isPlacedByBox))
         }
         if clip.contains("adjust") {
-            return .adjustment(try values.filter(clip.member("adjust")))
+            return .adjustment(try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter))
         }
 
         let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
@@ -325,7 +325,7 @@ struct ResolvedSequenceReader: Sendable {
         return .media(ResolvedMediaClip(
             media: try media(clip.member("media")),
             timing: timing,
-            filter: try values.filter(clip.member("filter")),
+            filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),

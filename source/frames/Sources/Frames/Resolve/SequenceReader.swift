@@ -79,7 +79,7 @@ struct SequenceReader: Sendable {
             mask: property("mask", of: object, read: ClipMask.masks(in:)),
             trackMatte: object["trackMatte"].flatMap(TrackMatte.init(value:)),
             track: object["track"].flatMap(TrackTarget.init(value:)),
-            filter: object["filter"],
+            filter: look("filter", of: object),
             anchor: object["anchor"]?.stringValue,
             position: property("position", of: object, read: PositionForm.init(value:)),
             scale: property("scale", of: object, read: \.numberValue),
@@ -128,7 +128,7 @@ struct SequenceReader: Sendable {
             scale: property("scale", of: object, read: \.numberValue),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
-            filter: object["adjust"] ?? object["filter"]
+            filter: look("adjust", of: object) ?? look("filter", of: object)
         )
     }
 

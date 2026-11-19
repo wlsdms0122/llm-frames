@@ -198,8 +198,7 @@ struct ClipAppearancePlanner: Sendable {
         picture: Picture?,
         shape: ShapeAppearance?,
         scale: Double,
-        theme: MergedTheme,
-        defaults: ThemeDefaults
+        theme: MergedTheme
     ) throws -> ClipAppearance {
         ClipAppearance(
             opacity: property(written.opacity, plain: 1, clock: plan.clock),
@@ -209,12 +208,14 @@ struct ClipAppearancePlanner: Sendable {
             shape: shape,
             filter: try filter(
                 written.filter,
-                place: written.place.appending(key: plan.kind == .adjust ? "adjust" : "filter"),
+                key: plan.kind == .adjust ? "adjust" : "filter",
+                of: written.place,
                 kind: plan.kind,
                 media: media(of: written),
+                clock: plan.clock,
+                instant: plan.instant,
                 scale: scale,
-                theme: theme,
-                defaults: defaults
+                theme: theme
             ),
             media: try mediaAppearance(
                 of: plan,
@@ -281,37 +282,59 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A clip applies the filter it writes merged over the theme's default when it takes one, the default when it
-    // writes none, and otherwise none. `place` is where the clip writes its choice. The clip's stops name its choice,
-    // and the default's name the theme.
+    // writes none, and otherwise none, so both are typed by `FilterResolver`. `key` is the clip's key for it on the
+    // clip at `place`. The clip's stops name its choice, and the default's name the theme.
     func filter(
-        _ written: JSONValue?,
-        place: Place,
+        _ property: LookProperty?,
+        key: String,
+        of place: Place,
         kind: ClipKind,
         media: ClipMedia?,
+        clock: TimeMap,
+        instant: Double,
         scale: Double,
-        theme: MergedTheme,
-        defaults: ThemeDefaults
-    ) throws -> [FilterOperation] {
-        let takesDefault = takesDefaultFilter(kind, media: media)
-        let operations: [FilterOperation]
-        if let written {
-            let merged = try choices.merged(
-                written,
-                over: takesDefault ? ["defaults", "filter"] : nil,
-                as: LookStructureTable.filter,
-                place: place,
-                kind: .clip(kind),
-                theme: theme
+        theme: MergedTheme
+    ) throws -> TimedValue {
+        let defaults = takesDefaultFilter(kind, media: media) ? ["defaults", "filter"] : nil
+        let looks = ClipLookPlanner(
+            place: place,
+            kind: .clip(kind),
+            clock: clock,
+            instant: instant,
+            scale: scale,
+            theme: theme
+        )
+        guard let written = property?.written else {
+            let layer = defaults.map { path in theme.place(of: path.reduce(Place.root) { $0.appending(key: $1) }) }
+            return try filters.timed(
+                property,
+                merged: defaults.flatMap(theme.value(at:)),
+                key: key,
+                place: layer ?? place,
+                looks: looks,
+                theme: theme,
+                kind: .themeDefaults
             )
-            let choice = FilterChoice(value: merged, place: place) ?? FilterChoice(presets: [])
-            operations = try filters.operations(of: choice, theme: theme, kind: .clip(kind))
-        } else if takesDefault {
-            operations = try filters.operations(of: defaults.filter, theme: theme)
-        } else {
-            operations = []
         }
 
-        return operations.map { $0.scaled(by: scale) }
+        let choicePlace = place.appending(key: key)
+        let merged = try choices.merged(
+            written,
+            over: defaults,
+            as: LookStructureTable.filter,
+            place: choicePlace,
+            kind: .clip(kind),
+            theme: theme
+        )
+        return try filters.timed(
+            property,
+            merged: merged,
+            key: key,
+            place: choicePlace,
+            looks: looks,
+            theme: theme,
+            kind: .clip(kind)
+        )
     }
 
     // MARK: - Private

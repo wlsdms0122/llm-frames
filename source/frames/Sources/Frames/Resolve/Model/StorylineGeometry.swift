@@ -6,15 +6,15 @@
 //
 
 // What resolve found for a storyline clip's picture, with keyframes in sequence time. `crop` and `mask` are found in
-// its media, nil for the whole picture and for no mask. The lengths in `filter` are already scaled, and `color` is a
-// solid's.
+// its media, nil for the whole picture and for no mask. `filter` is timed, `off` for none, its lengths in output
+// pixels, and `color` is a solid's.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?
     let mask: PropertyValue<[ResolvedMask]>?
     let track: Track?
     let nested: SequencePlan?
-    let filter: [FilterOperation]
+    let filter: TimedValue
     let color: Color?
     let appearance: StorylineAppearance
 
@@ -24,7 +24,7 @@ struct StorylineGeometry: Equatable, Sendable {
         mask: PropertyValue<[ResolvedMask]>?,
         track: Track?,
         nested: SequencePlan?,
-        filter: [FilterOperation] = [],
+        filter: TimedValue = .off,
         color: Color? = nil,
         appearance: StorylineAppearance
     ) {

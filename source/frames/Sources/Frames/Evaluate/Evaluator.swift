@@ -206,7 +206,7 @@ package struct Evaluator: Sendable {
                 source: source(of: media, at: entry.mediaTime(at: time), seed: seed),
                 rectangle: entry.crop(at: time),
                 destination: box,
-                filter: entry.filter,
+                filter: FilterEntry.entries(of: entry.filter, at: time),
                 radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
                 border: MediaBorder(sampled: entry.border.sampled(at: time, as: LookStructureTable.border)),
                 shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow))

@@ -30,7 +30,7 @@ struct ResolvedSequenceWriterTests {
             )
         ],
         animations: Fixture.presets.animations,
-        filters: ["film": FilterPreset(description: "", operations: [.lut(file: "/abs/film.cube", amount: 0.5)])]
+        filters: ["film": #"{"description": "", "ops": [{"op": "lut", "file": "/abs/film.cube", "amount": 0.5}]}"#]
     )
 
     // MARK: - Initializer
@@ -70,7 +70,7 @@ struct ResolvedSequenceWriterTests {
         #expect(entry["start"] == .number(0))
         #expect(entry["end"] == .number(3))
         #expect(entry["transition"] == .null)
-        #expect(entry["filter"] == .array([]))
+        #expect(entry["filter"] == .null)
     }
 
     @Test("a storyline crop is written conformed to the frame, and no crop is the whole picture conformed")
@@ -282,7 +282,9 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
         #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
-        #expect(storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
+        let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
+        #expect(entry?.keys == ["ops", "mix"])
+        #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
     @Test("a tracked clip writes its track as the media followed, the media time, the target and the frames followed")

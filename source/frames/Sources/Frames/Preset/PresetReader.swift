@@ -98,7 +98,9 @@ struct PresetReader: Sendable {
         _ preset: PublishedPreset<FilterPreset>,
         instance: PresetInstance
     ) throws -> FilterPreset {
-        try read(preset, instance: instance, kind: "filter choice") { try plainFilter(from: $0, place: preset.place) }
+        try read(preset, instance: instance, kind: "filter choice") { value in
+            try plainFilter(from: value, place: preset.place, isSampled: instance.isSampled)
+        }
     }
 
     // MARK: - Private
@@ -192,14 +194,15 @@ struct PresetReader: Sendable {
 
     private func plainFilter(
         from value: JSONValue,
-        place: Place
+        place: Place,
+        isSampled: Bool = false
     ) throws -> FilterPreset {
         try checker.check(value, as: PresetKeyTable.filter, place: place)
 
         let object = value.objectValue ?? JSONObject()
         let objects = (object["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
         for (index, operation) in objects.enumerated() {
-            try checkRanges(of: operation, place: place.appending(key: "ops").appending(index: index))
+            try checkRanges(of: operation, place: place.appending(key: "ops").appending(index: index), isSampled: isSampled)
         }
 
         let operations = objects.map(operation)
@@ -281,10 +284,12 @@ struct PresetReader: Sendable {
 
     private func checkRanges(
         of operation: JSONObject,
-        place: Place
+        place: Place,
+        isSampled: Bool
     ) throws {
         let name = operation["op"]?.stringValue ?? ""
-        for (parameter, range) in FilterRangeTable.ranges(of: name) {
+        for (parameter, written) in FilterRangeTable.ranges(of: name) {
+            let range = isSampled ? written.sampled : written
             guard let value = operation[parameter], !range.contains(value) else { continue }
 
             throw PresetError.parameterOutOfRange(

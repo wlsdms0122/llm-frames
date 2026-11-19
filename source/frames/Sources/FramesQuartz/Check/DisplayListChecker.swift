@@ -54,11 +54,13 @@ struct DisplayListChecker {
     // MARK: - Private
     // `place` is the item's.
     private func check(
-        _ filter: [ResolvedFilterOperation],
+        _ filter: [FilterEntry],
         place: String
     ) throws {
-        for (index, operation) in filter.enumerated() {
-            try check(operation, place: "\(place).filter[\(index)]")
+        for (index, entry) in filter.enumerated() {
+            for (operationIndex, operation) in entry.operations.enumerated() {
+                try check(operation, place: "\(place).filter[\(index)].ops[\(operationIndex)]")
+            }
         }
     }
 

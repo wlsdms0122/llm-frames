@@ -46,7 +46,7 @@ struct LookReader: Sendable {
         case let .forms(forms):
             return self.forms(json, as: forms)
 
-        case let .choice(offNames):
+        case let .choice(offNames, _):
             return choice(json, offNames: offNames)
         }
     }

@@ -85,6 +85,20 @@ enum LookStructureTable {
 
     static let filter = ValueStructure.choice(offNames: ["none"])
 
+    // A filter as resolve gives it: its entries in order, each the ops of a preset or the one op written in place, and
+    // the `mix` it is drawn with. A LUT's file is pinned, its SHA-256 beside it.
+    static let resolvedFilter = ValueStructure.list(.object(ObjectStructure([
+        ("ops", .list(.choice(offNames: [], forms: FilterKeyTable.operations.map { name in
+            guard name == "lut", case let .object(lut) = filterOperation(name) else { return ("op:" + name, filterOperation(name)) }
+
+            let keys = lut.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
+            return ("op:" + name, .object(ObjectStructure(keys)))
+        }))),
+        ("mix", mix)
+    ])))
+
+    static let mix = ValueStructure.leaf(.number(.range(0...1)))
+
     static let animation = ValueStructure.choice(offNames: ["none"])
 
     static let theme = ValueStructure.object(ObjectStructure([
@@ -107,4 +121,67 @@ enum LookStructureTable {
             ])))
         ])))
     ]))
+
+    // A filter choice whose presets are known, so its preset arguments, op parameters and entries' `mix` are timed. A
+    // preset entry's arguments are typed by its parameters, each taking its default where no layer writes it.
+    static func filter(presets: [(name: String, parameters: [Parameter])]) -> ValueStructure {
+        let presetForms = presets.map { preset in
+            let arguments = preset.parameters.compactMap { parameter -> (name: String, structure: ValueStructure)? in
+                switch parameter.type {
+                case .number:
+                    (parameter.name, .leaf(.number()))
+
+                case .color:
+                    (parameter.name, .leaf(.color))
+
+                case .video, .sequence, .image, .audio, .text, .choice:
+                    nil
+                }
+            }
+            let defaults = preset.parameters.reduce(into: [String: JSONValue]()) { defaults, parameter in
+                defaults[parameter.name] = parameter.defaultValue
+            }
+            let body = ObjectStructure(
+                [("args", .object(ObjectStructure(arguments, plain: defaults))), ("mix", mix)],
+                plain: ["args": .object(JSONObject()), "mix": .number(1)]
+            )
+            return ("preset:" + preset.name, ValueStructure.object(body))
+        }
+        let operationForms = FilterKeyTable.operations.map { name in
+            ("op:" + name, filterOperation(name, mixed: true))
+        }
+
+        return .choice(offNames: ["none"], forms: presetForms + operationForms)
+    }
+
+    // An op's parameters, in the order of the op table, each in its range, a length a theme length. A sampled length
+    // at 0 leaves the picture as it is, so a length is 0 or more once it moves. An entry written in place also takes
+    // `mix`.
+    static func filterOperation(
+        _ name: String,
+        mixed: Bool = false
+    ) -> ValueStructure {
+        let unit = LeafKind.number(.range(0...1))
+        let length = LeafKind.length(.positive)
+        let levels = LeafKind.numbers(count: 2, domain: .range(0...1))
+        let parameters: [(name: String, structure: ValueStructure)] = switch name {
+        case "exposure": [("ev", .leaf(.number()))]
+        case "contrast", "saturation": [("amount", .leaf(.number()))]
+        case "temperature": [("kelvin", .leaf(.number()))]
+        case "hue": [("degrees", .leaf(.number()))]
+        case "sepia": [("amount", .leaf(unit))]
+        case "levels": [("input", .leaf(levels)), ("output", .leaf(levels))]
+        case "lut": [("file", .leaf(LeafKind(form: .file))), ("amount", .leaf(unit))]
+        case "blur": [("radius", .leaf(length))]
+        case "sharpen": [("amount", .leaf(.number())), ("radius", .leaf(length))]
+        case "bloom": [("amount", .leaf(.number())), ("radius", .leaf(length)), ("color", .leaf(.color))]
+        case "vignette": [("amount", .leaf(.number())), ("radius", .leaf(unit))]
+        case "pixelate": [("size", .leaf(length))]
+        default: [("amount", .leaf(unit)), ("size", .leaf(length))]
+        }
+
+        return mixed
+            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: ["mix": .number(1)]))
+            : .object(ObjectStructure(parameters))
+    }
 }

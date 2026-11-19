@@ -31,7 +31,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let mask: [Keyframe<[ResolvedMask]>]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
-    let filter: [ResolvedFilterOperation]
+    let filter: TimedValue
     let box: ResolvedBox
     let opacity: [Keyframe<Double>]
     let scale: [Keyframe<Double>]
@@ -67,7 +67,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         mask: [Keyframe<[ResolvedMask]>]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         box: ResolvedBox,
         opacity: [Keyframe<Double>],
         scale: [Keyframe<Double>],

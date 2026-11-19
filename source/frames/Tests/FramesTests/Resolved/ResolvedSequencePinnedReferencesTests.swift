@@ -48,7 +48,7 @@ struct ResolvedSequencePinnedReferencesTests {
                 clip("clips[1]", content: .media(ResolvedMediaClip(
                     media: .nested(nested),
                     timing: nil,
-                    filter: [],
+                    filter: .off,
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],
@@ -125,7 +125,7 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 1,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: filter,
+            filter: .filter(filter),
             transition: transition,
             filling: size
         )

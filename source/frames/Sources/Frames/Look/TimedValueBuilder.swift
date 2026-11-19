@@ -8,10 +8,12 @@
 // Timing, the second operation after the look merge. `ownLayer` makes the clip's own layer, its static value with the
 // structure its keyframes give, which then merges over the look; `timed` times each leaf over the merged value: a leaf
 // joins only the keyframes that write it, `null` there is the merged value's, and a leaf no keyframe writes is the
-// merged value's at `instant`. Keyframes are in sequence time, and `place` is where the clip writes the key.
+// merged value's at `instant`, or the structure's plain value where no layer writes it. Keyframes are in sequence time,
+// and `place` is where the clip writes the key.
 struct TimedValueBuilder: Sendable {
     // MARK: - Property
     private let merger = LookMerger()
+    private let reader = LookReader()
 
     // MARK: - Initializer
     init() { }
@@ -52,6 +54,9 @@ struct TimedValueBuilder: Sendable {
             return try track(merged, written: written, keyframes: keyframes, kind: kind, instant: instant, place: place, leaf: leaf)
 
         case let (.leaf(value), _):
+            if case .leaf = structure, keyframes.contains(where: { $0.value != .unset }) {
+                throw LookError.keyframedStatic(place: place)
+            }
             return .fixed(value)
 
         case let (.object(members), _):
@@ -60,14 +65,17 @@ struct TimedValueBuilder: Sendable {
             }
 
             // Keys go in the order the structure declares them, so a value is written the same whatever layer gave it.
+            let object = if case let .object(object) = structure { object } else { ObjectStructure([]) }
             let present = members.map(\.key) + keyframes.flatMap { $0.value.members.map(\.key) }
-            let declared = if case let .object(object) = structure { object.keys.map(\.name) } else { [String]() }
+                + object.plain.keys.sorted()
+            let declared = object.keys.map(\.name)
             let keys = declared.filter(present.contains) + present.filter { !declared.contains($0) }
             var timed: [TimedMember] = []
             for key in keys where !timed.contains(where: { $0.key == key }) {
                 let child = Self.structure(of: key, in: structure)
+                let plain = object.plain[key].map { reader.value(of: $0, as: child) }
                 let value = try self.timed(
-                    merged[key] ?? .unset,
+                    merged[key] ?? plain ?? .unset,
                     written: written?[key],
                     keyframes: keyframes.compactMap { keyframe in keyframe.value[key].map(keyframe.with) },
                     as: child,
@@ -80,7 +88,7 @@ struct TimedValueBuilder: Sendable {
             return .object(timed)
 
         case let (.list(elements), _):
-            let element = if case let .list(element) = structure { element } else { ValueStructure.anyValue }
+            let element = Self.element(of: structure)
             return .list(try elements.enumerated().map { index, value in
                 try timed(
                     value,
@@ -94,7 +102,8 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.form(name, body), _):
-            // A `null` form in a keyframe is `null` for the form's body, which stops unless the body is a leaf.
+            // A `null` form in a keyframe is `null` for the form's body, which stops unless the body is a leaf, and a
+            // keyframe's partial choice writes the body of the clip's.
             let bodies = keyframes.compactMap { keyframe -> PropertyKeyframe<LookValue>? in
                 switch keyframe.value {
                 case let .form(_, value):
@@ -102,6 +111,9 @@ struct TimedValueBuilder: Sendable {
 
                 case .unset:
                     keyframe.with(LookValue.unset)
+
+                case .object:
+                    if case .choice = structure { keyframe } else { nil }
 
                 default:
                     nil
@@ -172,8 +184,8 @@ struct TimedValueBuilder: Sendable {
         return .track(values)
     }
 
-    // A keyframe's value with every timed leaf `unset`: the forms and list lengths it writes. A static leaf, `off`, or
-    // `null` for an object or a list stops.
+    // A keyframe's value with every timed leaf `unset`: the forms and list lengths it writes. A static leaf, `off`, a
+    // choice's form or `null` for an object or a list stops.
     private func skeleton(
         of value: LookValue,
         as structure: ValueStructure,
@@ -197,6 +209,9 @@ struct TimedValueBuilder: Sendable {
         case (.leaf, _):
             return .unset
 
+        case (.form, .choice):
+            throw LookError.keyframedStatic(place: place)
+
         case let (.object(members), _):
             return .object(try members.map { member in
                 let child = Self.structure(of: member.key, in: structure)
@@ -207,7 +222,7 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.list(elements), _):
-            let element = if case let .list(element) = structure { element } else { ValueStructure.anyValue }
+            let element = Self.element(of: structure)
             return .list(try elements.enumerated().map { index, value in
                 try skeleton(of: value, as: element, place: place.appending(index: index))
             })
@@ -234,6 +249,12 @@ struct TimedValueBuilder: Sendable {
 
         case (.unset, _), (_, .unset):
             return
+
+        case let (.form(_, body), .object):
+            try checkAgreement(body, skeleton, place: place)
+
+        case (.list, .object):
+            throw LookError.partialOverList(place: place)
 
         case let (.form(name, _), _), let (_, .form(name, _)):
             throw LookError.formsDiffer(place: place, forms: [name])
@@ -266,6 +287,20 @@ struct TimedValueBuilder: Sendable {
         guard case let .list(elements) = value, elements.indices.contains(index) else { return nil }
 
         return elements[index]
+    }
+
+    // A list of choices is a list whose every element is that choice.
+    private static func element(of structure: ValueStructure) -> ValueStructure {
+        switch structure {
+        case let .list(element):
+            element
+
+        case .choice:
+            structure
+
+        case .anyValue, .leaf, .object, .map, .forms:
+            .anyValue
+        }
     }
 
     private static func structure(

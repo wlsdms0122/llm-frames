@@ -9,10 +9,10 @@
 // and opacity.
 package struct AdjustItem: Equatable, Sendable {
     // MARK: - Property
-    package let filter: [ResolvedFilterOperation]
+    package let filter: [FilterEntry]
 
     // MARK: - Initializer
-    package init(filter: [ResolvedFilterOperation]) {
+    package init(filter: [FilterEntry]) {
         self.filter = filter
     }
 

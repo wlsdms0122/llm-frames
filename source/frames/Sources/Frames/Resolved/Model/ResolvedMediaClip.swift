@@ -10,7 +10,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
     // MARK: - Property
     let media: ResolvedMediaContent
     let timing: MediaTiming?
-    let filter: [ResolvedFilterOperation]
+    let filter: TimedValue
     let appearance: ResolvedMediaAppearance
 
     // The media time a timed clip shows, nil for a still.
@@ -22,7 +22,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
     init(
         media: ResolvedMediaContent,
         timing: MediaTiming?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         appearance: ResolvedMediaAppearance
     ) {
         self.media = media

@@ -6,7 +6,8 @@
 //
 
 // A keyframable value as resolve gives it: its structure, each timed leaf a keyframe list in sequence time, and each
-// static leaf its value. `off` is a value that is off.
+// static leaf its value. A leaf of numbers is a list of keyframe lists where its elements are timed one by one. `off`
+// is a value that is off.
 indirect enum TimedValue: Equatable, Sendable {
     case off
     case fixed(JSONValue)
@@ -48,6 +49,10 @@ indirect enum TimedValue: Equatable, Sendable {
                 members.map { ($0.key, $0.value.sampled(at: time, as: Self.structure(of: $0.key, in: structure))) },
                 uniquingKeysWith: { first, _ in first }
             ))
+
+        case let (.list(elements), .leaf(kind)):
+            let numbers = elements.compactMap { $0.sampled(at: time, as: .leaf(.number(kind.domain))).number }
+            return .leaf(.numbers(numbers))
 
         case let (.list(elements), .list(element)):
             return .list(elements.map { $0.sampled(at: time, as: element) })

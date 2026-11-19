@@ -24,7 +24,7 @@ extension ResolvedStorylineClip {
         end: Double,
         crop: [Keyframe<Crop>],
         track: ResolvedTrack?,
-        filter: [ResolvedFilterOperation],
+        filter: TimedValue,
         transition: ResolvedTransition?,
         filling size: Size
     ) {

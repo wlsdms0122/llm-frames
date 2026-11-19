@@ -60,7 +60,7 @@ indirect enum LookValue: Equatable, Sendable {
         case (.unset, _):
             return nil
 
-        case let (.off, .choice(offNames)):
+        case let (.off, .choice(offNames, _)):
             return .string(offNames.first ?? "none")
 
         case (.off, _):

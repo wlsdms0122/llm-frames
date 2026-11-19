@@ -7,18 +7,19 @@
 
 @testable import Frames
 
-// A fake preset library: the transitions, animations and filters it holds, by name.
+// A fake preset library: the transitions, animations and filters it holds, by name, each filter the JSON a pack
+// publishes.
 struct PresetTable: PresetProvider {
     // MARK: - Property
     let transitions: [String: TransitionPreset]
     let animations: [String: AnimationPreset]
-    let filters: [String: FilterPreset]
+    let filters: [String: String]
 
     // MARK: - Initializer
     init(
         transitions: [String: TransitionPreset],
         animations: [String: AnimationPreset],
-        filters: [String: FilterPreset]
+        filters: [String: String]
     ) {
         self.transitions = transitions
         self.animations = animations
@@ -26,7 +27,7 @@ struct PresetTable: PresetProvider {
     }
 
     // MARK: - Public
-    // The presets it holds are plain and publish no parameters, so any argument stops as an unknown one.
+    // Its transitions and animations are plain and publish no parameters, so any argument stops as an unknown one.
     func transition(_ instance: PresetInstance) throws -> TransitionPreset? {
         try checkArguments(of: instance)
         return transitions[instance.name]
@@ -38,8 +39,13 @@ struct PresetTable: PresetProvider {
     }
 
     func filter(_ instance: PresetInstance) throws -> FilterPreset? {
-        try checkArguments(of: instance)
-        return filters[instance.name]
+        try publishedFilter(named: instance.name).map { try PresetReader().filter($0, instance: instance) }
+    }
+
+    func publishedFilter(named name: String) throws -> PublishedPreset<FilterPreset>? {
+        guard let text = filters[name] else { return nil }
+
+        return try PresetReader().publishedFilter(from: JSONReader().read(text), place: Place(file: name, components: []))
     }
 
     // MARK: - Private

@@ -275,7 +275,7 @@ struct EvaluatorTests {
             end: 2,
             crop: [Keyframe(at: 0, value: Crop(whole))],
             track: nil,
-            filter: [],
+            filter: .off,
             transition: nil,
             filling: size
         )
@@ -719,7 +719,7 @@ struct EvaluatorTests {
                 source: .media(MediaFrame(media: second, index: 0)),
                 rectangle: Rectangle(x: 0, y: 0, width: 400, height: 200),
                 destination: Rectangle(x: 0, y: 0, width: 80, height: 40),
-                filter: [.blur(radius: 2)],
+                filter: [FilterEntry(operations: [.blur(radius: 2)])],
                 radius: 6,
                 border: border,
                 shadow: shadow
@@ -909,7 +909,7 @@ struct EvaluatorTests {
     func carriesParentedAdjustment() throws {
         // Given
         let adjustment = clip(
-            .adjustment([.blur(radius: 3)]),
+            .adjustment(.filter([.blur(radius: 3)])),
             storyline: 0,
             parent: "shot",
             mask: [Keyframe(at: 0, value: [ResolvedMask(
@@ -937,7 +937,7 @@ struct EvaluatorTests {
                 isInverted: false,
                 mode: .add
             )],
-            content: .adjust(AdjustItem(filter: [.blur(radius: 3)])),
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 3)])])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         )
         let picture = storylineItem([mediaItem(first, frame: 4, origin: shotEntry)], seed: 10, origin: shotEntry)
@@ -952,7 +952,7 @@ struct EvaluatorTests {
             SpanKey(t: 1, values: [.reveal: 1])
         ]))
         let adjustment = clip(
-            .adjustment([.blur(radius: 2)]),
+            .adjustment(.filter([.blur(radius: 2)])),
             storyline: 0,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
         )
@@ -965,7 +965,7 @@ struct EvaluatorTests {
         // Halfway through its entrance the wipe shows the left half of the 200 x 100 frame.
         #expect(list.items.last == DisplayItem(
             reveal: Rectangle(x: 0, y: 0, width: 100, height: 100),
-            content: .adjust(AdjustItem(filter: [.blur(radius: 2)])),
+            content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.blur(radius: 2)])])),
             origin: ItemOrigin(place: "clips[0]", id: nil, kind: "adjustment")
         ))
     }
@@ -1168,7 +1168,7 @@ struct EvaluatorTests {
             end: end,
             crop: crop,
             track: track,
-            filter: filter,
+            filter: .filter(filter),
             transition: transition,
             filling: frame ?? size
         )
@@ -1298,7 +1298,7 @@ struct EvaluatorTests {
         blend: String = "normal",
         track: ResolvedTrack? = nil
     ) -> ResolvedClip {
-        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: filter, appearance: appearance)
+        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: .filter(filter), appearance: appearance)
         let box = ResolvedBox(
             size: Size(width: 80, height: 40),
             position: [Keyframe(at: 0, value: Point(x: 10, y: 20))],
@@ -1398,7 +1398,7 @@ struct EvaluatorTests {
             source: .media(MediaFrame(media: media, index: frame)),
             rectangle: whole,
             destination: destination ?? self.frame,
-            filter: filter
+            filter: filter.isEmpty ? [] : [FilterEntry(operations: filter)]
         )
 
         return DisplayItem(content: .picture(picture), origin: origin ?? videoEntry)

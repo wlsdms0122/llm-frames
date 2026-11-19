@@ -77,7 +77,7 @@ struct ClipEvaluatorTests {
         let clip = ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: [], appearance: appearance)),
+            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
             start: 0,
             end: 4,
             lane: 1,
@@ -183,7 +183,7 @@ struct ClipEvaluatorTests {
                 .media(ResolvedMediaClip(
                     media: .pinned(media),
                     timing: nil,
-                    filter: [],
+                    filter: .off,
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )),
                 mask: geometry,
@@ -222,7 +222,7 @@ struct ClipEvaluatorTests {
 
         default:
             geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
-            clip = masked(.adjustment([.blur(radius: 2)]), mask: geometry, animation: doubling)
+            clip = masked(.adjustment(.filter([.blur(radius: 2)])), mask: geometry, animation: doubling)
             expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 50, y: 20))]
         }
 
@@ -260,7 +260,7 @@ struct ClipEvaluatorTests {
             .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white))
 
         default:
-            .adjustment([.blur(radius: 2)])
+            .adjustment(.filter([.blur(radius: 2)]))
         }
         let isAdjustment = kind == "adjustment"
         let clip = masked(

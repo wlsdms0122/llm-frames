@@ -239,6 +239,15 @@ struct ResolvedValueReader: Sendable {
 
         switch structure {
         case let .leaf(leaf) where leaf.isTimed:
+            if case let .numbers(count) = leaf.form, value.value.arrayValue?.first?.arrayValue != nil {
+                let elements = try value.elements()
+                guard elements.count == count else { throw value.wrongType("a list of \(count) keyframe lists") }
+
+                return .list(try elements.map { element in
+                    .track(try keyframes(element) { try self.leaf($0, as: .number(leaf.domain)) })
+                })
+            }
+
             return .track(try keyframes(value) { try self.leaf($0, as: leaf) })
 
         case let .leaf(leaf):
@@ -246,6 +255,9 @@ struct ResolvedValueReader: Sendable {
                 _ = try value.name(among: names) { names.contains($0) ? $0 : nil }
             }
             return .fixed(value.value)
+
+        case let .choice(_, forms) where !forms.isEmpty:
+            return try choice(value, forms: forms, kind: kind)
 
         case .anyValue, .choice:
             return .fixed(value.value)
@@ -281,12 +293,45 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    // `grainKeys` are the keys a `grain` may hold besides its values: a display list's `seed`, which its reader reads.
+    // A form of a choice as the writer writes it: `preset` or `op` naming it, beside the keys of its body.
+    private func choice(
+        _ value: PlacedJSONValue,
+        forms: [(name: String, structure: ValueStructure)],
+        kind: String?
+    ) throws -> TimedValue {
+        let object = try value.object(kind: kind, keys: ["preset", "op"] + forms.flatMap { form in
+            if case let .object(body) = form.structure { body.keys.map(\.name) } else { [String]() }
+        })
+        let prefix = object.object.contains("op") ? "op" : "preset"
+        let names = forms.map(\.name).filter { $0.hasPrefix(prefix + ":") }.map { String($0.dropFirst(prefix.count + 1)) }
+        let name = try object.member(prefix).name(among: names) { names.contains($0) ? $0 : nil }
+        guard let form = forms.first(where: { $0.name == prefix + ":" + name }), case let .object(body) = form.structure
+        else {
+            return .fixed(value.value)
+        }
+
+        let members = try value.object(kind: kind, keys: [prefix] + body.keys.map(\.name))
+        return .form(form.name, .object(try body.keys.compactMap { key in
+            try members.optionalMember(key.name).map { TimedMember(key: key.name, value: try timed($0, as: key.structure)) }
+        }))
+    }
+
+    // A display list's filter, its entries `{ops, mix}`. `grainKeys` are the keys a `grain` may hold besides its
+    // values: a display list's `seed`, which its reader reads.
     func filter(
         _ value: PlacedJSONValue,
         grainKeys: [String] = []
-    ) throws -> [ResolvedFilterOperation] {
-        try value.elements().map { try operation($0, grainKeys: grainKeys) }
+    ) throws -> [FilterEntry] {
+        try value.elements().map { element in
+            let entry = try element.object(keys: ["ops", "mix"])
+            let mix = try entry.member("mix").number()
+            guard (0...1).contains(mix) else { throw try entry.member("mix").wrongType("a number from 0 to 1") }
+
+            return FilterEntry(
+                operations: try entry.member("ops").elements().map { try operation($0, grainKeys: grainKeys) },
+                mix: mix
+            )
+        }
     }
 
     func span(_ object: PlacedJSONObject) throws -> Span {

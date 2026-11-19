@@ -595,9 +595,11 @@ struct SequencePlannerTests {
         let plan = try plan(document)
 
         // Then
-        let graded: [FilterOperation] = [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))]
+        let graded = [
+            FilterEntry(operations: [.saturation(amount: 1.25), .blur(radius: 4 * MergedTheme.base.lengthScale(at: 2160))])
+        ]
         let title = plan.clips[0].appearance
-        #expect(plan.storyline[0].filter == graded)
+        #expect(plan.storyline[0].filter.filter() == graded)
         #expect(title.opacity == .keyframes([
             PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
             PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
@@ -623,7 +625,7 @@ struct SequencePlannerTests {
             )),
             shadow: .off
         ))
-        #expect(plan.clips[2].appearance.filter == graded)
+        #expect(plan.clips[2].appearance.filter.filter() == graded)
     }
 
     @Test("a storyline clip that writes none of its transform has the frame as its box and fills it exactly")

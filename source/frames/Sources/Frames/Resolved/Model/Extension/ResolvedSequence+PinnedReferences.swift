@@ -80,11 +80,12 @@ extension ResolvedSequence {
         }
     }
 
+    // A filter's structure is static, so its LUTs are those it holds at any time.
     private func references(
-        of filter: [ResolvedFilterOperation],
+        of filter: TimedValue,
         place: String
     ) -> [PinnedReference] {
-        filter.compactMap { operation in
+        FilterEntry.entries(of: filter, at: 0).flatMap(\.operations).compactMap { operation in
             guard case let .lut(file, _) = operation else { return nil }
 
             return .file(file, place: place)

@@ -86,7 +86,7 @@ struct DefaultChoiceTests {
     }
 
     @Test(
-        "a filter without a preset stops over a default list, over none, and on an adjustment, which takes no default",
+        "a filter without a preset, its arguments or its mix, stops over a default list, over none, and on an adjustment",
         arguments: [
             (
                 #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
@@ -95,6 +95,16 @@ struct DefaultChoiceTests {
             ),
             (
                 #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #""none""#,
+                "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
+            ),
+            (
+                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"["frames/warm", "frames/warm"]"#,
+                "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
+            ),
+            (
+                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
@@ -135,7 +145,7 @@ struct DefaultChoiceTests {
         let plan = try Fixture.sequencePlanner.plan(Fixture.planner.plan(document: document))
 
         // Then
-        #expect(plan.storyline[0].filter == [])
+        #expect(plan.storyline[0].filter.filter() == [FilterEntry(operations: [])])
     }
 
     // MARK: - Private

@@ -56,7 +56,7 @@ struct LookMerger: Sendable {
 
         switch (structure, under, over) {
         case let (.choice, .form(name, body), .object):
-            return .form(name, try mergeObjects(body, over, as: .anyValue, place: place))
+            return .form(name, try mergeObjects(body, over, as: structure.structure(ofForm: name) ?? .anyValue, place: place))
 
         case (.choice, .list, .object):
             throw LookError.partialOverList(place: place)
