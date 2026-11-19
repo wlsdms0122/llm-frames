@@ -24,7 +24,8 @@ struct RecordingDecoder: MediaDecoder {
     // MARK: - Lifecycle
     func picture(
         of file: MediaFile,
-        atFrame index: Int
+        atFrame index: Int,
+        reading: PictureReading
     ) throws -> Bitmap {
         Bitmap(frame: index)
     }
