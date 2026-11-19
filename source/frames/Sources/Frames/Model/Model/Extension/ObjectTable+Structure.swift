@@ -11,18 +11,42 @@
 extension ObjectTable {
     // MARK: - Property
     // MARK: - Initializer
-    // A list the object holds not all zeros is a dash pattern.
     init(
         structure: ObjectStructure,
         kind: String,
         checksDomains: Bool = true
     ) {
+        self.init(structure: structure, kind: kind, isWritten: false, checksDomains: checksDomains)
+    }
+
+    // A look object as a layer writes it over the one below, as a theme's text style is: each look object it holds is
+    // written as `ValueType(written:kind:)` gives.
+    init(
+        written structure: ObjectStructure,
+        kind: String
+    ) {
+        self.init(structure: structure, kind: kind, isWritten: true, checksDomains: true)
+    }
+
+    // A list the object holds not all zeros is a dash pattern, and a key with a check takes the type that applies it.
+    private init(
+        structure: ObjectStructure,
+        kind: String,
+        isWritten: Bool,
+        checksDomains: Bool
+    ) {
         self.init(
             kind: kind,
             rules: structure.keys.map { key in
-                let type = structure.nonZero.contains(key.name)
-                    ? ValueType.dash(isKeyframed: false)
-                    : ValueType(structure: key.structure, kind: key.name, checksDomains: checksDomains)
+                let type = if let check = structure.checks[key.name] {
+                    ValueType(check: check)
+                } else if structure.nonZero.contains(key.name) {
+                    ValueType.dash(isKeyframed: false)
+                } else if isWritten {
+                    ValueType(written: key.structure, kind: key.name)
+                } else {
+                    ValueType(structure: key.structure, kind: key.name, checksDomains: checksDomains)
+                }
                 return KeyRule(key.name, type)
             },
             groups: structure.exclusive.map { KeyGroup(keys: $0, isExclusive: true, isOptional: true) }

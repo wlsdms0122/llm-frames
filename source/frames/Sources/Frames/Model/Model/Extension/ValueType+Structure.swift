@@ -87,6 +87,19 @@ extension ValueType {
         self = .oneOf(shorthands.map(Self.type(of:)))
     }
 
+    init(check: LeafCheck) {
+        switch check {
+        case .fontWeight:
+            self = .fontWeight
+
+        case .fontFeatures:
+            self = .fontFeatures
+
+        case .positiveInteger:
+            self = .positiveInteger
+        }
+    }
+
     // MARK: - Public
     // MARK: - Private
     // `true` for the value below, and a colour for its colour.

@@ -6,7 +6,8 @@
 //
 
 // Merges theme layers from weakest to strongest by the look merge: the base theme, a --theme file, a document's
-// theme. A stop names the layer that writes the value it names, or the base theme where none does.
+// theme. The merged theme's values are checked against their structure, so resolve reads only values it takes. A stop
+// names the layer that writes the value it names, or the base theme where none does.
 struct ThemeMerger: Sendable {
     // MARK: - Property
     private let validator = ThemeValidator()
@@ -33,6 +34,7 @@ struct ThemeMerger: Sendable {
                 value = try merger.merge(value, reader.value(of: layer.value, as: structure), as: structure, place: .root)
             }
             try merger.checkRequired(in: value, as: structure, place: .root)
+            try structure.checkDomains(of: value.json(as: structure) ?? .null, place: .root)
         } catch let error as LookError {
             let written = MergedTheme(value: value.json(as: structure) ?? .null, layers: all)
             throw error.placed { written.place(of: $0) }

@@ -36,9 +36,9 @@ package struct FontWeight: Equatable, Hashable, Sendable {
         self.value = value
     }
 
-    // A weight as a style writes it, a number or a name, which the key tables checked.
+    // A weight as a style writes it, a whole number from 100 to 900 or a name,, or nil for any other value.
     init?(written: JSONValue) {
-        if let number = written.numberValue, let value = Int(exactly: number) {
+        if let number = written.numberValue, let value = Int(exactly: number), (100...900).contains(value) {
             self.init(value)
         } else if let name = written.stringValue, let value = Self.names.first(where: { $0.name == name })?.value {
             self.init(value)

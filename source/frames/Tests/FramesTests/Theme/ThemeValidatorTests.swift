@@ -139,7 +139,7 @@ struct ThemeValidatorTests {
     }
 
     @Test(
-        "a theme's look length outside its domain stops where it is written",
+        "a theme's length outside its domain stops where it is written",
         arguments: [
             (#"{ "border": { "width": 0 } }"#, "border.width (border): expected a number above 0, found 0"),
             (#"{ "shadow": { "radius": -1 } }"#, "shadow.radius (shadow): expected a number, 0 or more, found -1"),
@@ -150,7 +150,15 @@ struct ThemeValidatorTests {
             (
                 #"{ "styles": { "note": { "highlight": { "radius": -4 } } } }"#,
                 "styles.note.highlight.radius (highlight): expected a number, 0 or more, found -4"
-            )
+            ),
+            (#"{ "baseWidth": 0 }"#, "baseWidth (theme): expected a number above 0, found 0"),
+            (#"{ "placement": { "padding": -8 } }"#, "placement.padding (placement): expected a number, 0 or more, found -8"),
+            (#"{ "styles": { "note": { "size": 0 } } }"#, "styles.note.size (style): expected a number above 0, found 0"),
+            (
+                #"{ "styles": { "note": { "lineHeight": -10 } } }"#,
+                "styles.note.lineHeight (style): expected a number above 0, found -10"
+            ),
+            (#"{ "styles": { "note": { "offset": -1 } } }"#, "styles.note.offset (style): expected a number, 0 or more, found -1")
         ]
     )
     func refusesLookLengthOutsideDomain(theme: String, message: String) throws {
@@ -196,8 +204,16 @@ struct ThemeValidatorTests {
         #expect(error?.description == message)
     }
 
-    @Test("a style's weight is a whole number from 100 to 900 or a weight name", arguments: ["50", "950", "450.5", #""heavy""#])
-    func refusesBadWeight(_ weight: String) throws {
+    @Test(
+        "a style's weight is a whole number from 100 to 900 or a weight name",
+        arguments: [
+            ("50", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 50"),
+            ("950", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 950"),
+            ("450.5", "styles.note.weight (style): expected a whole number from 100 to 900 or a weight name, found 450.5"),
+            (#""heavy""#, #"styles.note.weight (style): unknown value "heavy". Allowed: thin, extralight, light, regular, medium, semibold, bold, extrabold, black"#)
+        ]
+    )
+    func refusesBadWeight(weight: String, message: String) throws {
         // Given
         let layer = ThemeLayer(
             value: try Fixture.json(#"{ "styles": { "note": { "size": 20, "weight": \#(weight) } } }"#),
@@ -205,7 +221,24 @@ struct ThemeValidatorTests {
         )
 
         // When, Then
-        #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a style's kerning, placement and align outside their names stop where they are written",
+        arguments: [
+            (#""kerning": "auto""#, #"styles.note.kerning (style): unknown value "auto". Allowed: metrics, none"#),
+            (#""align": "justify""#, #"styles.note.align (style): unknown value "justify". Allowed: left, center, right"#)
+        ]
+    )
+    func refusesUnknownName(key: String, message: String) throws {
+        // Given
+        let layer = ThemeLayer(value: try Fixture.json(#"{ "styles": { "note": { "size": 20, \#(key) } } }"#), place: .root)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.checkKeys(of: layer) }
+        #expect(error?.description == message)
     }
 
     @Test("a style's typography keys pass the key check")

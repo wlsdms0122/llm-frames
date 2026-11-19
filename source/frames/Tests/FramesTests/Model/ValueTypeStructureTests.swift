@@ -236,6 +236,39 @@ struct ValueTypeStructureTests {
         #expect(rect.rule(named: "outset")?.type == .nonNegativeNumber)
     }
 
+    @Test("a theme's plain keys and a text style's are read from their structures, key by key")
+    func readsThemeStyle() {
+        // When
+        let theme = ["baseWidth", "font", "placement"].map { ThemeKeyTable.theme.rule(named: $0)?.type }
+        let style = ThemeKeyTable.style.rules.filter { !["stroke", "background", "highlight", "underline"].contains($0.name) }
+
+        // Then
+        #expect(theme == [
+            .positiveNumber,
+            .list(.name),
+            .object(ObjectTable(kind: "placement", rules: [KeyRule("padding", .nonNegativeNumber)]))
+        ])
+        #expect(ThemeKeyTable.style.rules.map(\.name) == LookStructureTable.textStyle.keys.map(\.name))
+        #expect(style == [
+            KeyRule("font", .list(.name)),
+            KeyRule("size", .positiveNumber),
+            KeyRule("weight", .fontWeight),
+            KeyRule("italic", .bool),
+            KeyRule("tracking", .number),
+            KeyRule("kerning", .literal(["metrics", "none"])),
+            KeyRule("features", .fontFeatures),
+            KeyRule("baselineShift", .number),
+            KeyRule("color", .color),
+            KeyRule("lineHeight", .positiveNumber),
+            KeyRule("placement", .literal(VocabularyTable.placementNames)),
+            KeyRule("offset", .nonNegativeNumber),
+            KeyRule("align", .literal(["left", "center", "right"])),
+            KeyRule("lines", .positiveInteger)
+        ])
+        #expect(ThemeKeyTable.character.rule(named: "size")?.type == .positiveNumber)
+        #expect(ThemeKeyTable.paragraph.rule(named: "align")?.type == .literal(["left", "center", "right"]))
+    }
+
     // MARK: - Private
     private static let gradient = ValueType.object(ObjectTable(
         kind: "gradient",

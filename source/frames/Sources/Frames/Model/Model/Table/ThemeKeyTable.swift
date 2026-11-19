@@ -5,44 +5,24 @@
 //  Created by JSilver on 11/15/26.
 //
 
+// A theme's keys and a text style's, read from their look structures. A theme's `colors` are written as hex, and its
+// `styles`, `shapes` and `defaults` have tables of their own.
 enum ThemeKeyTable {
     static let theme = ObjectTable(
         kind: "theme",
         rules: [
-            KeyRule("baseWidth", .number),
-            KeyRule("font", .list(.name)),
+            KeyRule("baseWidth", look("baseWidth")),
+            KeyRule("font", look("font")),
             KeyRule("colors", .map(.hexColor, kind: "colors")),
             KeyRule("styles", .map(.object(style), kind: "styles")),
             KeyRule("shapes", .map(.object(ShapeKeyTable.style), kind: "shapes")),
-            KeyRule("placement", .object(group("placement", ["padding"]))),
-            KeyRule("border", ValueType(structure: LookStructureTable.border, kind: "border")),
-            KeyRule("shadow", ValueType(structure: LookStructureTable.shadow, kind: "shadow")),
+            KeyRule("placement", look("placement")),
+            KeyRule("border", look("border")),
+            KeyRule("shadow", look("shadow")),
             KeyRule("defaults", .object(defaults))
         ]
     )
-    static let style = ObjectTable(
-        kind: "style",
-        rules: [
-            KeyRule("font", .list(.name)),
-            KeyRule("size", .number),
-            KeyRule("weight", .fontWeight),
-            KeyRule("italic", .bool),
-            KeyRule("tracking", .number),
-            KeyRule("kerning", .literal(["metrics", "none"])),
-            KeyRule("features", .fontFeatures),
-            KeyRule("baselineShift", .number),
-            KeyRule("color", .color),
-            KeyRule("lineHeight", .number),
-            KeyRule("stroke", ValueType(written: LookStructureTable.textStroke, kind: "stroke")),
-            KeyRule("background", ValueType(written: LookStructureTable.background, kind: "background")),
-            KeyRule("highlight", ValueType(written: LookStructureTable.highlight, kind: "highlight")),
-            KeyRule("underline", ValueType(written: LookStructureTable.underline, kind: "underline")),
-            KeyRule("placement", .literal(VocabularyTable.placementNames)),
-            KeyRule("offset", .number),
-            KeyRule("align", .literal(["left", "center", "right"])),
-            KeyRule("lines", .positiveInteger)
-        ]
-    )
+    static let style = ObjectTable(written: LookStructureTable.textStyle, kind: "style")
     // A title's `character` and `paragraph`: the keys of a text style it merges over its runs' styles and over its
     // style's paragraph attributes.
     static let character = ObjectTable(
@@ -78,10 +58,7 @@ enum ThemeKeyTable {
     static let titleAnimationKind = "title animations"
     static let titleAnimations = ValueType.map(ChoiceKeyTable.animation, kind: titleAnimationKind)
 
-    private static func group(
-        _ kind: String,
-        _ names: [String]
-    ) -> ObjectTable {
-        ObjectTable(kind: kind, rules: names.map { KeyRule($0, .number) })
+    private static func look(_ key: String) -> ValueType {
+        ValueType(structure: LookStructureTable.theme.structure(ofMember: key), kind: key)
     }
 }

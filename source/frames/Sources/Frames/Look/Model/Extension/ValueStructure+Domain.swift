@@ -7,8 +7,9 @@
 
 extension ValueStructure {
     // MARK: - Public
-    // Each number of a written value against the domain of its leaf, where the value is written. A place in `sampled`
-    // holds one keyframe's value of a leaf two keyframes or more write, which may take any value its samples take.
+    // Each number of a written value against the domain of its leaf, and each key with a check against it, where the
+    // value is written. A place in `sampled` holds one keyframe's value of a leaf two keyframes or more write, which
+    // may take any value its samples take.
     func checkDomains(
         of value: JSONValue,
         place: Place,
@@ -19,7 +20,16 @@ extension ValueStructure {
             for (key, child) in structure.keys {
                 guard let member = object[key] else { continue }
 
-                try child.checkDomains(of: member, place: place.appending(key: key), sampled: sampled)
+                let memberPlace = place.appending(key: key)
+                if let check = structure.checks[key], let failure = check.failure(of: member) {
+                    throw LookError.failedCheck(place: memberPlace, check: check, failure: failure)
+                }
+                try child.checkDomains(of: member, place: memberPlace, sampled: sampled)
+            }
+
+        case let (.object(object), .map(element)):
+            for member in object.members {
+                try element.checkDomains(of: member.value, place: place.appending(key: member.key), sampled: sampled)
             }
 
         case let (.object(object), .choice):

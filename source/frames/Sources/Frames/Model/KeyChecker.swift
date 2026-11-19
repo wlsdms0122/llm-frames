@@ -176,9 +176,7 @@ struct KeyChecker: Sendable {
             }
 
         case .positiveInteger:
-            guard let number = value.numberValue, let integer = Int(exactly: number), integer > 0 else {
-                throw wrongType(value, type, place, kind)
-            }
+            try check(value, by: .positiveInteger, as: type, place: place, kind: kind)
 
         case .color, .hexColor:
             try checkColor(value, as: type, place: place, kind: kind)
@@ -316,10 +314,10 @@ struct KeyChecker: Sendable {
             try checkAudioOperation(object, place: place, mixed: false, scope: &scope)
 
         case .fontWeight:
-            try checkFontWeight(value, place: place, kind: kind)
+            try check(value, by: .fontWeight, as: type, place: place, kind: kind)
 
         case .fontFeatures:
-            try checkFontFeatures(value, place: place, kind: kind)
+            try check(value, by: .fontFeatures, as: type, place: place, kind: kind)
         }
     }
 
@@ -686,49 +684,30 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A weight's name, or a whole number from 100 to 900.
-    private func checkFontWeight(
+    // Only a style's `features` has members, and a member's stop is placed at it.
+    private func check(
         _ value: JSONValue,
+        by check: LeafCheck,
+        as type: ValueType,
         place: Place,
         kind: String
     ) throws {
-        if let name = value.stringValue {
-            let names = FontWeight.names.map(\.name)
-            guard names.contains(name) else {
-                throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: names)
-            }
+        switch check.failure(of: value) {
+        case .none:
             return
-        }
-        guard let number = value.numberValue, let weight = Int(exactly: number), (100...900).contains(weight) else {
-            throw wrongType(value, .fontWeight, place, kind)
-        }
-    }
 
-    // `kern` is a key of its own, `kerning`, so a style cannot set it twice.
-    private func checkFontFeatures(
-        _ value: JSONValue,
-        place: Place,
-        kind: String
-    ) throws {
-        guard let object = value.objectValue else { throw wrongType(value, .fontFeatures, place, kind) }
+        case let .unknownName(name, allowed):
+            throw ModelError.unknownValue(place: place, kind: kind, value: name, allowed: allowed)
 
-        for member in object.members {
-            let tagPlace = place.appending(key: member.key)
-            guard member.key != "kern" else {
-                throw ModelError.invalidValue(place: tagPlace, kind: "features", reason: "`kern` is set by `kerning`")
-            }
-            let isTag = member.key.unicodeScalars.count == 4
-                && member.key.unicodeScalars.allSatisfy { (0x20...0x7E).contains($0.value) }
-            guard isTag else {
-                throw ModelError.invalidValue(
-                    place: tagPlace,
-                    kind: "features",
-                    reason: "a feature tag is four printable ASCII characters"
-                )
-            }
-            guard let number = member.value.numberValue, Int(exactly: number) != nil, number >= 0 else {
-                throw wrongType(member.value, .nonNegativeInteger, tagPlace, "features")
-            }
+        case .wrongValue:
+            throw wrongType(value, type, place, kind)
+
+        case let .invalidMember(key, reason):
+            throw ModelError.invalidValue(place: place.appending(key: key), kind: "features", reason: reason)
+
+        case let .wrongMember(key):
+            let member = value.objectValue?[key] ?? .null
+            throw wrongType(member, .nonNegativeInteger, place.appending(key: key), "features")
         }
     }
 
@@ -1546,7 +1525,7 @@ struct KeyChecker: Sendable {
             "a whole number, 0 or more"
 
         case .positiveInteger:
-            "a whole number, 1 or more"
+            LeafCheck.positiveInteger.expectation
 
         case .text, .name, .identifier:
             "a string"
@@ -1625,10 +1604,10 @@ struct KeyChecker: Sendable {
             "an audio operation"
 
         case .fontWeight:
-            "a whole number from 100 to 900 or a weight name"
+            LeafCheck.fontWeight.expectation
 
         case .fontFeatures:
-            "an object of feature tags"
+            LeafCheck.fontFeatures.expectation
         }
     }
 

@@ -90,46 +90,56 @@ enum LookStructureTable {
         shorthands: [.on]
     ))
 
-    static let textStyle = ValueStructure.object(ObjectStructure([
-        ("font", .list(.leaf(.name))),
-        ("size", .leaf(.length(.positive))),
-        ("weight", .leaf(.name)),
-        ("italic", .leaf(.boolean)),
-        ("tracking", .leaf(.number())),
-        ("kerning", .leaf(.name)),
-        ("features", .map(.leaf(.staticNumber))),
-        ("baselineShift", .leaf(.length(.any))),
-        ("color", .leaf(.color)),
-        ("lineHeight", .leaf(.length(.positive))),
-        ("stroke", textStroke),
-        ("highlight", highlight),
-        ("underline", underline),
-        ("background", background),
-        ("placement", .leaf(.name)),
-        ("offset", .leaf(.length())),
-        ("align", .leaf(.name)),
-        ("lines", .leaf(.number(.positive)))
-    ]))
+    // A text style's `kerning` and `align`, which a title's `character` and `paragraph` write as well.
+    static let kerning = ValueStructure.leaf(.name(among: ["metrics", "none"]))
+    static let align = ValueStructure.leaf(.name(among: TextAlignment.allCases.map(\.rawValue)))
+
+    static let textStyle = ObjectStructure(
+        [
+            ("font", .list(.leaf(.name))),
+            ("size", .leaf(.length(.positive))),
+            ("weight", .leaf(.name)),
+            ("italic", .leaf(.boolean)),
+            ("tracking", .leaf(.number())),
+            ("kerning", kerning),
+            ("features", .map(.leaf(.staticNumber))),
+            ("baselineShift", .leaf(.length(.any))),
+            ("color", .leaf(.color)),
+            ("lineHeight", .leaf(.length(.positive))),
+            ("stroke", textStroke),
+            ("background", background),
+            ("highlight", highlight),
+            ("underline", underline),
+            ("placement", .leaf(.name(among: VocabularyTable.placementNames))),
+            ("offset", .leaf(.length())),
+            ("align", align),
+            ("lines", .leaf(.number(.positive)))
+        ],
+        checks: ["weight": .fontWeight, "features": .fontFeatures, "lines": .positiveInteger]
+    )
 
     // A title's character attributes: those that decide faces, shaping and line breaks are static.
-    static let character = ValueStructure.object(ObjectStructure([
-        ("font", .list(.leaf(.name))),
-        ("size", .leaf(LeafKind(form: .staticNumber, domain: .positive, isLength: true))),
-        ("weight", .leaf(.name)),
-        ("italic", .leaf(.boolean)),
-        ("tracking", .leaf(.number())),
-        ("kerning", .leaf(.name)),
-        ("features", .map(.leaf(.staticNumber))),
-        ("baselineShift", .leaf(.length(.any))),
-        ("color", .leaf(.color)),
-        ("stroke", textStroke),
-        ("highlight", highlight),
-        ("underline", underline)
-    ]))
+    static let character = ValueStructure.object(ObjectStructure(
+        [
+            ("font", .list(.leaf(.name))),
+            ("size", .leaf(LeafKind(form: .staticNumber, domain: .positive, isLength: true))),
+            ("weight", .leaf(.name)),
+            ("italic", .leaf(.boolean)),
+            ("tracking", .leaf(.number())),
+            ("kerning", kerning),
+            ("features", .map(.leaf(.staticNumber))),
+            ("baselineShift", .leaf(.length(.any))),
+            ("color", .leaf(.color)),
+            ("stroke", textStroke),
+            ("highlight", highlight),
+            ("underline", underline)
+        ],
+        checks: ["weight": .fontWeight, "features": .fontFeatures]
+    ))
 
     // A title's paragraph attributes: `align` is static.
     static let paragraph = ValueStructure.object(ObjectStructure([
-        ("align", .leaf(.name)),
+        ("align", align),
         ("lineHeight", .leaf(.length(.positive))),
         ("background", background)
     ]))
@@ -190,7 +200,7 @@ enum LookStructureTable {
         ("baseWidth", .leaf(.number(.positive))),
         ("font", .list(.leaf(.name))),
         ("colors", .map(.leaf(.color))),
-        ("styles", .map(textStyle)),
+        ("styles", .map(.object(textStyle))),
         ("shapes", .map(.object(shapeStyle))),
         ("placement", .object(ObjectStructure([("padding", length)]))),
         ("border", border),

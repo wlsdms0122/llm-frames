@@ -139,6 +139,29 @@ struct ThemeMergerTests {
         #expect(error?.description == #"styles.caption (style): unknown key "family". Allowed: font, size, weight, italic, tracking, kerning, features, baselineShift, color, lineHeight, stroke, background, highlight, underline, placement, offset, align, lines"#)
     }
 
+    @Test(
+        "a merged style's weight, features and lines are checked by the rules the key check applies",
+        arguments: [
+            (#""weight": 950"#, "styles.note.weight: expected a whole number from 100 to 900 or a weight name"),
+            (#""features": { "kern": 0 }"#, "styles.note.features.kern: `kern` is set by `kerning`"),
+            (#""features": { "liga": 0.5 }"#, "styles.note.features.liga: expected a whole number, 0 or more"),
+            (#""lines": 1.5"#, "styles.note.lines: expected a whole number, 1 or more")
+        ]
+    )
+    func refusesBrokenStyleBelow(style: String, message: String) throws {
+        // Given
+        let base = try #require(MergedTheme.base.value.objectValue)
+        let styles = try #require(base["styles"]?.objectValue)
+        let note = try Fixture.json(#"{ "size": 20, \#(style) }"#)
+        let theme = MergedTheme(value: .object(base.setting("styles", to: .object(styles.setting("note", to: note)))), layers: [])
+
+        // When, Then
+        let error = #expect(throws: LookError.self) {
+            try sut.merge([], over: theme)
+        }
+        #expect(error?.description == message)
+    }
+
     @Test("a stroke whose layers together give no width stops after the merge, naming the layer that writes it")
     func refusesStrokeWithoutWidth() throws {
         // Given
