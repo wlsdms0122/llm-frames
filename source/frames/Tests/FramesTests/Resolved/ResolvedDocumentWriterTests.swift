@@ -288,7 +288,9 @@ struct ResolvedDocumentWriterTests {
                   "keys": []
                 },
                 "loop": null,
-                "exit": null
+                "exit": null,
+                "by": null,
+                "stagger": null
               }
             },
             {
@@ -367,7 +369,9 @@ struct ResolvedDocumentWriterTests {
               "animation": {
                 "entrance": null,
                 "loop": null,
-                "exit": null
+                "exit": null,
+                "by": null,
+                "stagger": null
               }
             }
           ],

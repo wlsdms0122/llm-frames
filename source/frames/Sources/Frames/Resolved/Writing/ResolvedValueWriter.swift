@@ -232,7 +232,8 @@ struct ResolvedValueWriter: Sendable {
         ]
     }
 
-    // An entrance and an exit by their `seconds`, a loop by its `period`.
+    // An entrance and an exit by their `seconds`, a loop by its `period`, and `by` and `stagger` `null` unless a title
+    // plays by unit.
     func animation(_ animation: ResolvedAnimation) -> JSONValue {
         let span = { (span: AnimationSpan?, length: String) -> JSONValue in
             span.map { span in
@@ -243,7 +244,9 @@ struct ResolvedValueWriter: Sendable {
         return .object(JSONObject(members: [
             JSONMember(key: "entrance", value: span(animation.entrance, "seconds")),
             JSONMember(key: "loop", value: span(animation.loop, "period")),
-            JSONMember(key: "exit", value: span(animation.exit, "seconds"))
+            JSONMember(key: "exit", value: span(animation.exit, "seconds")),
+            JSONMember(key: "by", value: animation.units.map { .string($0.by.rawValue) } ?? .null),
+            JSONMember(key: "stagger", value: animation.units.map { .number($0.stagger) } ?? .null)
         ]))
     }
 

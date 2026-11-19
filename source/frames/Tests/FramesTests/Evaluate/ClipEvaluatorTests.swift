@@ -32,7 +32,8 @@ struct ClipEvaluatorTests {
             SpanKey(t: 1, values: [.scale: 2])
         ])),
         loop: nil,
-        exit: nil
+        exit: nil,
+        units: nil
     )
 
     // MARK: - Initializer
@@ -45,7 +46,7 @@ struct ClipEvaluatorTests {
             SpanKey(t: 1, values: [.scale: 1, .opacity: 1, .reveal: 1])
         ]))
         let text = ResolvedText(size: Size(width: 100, height: 40), background: nil, runs: [])
-        let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil), opacity: 0.8)
+        let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil), opacity: 0.8)
 
         // When
         let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, at: 0.5)
@@ -92,7 +93,7 @@ struct ClipEvaluatorTests {
             scale: [Keyframe(at: 0, value: 1)],
             rotation: [Keyframe(at: 0, value: 0)],
             blend: "normal",
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
         // When

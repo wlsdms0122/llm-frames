@@ -100,6 +100,7 @@ enum Fixture {
             "mine/same-take": transition(seconds: 1, audio: .constantGain)
         ],
         animations: [
+            "frames/none": AnimationPreset(description: "", entrance: nil, loop: nil, exit: nil),
             "frames/pop": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
             "frames/fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
             "frames/stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),

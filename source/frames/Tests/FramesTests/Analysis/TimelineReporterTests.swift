@@ -21,7 +21,7 @@ struct TimelineReporterTests {
             { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
-            { "at": [0, 4], "title": "Top", "style": "title", "lane": 2, "animation": "frames/pop" },
+            { "at": [0, 4], "title": "Top", "style": "title", "lane": 2, "animation": { "preset": "frames/pop", "by": "word" } },
             { "at": 1, "media": "/abs/ding.wav" }
           ] }
         """##
@@ -45,7 +45,7 @@ struct TimelineReporterTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("the machine output is the timeline object FRAMES-23 gives, with places, ranges, transitions and parents")
+    @Test("the machine output is the timeline object FRAMES-23 gives, with places, ranges, transitions, parents and units")
     func writesMachineOutput() throws {
         // Given
         let value = try Fixture.json(document)
@@ -59,8 +59,8 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null}}, \#
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12}}, \#
             {"place": "clips[1]", "id": null, "kind": "audio", "visible": [1, 2.5], "lane": null, "storyline": null, "parent": null, "animation": null}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -80,8 +80,8 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null}}]}
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12}}]}
             """#
         #expect(report.machineOutput.written == expected)
         #expect(report.text.split(separator: "\n").last == "clips[0]  title  visible [0, 4)  lane 2  parent -  animation 0.25s / - / -")

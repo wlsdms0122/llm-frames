@@ -673,9 +673,11 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
-            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "args""#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): needs one of args, by, stagger"#),
             (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation choice): missing key "args""#),
-            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args"#),
+            (#"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, by, stagger"#),
+            (#"{ "clips": [ { "title": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): expected a number, 0 or more, found -0.1"#),
+            (#"{ "theme": { "defaults": { "animation": { "shape": { "preset": "frames/pop", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args"#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
             (#"{ "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),

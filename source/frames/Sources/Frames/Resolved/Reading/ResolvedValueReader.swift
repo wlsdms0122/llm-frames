@@ -355,9 +355,10 @@ struct ResolvedValueReader: Sendable {
         try span(value.object(keys: Self.spanKeys))
     }
 
-    // An entrance and an exit by their `seconds`, a loop by its `period`, each `null` when it takes none.
+    // An entrance and an exit by their `seconds`, a loop by its `period`, each `null` when it takes none, and `by` and
+    // `stagger` both `null` or both given.
     func animation(_ value: PlacedJSONValue) throws -> ResolvedAnimation {
-        let animation = try value.object(keys: ["entrance", "loop", "exit"])
+        let animation = try value.object(keys: ["entrance", "loop", "exit", "by", "stagger"])
         let span = { (key: String, length: String) throws -> AnimationSpan? in
             try animation.member(key).optional { value in
                 let span = try value.object(keys: [length] + Self.spanKeys)
@@ -369,7 +370,8 @@ struct ResolvedValueReader: Sendable {
         return ResolvedAnimation(
             entrance: try span("entrance", "seconds"),
             loop: try span("loop", "period"),
-            exit: try span("exit", "seconds")
+            exit: try span("exit", "seconds"),
+            units: try units(of: animation)
         )
     }
 
@@ -542,6 +544,22 @@ struct ResolvedValueReader: Sendable {
                 return numbers[0]...numbers[1]
             }
         }
+    }
+
+    private func units(of animation: PlacedJSONObject) throws -> UnitStagger? {
+        let by = try animation.member("by")
+        let stagger = try animation.member("stagger")
+        guard !by.isNull else {
+            guard stagger.isNull else { throw stagger.wrongType("null where `by` is null") }
+
+            return nil
+        }
+
+        let unit = try by.name(among: TextUnit.allCases.map(\.rawValue), TextUnit.init(rawValue:))
+        let seconds = try stagger.number()
+        guard seconds >= 0 else { throw stagger.wrongType("a number 0 or more") }
+
+        return UnitStagger(by: unit, stagger: seconds)
     }
 
     // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.

@@ -954,7 +954,7 @@ struct EvaluatorTests {
         let adjustment = clip(
             .adjustment(.filter([.blur(radius: 2)])),
             storyline: 0,
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [adjustment])
 

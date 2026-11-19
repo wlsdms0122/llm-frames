@@ -471,7 +471,7 @@ struct TitleKeyframeTests {
             scale: clip.scale,
             rotation: clip.rotation,
             blend: clip.blend,
-            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil)
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }
 

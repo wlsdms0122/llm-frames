@@ -121,9 +121,9 @@ enum ThemeKeyTable {
         kind: "animation defaults",
         rules: [
             KeyRule("title", titleAnimations),
-            KeyRule("shape", ChoiceKeyTable.animation),
-            KeyRule("media", ChoiceKeyTable.animation),
-            KeyRule("adjust", ChoiceKeyTable.animation)
+            KeyRule("shape", ChoiceKeyTable.wholeAnimation),
+            KeyRule("media", ChoiceKeyTable.wholeAnimation),
+            KeyRule("adjust", ChoiceKeyTable.wholeAnimation)
         ]
     )
     // A map's kind is not readable from its value type, so it is named on its own.
