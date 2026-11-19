@@ -215,6 +215,7 @@ struct ChoiceArgumentTests {
             mediaFacts: Fixture.mediaFacts,
             presets: PresetLibrary(packs: directory.packs),
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: directory.library()

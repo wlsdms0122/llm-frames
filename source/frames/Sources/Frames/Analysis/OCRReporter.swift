@@ -19,7 +19,7 @@ package struct OCRReporter: Sendable {
     package init(
         mediaFacts: any MediaFactProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil
+        languages: [LanguageTag]?
     ) {
         self.mediaFacts = mediaFacts
         self.ocr = ocr

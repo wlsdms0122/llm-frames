@@ -950,6 +950,7 @@ struct SequencePlannerTests {
         let failure = ProviderFailure("no model")
         let sut = SequencePlanner(
             ocr: provider == .ocr ? FailingOCR(failure) as any OCRProvider : Fixture.ocr,
+            languages: nil,
             tracker: provider == .tracker ? FailingTracker(failure) as any TrackerProvider : Fixture.tracker,
             shaper: provider == .shaping ? FailingShaper(failure) as any ShapingProvider : Fixture.shaper,
             presets: Fixture.presets,
@@ -980,6 +981,7 @@ struct SequencePlannerTests {
     private func planner(followed: ClosedRange<Double>) -> SequencePlanner {
         SequencePlanner(
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: TrackerTable(
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 followed: ["/abs/screen.mp4": followed]

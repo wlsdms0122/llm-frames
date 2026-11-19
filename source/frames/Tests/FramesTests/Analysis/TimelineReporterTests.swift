@@ -33,6 +33,7 @@ struct TimelineReporterTests {
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
             ocr: Fixture.ocr,
+            languages: nil,
             tracker: TrackerTable(
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 followed: ["/abs/screen.mp4": 0...1.9]
@@ -163,6 +164,7 @@ struct TimelineReporterTests {
                 mediaFacts: mediaFacts,
                 presets: Fixture.presets,
                 ocr: Fixture.ocr,
+                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library(mediaFacts: mediaFacts)
@@ -216,6 +218,7 @@ struct TimelineReporterTests {
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
                 ocr: Fixture.ocr,
+                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()
@@ -266,6 +269,7 @@ struct TimelineReporterTests {
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
                 ocr: Fixture.ocr,
+                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()

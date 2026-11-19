@@ -369,6 +369,7 @@ struct ParentSpacePlannerTests {
 
         return SequencePlanner(
             ocr: OCRTable(["/abs/screen.mp4": lines]),
+            languages: nil,
             tracker: TrackerTable(
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 drift: Self.drift,

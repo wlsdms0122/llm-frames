@@ -14,7 +14,7 @@ struct GeometryFinder: Sendable {
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil
+        languages: [LanguageTag]?
     ) {
         self.finder = AreaFinder(ocr: ocr, languages: languages)
     }

@@ -22,7 +22,7 @@ struct TrackPlanner: Sendable {
     init(
         tracker: any TrackerProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil
+        languages: [LanguageTag]?
     ) {
         self.follower = TargetFollower(tracker: tracker)
         self.finder = AreaFinder(ocr: ocr, languages: languages)

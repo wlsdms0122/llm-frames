@@ -24,7 +24,7 @@ struct AreaFinderTests {
     @Test("a rectangle is the area as written")
     func takesRectangleAsWritten() throws {
         // Given
-        let sut = AreaFinder(ocr: OCRTable([:]))
+        let sut = AreaFinder(ocr: OCRTable([:]), languages: nil)
 
         // When
         let found = try find(.rectangle(rectangle(10, 20, 100, 50)), with: sut)
@@ -41,7 +41,7 @@ struct AreaFinderTests {
     @Test("an area past the picture's edges keeps what is written, and padding grows a text area on every side")
     func keepsAreaPastPicture() throws {
         // Given
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line("Back", 100, 4, 200, 40)]))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line("Back", 100, 4, 200, 40)]), languages: nil)
 
         // When
         let partly = try find(.rectangle(rectangle(1100, -10, 200, 100)), with: sut)
@@ -59,7 +59,7 @@ struct AreaFinderTests {
     func findsWholeLine() throws {
         // Given
         let lines = [line("Settings", 100, 100, 300, 50), line("Sign in to continue", 100, 200, 400, 50)]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When
         let found = try find(.text("in to", nth: nil, padding: 14), with: sut)
@@ -82,7 +82,7 @@ struct AreaFinderTests {
         recognised: String
     ) throws {
         // Given
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line(recognised, 100, 200, 400, 50)]))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line(recognised, 100, 200, 400, 50)]), languages: nil)
 
         // When
         let found = try find(.text(text, nth: nil, padding: 0), with: sut)
@@ -95,7 +95,7 @@ struct AreaFinderTests {
     func refusesAmbiguousText() throws {
         // Given
         let lines = [line("Delete", 100, 900, 200, 40), line("Delete all", 100, 300, 300, 40)]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When, Then
         let error = #expect(throws: AreaError.self) { try find(.text("Delete", nth: nil, padding: 0), with: sut) }
@@ -120,7 +120,7 @@ struct AreaFinderTests {
             line("Item", 900, 130, 200, 60),
             line("Item", 100, 300, 200, 40)
         ]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When
         let found = try find(.text("Item", nth: nth, padding: 0), with: sut)
@@ -132,7 +132,7 @@ struct AreaFinderTests {
     @Test("text that matches no line, or fewer lines than nth asks, stops naming the media, the text and the nth")
     func refusesMissingText() throws {
         // Given
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line("Item", 100, 100, 200, 40)]))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: [line("Item", 100, 100, 200, 40)]), languages: nil)
 
         // When, Then
         let none = #expect(throws: AreaError.self) { try find(.text("Cart", nth: nil, padding: 0), with: sut) }
@@ -153,7 +153,7 @@ struct AreaFinderTests {
             line("Tax", 700, 200, 300, 40),
             line("Footer", 100, 330, 900, 40)
         ]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When
         let found = try find(.range(from: "Total", fromNth: nil, to: "Paid", toNth: nil, padding: 0), with: sut)
@@ -167,7 +167,7 @@ struct AreaFinderTests {
     func padsRange() throws {
         // Given
         let lines = [line("Total", 100, 100, 200, 40), line("Paid", 100, 300, 200, 40)]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When
         let found = try find(.range(from: "Total", fromNth: nil, to: "Paid", toNth: nil, padding: 20), with: sut)
@@ -181,7 +181,7 @@ struct AreaFinderTests {
     func refusesRangeEnds() throws {
         // Given
         let lines = [line("Total", 100, 100, 200, 40), line("Total", 100, 500, 200, 40)]
-        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines))
+        let sut = AreaFinder(ocr: OCRTable(file: "/abs/screen.mp4", lines: lines), languages: nil)
 
         // When, Then
         let ambiguous = #expect(throws: AreaError.self) {
@@ -202,7 +202,7 @@ struct AreaFinderTests {
                 (from: 0, lines: [line("Total", 100, 100, 200, 40)]),
                 (from: 2, lines: [line("Total", 100, 700, 200, 40)])
             ]
-        ]))
+        ]), languages: nil)
 
         // When
         let early = try sut.area(.text("Total", nth: nil, padding: 0), in: screen, atMediaTime: 1.9, place: place, kind: "rect")
@@ -217,7 +217,7 @@ struct AreaFinderTests {
     @Test("a document's picture is drawn, not read, so it takes no text area")
     func refusesTextInDrawnPicture() throws {
         // Given
-        let sut = AreaFinder(ocr: OCRTable([:]))
+        let sut = AreaFinder(ocr: OCRTable([:]), languages: nil)
         let picture = Picture(name: "pack/intro", source: .document, size: Size(width: 1080, height: 1920))
         let message = #"area (rect): "pack/intro" is drawn, not read, so it takes no text area. "#
             + "Point at text inside it from the document that draws it"

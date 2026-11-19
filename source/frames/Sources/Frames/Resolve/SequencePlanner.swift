@@ -21,7 +21,7 @@ struct SequencePlanner: Sendable {
     // MARK: - Initializer
     init(
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         presets: any PresetProvider,

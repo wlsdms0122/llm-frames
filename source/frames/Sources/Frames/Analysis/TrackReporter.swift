@@ -23,7 +23,7 @@ package struct TrackReporter: Sendable {
     package init(
         mediaFacts: any MediaFactProvider,
         ocr: any OCRProvider,
-        languages: [LanguageTag]? = nil,
+        languages: [LanguageTag]?,
         tracker: any TrackerProvider
     ) {
         self.mediaFacts = mediaFacts
