@@ -15,6 +15,8 @@ package enum TransferFunction: Equatable, Sendable {
     // The inverse of the BT.1886 EOTF at a white of 1 and a black of 0, and that EOTF, which `rec709` and `rec2020`
     // take both ways.
     case bt1886
+    // The identity, the transfer of a space that holds linear values.
+    case linear
 
     // MARK: - Property
     // MARK: - Initializer
@@ -31,6 +33,9 @@ package enum TransferFunction: Equatable, Sendable {
 
         case .bt1886:
             return sign * pow(magnitude, 1 / 2.4)
+
+        case .linear:
+            return linear
         }
     }
 
@@ -46,6 +51,9 @@ package enum TransferFunction: Equatable, Sendable {
 
         case .bt1886:
             return sign * pow(magnitude, 2.4)
+
+        case .linear:
+            return encoded
         }
     }
 

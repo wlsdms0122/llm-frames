@@ -271,7 +271,7 @@ enum LookStructureTable {
             [
                 ("file", .leaf(LeafKind(form: .file))),
                 ("amount", .leaf(unit)),
-                ("space", .leaf(.name(among: VocabularyTable.colorSpaces)))
+                ("space", .leaf(.name(among: VocabularyTable.lookUpTableSpaces)))
             ]
         case "blur": [("radius", .leaf(length))]
         case "sharpen": [("amount", .leaf(.number())), ("radius", .leaf(length))]
