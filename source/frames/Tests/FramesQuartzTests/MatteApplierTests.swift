@@ -67,6 +67,32 @@ struct MatteApplierTests {
         }
     }
 
+    @Test("a transition matte is read as an analysis picture in its source's colour space")
+    func readsAnalysisPicture() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
+        let matte = MediaFrame(media: pinned(at: "/matte.png"), index: 0, colorSpace: .rec2100PQ)
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: pinned(at: "/picture.png"), index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4),
+            matte: PictureMatte(frame: matte, progress: 0.5, softness: 0, isInverted: false)
+        )
+        let list = DisplayList(
+            size: Size(width: 4, height: 4),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(content: .picture(picture))]
+        )
+
+        // When
+        _ = try sut.frame(of: list)
+
+        // Then
+        #expect(decoder.readings(of: "/matte.png") == [.analysis(colorSpace: .rec2100PQ)])
+    }
+
     // MARK: - Private
     // The expected alpha, and at softness 0 the limit of the formula as the softness goes to 0.
     private func shown(
@@ -102,6 +128,10 @@ struct MatteApplierTests {
     }
 
     private func frame(at path: String) -> MediaFrame {
-        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))), index: 0)
+        MediaFrame(media: pinned(at: path), index: 0)
+    }
+
+    private func pinned(at path: String) -> PinnedMedia {
+        PinnedMedia(source: .file(PinnedFile(path: path, sha256: "")))
     }
 }
