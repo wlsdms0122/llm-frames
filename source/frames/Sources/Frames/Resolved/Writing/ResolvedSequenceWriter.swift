@@ -290,9 +290,12 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // A cover's or matte's media keys, then its length in media seconds.
+    // A cover's or matte's media keys, its colour space, then its length in media seconds.
     private func transitionMedia(_ media: ResolvedTransitionMedia) -> [JSONMember] {
-        values.media(media.media) + [JSONMember(key: "duration", value: .number(media.duration))]
+        values.media(media.media) + [
+            JSONMember(key: "colorSpace", value: media.colorSpace.map { .string($0.rawValue) } ?? .null),
+            JSONMember(key: "duration", value: .number(media.duration))
+        ]
     }
 
     private func transition(_ transition: ResolvedTransition) -> JSONValue {

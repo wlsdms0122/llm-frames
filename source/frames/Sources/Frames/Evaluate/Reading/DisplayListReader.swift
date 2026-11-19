@@ -245,10 +245,15 @@ package struct DisplayListReader: Sendable {
             destination: try values.rectangle(item.member("dest")),
             filter: try filter(item.member("filter"), seed: seed),
             matte: try item.member("matte").optional { value in
-                let matte = try value.object(keys: ["source", "frame", "progress", "softness", "invert"])
+                let matte = try value.object(keys: ["source", "frame", "colorSpace", "progress", "softness", "invert"])
+                let frame = try frame(of: matte, mediaKey: "source")
 
                 return PictureMatte(
-                    frame: try frame(of: matte, mediaKey: "source"),
+                    frame: MediaFrame(
+                        media: frame.media,
+                        index: frame.index,
+                        colorSpace: try colorSpace(matte.member("colorSpace"))
+                    ),
                     progress: try matte.member("progress").number(),
                     softness: try matte.member("softness").number(),
                     isInverted: try matte.member("invert").bool()
@@ -330,9 +335,7 @@ package struct DisplayListReader: Sendable {
             return .media(MediaFrame(
                 media: frame.media,
                 index: frame.index,
-                colorSpace: try source.member("colorSpace").optional { value in
-                    try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
-                },
+                colorSpace: try colorSpace(source.member("colorSpace")),
                 targetPeak: try source.member("targetPeak").optional(targetPeak)
             ))
         }
@@ -363,6 +366,11 @@ package struct DisplayListReader: Sendable {
         }
 
         return MediaFrame(media: media, index: index)
+    }
+
+    // The space a picture is read in, null where its file's tags apply.
+    private func colorSpace(_ value: PlacedJSONValue) throws -> ColorSpace? {
+        try value.optional { value in try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
     }
 
     // The peak an HDR picture is tone mapped to, in cd/m², above 0.

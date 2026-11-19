@@ -23,7 +23,7 @@ extension ResolvedTransition {
 
             case let (.media, .some(media)):
                 return ResolvedCover(
-                    source: .media(try ResolvedTransitionMedia(plan: media, hashes: hashes)),
+                    source: .media(try ResolvedTransitionMedia(plan: media, colorSpace: cover.colorSpace, hashes: hashes)),
                     span: cover.span
                 )
 
@@ -34,7 +34,7 @@ extension ResolvedTransition {
         let matte = try definition.matte.flatMap { matte in
             try plan.matteMedia.map { media in
                 ResolvedMatte(
-                    media: try ResolvedTransitionMedia(plan: media, hashes: hashes),
+                    media: try ResolvedTransitionMedia(plan: media, colorSpace: matte.colorSpace, hashes: hashes),
                     softness: matte.softness,
                     isInverted: matte.isInverted,
                     ease: matte.ease

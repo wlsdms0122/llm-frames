@@ -300,11 +300,11 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["end"] == .number(3.5))
         #expect(incoming["ease"] == .string("ease-out"))
         #expect(incoming["keys"]?.arrayValue?.first?.objectValue?.keys == ["t", "opacity", "scale"])
-        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "duration", "ease", "revealFrom", "keys"])
+        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "colorSpace", "duration", "ease", "revealFrom", "keys"])
         #expect(transition["cover"]?.objectValue?["sha256"] == .string("sha256-of-/abs/leak.mov"))
         #expect(transition["cover"]?.objectValue?["frames"] == .array([0, 0.5, 1, 1.5].map(JSONValue.number)))
         #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
-        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "duration", "softness", "invert", "ease"])
+        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "colorSpace", "duration", "softness", "invert", "ease"])
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
         let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
         #expect(entry?.keys == ["ops", "mix"])

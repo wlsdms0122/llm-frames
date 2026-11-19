@@ -8,7 +8,7 @@
 // One frame of pinned media by its index in frame order, and how the decoder reads its picture: `colorSpace` is the
 // space that overrides the file's tags, nil where they apply, and `targetPeak` the peak in cd/m² an HDR picture of it
 // is tone mapped to, nil where it is taken as display light. A still has the one frame 0. A transition matte's frame
-// carries neither, since it is read as an analysis picture.
+// carries no target peak, since it is read as an analysis picture.
 package struct MediaFrame: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia
@@ -53,7 +53,12 @@ package struct MediaFrame: Equatable, Sendable {
         progress: Double,
         targetPeak: Double? = nil
     ) {
-        self.init(media: media.media, mediaTime: progress * media.duration, targetPeak: targetPeak)
+        self.init(
+            media: media.media,
+            mediaTime: progress * media.duration,
+            colorSpace: media.colorSpace,
+            targetPeak: targetPeak
+        )
     }
 
     // MARK: - Public

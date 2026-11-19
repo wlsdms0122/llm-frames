@@ -82,7 +82,14 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
-    case mediaColorSpaces(place: String, other: String, file: String, colorSpace: ColorSpace?, otherColorSpace: ColorSpace?)
+    case mediaColorSpaces(
+        place: String,
+        kind: String,
+        other: String,
+        file: String,
+        colorSpace: ColorSpace?,
+        otherColorSpace: ColorSpace?
+    )
 
     // MARK: - Property
     var description: String {
@@ -359,9 +366,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .optionOnResolved(place, kind, option):
             "\(place) (\(kind)): a resolved document has its theme and arguments written in, so it takes no \(option)"
 
-        case let .mediaColorSpaces(place, other, file, colorSpace, otherColorSpace):
-            "\(place) (clip): \(quoted(file)) is read \(read(in: colorSpace)) here and \(read(in: otherColorSpace)) at "
-                + "\(other), and every clip reads a file in one colour space"
+        case let .mediaColorSpaces(place, kind, other, file, colorSpace, otherColorSpace):
+            "\(place) (\(kind)): \(quoted(file)) is read \(read(in: colorSpace)) here and \(read(in: otherColorSpace)) "
+                + "at \(other), and every place that names a file reads it in one colour space"
         }
     }
 

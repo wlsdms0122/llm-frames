@@ -359,7 +359,11 @@ struct PresetReader: Sendable {
         let object = value.objectValue ?? JSONObject()
         let source: CoverSource = object["media"]?.stringValue.map(CoverSource.media)
             ?? .color(object["color"]?.stringValue ?? "")
-        return Cover(source: source, span: try span(value, place: place, ease: ease))
+        return Cover(
+            source: source,
+            colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init(rawValue:)),
+            span: try span(value, place: place, ease: ease)
+        )
     }
 
     private func matte(
@@ -369,6 +373,7 @@ struct PresetReader: Sendable {
         let object = value.objectValue ?? JSONObject()
         return Matte(
             media: object["media"]?.stringValue ?? "",
+            colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init(rawValue:)),
             softness: object["softness"]?.numberValue ?? 0,
             isInverted: object["invert"]?.boolValue ?? false,
             ease: object["ease"].flatMap(Ease.init(value:)) ?? ease

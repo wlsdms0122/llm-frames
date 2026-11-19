@@ -63,12 +63,17 @@ struct PresetValueResolver: Sendable {
                 Cover(source: .color(try theme.presetColor(color, place: place, kind: kind)), span: cover.span)
 
             case let .media(media):
-                Cover(source: .media(try mediaFile(media, place: place, kind: kind)), span: cover.span)
+                Cover(
+                    source: .media(try mediaFile(media, place: place, kind: kind)),
+                    colorSpace: cover.colorSpace,
+                    span: cover.span
+                )
             }
         }
         let matte = try preset.matte.map { matte in
             Matte(
                 media: try mediaFile(matte.media, place: place, kind: kind),
+                colorSpace: matte.colorSpace,
                 softness: matte.softness,
                 isInverted: matte.isInverted,
                 ease: matte.ease

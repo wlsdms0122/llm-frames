@@ -543,7 +543,7 @@ struct ResolvedSequenceReader: Sendable {
     // A colour, or media with its length, then the span.
     private func cover(_ value: PlacedJSONValue) throws -> ResolvedCover {
         let isColor = value.value.objectValue?.contains("color") == true
-        let sourceKeys = isColor ? ["color"] : ResolvedValueReader.mediaKeys + ["duration"]
+        let sourceKeys = isColor ? ["color"] : ResolvedValueReader.mediaKeys + ["colorSpace", "duration"]
         let cover = try value.object(kind: "cover", keys: sourceKeys + ResolvedValueReader.spanKeys)
         let source: ResolvedCoverSource = isColor
             ? .color(try values.color(cover.member("color")))
@@ -555,7 +555,7 @@ struct ResolvedSequenceReader: Sendable {
     private func matte(_ value: PlacedJSONValue) throws -> ResolvedMatte {
         let matte = try value.object(
             kind: "matte",
-            keys: ResolvedValueReader.mediaKeys + ["duration", "softness", "invert", "ease"]
+            keys: ResolvedValueReader.mediaKeys + ["colorSpace", "duration", "softness", "invert", "ease"]
         )
 
         return ResolvedMatte(
@@ -567,7 +567,13 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func transitionMedia(_ object: PlacedJSONObject) throws -> ResolvedTransitionMedia {
-        ResolvedTransitionMedia(media: try values.media(object), duration: try object.member("duration").number())
+        ResolvedTransitionMedia(
+            media: try values.media(object),
+            colorSpace: try object.member("colorSpace").optional { value in
+                try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
+            },
+            duration: try object.member("duration").number()
+        )
     }
 
     // How an entry's pictures are read: media of a file in its `colorSpace`, null where the file's tags apply, and by its

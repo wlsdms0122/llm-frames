@@ -129,6 +129,7 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
                 JSONMember(key: "frame", value: .number(Double(matte.frame.index))),
+                JSONMember(key: "colorSpace", value: matte.frame.colorSpace.map { .string($0.rawValue) } ?? .null),
                 JSONMember(key: "progress", value: .number(matte.progress)),
                 JSONMember(key: "softness", value: .number(matte.softness)),
                 JSONMember(key: "invert", value: .bool(matte.isInverted))

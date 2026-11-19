@@ -91,7 +91,7 @@ struct DisplayListColorTests {
         #expect(frames.map(\.targetPeak) == [targetPeak, ColorSpace(rawValue: colorSpace)?.peakLuminance])
     }
 
-    @Test("a transition cover is tone mapped to the outermost sequence's peak, and its matte carries neither colour field")
+    @Test("a transition cover is tone mapped to the outermost sequence's peak, and its matte carries no target peak")
     func carriesCoverAndMatteColor() throws {
         // Given
         let resolved = try resolved(#"""
@@ -118,7 +118,7 @@ struct DisplayListColorTests {
         let written = try #require(try JSONReader().read(writer.write(list)).objectValue)
         let items = written["items"]?.arrayValue?.compactMap(\.objectValue) ?? []
         let matteKeys = items.compactMap { $0["matte"]?.objectValue?.keys }.first
-        #expect(matteKeys == ["source", "frame", "progress", "softness", "invert"])
+        #expect(matteKeys == ["source", "frame", "colorSpace", "progress", "softness", "invert"])
         // A list with no grain reads back with seed 0, so it is compared by the bytes it writes.
         #expect(try writer.write(reader.read(writer.write(list))) == writer.write(list))
     }

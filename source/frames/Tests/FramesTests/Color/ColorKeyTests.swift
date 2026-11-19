@@ -268,8 +268,8 @@ struct ColorKeyTests {
     @Test(
         "two clips that read the same file in different colour spaces stop, naming both places",
         arguments: [
-            (#""colorSpace": "rec709""#, "", #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as its tags say here and as "rec709" at storyline[0], and every clip reads a file in one colour space"#),
-            (#""colorSpace": "rec709""#, #""colorSpace": "rec2020""#, #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as "rec2020" here and as "rec709" at storyline[0], and every clip reads a file in one colour space"#)
+            (#""colorSpace": "rec709""#, "", #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as its tags say here and as "rec709" at storyline[0], and every place that names a file reads it in one colour space"#),
+            (#""colorSpace": "rec709""#, #""colorSpace": "rec2020""#, #"storyline[0].connected[0] (clip): "/abs/run.mp4" is read as "rec2020" here and as "rec709" at storyline[0], and every place that names a file reads it in one colour space"#)
         ]
     )
     func refusesFileInTwoColorSpaces(
