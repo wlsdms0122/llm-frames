@@ -51,7 +51,7 @@ Every part of that map is a move, a scale (per axis, and mirroring where a facto
 - The parent's transform is evaluated at the same instant t of the sequence, whether or not the parent is visible at t. Outside its window it holds the values it has at the window's edge: its keyframes and tracked motion as they are there, its animation at the first or last instant of its window, and a storyline clip's transition motion as it is at the edge of its drawn range.
 - A parent's opacity, reveal, mask, track matte and window do not reach its children. A child that should fade, wipe or disappear with its parent is put in a compound clip with it ([FRAMES-9](../FRAMES-9/SPEC.md)).
 
-**Note.** A label on a shape is a title parented to the shape, its `position` a point of the shape's area. A name on a lower third bar is a title parented to the bar, or the bar is a shape parented to the title. A clip that follows something moving in a shot is parented to the shot's clip and tracked in its media ([FRAMES-12](../FRAMES-12/SPEC.md)), and other clips can be parented to that one, as an After Effects null carries a group of layers.
+**Note.** A label on a shape is a title parented to the shape, its `position` a point of the shape's area. A name on a lower third bar is a title parented to the bar, or the bar is a shape parented to the title, whose `area` may be the title's box so that it fits the name it follows ([FRAMES-2](../FRAMES-2/SPEC.md)). A clip that follows something moving in a shot is parented to the shot's clip and tracked in its media ([FRAMES-12](../FRAMES-12/SPEC.md)), and other clips can be parented to that one, as an After Effects null carries a group of layers.
 
 ## Interactions
 

@@ -78,7 +78,7 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 
 **Note.** A rect over the frame with a gradient fill is an NLE's gradient generator, and a frame-sized rect with a radial gradient from a clear centre to a dark edge, blended with `multiply`, is a vignette that a template can place and keyframe. frames has no generator clip.
 
-**Note.** To darken everything but a region, draw a rect over the frame filled with a dark colour, with an inverted mask of the region ([Masks and track mattes](#masks-and-track-mattes)). To point at a region, draw a path with `"end": "arrow"` whose last point is a point of that region ([FRAMES-2](../FRAMES-2/SPEC.md)). A label is a title parented to its shape ([FRAMES-10](../FRAMES-10/SPEC.md)). A bar that fits its title is a rect whose `area` is the title's box with padding ([FRAMES-2](../FRAMES-2/SPEC.md)).
+**Note.** To darken everything but a region, draw a rect over the frame filled with a dark colour, with an inverted mask of the region ([Masks and track mattes](#masks-and-track-mattes)). To point at a region, draw a path with `"end": "arrow"` whose last point is a point of that region ([FRAMES-2](../FRAMES-2/SPEC.md)). A label is a title parented to its shape ([FRAMES-10](../FRAMES-10/SPEC.md)). A bar that fits its title and moves with it is a rect parented to the title whose `area` is the title's box with padding ([FRAMES-2](../FRAMES-2/SPEC.md)).
 
 ### Media clips
 
