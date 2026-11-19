@@ -4,11 +4,11 @@ Status: accepted
 
 ## Summary
 
-How a keyframable property takes keyframes, how each property joins only the keyframes that name it, how an ease shapes a span (springs included), and how numbers, points, areas, crops, lists and time remapping interpolate.
+How a keyframable property takes keyframes, which keys of a clip take them (every value built from numbers and colours that the clip draws or plays with), how each property joins only the keyframes that name it, how an ease shapes a span (springs included), and how numbers, points, areas, crops, lists and time remapping interpolate.
 
 ## Motivation
 
-Motion written as data must come out the same in every preview, on every renderer and in every delivery, or a move checked with `still` is not the move that is rendered. Fixing the ease formulas leaves nothing to the renderer. A spring is how much modern motion design moves (a logo that settles, a title that lands with a little bounce), and given as an ease that ends exactly on its keyframe it keeps keyframes as edit points: the value arrives where and when the editor put it. Interpolating a crop's size geometrically makes a zoom keep one speed.
+Motion written as data must come out the same in every preview, on every renderer and in every delivery, or a move checked with `still` is not the move that is rendered. Fixing the ease formulas leaves nothing to the renderer. A spring is how much modern motion design moves (a logo that settles, a title that lands with a little bounce), and given as an ease that ends exactly on its keyframe it keeps keyframes as edit points: the value arrives where and when the editor put it. Interpolating a crop's size geometrically makes a zoom keep one speed. Every value a clip draws with takes keyframes, as every property of an After Effects layer does, so a colour that shifts, a stroke that thickens, a gradient that sweeps or a blur that eases off is written the way a move is, and an extension never writes one clip per frame to get it.
 
 ## Rules
 
@@ -26,6 +26,16 @@ Any property marked keyframable takes a static value or a list of keyframes. A k
 - A property whose keyframes all lie before the range its clip is visible in (a storyline clip's drawn range, any other clip's visible window), or all after it, stops, since only one of its values would ever show.
 - Which properties are keyframable on each clip is [FRAMES-7](../FRAMES-7/SPEC.md).
 
+### What takes keyframes
+
+A keyframe may set every key of a clip whose value says what the clip draws or plays at an instant and is built from numbers and colours, as After Effects lets every property of a layer take keyframes: its transform, its geometry, its opacity and masks, its appearance (`fill`, `stroke`, `shadow`, `border`, `radius`, `outset`, a solid's colour), its filter and its sound. The table of [FRAMES-7](../FRAMES-7/SPEC.md) lists them for each clip. The keys that take none are not values at an instant: names and references (`media`, `title`, `shape`, `style`, `blend`, `closed`, `id`, `parent`, `trackMatte`, `track`, `animation`, `transition`), timing (`at`, `in`, `out`, `duration`, `speed`, `loop`, `fadeIn`, `fadeOut`, `lane`), and the box resolve fixes once (a title's `width`, a media clip's `width`, `height` and `conform`, `placement`, `anchor`). A title's character values (its size, colour and stroke) are its text styles' ([FRAMES-22](../FRAMES-22/SPEC.md)) and take no keyframes. Text moves by character, word or line through its animation ([FRAMES-14](../FRAMES-14/SPEC.md)).
+
+A keyframable value is a number, a colour, a list or an object, nested: a point, a stroke `{color, width, join, cap}`, a gradient, a shadow, a filter choice. Its **leaves** are the numbers, colours, names (a preset, an op, a `join`, a `cap`, a gradient kind), booleans and files it holds.
+
+- Each keyframe's value is read as the same value written statically on the clip would be: `true` for the theme `shadow` or `border` is that value, a shadow's missing keys come from the theme `shadow`, a stroke's missing keys take their defaults, a theme colour's name is its colour, and a preset choice is its preset's op list with the keyframe's arguments applied and its missing arguments at their defaults ([FRAMES-15](../FRAMES-15/SPEC.md)). A keyframed key replaces its style's value whole, as a static one does ([FRAMES-11](../FRAMES-11/SPEC.md)).
+- Read so, every keyframe of one key has the same structure: the same keys in each object, the same length in each list, and the same leaf at each place that holds neither a number nor a colour. A keyframe that differs stops, naming the key and the places of both keyframes: a stroke whose `cap` changes, a fill that is a colour in one keyframe and a gradient in the next, a filter whose preset changes, a gradient whose stops differ in number, `false` or `"none"` in one keyframe and a value in another. The rows for `points` and `mask` below are cases of this rule.
+- Between two keyframes the value interpolates leaf by leaf, each number as a number and each colour per channel ([Interpolation](#interpolation)).
+
 ### Interpolation
 
 Between two keyframes of a property, at progress u from 0 to 1 through the span, the value is `interp(a, b, ease(u))`, where `interp` is:
@@ -33,6 +43,8 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 | Value | Interpolation |
 | --- | --- |
 | a number (`opacity`, `scale`, `rotation`, `radius`, `volume`, `pan`, a `width` or `height`) | per component: `a + (b - a) × e` |
+| a colour | per channel, as a number: red, green, blue and alpha, straight (not premultiplied), on their sRGB-encoded values from 0 to 1, the working space ([FRAMES-21](../FRAMES-21/SPEC.md)) |
+| a value with leaves (a `stroke`, a `fill`, a `shadow`, a `border`, a `filter` or `adjust`, a solid's colour) | leaf by leaf: each number and each colour as above, every other leaf the same in both keyframes. A filter interpolates its op lists op by op, parameter by parameter |
 | `timeRemap` | as a number: the media time shown moves from one key's value to the next along the ease. Two keys with the same value hold a frame, a lower next value plays backwards, and eased keys give speed ramps ([FRAMES-8](../FRAMES-8/SPEC.md)) |
 | a point, `[x, y]` | per component |
 | an area, `[x, y, w, h]` | per component |
@@ -42,7 +54,7 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 | a list of masks (`mask`) | mask by mask: each mask's geometry as its form above, and its `feather` as a number. Two keyframes whose lists differ in length, or whose masks at one place differ in `shape`, geometry form, `invert` or `mode`, stop |
 
 - An area or point given by text resolves at its own keyframe's time before it interpolates, and becomes a rectangle or a point (on a tracked clip it is then brought back through the motion, as every value is, [FRAMES-12](../FRAMES-12/SPEC.md)). A point given as `{area, point}` interpolates as the point it resolves to.
-- An ease that overshoots (`back-out`, a spring with a `bounce` above 1 - √3/2, about 0.134, whose first peak falls inside the span) carries a value past its keyframes. Where a property's rule gives it a range (an opacity from 0 to 1, a `trim` end from 0 to 1), the value is clamped to that range where it is used. Each value is clamped where it is sampled, before it is combined with another: a clip's keyframed opacity and its motion opacity are each clamped to 0 to 1, then multiplied.
+- An ease that overshoots (`back-out`, a spring with a `bounce` above 1 - √3/2, about 0.134, whose first peak falls inside the span) carries a value past its keyframes. Where a property's rule gives it a range (an opacity from 0 to 1, a `trim` end from 0 to 1), the value is clamped to that range where it is used. Each value is clamped where it is sampled, before it is combined with another: a clip's keyframed opacity and its motion opacity are each clamped to 0 to 1, then multiplied. A sampled length (a stroke width, a radius, an outset, a shadow radius, a filter length) is clamped to 0 or more, each channel of a colour to 0 to 1, and an op parameter to its range ([FRAMES-15](../FRAMES-15/SPEC.md)).
 
 ### Eases
 
@@ -96,5 +108,13 @@ A spring given by mass, stiffness and damping: three numbers with one effect an 
 Interpolating a crop's size linearly: a zoom from 1 to 2 would slow as it went, since each step is a smaller share of the picture. Log space keeps one speed.
 
 Eases as renderer curves (a platform's built-in timing functions): two renderers would draw the same keyframes differently. Every ease is a formula here.
+
+Keyframes on the transform and the geometry only, with colours, strokes and filters fixed for a clip: a colour change or a blur that eases off would be two clips crossfaded, or one clip per frame written by an extension. The rule that a value built from numbers and colours takes keyframes is the one After Effects follows, and it holds for every key added later without a list to keep.
+
+Each leaf of a value joining its own keyframes, as each property does: one key would carry several timings, a style's value would be merged leaf by leaf under a clip's, against the rule that a clip's key replaces its style's whole, and the resolved document would need a keyframe list for every leaf. A keyframe's value is one whole value, read as a static one.
+
+Names that change between keyframes taken as a hold to the next keyframe, as After Effects treats a property it cannot interpolate: a changed `cap` or preset in a keyframe is more often a mistake than a cut, and a cut is written as a `step` ease or as two clips. It stops.
+
+Colours interpolated with premultiplied alpha, as CSS interpolates gradient colours: a keyframed colour is one colour at each instant, not a coverage, and straight channels are what After Effects and the renderers' gradient functions use by default. A fade to transparent keeps its colour's channels and changes its alpha.
 
 ## Notes

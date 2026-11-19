@@ -34,7 +34,7 @@ Every picture in an edit is placed in one frame: the main shot, a punch in on it
 - `radius`, `border` and `shadow` act on a storyline picture's box as they do on a media clip's ([FRAMES-11](../FRAMES-11/SPEC.md)): the corners of its box are rounded, the border lies inside it, and the shadow falls below it. They show where the transform leaves the box smaller than the frame or moved within it.
 - Each frame of a storyline clip with media is made in this order: take the conformed crop, scale it to its box, apply the filter at that size in output pixels, round its corners and draw its border, then apply its transform, its opacity, its mask and its track matte, then the transition motion ([FRAMES-14](../FRAMES-14/SPEC.md)). The shadow is the picture's shape at that point, drawn below it. So a mask cuts the picture before a transition moves it, and the cut picture leaves with the transition.
 - `filter` and `transition` take preset choices ([FRAMES-7](../FRAMES-7/SPEC.md)). `"none"` turns off a default filter for one clip, and `"cut"` turns off a default transition.
-- Every storyline kind with media takes crop, filter, transform, mask, track matte and transition the same way. A solid takes a transition only, and fills the frame.
+- Every storyline kind with media takes crop, filter, transform, mask, track matte and transition the same way. A solid takes a transition and keyframes of its colour only ([FRAMES-4](../FRAMES-4/SPEC.md)), and fills the frame.
 
 ### Windows and compound clips
 
