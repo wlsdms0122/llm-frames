@@ -95,6 +95,8 @@ A text style is a named set of text properties. Any name is allowed. A run's sty
 | `align` | paragraph | `left`, `center` or `right`: where each line sits in the title's text box, which is its `width` or its widest line ([FRAMES-5](../FRAMES-5/SPEC.md)). The default is `left` |
 | `lines` | paragraph | the most lines the text may take, a whole number of 1 or more. `1` keeps it on one line, and text that needs more lines than `lines` stops ([FRAMES-5](../FRAMES-5/SPEC.md)). Absent means no limit |
 
+`baseWidth` and a style's `size` and `lineHeight` are above 0, and `placement.padding` and a style's `offset` are 0 or more. A value outside its range stops where it is written, as a `weight`, a feature or a `lines` outside what its row gives does.
+
 A style without `size` stops when the theme is merged, wherever it is written, since no text can be set in it. A stronger theme that changes a style may leave out its size when a weaker one gives it. A style a document names that the theme in effect there does not hold stops, naming where it is named and listing the styles that theme holds.
 
 ### Shape styles
