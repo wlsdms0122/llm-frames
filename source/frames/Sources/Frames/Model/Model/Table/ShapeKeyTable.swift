@@ -19,7 +19,9 @@ enum ShapeKeyTable {
                 KeyRule("join", .literal(StrokeJoin.allCases.map(\.rawValue))),
                 KeyRule("cap", .literal(StrokeCap.allCases.map(\.rawValue))),
                 KeyRule("start", .literal(StrokeEnd.allCases.map(\.rawValue))),
-                KeyRule("end", .literal(StrokeEnd.allCases.map(\.rawValue)))
+                KeyRule("end", .literal(StrokeEnd.allCases.map(\.rawValue))),
+                KeyRule("dash", .dash),
+                KeyRule("dashOffset", .number)
             ]
         ))
     ])

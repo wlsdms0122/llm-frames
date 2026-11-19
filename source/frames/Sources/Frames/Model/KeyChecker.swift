@@ -215,6 +215,17 @@ struct KeyChecker: Sendable {
                 }
             }
 
+        case .dash:
+            guard
+                let elements = value.arrayValue,
+                let lengths = Optional(elements.compactMap(\.numberValue)),
+                lengths.count == elements.count,
+                lengths.allSatisfy({ $0 >= 0 }),
+                lengths.contains(where: { $0 > 0 })
+            else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .points:
             guard let elements = value.arrayValue, elements.count >= 2 else {
                 throw wrongType(value, type, place, kind)
@@ -1285,6 +1296,9 @@ struct KeyChecker: Sendable {
 
         case let .fractions(count):
             "a list of \(count) numbers, each from 0 to 1"
+
+        case .dash:
+            "a list of at least one length, each 0 or more and not all 0"
 
         case .points:
             "a list of at least two points"

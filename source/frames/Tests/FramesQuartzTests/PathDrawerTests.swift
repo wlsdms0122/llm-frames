@@ -436,6 +436,71 @@ struct PathDrawerTests {
         ])
     }
 
+    @Test(
+        "dashes are laid from the start of the stroke as drawn, moved back by the offset, and carried with the outline",
+        arguments: [
+            // Dashes of 10 from x = 10: 10 to 20, 30 to 40.
+            (Trim.whole, 0.0, Frames.AffineTransform.identity, [15, 35], [25, 45]),
+            // Moved back by 5: 10 to 15, 25 to 35.
+            (Trim.whole, 5.0, Frames.AffineTransform.identity, [12, 28], [18, 38]),
+            // Trimmed from x = 30, the pattern starts there: 30 to 40, 50 to 60.
+            (Trim(start: 0.25, end: 1), 0.0, Frames.AffineTransform.identity, [35, 55], [15, 45]),
+            // The line drawn at half its length, scaled 2 along x: each dash stays 10 long on the output.
+            (Trim.whole, 0.0, Frames.AffineTransform(a: 2, b: 0, c: 0, d: 1, tx: -10, ty: 0), [15, 35], [25, 45])
+        ]
+    )
+    func drawsDashes(
+        trim: Trim,
+        offset: Double,
+        transform: Frames.AffineTransform,
+        inked: [Int],
+        blank: [Int]
+    ) throws {
+        // Given
+        let isScaled = transform.a != 1
+        let end = isScaled ? Point(x: 50, y: 50) : Point(x: 90, y: 50)
+        let stroke = PathStroke(
+            width: 4,
+            color: Self.black,
+            join: .miter,
+            cap: .butt,
+            start: .none,
+            end: .none,
+            dash: isScaled ? [5, 5] : [10, 10],
+            dashOffset: isScaled ? offset / 2 : offset
+        )
+        let path = PathItem(
+            geometry: .polyline([Point(x: 10, y: 50), end], isClosed: false),
+            fill: nil,
+            stroke: stroke,
+            trim: trim
+        )
+        let item = DisplayItem(transform: transform, content: .path(path))
+        let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        expect(bitmap, at: (inked + blank).map { ($0, 50) }, inked: inked.map { _ in true } + blank.map { _ in false })
+    }
+
+    @Test("an arrowhead on a dashed stroke is drawn whole, and the dashes stop at its base")
+    func drawsArrowheadOverDashes() throws {
+        // Given
+        // The head runs from x = 74 to its tip at 90; the dashes of 2 every 32 fall at 10, 42 and 74.
+        let stroke = PathStroke(width: 4, color: Self.black, join: .miter, cap: .butt, start: .none, end: .arrow, dash: [2, 30])
+        let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(10, 50), (30, 50), (42, 50), (60, 50), (78, 50), (85, 50), (80, 53)], inked: [
+            true, false, true, false, true, true, true
+        ])
+    }
+
     // MARK: - Private
     private func list(_ paths: [PathItem]) -> DisplayList {
         DisplayList(

@@ -120,6 +120,43 @@ struct SequenceCheckTests {
         #expect(error?.description.hasPrefix("storyline[0].connected[0].keyframes[1].scale (") == true)
     }
 
+    @Test(
+        "a dash that is empty, holds a negative length or holds only zeros stops, in a keyframe as in a static value",
+        arguments: [
+            (#""stroke": { "dash": [] }"#, "stroke.dash"),
+            (#""stroke": { "dash": [4, -1] }"#, "stroke.dash"),
+            (#""stroke": { "dash": [0, 0] }"#, "stroke.dash"),
+            (#""keyframes": [ { "at": 0, "stroke": { "dash": [0] } } ]"#, "keyframes[0].stroke.dash")
+        ]
+    )
+    func refusesDash(
+        stroke: String,
+        key: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], \#(stroke) } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].\(key) (") == true)
+        #expect(error?.description.contains("a list of at least one length, each 0 or more and not all 0") == true)
+    }
+
+    @Test("a dash with gaps of 0 and a negative dash offset are taken")
+    func takesDash() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "area": [0, 0, 10, 10], "at": [0, 1], "stroke": { "width": 2, "dash": [4, 0], "dashOffset": -3 } } ] } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: Never.self) { try sut.check(document: document) }
+    }
+
     @Test("a number does not stand for a boolean")
     func refusesNumberForBool() throws {
         // Given

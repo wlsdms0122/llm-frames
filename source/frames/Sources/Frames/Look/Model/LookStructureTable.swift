@@ -20,7 +20,9 @@ enum LookStructureTable {
             ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
             ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
             ("start", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
-            ("end", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue))))
+            ("end", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
+            ("dash", .list(.leaf(.length()))),
+            ("dashOffset", .leaf(.length(.any)))
         ],
         required: ["width"],
         exclusive: [["color", "gradient"]]

@@ -449,7 +449,8 @@ struct ResolvedSequenceWriterTests {
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
             JSONMember(key: "start", value: .string("none")),
-            JSONMember(key: "end", value: .string("none"))
+            JSONMember(key: "end", value: .string("none")),
+            JSONMember(key: "dashOffset", value: held(.number(0)))
         ])))
         #expect(clips[0]["shadow"] == .null)
         #expect(clips[0]["size"] == .null)

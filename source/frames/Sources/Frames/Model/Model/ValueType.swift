@@ -34,6 +34,9 @@ indirect enum ValueType: Equatable, Sendable {
     case fractions(Int)
     // A list of at least two points, each as `position` takes it.
     case points
+    // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke
+    // whole, where the patterns beside it draw fine dots.
+    case dash
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)

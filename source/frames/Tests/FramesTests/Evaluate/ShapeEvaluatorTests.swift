@@ -303,6 +303,48 @@ struct ShapeEvaluatorTests {
         expect(Point(x: reveal.maxX, y: reveal.maxY), Point(x: receiver.maxX, y: receiver.maxY))
     }
 
+    @Test(
+        "dash lengths and the dash offset are carried with the outline, an odd list taken twice over, and the width is not",
+        arguments: [
+            (Scale(1), [3.0], [3.0, 3], 1.0),
+            (Scale(x: 2, y: 0.5), [3.0, 1, 2], [3.0, 1, 2, 3, 1, 2], 1.0),
+            (Scale(4), [3.0, 1], [3.0, 1], 4.0)
+        ]
+    )
+    func carriesDash(
+        scale: Scale,
+        written: [Double],
+        dash: [Double],
+        factor: Double
+    ) throws {
+        // Given
+        // The shape's transform is its own scale, whose length factor is its scale factor, so a carried length is
+        // written as it is.
+        let stroke = PathStroke(width: 2, color: Self.red, join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
+        let shape = ResolvedShape(
+            kind: .rect,
+            geometry: .area([Keyframe(at: 0, value: Self.area)], outset: 0, placement: GeometryPlacement()),
+            radius: 0,
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: .off,
+            stroke: .stroke(stroke),
+            shadow: .off
+        )
+        let clip = clip(shape, box: nil, scale: scale)
+
+        // When
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: 1), in: space, at: 1).first)
+
+        // Then
+        guard case let .path(path) = item.content, let drawn = path.stroke else {
+            Issue.record("the shape is a stroked path")
+            return
+        }
+        #expect(drawn.dash == dash)
+        #expect(drawn.dashOffset == 5)
+        #expect(abs(drawn.width - 2 * factor) < 1e-9)
+    }
+
     @Test("a trim keyframed out of 0 to 1 is clamped to it")
     func clampsTrim() throws {
         // Given

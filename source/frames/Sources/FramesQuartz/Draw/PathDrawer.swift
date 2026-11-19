@@ -14,7 +14,8 @@ import Frames
 // output pixels on the outline `transform` carries (`PathItem.carriedStroke(by:)`), so a transform that scales its
 // axes apart does not stretch it, and drawn back in the item's coordinates.
 // The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
-// where they overlap.
+// where they overlap. Dashes are laid in the item's own distances along the outline, from the start of the stroke as
+// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole.
 struct PathDrawer {
     // MARK: - Property
     // MARK: - Initializer
@@ -37,7 +38,7 @@ struct PathDrawer {
             let back = transform.inverse,
             case let (carried, drawn)? = item.carriedStroke(by: transform),
             drawn.isDrawn,
-            let shape = shape(of: stroke, drawn: drawn, along: carried)
+            let shape = shape(of: stroke, drawn: drawn, along: carried, own: outline)
         else { return }
 
         var matrix = CGAffineTransform(back)
@@ -53,17 +54,60 @@ struct PathDrawer {
     private func shape(
         of stroke: PathStroke,
         drawn: DrawnStroke,
-        along outline: PathOutline
+        along outline: PathOutline,
+        own: PathOutline
     ) -> CGPath? {
-        guard !drawn.isWhole else { return stroked(outline.path, by: stroke) }
+        guard !drawn.isWhole || stroke.dash != nil else { return stroked(outline.path, by: stroke) }
 
-        let lineStart = drawn.lineStart(along: outline.length)
-        let lineEnd = drawn.lineEnd(along: outline.length)
-        let line = lineEnd > lineStart ? stroked(outline.piece(from: lineStart, to: lineEnd), by: stroke) : nil
+        let line = line(
+            of: stroke,
+            from: drawn.start(along: outline.length),
+            between: drawn.lineStart(along: outline.length),
+            and: drawn.lineEnd(along: outline.length),
+            along: outline,
+            own: own
+        )
         let parts = [line].compactMap { $0 } + outline.arrowheads(of: drawn).map(path(of:))
         guard let first = parts.first else { return nil }
 
         return parts.dropFirst().reduce(first) { shape, part in shape.union(part, using: .winding) }
+    }
+
+    // The stroked line from `lower` to `upper` along the carried outline, nil where it is empty. A dash pattern starts
+    // `dashOffset` before `start`, where the stroke as drawn starts, and each dash is taken in the item's own distances
+    // and carried onto the outline.
+    private func line(
+        of stroke: PathStroke,
+        from start: Double,
+        between lower: Double,
+        and upper: Double,
+        along outline: PathOutline,
+        own: PathOutline
+    ) -> CGPath? {
+        guard upper > lower else { return nil }
+        guard let dash = stroke.dash else { return stroked(outline.piece(from: lower, to: upper), by: stroke) }
+
+        let first = outline.distance(lower, onto: own)
+        let last = outline.distance(upper, onto: own)
+        let period = dash.reduce(0, +)
+        // A whole period keeps the pattern where it is, so it is begun the part of a period it has run before `first`.
+        let behind = (first - outline.distance(start, onto: own) + stroke.dashOffset)
+            .truncatingRemainder(dividingBy: period)
+        var position = first - (behind < 0 ? behind + period : behind)
+        let dashes = CGMutablePath()
+        for index in 0... {
+            guard position < last else { break }
+
+            let next = position + dash[index % dash.count]
+            let from = max(position, first)
+            let to = min(next, last)
+            if index.isMultiple(of: 2), to > from {
+                dashes.addPath(outline.piece(from: own.distance(from, onto: outline), to: own.distance(to, onto: outline)))
+            }
+            position = next
+        }
+
+        return dashes.isEmpty ? nil : stroked(dashes, by: stroke)
     }
 
     private func stroked(

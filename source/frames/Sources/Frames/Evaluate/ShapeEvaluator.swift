@@ -39,7 +39,11 @@ struct ShapeEvaluator: Sendable {
         let path = PathItem(
             geometry: laid.geometry,
             fill: fill,
-            stroke: PathStroke(sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke), factor: factor),
+            stroke: PathStroke(
+                sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
+                factor: factor,
+                carried: carried
+            ),
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
             shadow: DropShadow(
                 sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow),

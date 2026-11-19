@@ -497,7 +497,7 @@ struct DisplayListReaderTests {
         #expect(item["fill"] == .null)
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
-        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end"])
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "color", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
     }
 

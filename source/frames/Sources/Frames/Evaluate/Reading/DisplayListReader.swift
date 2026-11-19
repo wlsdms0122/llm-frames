@@ -262,7 +262,7 @@ package struct DisplayListReader: Sendable {
             geometry: try values.geometry(item.member("geometry")),
             fill: try item.member("fill").optional(values.color),
             stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end"])
+                let stroke = try value.object(keys: ["width", "color", "join", "cap", "start", "end", "dash", "dashOffset"])
 
                 return PathStroke(
                     width: try stroke.member("width").number(),
@@ -270,7 +270,9 @@ package struct DisplayListReader: Sendable {
                     join: try literal(stroke.member("join")),
                     cap: try literal(stroke.member("cap")),
                     start: try literal(stroke.member("start")),
-                    end: try literal(stroke.member("end"))
+                    end: try literal(stroke.member("end")),
+                    dash: try stroke.member("dash").optional { try $0.numbers() },
+                    dashOffset: try stroke.member("dashOffset").number()
                 )
             },
             trim: try trim(item.member("trim")),

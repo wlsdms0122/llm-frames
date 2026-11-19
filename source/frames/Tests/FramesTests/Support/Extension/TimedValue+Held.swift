@@ -32,6 +32,10 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     static func stroke(_ stroke: PathStroke?) -> TimedValue {
         guard let stroke else { return .off }
 
+        let dash = stroke.dash.map { lengths in
+            TimedMember(key: "dash", value: .list(lengths.map { .held(.number($0)) }))
+        }
+
         return .object([
             TimedMember(key: "color", value: .held(.color(stroke.color))),
             TimedMember(key: "width", value: .held(.number(stroke.width))),
@@ -39,7 +43,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
             TimedMember(key: "cap", value: .fixed(.string(stroke.cap.rawValue))),
             TimedMember(key: "start", value: .fixed(.string(stroke.start.rawValue))),
             TimedMember(key: "end", value: .fixed(.string(stroke.end.rawValue)))
-        ])
+        ] + [dash].compactMap { $0 } + [TimedMember(key: "dashOffset", value: .held(.number(stroke.dashOffset)))])
     }
 
     static func shadow(_ shadow: DropShadow?) -> TimedValue {
@@ -121,7 +125,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     }
 
     func stroke(at time: Double = 0) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1)
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {

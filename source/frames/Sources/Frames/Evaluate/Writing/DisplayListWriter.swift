@@ -150,7 +150,9 @@ package struct DisplayListWriter: Sendable {
                 JSONMember(key: "join", value: .string(stroke.join.rawValue)),
                 JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
                 JSONMember(key: "start", value: .string(stroke.start.rawValue)),
-                JSONMember(key: "end", value: .string(stroke.end.rawValue))
+                JSONMember(key: "end", value: .string(stroke.end.rawValue)),
+                JSONMember(key: "dash", value: stroke.dash.map { .array($0.map(JSONValue.number)) } ?? .null),
+                JSONMember(key: "dashOffset", value: .number(stroke.dashOffset))
             ]))
         }
 

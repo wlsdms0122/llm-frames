@@ -20,7 +20,8 @@ struct ClipAppearancePlanner: Sendable {
         JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
         JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
         JSONMember(key: "start", value: .string(StrokeEnd.none.rawValue)),
-        JSONMember(key: "end", value: .string(StrokeEnd.none.rawValue))
+        JSONMember(key: "end", value: .string(StrokeEnd.none.rawValue)),
+        JSONMember(key: "dashOffset", value: .number(0))
     ]))
 
     // MARK: - Initializer
