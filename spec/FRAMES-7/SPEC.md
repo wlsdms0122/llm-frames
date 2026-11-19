@@ -120,9 +120,9 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 | shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
-`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. `mask` in a keyframe is the clip's whole mask list at that instant ([FRAMES-11](../FRAMES-11/SPEC.md)). In the same way `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character` and `audioFilter` in a keyframe are the clip's whole value of that key at that instant, merged over its static value and its style's leaf by leaf and read as the same value written statically would be ([FRAMES-11](../FRAMES-11/SPEC.md)), and two keyframes of one key hold the same names in the same places ([FRAMES-4](../FRAMES-4/SPEC.md)).
+`timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character` and `audioFilter` in a keyframe write the numbers and colours they change, over the clip's static value merged over its style's, whose names and structure are static, and a leaf written `null` is that value below at that instant.
 
-Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A value written both statically and in a keyframe stops, since the static value would never show, and in an object this holds key by key ([FRAMES-4](../FRAMES-4/SPEC.md)).
+Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A leaf written statically and given a value in every keyframe that writes it stops, since the static value would never show ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
 ## Interactions
 
