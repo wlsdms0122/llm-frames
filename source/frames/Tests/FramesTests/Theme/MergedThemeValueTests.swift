@@ -202,6 +202,21 @@ struct MergedThemeValueTests {
             """#)
     }
 
+    @Test("a list of lengths outside its domain in a theme stops at the layer that writes it, though no clip takes it")
+    func refusesListOutsideDomain() throws {
+        // Given
+        let layer = ThemeLayer(
+            value: try Fixture.json(#"""
+                { "styles": { "note": { "size": 20, "highlight": { "color": "#FF0000", "padding": [2, -4] } } } }
+                """#),
+            place: Place(file: "doc.json", components: [.key("theme")])
+        )
+
+        // When, Then
+        let error = #expect(throws: LookError.self) { try ThemeMerger().merge([layer]) }
+        #expect(error?.description == "doc.json: theme.styles.note.highlight.padding[1]: -4 is not 0 or more")
+    }
+
     // MARK: - Private
     private func theme(_ text: String) throws -> MergedTheme {
         try ThemeMerger().merge([ThemeLayer(value: Fixture.json(text), place: .root)])
