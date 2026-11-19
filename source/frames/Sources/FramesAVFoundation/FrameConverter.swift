@@ -122,6 +122,12 @@ struct FrameConverter: Sendable {
             for index in 0..<width * 4 {
                 output[index] = UInt16(input[index]) * 257
             }
+
+        case .halfFloat:
+            let input = source.assumingMemoryBound(to: Float16.self)
+            for index in 0..<width * 4 {
+                output[index] = UInt16((min(max(Float(input[index]), 0), 1) * 65_535).rounded())
+            }
         }
         guard !keepsAlpha else { return }
 
@@ -150,7 +156,7 @@ struct FrameConverter: Sendable {
         }
     }
 
-    // Component `index` of a row, rounded to eight bits.
+    // Component `index` of a row, clipped to 0 to 1 and rounded to eight bits.
     private func component(
         of row: UnsafeRawPointer,
         depth: BitDepth,
@@ -164,6 +170,11 @@ struct FrameConverter: Sendable {
 
         case .eight:
             return row.assumingMemoryBound(to: UInt8.self)[index]
+
+        case .halfFloat:
+            let value = Float(row.assumingMemoryBound(to: Float16.self)[index])
+
+            return UInt8((min(max(value, 0), 1) * 255).rounded())
         }
     }
 }

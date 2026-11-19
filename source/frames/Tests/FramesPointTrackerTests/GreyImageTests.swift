@@ -18,7 +18,10 @@ struct GreyImageTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a picture becomes its Rec. 709 luma, the same at eight and sixteen bits", arguments: [BitDepth.eight, .sixteen])
+    @Test(
+        "a picture becomes its Rec. 709 luma, the same at eight and sixteen bits and in half floats",
+        arguments: [BitDepth.eight, .sixteen, .halfFloat]
+    )
     func readsLuma(depth: BitDepth) {
         // Given
         let picture = picture(of: colours, depth: depth)
@@ -42,13 +45,15 @@ struct GreyImageTests {
         let maximum = Double((1 << depth.bitsPerComponent) - 1)
         var pixels = Data()
         for component in colours.flatMap({ $0 }) {
-            let value = (component * maximum).rounded()
             switch depth {
             case .eight:
-                pixels.append(UInt8(value))
+                pixels.append(UInt8((component * maximum).rounded()))
 
             case .sixteen:
-                withUnsafeBytes(of: UInt16(value)) { pixels.append(contentsOf: $0) }
+                withUnsafeBytes(of: UInt16((component * maximum).rounded())) { pixels.append(contentsOf: $0) }
+
+            case .halfFloat:
+                withUnsafeBytes(of: Float16(component).bitPattern) { pixels.append(contentsOf: $0) }
             }
         }
 

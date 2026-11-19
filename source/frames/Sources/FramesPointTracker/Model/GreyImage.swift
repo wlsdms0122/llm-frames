@@ -30,7 +30,7 @@ struct GreyImage: Sendable {
     // premultiplied, as over black.
     init(picture: Bitmap) {
         let componentBytes = picture.depth.bitsPerComponent / 8
-        let maximum = Float((1 << picture.depth.bitsPerComponent) - 1)
+        let maximum = Self.maximum(of: picture.depth)
         var values = [Float](repeating: 0, count: picture.width * picture.height)
         picture.pixels.withUnsafeBytes { pixels in
             values.withUnsafeMutableBufferPointer { values in
@@ -112,6 +112,20 @@ struct GreyImage: Sendable {
 
         case .sixteen:
             Float(pixels.loadUnaligned(fromByteOffset: offset, as: UInt16.self))
+
+        case .halfFloat:
+            Float(Float16(bitPattern: pixels.loadUnaligned(fromByteOffset: offset, as: UInt16.self)))
+        }
+    }
+
+    // The component value that stands for 1.
+    private static func maximum(of depth: BitDepth) -> Float {
+        switch depth {
+        case .eight, .sixteen:
+            Float((1 << depth.bitsPerComponent) - 1)
+
+        case .halfFloat:
+            1
         }
     }
 }

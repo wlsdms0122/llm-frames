@@ -13,7 +13,7 @@ extension Bitmap {
     // MARK: - Initializer
     // MARK: - Public
     // Premultiplied red, green, blue and alpha of the pixel at column `x` and row `y` from the top, from 0 to 1 at
-    // either depth.
+    // every depth, and as stored in half floats.
     func pixel(
         x: Int,
         y: Int
@@ -30,6 +30,11 @@ extension Bitmap {
                 let components = row.assumingMemoryBound(to: UInt16.self)
 
                 return (0..<4).map { component in Double(UInt16(littleEndian: components[x * 4 + component])) / 65535 }
+
+            case .halfFloat:
+                let components = row.assumingMemoryBound(to: Float16.self)
+
+                return (0..<4).map { component in Double(components[x * 4 + component]) }
             }
         }
     }

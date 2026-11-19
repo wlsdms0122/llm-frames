@@ -7,9 +7,10 @@
 
 import Foundation
 
-// A picture in the working space, as a decoder reads it, a renderer draws it and an encoder writes it: `width` by
-// `height` pixels of RGBA with premultiplied alpha, sRGB encoded, rows top first and `bytesPerRow` apart in `pixels`.
-// Each component has `depth`'s bits, at the media's bit depth or more, and sixteen bit ones are in the machine's byte
+// A picture of working values, as a decoder reads it, a renderer draws it and an encoder writes it: `width` by
+// `height` pixels of RGBA with premultiplied alpha, extended-range sRGB encoded, rows top first and `bytesPerRow` apart
+// in `pixels`. Each component is in `depth`'s form, at the media's bit depth or more: an unsigned integer holds 0 to 1,
+// and a half float holds values below 0 and above 1 too. Sixteen bit integers and half floats are in the machine's byte
 // order.
 package struct Bitmap: Equatable, Sendable {
     // MARK: - Property

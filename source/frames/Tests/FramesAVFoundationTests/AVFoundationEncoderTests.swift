@@ -676,6 +676,9 @@ struct AVFoundationEncoderTests {
 
                 case .eight:
                     Double(row.assumingMemoryBound(to: UInt8.self)[x * 4 + component]) / 255
+
+                case .halfFloat:
+                    Double(row.assumingMemoryBound(to: Float16.self)[x * 4 + component])
                 }
             }
         }

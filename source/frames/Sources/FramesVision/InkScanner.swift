@@ -63,7 +63,8 @@ struct InkScanner: Sendable {
         return lower..<max(lower, upper)
     }
 
-    // The red, green and blue components of a pixel as stored, at the picture's depth.
+    // The red, green and blue components of a pixel as stored, at the picture's depth, a half float's at the sixteen bit
+    // scale.
     private func color(
         at x: Int,
         _ y: Int,
@@ -78,6 +79,13 @@ struct InkScanner: Sendable {
         case .sixteen:
             let offset = y * picture.bytesPerRow + x * 8
             return (0..<3).map { Int(bytes.loadUnaligned(fromByteOffset: offset + $0 * 2, as: UInt16.self)) }
+
+        case .halfFloat:
+            let offset = y * picture.bytesPerRow + x * 8
+            return (0..<3).map { component in
+                let bits = bytes.loadUnaligned(fromByteOffset: offset + component * 2, as: UInt16.self)
+                return Int((Float(Float16(bitPattern: bits)) * 65_535).rounded())
+            }
         }
     }
 

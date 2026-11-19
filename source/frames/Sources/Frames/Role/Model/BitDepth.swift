@@ -5,10 +5,12 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The bits of each component of a bitmap.
+// The form of each component of a bitmap: an eight or sixteen bit unsigned integer, or a sixteen bit IEEE 754 half
+// float.
 package enum BitDepth: Equatable, Sendable {
     case eight
     case sixteen
+    case halfFloat
 
     // MARK: - Property
     package var bitsPerComponent: Int {
@@ -16,7 +18,7 @@ package enum BitDepth: Equatable, Sendable {
         case .eight:
             8
 
-        case .sixteen:
+        case .sixteen, .halfFloat:
             16
         }
     }
