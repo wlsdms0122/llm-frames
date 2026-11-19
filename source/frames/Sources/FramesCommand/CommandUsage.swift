@@ -21,6 +21,14 @@ struct CommandUsage: Sendable {
         return (["frames " + options.joined(separator: " "), ""] + lines).map { "\($0)\n" }.joined()
     }
 
+    // What `frames --help` prints: the usage, then each global option with what it takes.
+    var help: String {
+        text
+            + "\nGlobal options:\n"
+            + HelpTable(rows: CommandLineParser.rules.map(HelpRow.init)).text
+            + "\nframes <command> --help describes a command, its arguments and its options.\n"
+    }
+
     // MARK: - Initializer
     init() { }
 

@@ -26,6 +26,7 @@ struct CommandLineParser: Sendable {
         )
     ]
 
+    static let help = "--help"
     private static let version = "--version"
 
     // MARK: - Initializer
@@ -53,11 +54,11 @@ struct CommandLineParser: Sendable {
 
             return .version
         }
-        guard !name.hasPrefix("-") || name == "-" else {
+        guard !name.hasPrefix("-") || name == "-" || name == Self.help else {
             throw CommandError.unknownOption(
                 command: nil,
                 option: name,
-                allowed: Self.rules.map(\.name) + [Self.version]
+                allowed: Self.rules.map(\.name) + [Self.version, Self.help]
             )
         }
 
@@ -73,6 +74,11 @@ struct CommandLineParser: Sendable {
             tracker: values["--tracker"],
             written: Array(arguments[..<index])
         )
+        guard name != Self.help else {
+            guard rest.isEmpty else { throw CommandError.argumentsAfterHelp(arguments: rest) }
+
+            return .help(options: options)
+        }
 
         return .command(name: name, arguments: rest, options: options)
     }

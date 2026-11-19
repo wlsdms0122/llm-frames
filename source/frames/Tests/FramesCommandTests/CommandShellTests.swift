@@ -46,6 +46,123 @@ struct CommandShellTests {
         #expect(sut.standardError == CommandUsage().text)
     }
 
+    @Test("--help prints the usage and the global options on standard output and exits with 0, after global options too")
+    func printsHelp() {
+        // Given, When
+        let code = sut.run(["--help"])
+        let output = sut.standardOutput
+        let optioned = sut.run(["--theme", "shorts/shorts", "--ocr-languages", "ko-KR,en-US", "--help"])
+
+        // Then
+        #expect(code == 0)
+        #expect(optioned == 0)
+        #expect(output == CommandUsage().help)
+        #expect(output.hasPrefix(CommandUsage().text))
+        #expect(output.contains(" The renderer. Known: quartz. Default: quartz.\n"))
+        #expect(sut.standardOutput == output)
+        #expect(sut.standardError.isEmpty)
+    }
+
+    @Test(
+        "<command> --help prints that command's help on standard output, led by its line of the usage, and exits with 0",
+        arguments: CommandTable.commands.map(\.name)
+    )
+    func printsCommandHelp(name: String) throws {
+        // Given
+        let command = try #require(CommandTable.commands.first { $0.name == name })
+        let usageLine = try #require(
+            CommandUsage().text.split(separator: "\n").first { $0 == name || $0.hasPrefix(name + " ") }
+        )
+        let synopsis = usageLine.dropFirst(name.count).drop { $0 == " " }
+
+        // When
+        let code = sut.run([name, "--help"])
+
+        // Then
+        let firstLine = sut.standardOutput.split(separator: "\n", omittingEmptySubsequences: false).first
+        #expect(code == 0)
+        #expect(sut.standardOutput == CommandHelp(command).text)
+        #expect(firstLine.map(String.init) == (synopsis.isEmpty ? "frames \(name)" : "frames \(name) \(synopsis)"))
+        #expect(sut.standardError.isEmpty)
+    }
+
+    @Test(
+        "--help anywhere among a command's arguments prints its help and checks none of them",
+        arguments: [
+            (["render", "/nowhere/doc.json", "--fps", "30", "--help"], "render"),
+            (["render", "--help", "relative.json", "-o"], "render"),
+            (["still", "/nowhere/doc.json", "--at", "--help"], "still"),
+            (["--theme", "shorts/shorts", "timeline", "nopack/intro", "--help", "--json"], "timeline")
+        ]
+    )
+    func printsHelpAfterArguments(
+        arguments: [String],
+        name: String
+    ) throws {
+        // Given
+        let command = try #require(CommandTable.commands.first { $0.name == name })
+
+        // When
+        let code = sut.run(arguments)
+
+        // Then
+        #expect(code == 0)
+        #expect(sut.standardOutput == CommandHelp(command).text)
+        #expect(sut.standardError.isEmpty)
+    }
+
+    @Test(
+        "the global options before --help are checked as for any command, and --help takes nothing after it",
+        arguments: [
+            (["--renderer", "metal", "--help"], #"--renderer: unknown renderer "metal". Known: quartz"#),
+            (["--tracker", "klt", "render", "--help"], #"--tracker: unknown tracker provider "klt". Known: point"#),
+            (["--ocr-languages", "en_US", "--help"], #"--ocr-languages "en_US" is not BCP 47 tags separated by commas"#),
+            (["--theme", "a/b", "--theme", "c/d", "--help"], "--theme is given more than once"),
+            (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#),
+            (["--version", "--help"], #"--version takes no arguments, found "--help""#)
+        ]
+    )
+    func stopsBeforeHelp(
+        arguments: [String],
+        message: String
+    ) {
+        // Given, When
+        let code = sut.run(arguments)
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: \(message)\n")
+        #expect(sut.standardOutput.isEmpty)
+    }
+
+    @Test("an extension gets --help among its arguments unchanged, so its help is its own")
+    func passesHelpToExtension() throws {
+        // Given
+        let bin = URL(fileURLWithPath: sut.directory.file("bin"), isDirectory: true)
+        let record = sut.directory.file("argv.txt")
+        let script = try sut.write(
+            """
+            #!/bin/sh
+            printf '%s\\n' "$0" "$@" > "$FRAMES_TEST_ARGV"
+            """,
+            to: bin.appendingPathComponent("frames-autocut")
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+
+        // When
+        let code = sut.run(
+            ["--theme", "shorts/shorts", "autocut", "/abs/doc.json", "--help"],
+            variables: ["PATH": "\(bin.path):/usr/bin:/bin", "FRAMES_TEST_ARGV": record]
+        )
+
+        // Then
+        let argv = try String(contentsOfFile: record, encoding: .utf8).split(separator: "\n").map(String.init)
+        #expect(code == 0)
+        #expect(argv == [script.path, "--theme", "shorts/shorts", "/abs/doc.json", "--help"])
+        #expect(sut.standardOutput.isEmpty)
+        #expect(sut.standardError.isEmpty)
+    }
+
     @Test(
         "what stops prints frames: and the reason on standard error and exits with 1",
         arguments: [

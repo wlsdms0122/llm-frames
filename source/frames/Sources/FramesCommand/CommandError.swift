@@ -20,6 +20,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case invalidValue(command: String?, option: String, value: String, expected: String)
     case exclusiveOptions(command: String, option: String, other: String)
     case argumentsAfterVersion(arguments: [String])
+    case argumentsAfterHelp(arguments: [String])
     case unknownRole(option: String, role: String, name: String, known: [String])
     case unknownCommand(name: String)
     case unstartableExtension(path: String, reason: String)
@@ -67,6 +68,10 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .argumentsAfterVersion(arguments):
             "--version takes no arguments, found \(arguments.map(quoted).joined(separator: ", "))"
+
+        case let .argumentsAfterHelp(arguments):
+            "--help takes no arguments, found \(arguments.map(quoted).joined(separator: ", ")). "
+                + "A command's help is frames <command> --help"
 
         case let .unknownRole(option, role, name, known):
             "\(option): unknown \(role) \(quoted(name)). Known: \(known.joined(separator: ", "))"

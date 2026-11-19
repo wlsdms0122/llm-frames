@@ -8,8 +8,8 @@
 import Frames
 
 // Runs a command line: the global options, then a command frames has or an extension on `PATH`. It returns the exit
-// code: 0 on success, 1 with `frames: <reason>` on standard error when anything stops, and 64 with usage when no
-// command is given.
+// code: 0 on success and for help asked for, 1 with `frames: <reason>` on standard error when anything stops, and 64
+// with usage on standard error when no command is given.
 package struct CommandShell: Sendable {
     // MARK: - Property
     private static let usageCode: Int32 = 64
@@ -18,6 +18,7 @@ package struct CommandShell: Sendable {
     private let output: CommandOutput
     private let parser = CommandLineParser()
     private let factory = RoleFactory()
+    private let usage = CommandUsage()
 
     // MARK: - Initializer
     package init(
@@ -34,8 +35,13 @@ package struct CommandShell: Sendable {
         do {
             switch try parser.parse(arguments) {
             case .usage:
-                output.writeError(CommandUsage().text)
+                output.writeError(usage.text)
                 return Self.usageCode
+
+            case let .help(options):
+                _ = try factory.roles(for: options)
+                output.write(usage.help)
+                return 0
 
             case .version:
                 output.write(FramesVersion.current + "\n")
@@ -51,7 +57,8 @@ package struct CommandShell: Sendable {
     }
 
     // MARK: - Private
-    // The roles are built before anything runs, so a mistyped name stops the same way for an extension.
+    // The roles are built before anything runs, so a mistyped name stops the same way for an extension and for help.
+    // A built-in command given `--help` anywhere among its arguments prints its help and reads none of them.
     private func run(
         _ name: String,
         arguments: [String],
@@ -65,6 +72,10 @@ package struct CommandShell: Sendable {
             }
 
             return code
+        }
+        guard !arguments.contains(CommandLineParser.help) else {
+            output.write(CommandHelp(command).text)
+            return 0
         }
 
         let context = CommandContext(options: options, roles: roles, output: output, environment: environment)

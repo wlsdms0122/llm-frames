@@ -23,6 +23,7 @@ struct CommandLineParserTests {
             (["--theme", "shorts/shorts"], .usage),
             (["--version"], .version),
             (["--decoder", "avfoundation", "--version"], .version),
+            (["--help"], .help(options: .none)),
             (
                 ["render", "/abs/doc.json", "-o", "/abs/out.mov"],
                 .command(name: "render", arguments: ["/abs/doc.json", "-o", "/abs/out.mov"], options: .none)
@@ -79,11 +80,11 @@ struct CommandLineParserTests {
     }
 
     @Test(
-        "an unknown global option, a missing value, a repeated option and arguments after --version stop",
+        "an unknown global option, a missing value, a repeated option and arguments after --version or --help stop",
         arguments: [
             (
                 ["--fps", "30", "render"],
-                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --ocr-languages, --version"#
+                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --ocr-languages, --version, --help"#
             ),
             (
                 ["--ocr-languages", "en_US", "probe"],
@@ -91,7 +92,8 @@ struct CommandLineParserTests {
             ),
             (["--theme"], "--theme takes a value, <pack/name | /abs/theme.json>"),
             (["--ocr", "vision", "--ocr", "vision", "probe"], "--ocr is given more than once"),
-            (["--version", "now"], #"--version takes no arguments, found "now""#)
+            (["--version", "now"], #"--version takes no arguments, found "now""#),
+            (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#)
         ]
     )
     func stopsOnBadCommandLine(
