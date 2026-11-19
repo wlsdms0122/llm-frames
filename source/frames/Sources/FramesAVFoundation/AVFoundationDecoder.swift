@@ -55,7 +55,7 @@ package final class AVFoundationDecoder: Sendable {
         path: String,
         reading: PictureReading
     ) throws -> Bitmap {
-        let tagged = reading.colorSpace == nil ? try still.taggedColor(path: path) : nil
+        let tagged = try still.taggedColor(path: path)
         let image: CIImage
         if case .platform = reading {
             image = try still.taggedImage(path: path)
@@ -67,10 +67,11 @@ package final class AVFoundationDecoder: Sendable {
     }
 
     // `image` is the picture with no colour matched, or tagged with its file's colour for a `platform` reading.
-    // `tagged` is the file's colour, which a reading that names a colour space does not need.
+    // `tagged` is the file's colour, which a reading that names a colour space overrides, and its mastering display's
+    // peak, which an HDR picture is tone mapped from either way.
     private func picture(
         from image: CIImage,
-        tagged: TaggedColor?,
+        tagged: TaggedColor,
         path: String,
         reading: PictureReading
     ) throws -> Bitmap {
@@ -78,14 +79,14 @@ package final class AVFoundationDecoder: Sendable {
         case let .working(colorSpace, targetPeak):
             let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
             let toneMapping = targetPeak.flatMap {
-                conversion.toneMapping(masteringDisplayPeak: tagged?.masteringDisplayPeak, targetPeak: $0)
+                conversion.toneMapping(masteringDisplayPeak: tagged.masteringDisplayPeak, targetPeak: $0)
             }
             return converter.picture(from: image, conversion: conversion, toneMapping: toneMapping)
 
         case let .analysis(colorSpace):
             let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
             let toneMapping = conversion.toneMapping(
-                masteringDisplayPeak: tagged?.masteringDisplayPeak,
+                masteringDisplayPeak: tagged.masteringDisplayPeak,
                 targetPeak: ColorSpace.srgb.peakLuminance
             )
             return converter.analysisPicture(from: image, conversion: conversion, toneMapping: toneMapping)
@@ -95,17 +96,16 @@ package final class AVFoundationDecoder: Sendable {
         }
     }
 
-    // The conversion from `colorSpace` where a reading names one, else from the file's tagged colour, an untagged
-    // picture being `srgb`.
+    // The conversion from `colorSpace` where a reading names one, else from the file's tagged colour.
     private func conversion(
         in colorSpace: ColorSpace?,
-        tagged: TaggedColor?,
+        tagged: TaggedColor,
         path: String
     ) throws -> MediaColorConversion {
         if let colorSpace { return MediaColorConversion(.space(colorSpace)) }
 
         do {
-            return MediaColorConversion(try tagged?.color.get() ?? .space(.srgb))
+            return MediaColorConversion(try tagged.color.get())
         } catch {
             throw DecoderError.unconvertibleColor(file: path, reason: error.reason)
         }

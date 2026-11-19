@@ -152,6 +152,44 @@ struct DecoderColorTests {
         #expect(value.prefix(3).allSatisfy { abs($0 - 0.4735) <= 0.01 }, "\(value)")
     }
 
+    @Test("a PQ still is tone mapped from the mastering display peak its file carries, also in a read naming a space")
+    func keepsMasteringDisplayPeak() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mastered.png")
+        let code: UInt8 = 191
+        try ColorImageWriter(size: size, colorSpace: try #require(CGColorSpace(name: CGColorSpace.itur_2100_PQ)))
+            .write(to: file, codeValues: [code, code, code])
+        try addMasteringDisplay(peak: 4000, to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let named = try sut.picture(
+            of: MediaFile(path: file),
+            atFrame: 0,
+            reading: .working(colorSpace: .rec2100PQ, targetPeak: 203)
+        )
+        let tagged = try sut.picture(
+            of: MediaFile(path: file),
+            atFrame: 0,
+            reading: .working(colorSpace: nil, targetPeak: 203)
+        )
+
+        // Then
+        let light = PerceptualQuantizer().displayLight(encoded: Double(code) / 255)
+        let source = RGB(red: light, green: light, blue: light)
+        let conversion = ColorConversion(space: .rec2100PQ)
+        let expected = conversion.working(displayLight: ToneMapping(sourcePeak: 4000, targetPeak: 203).mapped(source))
+            .red
+        let defaulted = conversion.working(displayLight: ToneMapping(sourcePeak: 1000, targetPeak: 203).mapped(source))
+            .red
+        #expect(abs(expected - defaulted) > 0.02)
+        for picture in [named, tagged] {
+            let value = workingValue(in: picture, x: 32, y: 32)
+            #expect(value.prefix(3).allSatisfy { abs($0 - expected) <= 0.01 }, "\(value) \(expected)")
+        }
+    }
+
     @Test("an analysis read is 8-bit sRGB clipped to 0 to 1, an HDR picture tone mapped to 203 cd/m²")
     func readsAnalysisPicture() async throws {
         // Given
@@ -260,6 +298,40 @@ struct DecoderColorTests {
         let gamma: [CGFloat] = [2.4, 2.4, 2.4]
 
         return CGColorSpace(calibratedRGBWhitePoint: white, blackPoint: black, gamma: gamma, matrix: matrix)
+    }
+
+    // Adds a PNG `mDCv` chunk after the header: BT.2020 primaries, the D65 white, a maximum luminance of `peak` and a
+    // minimum of 0.005 cd/m².
+    private func addMasteringDisplay(
+        peak: Double,
+        to path: String
+    ) throws {
+        func bigEndian(_ value: Int, bytes count: Int) -> [UInt8] {
+            (0..<count).reversed().map { UInt8(truncatingIfNeeded: value >> ($0 * 8)) }
+        }
+        let chromaticities = [0.708, 0.292, 0.170, 0.797, 0.131, 0.046, 0.3127, 0.3290]
+        let data = chromaticities.flatMap { bigEndian(Int(($0 / 0.00002).rounded()), bytes: 2) }
+            + bigEndian(Int(peak * 10000), bytes: 4)
+            + bigEndian(50, bytes: 4)
+        let typed = Array("mDCv".utf8) + data
+        let chunk = bigEndian(data.count, bytes: 4) + typed + bigEndian(Int(crc32(typed)), bytes: 4)
+        var file = [UInt8](try Data(contentsOf: URL(fileURLWithPath: path)))
+        // The signature and the 13-byte IHDR chunk.
+        file.insert(contentsOf: chunk, at: 8 + 12 + 13)
+        try Data(file).write(to: URL(fileURLWithPath: path))
+    }
+
+    // The CRC-32 of ISO 3309 a PNG chunk ends with.
+    private func crc32(_ bytes: [UInt8]) -> UInt32 {
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in bytes {
+            crc ^= UInt32(byte)
+            for _ in 0..<8 {
+                crc = crc & 1 == 1 ? crc >> 1 ^ 0xEDB8_8320 : crc >> 1
+            }
+        }
+
+        return ~crc
     }
 
     // The working value of a half float picture's pixel, RGBA.

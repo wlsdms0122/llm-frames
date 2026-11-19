@@ -12,8 +12,8 @@ import ImageIO
 import UniformTypeIdentifiers
 
 // A still image file, opened once: its size as it is displayed, its bit depth, whether it carries alpha, the colour its
-// ICC profile names, and its picture. An orientation that turns it a quarter swaps width and height. An image without a
-// profile is untagged, and one with an sRGB chunk is given the sRGB profile.
+// ICC profile names with its mastering display's peak, and its picture. An orientation that turns it a quarter swaps
+// width and height. An image without a profile is untagged, and one with an sRGB chunk is given the sRGB profile.
 struct StillReader {
     // MARK: - Property
     let displaySize: Size
@@ -69,8 +69,15 @@ struct StillReader {
 
     func taggedColor(path: String) throws -> TaggedColor {
         let profile = isTagged ? try cgImage(path: path).colorSpace?.copyICCData() : nil
+        guard let file = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else {
+            throw DecoderError.unreadable(file: path)
+        }
 
-        return TaggedColor(profile: profile.map { ICCProfileReader(data: $0 as Data) }, bitDepth: bitDepth)
+        return TaggedColor(
+            profile: profile.map { ICCProfileReader(data: $0 as Data) },
+            bitDepth: bitDepth,
+            masteringDisplayPeak: MasteringDisplayReader(data: file).peak()
+        )
     }
 
     // MARK: - Private

@@ -71,7 +71,8 @@ struct TaggedColor: Equatable, Sendable {
     // An image's, by its ICC profile, nil for an untagged image, which is `srgb`.
     init(
         profile: ICCProfileReader?,
-        bitDepth: Int
+        bitDepth: Int,
+        masteringDisplayPeak: Double?
     ) {
         let color = profile?.color() ?? .success(.space(.srgb))
         let space = try? color.get().colorSpace
@@ -89,6 +90,7 @@ struct TaggedColor: Equatable, Sendable {
 
         self.init(
             color: color,
+            masteringDisplayPeak: masteringDisplayPeak,
             probed: ProbedColorSpace(
                 name: space,
                 primaries: row?.colorPrimaries,
