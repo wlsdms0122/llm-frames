@@ -29,6 +29,12 @@ struct OCROptions: CommandOptions, Equatable {
             value: "<tag>[,<tag>...]",
             help: "The recognition languages, BCP 47 tags in order of preference. Default: the global --ocr-languages."
         ),
+        OptionRule(
+            "--color-space",
+            value: "<name>",
+            help: "The colour space the media are read in, over what the file says, as a media clip's colorSpace. "
+                + "Default: the file's tags."
+        ),
         OptionRule.json
     ]
     static let positionals = [
@@ -41,6 +47,7 @@ struct OCROptions: CommandOptions, Equatable {
     let media: String
     let selection: TimeSelection
     let languages: [LanguageTag]?
+    let colorSpace: ColorSpace?
     let isMachineOutput: Bool
 
     // MARK: - Initializer
@@ -48,6 +55,7 @@ struct OCROptions: CommandOptions, Equatable {
         self.media = try arguments.requiredPositionalPath(at: 0)
         self.selection = try Self.selection(of: arguments)
         self.languages = try arguments.languages(of: "--languages")
+        self.colorSpace = try arguments.choice(of: "--color-space")
         self.isMachineOutput = arguments.isSet("--json")
     }
 

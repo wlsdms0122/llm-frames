@@ -8,7 +8,8 @@
 // A media file or image sequence directory as it was found and probed. `path` is where it was found, which a role
 // opens. `fps` is the nominal frame rate, when the media has one, and `size` is the picture's, nil for sound.
 // `frameTimes` holds the media time of each frame of a video or image sequence, which the resolved document pins, and
-// `frameFiles` the file of each frame of an image sequence, in frame order.
+// `frameFiles` the file of each frame of an image sequence, in frame order. `taggedColorSpace` is the space of the table
+// its tags name (FRAMES-26 Media), `srgb` for an untagged picture and nil for sound or tags outside the table.
 package struct MediaFile: Equatable, Sendable {
     // MARK: - Property
     package let path: String
@@ -16,6 +17,7 @@ package struct MediaFile: Equatable, Sendable {
     package let size: Size?
     package let frameTimes: [Double]
     package let frameFiles: [String]
+    package let taggedColorSpace: ColorSpace?
 
     // MARK: - Initializer
     package init(
@@ -23,13 +25,15 @@ package struct MediaFile: Equatable, Sendable {
         fps: Double? = nil,
         size: Size? = nil,
         frameTimes: [Double] = [],
-        frameFiles: [String] = []
+        frameFiles: [String] = [],
+        taggedColorSpace: ColorSpace? = nil
     ) {
         self.path = path
         self.fps = fps
         self.size = size
         self.frameTimes = frameTimes
         self.frameFiles = frameFiles
+        self.taggedColorSpace = taggedColorSpace
     }
 
     // MARK: - Public

@@ -26,7 +26,7 @@ final class VideoReader: Sendable {
     let duration: Double
     let hasSound: Bool
     let hasAlpha: Bool
-    let depth: BitDepth
+    let taggedColor: TaggedColor
 
     var frameTimes: [Double] {
         frames.map(CMTimeGetSeconds)
@@ -62,14 +62,15 @@ final class VideoReader: Sendable {
         self.fps = FrameTiming(fps: nominal).rate
         self.hasSound = loaded.hasSound
         self.hasAlpha = loaded.hasAlpha
-        self.depth = BitDepth(holding: loaded.bitsPerComponent)
+        self.taggedColor = loaded.taggedColor
         self.frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
         self.duration = CMTimeGetSeconds(loaded.duration)
     }
 
     // MARK: - Public
-    // The picture of frame `index` as it is displayed, tagged with the colour space the file gives: the last decoded
-    // frame presented at or before its presented time. Asking for the frame read last decodes nothing.
+    // The picture of frame `index` as it is displayed: the last decoded frame presented at or before its presented
+    // time, taken to R'G'B' half floats by the matrix and range the file says, with no colour matched, a value beyond
+    // the nominal range kept. Asking for the frame read last decodes nothing.
     func image(
         atFrame index: Int,
         path: String
@@ -84,7 +85,7 @@ final class VideoReader: Sendable {
             let reader = try FrameReader(
                 asset: asset,
                 track: track,
-                pixelFormat: depth == .sixteen ? kCVPixelFormatType_64RGBAHalf : kCVPixelFormatType_32BGRA,
+                pixelFormat: kCVPixelFormatType_64RGBAHalf,
                 start: time,
                 path: path
             )
@@ -94,7 +95,7 @@ final class VideoReader: Sendable {
         }
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 
-        return displayed(CIImage(cvImageBuffer: shown))
+        return displayed(CIImage(cvImageBuffer: shown, options: [.colorSpace: NSNull()]))
     }
 
     // MARK: - Private
@@ -107,17 +108,54 @@ final class VideoReader: Sendable {
         let depth = formats.first.flatMap {
             CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent)
         }
+        let bitsPerComponent = depth as? Int ?? 8
         let segments = try waiter.value(of: .segments, key: "segments", in: track)
 
         return TrackFacts(
             storedSize: try waiter.value(of: .naturalSize, key: "naturalSize", in: track),
             preferredTransform: try waiter.value(of: .preferredTransform, key: "preferredTransform", in: track),
             nominalFrameRate: try waiter.value(of: .nominalFrameRate, key: "nominalFrameRate", in: track),
-            bitsPerComponent: depth as? Int ?? 8,
+            bitsPerComponent: bitsPerComponent,
             hasAlpha: formats.first.map(hasAlpha) ?? false,
+            taggedColor: taggedColor(of: formats.first, bitsPerComponent: bitsPerComponent),
             edits: segments.filter { !$0.isEmpty }.map(\.timeMapping),
             duration: try waiter.value(of: .duration, key: "duration", in: asset),
             hasSound: !(try waiter.tracks(of: asset, type: .audio)).isEmpty
+        )
+    }
+
+    // The code points the format names, through the strings Core Video keeps them as, and the maximum luminance of
+    // its mastering display: SMPTE ST 2086 metadata holds it in units of 0.0001 cd/m², a 32-bit number at byte 16.
+    private static func taggedColor(
+        of format: CMFormatDescription?,
+        bitsPerComponent: Int
+    ) -> TaggedColor {
+        let tag = { (key: CFString) in
+            format.flatMap { CMFormatDescriptionGetExtension($0, extensionKey: key) as? String }.map { $0 as CFString }
+        }
+        let volume = format.flatMap {
+            CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_MasteringDisplayColorVolume)
+                as? Data
+        }
+        let peak = volume.flatMap { data -> Double? in
+            guard data.count >= 20 else { return nil }
+            let luminance = data[data.startIndex + 16..<data.startIndex + 20].reduce(0) { $0 << 8 | UInt32($1) }
+
+            return Double(luminance) / 10_000
+        }
+
+        return TaggedColor(
+            primaries: tag(kCMFormatDescriptionExtension_ColorPrimaries).map {
+                Int(CVColorPrimariesGetIntegerCodePointForString($0))
+            },
+            transfer: tag(kCMFormatDescriptionExtension_TransferFunction).map {
+                Int(CVTransferFunctionGetIntegerCodePointForString($0))
+            },
+            matrix: tag(kCMFormatDescriptionExtension_YCbCrMatrix).map {
+                Int(CVYCbCrMatrixGetIntegerCodePointForString($0))
+            },
+            bitDepth: bitsPerComponent,
+            masteringDisplayPeak: peak.flatMap { $0 > 0 ? $0 : nil }
         )
     }
 

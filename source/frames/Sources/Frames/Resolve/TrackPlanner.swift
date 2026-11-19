@@ -97,6 +97,7 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: plan.drawn,
             file: picture.file,
+            colorSpace: picture.picture.colorSpace,
             named: picture.picture.name,
             fps: fps,
             place: place,
@@ -153,6 +154,7 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: plan.visible,
             file: picture.file,
+            colorSpace: picture.picture.colorSpace,
             named: picture.picture.name,
             fps: fps,
             place: place,
@@ -212,6 +214,7 @@ struct TrackPlanner: Sendable {
             on: picture.clock,
             drawn: drawn(under: parent, of: plan, in: time),
             file: picture.file,
+            colorSpace: picture.picture.colorSpace,
             named: picture.picture.name,
             fps: fps,
             place: place,
@@ -326,6 +329,7 @@ struct TrackPlanner: Sendable {
         on clock: MediaClock,
         drawn: TimeRange,
         file: MediaFile,
+        colorSpace: ColorSpace?,
         named media: String,
         fps: Double,
         place: Place,
@@ -341,7 +345,8 @@ struct TrackPlanner: Sendable {
                 target.target,
                 in: file,
                 atMediaTime: target.mediaTime,
-                over: firstNeeded...lastNeeded
+                over: firstNeeded...lastNeeded,
+                colorSpace: colorSpace
             )
         }
         .mapError { error in
@@ -436,7 +441,13 @@ struct TrackPlanner: Sendable {
             return nil
         }
 
-        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file, clock)
+        let picture = Picture(
+            name: media.reference ?? file.path,
+            source: .mediaFile(file),
+            size: size,
+            colorSpace: media.colorSpace
+        )
+        return (picture, file, clock)
     }
 
     // The video or image sequence a connected or sequence media clip plays, nil for any other clip.
@@ -451,7 +462,13 @@ struct TrackPlanner: Sendable {
             return nil
         }
 
-        return (Picture(name: media.reference ?? file.path, source: .mediaFile(file), size: size), file, clock)
+        let picture = Picture(
+            name: media.reference ?? file.path,
+            source: .mediaFile(file),
+            size: size,
+            colorSpace: media.colorSpace
+        )
+        return (picture, file, clock)
     }
 
     private func picture(

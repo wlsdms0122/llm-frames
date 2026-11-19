@@ -9,10 +9,10 @@ import Foundation
 import Frames
 
 // The `point` tracker: two-point tracking by template matching, run from the target's frame forwards and, from it
-// again, backwards over the frames the decoder reads by index. A track point sits near each end of the target's long
-// side, and the two points found on a frame give the target's move, scale and rotation there, the similarity that
-// carries the target's quad to the quad reported. The target is lost on the first frame where either point's
-// correlation with its feature falls below `lostCorrelation`, which ends that direction.
+// again, backwards over the analysis pictures the decoder reads by index. A track point sits near each end of the
+// target's long side, and the two points found on a frame give the target's move, scale and rotation there, the
+// similarity that carries the target's quad to the quad reported. The target is lost on the first frame where either
+// point's correlation with its feature falls below `lostCorrelation`, which ends that direction.
 package struct PointTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
@@ -39,18 +39,19 @@ package struct PointTracker: Sendable {
     private func follow(
         _ target: Quad,
         in file: MediaFile,
+        reading: PictureReading,
         from start: Int,
         over indices: [Int]
     ) throws -> [TrackedFrame] {
         let facing = TargetFacing(target)
-        guard let points = trackPoints(of: facing, on: try image(of: file, atFrame: start)) else { return [] }
+        guard let points = trackPoints(of: facing, on: try image(of: file, atFrame: start, reading: reading)) else { return [] }
         let starts = points.map(\.point)
 
         var last = TrackEstimate(points: starts, correlation: 1)
         var beforeLast: TrackEstimate?
         var frames: [TrackedFrame] = []
         for index in indices {
-            let image = try image(of: file, atFrame: index)
+            let image = try image(of: file, atFrame: index, reading: reading)
             let moved = beforeLast.map { before in
                 zip(last.points, before.points).map { point, earlier in
                     CGPoint(x: 2 * point.x - earlier.x, y: 2 * point.y - earlier.y)
@@ -143,9 +144,10 @@ package struct PointTracker: Sendable {
 
     private func image(
         of file: MediaFile,
-        atFrame index: Int
+        atFrame index: Int,
+        reading: PictureReading
     ) throws -> GreyImage {
-        GreyImage(picture: try decoder.picture(of: file, atFrame: index))
+        GreyImage(picture: try decoder.picture(of: file, atFrame: index, reading: reading))
     }
 }
 
@@ -155,7 +157,8 @@ extension PointTracker: TrackerProvider {
         _ target: Quad,
         in file: MediaFile,
         atMediaTime time: Double,
-        over range: ClosedRange<Double>
+        over range: ClosedRange<Double>,
+        colorSpace: ColorSpace?
     ) throws -> [TrackedFrame] {
         let start = file.frameIndex(at: time)
         let times = file.frameTimes
@@ -163,8 +166,9 @@ extension PointTracker: TrackerProvider {
         let after = times.indices.filter { $0 > start && range.contains(times[$0]) }
         let before = times.indices.filter { $0 < start && range.contains(times[$0]) }.reversed()
 
-        let forward = try follow(target, in: file, from: start, over: after)
-        let backward = try follow(target, in: file, from: start, over: Array(before))
+        let reading = PictureReading.analysis(colorSpace: colorSpace)
+        let forward = try follow(target, in: file, reading: reading, from: start, over: after)
+        let backward = try follow(target, in: file, reading: reading, from: start, over: Array(before))
 
         return backward.reversed() + [TrackedFrame(time: times[start], quad: target)] + forward
     }

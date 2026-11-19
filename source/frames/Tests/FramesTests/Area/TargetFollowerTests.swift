@@ -25,7 +25,7 @@ struct TargetFollowerTests {
         let target = Rectangle(x: 100, y: 100, width: 200, height: 40)
 
         // When
-        let frames = try sut.follow(target, in: file, atMediaTime: 0, over: 0...1)
+        let frames = try sut.follow(target, in: file, atMediaTime: 0, over: 0...1, colorSpace: nil)
 
         // Then
         #expect(frames.map(\.quad) == [
@@ -41,7 +41,7 @@ struct TargetFollowerTests {
         let inside = Rectangle(x: 1006, y: 100, width: 200, height: 40)
 
         // When
-        let frames = try sut.follow(target, in: file, atMediaTime: 0, over: 0...1)
+        let frames = try sut.follow(target, in: file, atMediaTime: 0, over: 0...1, colorSpace: nil)
 
         // Then
         let expected = Quad(target).applying(AffineTransform(scale: 1.5, about: Quad(inside).centroid))
@@ -53,7 +53,7 @@ struct TargetFollowerTests {
     @Test("a target wholly outside the picture is followed on no frame")
     func followsNothingOutside() throws {
         // When
-        let frames = try sut.follow(Rectangle(x: 1300, y: 100, width: 100, height: 40), in: file, atMediaTime: 0, over: 0...1)
+        let frames = try sut.follow(Rectangle(x: 1300, y: 100, width: 100, height: 40), in: file, atMediaTime: 0, over: 0...1, colorSpace: nil)
 
         // Then
         #expect(frames.isEmpty)

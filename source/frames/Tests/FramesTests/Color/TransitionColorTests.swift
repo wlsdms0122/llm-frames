@@ -131,26 +131,26 @@ struct TransitionColorTests {
         message: String
     ) throws {
         // Given
-        let resolved = try resolved(
+        let plan = try plan(
             storyline: #"{ "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
             presets: presets(cover: (cover, nil), matte: (matte, nil))
         )
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try resolved.checkMediaColorSpaces() }
+        let error = #expect(throws: ResolveError.self) { try checkMediaColorSpaces(of: plan) }
         #expect(error?.description == message)
     }
 
     @Test("a cover and a matte that read a clip's file in its colour space pass")
     func acceptsFileInOneColorSpace() throws {
         // Given
-        let resolved = try resolved(
+        let plan = try plan(
             storyline: #"{ "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
             presets: presets(cover: ("/abs/run.mp4", .rec709), matte: ("/abs/run.mp4", .rec709))
         )
 
         // When, Then
-        #expect(throws: Never.self) { try resolved.checkMediaColorSpaces() }
+        #expect(throws: Never.self) { try checkMediaColorSpaces(of: plan) }
     }
 
     // MARK: - Private
@@ -201,11 +201,23 @@ struct TransitionColorTests {
         )
     }
 
-    // A sequence of `first` and `/abs/short.mp4` with the transition between them.
     private func resolved(
         storyline first: String,
         presets: PresetTable
     ) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: plan(storyline: first, presets: presets), hashes: FileHashTable())
+    }
+
+    private func checkMediaColorSpaces(of plan: SequencePlan) throws {
+        try ResolvedSequence(plan: plan, hashes: FileHashTable())
+            .checkMediaColorSpaces(taggedColorSpaces: plan.time.taggedColorSpaces)
+    }
+
+    // A sequence of `first` and `/abs/short.mp4` with the transition between them.
+    private func plan(
+        storyline first: String,
+        presets: PresetTable
+    ) throws -> SequencePlan {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
@@ -219,6 +231,6 @@ struct TransitionColorTests {
             { "kind": "sequence", "storyline": [ \#(first),
                 { "media": "/abs/short.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
             """#
-        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+        return try planner.plan(Fixture.json(document))
     }
 }

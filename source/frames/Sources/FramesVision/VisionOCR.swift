@@ -10,10 +10,10 @@ import Foundation
 import Frames
 import Vision
 
-// The `vision` OCR provider: Vision's accurate text recognition on the frame the decoder reads, in the recognition
-// languages given, or in the language Vision detects without them. Every other setting that changes what is recognised
-// is fixed, so the same picture gives the same lines. Vision's accurate line box reaches below the text by up to a
-// third of the text's height, so each is cut to the ink inside it.
+// The `vision` OCR provider: Vision's accurate text recognition on the analysis picture the decoder reads, in the
+// recognition languages given, or in the language Vision detects without them. Every other setting that changes what
+// is recognised is fixed, so the same picture gives the same lines. Vision's accurate line box reaches below the text
+// by up to a third of the text's height, so each is cut to the ink inside it.
 package struct VisionOCR: Sendable {
     // MARK: - Property
     private let decoder: any MediaDecoder
@@ -61,7 +61,8 @@ extension VisionOCR: OCRProvider {
     package func lines(
         in file: MediaFile,
         atMediaTime time: Double,
-        languages: [LanguageTag]?
+        languages: [LanguageTag]?,
+        colorSpace: ColorSpace?
     ) throws -> [RecognisedLine] {
         let request = VNRecognizeTextRequest()
         request.revision = VNRecognizeTextRequestRevision3
@@ -73,7 +74,7 @@ extension VisionOCR: OCRProvider {
         request.minimumTextHeight = 0
 
         let index = file.frameIndex(at: time)
-        let picture = try decoder.picture(of: file, atFrame: index)
+        let picture = try decoder.picture(of: file, atFrame: index, reading: .analysis(colorSpace: colorSpace))
         let image = try converter.image(of: picture, file: file.path, index: index)
         try VNImageRequestHandler(cgImage: image).perform([request])
 

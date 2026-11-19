@@ -18,16 +18,18 @@ struct TargetFollower: Sendable {
     }
 
     // MARK: - Public
+    // `colorSpace` is the one the media are read in where the clip writes one.
     func follow(
         _ target: Rectangle,
         in file: MediaFile,
         atMediaTime time: Double,
-        over range: ClosedRange<Double>
+        over range: ClosedRange<Double>,
+        colorSpace: ColorSpace?
     ) throws -> [TrackedFrame] {
         let bounds = file.size.map { Rectangle(x: 0, y: 0, width: $0.width, height: $0.height) }
         guard let inside = bounds.map({ target.intersection($0) }) ?? target else { return [] }
 
-        let frames = try tracker.track(Quad(inside), in: file, atMediaTime: time, over: range)
+        let frames = try tracker.track(Quad(inside), in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
         guard inside != target else { return frames }
 
         return frames.map { frame in

@@ -6,9 +6,9 @@
 //
 
 // What `probe` prints about a medium: its kind (`image`, `video`, `audio` or `imageSequence`), its picture's size,
-// its duration and nominal frame rate, whether its picture carries alpha, and its first sound track's format. A value
-// the medium does not have is nil: the size of sound, the duration and rate of an image, and the duration and rate of
-// an image sequence, which the document's `fps` gives.
+// its duration and nominal frame rate, whether its picture carries alpha, its picture's colour facts, and its first
+// sound track's format. A value the medium does not have is nil: the size and colour of sound, the duration and rate of
+// an image, and the duration and rate of an image sequence, which the document's `fps` gives.
 package struct ProbeReport: Equatable, Sendable {
     // MARK: - Property
     package let kind: String
@@ -16,6 +16,7 @@ package struct ProbeReport: Equatable, Sendable {
     package let duration: Double?
     package let fps: Double?
     package let hasAlpha: Bool
+    package let colorSpace: ProbedColorSpace?
     package let sound: ProbedSound?
 
     // MARK: - Initializer
@@ -25,6 +26,7 @@ package struct ProbeReport: Equatable, Sendable {
         duration: Double?,
         fps: Double?,
         hasAlpha: Bool,
+        colorSpace: ProbedColorSpace?,
         sound: ProbedSound?
     ) {
         self.kind = kind
@@ -32,6 +34,7 @@ package struct ProbeReport: Equatable, Sendable {
         self.duration = duration
         self.fps = fps
         self.hasAlpha = hasAlpha
+        self.colorSpace = colorSpace
         self.sound = sound
     }
 
@@ -42,6 +45,7 @@ package struct ProbeReport: Equatable, Sendable {
             duration: probed.kind == .image ? nil : probed.duration,
             fps: probed.fps,
             hasAlpha: probed.hasAlpha,
+            colorSpace: probed.colorSpace,
             sound: probed.sound
         )
     }
@@ -53,6 +57,7 @@ package struct ProbeReport: Equatable, Sendable {
             duration: nil,
             fps: nil,
             hasAlpha: sequence.hasAlpha,
+            colorSpace: sequence.colorSpace,
             sound: nil
         )
     }
