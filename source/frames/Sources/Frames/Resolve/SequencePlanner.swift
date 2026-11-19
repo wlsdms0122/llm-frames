@@ -142,6 +142,7 @@ struct SequencePlanner: Sendable {
                 nested: storylineNested[index],
                 filter: try appearances.filter(
                     time.sequence.storyline[index].filter,
+                    place: time.sequence.storyline[index].place.appending(key: "filter"),
                     kind: time.storyline[index].source.kind,
                     media: time.sequence.storyline[index].media,
                     scale: lengthScale,

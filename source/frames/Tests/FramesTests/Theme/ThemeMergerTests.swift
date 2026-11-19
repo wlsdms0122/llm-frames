@@ -110,28 +110,23 @@ struct ThemeMergerTests {
         #expect(defaults?["transition"] == .string("frames/fade"))
     }
 
-    @Test("a stronger layer wins: base, then the theme file, then the document, then the clip")
+    @Test("a stronger layer wins: base, then the theme file, then the document")
     func appliesPrecedence() throws {
         // Given
         let file = try Fixture.json(##"{ "colors": { "accent": "#111111", "text": "#222222" }, "styles": { "subtitle": { "color": "text" } } }"##)
         let document = try Fixture.json(##"{ "colors": { "accent": "#333333" } }"##)
-        let clip = ClipThemeLayer.layer(forClip: try Fixture.object(##"{ "shape": "rect", "animation": "frames/pop" }"##), kind: .shape("rect"))
 
         // When
         let documentTheme = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
-        let clipTheme = try sut.merge([ThemeLayer(value: clip, place: .root)], over: documentTheme)
 
         // Then
         let colors = documentTheme.value.objectValue?["colors"]?.objectValue
         #expect(colors?["accent"] == .string("#333333"))
         #expect(colors?["text"] == .string("#222222"))
         #expect(colors?["background"] == .string("#000000"))
-        let subtitle = { (theme: MergedTheme) in theme.value.objectValue?["styles"]?.objectValue?["subtitle"]?.objectValue }
-        let animation = clipTheme.value.objectValue?["defaults"]?.objectValue?["animation"]?.objectValue
-        #expect(subtitle(documentTheme)?["color"] == .string("text"))
-        #expect(subtitle(documentTheme)?["size"] != nil)
-        #expect(animation?["shape"] == .string("frames/pop"))
-        #expect(subtitle(clipTheme)?["color"] == .string("text"))
+        let subtitle = documentTheme.value.objectValue?["styles"]?.objectValue?["subtitle"]?.objectValue
+        #expect(subtitle?["color"] == .string("text"))
+        #expect(subtitle?["size"] != nil)
     }
 
     @Test("a layer with an unknown key stops before anything is merged")

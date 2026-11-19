@@ -6,7 +6,9 @@
 //
 
 // The preset choices, as a clip, a theme's `defaults` and a template's arguments and options all write them. In an
-// object choice the name alone is the string form, so `preset` needs another key beside it.
+// object choice the name alone is the string form, so `preset` needs another key beside it. An object without `preset`
+// changes the choice below it, the theme's default for a clip or a weaker theme's, which resolve and the theme merge
+// check.
 enum ChoiceKeyTable {
     static let argumentsKind = "preset arguments"
     static let arguments = ValueType.map(.presetArgument, kind: argumentsKind)
@@ -15,7 +17,7 @@ enum ChoiceKeyTable {
         .object(ObjectTable(
             kind: "transition choice",
             rules: [
-                KeyRule("preset", .name, isRequired: true),
+                KeyRule("preset", .name),
                 KeyRule("seconds", .positiveNumber),
                 KeyRule("args", arguments)
             ],
@@ -61,7 +63,7 @@ enum ChoiceKeyTable {
         ObjectTable(
             kind: kind,
             rules: [
-                KeyRule("preset", .name, isRequired: true),
+                KeyRule("preset", .name),
                 KeyRule("args", arguments, isRequired: true)
             ]
         )

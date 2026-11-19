@@ -13,6 +13,7 @@ struct ClipAppearancePlanner: Sendable {
     private let filters: FilterResolver
     private let conformer = CropConformer()
     private let cropChecker = CropChecker()
+    private let choices = ClipChoiceMerger()
     // What a stroke takes where neither the clip nor its style gives it.
     private static let strokeDefaults = JSONValue.object(JSONObject(members: [
         JSONMember(key: "color", value: .string("accent")),
@@ -209,6 +210,7 @@ struct ClipAppearancePlanner: Sendable {
             shape: shape,
             filter: try filter(
                 written.filter,
+                place: written.place.appending(key: plan.kind == .adjust ? "adjust" : "filter"),
                 kind: plan.kind,
                 media: media(of: written),
                 scale: scale,
@@ -279,20 +281,32 @@ struct ClipAppearancePlanner: Sendable {
         )
     }
 
-    // A clip applies the filter it writes, or the theme's default when it takes one, and otherwise none. The clip's
-    // stops name its choice, and the default's name the theme.
+    // A clip applies the filter it writes merged over the theme's default when it takes one, the default when it
+    // writes none, and otherwise none. `place` is where the clip writes its choice. The clip's stops name its choice,
+    // and the default's name the theme.
     func filter(
-        _ written: FilterChoice?,
+        _ written: JSONValue?,
+        place: Place,
         kind: ClipKind,
         media: ClipMedia?,
         scale: Double,
         theme: MergedTheme,
         defaults: ThemeDefaults
     ) throws -> [FilterOperation] {
+        let takesDefault = takesDefaultFilter(kind, media: media)
         let operations: [FilterOperation]
         if let written {
-            operations = try filters.operations(of: written, theme: theme, kind: .clip(kind))
-        } else if takesDefaultFilter(kind, media: media) {
+            let merged = try choices.merged(
+                written,
+                over: takesDefault ? ["defaults", "filter"] : nil,
+                as: LookStructureTable.filter,
+                place: place,
+                kind: .clip(kind),
+                theme: theme
+            )
+            let choice = FilterChoice(value: merged, place: place) ?? FilterChoice(presets: [])
+            operations = try filters.operations(of: choice, theme: theme, kind: .clip(kind))
+        } else if takesDefault {
             operations = try filters.operations(of: defaults.filter, theme: theme)
         } else {
             operations = []

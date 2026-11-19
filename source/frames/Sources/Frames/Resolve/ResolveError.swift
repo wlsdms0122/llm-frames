@@ -48,6 +48,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
+    case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
+    case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
     case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case masksDiffer(place: Place, kind: PlaceKind, property: String)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
@@ -227,6 +229,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingLookLeaf(place, kind, key, .none):
             "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and no theme layer gives"
+
+        case let .partialChoiceOverNone(place, kind, .some(layer)):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, which is none here (\(layer))"
+
+        case let .partialChoiceOverNone(place, kind, .none):
+            "\(place) (\(kind.label)): a choice without a preset changes the theme's default, and this clip takes none"
+
+        case let .partialChoiceOverList(place, kind, layer):
+            "\(place) (\(kind.label)): a choice without a preset over the theme's default list (\(layer)), where which entry it changes is ambiguous"
 
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"

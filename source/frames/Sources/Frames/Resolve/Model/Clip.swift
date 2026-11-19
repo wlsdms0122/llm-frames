@@ -7,8 +7,9 @@
 
 // A connected or sequence clip as written, its keyframes on the clip's clock. `parent` is the id the clip names.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` and
-// `shadow` are a media clip's; a shape's own keys are in its content. `filter` is a media clip's `filter` or an
-// adjustment's `adjust`.
+// `shadow` are a media clip's; a shape's own keys are in its content. `animation` and `filter` are preset choices
+// as written, which resolve merges over the theme's defaults; `filter` is a media clip's `filter` or an adjustment's
+// `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -20,7 +21,7 @@ struct Clip: Equatable, Sendable {
     let parent: String?
     let placement: String?
     let anchor: String?
-    let animation: AnimationChoice?
+    let animation: JSONValue?
     let keyframes: [KeyframeInstant]
     let area: PropertyValue<AreaForm>?
     let position: PropertyValue<PositionForm>?
@@ -38,7 +39,7 @@ struct Clip: Equatable, Sendable {
     let scale: PropertyValue<Double>?
     let rotation: PropertyValue<Double>?
     let blend: String?
-    let filter: FilterChoice?
+    let filter: JSONValue?
 
     // MARK: - Initializer
     init(
@@ -51,7 +52,7 @@ struct Clip: Equatable, Sendable {
         parent: String? = nil,
         placement: String? = nil,
         anchor: String? = nil,
-        animation: AnimationChoice?,
+        animation: JSONValue?,
         keyframes: [KeyframeInstant],
         area: PropertyValue<AreaForm>? = nil,
         position: PropertyValue<PositionForm>? = nil,
@@ -69,7 +70,7 @@ struct Clip: Equatable, Sendable {
         scale: PropertyValue<Double>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
-        filter: FilterChoice? = nil
+        filter: JSONValue? = nil
     ) {
         self.place = place
         self.id = id

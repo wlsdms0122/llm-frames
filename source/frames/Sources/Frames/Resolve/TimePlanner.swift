@@ -17,6 +17,7 @@ struct TimePlanner: Sendable {
     private let themes: DocumentThemeResolver
     private let validator = ThemeValidator()
     private let values: PresetValueResolver
+    private let choices = ClipChoiceMerger()
 
     // MARK: - Initializer
     init(
@@ -294,8 +295,21 @@ struct TimePlanner: Sendable {
             return nil
         }
 
+        let place = clip.place.appending(key: "transition")
+        let written = try clip.transition.map { written in
+            let merged = try choices.merged(
+                written,
+                over: ["defaults", "transition"],
+                as: LookStructureTable.transition,
+                place: place,
+                kind: .clip(kind),
+                theme: theme
+            )
+            return TransitionChoice(value: merged, place: place) ?? .cut
+        }
+
         return try transitionPlan(
-            clip.transition ?? defaults.transition,
+            written ?? defaults.transition,
             editPoint: editPoint,
             lengths: [sources[index - 1].duration, sources[index].duration],
             place: clip.place,
@@ -417,7 +431,7 @@ struct TimePlanner: Sendable {
             window: window,
             visible: visible,
             instant: window.start,
-            animation: try animation(of: clip, kind: kind, defaults: defaults),
+            animation: try animation(of: clip, kind: kind, defaults: defaults, theme: theme),
             media: source.media,
             timing: source.timing.map { timing(of: $0, window: window, clock: clock) },
             keyframes: keyframes
@@ -613,25 +627,48 @@ struct TimePlanner: Sendable {
         return lane
     }
 
+    // A clip that names no animation takes the theme's default for its kind, or for a title its style's, and one that
+    // names a choice merges it over that default.
     private func animation(
         of clip: Clip,
         kind: ClipKind,
-        defaults: ThemeDefaults
+        defaults: ThemeDefaults,
+        theme: MergedTheme
     ) throws -> AnimationPlan {
         guard kind != .media(.audio) else { return .none }
+        guard let written = clip.animation else {
+            guard let choice = defaultAnimation(for: clip.content, in: defaults) else { return .none }
 
-        return try animationPlan(of: clip, kind: kind, defaults: defaults)
+            return try animationPlan(choice, place: clip.place, kind: kind)
+        }
+
+        let place = clip.place.appending(key: "animation")
+        let merged = try choices.merged(
+            written,
+            over: defaultAnimationPath(for: clip.content),
+            as: LookStructureTable.animation,
+            place: place,
+            kind: .clip(kind),
+            theme: theme
+        )
+
+        return try animationPlan(AnimationChoice(value: merged, place: place) ?? .none, place: clip.place, kind: kind)
     }
 
-    // A clip that names no animation takes the theme's default for its kind, or for a title its style's.
-    private func animationPlan(
-        of clip: Clip,
-        kind: ClipKind,
-        defaults: ThemeDefaults
-    ) throws -> AnimationPlan {
-        guard let choice = clip.animation ?? defaultAnimation(for: clip.content, in: defaults) else { return .none }
+    private func defaultAnimationPath(for content: ClipContent) -> [String] {
+        switch content {
+        case let .title(_, style):
+            ["defaults", "animation", "title", style]
 
-        return try animationPlan(choice, place: clip.place, kind: kind)
+        case .shape:
+            ["defaults", "animation", "shape"]
+
+        case .media:
+            ["defaults", "animation", "media"]
+
+        case .adjust:
+            ["defaults", "animation", "adjust"]
+        }
     }
 
     private func defaultAnimation(
