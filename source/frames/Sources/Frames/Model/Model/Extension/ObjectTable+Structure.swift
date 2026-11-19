@@ -15,14 +15,15 @@ extension ObjectTable {
     // A list the object holds not all zeros is a dash pattern.
     init(
         structure: ObjectStructure,
-        kind: String
+        kind: String,
+        checksDomains: Bool = true
     ) {
         self.init(
             kind: kind,
             rules: structure.keys.map { key in
                 let type = structure.nonZero.contains(key.name)
                     ? ValueType.dash(isKeyframed: false)
-                    : ValueType(structure: key.structure, kind: key.name)
+                    : ValueType(structure: key.structure, kind: key.name, checksDomains: checksDomains)
                 return KeyRule(key.name, type)
             },
             group: structure.exclusive.count == 1

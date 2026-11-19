@@ -237,10 +237,10 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, a length a theme length. Each leaf's domain is its parameter's
-    // range: `PresetReader.checkRanges` stops on a value outside it and a sample is clamped to it. A length is above 0
-    // where it holds and 0 or more once it moves, since a sampled length at 0 leaves the picture as it is. An entry
-    // written in place also takes `mix`.
+    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`.
+    // Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and a sample
+    // is clamped to it. A length is above 0 where it holds and 0 or more once it moves, since a sampled length at 0
+    // leaves the picture as it is. An entry written in place also takes `mix`.
     static func filterOperation(
         _ name: String,
         mixed: Bool = false
@@ -264,9 +264,11 @@ enum LookStructureTable {
         default: [("amount", .leaf(unit)), ("size", .leaf(length))]
         }
 
+        let required = parameters.map(\.name).filter { $0 != "color" }
+
         return mixed
-            ? .object(ObjectStructure(parameters + [("mix", mix)], plain: ["mix": .number(1)]))
-            : .object(ObjectStructure(parameters))
+            ? .object(ObjectStructure(parameters + [("mix", mix)], required: required, plain: ["mix": .number(1)]))
+            : .object(ObjectStructure(parameters, required: required))
     }
 
     // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are

@@ -160,6 +160,35 @@ struct ValueTypeStructureTests {
         })
     }
 
+    @Test("a filter op's table requires only `op`, and leaves every parameter's range to the range check")
+    func readsFilterOperations() {
+        // When
+        let tables = FilterKeyTable.operations.map(FilterKeyTable.table(for:))
+
+        // Then
+        let number = { (name: String) in KeyRule(name, .number) }
+        let parameters: [String: [KeyRule]] = [
+            "exposure": [number("ev")],
+            "contrast": [number("amount")],
+            "saturation": [number("amount")],
+            "temperature": [number("kelvin")],
+            "hue": [number("degrees")],
+            "sepia": [number("amount")],
+            "levels": [KeyRule("input", .numbers(2)), KeyRule("output", .numbers(2))],
+            "lut": [KeyRule("file", .name), number("amount")],
+            "blur": [number("radius")],
+            "sharpen": [number("amount"), number("radius")],
+            "bloom": [number("amount"), number("radius"), KeyRule("color", .color)],
+            "vignette": [number("amount"), number("radius")],
+            "pixelate": [number("size")],
+            "grain": [number("amount"), number("size")]
+        ]
+        let operation = KeyRule("op", .literal(FilterKeyTable.operations), isRequired: true)
+        #expect(tables == FilterKeyTable.operations.map { name in
+            ObjectTable(kind: name, rules: [operation] + (parameters[name] ?? []))
+        })
+    }
+
     // MARK: - Private
     private static let gradient = ValueType.object(ObjectTable(
         kind: "gradient",

@@ -7,7 +7,8 @@
 
 // The key check's type of a look value, read from its structure, so the key check and the look merge read one
 // declaration of its keys and domains. `kind` names the value in messages. A domain the key check has no type for, as a
-// compressor's `ratio` or a band's `frequency`, is checked by resolve alone.
+// compressor's `ratio` or a band's `frequency`, is checked by resolve alone. Without `checksDomains` every number is
+// any number, for a value whose domains have another owner.
 extension ValueType {
     // MARK: - Property
     // MARK: - Initializer
@@ -16,33 +17,37 @@ extension ValueType {
     // a look is an `eq` band, an object its type's table checks.
     init(
         structure: ValueStructure,
-        kind: String
+        kind: String,
+        checksDomains: Bool = true
     ) {
         switch structure {
         case .anyValue, .tuple:
             self = .anyValue
 
         case let .leaf(leaf):
-            self = Self.type(of: leaf)
+            self = Self.type(of: leaf, checksDomain: checksDomains)
 
         case let .object(object):
-            self = .object(ObjectTable(structure: object, kind: kind))
+            self = .object(ObjectTable(structure: object, kind: kind, checksDomains: checksDomains))
 
         case let .map(element):
-            self = .map(ValueType(structure: element, kind: kind), kind: kind)
+            self = .map(ValueType(structure: element, kind: kind, checksDomains: checksDomains), kind: kind)
 
         case .list(.tuple):
             self = .stops(isKeyframed: false)
 
         case let .list(element):
-            self = .list(ValueType(structure: element, kind: kind))
+            self = .list(ValueType(structure: element, kind: kind, checksDomains: checksDomains))
 
         case let .forms(forms):
             let named = forms.filter { $0.name != ValueStructure.colorForm }
             let object = ValueType.object(ObjectTable(
                 kind: kind,
                 rules: named.map { form in
-                    KeyRule(form.name, ValueType(structure: form.structure, kind: "\(form.name) \(kind)"))
+                    KeyRule(
+                        form.name,
+                        ValueType(structure: form.structure, kind: "\(form.name) \(kind)", checksDomains: checksDomains)
+                    )
                 },
                 group: KeyGroup(keys: named.map(\.name), isExclusive: true)
             ))
@@ -79,7 +84,10 @@ extension ValueType {
     // MARK: - Public
     // MARK: - Private
     // A range from 0 to 1 is a fraction, and any other range is checked by resolve.
-    private static func type(of leaf: LeafKind) -> ValueType {
+    private static func type(
+        of leaf: LeafKind,
+        checksDomain: Bool
+    ) -> ValueType {
         switch leaf.form {
         case .color:
             return .color
@@ -97,6 +105,8 @@ extension ValueType {
             return .numbers(count)
 
         case .number, .staticNumber:
+            guard checksDomain else { return .number }
+
             switch leaf.domain {
             case .any:
                 return .number
