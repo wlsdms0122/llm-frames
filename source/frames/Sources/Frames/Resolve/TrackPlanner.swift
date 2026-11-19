@@ -15,7 +15,7 @@ struct TrackPlanner: Sendable {
     // Sequence times are sums and quotients of media times, so a frame boundary may miss an edit point by rounding.
     private static let tolerance = 1e-9
 
-    private let tracker: any TrackerProvider
+    private let follower: TargetFollower
     private let finder: AreaFinder
 
     // MARK: - Initializer
@@ -24,7 +24,7 @@ struct TrackPlanner: Sendable {
         ocr: any OCRProvider,
         languages: [LanguageTag]? = nil
     ) {
-        self.tracker = tracker
+        self.follower = TargetFollower(tracker: tracker)
         self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
@@ -330,9 +330,13 @@ struct TrackPlanner: Sendable {
         let lastShown = shown.max() ?? target.mediaTime
         let firstNeeded = file.frameTime(at: min(firstShown, target.mediaTime)) ?? firstShown
         let lastNeeded = max(lastShown, target.mediaTime)
-        let quad = Quad(target.target)
         let frames = try Result {
-            try tracker.track(quad, in: file, atMediaTime: target.mediaTime, over: firstNeeded...lastNeeded)
+            try follower.follow(
+                target.target,
+                in: file,
+                atMediaTime: target.mediaTime,
+                over: firstNeeded...lastNeeded
+            )
         }
         .mapError { error in
             ProviderError.failed(
@@ -345,7 +349,7 @@ struct TrackPlanner: Sendable {
             )
         }
         .get()
-        let track = Track(target: quad, mediaTime: target.mediaTime, frames: frames)
+        let track = Track(target: Quad(target.target), mediaTime: target.mediaTime, frames: frames)
         guard let first = frames.first, let last = frames.last else {
             return (track, TimeRange(start: instant, end: instant))
         }
