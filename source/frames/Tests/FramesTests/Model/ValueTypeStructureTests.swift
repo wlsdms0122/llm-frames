@@ -115,7 +115,7 @@ struct ValueTypeStructureTests {
         ])
     }
 
-    @Test("an audio op's table requires only `op` and a band's only `type`, each parameter in the domain the key check has")
+    @Test("an audio op's table requires only `op` and a band's only `type`, and leaves every parameter's domain to the domain check")
     func readsAudioOperations() {
         // When
         let tables = AudioFilterKeyTable.operations.map(AudioFilterKeyTable.table(for:))
@@ -131,9 +131,9 @@ struct ValueTypeStructureTests {
                     operation,
                     KeyRule("threshold", .number),
                     KeyRule("ratio", .number),
-                    KeyRule("knee", .nonNegativeNumber),
-                    KeyRule("attack", .positiveNumber),
-                    KeyRule("release", .positiveNumber),
+                    KeyRule("knee", .number),
+                    KeyRule("attack", .number),
+                    KeyRule("release", .number),
                     KeyRule("makeup", .number)
                 ]
             ),
@@ -143,9 +143,9 @@ struct ValueTypeStructureTests {
                     operation,
                     KeyRule("threshold", .number),
                     KeyRule("range", .number),
-                    KeyRule("attack", .positiveNumber),
-                    KeyRule("hold", .nonNegativeNumber),
-                    KeyRule("release", .positiveNumber)
+                    KeyRule("attack", .number),
+                    KeyRule("hold", .number),
+                    KeyRule("release", .number)
                 ]
             )
         ])

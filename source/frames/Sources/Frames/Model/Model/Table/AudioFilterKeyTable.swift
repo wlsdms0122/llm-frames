@@ -7,7 +7,8 @@
 
 // The keys of an audio op and of an `eq` band, by the op or the band's `type`, read from their look structures. Only
 // the form key is required here: the keys an op or a band requires are required of the merged value, since keyframes
-// may give them in place of the clip.
+// may give them in place of the clip. Their domains are checked by `ValueStructure.checkDomains(of:place:sampled:)`,
+// which lets a leaf a sampled argument fills take any value its samples take, so every number here is any number.
 enum AudioFilterKeyTable {
     static let kind = "audio filter choice"
     static let operations = ["eq", "compressor", "gate"]
@@ -36,6 +37,6 @@ enum AudioFilterKeyTable {
     ) -> [KeyRule] {
         guard case let .object(object)? = structure else { return [] }
 
-        return ObjectTable(structure: object, kind: kind).rules
+        return ObjectTable(structure: object, kind: kind, checksDomains: false).rules
     }
 }

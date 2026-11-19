@@ -158,17 +158,51 @@ struct AudioFilterTests {
         }
     }
 
-    @Test("an op's parameter outside its domain stops at the key check where it is written")
+    @Test("an op's parameter outside its domain passes the key check and stops where the clip writes it")
     func refusesParameterOutsideDomain() throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "gate", "threshold": -40, "attack": 0 } } ] }
             """#
+        try checker.check(document: Fixture.json(document))
 
         // When, Then
-        let error = #expect(throws: ModelError.self) { try checker.check(document: Fixture.json(document)) }
-        #expect(error?.description == "clips[0].audioFilter.attack (gate): expected a number above 0, found 0")
+        let error = #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "attack"), value: 0)) {
+            try plan(document)
+        }
+        #expect(error?.description == "clips[0].audioFilter.attack: 0.0 is outside the values this leaf takes")
+    }
+
+    @Test("a preset argument two keyframes write may put an attack at 0 at one of them, and one keyframe may not")
+    func takesSampledAttackAtZero() throws {
+        // Given
+        let clip = { (keyframes: String) in
+            #"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": "mine/gate", "keyframes": \#(keyframes) } ] }
+                """#
+        }
+
+        // When
+        let plan = try plan(clip(#"[ { "at": 0, "audioFilter": { "args": { "attack": 0.01 } } }, { "at": 2, "audioFilter": { "args": { "attack": 0 } } } ]"#))
+
+        // Then
+        let filter = plan.sound[1].audioFilter.sampled(at: 1, as: LookStructureTable.resolvedAudioFilter)
+        guard case let .list(entries) = filter, let entry = entries.first else {
+            Issue.record("expected an entry, got \(filter)")
+            return
+        }
+        let gate = try #require(operation(of: entry))
+        #expect(gate.body["attack"]?.number == 0.005)
+        let error = #expect(throws: PresetError.self) {
+            try self.plan(clip(#"[ { "at": 0, "audioFilter": { "args": { "attack": 0 } } } ]"#))
+        }
+        guard case let .rejectedArguments(place, _, _, _) = error else {
+            Issue.record("expected rejected arguments, got \(String(describing: error))")
+            return
+        }
+        #expect(place == self.clip.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter"))
     }
 
     @Test("a preset entry is its preset's ops with its arguments in place and their defaults written, and its mix")
