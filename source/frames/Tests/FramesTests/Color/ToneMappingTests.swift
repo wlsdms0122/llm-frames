@@ -19,7 +19,7 @@ struct ToneMappingTests {
     @Test("500 cd/m² from a 1000 cd/m² source maps by the BT.2390 knee to 198.856 cd/m²")
     func mapsAboveKnee() {
         // Given
-        let sut = ToneMapping(sourcePeak: 1000)
+        let sut = ToneMapping(sourcePeak: 1000, targetPeak: 203)
         let light = RGB(red: 500, green: 500, blue: 500)
 
         // When
@@ -38,7 +38,7 @@ struct ToneMappingTests {
         expected: Double
     ) {
         // Given
-        let sut = ToneMapping(sourcePeak: 1000)
+        let sut = ToneMapping(sourcePeak: 1000, targetPeak: 203)
 
         // When
         let mapped = sut.mapped(RGB(red: light, green: light, blue: light))
@@ -50,7 +50,7 @@ struct ToneMappingTests {
     @Test("the hue is kept by scaling every channel by the ratio of max(R, G, B)")
     func keepsHue() {
         // Given
-        let sut = ToneMapping(sourcePeak: 1000)
+        let sut = ToneMapping(sourcePeak: 1000, targetPeak: 203)
         let light = RGB(red: 500, green: 250, blue: 50)
 
         // When
@@ -80,9 +80,43 @@ struct ToneMappingTests {
         let peak = masteringDisplayPeak
 
         // When
-        let sut = ToneMapping(space: space, masteringDisplayPeak: peak)
+        let sut = ToneMapping(space: space, masteringDisplayPeak: peak, targetPeak: 203)
 
         // Then
         #expect(sut.sourcePeak == expected)
+    }
+
+    @Test(
+        "an HDR target peak maps a brighter source's peak to it and keeps a source at or below it",
+        arguments: [(10000.0, 10000.0, 1000.0), (1000.0, 1000.0, 1000.0), (1000.0, 600.0, 600.0)]
+    )
+    func mapsToHDRTarget(
+        sourcePeak: Double,
+        light: Double,
+        expected: Double
+    ) {
+        // Given
+        let sut = ToneMapping(sourcePeak: sourcePeak, targetPeak: 1000)
+
+        // When
+        let mapped = sut.mapped(RGB(red: light, green: light, blue: light))
+
+        // Then
+        #expect(abs(mapped.red - expected) < 1e-6)
+    }
+
+    @Test(
+        "each colour space's peak: reference white for SDR, 1000 cd/m² for HLG and 10000 cd/m² for PQ",
+        arguments: [
+            (ColorSpace.srgb, 203.0), (.displayP3, 203), (.rec2020, 203), (.rec709, 203), (.rec2100HLG, 1000),
+            (.rec2100PQ, 10000)
+        ]
+    )
+    func givesPeak(
+        space: ColorSpace,
+        expected: Double
+    ) {
+        // When, Then
+        #expect(space.peakLuminance == expected)
     }
 }

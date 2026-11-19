@@ -47,11 +47,12 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
         transferFunction == nil
     }
 
-    // The display light an HDR space holds, in cd/m², nil for an SDR space.
-    package var peakLuminance: Double? {
+    // The peak of an output in this space, in cd/m²: reference white for an SDR space, and the most display light an
+    // HDR space holds. An HDR picture is tone mapped to it.
+    package var peakLuminance: Double {
         switch self {
         case .srgb, .displayP3, .rec2020, .rec709:
-            nil
+            ColorConversion.referenceWhite
 
         case .rec2100PQ:
             PerceptualQuantizer.peakLuminance

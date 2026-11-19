@@ -8,35 +8,40 @@
 import Foundation
 
 // The EETF of BT.2390 on max(R, G, B) of display light, RGB scaled by the ratio it gives so the hue is kept: from a
-// source peak to a target peak of 203 cd/m², working value 1, with a source and a target black of 0.
+// source peak to a target peak, the peak of the sequence's colour space, with a source and a target black of 0. A
+// source at or below the target peak is kept as it is.
 package struct ToneMapping: Equatable, Sendable {
     // MARK: - Property
-    package static let targetPeak = 203.0
-
     private static let quantizer = PerceptualQuantizer()
 
     package let sourcePeak: Double
+    package let targetPeak: Double
     package let sourceBlack = 0.0
     package let targetBlack = 0.0
 
     // MARK: - Initializer
-    // `sourcePeak` in cd/m², at most 10000.
-    package init(sourcePeak: Double) {
+    // Both peaks in cd/m², each at most 10000.
+    package init(
+        sourcePeak: Double,
+        targetPeak: Double
+    ) {
         self.sourcePeak = min(sourcePeak, PerceptualQuantizer.peakLuminance)
+        self.targetPeak = min(targetPeak, PerceptualQuantizer.peakLuminance)
     }
 
     // The source peak of an HDR picture in `space`: for PQ the maximum luminance of its mastering display, or 1000
     // cd/m² where it has none, and for HLG 1000 cd/m², its OOTF's peak.
     package init(
         space: ColorSpace,
-        masteringDisplayPeak: Double?
+        masteringDisplayPeak: Double?,
+        targetPeak: Double
     ) {
         switch space {
         case .rec2100PQ:
-            self.init(sourcePeak: masteringDisplayPeak ?? HybridLogGamma.nominalPeakLuminance)
+            self.init(sourcePeak: masteringDisplayPeak ?? HybridLogGamma.nominalPeakLuminance, targetPeak: targetPeak)
 
         default:
-            self.init(sourcePeak: HybridLogGamma.nominalPeakLuminance)
+            self.init(sourcePeak: HybridLogGamma.nominalPeakLuminance, targetPeak: targetPeak)
         }
     }
 
@@ -58,11 +63,11 @@ package struct ToneMapping: Equatable, Sendable {
 
         let e1 = min(max(normalized(luminance), 0), 1)
         let minimumLuminance = normalized(targetBlack)
-        let maximumLuminance = normalized(Self.targetPeak)
+        let maximumLuminance = normalized(targetPeak)
         let kneeStart = 1.5 * maximumLuminance - 0.5
 
         let e2: Double
-        if sourcePeak <= Self.targetPeak || e1 < kneeStart {
+        if sourcePeak <= targetPeak || e1 < kneeStart {
             e2 = e1
         } else {
             let t = (e1 - kneeStart) / (1 - kneeStart)

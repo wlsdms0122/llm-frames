@@ -98,8 +98,9 @@ package struct ColorConversion: Equatable, Sendable {
         TransferFunction.sRGB.encode(Self.fromBT2020.applied(to: displayLight.scaled(by: 1 / Self.referenceWhite)))
     }
 
-    // The working value of an HDR picture's encoded value, tone mapped to SDR. Nothing is clipped: every channel of
-    // the mapped display light is at most the target peak, and gamut is clipped at the output.
+    // The working value of an HDR picture's encoded value, tone mapped to the mapping's target peak. Nothing is
+    // clipped: every channel of the mapped display light is at most the target peak, and gamut is clipped at the
+    // output.
     package func toneMapped(
         _ encoded: RGB,
         by toneMapping: ToneMapping
@@ -117,6 +118,6 @@ package struct ColorConversion: Equatable, Sendable {
     private func displayLight(ofWorking working: RGB) -> RGB {
         let light = Self.toBT2020.applied(to: TransferFunction.sRGB.decode(working)).scaled(by: Self.referenceWhite)
 
-        return light.clipped(to: 0...(space.peakLuminance ?? PerceptualQuantizer.peakLuminance))
+        return light.clipped(to: 0...space.peakLuminance)
     }
 }

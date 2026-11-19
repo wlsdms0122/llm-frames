@@ -114,14 +114,14 @@ struct ColorConversionTests {
         let light = sut.displayLight(sut.encoded(bright))
 
         // Then
-        #expect(abs(light.green - (space.peakLuminance ?? 0)) < 1e-6)
+        #expect(abs(light.green - space.peakLuminance) < 1e-6)
     }
 
     @Test("a tone mapped HLG reference white stays below SDR white and keeps grey")
     func toneMapsHLG() {
         // Given
         let sut = ColorConversion(space: .rec2100HLG)
-        let mapping = ToneMapping(space: .rec2100HLG, masteringDisplayPeak: nil)
+        let mapping = ToneMapping(space: .rec2100HLG, masteringDisplayPeak: nil, targetPeak: 203)
 
         // When
         let working = sut.toneMapped(RGB(red: 0.75, green: 0.75, blue: 0.75), by: mapping)
