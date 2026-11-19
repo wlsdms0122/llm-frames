@@ -85,7 +85,7 @@ struct ClipEvaluator: Sendable {
             // A title carries its box.
             guard let box = clip.box else { return [] }
 
-            let glyphs = GlyphsItem(text: text)
+            let glyphs = GlyphsItem(text: text, at: time)
             return [boxItem(
                 of: clip,
                 box: box,

@@ -185,8 +185,24 @@ struct ResolvedDocumentWriterTests {
                     "sha256": "41aa0c9e5d17",
                     "face": "Apple SD Gothic Neo-bold",
                     "size": 20.25,
-                    "color": "#FFFFFFFF",
+                    "color": [
+                      {
+                        "at": 0,
+                        "value": "#FFFFFFFF",
+                        "ease": "linear"
+                      }
+                    ],
                     "stroke": null,
+                    "baselineShift": [
+                      {
+                        "at": 0,
+                        "value": 0,
+                        "ease": "linear"
+                      }
+                    ],
+                    "tracking": null,
+                    "highlight": null,
+                    "underline": null,
                     "glyphs": [
                       [72, 9, 20.7],
                       [105, 19.125, 20.7]

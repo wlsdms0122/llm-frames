@@ -395,6 +395,10 @@ struct ResolvedValueReader: Sendable {
         try value.elements().map(run)
     }
 
+    func drawnRuns(_ value: PlacedJSONValue) throws -> [DrawnGlyphRun] {
+        try value.elements().map(drawnRun)
+    }
+
     // MARK: - Private
     private func leaf(
         _ value: PlacedJSONValue,
@@ -423,11 +427,53 @@ struct ResolvedValueReader: Sendable {
         )
     }
 
-    // A glyph is `[id, x, y]`, its baseline origin in the text's box.
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
-        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
+        let run = try value.object(keys: [
+            "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight", "underline",
+            "glyphs"
+        ])
+        let length = ValueStructure.leaf(.length(.any))
 
         return ResolvedGlyphRun(
+            font: try pinned(run),
+            face: try run.member("face").string(),
+            size: try run.member("size").number(),
+            color: try timed(run.member("color"), as: .leaf(.color)),
+            stroke: try timed(run.member("stroke"), as: LookStructureTable.textStroke, kind: "stroke"),
+            baselineShift: try timed(run.member("baselineShift"), as: length),
+            tracking: try timed(run.member("tracking"), as: length),
+            highlight: try run.member("highlight").optional { value in
+                let highlight = try value.object(kind: "highlight", keys: ["color", "padding", "radius", "rects"])
+
+                return ResolvedHighlight(
+                    color: try timed(highlight.member("color"), as: .leaf(.color)),
+                    padding: try timed(highlight.member("padding"), as: .leaf(.lengths(count: 2, domain: .nonNegative))),
+                    radius: try timed(highlight.member("radius"), as: length),
+                    rects: try highlight.member("rects").elements().map(rectangle)
+                )
+            },
+            underline: try run.member("underline").optional { value in
+                let underline = try value.object(kind: "underline", keys: ["color", "width", "offset", "rects"])
+
+                return ResolvedUnderline(
+                    color: try timed(underline.member("color"), as: .leaf(.color)),
+                    width: try timed(underline.member("width"), as: length),
+                    offset: try timed(underline.member("offset"), as: length),
+                    rects: try underline.member("rects").elements().map { element in
+                        let numbers = try element.numbers(count: 3)
+
+                        return UnderlinePiece(x: numbers[0], y: numbers[1], width: numbers[2])
+                    }
+                )
+            },
+            glyphs: try glyphs(run.member("glyphs"))
+        )
+    }
+
+    private func drawnRun(_ value: PlacedJSONValue) throws -> DrawnGlyphRun {
+        let run = try value.object(keys: ["file", "sha256", "face", "size", "color", "stroke", "glyphs"])
+
+        return DrawnGlyphRun(
             font: try pinned(run),
             face: try run.member("face").string(),
             size: try run.member("size").number(),
@@ -437,13 +483,18 @@ struct ResolvedValueReader: Sendable {
 
                 return TextStroke(width: try stroke.member("width").number(), color: try color(stroke.member("color")))
             },
-            glyphs: try run.member("glyphs").elements().map { element in
-                let numbers = try element.numbers(count: 3)
-                guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }
-
-                return PositionedGlyph(id: id, x: numbers[1], y: numbers[2])
-            }
+            glyphs: try glyphs(run.member("glyphs"))
         )
+    }
+
+    // A glyph is `[id, x, y]`, its baseline origin in the text's box.
+    private func glyphs(_ value: PlacedJSONValue) throws -> [PositionedGlyph] {
+        try value.elements().map { element in
+            let numbers = try element.numbers(count: 3)
+            guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }
+
+            return PositionedGlyph(id: id, x: numbers[1], y: numbers[2])
+        }
     }
 
     // `op` names the operation, and the rest of its keys are its values.

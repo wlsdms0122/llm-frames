@@ -89,17 +89,89 @@ struct TitleKeyframeTests {
         #expect(error.map(String.init(describing:)) == #"clips[0].keyframes[0].character (keyframe): null stands for a leaf, not for an object or a list"#)
     }
 
+    @Test("a resolved run carries its colour, stroke, baseline shift, highlight and underline timed, and reads back as written")
+    func roundTripsRuns() throws {
+        // Given
+        let text = try resolvedText(##"""
+            { "title": "a b", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "padding": [2, 4] }, "underline": true },
+              "keyframes": [ { "at": 0, "character": { "color": "accent", "baselineShift": 0, "highlight": { "radius": 0 } }, "ease": "ease-in" },
+                             { "at": 1, "character": { "color": "#FFFFFF", "baselineShift": 10, "highlight": { "radius": 6 } } } ] }
+            """##)
+        let writer = ResolvedValueWriter()
+        let reader = ResolvedValueReader()
+
+        // When
+        let read = try reader.runs(PlacedJSONValue(writer.runs(text.runs), place: .root, kind: "title"))
+
+        // Then
+        let run = try #require(text.runs.first)
+        #expect(run.color == .track([
+            Keyframe(at: 0, value: .color(Color(written: "#FFD43B")), ease: .easeIn),
+            Keyframe(at: 1, value: .color(Color(written: "#FFFFFF")))
+        ]))
+        #expect(run.highlight?.rects.count == 1)
+        #expect(run.highlight?.padding == .track([Keyframe(at: 0, value: .numbers([2, 4]))]))
+        #expect(read == text.runs)
+    }
+
+    @Test("`underline: true` takes its width and offset from the face's `post` underline at the run's size, and the run's colour")
+    func takesUnderlineFromFace() throws {
+        // When
+        let text = try resolvedText(#"""
+            { "title": "a", "style": "caption", "position": [400, 225], "character": { "underline": true },
+              "keyframes": [ { "at": 0, "character": { "color": "#FF0000" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
+            """#)
+
+        // Then
+        let underline = try #require(text.runs.first?.underline)
+        #expect(underline.width == .track([Keyframe(at: 0, value: .number(2))]))
+        #expect(underline.offset == .track([Keyframe(at: 0, value: .number(4))]))
+        #expect(underline.color == text.runs.first?.color)
+        #expect(underline.rects.map(\.width) == [20])
+    }
+
+    @Test("evaluation raises a run's glyphs by its baseline shift at each instant")
+    func raisesGlyphsByBaselineShift() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "baselineShift": 0 } }, { "at": 1, "character": { "baselineShift": 10 } } ] }
+            """#)
+        let run = try #require(text.runs.first)
+
+        // When
+        let sut = DrawnGlyphRun(run: run, at: 0.5)
+
+        // Then
+        #expect(sut.glyphs.map(\.y) == run.glyphs.map { $0.y - 5 })
+    }
+
     // MARK: - Private
+    private func resolvedText(_ clip: String) throws -> ResolvedText {
+        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
+        let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
+        guard case let .title(text) = clips.first?.content else {
+            Issue.record("the clip is a title")
+            return ResolvedText(size: Size(width: 0, height: 0), background: nil, runs: [])
+        }
+
+        return text
+    }
+
     private func title(_ clip: String) throws -> TitlePlan {
-        let document = #"""
+        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
+
+        return try #require(plan.clips[0].title)
+    }
+
+    private func document(_ clip: String) -> String {
+        #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "colors": { "accent": "#FFD43B" },
                          "styles": { "caption": { "size": 40, "color": "#000000", "stroke": { "width": 4, "color": "#000000" } },
                                      "small": { "size": 20, "color": "#FF0000" } } },
               "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
             """#
-        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
-
-        return try #require(plan.clips[0].title)
     }
 }

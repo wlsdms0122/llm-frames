@@ -120,7 +120,7 @@ struct DisplayListReaderTests {
             opacity: 0.75,
             content: .glyphs(GlyphsItem(
                 size: Size(width: 120, height: 48),
-                runs: [ResolvedGlyphRun(
+                runs: [DrawnGlyphRun(
                     font: PinnedFile(path: "/abs/Inter.ttf", sha256: hash),
                     face: "Inter-Bold",
                     size: 32,

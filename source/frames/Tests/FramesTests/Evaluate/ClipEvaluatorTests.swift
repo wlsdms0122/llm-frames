@@ -57,7 +57,7 @@ struct ClipEvaluatorTests {
             transform: AffineTransform(a: 0.75, b: 0, c: 0, d: 0.75, tx: 62.5, ty: 170),
             opacity: 0.4,
             reveal: Rectangle(x: 0, y: 20, width: 100, height: 20),
-            content: .glyphs(GlyphsItem(text: text))
+            content: .glyphs(GlyphsItem(text: text, at: 0.5))
         )])
     }
 

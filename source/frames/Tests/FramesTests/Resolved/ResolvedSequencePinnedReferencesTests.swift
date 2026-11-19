@@ -206,8 +206,12 @@ struct ResolvedSequencePinnedReferencesTests {
             font: font,
             face: "Font-Bold",
             size: 20,
-            color: Color(written: "#FFFFFF"),
-            stroke: nil,
+            color: .track([Keyframe(at: 0, value: .color(Color(written: "#FFFFFF")))]),
+            stroke: .off,
+            baselineShift: .off,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 0, y: 16)]
         )
 

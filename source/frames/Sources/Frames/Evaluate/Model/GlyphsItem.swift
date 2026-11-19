@@ -9,13 +9,13 @@
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
-    package let runs: [ResolvedGlyphRun]
+    package let runs: [DrawnGlyphRun]
     package let background: GlyphBackground?
 
     // MARK: - Initializer
     package init(
         size: Size,
-        runs: [ResolvedGlyphRun],
+        runs: [DrawnGlyphRun],
         background: GlyphBackground?
     ) {
         self.size = size
@@ -23,11 +23,14 @@ package struct GlyphsItem: Equatable, Sendable {
         self.background = background
     }
 
-    // Shaped text in its own box. Its background fills the whole box, which holds the background's padding.
-    init(text: ResolvedText) {
+    // Shaped text in its own box at `time`. Its background fills the whole box, which holds the background's padding.
+    init(
+        text: ResolvedText,
+        at time: Double
+    ) {
         self.init(
             size: text.size,
-            runs: text.runs,
+            runs: text.runs.map { run in DrawnGlyphRun(run: run, at: time) },
             background: text.background.map { background in
                 GlyphBackground(
                     rectangle: Rectangle(x: 0, y: 0, width: text.size.width, height: text.size.height),

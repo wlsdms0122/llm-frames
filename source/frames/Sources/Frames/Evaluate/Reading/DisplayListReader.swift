@@ -357,7 +357,7 @@ package struct DisplayListReader: Sendable {
     private func glyphs(_ item: PlacedJSONObject) throws -> GlyphsItem {
         GlyphsItem(
             size: try values.size(item.member("size")),
-            runs: try values.runs(item.member("runs")),
+            runs: try values.drawnRuns(item.member("runs")),
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 

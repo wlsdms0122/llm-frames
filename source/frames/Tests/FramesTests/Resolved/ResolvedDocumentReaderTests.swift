@@ -199,7 +199,15 @@ struct ResolvedDocumentReaderTests {
             Issue.record("the first clip is not a title")
             return
         }
-        #expect(title.runs.map(\.stroke) == [TextStroke(width: 3, color: Color(written: "#000000")), nil, nil])
+        let black = TimedValue.track([Keyframe(at: 0, value: .color(Color(written: "#000000")))])
+        #expect(title.runs.map(\.stroke) == [
+            .object([
+                TimedMember(key: "width", value: .track([Keyframe(at: 0, value: .number(3))])),
+                TimedMember(key: "color", value: black)
+            ]),
+            .off,
+            .off
+        ])
     }
 
     @Test(

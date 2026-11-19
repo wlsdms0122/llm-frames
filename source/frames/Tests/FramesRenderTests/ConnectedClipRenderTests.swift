@@ -241,7 +241,7 @@ struct ConnectedClipRenderTests {
                     content: .glyphs(GlyphsItem(
                         size: glyphs.size,
                         runs: glyphs.runs.map { run in
-                            ResolvedGlyphRun(
+                            DrawnGlyphRun(
                                 font: run.font,
                                 face: run.face,
                                 size: run.size,

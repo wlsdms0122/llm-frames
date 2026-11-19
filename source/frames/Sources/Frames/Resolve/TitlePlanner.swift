@@ -51,13 +51,22 @@ struct TitlePlanner: Sendable {
             }
 
             let merged = try merged(title.character, style: runStyle, looks: looks)
-            let style = theme.characterStyle(of: json(merged, as: character), scale: looks.scale)
+            let written = json(merged, as: character)
+            let style = theme.characterStyle(of: written, scale: looks.scale)
             let origin = fontList(of: title, runStyle: runStyle, clip: looks.place, pack: pack, theme: theme, kind: kind)
             let runFaces = try faces[runStyle] ?? fonts.faces(for: style, from: origin)
             faces[runStyle] = runFaces
 
             textRuns.append(TextRun(text: run.text, style: style, faces: runFaces))
-            characters.append(try timed(merged, of: title.character, key: "character", as: character, looks: looks))
+            let defaults = self.defaults(over: written, face: runFaces[0])
+            characters.append(try timed(
+                merged,
+                of: title.character,
+                key: "character",
+                as: character,
+                defaults: defaults,
+                looks: looks
+            ))
         }
 
         let sized = json(try merged(title.character, style: title.style, looks: looks), as: character)
@@ -94,11 +103,43 @@ struct TitlePlanner: Sendable {
         of property: LookProperty?,
         key: String,
         as structure: ValueStructure,
+        defaults: JSONValue? = nil,
         looks: ClipLookPlanner
     ) throws -> TimedValue {
         guard let merged else { return .off }
 
-        return try looks.timed(property, key: key, over: merged, as: structure)
+        return try looks.timed(property, key: key, over: merged, as: structure, defaults: defaults)
+    }
+
+    // What a run's character attributes take where no layer gives them, in theme lengths: the `text` colour and no
+    // baseline shift; a stroke the `text` colour; a highlight the `background` colour, no padding and no radius; an
+    // underline the thickness and the position of the face's `post` underline at the run's size. Each of the last
+    // three only where it is on, since a default would turn it on.
+    private func defaults(
+        over written: JSONObject,
+        face: FontFace
+    ) -> JSONValue {
+        let size = written["size"]?.numberValue ?? 0
+        let members = [
+            JSONMember(key: "color", value: .string("text")),
+            JSONMember(key: "baselineShift", value: .number(0)),
+            JSONMember(key: "stroke", value: .object(JSONObject(members: [
+                JSONMember(key: "color", value: .string("text"))
+            ]))),
+            JSONMember(key: "highlight", value: .object(JSONObject(members: [
+                JSONMember(key: "color", value: .string("background")),
+                JSONMember(key: "padding", value: .array([.number(0), .number(0)])),
+                JSONMember(key: "radius", value: .number(0))
+            ]))),
+            JSONMember(key: "underline", value: .object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(face.underlineThickness * size)),
+                JSONMember(key: "offset", value: .number(face.underlineOffset * size))
+            ])))
+        ]
+
+        return .object(JSONObject(members: members.filter { member in
+            member.value.objectValue == nil || written[member.key]?.objectValue != nil
+        }))
     }
 
     private func json(

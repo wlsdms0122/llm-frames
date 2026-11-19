@@ -623,7 +623,7 @@ struct EvaluatorTests {
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
-        #expect(item.content == .glyphs(GlyphsItem(text: text)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, at: time)))
     }
 
     @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")
@@ -1409,8 +1409,12 @@ struct EvaluatorTests {
             font: PinnedFile(path: "/abs/font.ttf", sha256: String(repeating: "0", count: 64)),
             face: "Font-Bold",
             size: 30,
-            color: white,
-            stroke: nil,
+            color: .track([Keyframe(at: 0, value: .color(white))]),
+            stroke: .off,
+            baselineShift: .off,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
             glyphs: [PositionedGlyph(id: 1, x: 8, y: 34)]
         )
     }
