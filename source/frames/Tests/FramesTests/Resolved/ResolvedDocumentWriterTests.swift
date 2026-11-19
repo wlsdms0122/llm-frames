@@ -208,6 +208,7 @@ struct ResolvedDocumentWriterTests {
                   }
                 ],
                 "lines": null,
+                "units": null,
                 "runs": [
                   {
                     "source": 0,

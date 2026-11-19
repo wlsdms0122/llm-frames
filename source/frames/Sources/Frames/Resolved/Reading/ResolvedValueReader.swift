@@ -377,7 +377,7 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "align", "lineHeight", "lines", "runs"
+            "size", "textBox", "width", "background", "align", "lineHeight", "lines", "units", "runs"
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
@@ -405,6 +405,17 @@ struct ResolvedValueReader: Sendable {
                         width: try line.member("width").number(),
                         baseline: try line.member("baseline").number(),
                         clusters: try line.member("clusters").elements().map(glyphRange)
+                    )
+                }
+            },
+            units: try text.member("units").optional { value in
+                try value.elements().map { element in
+                    let unit = try element.object(keys: ["box", "glyphs", "parts"])
+
+                    return PlacedUnit(
+                        glyphs: try unit.member("glyphs").elements().map(glyphRange),
+                        box: try rectangle(unit.member("box")),
+                        parts: try unit.member("parts").elements().map(unitPart)
                     )
                 }
             },
@@ -563,6 +574,15 @@ struct ResolvedValueReader: Sendable {
     }
 
     // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.
+    private func unitPart(_ value: PlacedJSONValue) throws -> UnitPart {
+        let numbers = try value.numbers(count: 4)
+        guard let run = Int(exactly: numbers[0]), let piece = Int(exactly: numbers[1]), numbers[2] <= numbers[3] else {
+            throw value.wrongType("[run, piece, x0, x1]")
+        }
+
+        return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
+    }
+
     private func glyphRange(_ value: PlacedJSONValue) throws -> GlyphRange {
         let numbers = try value.numbers(count: 3)
         guard

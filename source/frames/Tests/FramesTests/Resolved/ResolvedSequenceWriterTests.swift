@@ -126,7 +126,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
-        #expect(title.keys == ["size", "textBox", "width", "background", "align", "lineHeight", "lines", "runs"])
+        #expect(title.keys == ["size", "textBox", "width", "background", "align", "lineHeight", "lines", "units", "runs"])
         #expect(run.keys == [
             "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight", "underline",
             "glyphs"

@@ -251,7 +251,8 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
-    // underline pieces, and each glyph as `[id, x, y]`, its baseline origin in the text's box.
+    // underline pieces, and each glyph as `[id, x, y]`, its baseline origin in the text's box. A unit's part is
+    // `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
@@ -273,6 +274,20 @@ struct ResolvedValueWriter: Sendable {
             })
         }
 
+        let units = text.units.map { units in
+            JSONValue.array(units.map { unit in
+                .object(JSONObject(members: [
+                    JSONMember(key: "box", value: rectangle(unit.box)),
+                    JSONMember(key: "glyphs", value: .array(unit.glyphs.map { glyphs in
+                        numbers([Double(glyphs.run), Double(glyphs.first), Double(glyphs.count)])
+                    })),
+                    JSONMember(key: "parts", value: .array(unit.parts.map { part in
+                        numbers([Double(part.run), Double(part.piece), part.span.lowerBound, part.span.upperBound])
+                    }))
+                ]))
+            })
+        }
+
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
             JSONMember(key: "textBox", value: rectangle(text.textBox)),
@@ -281,6 +296,7 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
             JSONMember(key: "lines", value: lines ?? .null),
+            JSONMember(key: "units", value: units ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))
     }
