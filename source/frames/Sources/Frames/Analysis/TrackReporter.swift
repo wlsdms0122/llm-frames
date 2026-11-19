@@ -8,7 +8,7 @@
 // Finds an area in a video at media time `--at` and follows it with the tracker provider, as `track` on a clip does,
 // and reports it as `track` prints it. The area is JSON text in one of a document's area forms, and is followed as
 // found, before padding: a text form with OCR, a rectangle as written. It is followed over the whole video, or over
-// the frames shown from `--at` to `--to`, either way.
+// the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where `--color-space` names one.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
@@ -36,7 +36,8 @@ package struct TrackReporter: Sendable {
         of path: String,
         area text: String,
         at time: Double,
-        to end: Double? = nil
+        to end: Double? = nil,
+        colorSpace: ColorSpace? = nil
     ) throws -> TrackReport {
         let form = try area(text)
         guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
@@ -61,13 +62,13 @@ package struct TrackReporter: Sendable {
         }
 
         let file = MediaFile(path: path, probed: probed)
-        let picture = Picture(name: path, source: .mediaFile(file), size: size)
+        let picture = Picture(name: path, source: .mediaFile(file), size: size, colorSpace: colorSpace)
         let found = try finder.area(form, in: picture, atMediaTime: time, place: Self.place, kind: Self.kind)
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
         let range = (file.frameTime(at: first) ?? first)...last
         let frames = try Result {
-            try follower.follow(found.target, in: file, atMediaTime: time, over: range)
+            try follower.follow(found.target, in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
         }
         .mapError { error in
             ProviderError.failed(

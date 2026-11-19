@@ -27,11 +27,12 @@ struct LanguageOCRTable: OCRProvider {
     func lines(
         in file: MediaFile,
         atMediaTime time: Double,
-        languages: [LanguageTag]?
+        languages: [LanguageTag]?,
+        colorSpace: ColorSpace?
     ) throws -> [RecognisedLine] {
         guard languages == self.languages else { return [] }
 
-        return try table.lines(in: file, atMediaTime: time, languages: languages)
+        return try table.lines(in: file, atMediaTime: time, languages: languages, colorSpace: colorSpace)
     }
 
     // MARK: - Private

@@ -22,7 +22,8 @@ struct FailingTracker: TrackerProvider {
         _ target: Quad,
         in file: MediaFile,
         atMediaTime time: Double,
-        over range: ClosedRange<Double>
+        over range: ClosedRange<Double>,
+        colorSpace: ColorSpace?
     ) throws -> [TrackedFrame] {
         throw failure
     }

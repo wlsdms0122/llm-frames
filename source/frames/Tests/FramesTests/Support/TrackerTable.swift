@@ -39,7 +39,8 @@ struct TrackerTable: TrackerProvider {
         _ target: Quad,
         in file: MediaFile,
         atMediaTime time: Double,
-        over range: ClosedRange<Double>
+        over range: ClosedRange<Double>,
+        colorSpace: ColorSpace?
     ) throws -> [TrackedFrame] {
         let times = frameTimes[file.path] ?? []
         let shown = times.last { $0 <= time } ?? times.first ?? time

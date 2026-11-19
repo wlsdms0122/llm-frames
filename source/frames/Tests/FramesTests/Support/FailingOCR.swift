@@ -21,7 +21,8 @@ struct FailingOCR: OCRProvider {
     func lines(
         in file: MediaFile,
         atMediaTime time: Double,
-        languages: [LanguageTag]?
+        languages: [LanguageTag]?,
+        colorSpace: ColorSpace?
     ) throws -> [RecognisedLine] {
         throw failure
     }

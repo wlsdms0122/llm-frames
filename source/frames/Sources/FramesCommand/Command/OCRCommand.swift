@@ -12,7 +12,8 @@ import Frames
 struct OCRCommand: Command {
     // MARK: - Property
     let name = "ocr"
-    let synopsis = "<image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]"
+    let synopsis = "<image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] "
+        + "[--color-space <name>] [--json]"
     let summary = "Prints the picture's size, then each recognised line as [x, y, w, h] and its text in media "
         + "pixels, in the order a text area's nth counts them. Over a range it does this for each frame, "
         + "under its media time."
@@ -31,7 +32,7 @@ struct OCRCommand: Command {
             ocr: roles.ocr,
             languages: options.languages ?? context.options.ocrLanguages
         )
-        let report = try reporter.report(of: options.media, at: options.selection)
+        let report = try reporter.report(of: options.media, at: options.selection, colorSpace: options.colorSpace)
 
         context.output.write(options.isMachineOutput ? JSONWriter().write(report.machineOutput) : report.text + "\n")
     }
