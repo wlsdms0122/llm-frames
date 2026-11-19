@@ -62,9 +62,13 @@ enum Ease: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // An ease ends on its keyframes, 0 at the start of its span and 1 at its end, which some formulas reach only to
+    // rounding (`back-out` gives 2e-16 at 0), so both ends are given exactly.
     func value(at progress: Double) -> Double {
-        let u = progress
+        guard progress > 0 else { return 0 }
+        guard progress < 1 else { return 1 }
 
+        let u = progress
         switch self {
         case .linear:
             return u
@@ -144,9 +148,6 @@ enum Ease: Equatable, Sendable {
         x2: Double,
         y2: Double
     ) -> Double {
-        guard u > 0 else { return 0 }
-        guard u < 1 else { return 1 }
-
         let parameter = bezierParameter(forX: u, x1: x1, x2: x2)
         return bezier(parameter, y1, y2)
     }
