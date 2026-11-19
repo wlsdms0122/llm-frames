@@ -38,7 +38,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
     case placementUnderContentFit(place: Place, kind: PlaceKind)
-    case titleWidthUnderContentFit(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case shapeAreaWithBox(place: Place, kind: PlaceKind)
@@ -180,10 +179,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .placementUnderContentFit(place, kind):
             "\(place) (\(kind.label)): \"placement\" names the frame, which is measured from the content, "
                 + "so the clip needs \"position\""
-
-        case let .titleWidthUnderContentFit(place, kind):
-            "\(place) (\(kind.label)): a title wraps at the frame's width by default, "
-                + "which is measured from the content, so the title needs \"width\""
 
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"

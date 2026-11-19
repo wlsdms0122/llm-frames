@@ -447,8 +447,8 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a title wraps at its width, by default the output width less the placement padding on each side",
-        arguments: [("", 2), (#", "width": 1200"#, 1)]
+        "a title wraps at its width, and without one runs on one line however long",
+        arguments: [("", 1), (#", "width": 600"#, 2)]
     )
     func wrapsTitle(
         width: String,

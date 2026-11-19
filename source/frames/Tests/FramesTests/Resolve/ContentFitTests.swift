@@ -9,7 +9,8 @@ import Testing
 
 @testable import Frames
 
-// `/abs/page.png` is 1000 by 800 and `/abs/card.png` 1080 by 1350.
+// `/abs/page.png` is 1000 by 800 and `/abs/card.png` 1080 by 1350. A content-fit frame on `page.png` sets a title at
+// the length scale 1000 / 1920, so a letter of the base `title` style, 96 at the fake shaper's 0.5 em, is 25 wide.
 @Suite("ContentFit Tests")
 struct ContentFitTests {
     // MARK: - Property
@@ -77,12 +78,18 @@ struct ContentFitTests {
         #expect(plan.format.size == Size(width: 1600, height: 1350))
     }
 
-    @Test("a title with a width is measured by its text box where its position puts it")
-    func measuresTitleWithWidth() throws {
+    @Test(
+        "a title is measured by its text box where its position puts it, its width or fitted to its text without one",
+        arguments: [(#""width": 2000, "#, 2000.0), ("", 125)] as [(String, Double)]
+    )
+    func measuresTitle(
+        width: String,
+        boxWidth: Double
+    ) throws {
         // Given
         let plan = try plan(#"""
             { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "title": "Hello", "style": "title", "width": 2000, "at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
+              "clips": [ { "title": "Hello", "style": "title", \#(width)"at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
             """#)
         let box = try #require(plan.clips[0].box)
 
@@ -90,6 +97,7 @@ struct ContentFitTests {
         let right = (1200 + box.size.width).rounded(.up)
 
         // Then
+        #expect(box.size.width == boxWidth)
         #expect(box.position == .value(Point(x: 1200, y: 0)))
         #expect(plan.format.size == Size(width: (right / 2).rounded(.up) * 2, height: 800))
     }
@@ -255,11 +263,10 @@ struct ContentFitTests {
     }
 
     @Test(
-        "a placement and a title without a width stop, since both would depend on the frame being measured",
+        "a placement stops, since it would depend on the frame being measured",
         arguments: [
             (#"{ "title": "Hi", "style": "title", "width": 300, "placement": "top", "at": [0, 1] }"#, ResolveError.placementUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.title))),
-            (#"{ "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#, ResolveError.placementUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.media(.image)))),
-            (#"{ "title": "Hi", "style": "title", "position": [0, 0], "at": [0, 1] }"#, ResolveError.titleWidthUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.title)))
+            (#"{ "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#, ResolveError.placementUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.media(.image))))
         ]
     )
     func refusesWhatNamesFrame(
