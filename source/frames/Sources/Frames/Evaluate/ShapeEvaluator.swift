@@ -171,7 +171,6 @@ struct ShapeEvaluator: Sendable {
         return (geometry, presentation.transform, presentation.opacity, 1)
     }
 
-    // A radius or an outset at a time, 0 where the shape has none.
     private func length(
         _ value: TimedValue,
         at time: Double

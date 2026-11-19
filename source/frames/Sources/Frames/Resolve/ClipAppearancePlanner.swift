@@ -119,9 +119,8 @@ struct ClipAppearancePlanner: Sendable {
     // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
     // `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds as many points.
     // Its `radius`, `outset`, `fill`, `stroke` and `shadow` are timed over its style's by `ClipLookPlanner`, and without
-    // a style nothing but colour names and the theme `shadow` come from the theme. A stroke takes the `accent` colour,
-    // round joins, butt caps and no arrowheads unless written, and a shadow what it leaves out from the theme `shadow`. A
-    // shape with neither a fill nor a stroke after its style stops.
+    // a style nothing but colour names and the theme `shadow` come from the theme. A shape with neither a fill nor a
+    // stroke after its style stops.
     func shape(
         of plan: ClipPlan,
         written: Clip,

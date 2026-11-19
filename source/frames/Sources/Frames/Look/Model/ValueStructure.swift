@@ -12,7 +12,6 @@
 // form is that form. A `choice` is a preset choice: a string or an object naming `preset` or `op` is that form, an
 // object naming neither is partial and merges over the form below, and `offNames` turn it off. A form's other keys
 // are `anyValue`: a value whose structure is not declared, which merges key by key at every depth and is never timed.
-// A row whose values a preset's parameters type (filter arguments) builds their structure from those parameters.
 indirect enum ValueStructure: Sendable {
     case anyValue
     case leaf(LeafKind)
