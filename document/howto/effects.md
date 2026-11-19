@@ -14,8 +14,9 @@ Light leaks, film burns, sparks, dust and particles add light or shapes to whate
 ```
 
 - An effect that is light on black needs no alpha. `screen` and `plus-lighter` leave a picture unchanged where the layer is black and brighten it where the layer is lit, which is how light leaks and film burns are delivered.
+- Light that should go above reference white, in an HDR sequence or over an HDR highlight, or keep a wide gamut colour goes over with `add`, the unbounded Linear Dodge (Add): `screen` gives less than a value above 1 and `plus-lighter` clips each channel at 1, which also cuts a wide gamut colour towards sRGB ([FRAMES-11](../../spec/FRAMES-11/SPEC.md#blend-modes)).
 - An effect with its own alpha (particles, a frame, a scratch) goes over with the default `normal` blend.
-- Other modes change what the layer does: `multiply` darkens (dust, vignettes of your own), `overlay` and `soft-light` add contrast, and `color` over a rect of one colour washes the picture in that colour while keeping its luminosity. The modes are those of W3C Compositing and Blending: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, `hue`, `saturation`, `color` and `luminosity` ([FRAMES-11](../../spec/FRAMES-11/SPEC.md#blend-modes)).
+- Other modes change what the layer does: `multiply` darkens (dust, vignettes of your own), `overlay` and `soft-light` add contrast, and `color` over a rect of one colour washes the picture in that colour while keeping its luminosity. The modes are those of W3C Compositing and Blending: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, `hue`, `saturation`, `color` and `luminosity`, and `add` ([FRAMES-11](../../spec/FRAMES-11/SPEC.md#blend-modes)).
 - `probe` the file first: `alpha yes` says the alpha came through.
 
 A PNG sequence works the same way and needs no encoder. This Python script (Pillow and NumPy) draws a warm glow that drifts across a 1280 by 720 frame and fades in and out:
