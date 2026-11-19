@@ -252,9 +252,9 @@ struct ResolvedValueWriter: Sendable {
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "color", value: color(background.color)),
-                JSONMember(key: "padding", value: size(background.padding)),
-                JSONMember(key: "radius", value: .number(background.radius))
+                JSONMember(key: "color", value: timed(background.color)),
+                JSONMember(key: "padding", value: timed(background.padding)),
+                JSONMember(key: "radius", value: timed(background.radius))
             ]))
         }
 
@@ -262,6 +262,7 @@ struct ResolvedValueWriter: Sendable {
             JSONValue.array(lines.map { line in
                 .object(JSONObject(members: [
                     JSONMember(key: "width", value: .number(line.width)),
+                    JSONMember(key: "baseline", value: .number(line.baseline)),
                     JSONMember(key: "clusters", value: .array(line.clusters.map { cluster in
                         numbers([Double(cluster.run), Double(cluster.first), Double(cluster.count)])
                     }))
@@ -271,9 +272,11 @@ struct ResolvedValueWriter: Sendable {
 
         return .object(JSONObject(members: [
             JSONMember(key: "size", value: size(text.size)),
+            JSONMember(key: "textBox", value: rectangle(text.textBox)),
             JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
+            JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
             JSONMember(key: "lines", value: lines ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))

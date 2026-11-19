@@ -87,17 +87,24 @@ struct TitlePlanner: Sendable {
         let style = json(merged, as: paragraph).members.reduce(theme.style(named: title.style)) { style, member in
             style.setting(member.key, to: member.value)
         }
-        let paragraphStyle = theme.paragraphStyle(
-            of: style,
-            size: sized["size"]?.numberValue ?? 0,
-            scale: looks.scale
-        )
+        let size = sized["size"]?.numberValue ?? 0
+        let paragraphStyle = theme.paragraphStyle(of: style, size: size, scale: looks.scale)
 
         return TitlePlan(
             layout: try typesetter.layout(textRuns, paragraph: paragraphStyle, width: width, place: place, kind: kind),
             characters: characters,
             trackingSteps: trackingSteps,
-            paragraph: try timed(merged, of: title.paragraph, key: "paragraph", as: paragraph, looks: looks)
+            paragraph: try timed(
+                merged,
+                of: title.paragraph,
+                key: "paragraph",
+                as: paragraph,
+                defaults: paragraphDefaults(
+                    over: json(merged, as: paragraph),
+                    lineHeight: theme.defaultLineHeight(of: size)
+                ),
+                looks: looks
+            )
         )
     }
 
@@ -148,6 +155,26 @@ struct TitlePlanner: Sendable {
             JSONMember(key: "underline", value: .object(JSONObject(members: [
                 JSONMember(key: "width", value: .number(face.underlineThickness * size)),
                 JSONMember(key: "offset", value: .number(face.underlineOffset * size))
+            ])))
+        ]
+
+        return .object(JSONObject(members: members.filter { member in
+            member.value.objectValue == nil || written[member.key]?.objectValue != nil
+        }))
+    }
+
+    // What the paragraph attributes take where no layer gives them, in theme lengths: `lineHeight`, and a background
+    // the `background` colour with no padding and no radius where it is on.
+    private func paragraphDefaults(
+        over written: JSONObject,
+        lineHeight: Double
+    ) -> JSONValue {
+        let members = [
+            JSONMember(key: "lineHeight", value: .number(lineHeight)),
+            JSONMember(key: "background", value: .object(JSONObject(members: [
+                JSONMember(key: "color", value: .string("background")),
+                JSONMember(key: "padding", value: .array([.number(0), .number(0)])),
+                JSONMember(key: "radius", value: .number(0))
             ])))
         ]
 

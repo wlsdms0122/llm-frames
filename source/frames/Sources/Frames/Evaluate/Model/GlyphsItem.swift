@@ -23,29 +23,32 @@ package struct GlyphsItem: Equatable, Sendable {
         self.background = background
     }
 
-    // Shaped text in its own box at `time`, its glyphs moved along their lines. Its background fills the text box at
-    // that instant grown by the background's padding.
+    // Shaped text at `time` in its box then, whose top left is `text.box(at: time)`'s origin in the box at the static
+    // values. Its background fills that whole box with its radius and colour then.
     init(
         text: ResolvedText,
         at time: Double
     ) {
+        let box = text.box(at: time)
         let moves = text.glyphMoves(at: time)
-        let box = text.textBox(at: time)
 
         self.init(
-            size: text.size,
-            runs: zip(text.runs, moves).map { run, moves in DrawnGlyphRun(run: run, at: time, moves: moves) },
-            background: text.background.map { background in
-                GlyphBackground(
-                    rectangle: Rectangle(
-                        x: box.x - background.padding.width,
-                        y: 0,
-                        width: box.width + background.padding.width * 2,
-                        height: text.size.height
-                    ),
-                    radius: background.radius,
-                    color: background.color
+            size: Size(width: box.width, height: box.height),
+            runs: zip(text.runs, moves).map { run, moves in
+                DrawnGlyphRun(
+                    run: run,
+                    at: time,
+                    moves: moves.map { move in Point(x: move.x - box.x, y: move.y - box.y) }
                 )
+            },
+            background: text.background.flatMap { background in
+                background.color.sampled(at: time, as: .leaf(.color)).color.map { color in
+                    GlyphBackground(
+                        rectangle: Rectangle(x: 0, y: 0, width: box.width, height: box.height),
+                        radius: background.radius.sampled(at: time, as: .leaf(.length(.any))).number ?? 0,
+                        color: color
+                    )
+                }
             }
         )
     }

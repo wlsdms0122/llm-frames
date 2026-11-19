@@ -58,7 +58,7 @@ struct Typesetter: Sendable {
             )
             let (runs, clusters) = placed(line, origin: origin, firstRun: placedRuns.count)
             placedRuns += runs
-            placedLines.append(PlacedLine(width: line.width, clusters: clusters))
+            placedLines.append(PlacedLine(width: line.width, baseline: origin.y, clusters: clusters))
         }
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
             + (lines.first?.ascent ?? 0)
@@ -66,11 +66,13 @@ struct Typesetter: Sendable {
 
         return TextLayout(
             size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
+            textBox: Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight),
             width: width,
             lines: placedLines,
             runs: placedRuns,
             background: style.background,
-            align: style.align
+            align: style.align,
+            lineHeight: style.lineHeight
         )
     }
 

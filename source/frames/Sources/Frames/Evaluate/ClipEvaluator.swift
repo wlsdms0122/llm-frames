@@ -86,9 +86,11 @@ struct ClipEvaluator: Sendable {
             guard let box = clip.box else { return [] }
 
             let glyphs = GlyphsItem(text: text, at: time)
+            let origin = text.box(at: time)
             return [boxItem(
                 of: clip,
                 box: box,
+                origin: Point(x: origin.x, y: origin.y),
                 receiver: glyphs.drawnBounds(),
                 sample: sample,
                 in: space,
@@ -129,10 +131,12 @@ struct ClipEvaluator: Sendable {
         }
     }
 
-    // `receiver` is what the item draws in its box's own pixels, which the reveal wipes across.
+    // `receiver` is what the item draws in its own pixels, which the reveal wipes across, and `origin` is where the
+    // item's top left lies in its box.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
+        origin: Point = Point(x: 0, y: 0),
         receiver: Rectangle,
         sample: ClipSample,
         in space: ClipSpace,
@@ -142,7 +146,7 @@ struct ClipEvaluator: Sendable {
         let presentation = presentation(of: clip, box: box, sample: sample, in: space, at: time)
 
         return DisplayItem(
-            transform: presentation.transform,
+            transform: AffineTransform(translation: origin).concatenating(presentation.transform),
             opacity: presentation.opacity,
             blend: sample.blend,
             reveal: sample.animation.reveal.rectangle(wiping: receiver, from: sample.animation.revealFrom),

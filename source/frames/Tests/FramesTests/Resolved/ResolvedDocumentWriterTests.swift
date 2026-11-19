@@ -174,13 +174,39 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "title": {
                 "size": [38.25, 29.25],
+                "textBox": [9, 4.5, 20.25, 20.25],
                 "width": null,
                 "background": {
-                  "color": "#ED2929FF",
-                  "padding": [9, 4.5],
-                  "radius": 6.75
+                  "color": [
+                    {
+                      "at": 0,
+                      "value": "#ED2929FF",
+                      "ease": "linear"
+                    }
+                  ],
+                  "padding": [
+                    {
+                      "at": 0,
+                      "value": [4.5, 9],
+                      "ease": "linear"
+                    }
+                  ],
+                  "radius": [
+                    {
+                      "at": 0,
+                      "value": 6.75,
+                      "ease": "linear"
+                    }
+                  ]
                 },
                 "align": "left",
+                "lineHeight": [
+                  {
+                    "at": 0,
+                    "value": 25.3125,
+                    "ease": "linear"
+                  }
+                ],
                 "lines": null,
                 "runs": [
                   {

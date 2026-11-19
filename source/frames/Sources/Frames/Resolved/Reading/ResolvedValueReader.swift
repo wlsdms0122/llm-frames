@@ -374,28 +374,34 @@ struct ResolvedValueReader: Sendable {
     }
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
-        let text = try value.object(keys: ["size", "width", "background", "align", "lines", "runs"])
+        let text = try value.object(keys: [
+            "size", "textBox", "width", "background", "align", "lineHeight", "lines", "runs"
+        ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
+        let length = ValueStructure.leaf(.length(.any))
 
         return ResolvedText(
             size: try size(text.member("size")),
+            textBox: try rectangle(text.member("textBox")),
             width: try text.member("width").optional { try $0.number() },
             background: try text.member("background").optional { value in
                 let background = try value.object(keys: ["color", "padding", "radius"])
 
-                return TextBackground(
-                    color: try color(background.member("color")),
-                    padding: try size(background.member("padding")),
-                    radius: try background.member("radius").number()
+                return ResolvedBackground(
+                    color: try timed(background.member("color"), as: .leaf(.color)),
+                    padding: try timed(background.member("padding"), as: .leaf(.lengths(count: 2, domain: .nonNegative))),
+                    radius: try timed(background.member("radius"), as: length)
                 )
             },
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
+            lineHeight: try timed(text.member("lineHeight"), as: length),
             lines: try text.member("lines").optional { value in
                 try value.elements().map { element in
-                    let line = try element.object(keys: ["width", "clusters"])
+                    let line = try element.object(keys: ["width", "baseline", "clusters"])
 
                     return PlacedLine(
                         width: try line.member("width").number(),
+                        baseline: try line.member("baseline").number(),
                         clusters: try line.member("clusters").elements().map(glyphRange)
                     )
                 }

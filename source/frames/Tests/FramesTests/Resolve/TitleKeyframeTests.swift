@@ -157,7 +157,7 @@ struct TitleKeyframeTests {
         let run = try #require(text.runs.first)
 
         // When
-        let sut = DrawnGlyphRun(run: run, at: 0.5, moves: run.glyphs.map { _ in 0 })
+        let sut = DrawnGlyphRun(run: run, at: 0.5, moves: run.glyphs.map { _ in Point(x: 0, y: 0) })
 
         // Then
         #expect(sut.glyphs.map(\.y) == run.glyphs.map { $0.y - 5 })
@@ -221,14 +221,15 @@ struct TitleKeyframeTests {
 
         // When
         let moves = text.glyphMoves(at: 0.5)
-        let box = text.textBox(at: 0.5)
+        let box = text.box(at: 0.5)
         let sut = GlyphsItem(text: text, at: 0.5)
 
         // Then
         #expect(text.width == nil)
-        #expect(moves == [[-1, 1]])
+        #expect(moves == [[Point(x: -1, y: 0), Point(x: 1, y: 0)]])
         #expect(box == Rectangle(x: -1, y: 0, width: 42, height: 40))
-        #expect(sut.runs[0].glyphs.map(\.x) == [-1, 21])
+        #expect(sut.size == Size(width: 42, height: 40))
+        #expect(sut.runs[0].glyphs.map(\.x) == [0, 22])
     }
 
     @Test("evaluation keeps a title with a width at its width, and places each line again inside it by `align`")
@@ -241,12 +242,94 @@ struct TitleKeyframeTests {
 
         // When
         let moves = text.glyphMoves(at: 0.5)
-        let box = text.textBox(at: 0.5)
+        let box = text.box(at: 0.5)
 
         // Then
         #expect(text.width == 100)
-        #expect(moves == [[-2, 0]])
+        #expect(moves == [[Point(x: -2, y: 0), Point(x: 0, y: 0)]])
         #expect(box == Rectangle(x: 0, y: 0, width: 100, height: 40))
+    }
+
+    @Test("evaluation moves each line below the first by the change in line height, keeping the box's top edge")
+    func movesLinesByLineHeight() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "a\nb", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 70 } } ] }
+            """#)
+
+        // When
+        let box = text.box(at: 0.5)
+        let sut = GlyphsItem(text: text, at: 0.5)
+
+        // Then
+        #expect(text.lines?.map(\.baseline) == [32, 82])
+        #expect(text.size.height == 90)
+        #expect(box == Rectangle(x: 0, y: 0, width: 20, height: 100))
+        #expect(sut.runs.first?.glyphs.first?.y == 32)
+        #expect(sut.runs.last?.glyphs.first?.y == 92)
+    }
+
+    @Test("a `null` line height in a keyframe is the merged line height, the default where no layer gives one")
+    func takesMergedLineHeightForNull() throws {
+        // When
+        let text = try resolvedText(#"""
+            { "title": "a\nb", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "paragraph": { "lineHeight": null } }, { "at": 1, "paragraph": { "lineHeight": 70 } } ] }
+            """#)
+
+        // Then
+        let lineHeight = { (time: Double) in text.lineHeight.sampled(at: time, as: .leaf(.length(.any))).number }
+        #expect(lineHeight(0) == 50)
+        #expect(lineHeight(1) == 70)
+        #expect(text.lines != nil)
+    }
+
+    @Test("a background's keyframed padding grows the title's box around its text box, and its background fills it")
+    func growsBoxByPadding() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "background": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
+                             { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] }
+            """#)
+
+        // When
+        let box = text.box(at: 1)
+        let sut = GlyphsItem(text: text, at: 1)
+
+        // Then
+        #expect(text.size == Size(width: 40, height: 40))
+        #expect(text.lines == nil)
+        #expect(box == Rectangle(x: -20, y: -10, width: 80, height: 60))
+        #expect(sut.size == Size(width: 80, height: 60))
+        #expect(sut.background?.rectangle == Rectangle(x: 0, y: 0, width: 80, height: 60))
+        #expect(sut.background?.color == Color(written: "#FF0000FF"))
+        #expect(sut.runs[0].glyphs.first.map { Point(x: $0.x, y: $0.y) } == Point(x: 20, y: 42))
+    }
+
+    @Test("a title's box grown at an instant keeps its text box where resolve placed it in the frame")
+    func placesGrownBox() throws {
+        // Given
+        let document = document(#"""
+            { "title": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225],
+              "paragraph": { "background": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
+                             { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] }
+            """#)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+
+        // When
+        let list = Evaluator().displayList(of: resolved, at: 1)
+
+        // Then
+        let item = try #require(list.items.first { item in
+            guard case .glyphs = item.content else { return false }
+
+            return true
+        })
+        #expect(item.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 380, y: 215))
+        #expect(item.transform.apply(to: Point(x: 20, y: 10)) == Point(x: 400, y: 225))
     }
 
     // MARK: - Private

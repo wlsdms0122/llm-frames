@@ -9,20 +9,38 @@
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
-    // A title takes each run's attributes from the timed value of its text run. An underline leaf no layer gives
-    // takes the run's colour.
+    // A title takes each run's attributes from the timed value of its text run, and its line height and background
+    // from the timed paragraph. An underline leaf no layer gives takes the run's colour. Its lines are written where
+    // its glyphs move along them or with them.
     init(
         plan: TitlePlan,
         hashes: any FileHashProvider
     ) throws {
         let isTracked = plan.trackingSteps.contains { $0 != .off }
+        let lineHeight = plan.paragraph["lineHeight"] ?? .off
+        let isLeaded = plan.layout.lines.count > 1 && {
+            guard case let .track(keyframes) = lineHeight else { return false }
+
+            return keyframes.contains { $0.value != .number(plan.layout.lineHeight) }
+        }()
+        let background = plan.paragraph["background"].flatMap { background -> ResolvedBackground? in
+            guard background != .off else { return nil }
+
+            return ResolvedBackground(
+                color: background["color"] ?? .off,
+                padding: background["padding"] ?? .off,
+                radius: background["radius"] ?? .off
+            )
+        }
 
         self.init(
             size: plan.layout.size,
+            textBox: plan.layout.textBox,
             width: plan.layout.width,
-            background: plan.layout.background,
+            background: background,
             align: plan.layout.align,
-            lines: isTracked ? plan.layout.lines : nil,
+            lineHeight: lineHeight,
+            lines: isTracked || isLeaded ? plan.layout.lines : nil,
             runs: try plan.layout.runs.map { run in
                 let character = plan.characters[run.source]
                 let color = character["color"] ?? .off
@@ -63,22 +81,35 @@ extension ResolvedText {
         )
     }
 
-    // A label is drawn as set in `color` alone, so its colour is one keyframe and it takes no stroke, baseline shift,
-    // highlight or underline.
+    // A label is drawn as set in `color` alone, so its colour, line height and background are one keyframe each and it
+    // takes no stroke, baseline shift, highlight or underline.
     init(
         layout: TextLayout,
         color: Color,
         hashes: any FileHashProvider
     ) throws {
+        let held = { (value: LeafValue) in TimedValue.track([Keyframe(at: 0, value: value)]) }
+
         self.init(
             size: layout.size,
-            background: layout.background,
+            textBox: layout.textBox,
+            width: layout.width,
+            background: layout.background.map { background in
+                ResolvedBackground(
+                    color: held(.color(background.color)),
+                    padding: held(.numbers([background.padding.height, background.padding.width])),
+                    radius: held(.number(background.radius))
+                )
+            },
+            align: layout.align,
+            lineHeight: held(.number(layout.lineHeight)),
+            lines: nil,
             runs: try layout.runs.map { run in
                 ResolvedGlyphRun(
                     font: try PinnedFile(path: run.face.file, hashes: hashes),
                     face: run.face.name,
                     size: run.size,
-                    color: .track([Keyframe(at: 0, value: .color(color))]),
+                    color: held(.color(color)),
                     stroke: .off,
                     baselineShift: .off,
                     tracking: .off,

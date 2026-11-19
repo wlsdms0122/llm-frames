@@ -31,10 +31,12 @@ struct TypesetterTests {
         // Then
         #expect(layout == TextLayout(
             size: Size(width: 40, height: 40),
+            textBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
             width: nil,
             lines: [
                 PlacedLine(
                     width: 40,
+                    baseline: 32,
                     clusters: [GlyphRange(run: 0, first: 0, count: 1), GlyphRange(run: 0, first: 1, count: 1)]
                 )
             ],
@@ -47,7 +49,8 @@ struct TypesetterTests {
                 )
             ],
             background: nil,
-            align: .left
+            align: .left,
+            lineHeight: 50
         ))
     }
 

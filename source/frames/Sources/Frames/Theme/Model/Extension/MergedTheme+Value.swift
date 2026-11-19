@@ -131,11 +131,16 @@ extension MergedTheme {
         scale: Double
     ) -> ParagraphStyle {
         ParagraphStyle(
-            lineHeight: (style["lineHeight"]?.numberValue ?? size * 1.25) * scale,
+            lineHeight: (style["lineHeight"]?.numberValue ?? defaultLineHeight(of: size)) * scale,
             background: style["background"]?.objectValue.map { box(of: $0, scale: scale) },
             align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
             lines: style["lines"]?.numberValue.map { Int($0) }
         )
+    }
+
+    // The line height of text `size` points tall that no layer gives one, in points.
+    func defaultLineHeight(of size: Double) -> Double {
+        size * 1.25
     }
 
     // A style as the theme holds it, its lengths in points, empty for a name it does not hold.

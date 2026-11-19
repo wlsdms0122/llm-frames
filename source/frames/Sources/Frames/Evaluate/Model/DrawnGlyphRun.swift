@@ -33,12 +33,11 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         self.glyphs = glyphs
     }
 
-    // A resolved run at `time`, its glyphs raised by its baseline shift then and moved along their line by `moves`, one
-    // for each glyph.
+    // A resolved run at `time`, its glyphs raised by its baseline shift then and moved by `moves`, one for each glyph.
     init(
         run: ResolvedGlyphRun,
         at time: Double,
-        moves: [Double]
+        moves: [Point]
     ) {
         let shift = run.baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
         let stroke = run.stroke.sampled(at: time, as: LookStructureTable.textStroke)
@@ -52,7 +51,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                 stroke["color"]?.color.map { TextStroke(width: width, color: $0) }
             },
             glyphs: zip(run.glyphs, moves).map { glyph, move in
-                PositionedGlyph(id: glyph.id, x: glyph.x + move, y: glyph.y - shift)
+                PositionedGlyph(id: glyph.id, x: glyph.x + move.x, y: glyph.y + move.y - shift)
             }
         )
     }
