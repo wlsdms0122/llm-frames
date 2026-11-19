@@ -266,6 +266,31 @@ struct QuartzRendererTests {
         #expect(errorFile == path && errorLine == line)
     }
 
+    @Test("a media picture is read as working values in its frame's colour space, tone mapped to its target peak")
+    func readsMediaFrameReading() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
+        let media = PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: "")))
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: media, index: 0, colorSpace: .rec2100HLG, targetPeak: 203)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4)
+        )
+        let list = DisplayList(
+            size: Size(width: 4, height: 4),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(content: .picture(picture))]
+        )
+
+        // When
+        _ = try sut.frame(of: list)
+
+        // Then
+        #expect(decoder.readings(of: "/picture.png") == [.working(colorSpace: .rec2100HLG, targetPeak: 203)])
+    }
+
     @Test("a LUT read by check is drawn from the renderer's cache without reading its cube again")
     func drawsCheckedTable() throws {
         // Given

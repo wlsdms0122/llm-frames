@@ -26,9 +26,9 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Public
-    // The frame as working values in the colour space its tags name.
+    // The frame as working values, in its colour space and tone mapped to its target peak.
     func image(of frame: MediaFrame) throws -> CGImage {
-        try image(of: frame, reading: .tagged)
+        try image(of: frame, reading: .working(colorSpace: frame.colorSpace, targetPeak: frame.targetPeak))
     }
 
     // The frame as an analysis picture in its colour space, as a transition matte is read (FRAMES-26).
