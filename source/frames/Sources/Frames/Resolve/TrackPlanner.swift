@@ -343,8 +343,7 @@ struct TrackPlanner: Sendable {
                 provider: .tracker,
                 place: place,
                 kind: kind.label,
-                media: media,
-                mediaTime: target.mediaTime,
+                picture: ProviderPicture(media: media, mediaTime: target.mediaTime),
                 message: "\(error)"
             )
         }

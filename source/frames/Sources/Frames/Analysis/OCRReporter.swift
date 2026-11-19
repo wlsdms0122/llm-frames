@@ -66,8 +66,7 @@ package struct OCRReporter: Sendable {
                     provider: .ocr,
                     place: Place(components: [.key(option)]),
                     kind: nil,
-                    media: file.path,
-                    mediaTime: time,
+                    picture: ProviderPicture(media: file.path, mediaTime: time),
                     message: "\(error)"
                 )
             }

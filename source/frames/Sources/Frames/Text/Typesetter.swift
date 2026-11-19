@@ -169,8 +169,7 @@ struct Typesetter: Sendable {
                         provider: .shaping,
                         place: place,
                         kind: kind,
-                        media: nil,
-                        mediaTime: nil,
+                        picture: nil,
                         message: "\(error)"
                     )
                 }

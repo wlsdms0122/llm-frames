@@ -71,8 +71,7 @@ struct AreaFinder: Sendable {
                         provider: .ocr,
                         place: place,
                         kind: kind,
-                        media: picture.name,
-                        mediaTime: time,
+                        picture: ProviderPicture(media: picture.name, mediaTime: time),
                         message: "\(error)"
                     )
                 }
