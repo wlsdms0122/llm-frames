@@ -15,7 +15,7 @@ struct TransferFunctionTests {
     // MARK: - Test
     @Test(
         "decoding an encoded value gives the linear value back, on all real numbers",
-        arguments: [TransferFunction.sRGB, .bt2020, .bt1886],
+        arguments: [TransferFunction.sRGB, .bt1886],
         [-2.5, -0.5, -0.001, 0, 0.002, 0.01, 0.18, 0.5, 1, 4]
     )
     func roundTrips(

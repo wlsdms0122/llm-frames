@@ -35,10 +35,7 @@ package enum ColorSpace: String, CaseIterable, Equatable, Sendable {
         case .srgb, .displayP3:
             .sRGB
 
-        case .rec2020:
-            .bt2020
-
-        case .rec709:
+        case .rec2020, .rec709:
             .bt1886
 
         case .rec2100PQ, .rec2100HLG:
