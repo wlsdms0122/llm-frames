@@ -39,7 +39,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 | --- | --- | --- |
 | `picture` | `source` (a frame of a media file or image sequence, by index, or a nested display list), `rect` (the source region), `dest` (the rectangle it fills, in its own coordinates), `filter` (op list, applied at `dest` size), `matte` (`{source, frame, progress, softness, invert}` or `null`), `radius`, `border` `{width, color}` or `null`, `shadow` or `null` | a region of a picture scaled into a rectangle, filtered, then cut by its transition matte |
 | `path` | `geometry`, `fill` (a paint or `null`), `stroke` (`{width, color, join, cap, start, end, dash, dashOffset}` or `null`, its `color` a paint), `trim` `[a, b]`, `shadow` or `null` | a rectangle, an ellipse or a polyline, filled and stroked |
-| `glyphs` | `runs` (each: font file, face, size, colour, `stroke` `{width, color}` or `null`, glyph ids and positions), `background` `{rect, radius, color}` or `null`, `size` | glyphs, with their outlines and background |
+| `glyphs` | `runs` (each: font file, face, size, colour, `stroke` `{width, color}` or `null`, `background` `{rects, radius, color}` or `null`, `underline` `{rects, color}` or `null`, glyph ids and positions), `background` `{rect, radius, color}` or `null`, `size` | glyphs, with their outlines, run backgrounds, underlines and background |
 | `adjust` | `filter` | the filter applied to everything drawn below it in the same list |
 
 ### Pictures
@@ -80,7 +80,8 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 
 ### Glyphs and adjustments
 
-- A `glyphs` item draws its background, then the outline of every glyph of every run with a stroke, each run's glyphs as one stroke in its width and colour, centred on the outline with round joins and caps, then every glyph's fill, so no stroke covers a fill. Glyph positions are in the item's own coordinates, its text box `size` with its origin at the top left.
+- A `glyphs` item draws its background, then every run's background rectangles in run order, each with corners of its `radius`, then every run's underline rectangles, then the outline of every glyph of every run with a stroke, each run's glyphs as one stroke in its width and colour, centred on the outline with round joins and caps, then every glyph's fill, so no stroke covers a fill. Glyph positions are in the item's own coordinates, its text box `size` with its origin at the top left.
+- A title animated by unit ([FRAMES-14](../FRAMES-14/SPEC.md)) draws one `glyphs` item for what is not a unit, its background and its runs with their backgrounds and underlines and no glyphs, then one `glyphs` item for each unit above it, in reading order, holding that unit's glyphs in their runs, with no background, run backgrounds or underlines. All of them are in the title's box, of its `size`, and carry the title's mask, track matte and blend. A unit's transform is the title's composed with the unit's motion about the centre of its box, its opacity the title's times the unit's, and its `reveal` the part of its box the unit's reveal shows. A unit's stroke may cover a neighbouring unit's fill where the two overlap, since each item keeps strokes under fills only for its own glyphs.
 - An `adjust` item covers the whole frame of its list: the filter is applied to everything drawn below it in that list, and the filtered picture is composited onto the unfiltered one with the item's `blend`, its alpha multiplied by the item's reveal, mask, track matte and `opacity`. Its `transform` carries its `reveal` only.
 
 ### Masks
@@ -117,13 +118,14 @@ Evaluation has done everything above pixels: keyframes and eases (springs includ
 
 ### The mix plan
 
-The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its media start and speed, the sequence times it starts and ends, a gain envelope and a pan envelope.
+The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its media start and speed, the sequence times it starts and ends, its audio filter, a gain envelope and a pan envelope.
 
 - The gain envelope is a list of points `[t, gain]` joined in straight lines. It already holds volume keyframes and their eases, fades, and transition crossfades on the transition's `audio` curve ([FRAMES-13](../FRAMES-13/SPEC.md)): with u the progress through the transition, `constant-power` gives the outgoing sound cos(uπ/2) and the incoming sin(uπ/2), and `constant-gain` gives them 1 - u and u. Eased keyframes and the crossfade curve are sampled at the frame rate.
 - The pan envelope is a list of points `[t, pan]` joined in straight lines, from -1 (left) to 1 (right), the pan keyframes and their eases sampled at the frame rate. The mixer pans by the pan law of [FRAMES-13](../FRAMES-13/SPEC.md).
 - An envelope has a point at both ends of its segment, at every keyframe and every end of a fade or transition, and at every frame time k / fps inside a span where its value moves: between two keyframes of different values, or over a fade or transition. A value that holds has no points between its bends.
+- The audio filter is the segment's op list ([FRAMES-13](../FRAMES-13/SPEC.md)), `[]` when it has none. A number in it that holds over the segment is written as a number, and one that moves as an envelope of `[t, value]` points joined in straight lines, with its points where a gain envelope has them, a `frequency` sampled in log space. The mixer runs the ops on the segment's sound before its gain and pan envelopes, takes each moving value from its envelope at the sample, and computes an op's coefficients again at least every 32 samples while one of its values moves.
 - The mixer mixes each segment's channels into the output's as its role decides ([FRAMES-21](../FRAMES-21/SPEC.md)). A loop is one segment per repeat, and a compound clip's sounds are segments of their own. A clip with `timeRemap` has no segment.
-- In the JSON form a segment is `{media, mediaStart, speed, start, end, envelope, pan}`, `media` the pinned media, each envelope point `[t, gain]` and each pan point `[t, pan]`.
+- In the JSON form a segment is `{media, mediaStart, speed, start, end, filter, envelope, pan}`, `media` the pinned media, `filter` the op list, each envelope point `[t, gain]` and each pan point `[t, pan]`.
 
 ## Interactions
 
