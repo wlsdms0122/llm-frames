@@ -282,6 +282,10 @@ enum ClipKeyTable {
         case "shape":
             .literal(VocabularyTable.shapes)
 
+        // A number is the same factor on both axes, and a pair a factor along each.
+        case "scale":
+            .oneOf([.number, .numbers(2)])
+
         // A box is drawn or wraps text, so it has some size, and a corner cannot curve inwards.
         case "width", "height":
             .positiveNumber

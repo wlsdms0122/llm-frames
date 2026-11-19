@@ -171,6 +171,27 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["blend"] == .string("normal"))
     }
 
+    @Test("a scale keyframed as numbers and pairs is written as pairs")
+    func writesScalePairs() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
+                { "shape": "rect", "fill": "accent", "area": [0, 0, 100, 100], "at": [0, 4],
+                  "keyframes": [ { "at": 0, "scale": [2, 1] }, { "at": 1, "scale": 0.5 }, { "at": 2, "scale": [-1, 3] } ] } ] } ] }
+            """#
+
+        // When
+        let clip = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        let values = clip["scale"]?.arrayValue?.map { $0.objectValue?["value"] }
+        #expect(values == [
+            .array([.number(2), .number(1)]),
+            .array([.number(0.5), .number(0.5)]),
+            .array([.number(-1), .number(3)])
+        ])
+    }
+
     @Test("a clip's parent is written as the id of the clip it names, any clip of the document, or null without one")
     func writesParent() throws {
         // Given

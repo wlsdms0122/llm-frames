@@ -106,6 +106,20 @@ struct SequenceCheckTests {
         #expect(error?.description == #"storyline[0].in (video): expected a number, found "2""#)
     }
 
+    @Test("a scale is a number or a pair, in a keyframe as in a static value")
+    func checksScale() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "fill": "accent", "area": [0, 0, 10, 10], "at": [0, 1], "scale": [2, 1],
+                  "keyframes": [ { "at": 0, "scale": 0.5 }, { "at": 1, "scale": [1, 2, 3] } ] } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix("storyline[0].connected[0].keyframes[1].scale (") == true)
+    }
+
     @Test("a number does not stand for a boolean")
     func refusesNumberForBool() throws {
         // Given
