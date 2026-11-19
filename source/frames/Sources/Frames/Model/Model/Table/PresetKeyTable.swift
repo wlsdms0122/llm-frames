@@ -71,7 +71,7 @@ enum PresetKeyTable {
                 ]
             ))))
         ],
-        group: KeyGroup(keys: ["color", "media"], isExclusive: true)
+        groups: [KeyGroup(keys: ["color", "media"], isExclusive: true)]
     )
     private static let matte = ObjectTable(
         kind: "matte",

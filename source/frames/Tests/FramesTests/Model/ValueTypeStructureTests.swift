@@ -53,7 +53,7 @@ struct ValueTypeStructureTests {
                     KeyRule("dash", .dash(isKeyframed: false)),
                     KeyRule("dashOffset", .number)
                 ],
-                group: KeyGroup(keys: ["color", "gradient"], isExclusive: true, isOptional: true)
+                groups: [KeyGroup(keys: ["color", "gradient"], isExclusive: true, isOptional: true)]
             ))
         ]))
         #expect(shadow == .oneOf([.bool, Self.shadow]))
@@ -189,6 +189,40 @@ struct ValueTypeStructureTests {
         })
     }
 
+    @Test("a mask's table for each shape takes the keys of its shape, `area` exclusive with each key of the box")
+    func readsMasks() {
+        // When
+        let tables = ShapeKind.allCases.map(MaskKeyTable.table(for:))
+
+        // Then
+        let shape = KeyRule("shape", .literal(VocabularyTable.shapes))
+        let box = [
+            KeyRule("area", .area),
+            KeyRule("width", .positiveNumber),
+            KeyRule("height", .positiveNumber),
+            KeyRule("position", AreaKeyTable.point)
+        ]
+        let look = [
+            KeyRule("feather", .nonNegativeNumber),
+            KeyRule("invert", .bool),
+            KeyRule("mode", .literal(MaskMode.allCases.map(\.rawValue)))
+        ]
+        let groups = ["width", "height", "position"].map { key in
+            KeyGroup(keys: ["area", key], isExclusive: true, isOptional: true)
+        }
+        let radius = KeyRule("radius", .nonNegativeNumber)
+        #expect(ShapeKind.allCases == [.rect, .ellipse, .path])
+        #expect(tables == [
+            ObjectTable(kind: "rect mask", rules: [shape] + box + [radius] + look, groups: groups),
+            ObjectTable(kind: "ellipse mask", rules: [shape] + box + look, groups: groups),
+            ObjectTable(kind: "path mask", rules: [shape, KeyRule("points", .points)] + look)
+        ])
+        #expect(MaskKeyTable.keyframe == ObjectTable(
+            kind: "mask",
+            rules: [shape] + box + [KeyRule("points", .points), radius] + look
+        ))
+    }
+
     // MARK: - Private
     private static let gradient = ValueType.object(ObjectTable(
         kind: "gradient",
@@ -210,7 +244,7 @@ struct ValueTypeStructureTests {
                 ]
             )))
         ],
-        group: KeyGroup(keys: ["linear", "radial"], isExclusive: true)
+        groups: [KeyGroup(keys: ["linear", "radial"], isExclusive: true)]
     ))
 
     private static let shadow = ValueType.object(ObjectTable(

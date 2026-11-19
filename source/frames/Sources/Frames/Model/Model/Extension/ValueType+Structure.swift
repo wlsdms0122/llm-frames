@@ -49,7 +49,7 @@ extension ValueType {
                         ValueType(structure: form.structure, kind: "\(form.name) \(kind)", checksDomains: checksDomains)
                     )
                 },
-                group: KeyGroup(keys: named.map(\.name), isExclusive: true)
+                groups: [KeyGroup(keys: named.map(\.name), isExclusive: true)]
             ))
             let types = (forms.count > named.count ? [ValueType.color] : []) + (named.isEmpty ? [] : [object])
             self = types.count == 1 ? types[0] : .oneOf(types)

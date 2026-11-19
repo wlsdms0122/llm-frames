@@ -343,14 +343,24 @@ struct KeyChecker: Sendable {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: [rule.name])
         }
 
-        guard let group = table.group else { return }
-
-        let present = group.keys.filter(object.contains)
-        guard !present.isEmpty || group.isOptional else {
+        for group in table.groups where !group.isOptional && !group.keys.contains(where: object.contains) {
             throw ModelError.missingKey(place: place, kind: table.kind, keys: group.keys)
         }
-        guard !group.isExclusive || present.count <= 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: present)
+
+        // Exclusive groups that share a key, as a mask's `area` with each key of its box, stop together, naming every
+        // key they hold.
+        let conflicting = table.groups
+            .filter(\.isExclusive)
+            .map { $0.keys.filter(object.contains) }
+            .filter { $0.count > 1 }
+            .flatMap { $0 }
+            .reduce(into: [String]()) { keys, key in
+                if !keys.contains(key) {
+                    keys.append(key)
+                }
+            }
+        guard conflicting.isEmpty else {
+            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: conflicting)
         }
     }
 
@@ -591,8 +601,8 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape, a rect or an ellipse not both `area` and a key of the box, and a path at
-    // least three points, since its path is closed. Whether its geometry is given is checked with its keyframes.
+    // A mask takes the keys of its shape, and a path at least three points, since its path is closed. Whether its
+    // geometry is given is checked with its keyframes.
     private func checkMask(
         _ object: JSONObject,
         as shape: ShapeKind,
@@ -608,12 +618,6 @@ struct KeyChecker: Sendable {
             )
         }
         try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
-        guard shape != .path else { return }
-
-        let box = MaskKeyTable.box.filter(object.contains)
-        if object.contains("area"), !box.isEmpty {
-            throw ModelError.conflictingKeys(place: place, kind: table.kind, keys: ["area"] + box)
-        }
     }
 
     // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
@@ -682,7 +686,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
+    // A weight's name, or a whole number from 100 to 900.
     private func checkFontWeight(
         _ value: JSONValue,
         place: Place,
@@ -728,6 +732,7 @@ struct KeyChecker: Sendable {
         }
     }
 
+    // `n`, `[v, h]` or `[t, r, b, l]`, each a whole number 0 or more.
     private func checkMargin(
         _ value: JSONValue,
         place: Place,

@@ -40,7 +40,7 @@ enum ClipKeyTable {
         let mixed = ObjectTable(
             kind: keyframes.kind,
             rules: keyframes.rules.filter { $0.name != "audioFilter" },
-            group: KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)
+            groups: [KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)]
         )
         let rules = audio.rules.filter { $0.name != "audioFilter" }.map { rule in
             rule.name == "keyframes" ? KeyRule("keyframes", .list(.object(mixed))) : rule
@@ -135,7 +135,7 @@ enum ClipKeyTable {
         return ObjectTable(
             kind: "keyframe",
             rules: rules,
-            group: KeyGroup(keys: properties, isExclusive: false)
+            groups: [KeyGroup(keys: properties, isExclusive: false)]
         )
     }
 
@@ -384,7 +384,7 @@ enum ClipKeyTable {
             .object(ObjectTable(
                 kind: table.kind,
                 rules: table.rules.map { KeyRule($0.name, keyframed($0.type)) },
-                group: table.group
+                groups: table.groups
             ))
 
         case .positiveNumber, .nonNegativeNumber:
