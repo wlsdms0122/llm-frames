@@ -4,20 +4,20 @@ Status: accepted
 
 ## Summary
 
-How clips play sound: volume, pan, fades, audio filters (EQ, compressor and gate) as data, keyframed volume and pan, transition crossfades with the transition preset's curve, how gains multiply, which clips play no sound, and a video's sound placed alone as an audio clip.
+How clips play sound: volume, pan, fades, audio filters (EQ, compressor and gate) as data, keyframed volume and pan, transition crossfades with the transition preset's curve, split edits, how gains multiply, which clips play no sound, and a video's sound placed alone as an audio clip.
 
 ## Motivation
 
-An edit's sound is laid like its pictures: a music bed under the whole piece and ducked under speech, dialogue from the camera clips, a sound effect placed on the left as something leaves the frame, a crossfade at every cut that would otherwise click. Sound is media that frames places and does not make, so its rules are how levels and positions combine and how a clip's sound is processed (an EQ on a voice, a compressor on a narration), fixed so that every mixer gives the same mix: the pan law, the crossfade curves, the order gains multiply in and the formula of every audio filter. A shot's sound is also cut apart from its picture, as every NLE detaches it for a J or an L cut, and placing it alone must not decode a picture nobody sees.
+An edit's sound is laid like its pictures: a music bed under the whole piece and ducked under speech, dialogue from the camera clips, a sound effect placed on the left as something leaves the frame, a crossfade at every cut that would otherwise click. Sound is media that frames places and does not make, so its rules are how levels and positions combine and how a clip's sound is processed (an EQ on a voice, a compressor on a narration), fixed so that every mixer gives the same mix: the pan law, the crossfade curves, the order gains multiply in and the formula of every audio filter. A shot's sound often starts before its picture or runs on after it, a J or an L cut, and that is one fact about one clip, held where its edit point is so that a trim moves picture and sound together. A video's sound is also used alone (music from a music video), and placing it must not decode a picture nobody sees.
 
 ## Rules
 
 ### Level and position
 
 - A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept.
-- A storyline clip's sound plays over its drawn range, its handles included, and another clip's over its visible window ([FRAMES-8](../FRAMES-8/SPEC.md)). A video without a sound track, a still, and a compound clip none of whose clips has sound play no sound.
-- A clip with `timeRemap` plays no sound ([FRAMES-8](../FRAMES-8/SPEC.md)). `volume`, `pan`, `fadeIn`, `fadeOut` and `audioFilter` on it stop, since they would do nothing. Sound for a remapped shot is placed as an audio clip of its own.
-- `fadeIn` and `fadeOut` are seconds, and ramp the volume linearly from and to 0 at the ends of the range its sound plays over: a storyline clip's drawn range, or another clip's visible window, so a clip the sequence end or tracking cuts still fades out before the cut.
+- A storyline clip's sound plays over its drawn range, its handles included, widened by its `split` ([Split edits](#split-edits)), and another clip's over its visible window ([FRAMES-8](../FRAMES-8/SPEC.md)). A video without a sound track, a still, and a compound clip none of whose clips has sound play no sound.
+- A clip with `timeRemap` plays no sound ([FRAMES-8](../FRAMES-8/SPEC.md)). `volume`, `pan`, `fadeIn`, `fadeOut`, `audioFilter` and `split` on it stop, since they would do nothing. Sound for a remapped shot is placed as an audio clip of its own.
+- `fadeIn` and `fadeOut` are seconds, and ramp the volume linearly from and to 0 at the ends of the range its sound plays over: a storyline clip's drawn range widened by its `split`, or another clip's visible window, so a clip the sequence end or tracking cuts still fades out before the cut.
 - `volume` is keyframable, for ducking and longer fades. `audioFilter` processes the sound before its volume ([Audio filters](#audio-filters)).
 - `pan` places a sound between the left and right channels of the output, from -1 (left) through 0 (centre, the default) to 1 (right). It is keyframable. How it acts depends on how many channels the sound has:
 
@@ -50,11 +50,19 @@ A mono sound is placed into both output channels at those gains. A stereo sound 
 - A sequence with no sound has no audio track.
 - The mix plan carries each sound as segments with its audio filter, a gain envelope and a pan envelope ([FRAMES-20](../FRAMES-20/SPEC.md)), and the mixer applies the filter, the gains and the pan law above.
 
+### Split edits
+
+A storyline clip with sound takes `split: {"before": b, "after": a}`, each in seconds, 0 or more, default 0: a J or an L cut, held on the one clip as Final Cut Pro's expanded audio and Premiere Pro's split edit hold it. Its sound starts `b` seconds before its picture and ends `a` seconds after it: it plays over its drawn range ([FRAMES-8](../FRAMES-8/SPEC.md)) widened by `b` at the start and `a` at the end, on the clip time beyond its `in` and `out`, as a transition's handles play. A trim of its edit points moves its picture and its sound together, and the split goes with them.
+
+- The widened sound overlaps its neighbours' sound, which plays as it would, and the two are mixed ([Mixing](#mixing)). At an edge its split widens, the clip's own sound takes no transition crossfade: it plays at its own level across the edge, and its `fadeIn` and `fadeOut` act at the ends of the widened range. The neighbour's sound crossfades over the transition as it would.
+- Its `volume`, `pan` and `audioFilter` keyframes are on its clip time and act over the widened range, each holding its first or last value beyond its keyframes ([FRAMES-4](../FRAMES-4/SPEC.md)).
+- The media must hold sound over the widened range. A split that reaches before the first sample of its media's sound or past the last stops, naming the clip and the edge, as does a split on a storyline clip that plays no sound (a still, a solid, a video without a sound track, a compound clip none of whose clips has sound, a clip with `timeRemap`). A `before` on the first storyline clip, or an `after` on the last, stops, since that sound would lie outside the sequence.
+
 ### A video's sound alone
 
-A connected or sequence media clip of a video, a compound clip or a sequence template instance takes `"picture": false` to be an audio clip of its media's sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it. It then takes the keys of an audio clip and `picture` ([FRAMES-7](../FRAMES-7/SPEC.md)), and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
+A connected or sequence media clip of a video, a compound clip or a sequence template instance that takes only its media's sound (`"picture": false`, [FRAMES-7](../FRAMES-7/SPEC.md)) is an audio clip of that sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it: music taken from a music video, or a recording's sound laid under other pictures. It takes the keys of an audio clip and `picture`, and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
 
-- A split edit, a J cut where the next shot's sound comes in before its picture or an L cut where the last shot's sound runs on under the next picture, is an audio clip of that shot's sound beside its storyline clip, with the storyline clip's own `volume` keyframed down where the audio clip takes its sound over. No picture is decoded for it and none is hidden.
+- A J or an L cut of a storyline clip is its `split` ([Split edits](#split-edits)), not an audio clip of its sound beside it.
 - `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: an image, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
 
 ### Audio filters
@@ -130,6 +138,8 @@ Audio filters as names without formulas: the meaning of a pack's voice chain wou
 A level detector by RMS, or one per channel: an RMS window is one more parameter whose shape mixers choose differently, and a compressor per channel moves a stereo image when one side is louder. A linked peak detector with smoothed gain is the form the compressor literature gives as the reference.
 
 Processing on a compound clip, a bus or the master (a limiter, a loudness target): each processes a mix of several sounds, which needs a bus in the mix plan and a mixer that sums before it processes. It is left out (README), and the sounds inside a compound clip take their own audio filters.
+
+A split edit as an audio clip of the shot's sound beside its storyline clip, with the storyline clip's `volume` keyframed down where the audio clip takes over: the one fact that a shot's sound leads or trails its picture would be written in two places that must stay complementary, since the same media at the same time played twice is about 6 dB louder, and a trim of the edit point would have to change both. `split` is one value on the clip, and moves with its edit point.
 
 Effects after the fader: a compressor after a fade would lift the fade back up, and an NLE's clip effects sit before its volume.
 

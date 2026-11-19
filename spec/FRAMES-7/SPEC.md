@@ -58,7 +58,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 - `storyline` is the primary storyline. Its clips play one after another, and a transition plays across the edit point between two of them.
 - `connected` clips belong to one storyline clip and live on its clip time ([FRAMES-8](../FRAMES-8/SPEC.md)). They move when that clip moves.
 - `clips` are the sequence's clips on the sequence clock.
-- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. A **clip with a picture** is every clip except an audio clip: a media clip whose media holds only sound, or one written with `"picture": false` ([FRAMES-13](../FRAMES-13/SPEC.md)).
+- A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or a solid (`solid`, storyline only). Exactly one of these keys is present. What a media clip takes from its media is the clip's own choice: its picture and its sound, or with `"picture": false` its sound alone, as Final Cut Pro detaches a clip's audio ([FRAMES-13](../FRAMES-13/SPEC.md)). An **audio clip** is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a **clip with a picture** is every other clip.
 
 ### Keys
 
@@ -67,7 +67,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
 | format | `size, fps, background, conform` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected` |
 | storyline clip, still (image) | `id, metadata, media, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
@@ -78,6 +78,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | run (an item of a `title` list) | `text, style` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
+| split | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
