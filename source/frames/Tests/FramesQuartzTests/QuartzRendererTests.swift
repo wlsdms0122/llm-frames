@@ -273,7 +273,11 @@ struct QuartzRendererTests {
         let sut = QuartzRenderer(decoder: decoder)
         let media = PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: "")))
         let picture = PictureItem(
-            source: .media(MediaFrame(media: media, index: 0, reading: .working(colorSpace: .rec2100HLG, targetPeak: 203))),
+            source: .media(MediaFrame(
+                media: media,
+                index: 0,
+                reading: .working(colorSpace: .rec2100HLG, targetPeak: 203)
+            )),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 4, height: 4)
         )

@@ -68,7 +68,12 @@ struct DisplayListReaderTests {
                 rectangle: Rectangle(x: 45, y: 97.5, width: 990, height: 1760),
                 destination: Rectangle(x: 10, y: 20, width: 495, height: 880),
                 filter: [FilterEntry(operations: [.exposure(ev: 0.5), .blur(radius: 2)], mix: 0.5)],
-                matte: PictureMatte(frame: MediaFrame(media: still, index: 0), progress: 0.25, softness: 0.1, isInverted: true),
+                matte: PictureMatte(
+                    frame: MediaFrame(media: still, index: 0, reading: .analysis(colorSpace: nil)),
+                    progress: 0.25,
+                    softness: 0.1,
+                    isInverted: true
+                ),
                 radius: 12,
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
                 shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "color(srgb 0 0 0 / 0.5019607843137255)"))
