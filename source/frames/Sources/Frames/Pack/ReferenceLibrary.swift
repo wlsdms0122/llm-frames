@@ -21,11 +21,13 @@ package struct ReferenceLibrary: MediaKindProvider {
     let pack: String?
 
     // MARK: - Initializer
+    // `pack` is the pack of the document a command is given, nil for one outside every pack.
     package init(
         packs: PackLibrary,
-        mediaFacts: any MediaFactProvider
+        mediaFacts: any MediaFactProvider,
+        pack: String? = nil
     ) {
-        self.init(packs: packs, mediaFacts: mediaFacts, reading: [], pack: nil)
+        self.init(packs: packs, mediaFacts: mediaFacts, reading: [], pack: pack)
     }
 
     private init(

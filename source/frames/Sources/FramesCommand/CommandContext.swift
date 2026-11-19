@@ -33,18 +33,6 @@ struct CommandContext: Sendable {
         ReferenceLibrary(packs: packs, mediaFacts: roles.decoder)
     }
 
-    var planner: DocumentPlanner {
-        DocumentPlanner(
-            mediaFacts: roles.decoder,
-            presets: presets,
-            ocr: roles.ocr,
-            languages: options.ocrLanguages,
-            tracker: roles.tracker,
-            shaper: roles.shaper,
-            packs: packs
-        )
-    }
-
     var exporter: FrameExporter {
         FrameExporter(
             decoder: roles.decoder,
@@ -69,6 +57,20 @@ struct CommandContext: Sendable {
     }
 
     // MARK: - Public
+    // The planner of a document read from `pack`, nil for one outside every pack.
+    func planner(in pack: String?) -> DocumentPlanner {
+        DocumentPlanner(
+            mediaFacts: roles.decoder,
+            presets: presets,
+            ocr: roles.ocr,
+            languages: options.ocrLanguages,
+            tracker: roles.tracker,
+            shaper: roles.shaper,
+            packs: packs,
+            pack: pack
+        )
+    }
+
     func labelFace() throws -> FontFace {
         guard let face = roles.shaper.face(named: Self.labelFaceName, in: Self.labelFile) else {
             throw CommandError.missingLabelFace(name: Self.labelFaceName, file: Self.labelFile)
@@ -94,7 +96,7 @@ struct CommandContext: Sendable {
     ) throws -> FrameSource {
         switch argument {
         case let .document(document):
-            .document(try self.document(document, arguments: nil, command: command).resolved(by: planner))
+            .document(try self.document(document, arguments: nil, command: command).resolved(in: self))
 
         case let .video(path):
             .video(path: path)

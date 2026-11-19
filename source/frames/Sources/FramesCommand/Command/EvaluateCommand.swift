@@ -24,7 +24,7 @@ struct EvaluateCommand: Command {
         in context: CommandContext
     ) throws {
         let document = try context.document(options.document, arguments: options.arguments, command: name)
-        let report = try EvaluationReporter().report(of: try document.resolved(by: context.planner), at: options.time)
+        let report = try EvaluationReporter().report(of: try document.resolved(in: context), at: options.time)
 
         context.output.write(JSONWriter().write(report.machineOutput))
     }

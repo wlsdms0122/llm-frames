@@ -15,6 +15,13 @@ enum DocumentArgument: Equatable, Sendable {
     case standardInput
 
     // MARK: - Property
+    // The pack a template is read from.
+    var pack: String? {
+        guard case let .template(pack, _) = self else { return nil }
+
+        return pack
+    }
+
     // MARK: - Initializer
     init(
         _ argument: String,

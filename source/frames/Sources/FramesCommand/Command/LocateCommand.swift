@@ -24,7 +24,7 @@ struct LocateCommand: Command {
         in context: CommandContext
     ) throws {
         let document = try context.document(options.document, arguments: options.arguments, command: name)
-        let resolved = try document.resolved(by: context.planner)
+        let resolved = try document.resolved(in: context)
         let report = try LocationReporter().report(of: resolved, at: options.time, point: options.point)
 
         context.output.write(JSONWriter().write(report.machineOutput))
