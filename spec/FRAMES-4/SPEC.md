@@ -115,7 +115,7 @@ Keyframes on the transform and the geometry only, with colours, strokes and filt
 
 Each leaf of a value joining its own keyframes, as each property does: one key would carry several timings, a leaf one keyframe leaves out would take its value from the keyframes of that leaf around it rather than from the style, and the resolved document would need a keyframe list for every leaf. A keyframe's value is one whole value, merged over the style's and read as a static one, and one ease shapes all of it.
 
-Names that change between keyframes taken as a hold to the next keyframe, as After Effects treats a property it cannot interpolate: a changed `cap` or preset in a keyframe is more often a mistake than a cut, and a cut is written as a `step` ease or as two clips. It stops.
+Names that change between keyframes taken as a hold to the next keyframe, as After Effects treats a property it cannot interpolate: a span between two keyframes says that the value moves from one to the other under its ease, which a name cannot do, so the span would not do what it says, and it stops. A name that changes at an instant is two clips cut there, which says so.
 
 Keyframed colours interpolated with premultiplied alpha, as a gradient's stops are ([FRAMES-11](../FRAMES-11/SPEC.md)): a gradient spreads colour over space, where alpha is coverage, but a keyframed colour is one colour changing in time, and the channels each keyframe writes are the colours it passes through, as After Effects interpolates a colour property channel by channel. A fade to transparent is written with its own colour's channels and changes only its alpha.
 

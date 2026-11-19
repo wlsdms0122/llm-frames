@@ -72,7 +72,7 @@ A separate anchor for animation: one point for position, keyframes and animation
 
 Lengths that stretch with a per-axis scale, as an After Effects layer's transform stretches its strokes: a bar scaled wider would draw thicker sides than top and bottom, and a rounded box would get oval corners. Drawing the lengths at the geometric mean keeps a stroke one width and a corner round, and keeps the drawn area of a length the same as the stretched one.
 
-A skew key, as After Effects' Skew and CSS `skew()`: a rotation inside a per-axis scale already gives every affine map, and a skewed picture is rare enough in an edit that a compound clip carries it.
+A skew key, as After Effects' Skew and CSS `skew()`: a rotation inside a per-axis scale already gives every affine map, so a compound clip skews any picture and a parent skews any geometry. The cost is that a compound clip is its own coordinate space and document: clip areas and parents do not cross into it ([FRAMES-2](../FRAMES-2/SPEC.md), [FRAMES-10](../FRAMES-10/SPEC.md)), so a clip outside a skewed picture cannot take the box of a clip inside it or follow it, and clips that must do so go inside the compound clip with it.
 
 Theme lengths in output pixels: a theme written for a 1920 wide master would draw its text at half the relative size on a 3840 wide one. Points at `baseWidth`, scaled by the frame, keep a look the same at every size, as a resolution-independent title template does in an NLE.
 
