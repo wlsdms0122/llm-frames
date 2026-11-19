@@ -562,11 +562,11 @@ struct EvaluatorTests {
                             outset: 0,
                             placement: GeometryPlacement()
                         ),
-                        radius: [Keyframe(at: 0, value: 2)],
+                        radius: 2,
                         trim: [Keyframe(at: 0, value: .whole)],
-                        fill: nil,
-                        stroke: PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none),
-                        shadow: nil
+                        fill: .off,
+                        stroke: .stroke(PathStroke(width: 4, color: red, join: .round, cap: .butt, start: .none, end: .none)),
+                        shadow: .off
                     )),
                     storyline: 0,
                     parent: "shot"

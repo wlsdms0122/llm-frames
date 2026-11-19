@@ -135,16 +135,6 @@ struct ResolvedSequenceWriter: Sendable {
     // is drawn.
     private func shape(_ shape: ResolvedShape) -> [JSONMember] {
         let numbers = { (keyframes: [Keyframe<Double>]) in self.values.numbers(keyframes) }
-        let stroke = shape.stroke.map { stroke in
-            JSONValue.object(JSONObject(members: [
-                JSONMember(key: "color", value: values.color(stroke.color)),
-                JSONMember(key: "width", value: .number(stroke.width)),
-                JSONMember(key: "join", value: .string(stroke.join.rawValue)),
-                JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
-                JSONMember(key: "start", value: .string(stroke.start.rawValue)),
-                JSONMember(key: "end", value: .string(stroke.end.rawValue))
-            ]))
-        }
 
         let geometry: (
             area: JSONValue,
@@ -155,10 +145,10 @@ struct ResolvedSequenceWriter: Sendable {
             outset: JSONValue
         ) = switch shape.geometry {
         case let .box(width, height, outset):
-            (.null, numbers(width), numbers(height), .null, .null, .number(outset))
+            (.null, numbers(width), numbers(height), .null, .null, values.timed(outset))
 
         case let .area(area, outset, _):
-            (values.keyframes(area, value: values.rectangle), .null, .null, .null, .null, .number(outset))
+            (values.keyframes(area, value: values.rectangle), .null, .null, .null, .null, values.timed(outset))
 
         case let .points(points, isClosed, _):
             (.null, .null, .null, values.keyframes(points) { .array($0.map(values.point)) }, .bool(isClosed), .null)
@@ -172,13 +162,13 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "points", value: geometry.points),
             JSONMember(key: "closed", value: geometry.closed),
             JSONMember(key: "outset", value: geometry.outset),
-            JSONMember(key: "radius", value: numbers(shape.radius)),
+            JSONMember(key: "radius", value: values.timed(shape.radius)),
             JSONMember(key: "trim", value: values.keyframes(shape.trim) { trim in
                 .array([.number(trim.start), .number(trim.end)])
             }),
-            JSONMember(key: "fill", value: shape.fill.map(values.color) ?? .null),
-            JSONMember(key: "stroke", value: stroke ?? .null),
-            JSONMember(key: "shadow", value: shape.shadow.map(self.shadow) ?? .null)
+            JSONMember(key: "fill", value: values.timed(shape.fill)),
+            JSONMember(key: "stroke", value: values.timed(shape.stroke)),
+            JSONMember(key: "shadow", value: values.timed(shape.shadow))
         ]
     }
 

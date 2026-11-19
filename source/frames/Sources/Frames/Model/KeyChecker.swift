@@ -868,7 +868,7 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let keyframes = object["keyframes"]?.arrayValue else { return }
 
-        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace).filter { !ClipKeyTable.lookKeys.contains($0) }
         for keyframe in keyframes.compactMap(\.objectValue) {
             for property in properties where keyframe.contains(property) && object.contains(property) {
                 throw ModelError.staticAndKeyframed(place: place, kind: kind.label, property: property)

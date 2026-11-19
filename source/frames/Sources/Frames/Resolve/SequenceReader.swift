@@ -172,15 +172,15 @@ struct SequenceReader: Sendable {
                 value.arrayValue.map { elements in elements.compactMap(PositionForm.init(value:)) }
             },
             isClosed: clip["closed"]?.boolValue ?? false,
-            radius: property("radius", of: clip, read: \.numberValue),
-            outset: clip["outset"]?.numberValue,
-            fill: clip["fill"],
-            stroke: clip["stroke"],
+            radius: look("radius", of: clip),
+            outset: look("outset", of: clip),
+            fill: look("fill", of: clip),
+            stroke: look("stroke", of: clip),
             trim: property("trim", of: clip) { value in
                 let ends = value.arrayValue?.compactMap(\.numberValue) ?? []
                 return ends.count == 2 ? Trim(start: ends[0], end: ends[1]) : nil
             },
-            shadow: clip["shadow"]
+            shadow: look("shadow", of: clip)
         )
     }
 
@@ -266,6 +266,28 @@ struct SequenceReader: Sendable {
         guard !keyframes.isEmpty else { return nil }
 
         return .keyframes(keyframes)
+    }
+
+    // A key of the look as written, nil where neither the clip nor a keyframe writes it.
+    private func look(
+        _ key: String,
+        of object: JSONObject
+    ) -> LookProperty? {
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
+            element.objectValue.flatMap { keyframe -> PropertyKeyframe<JSONValue>? in
+                guard let at = keyframe["at"]?.numberValue, let value = keyframe[key] else { return nil }
+
+                return PropertyKeyframe(
+                    index: index,
+                    at: at,
+                    value: value,
+                    ease: keyframe["ease"].flatMap(Ease.init(value:)) ?? .linear
+                )
+            }
+        }
+        guard object[key] != nil || !keyframes.isEmpty else { return nil }
+
+        return LookProperty(written: object[key], keyframes: keyframes)
     }
 
     private func window(_ value: JSONValue) -> ClipWindow? {

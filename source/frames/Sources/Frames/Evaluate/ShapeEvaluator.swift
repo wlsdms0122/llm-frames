@@ -27,10 +27,15 @@ struct ShapeEvaluator: Sendable {
         guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time) else { return [] }
 
         let trim = shape.trim.value(at: time)
+        let fill: Color? = if case let .form(_, color) = shape.fill.sampled(at: time, as: LookStructureTable.fill) {
+            color.color
+        } else {
+            nil
+        }
         let path = PathItem(
             geometry: laid.geometry,
-            fill: shape.fill,
-            stroke: shape.stroke.map { stroke in
+            fill: fill,
+            stroke: PathStroke(sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke)).map { stroke in
                 PathStroke(
                     width: stroke.width / laid.scale,
                     color: stroke.color,
@@ -41,7 +46,7 @@ struct ShapeEvaluator: Sendable {
                 )
             },
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
-            shadow: shape.shadow.map { shadow in
+            shadow: DropShadow(sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow)).map { shadow in
                 DropShadow(
                     radius: shadow.radius / laid.scale,
                     offset: Point(x: shadow.offset.x / laid.scale, y: shadow.offset.y / laid.scale),
@@ -106,8 +111,8 @@ struct ShapeEvaluator: Sendable {
 
             bounds = space.area(of: area, track: clip.parentTrack, at: time)
             placement = areaPlacement
-            let drawn = bounds.grown(by: outset / tracked.scale)
-            let radius = shape.radius.value(at: time) / tracked.scale
+            let drawn = bounds.grown(by: length(outset, at: time) / tracked.scale)
+            let radius = length(shape.radius, at: time) / tracked.scale
             geometry = shape.kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: radius)
 
         case let .points(keyframes, isClosed, pointsPlacement):
@@ -137,7 +142,7 @@ struct ShapeEvaluator: Sendable {
         _ shape: ResolvedShape,
         width: [Keyframe<Double>],
         height: [Keyframe<Double>],
-        outset: Double,
+        outset: TimedValue,
         box: ResolvedBox,
         clip: ResolvedClip,
         sample: ClipSample,
@@ -158,12 +163,20 @@ struct ShapeEvaluator: Sendable {
             opacity: sample.opacity
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
-        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: outset)
+        let outline = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: length(outset, at: time))
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
-            : .rect(outline, radius: shape.radius.value(at: time))
+            : .rect(outline, radius: length(shape.radius, at: time))
 
         return (geometry, presentation.transform, presentation.opacity, 1)
+    }
+
+    // A radius or an outset at a time, 0 where the shape has none.
+    private func length(
+        _ value: TimedValue,
+        at time: Double
+    ) -> Double {
+        value.sampled(at: time, as: LookStructureTable.length).number ?? 0
     }
 
     private func receiverBox(of path: PathItem) -> Rectangle {

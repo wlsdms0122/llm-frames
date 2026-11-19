@@ -42,7 +42,7 @@ struct TimedValueBuilder: Sendable {
         as structure: ValueStructure,
         instant: Double,
         place: Place,
-        leaf: (JSONValue, LeafKind) throws -> LeafValue
+        leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
     ) throws -> TimedValue {
         switch (merged, structure) {
         case (.off, _):
@@ -55,7 +55,14 @@ struct TimedValueBuilder: Sendable {
             return .fixed(value)
 
         case let (.object(members), _):
-            let keys = members.map(\.key) + keyframes.flatMap { $0.value.members.map(\.key) }
+            if keyframes.contains(where: { $0.value == .unset }) {
+                throw LookError.nullStructure(place: place)
+            }
+
+            // Keys go in the order the structure declares them, so a value is written the same whatever layer gave it.
+            let present = members.map(\.key) + keyframes.flatMap { $0.value.members.map(\.key) }
+            let declared = if case let .object(object) = structure { object.keys.map(\.name) } else { [String]() }
+            let keys = declared.filter(present.contains) + present.filter { !declared.contains($0) }
             var timed: [TimedMember] = []
             for key in keys where !timed.contains(where: { $0.key == key }) {
                 let child = Self.structure(of: key, in: structure)
@@ -87,10 +94,18 @@ struct TimedValueBuilder: Sendable {
             })
 
         case let (.form(name, body), _):
+            // A `null` form in a keyframe is `null` for the form's body, which stops unless the body is a leaf.
             let bodies = keyframes.compactMap { keyframe -> PropertyKeyframe<LookValue>? in
-                guard case let .form(_, value) = keyframe.value else { return nil }
+                switch keyframe.value {
+                case let .form(_, value):
+                    keyframe.with(value)
 
-                return keyframe.with(value)
+                case .unset:
+                    keyframe.with(LookValue.unset)
+
+                default:
+                    nil
+                }
             }
             let inner = try timed(
                 body,
@@ -117,12 +132,12 @@ struct TimedValueBuilder: Sendable {
         kind: LeafKind,
         instant: Double,
         place: Place,
-        leaf: (JSONValue, LeafKind) throws -> LeafValue
+        leaf: (JSONValue, LeafKind, Place) throws -> LeafValue
     ) throws -> TimedValue {
         guard !keyframes.isEmpty else {
             guard case let .leaf(value) = merged else { return .off }
 
-            return .track([Keyframe(at: instant, value: try leaf(value, kind))])
+            return .track([Keyframe(at: instant, value: try leaf(value, kind, place))])
         }
 
         if case .leaf = written, keyframes.allSatisfy({ $0.value != .unset }) {
@@ -139,7 +154,7 @@ struct TimedValueBuilder: Sendable {
                 throw LookError.nullWithoutValue(place: place)
             }
 
-            let value = try leaf(json, kind)
+            let value = try leaf(json, kind, place)
             let numbers: [Double] = switch value {
             case let .number(number): [number]
             case let .numbers(numbers): numbers
@@ -168,7 +183,7 @@ struct TimedValueBuilder: Sendable {
         case (.off, _):
             throw LookError.keyframedOff(place: place)
 
-        case (.unset, .leaf), (.unset, .anyValue):
+        case (.unset, .leaf), (.unset, .anyValue), (.unset, .forms):
             return .unset
 
         case (.unset, _):

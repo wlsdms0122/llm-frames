@@ -46,7 +46,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
-    case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place)
+    // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
+    case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case maskCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case masksDiffer(place: Place, kind: PlaceKind, property: String)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
@@ -221,8 +222,11 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + counts.map { "\($0)" }.joined(separator: " and ")
                 + " points, and points interpolate one by one, so every value has the same number"
 
-        case let .missingLookLeaf(place, kind, key, layer):
-            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and its theme does not give (\(layer))"
+        case let .missingLookLeaf(place, kind, key, .some(layer)):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and its theme turns off (\(layer))"
+
+        case let .missingLookLeaf(place, kind, key, .none):
+            "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and no theme layer gives"
 
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"

@@ -609,19 +609,19 @@ struct SequencePlannerTests {
         #expect(plan.clips[1].appearance.blend == "normal")
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
-            geometry: .area(outset: 0, anchor: nil),
-            radius: .value(0),
+            geometry: .area(outset: .off, anchor: nil),
+            radius: .off,
             trim: .value(.whole),
-            fill: nil,
-            stroke: PathStroke(
+            fill: .off,
+            stroke: .stroke(PathStroke(
                 width: 8 * MergedTheme.base.lengthScale(at: 2160),
                 color: MergedTheme.base.color("accent"),
                 join: .round,
                 cap: .butt,
                 start: .none,
                 end: .none
-            ),
-            shadow: nil
+            )),
+            shadow: .off
         ))
         #expect(plan.clips[2].appearance.filter == graded)
     }

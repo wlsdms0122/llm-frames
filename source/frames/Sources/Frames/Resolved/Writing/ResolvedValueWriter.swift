@@ -154,6 +154,44 @@ struct ResolvedValueWriter: Sendable {
         self.keyframes(keyframes) { .number($0) }
     }
 
+    // A timed value: each timed leaf as its keyframe list, each static leaf as its value, `off` as `null`, the colour
+    // form as its colour and any other form as an object of its one name.
+    func timed(_ value: TimedValue) -> JSONValue {
+        switch value {
+        case .off:
+            .null
+
+        case let .fixed(value):
+            value
+
+        case let .track(keyframes):
+            self.keyframes(keyframes) { leaf in
+                switch leaf {
+                case let .number(number):
+                    .number(number)
+
+                case let .color(color):
+                    self.color(color)
+
+                case let .numbers(numbers):
+                    self.numbers(numbers)
+                }
+            }
+
+        case let .object(members):
+            .object(JSONObject(members: members.map { JSONMember(key: $0.key, value: timed($0.value)) }))
+
+        case let .list(elements):
+            .array(elements.map(timed))
+
+        case let .form(name, body) where name == ValueStructure.colorForm:
+            timed(body)
+
+        case let .form(name, body):
+            .object(JSONObject(members: [JSONMember(key: name, value: timed(body))]))
+        }
+    }
+
     // Each operation is `op` followed by its values, and a LUT's file is pinned. A display list's `grain` also carries
     // `seed`, the number of the output frame it is drawn in, which a resolved document has none of.
     func filter(

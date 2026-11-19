@@ -151,10 +151,12 @@ extension MergedTheme {
         )
     }
 
-    // MARK: - Private
-    private func value(at path: [String]) -> JSONValue? {
+    // The value at a path of keys, as the theme holds it, its lengths in points.
+    func value(at path: [String]) -> JSONValue? {
         path.reduce(Optional(value)) { value, key in value?.objectValue?[key] }
     }
+
+    // MARK: - Private
 
     private func style(named name: String) -> JSONObject {
         value(at: ["styles", name])?.objectValue ?? JSONObject()

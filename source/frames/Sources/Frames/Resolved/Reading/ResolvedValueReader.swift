@@ -227,6 +227,60 @@ struct ResolvedValueReader: Sendable {
         try keyframes(value) { Crop(try rectangle($0)) }
     }
 
+    // A timed value as the writer writes it, read by its structure: `null` is `off`, a timed leaf a keyframe list, and
+    // a name, a boolean or a file its value. A form is the colour form where its value is not an object of one name.
+    // `kind` names the entry an object is, which its stops name.
+    func timed(
+        _ value: PlacedJSONValue,
+        as structure: ValueStructure,
+        kind: String? = nil
+    ) throws -> TimedValue {
+        guard !value.isNull else { return .off }
+
+        switch structure {
+        case let .leaf(leaf) where leaf.isTimed:
+            return .track(try keyframes(value) { try self.leaf($0, as: leaf) })
+
+        case let .leaf(leaf):
+            if let names = leaf.names {
+                _ = try value.name(among: names) { names.contains($0) ? $0 : nil }
+            }
+            return .fixed(value.value)
+
+        case .anyValue, .choice:
+            return .fixed(value.value)
+
+        case let .object(object):
+            let members = try value.object(kind: kind, keys: object.keys.map(\.name))
+            return .object(try object.keys.compactMap { key in
+                try members.optionalMember(key.name).map { member in
+                    TimedMember(key: key.name, value: try timed(member, as: key.structure))
+                }
+            })
+
+        case let .map(element):
+            let members = try value.object(keys: value.value.objectValue?.keys ?? [])
+            return .object(try members.object.keys.map { key in
+                TimedMember(key: key, value: try timed(members.member(key), as: element))
+            })
+
+        case let .list(element):
+            return .list(try value.elements().map { try timed($0, as: element) })
+
+        case let .forms(forms):
+            if let object = value.value.objectValue, object.members.count == 1,
+                let form = forms.first(where: { $0.name == object.members[0].key }) {
+                let body = try value.object(keys: [form.name]).member(form.name)
+                return .form(form.name, try timed(body, as: form.structure))
+            }
+            guard let form = forms.first(where: { $0.name == ValueStructure.colorForm }) else {
+                throw value.wrongType("one of the forms \(forms.map(\.name).joined(separator: ", "))")
+            }
+
+            return .form(form.name, try timed(value, as: form.structure))
+        }
+    }
+
     // `grainKeys` are the keys a `grain` may hold besides its values: a display list's `seed`, which its reader reads.
     func filter(
         _ value: PlacedJSONValue,
@@ -297,6 +351,22 @@ struct ResolvedValueReader: Sendable {
     }
 
     // MARK: - Private
+    private func leaf(
+        _ value: PlacedJSONValue,
+        as kind: LeafKind
+    ) throws -> LeafValue {
+        switch kind.form {
+        case .color:
+            .color(try color(value))
+
+        case let .numbers(count):
+            .numbers(try value.numbers(count: count))
+
+        case .number, .name, .boolean, .file:
+            .number(try value.number())
+        }
+    }
+
     private func mask(_ value: PlacedJSONValue) throws -> ResolvedMask {
         let mask = try value.object(kind: "mask", keys: ["geometry", "feather", "invert", "mode"])
 

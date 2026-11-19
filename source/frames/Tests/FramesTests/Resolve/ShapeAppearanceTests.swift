@@ -124,11 +124,11 @@ struct ShapeAppearanceTests {
         #expect(shape == ShapeAppearance(
             kind: .rect,
             geometry: .area(outset: 3, anchor: nil),
-            radius: .value(9),
+            radius: 9,
             trim: .value(.whole),
-            fill: Color(written: "#123456"),
-            stroke: PathStroke(width: 4, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow),
-            shadow: DropShadow(radius: 10, offset: Point(x: 0, y: 4), color: Color(written: "#00000080"))
+            fill: .fill(Color(written: "#123456")),
+            stroke: .stroke(PathStroke(width: 4, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow)),
+            shadow: .shadow(DropShadow(radius: 10, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         ))
     }
 
@@ -141,10 +141,10 @@ struct ShapeAppearanceTests {
             """#)
 
         // Then
-        #expect(shape.stroke == PathStroke(width: 1, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow))
-        #expect(shape.fill == nil)
-        #expect(shape.shadow == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
-        #expect(shape.radius == .value(0))
+        #expect(shape.stroke.stroke() == PathStroke(width: 1, color: Color(written: "#ED2929"), join: .round, cap: .butt, start: .none, end: .arrow))
+        #expect(shape.fill == .off)
+        #expect(shape.shadow.shadow() == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
+        #expect(shape.radius == 0)
         #expect(shape.geometry == .area(outset: 0, anchor: nil))
     }
 
@@ -160,7 +160,7 @@ struct ShapeAppearanceTests {
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(document) }
-        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and its theme does not give (theme.shapes.bar.stroke)"#)
+        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and its theme turns off (theme.shapes.bar.stroke)"#)
     }
 
     @Test("a stroke colour on a shape without a style stands alone and stops without a width")
@@ -169,7 +169,7 @@ struct ShapeAppearanceTests {
         let error = #expect(throws: (any Error).self) {
             try plan(document(##"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
         }
-        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width""#)
+        #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and no theme layer gives"#)
     }
 
     @Test("a shape without a style takes nothing from the theme but colour names, and its stroke the stroke defaults")
@@ -180,12 +180,12 @@ struct ShapeAppearanceTests {
         // Then
         #expect(shape == ShapeAppearance(
             kind: .ellipse,
-            geometry: .area(outset: 0, anchor: nil),
-            radius: .value(0),
+            geometry: .area(outset: .off, anchor: nil),
+            radius: .off,
             trim: .value(.whole),
-            fill: Color(written: "#123456"),
-            stroke: PathStroke(width: 2, color: MergedTheme.base.color("accent"), join: .round, cap: .butt, start: .none, end: .none),
-            shadow: nil
+            fill: .fill(Color(written: "#123456")),
+            stroke: .stroke(PathStroke(width: 2, color: MergedTheme.base.color("accent"), join: .round, cap: .butt, start: .none, end: .none)),
+            shadow: .off
         ))
     }
 

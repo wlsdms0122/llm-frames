@@ -259,7 +259,7 @@ struct ContentFitTests {
 
         // Then
         let scale = MergedTheme.base.lengthScale(at: 603)
-        #expect(plan.clips[0].appearance.shape?.stroke?.width == 8 * scale)
+        #expect(plan.clips[0].appearance.shape?.stroke.stroke()?.width == 8 * scale)
     }
 
     @Test(

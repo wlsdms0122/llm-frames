@@ -128,7 +128,7 @@ struct TimedValueBuilderTests {
         let own = try sut.ownLayer(written: written, keyframes: keyframes, as: structure, place: place)
         let merged = try #require(try merger.merge([style.map { reader.value(of: $0, as: structure) }, own], as: structure, place: place))
 
-        return try sut.timed(merged, written: written, keyframes: keyframes, as: structure, instant: 0, place: place) { json, kind in
+        return try sut.timed(merged, written: written, keyframes: keyframes, as: structure, instant: 0, place: place) { json, kind, _ in
             switch kind.form {
             case .color:
                 .color(Color(written: json.stringValue ?? "#000000"))

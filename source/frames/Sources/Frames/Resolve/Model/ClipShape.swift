@@ -6,7 +6,8 @@
 //
 
 // What a shape clip writes of its own, each value nil where not written; an `area` is the clip's. Keyframes are on the
-// clip's clock, and lengths are theme lengths, not yet scaled.
+// clip's clock, and lengths are theme lengths, not yet scaled. `radius`, `outset`, `fill`, `stroke` and `shadow` are
+// as written, since they merge over the style before they are timed.
 struct ClipShape: Equatable, Sendable {
     // MARK: - Property
     let kind: ShapeKind
@@ -15,13 +16,12 @@ struct ClipShape: Equatable, Sendable {
     let height: PropertyValue<Double>?
     let points: PropertyValue<[PositionForm]>?
     let isClosed: Bool
-    let radius: PropertyValue<Double>?
-    let outset: Double?
-    // `fill`, `stroke` and `shadow` are as written, since they merge over the style before they take a form.
-    let fill: JSONValue?
-    let stroke: JSONValue?
+    let radius: LookProperty?
+    let outset: LookProperty?
+    let fill: LookProperty?
+    let stroke: LookProperty?
     let trim: PropertyValue<Trim>?
-    let shadow: JSONValue?
+    let shadow: LookProperty?
 
     // A rect or an ellipse given by `width` and `height` is placed by its box, a path or a shape given by `area` by its
     // geometry. A rect missing one of the two is neither and stops when its geometry is planned.
@@ -35,12 +35,12 @@ struct ClipShape: Equatable, Sendable {
         height: PropertyValue<Double>? = nil,
         points: PropertyValue<[PositionForm]>? = nil,
         isClosed: Bool = false,
-        radius: PropertyValue<Double>? = nil,
-        outset: Double? = nil,
-        fill: JSONValue? = nil,
-        stroke: JSONValue? = nil,
+        radius: LookProperty? = nil,
+        outset: LookProperty? = nil,
+        fill: LookProperty? = nil,
+        stroke: LookProperty? = nil,
         trim: PropertyValue<Trim>? = nil,
-        shadow: JSONValue? = nil
+        shadow: LookProperty? = nil
     ) {
         self.kind = kind
         self.style = style

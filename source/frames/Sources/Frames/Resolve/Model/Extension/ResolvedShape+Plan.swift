@@ -25,7 +25,7 @@ extension ResolvedShape {
                 instant: instant,
                 track: found.track
             ),
-            radius: shape.radius.keyframes(at: instant) { $0 },
+            radius: shape.radius,
             trim: shape.trim.keyframes(at: instant) { $0 },
             fill: shape.fill,
             stroke: shape.stroke,

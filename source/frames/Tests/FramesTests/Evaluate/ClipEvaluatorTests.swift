@@ -202,11 +202,11 @@ struct ClipEvaluatorTests {
                         height: [Keyframe(at: 0, value: 20)],
                         outset: 0
                     ),
-                    radius: [Keyframe(at: 0, value: 0)],
+                    radius: 0,
                     trim: [Keyframe(at: 0, value: .whole)],
-                    fill: white,
-                    stroke: nil,
-                    shadow: nil
+                    fill: .fill(white),
+                    stroke: .off,
+                    shadow: .off
                 )),
                 mask: geometry,
                 box: box(size: Size(width: 40, height: 20), at: Point(x: 40, y: 20), anchor: Point(x: 20, y: 10))

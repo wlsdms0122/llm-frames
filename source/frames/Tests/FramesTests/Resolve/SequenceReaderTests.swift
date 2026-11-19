@@ -138,7 +138,7 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[0].track == .own)
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(ellipse.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
-        #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: .string("accent"))))
+        #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: LookProperty(written: .string("accent")))))
         #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0)))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
@@ -166,11 +166,11 @@ struct SequenceReaderTests {
             style: "outline",
             width: .value(100),
             height: .value(50),
-            radius: .value(8),
-            outset: 4,
-            fill: .bool(false),
-            stroke: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "arrow" }"#),
-            shadow: .bool(true)
+            radius: LookProperty(written: .number(8)),
+            outset: LookProperty(written: .number(4)),
+            fill: LookProperty(written: .bool(false)),
+            stroke: LookProperty(written: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "arrow" }"#)),
+            shadow: LookProperty(written: .bool(true))
         )))
         #expect(sequence.clips[0].scale == .value(2))
         #expect(sequence.clips[0].rotation == .value(30))
@@ -178,15 +178,15 @@ struct SequenceReaderTests {
             kind: .path,
             points: .value([.point(Point(x: 0, y: 0)), .area(.rectangle(Rectangle(x: 0, y: 0, width: 10, height: 10)), point: "right")]),
             isClosed: true,
-            fill: .string("#FF0000"),
-            stroke: .bool(false),
+            fill: LookProperty(written: .string("#FF0000")),
+            stroke: LookProperty(written: .bool(false)),
             trim: .keyframes([
                 PropertyKeyframe(index: 0, at: 1, value: Trim(start: 0, end: 0.5), ease: .linear),
                 PropertyKeyframe(index: 1, at: 2, value: .whole, ease: .easeIn)
             ]),
-            shadow: try Fixture.json(#"{ "radius": 4, "color": "accent" }"#)
+            shadow: LookProperty(written: try Fixture.json(#"{ "radius": 4, "color": "accent" }"#))
         )))
-        #expect(sequence.clips[2].content == .shape(ClipShape(kind: .ellipse, shadow: .bool(false))))
+        #expect(sequence.clips[2].content == .shape(ClipShape(kind: .ellipse, shadow: LookProperty(written: .bool(false)))))
     }
 
     @Test(

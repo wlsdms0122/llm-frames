@@ -417,12 +417,12 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["width"] == .null)
         #expect(clips[0]["points"] == .null)
         #expect(clips[0]["closed"] == .null)
-        #expect(clips[0]["outset"] == .number(0))
+        #expect(clips[0]["outset"] == .null)
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
-            JSONMember(key: "color", value: .string("#ED2929FF")),
-            JSONMember(key: "width", value: .number(8 * scale)),
+            JSONMember(key: "color", value: held(.string("#ED2929FF"))),
+            JSONMember(key: "width", value: held(.number(8 * scale))),
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
             JSONMember(key: "start", value: .string("none")),
@@ -435,17 +435,17 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
-        #expect(clips[1]["stroke"]?.objectValue?["color"] == .string(theme.color("accent").hex))
+        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").hex)))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
-        #expect(clips[1]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(0))
+        #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
         #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200))
-        #expect(clips[2]["outset"] == .number(10 * scale))
+        #expect(clips[2]["outset"] == held(.number(10 * scale)))
         // An ellipse placed by `width` and `height` keeps its box as written, its outset growing only the outline it
         // draws.
         #expect(clips[2]["size"] == .array([.number(200), .number(100)]))
         #expect(clips[2]["anchor"] == .array([.number(100), .number(50)]))
-        #expect(clips[2]["fill"] == .string("#00000080"))
+        #expect(clips[2]["fill"] == held(.string("#00000080")))
         #expect(clips[2]["stroke"] == .null)
         // A named anchor of a shape placed by its area is a point of its area as written, whatever its outset.
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
@@ -514,6 +514,15 @@ struct ResolvedSequenceWriterTests {
         let text = sut.write(try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: hashes))
 
         return try #require(try JSONReader().read(text).objectValue)
+    }
+
+    // A timed leaf no keyframe moves: one keyframe at the clip's instant.
+    private func held(_ value: JSONValue) -> JSONValue {
+        .array([.object(JSONObject(members: [
+            JSONMember(key: "at", value: .number(0)),
+            JSONMember(key: "value", value: value),
+            JSONMember(key: "ease", value: .string("linear"))
+        ]))])
     }
 
     private func keyframes(

@@ -372,12 +372,12 @@ struct ResolvedSequenceReader: Sendable {
             .box(
                 width: try values.numbers(clip.member("width")),
                 height: try values.numbers(clip.member("height")),
-                outset: try clip.member("outset").number()
+                outset: try values.timed(clip.member("outset"), as: LookStructureTable.length)
             )
         } else {
             .area(
                 try values.keyframes(clip.member("area"), read: values.rectangle),
-                outset: try clip.member("outset").number(),
+                outset: try values.timed(clip.member("outset"), as: LookStructureTable.length),
                 placement: try placement(of: clip)
             )
         }
@@ -385,16 +385,16 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedShape(
             kind: kind,
             geometry: geometry,
-            radius: try values.numbers(clip.member("radius")),
+            radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
             trim: try values.keyframes(clip.member("trim")) { value in
                 let ends = try value.numbers()
                 guard ends.count == 2 else { throw value.wrongType("[a, b]") }
 
                 return Trim(start: ends[0], end: ends[1])
             },
-            fill: try clip.member("fill").optional(values.color),
-            stroke: try clip.member("stroke").optional(stroke),
-            shadow: try clip.member("shadow").optional(shadow)
+            fill: try values.timed(clip.member("fill"), as: LookStructureTable.fill),
+            stroke: try values.timed(clip.member("stroke"), as: LookStructureTable.stroke, kind: "stroke"),
+            shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
         )
     }
 
@@ -402,22 +402,6 @@ struct ResolvedSequenceReader: Sendable {
         GeometryPlacement(
             position: try clip.member("position").optional { value in try values.keyframes(value, read: values.point) },
             anchor: try clip.member("anchor").optional(values.point)
-        )
-    }
-
-    private func stroke(_ value: PlacedJSONValue) throws -> PathStroke {
-        let stroke = try value.object(kind: "stroke", keys: ["color", "width", "join", "cap", "start", "end"])
-        let end = { (key: String) in
-            try stroke.member(key).name(among: StrokeEnd.allCases.map(\.rawValue), StrokeEnd.init)
-        }
-
-        return PathStroke(
-            width: try stroke.member("width").number(),
-            color: try values.color(stroke.member("color")),
-            join: try stroke.member("join").name(among: StrokeJoin.allCases.map(\.rawValue), StrokeJoin.init),
-            cap: try stroke.member("cap").name(among: StrokeCap.allCases.map(\.rawValue), StrokeCap.init),
-            start: try end("start"),
-            end: try end("end")
         )
     }
 

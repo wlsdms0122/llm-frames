@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A leaf of a keyed value: its form, its domain, and whether it is a theme length, which resolve scales to output
-// pixels.
+// A leaf of a keyed value: its form, its domain, whether it is a theme length, which resolve scales to output pixels,
+// and for a name the names it takes, nil for any.
 struct LeafKind: Equatable, Sendable {
     // MARK: - Property
     static let name = LeafKind(form: .name)
@@ -16,6 +16,7 @@ struct LeafKind: Equatable, Sendable {
     let form: LeafForm
     let domain: LeafDomain
     let isLength: Bool
+    let names: [String]?
 
     var isTimed: Bool { form.isTimed }
 
@@ -23,14 +24,20 @@ struct LeafKind: Equatable, Sendable {
     init(
         form: LeafForm,
         domain: LeafDomain = .any,
-        isLength: Bool = false
+        isLength: Bool = false,
+        names: [String]? = nil
     ) {
         self.form = form
         self.domain = domain
         self.isLength = isLength
+        self.names = names
     }
 
     // MARK: - Public
+    static func name(among names: [String]) -> LeafKind {
+        LeafKind(form: .name, names: names)
+    }
+
     static func number(_ domain: LeafDomain = .any) -> LeafKind {
         LeafKind(form: .number, domain: domain)
     }
