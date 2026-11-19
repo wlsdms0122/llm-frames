@@ -35,7 +35,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case placementWithPosition(place: Place, kind: PlaceKind)
     case parentWithoutPosition(place: Place, kind: PlaceKind)
     case titleWithoutPlacement(place: Place, kind: PlaceKind, style: String)
-    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, property: String, visible: TimeRange)
+    case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, leaf: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
     case placementUnderContentFit(place: Place, kind: PlaceKind)
@@ -173,8 +173,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): style \(quoted(style)) gives no placement, so the title needs \"placement\" or "
                 + "\"position\""
 
-        case let .keyframesOutsideVisibleRange(place, kind, property, visible):
-            "\(place) (\(kind.label)): every keyframe of \(quoted(property)) lies outside \(written(visible)), "
+        case let .keyframesOutsideVisibleRange(place, kind, leaf, visible):
+            "\(place) (\(kind.label)): every keyframe of \(quoted(leaf)) lies outside \(written(visible)), "
                 + "so only one of its values would ever show"
 
         case let .missingFormatSize(place, kind):

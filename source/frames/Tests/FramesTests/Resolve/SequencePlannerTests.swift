@@ -425,11 +425,15 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a property whose keyframes all lie outside the range its clip shows in stops",
+        "a leaf whose keyframes all lie outside the range its clip shows in stops",
         arguments: [
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] } ] }"#,
                 #"storyline[0].keyframes (video): every keyframe of "crop" lies outside [0, 6), so only one of its values would ever show"#
+            ),
+            (
+                ##"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 1, "shadow": { "radius": 2 } }, { "at": 2, "shadow": { "radius": 4 } }, { "at": 9, "shadow": { "color": "#FF0000" } }, { "at": 10, "shadow": { "color": "#000000" } } ] } ] }"##,
+                #"storyline[0].keyframes (video): every keyframe of "shadow.color" lies outside [0, 6), so only one of its values would ever show"#
             ),
             (
                 #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "at": [2, 4], "title": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] } ] } ] }"#,

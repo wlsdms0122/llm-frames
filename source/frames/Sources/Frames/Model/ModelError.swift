@@ -23,7 +23,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableMedia(place: Place, kind: String, reference: String, reason: String)
     case unknownTemplate(place: Place, kind: String, name: String)
     case misplacedMedia(place: Place, kind: String, reason: String)
-    case easeWithoutFollowingKeyframe(place: Place, properties: [String])
+    case easeWithoutFollowingKeyframe(place: Place, leaves: [Place])
 
     // MARK: - Property
     var description: String {
@@ -82,8 +82,8 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .misplacedMedia(place, kind, reason):
             "\(place) (\(kind)): \(reason)"
 
-        case let .easeWithoutFollowingKeyframe(place, properties):
-            "\(place) (keyframe): \"ease\" shapes no span, since no later keyframe names \(properties.joined(separator: ", "))"
+        case let .easeWithoutFollowingKeyframe(place, leaves):
+            "\(place) (keyframe): \"ease\" shapes no span, since no later keyframe names \(leaves.map(\.description).joined(separator: ", "))"
         }
     }
 

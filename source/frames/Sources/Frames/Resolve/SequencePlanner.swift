@@ -798,21 +798,21 @@ struct SequencePlanner: Sendable {
         place: Place,
         kind: ClipKind
     ) throws {
-        let properties = keyframes.flatMap(\.properties).reduce(into: [String]()) { properties, property in
-            guard !properties.contains(property) else { return }
+        let leaves = keyframes.flatMap(\.leaves).reduce(into: [Place]()) { leaves, leaf in
+            guard !leaves.contains(leaf) else { return }
 
-            properties.append(property)
+            leaves.append(leaf)
         }
 
-        for property in properties {
-            let instants = keyframes.filter { $0.properties.contains(property) }.map(\.at)
+        for leaf in leaves {
+            let instants = keyframes.filter { $0.leaves.contains { $0.isLeaf(of: leaf) } }.map(\.at)
             let isBefore = instants.allSatisfy { $0 < visible.start }
             let isAfter = instants.allSatisfy { $0 >= visible.end }
             guard !isBefore, !isAfter else {
                 throw ResolveError.keyframesOutsideVisibleRange(
                     place: place.appending(key: "keyframes"),
                     kind: .clip(kind),
-                    property: property,
+                    leaf: leaf.description,
                     visible: visible
                 )
             }

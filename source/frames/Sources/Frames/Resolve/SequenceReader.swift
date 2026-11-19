@@ -9,8 +9,7 @@
 // `argumentThemes` are the themes media a template instance was given keeps, by its place.
 struct SequenceReader: Sendable {
     // MARK: - Property
-    private static let keyframeKeys: Set<String> = ["at", "ease"]
-
+    private let keyframeReader = KeyframeReader()
     private let argumentThemes: ArgumentThemeTable
 
     // MARK: - Initializer
@@ -298,7 +297,7 @@ struct SequenceReader: Sendable {
             return KeyframeInstant(
                 index: index,
                 at: at,
-                properties: keyframe.keys.filter { !Self.keyframeKeys.contains($0) }
+                leaves: keyframeReader.leaves(of: keyframe)
             )
         }
     }

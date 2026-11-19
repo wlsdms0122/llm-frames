@@ -45,7 +45,7 @@ struct SequenceReaderTests {
         #expect(sequence.theme == .object(try Fixture.json(#"{ "defaults": { "transition": "frames/push-up" } }"#)))
         #expect(sequence.storyline[0].place.description == "storyline[0]#run")
         #expect(sequence.storyline[0].media == ClipMedia(source: .file("/abs/run.mp4"), in: 2, out: 8, speed: 2))
-        #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, properties: ["crop"])])
+        #expect(sequence.storyline[0].keyframes == [KeyframeInstant(index: 0, at: 2, leaves: [Place.root.appending(key: "crop")])])
         #expect(sequence.storyline[0].connected[0].at == .range(start: 2, end: 8))
         #expect(sequence.storyline[0].connected[0].content == .title(runs: [TitleRun(text: "a", style: nil)], style: "subtitle"))
         #expect(sequence.storyline[0].connected[1].place.description == "storyline[0]#run.connected[1]")
