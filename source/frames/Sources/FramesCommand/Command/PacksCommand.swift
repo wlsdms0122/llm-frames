@@ -13,6 +13,9 @@ import Frames
 struct PacksCommand: Command {
     // MARK: - Property
     let name = "packs"
+    let synopsis = "[<pack>]"
+    let summary = "Lists the packs, the one that ships with frames and the installed ones, or what one pack holds, "
+        + "with the parameters each preset and template publishes."
 
     // MARK: - Initializer
     init() { }

@@ -11,6 +11,8 @@ import Frames
 struct ThemeCommand: Command {
     // MARK: - Property
     let name = "theme"
+    let synopsis = ""
+    let summary = "Prints the base theme, which is also the list of every group a theme holds."
 
     // MARK: - Initializer
     init() { }

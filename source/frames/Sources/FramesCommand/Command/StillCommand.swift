@@ -12,6 +12,9 @@ import Frames
 struct StillCommand: Command {
     // MARK: - Property
     let name = "still"
+    let synopsis = "<document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]"
+    let summary = "Draws the frames at the given sequence times side by side, each with its time label, without "
+        + "encoding a video. The cheap check while a document is edited."
 
     // MARK: - Initializer
     init() { }

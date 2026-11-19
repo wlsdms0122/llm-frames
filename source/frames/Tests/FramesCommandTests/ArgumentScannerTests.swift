@@ -12,7 +12,7 @@ import Testing
 @Suite("ArgumentScanner Tests")
 struct ArgumentScannerTests {
     // MARK: - Property
-    private let sut = ArgumentScanner(command: "render", rules: RenderOptions.rules, placeholders: RenderOptions.placeholders)
+    private let sut = ArgumentScanner(command: "render", rules: RenderOptions.rules, positionals: RenderOptions.positionals)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -42,7 +42,7 @@ struct ArgumentScannerTests {
     @Test("a flag is set only when it is given")
     func scansFlag() throws {
         // Given
-        let sut = ArgumentScanner(command: "timeline", rules: TimelineOptions.rules, placeholders: TimelineOptions.placeholders)
+        let sut = ArgumentScanner(command: "timeline", rules: TimelineOptions.rules, positionals: TimelineOptions.positionals)
 
         // When
         let machine = try TimelineOptions(sut.scan(["/abs/doc.json", "--json"]))
@@ -85,7 +85,7 @@ struct ArgumentScannerTests {
     @Test("a command that takes no options says so when it is given one")
     func stopsOnOptionOfCommandWithoutOptions() {
         // Given
-        let sut = ArgumentScanner(command: "theme", rules: ThemeOptions.rules, placeholders: ThemeOptions.placeholders)
+        let sut = ArgumentScanner(command: "theme", rules: ThemeOptions.rules, positionals: ThemeOptions.positionals)
 
         // When, Then
         let error = #expect(throws: CommandError.self) { try sut.scan(["--json"]) }

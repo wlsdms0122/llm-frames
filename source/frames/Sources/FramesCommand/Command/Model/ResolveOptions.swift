@@ -8,10 +8,10 @@
 struct ResolveOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("-o", value: "<resolved.json>"),
-        OptionRule("--args", value: "<args.json>")
+        OptionRule("-o", value: "<resolved.json>", help: "The .json file the resolved document is written to."),
+        OptionRule.arguments
     ]
-    static let placeholders = ["<document.json>"]
+    static let positionals = [PositionalRule.document]
 
     let document: String
     let output: String

@@ -8,7 +8,12 @@
 struct PacksOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules: [OptionRule] = []
-    static let placeholders = ["<pack>"]
+    static let positionals = [
+        PositionalRule(
+            "<pack>",
+            help: "The pack whose themes, presets, templates and files are listed."
+        )
+    ]
 
     let pack: String?
 

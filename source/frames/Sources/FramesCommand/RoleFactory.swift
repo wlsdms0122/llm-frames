@@ -63,6 +63,11 @@ struct RoleFactory: Sendable {
     init() { }
 
     // MARK: - Public
+    // The global options that pick each role and provider, in the order usage writes them.
+    var rules: [OptionRule] {
+        [decoders.rule, renderers.rule, mixers.rule, encoders.rule, shapers.rule, trackers.rule, ocrs.rule]
+    }
+
     func roles(for options: GlobalOptions) throws -> Roles {
         let decoder = try decoders.builder(named: options.decoder)()
 

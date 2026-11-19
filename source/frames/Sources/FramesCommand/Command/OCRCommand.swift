@@ -12,6 +12,10 @@ import Frames
 struct OCRCommand: Command {
     // MARK: - Property
     let name = "ocr"
+    let synopsis = "<image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]"
+    let summary = "Prints the picture's size, then each recognised line as [x, y, w, h] and its text in media "
+        + "pixels, in the order a text area's nth counts them. Over a range it does this for each frame, "
+        + "under its media time."
 
     // MARK: - Initializer
     init() { }

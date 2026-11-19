@@ -5,28 +5,33 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// What frames prints when it is run without a command.
-enum CommandUsage {
-    static let text = """
-        frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] \
-        [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]] \
-        <command> ...
+// The usage: the global options and every command's line. Each line is the command's name and its synopsis, so it
+// reads the same as the first line of the command's help.
+struct CommandUsage: Sendable {
+    // MARK: - Property
+    var text: String {
+        let options = CommandLineParser.rules.map { "[\(HelpRow($0).term)]" } + ["<command> ..."]
+        let width = (CommandTable.commands.map(\.name.count).max() ?? 0) + 1
+        let lines = CommandTable.commands.map { command in
+            command.synopsis.isEmpty
+                ? command.name
+                : command.name + String(repeating: " ", count: width - command.name.count) + command.synopsis
+        }
 
-        render    <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
-        still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
-        resolve   <document.json> -o <resolved.json> [--args <args.json>]
-        timeline  <document.json> [--args <args.json>] [--json]
-        evaluate  <document.json> --at <t> [--args <args.json>]
-        locate    <document.json> --at <t> --point <x,y> [--args <args.json>]
-        probe     <media> [--json]
-        ocr       <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--json]
-        track     <video> --at <t> --area <area> [--to <t>]
-        extract   <video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]
-        sheet     <video | document.json> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]
-        transcode <in> -o <out> [--quality high|medium|low] [--max <px>] [--codec h264|hevc]
-        presets   [<kind>] [<name>]
-        packs     [<pack>]
-        theme
+        return (["frames " + options.joined(separator: " "), ""] + lines).map { "\($0)\n" }.joined()
+    }
 
-        """
+    // What `frames --help` prints: the usage, then each global option with what it takes.
+    var help: String {
+        text
+            + "\nGlobal options:\n"
+            + HelpTable(rows: CommandLineParser.rules.map(HelpRow.init)).text
+            + "\nframes <command> --help describes a command, its arguments and its options.\n"
+    }
+
+    // MARK: - Initializer
+    init() { }
+
+    // MARK: - Public
+    // MARK: - Private
 }

@@ -11,6 +11,9 @@ import Frames
 struct LocateCommand: Command {
     // MARK: - Property
     let name = "locate"
+    let synopsis = "<document.json> --at <t> --point <x,y> [--args <args.json>]"
+    let summary = "Prints as JSON every item under a point of the output at a sequence time, topmost first, and for "
+        + "a picture of a media file the file, the media time and the pixel of the frame it shows."
 
     // MARK: - Initializer
     init() { }

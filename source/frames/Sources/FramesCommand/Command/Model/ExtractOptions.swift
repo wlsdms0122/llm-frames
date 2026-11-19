@@ -10,11 +10,17 @@ import Frames
 struct ExtractOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--from", value: "<t>"),
-        OptionRule("--to", value: "<t>"),
-        OptionRule("--step", value: "<s>")
+        OptionRule.from,
+        OptionRule.to,
+        OptionRule.step
     ]
-    static let placeholders = ["<video | document.json>", "<outdir>"]
+    static let positionals = [
+        PositionalRule.frameSource,
+        PositionalRule(
+            "<outdir>",
+            help: "The directory the PNG files go in, as an absolute path. It is made when it is missing."
+        )
+    ]
 
     let source: String
     let directory: String

@@ -73,7 +73,7 @@ struct CommandContextTests {
         let scanner = ArgumentScanner(
             command: "extract",
             rules: ExtractOptions.rules,
-            placeholders: ExtractOptions.placeholders
+            positionals: ExtractOptions.positionals
         )
         let options = try ExtractOptions(try scanner.scan([video, directory, "--step", "0.5"]))
 
