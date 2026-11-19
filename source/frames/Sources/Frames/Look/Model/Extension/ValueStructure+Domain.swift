@@ -43,8 +43,7 @@ extension ValueStructure {
             }
 
         case let (.number(number), .leaf(kind)):
-            let fits = sampled.contains(place) ? kind.domain.contains : kind.domain.isSeen
-            guard fits(number) else { throw LookError.outsideDomain(place: place, value: number) }
+            try (sampled.contains(place) ? kind.domain.sampled : kind.domain).check(.number(number), place: place)
 
         default:
             return

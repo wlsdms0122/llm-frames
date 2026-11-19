@@ -168,10 +168,10 @@ struct AudioFilterTests {
         try checker.check(document: Fixture.json(document))
 
         // When, Then
-        let error = #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "attack"), value: 0)) {
+        let error = #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "attack"), value: 0, domain: .positive)) {
             try plan(document)
         }
-        #expect(error?.description == "clips[0].audioFilter.attack: 0.0 is outside the values this leaf takes")
+        #expect(error?.description == "clips[0].audioFilter.attack: 0 is not above 0")
     }
 
     @Test("a preset argument two keyframes write may put an attack at 0 at one of them, and one keyframe may not")
@@ -300,13 +300,13 @@ struct AudioFilterTests {
     @Test("a static parameter outside its range stops where the clip writes it")
     func refusesOutOfRange() throws {
         // When, Then
-        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "bands").appending(index: 0).appending(key: "frequency"), value: 30000)) {
+        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "bands").appending(index: 0).appending(key: "frequency"), value: 30000, domain: .between(0, 24000))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
                   "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 30000 } ] } } ] }
                 """#)
         }
-        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "ratio"), value: 0.5)) {
+        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "ratio"), value: 0.5, domain: .range(1...Double.infinity))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
                   "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "compressor", "threshold": -20, "ratio": 0.5 } } ] }
