@@ -4,11 +4,11 @@ Status: accepted
 
 ## Summary
 
-How frames holds colour from the decoder to the encoder: working values in extended-range sRGB, with an encoded and a linear form; the colour spaces a sequence is output in, media are read in and a LUT is built for, with their primaries, transfers and tags; `format.colorSpace` and `format.compositing`; how media are converted to working values, HDR media tone mapped by the BT.2390 EETF and HLG taken to display light; the `color()` value; how a frame is clipped and encoded on output; and the pictures providers and analysis commands read.
+How frames holds colour from the decoder to the encoder: working values in extended-range sRGB, with an encoded and a linear form; the colour spaces a sequence is output in, media are read in and a LUT is built for, with their primaries, transfers and tags; `format.colorSpace` and `format.compositing`, and which form each weighted sum and each formula takes; how media are converted to working values, HDR media tone mapped by the BT.2390 EETF where a clip's `toneMap` and an SDR sequence say so, and HLG taken to display light; the `color()` value; how a frame is clipped and encoded on output; and the pictures providers and analysis commands read.
 
 ## Motivation
 
-A colour must mean one thing in a document, in every role and in every file frames writes, or two renderers draw the same document in two colours and a check made with `still` is not what the master holds. With one working space for every sequence, every formula of the specification (blend modes, filters, gradients, luma) has one meaning, and a sequence's colour space decides only how its output is encoded, as Final Cut Pro's Color Space project setting does. Editors now cut HDR and wide gamut media beside SDR media: a phone records HLG, a camera P3 or BT.2020, a graphic arrives as sRGB. Without a fixed rule for converting each to the working values and back, a decoder that clips at 1 loses the HDR highlights and a P3 red, and two decoders that tone map by their platform's own curve disagree (AVFoundation's HDR to SDR conversion is not a published formula). Without `format.compositing`, a dissolve that should mix light, as Premiere Pro's Composite in Linear Color does, could only be approximated by stacking clips. Without `color()`, a colour brighter than reference white or outside sRGB could not be written at all.
+A colour must mean one thing in a document, in every role and in every file frames writes, or two renderers draw the same document in two colours and a check made with `still` shows another picture than the master holds. One working space serves every sequence: one coordinate system and one set of formulas, so every formula of the specification (blend modes, filters, gradients, luma) has one meaning. The sequence's colour space decides the output, how it is encoded and clipped, and together with each clip it decides whether an HDR picture is tone mapped on the way in, as Premiere Pro's Auto Tone Map Media does. A `still` of a sequence of an SDR space draws what its master holds; a `still` of a sequence of an HDR space is an SDR preview of the HDR output, by a fixed tone mapping of that output, and not the output itself ([Providers and analysis pictures](#providers-and-analysis-pictures)). Editors now cut HDR and wide gamut media beside SDR media: a phone records HLG, a camera P3 or BT.2020, a graphic arrives as sRGB. Without a fixed rule for converting each to the working values and back, a decoder that clips at 1 loses the HDR highlights and a P3 red, and two decoders that tone map by their platform's own curve disagree (AVFoundation's HDR to SDR conversion is not a published formula). Without `format.compositing`, a dissolve that should mix light, as Premiere Pro's Composite in Linear Color does, could only be approximated by stacking clips. Without `color()`, a colour brighter than reference white or outside sRGB could not be written at all.
 
 ## Rules
 
@@ -36,7 +36,8 @@ decode(V) = V / 12.92                                  when |V| ≤ 0.04045
 - R' = encode(R), and R = decode(R'), each channel on its own. Alpha is the same in both forms.
 - A conversion between forms, or between a working value and a colour space, acts on the colour with alpha unpremultiplied and leaves alpha as it is. A picture holds its colours premultiplied by alpha ([FRAMES-21](../FRAMES-21/SPEC.md)): it is unpremultiplied before a conversion and premultiplied again after it, a pixel of alpha 0 staying 0.
 - **Nothing clamps a working value but a rule that says so.** Gamut and peak are decided at the output, by clipping ([Output](#output)).
-- **Luma** is the Rec. 709 luma of the encoded form, with alpha unpremultiplied: Y' = 0.2126 R' + 0.7152 G' + 0.0722 B'. Every rule that names luma means this value, whichever `compositing` the sequence has. A rule that weighs by luma where only 0 to 1 makes sense says that it clamps it.
+- **A formula defined only on 0 to 1 reads its inputs clamped to 0 to 1, and a formula defined on every real number reads them as they are.** A rule that clamps says so and names this principle: a weight by luma (in `bloom` and `grain`, a luma track matte and a transition matte), the blend modes defined only on 0 to 1 ([FRAMES-11](../FRAMES-11/SPEC.md#blend-modes)), and a LUT's input, clipped to its domain ([FRAMES-15](../FRAMES-15/SPEC.md)).
+- **Luma** is the Rec. 709 luma of the encoded form, with alpha unpremultiplied: Y' = 0.2126 R' + 0.7152 G' + 0.0722 B'. Every rule that names luma means this value, a formula on encoded values ([Compositing](#compositing)).
 
 ### Colour spaces
 
@@ -44,8 +45,8 @@ decode(V) = V / 12.92                                  when |V| ≤ 0.04045
 | --- | --- | --- | --- | --- | --- | --- |
 | `srgb` | BT.709 | sRGB (IEC 61966-2-1) | SDR | yes, the default | yes | yes, the default |
 | `display-p3` | P3 D65 (SMPTE EG 432-1) | sRGB | SDR | yes | yes | yes |
-| `rec2020` | BT.2020 | the BT.2020 transfer, which is the BT.709 OETF | SDR | yes | yes | yes |
-| `rec709` | BT.709 | BT.709, displayed by the BT.1886 EOTF | SDR | no | yes | yes |
+| `rec2020` | BT.2020 | BT.1886, decoded by its EOTF and encoded by its inverse | SDR | yes | yes | yes |
+| `rec709` | BT.709 | BT.1886, decoded by its EOTF and encoded by its inverse | SDR | yes | yes | yes |
 | `rec2100-pq` | BT.2020 | PQ (SMPTE ST 2084, as BT.2100 gives it) | HDR | yes | yes | yes |
 | `rec2100-hlg` | BT.2020 | HLG (ARIB STD-B67, as BT.2100 gives it) | HDR | yes | yes | yes |
 
@@ -86,10 +87,18 @@ linear BT.2020 to linear sRGB:
 | Transfer | encode(L) | decode(V) |
 | --- | --- | --- |
 | sRGB | the extended sRGB transfer ([Working values](#working-values)) | its inverse there |
-| BT.2020, with α = 1.09929682680944 and β = 0.018053968510807, as CSS Color 4 gives them | 4.5 × L when \|L\| < β, otherwise sign(L) × (α × \|L\|^0.45 - (α - 1)) | V / 4.5 when \|V\| < 4.5 × β, otherwise sign(V) × ((\|V\| + α - 1) / α)^(1/0.45) |
 | BT.1886 at a white of 1 and a black of 0 | sign(L) × \|L\|^(1/2.4) | sign(V) × \|V\|^2.4 |
 
-A working value is converted to an SDR space S by L_S = M × decode_sRGB(E), V = encode_S(L_S), with M the matrix from linear sRGB to S, and back by the same steps in reverse. For `srgb` V is E itself, so no rounding is added.
+`rec709` and `rec2020` are display-referred both ways, as Premiere Pro and DaVinci Resolve take Rec. 709 and SDR Rec. 2020 at gamma 2.4, and as BT.2020 names BT.1886 as its reference display: their decode is the EOTF of BT.1886, L = a × max(V + b, 0)^2.4 with a white L_W of 1 and a black L_B of 0, so a = 1 and b = 0, taken to all real numbers with the sign kept, and their encode is the inverse of that EOTF:
+
+```
+decode_BT1886(V) = sign(V) × |V|^2.4
+encode_BT1886(L) = sign(L) × |L|^(1/2.4)
+```
+
+An `rec709` or `rec2020` sequence's output read back as media of the same space therefore gives its working values back, to the rounding of the file's code values.
+
+A working value is converted to an SDR space S by L_S = M × decode_sRGB(E), V = encode_S(L_S), with M the matrix from linear sRGB to S, and back by the same steps in reverse. For `srgb` V is E itself, so no rounding is added. For `rec709` M is the identity, since its primaries are those of sRGB.
 
 **HDR transfers.** An HDR space holds display light: F_D in cd/m², a working value's linear form on BT.2020 primaries times 203.
 
@@ -124,7 +133,7 @@ A working value is converted to an HDR space by L_2020 = M × decode_sRGB(E), F_
 | `srgb` | 1 | 13 | 1, 13, 1 (BT.709) |
 | `display-p3` | 12 | 13 | 12, 13, 1 (BT.709) |
 | `rec2020` | 9 | 1, 6, 14 or 15 | 9, 14, 9 (BT.2020 non-constant luminance) |
-| `rec709` | 1 | 1, 6, 14 or 15 | never written, since no sequence is output in it |
+| `rec709` | 1 | 1, 6, 14 or 15 | 1, 1, 1 (BT.709) |
 | `rec2100-pq` | 9 | 16 | 9, 16, 9 (BT.2020 non-constant luminance) |
 | `rec2100-hlg` | 9 | 18 | 9, 18, 9 (BT.2020 non-constant luminance) |
 
@@ -132,27 +141,50 @@ A picture's colour space is the row whose primaries and transfer it is tagged wi
 
 ### Sequence colour space
 
-`format.colorSpace` is a name from the table whose Sequence column says yes, and its default is `srgb`. Any other name stops at `check`. It decides three things, and nothing else:
+`format.colorSpace` is a name from the table whose Sequence column says yes, and its default is `srgb`. Any other name stops at `check`. It decides the output, and with each media clip what an HDR picture enters as, and nothing else:
 
 - how the sequence's output is encoded and tagged ([Output](#output)),
 - which gamut and peak its output is clipped to ([Output](#output)),
-- whether HDR media are tone mapped on the way in: in a sequence of an SDR space they are, in one of an HDR space they are not ([Media](#media)).
+- together with a clip's `toneMap`, whether an HDR picture of the clip is tone mapped on the way in: in a sequence of an SDR space it is where `toneMap` is true, and in one of an HDR space it never is ([Media](#media)).
 
-The working values, and so every formula of the specification, are the same in every sequence. A compound clip's or a template instance's `colorSpace` applies only when it is rendered alone, as its `fps` does ([FRAMES-3](../FRAMES-3/SPEC.md)): inside another sequence its frames are working values, the outermost sequence's colour space decides the three things for every clip it shows, and the key is allowed there and has no effect. The format's `background` is a working value like any other.
+The working space, one coordinate system with one set of formulas, is the same in every sequence, so every formula of the specification means the same everywhere. The values an HDR picture enters as are not: tone mapped it enters as SDR values, and not tone mapped as display light above 1, so a filter on it sees the picture the clip and the sequence give it. A compound clip's or a template instance's `colorSpace` applies only when it is rendered alone, as its `fps` does ([FRAMES-3](../FRAMES-3/SPEC.md)): inside another sequence its frames are working values, the outermost sequence's colour space decides the three things for every clip it shows, its own clips included, and the key is allowed there and has no effect. The format's `background` is a working value like any other.
 
 ### Compositing
 
 `format.compositing` is `encoded` or `linear`. **Its default is `encoded`.** Any other value stops at `check`.
 
-Every composite of a colour onto what is below it uses the formulas of W3C Compositing and Blending Level 1 that [FRAMES-20](../FRAMES-20/SPEC.md) applies, with the source and backdrop colours Cs and Cb, and their premultiplied forms, read in the form `compositing` names: the encoded form under `encoded`, as W3C Compositing, browsers and After Effects write and composite them, and the linear form under `linear`, as Premiere Pro's Composite in Linear Color and After Effects' Blend Colors Using 1.0 Gamma composite them. A blend mode's formula is applied to the values of that form as they are. The result is in the same form, and it is the working value that form names.
+**Every weighted sum of colours follows `compositing`, and a formula defined on encoded values stays on the encoded form.** A weighted sum reads its colours in the form `compositing` names, the encoded form under `encoded`, as W3C Compositing, browsers and After Effects composite, and the linear form under `linear`, as Premiere Pro's Composite in Linear Color composites, and its result is the working value that form names. A formula defined on encoded values reads the encoded form whichever `compositing` the sequence has, and one defined on linear light (`exposure` and `temperature`, [FRAMES-15](../FRAMES-15/SPEC.md)) reads the linear form. Alpha is the same in both forms.
 
-| Taken by `compositing` | Not taken by it |
-| --- | --- |
-| an item composited onto what is below it in its display list, by its `blend` and its alpha after its reveal, matte, mask, track matte and `opacity` ([FRAMES-20](../FRAMES-20/SPEC.md)); a nested list's picture onto the list that holds it | the filter ops, each in its own domain ([FRAMES-15](../FRAMES-15/SPEC.md)), and a filter entry's `mix`, on the encoded form |
-| the coverage of an antialiased edge (a path, a glyph, a reveal's edge, a mask's edge and feather), which is alpha | the interpolation of keyframed colours and of a gradient's stops, on the encoded form ([FRAMES-4](../FRAMES-4/SPEC.md), [FRAMES-11](../FRAMES-11/SPEC.md)) |
-| the parts an item draws over each other: a picture's border over it, a shadow under its item, a title's background, highlights, underlines, strokes and fills in their order | luma, for a luma track matte and a transition matte, on the encoded form |
-| the two storyline pictures of a transition, so a dissolve in `linear` mixes light, and a transition cover over them ([FRAMES-14](../FRAMES-14/SPEC.md)) | mask values, which are not colours and multiply alpha as written ([FRAMES-11](../FRAMES-11/SPEC.md)) |
-| an adjustment's filtered picture onto the unfiltered one by its `blend` ([FRAMES-11](../FRAMES-11/SPEC.md)) | resampling a picture to its size and the blurs inside filter ops, on the encoded form premultiplied |
+A weighted sum of colours, in the form `compositing` names:
+
+- an item composited onto what is below it in its display list by source-over, at its alpha after its reveal, matte, mask, track matte and `opacity` ([FRAMES-20](../FRAMES-20/SPEC.md)), a nested list's picture onto the list that holds it, and the sum `plus-lighter` makes ([FRAMES-11](../FRAMES-11/SPEC.md#blend-modes)),
+- the coverage of an antialiased edge (a path, a glyph, a reveal's edge, a mask's edge and feather), which is alpha,
+- the parts an item draws over each other: a picture's border over it, a shadow under its item, a title's background, highlights, underlines, strokes and fills in their order,
+- the two storyline pictures of a transition, so a dissolve in `linear` mixes light, and a transition cover over them ([FRAMES-14](../FRAMES-14/SPEC.md)),
+- an adjustment's filtered picture onto the unfiltered one, by its `blend` and alpha ([FRAMES-11](../FRAMES-11/SPEC.md)),
+- a filter entry's `mix` and a `lut`'s `amount` ([FRAMES-15](../FRAMES-15/SPEC.md)),
+- the blurs inside filter ops (`blur`, `sharpen`'s blur and its unsharp mask, `bloom`'s blur and the bloom it adds, its `color` taken in the same form) and `pixelate`'s mean, premultiplied ([FRAMES-15](../FRAMES-15/SPEC.md)),
+- resampling a picture to its size, premultiplied,
+- the interpolation of keyframed colours ([FRAMES-4](../FRAMES-4/SPEC.md)) and of a gradient's stops ([FRAMES-11](../FRAMES-11/SPEC.md)).
+
+A formula defined on encoded values, on the encoded form:
+
+- the blend function B(Cb, Cs) of every blend mode, W3C's formula ([FRAMES-11](../FRAMES-11/SPEC.md#blend-modes)),
+- `contrast`, `levels`, `saturation`, `hue` and `sepia`, `vignette`'s factor, and `grain`'s noise added to each channel ([FRAMES-15](../FRAMES-15/SPEC.md)),
+- a LUT's input: the encoded form converted to the LUT's `space` ([FRAMES-15](../FRAMES-15/SPEC.md)),
+- luma, for a luma track matte, a transition matte and the weights of `grain` and `bloom`.
+
+Mask values are not colours, and multiply alpha as written ([FRAMES-11](../FRAMES-11/SPEC.md)).
+
+**A blend mode** composites by W3C Compositing and Blending Level 1's source-over with the mode's blend function, as [FRAMES-20](../FRAMES-20/SPEC.md) applies it, with the source and backdrop colours Cs and Cb unpremultiplied, their alphas αs and αb. B(Cb, Cs) is computed on the encoded form, its inputs as [FRAMES-11](../FRAMES-11/SPEC.md#blend-modes) reads them, and its result is taken to the form `compositing` names, where the composite weighs it with Cs and Cb in that form:
+
+```
+Cs' = (1 - αb) × Cs + αb × B(Cb, Cs)
+co  = αs × Cs' + (1 - αs) × αb × Cb
+αo  = αs + (1 - αs) × αb
+```
+
+co is the premultiplied result. Under `normal` B(Cb, Cs) is Cs, so a `normal` composite is a weighted sum alone.
 
 A compound clip's or a template instance's own `compositing` composites the items of its own frame, as its `background` and `conform` apply there ([FRAMES-3](../FRAMES-3/SPEC.md)). Its picture is composited onto the frame that shows it by that frame's `compositing`.
 
@@ -173,7 +205,7 @@ HEXDIG is a hexadecimal digit of either case, DIGIT a decimal digit and SP a spa
 
 - A hex colour is sRGB, as in CSS: `#RRGGBB` is the encoded working value R' = RR / 255, G' = GG / 255, B' = BB / 255 with alpha 1, and `#RRGGBBAA` takes alpha AA / 255.
 - `color(<space> c1 c2 c3 / a)` is CSS Color 4's `color()` with its components as numbers: c1, c2 and c3 are the red, green and blue of `<space>` encoded as CSS Color 4 defines it, any real number, so `color(display-p3 1 0 0)` is the red of P3 and `color(srgb-linear 2 2 2)` is twice reference white. `a` is alpha, from 0 to 1, and 1 when it is left out. A component that is not finite, or an alpha outside 0 to 1, stops at `check`.
-- `srgb` is the encoded working value itself: R' = c1, G' = c2, B' = c3. `srgb-linear` is the linear form: R' = encode(c1), and so on. `display-p3` and `rec2020` are converted from their space as [Colour spaces](#colour-spaces) gives (the sRGB transfer and the P3 primaries for `display-p3`, the BT.2020 transfer and primaries for `rec2020`).
+- `srgb` is the encoded working value itself: R' = c1, G' = c2, B' = c3. `srgb-linear` is the linear form: R' = encode(c1), and so on. `display-p3` and `rec2020` are converted from their space as [Colour spaces](#colour-spaces) gives (the sRGB transfer and the P3 primaries for `display-p3`, the BT.1886 transfer and the BT.2020 primaries for `rec2020`, the `rec2020` row of the table).
 - A theme colour is any of these but a name, and a value that names it is its colour ([FRAMES-22](../FRAMES-22/SPEC.md)).
 - **The resolved document and display lists write every colour as `color(srgb r g b / a)`**: the encoded working value, its four numbers in the number form of [FRAMES-19](../FRAMES-19/SPEC.md), alpha always written, one space between the parts and around `/`. A colour of another form there stops reading, naming its place.
 
@@ -183,9 +215,10 @@ The decoder converts every picture it reads (a video's frames, an image, an imag
 
 - Its colour space is the one its tags name ([Colour spaces](#colour-spaces)), or the `colorSpace` written on the media clip that shows it. A video's Y'CbCr is taken to R'G'B' by the matrix and the range (narrow or full) the file says, as BT.709 and BT.2100 quantise them, and a value beyond the nominal range is kept, until an HDR transfer clips it ([Colour spaces](#colour-spaces)). An image whose ICC profile describes a space of the table (its primaries, white point and transfer) is in that space. Any other tagged picture is converted as its code points' standards or its ICC profile define (colorimetric, to linear sRGB, no gamut clipped).
 - **`colorSpace` on a media clip** (a storyline clip with media, a connected or sequence media clip) overrides what the file says, as Premiere Pro's Override Media Color Space does: a name whose Media column says yes. `rec709` is for a video tagged wrongly or not at all whose pictures were made for a BT.1886 display. Log footage is not a colour space: a `lut` filter takes it to a display space ([FRAMES-15](../FRAMES-15/SPEC.md)). The key is a name and static. On a clip whose media is a compound clip or a template instance it stops, as a key of another media row does ([FRAMES-7](../FRAMES-7/SPEC.md)), since such media are working values already. A name the Media column does not allow stops at `check`.
+- **`toneMap` on a media clip** (a storyline clip with media, a connected or sequence media clip) says whether an HDR picture of the clip is tone mapped on the way in, as Premiere Pro's Auto Tone Map Media does: a boolean, `true` by default, and static. It acts only in a sequence of an SDR space, and only on an HDR picture; in a sequence of an HDR space it has no effect. On a clip whose media is a compound clip or a template instance it stops, as `colorSpace` does. A transition's cover and matte media are tone mapped as those of a clip with `toneMap` true are.
 - **SDR media** are converted exactly, as [Colour spaces](#colour-spaces) gives, in every sequence: nothing is clipped, so a wide gamut picture in an `srgb` sequence keeps its colours until the output clips them.
-- **HDR media in a sequence of an HDR space** are display light, 203 cd/m² taken as 1, with no tone mapping, whichever HDR transfer the media and the sequence have: PQ media by the PQ EOTF, HLG media by the HLG EOTF with the OOTF at 1000 cd/m² ([Colour spaces](#colour-spaces)). Light past the sequence's peak is clipped at the output.
-- **HDR media in a sequence of an SDR space** are tone mapped at the decoder, before any filter, as Premiere Pro tone maps media on the way in ([Tone mapping](#tone-mapping)).
+- **HDR media taken as display light** are 203 cd/m² taken as 1, with no tone mapping, whichever HDR transfer the media and the sequence have: PQ media by the PQ EOTF, HLG media by the HLG EOTF with the OOTF at 1000 cd/m² ([Colour spaces](#colour-spaces)). So are HDR media in a sequence of an HDR space, and those of a clip with `toneMap` false in a sequence of an SDR space. Light past the sequence's peak, and a colour outside its gamut, are clipped at the output, so with `toneMap` false a colourist grades the HDR picture into SDR by hand with filters, which see its values above 1.
+- **HDR media of a clip with `toneMap` true in a sequence of an SDR space** are tone mapped at the decoder, before any filter ([Tone mapping](#tone-mapping)).
 
 ### Tone mapping
 
@@ -212,7 +245,9 @@ An HDR picture is tone mapped to SDR by the EETF of BT.2390 on max(R, G, B), wit
 
    When L_W is at most L_max, E2 = E1. With L_min 0, b is 0 and E3 = E2.
 4. Scale the pixel by the ratio: F_D' = F_D × M' / M, and 0 where M is 0.
-5. Take F_D' to a working value as an HDR value is taken ([Colour spaces](#colour-spaces)): L_2020 = F_D' / 203, the matrix to linear sRGB, the sRGB transfer. Then clip each channel of the encoded form to 0 to 1.
+5. Take F_D' to a working value as an HDR value is taken ([Colour spaces](#colour-spaces)): L_2020 = F_D' / 203, the matrix to linear sRGB, the extended sRGB transfer. Nothing is clipped.
+
+**Tone mapping decides the peak only.** M' is at most L_max, since E2 is at most maxLum, and no channel of F_D is above M, so every channel of F_D' lies from 0 to 203 cd/m² and of L_2020 from 0 to 1. The matrix to linear sRGB may then give a channel below 0 or above 1, a colour of BT.2020 outside the sRGB gamut, which is kept as SDR wide gamut media keep theirs, and the output clips the gamut ([Output](#output)).
 
 The formula is fixed, so two decoders agree to their rounding.
 
@@ -230,18 +265,26 @@ The encoder writes the renderer's frames of working values in the sequence's col
 
 An **analysis picture** is an SDR sRGB picture: encoded working values with every channel in 0 to 1.
 
-- The providers (OCR, the tracker, [FRAMES-21](../FRAMES-21/SPEC.md)) read analysis pictures of media: the picture the decoder gives for an `srgb` sequence, so HDR media are tone mapped as [Tone mapping](#tone-mapping) gives, with each channel of the encoded form clipped to 0 to 1, so wide gamut is clipped. They read a file as its tags say, never by a clip's `colorSpace`, so no recognised text and no track depends on the sequence or the clip, and the `ocr` and `track` commands see what resolve sees.
+- The providers (OCR, the tracker, [FRAMES-21](../FRAMES-21/SPEC.md)) read analysis pictures of media: the picture the decoder gives for a clip with `toneMap` true in an `srgb` sequence, so HDR media are tone mapped as [Tone mapping](#tone-mapping) gives, with each channel of the encoded form clipped to 0 to 1, so wide gamut is clipped. They read a file as its tags say, never by a clip's `colorSpace` or `toneMap`, so no recognised text and no track depends on the sequence or the clip, and the `ocr` and `track` commands see what resolve sees.
 - `still`, `sheet` and `extract` ([FRAMES-23](../FRAMES-23/SPEC.md)) write analysis pictures at 8 bits per channel, sRGB tagged, since they are for looking at. A frame of a sequence of an SDR space is encoded as an `srgb` sequence's output. A frame of a sequence of an HDR space is first encoded as its own output, with its display light clipped to its range, then tone mapped as an HDR picture of that space with no mastering display metadata. A video's frames are analysis pictures of the video. Time labels are drawn on the analysis picture, composited on its encoded values.
 
 ## Interactions
 
-The units table points here for colour values ([FRAMES-1](../FRAMES-1/SPEC.md)). Keyframed colours interpolate on the encoded form ([FRAMES-4](../FRAMES-4/SPEC.md)), and so do gradient stops ([FRAMES-11](../FRAMES-11/SPEC.md)). `format.colorSpace`, `format.compositing` and a media clip's `colorSpace` are keys of [FRAMES-7](../FRAMES-7/SPEC.md), the format is [FRAMES-9](../FRAMES-9/SPEC.md) and what a compound clip's format applies is [FRAMES-3](../FRAMES-3/SPEC.md). Blend modes and track mattes are [FRAMES-11](../FRAMES-11/SPEC.md), transitions [FRAMES-14](../FRAMES-14/SPEC.md), and the domain of each filter op [FRAMES-15](../FRAMES-15/SPEC.md). The resolved document and the display list carry colours, colour spaces and the compositing as [FRAMES-19](../FRAMES-19/SPEC.md) and [FRAMES-20](../FRAMES-20/SPEC.md) say. The roles, the files they write and the providers are [FRAMES-21](../FRAMES-21/SPEC.md), theme colours [FRAMES-22](../FRAMES-22/SPEC.md), and `probe`, `transcode` and the analysis commands [FRAMES-23](../FRAMES-23/SPEC.md).
+The units table points here for colour values ([FRAMES-1](../FRAMES-1/SPEC.md)). Keyframed colours ([FRAMES-4](../FRAMES-4/SPEC.md)) and gradient stops ([FRAMES-11](../FRAMES-11/SPEC.md)) interpolate as weighted sums ([Compositing](#compositing)). `format.colorSpace`, `format.compositing` and a media clip's `colorSpace` and `toneMap` are keys of [FRAMES-7](../FRAMES-7/SPEC.md), the format is [FRAMES-9](../FRAMES-9/SPEC.md) and what a compound clip's format applies is [FRAMES-3](../FRAMES-3/SPEC.md). Blend modes, the inputs each reads and track mattes are [FRAMES-11](../FRAMES-11/SPEC.md), transitions [FRAMES-14](../FRAMES-14/SPEC.md), and the domain of each filter op [FRAMES-15](../FRAMES-15/SPEC.md). The resolved document and the display list carry colours, colour spaces, `toneMap` and the compositing as [FRAMES-19](../FRAMES-19/SPEC.md) and [FRAMES-20](../FRAMES-20/SPEC.md) say. The roles, the files they write and the providers are [FRAMES-21](../FRAMES-21/SPEC.md), theme colours [FRAMES-22](../FRAMES-22/SPEC.md), and `probe`, `transcode` and the analysis commands [FRAMES-23](../FRAMES-23/SPEC.md).
 
 ## Alternatives considered
 
-A working space per sequence (linear P3 for a P3 sequence, linear BT.2020 for an HDR one): the same document would composite, blend and filter differently by its output, and a resolved colour would need its sequence to be read. One working space keeps every formula and every resolved colour one meaning, and the sequence's colour space decides only its output, as Final Cut Pro's wide gamut library does.
+A working space per sequence (linear P3 for a P3 sequence, linear BT.2020 for an HDR one): the same document would composite, blend and filter by other formulas for each output, and a resolved colour would need its sequence to be read. One working space keeps one coordinate system and one set of formulas, and every resolved colour one meaning. The sequence's colour space decides the output, and what an HDR picture enters as only together with the clip's `toneMap`.
 
-Linear working values for every formula, as ACES and scRGB pipelines hold them: every formula written on encoded values (the W3C blend modes, `contrast`, `levels`, a LUT's input, luma) would change its meaning, and a sequence would no longer composite as browsers and After Effects do by default. `format.compositing` gives linear light where it is wanted, and the filter ops that need it (`exposure`, `temperature`) work in it already.
+Tone mapping decided by the sequence alone, every HDR picture tone mapped in an SDR sequence: a colourist grading an HDR source into SDR by hand, as Premiere Pro's Auto Tone Map Media turned off and Final Cut Pro's HDR Tools allow, could never reach its highlights, which would be gone before the first filter. Tone mapping is a conversion of a clip's media into working values, as its `colorSpace` is, so it is a key of the clip.
+
+Tone mapping as a filter op: an HDR clip in an SDR sequence would show clipped highlights until an op was written on it, an op on an adjustment clip would tone map SDR pictures with the HDR ones, and the op would have to run first in every chain to see the light the decoder gives. A clip key that is on by default gives the usual result unwritten and the grade by hand where it is turned off.
+
+The sequence's colour space carried by every nested display list for the decoder: the decoder needs only whether a picture is tone mapped, so a picture's source carries that and its clip's `colorSpace`, and only the outermost list carries the colour space, for the encoder.
+
+Linear working values for every formula, as ACES and scRGB pipelines hold them: every formula written on encoded values (the W3C blend functions, `contrast`, `levels`, a LUT's input, luma) would change its meaning, and a sequence would no longer composite as browsers and After Effects do by default. `format.compositing` gives linear light where it is wanted, and the filter ops that need it (`exposure`, `temperature`) work in it already.
+
+`compositing` taken by the display list's composites only, with a filter entry's `mix`, the blurs inside ops, resampling and colour interpolation on the encoded form: the line would follow where a sum is computed, not what it is, so under `linear` an `opacity` of 0.5 and a `mix` of 0.5 would give two pictures for one intent, and a blur, where linear light differs most, would ignore it. A weighted sum has no formula of its own written on encoded values, so it follows `compositing`; a formula written on encoded values keeps its meaning by staying there.
 
 Working values clamped to 0 to 1: HDR highlights and wide gamut colours would be lost at the decoder, before the output decides what it can hold.
 
@@ -249,7 +292,11 @@ Tone mapping by the platform, as AVFoundation converts HDR to SDR: measured, it 
 
 Tone mapping each channel on its own: a bright saturated colour would shift its hue towards white as its largest channel is compressed more than the others. Mapping max(R, G, B) and scaling the three by one ratio keeps the hue.
 
-Tone mapping at the output instead of at the decoder: a filter in an SDR sequence would grade light it can never show, and an SDR sequence's look would change with how far an HDR source reached. At the decoder, as Premiere Pro tone maps media on the way in, every filter sees the SDR picture it is graded on.
+The tone mapped picture clipped to 0 to 1 on the encoded form: that clip is the sRGB gamut, so in a `display-p3` or `rec2020` sequence an HDR source would lose its wide gamut where an SDR one of the same primaries keeps it, and clipping each channel would shift the hue the ratio keeps. Tone mapping decides the peak, and the output decides the gamut.
+
+Tone mapping at the output instead of at the decoder: a filter in an SDR sequence would grade light it can never show, and an SDR sequence's look would change with how far an HDR source reached. At the decoder, as Premiere Pro tone maps media on the way in, every filter sees the SDR picture it is graded on, and a clip with `toneMap` false is graded by hand instead.
+
+`rec709` for media only, every SDR sequence output with the sRGB transfer or the BT.2020 one: an editor from Final Cut Pro or Premiere Pro delivers SDR video tagged BT.709 (1, 1, 1), and a video tagged with the sRGB transfer (13) is the exception, so a delivery would need retagging. `rec709` as a sequence colour space encoded by the BT.709 OETF: its output read back as `rec709` media, by the BT.1886 EOTF, would not give its working values back. Display-referred both ways, as Premiere Pro and DaVinci Resolve take Rec. 709 at gamma 2.4, the round trip is exact.
 
 Log encodings (S-Log3, Log C, V-Log) as colour space names: each needs its camera's matrix and curve and a look, which a LUT carries as data ([FRAMES-15](../FRAMES-15/SPEC.md)).
 
@@ -258,5 +305,9 @@ CSS Color 4's whole `color()` grammar (percentages, `none`, `xyz`, `lab`, `oklch
 ## Notes
 
 **Note.** Measured on the reference machine: AVFoundation's linear output of HDR video is not BT.2408 display light (PQ at 203 cd/m² reads as 2.0, HLG at 0.75 as 3.17 scene light), while its PQ output agrees with BT.2408. The decoder reads HDR video as PQ and converts it in frames by the formulas above, and frames tone maps itself. Half-float and float bitmaps in extended sRGB and extended linear sRGB, with text and paths drawn into them, hold working values.
+
+**Note.** `color(rec2020 ...)` takes the `rec2020` row of this table, BT.1886 both ways. CSS Color 4 as published defines its `rec2020` by the BT.2020 OETF and its inverse, which the CSS Working Group has agreed is not the display-referred form (w3c/csswg-drafts issue 12574), so a component written for a browser's `rec2020` can name a slightly different colour here.
+
+**Note.** Players that decode a video tagged with the BT.709 transfer (1) by the inverse of the BT.709 OETF, as QuickTime-style players do, show an `rec709` sequence's output lighter than a BT.1886 display does. frames writes the standard tags and does not compensate.
 
 **Note.** Under `linear` compositing an antialiased edge of light text on a dark ground looks thinner than under `encoded`, as it does in every compositor that blends in linear light, and a 50% dissolve between black and white is brighter in the middle. Neither is a fault.
