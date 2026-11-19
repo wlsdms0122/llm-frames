@@ -203,11 +203,12 @@ package struct FrameExporter: Sendable {
         )
     }
 
-    // A media frame as the decoder reads it, so it is not resampled, and a display list as the renderer draws it.
+    // A media frame as the decoder reads it, an analysis picture not resampled, and a display list as the renderer
+    // draws it.
     private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.picture(of: MediaFile(media: frame.media), atFrame: frame.index)
+            try decoder.analysisPicture(of: frame)
 
         case let .displayList(list):
             try renderer.frame(of: list)
