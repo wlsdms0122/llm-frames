@@ -74,15 +74,10 @@ enum ChoiceTarget: Equatable, Sendable {
     // whole choice of its own.
     private static func preset(of reference: ParameterReference) -> ChoiceTarget? {
         let components = reference.place.components
-        let keys: [String: PresetKind] = [
-            "transition": .transition,
-            "animation": .animation,
-            "filter": .filter,
-            "adjust": .filter
-        ]
         guard
-            let index = components.lastIndex(where: { $0.key.flatMap { keys[$0] } != nil }),
-            let kind = components[index].key.flatMap({ keys[$0] })
+            let index = components.lastIndex(where: { $0.key.flatMap(ClipKeyTable.choice(ofKey:)) != nil }),
+            let type = components[index].key.flatMap(ClipKeyTable.choice(ofKey:)),
+            let kind = ChoiceKeyTable.presetKind(of: type)
         else {
             return nil
         }
@@ -99,14 +94,7 @@ enum ChoiceTarget: Equatable, Sendable {
 
         switch Array(rest) {
         case []:
-            let types = [
-                ChoiceKeyTable.transition,
-                ChoiceKeyTable.animation,
-                ChoiceKeyTable.animationSide,
-                ChoiceKeyTable.filter,
-                ChoiceKeyTable.filterPreset
-            ]
-            guard types.contains(reference.type) else { return nil }
+            guard ChoiceKeyTable.presetKind(of: reference.type) == kind else { return nil }
 
         case [.key("preset")]:
             guard reference.kind.hasSuffix("choice") else { return nil }
