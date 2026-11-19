@@ -43,7 +43,7 @@ How it is written, so the same plan gives the same bytes:
 {
   "kind": "sequence", "resolved": "1.0.0",
   "format": { "size": [1920, 1080], "fps": 25, "duration": 9, "background": "color(srgb 0 0 0 / 1)", "conform": "fill",
-              "colorSpace": "srgb", "compositing": "encoded" },
+              "colorSpace": "srgb", "peak": null, "compositing": "encoded" },
   "storyline": [
     { "id": "interview", "media": { "file": "/abs/interview.mov", "sha256": "9f2c41d07b3e", "frames": [0, 0.04, 0.08] },
       "in": 12, "out": 18, "speed": 1, "timeRemap": null, "start": 0, "end": 6,
@@ -104,7 +104,7 @@ How it is written, so the same plan gives the same bytes:
 ```
 
 - The example is laid out to be read and keeps only the keys it explains. Hashes in the example are cut short. A glyph is `[glyph id, x, y]`, its origin in the title's box, and the example's glyph lists are cut short too.
-- `format.size` is the frame size, the measured one for a content-fit frame ([FRAMES-6](../FRAMES-6/SPEC.md)). `format.duration` is the sequence end, above 0. `format.colorSpace` and `format.compositing` are the sequence's, their defaults written out ([FRAMES-26](../FRAMES-26/SPEC.md)).
+- `format.size` is the frame size, the measured one for a content-fit frame ([FRAMES-6](../FRAMES-6/SPEC.md)). `format.duration` is the sequence end, above 0. `format.colorSpace` and `format.compositing` are the sequence's, their defaults written out, and `format.peak` is a `rec2100-pq` sequence's mastering peak in cd/m², its default 1000 written out, and `null` in a sequence of any other colour space ([FRAMES-26](../FRAMES-26/SPEC.md#sequence-colour-space)).
 - A video or image sequence keeps its frame timestamps in `frames` (cut short in the example).
 - A storyline entry has `id`, `media`, `colorSpace` (the clip's `colorSpace`, or `null` where it writes none and the file's tags apply, [FRAMES-26](../FRAMES-26/SPEC.md)), `toneMap` (the clip's `toneMap`, its default `true` written out, and `null` where the media is a compound clip or a template instance, which takes none), `in`, `out`, `speed`, `timeRemap`, `start`, `end`, its box (`size`, `anchor`, `position`), its keyframable properties (`crop` as conformed crops, `position`, `scale`, `rotation`, `opacity`, `radius`, `border` as `{width, color}`, `shadow` as `{radius, offset, color}`, and `filter` as a list of entries `{ops, mix}`) as timed values in sequence time, its `blend`, `mask`, `trackMatte` and `track`, and `transition` as `null` or `{start, end, over, incoming, outgoing, cover, matte}` with spans and files inline. The curve of its sound crossfade is written only on the audio entries it crossfades. A cover or matte that shows media carries it pinned, a video with its `frames`, its `colorSpace` (the one the cover or matte writes, or `null` where it writes none and the file's tags apply, [FRAMES-26](../FRAMES-26/SPEC.md#media)), and its `duration` in media seconds (0 for a still), so evaluation shows media time p × `duration` at progress p ([FRAMES-14](../FRAMES-14/SPEC.md)) without opening the file.
 - A solid storyline entry carries its colour as `solid`, a keyframe list of colours, and `media` is `null`.
