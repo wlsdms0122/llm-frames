@@ -642,7 +642,6 @@ struct AVFoundationEncoderTests {
         #expect(abs(duration - seconds) < 1 / fps)
     }
 
-    // The presentation time of every sample of `track`, in order.
     private func presentationTimes(
         of track: AVAssetTrack,
         in asset: AVAsset
@@ -682,7 +681,6 @@ struct AVFoundationEncoderTests {
         }
     }
 
-    // The type and data of every chunk of a PNG, in order.
     private func pngChunks(at path: String) throws -> [(String, [UInt8])] {
         let data = [UInt8](try Data(contentsOf: URL(fileURLWithPath: path)))
         var chunks: [(String, [UInt8])] = []

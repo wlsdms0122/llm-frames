@@ -509,7 +509,7 @@ struct FilterChainTests {
         [color[0] * color[3], color[1] * color[3], color[2] * color[3], color[3]]
     }
 
-    // FRAMES-15's formula for a colour operation on the unpremultiplied red, green and blue of `color`, clamped.
+    // The expected colour of an operation on the unpremultiplied red, green and blue of `color`, clamped.
     private func expectedColor(
         of operation: ResolvedFilterOperation,
         _ color: [Float]

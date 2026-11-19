@@ -98,7 +98,7 @@ package struct SoundWriter {
         signal.value(channel: channel, at: index, sampleRate: sampleRate) * levels[channel]
     }
 
-    // 16 bit interleaved samples of the tone from `start` to `end` media seconds.
+    // 16 bit interleaved samples of `signal` from `start` to `end` media seconds.
     func tone(
         from start: Double,
         to end: Double,

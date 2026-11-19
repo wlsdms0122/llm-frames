@@ -7,7 +7,7 @@
 
 @testable import Frames
 
-// A fake preset library: the transitions and animations it holds, by name.
+// A fake preset library: the transitions, animations and filters it holds, by name.
 struct PresetTable: PresetProvider {
     // MARK: - Property
     let transitions: [String: TransitionPreset]

@@ -13,7 +13,6 @@ import Testing
 struct TransitionSamplerTests {
     // MARK: - Property
     private let sut = TransitionSampler()
-    // Centred on (540, 960).
     private let frame = Rectangle(x: 0, y: 0, width: 1080, height: 1920)
 
     // MARK: - Initializer

@@ -10,8 +10,8 @@ import Testing
 
 @testable import Frames
 
-// Shapes are sequence clips in a 200 x 100 frame. A box shape is 40 by 20 with its top left at (40, 20), as the rect
-// given by `area` is.
+// Shapes are sequence clips in a 200 x 100 frame. A shape placed by `width` and `height` is 40 by 20 with its top left
+// at (40, 20), as the rect given by `area` is.
 @Suite("ShapeEvaluator Tests")
 struct ShapeEvaluatorTests {
     // MARK: - Property
