@@ -16,6 +16,16 @@ struct MotionBlurEvaluationTests {
     // MARK: - Property
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
+    // A loop that slides its clip half its box to the right each second with its wipe complete throughout.
+    private let drift = AnimationPreset(
+        description: "",
+        entrance: nil,
+        loop: AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
+            SpanKey(t: 0, values: [.x: 0, .reveal: 1]),
+            SpanKey(t: 1, values: [.x: 0.5, .reveal: 1])
+        ])),
+        exit: nil
+    )
     // Each field whose value can reach an end, keyframed or animated so that it does inside the exposure of the frame at
     // the time given: a picture's border width, which a clip takes from its theme and writes in output pixels at its
     // scale factor, so it reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose
@@ -275,6 +285,56 @@ struct MotionBlurEvaluationTests {
         #expect(whole.width == 100)
         #expect(atT.reveal == nil)
         #expect(try samples.allSatisfy { try item("back", in: $0).reveal == nil })
+    }
+
+    @Test(
+        "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the list's frame carried back to the item's coordinates",
+        arguments: [
+            (#""animation": "mine/wipe-in", "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#, 2.0),
+            (#""animation": "mine/wipe-in", "mask": { "shape": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#, 2.0),
+            (#""animation": "mine/drift""#, 0.5)
+        ]
+    )
+    func writesWholeFrameOfCompleteAdjustmentWipe(
+        written: String,
+        time: Double
+    ) throws {
+        // Given
+        let sequence = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "motionBlur": true, \#(written) } ] }
+            """#, animations: ["mine/drift": drift])
+        let frame = Rectangle(x: 0, y: 0, width: 1920, height: 1080)
+
+        // When
+        let list = sut.displayList(of: sequence, at: time)
+
+        // Then
+        let samples = try #require(list.samples)
+        let items = try samples.map { try item("grade", in: $0) }
+        #expect(items.allSatisfy { item in
+            guard case let .adjust(adjust) = item.content else { return false }
+
+            return item.reveal == adjust.drawnBounds(carriedBy: item.transform, over: frame)
+        })
+        #expect(time != 2 || items.allSatisfy { $0.reveal == frame })
+        #expect((items.first?.transform == items.last?.transform) == (time == 2))
+    }
+
+    @Test("a wipe under way on an adjustment with a mask wipes across the list's frame, which the adjustment draws over")
+    func wipesFrameOfMaskedAdjustment() throws {
+        // Given
+        let sequence = try resolved(clips: [#"""
+            { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
+              "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
+            """#])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.25)
+
+        // Then
+        #expect(try item("grade", in: list.items).reveal == Rectangle(x: 0, y: 0, width: 960, height: 1080))
     }
 
     @Test("a clip and a storyline entry give the time their values are read at, by their own switch, held in their windows")
@@ -652,6 +712,30 @@ struct MotionBlurEvaluationTests {
 
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    // Resolved with `animations` beside the fixture's presets.
+    private func resolved(
+        _ document: String,
+        animations: [String: AnimationPreset]
+    ) throws -> ResolvedSequence {
+        let presets = PresetTable(
+            transitions: Fixture.presets.transitions,
+            animations: Fixture.presets.animations.merging(animations) { $1 },
+            filters: Fixture.presets.filters,
+            audio: Fixture.presets.audio
+        )
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     // Resolved with a tracker whose target drifts 100 pixels a second over `/abs/screen.mp4`, which shows a new frame

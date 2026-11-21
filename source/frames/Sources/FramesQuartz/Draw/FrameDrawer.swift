@@ -87,10 +87,10 @@ final class FrameDrawer {
 
             let drawing = try self.drawing(of: item, over: frame, on: raster, seed: list.seed)
             if mode == .normal {
-                try draw(item, drawing: drawing, on: raster, in: frame)
+                try draw(item, of: list, drawing: drawing, on: raster, in: frame)
             } else {
                 let layer = try FrameContext(width: frame.width, height: frame.height, compositing: list.compositing)
-                try draw(item, drawing: drawing, on: raster, in: layer)
+                try draw(item, of: list, drawing: drawing, on: raster, in: layer)
                 let blended = try Blender()
                     .composite(layer.ciImage(), over: frame.ciImage(), mode: mode, compositing: list.compositing)
                 try frame.replace(with: blended)
@@ -102,6 +102,7 @@ final class FrameDrawer {
 
     private func draw(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         on raster: Raster,
         in frame: FrameContext
@@ -117,14 +118,14 @@ final class FrameDrawer {
         }
 
         guard item.opacity < 1 else {
-            try paint(item, drawing: drawing, casting: shadow, on: raster, in: frame)
+            try paint(item, of: list, drawing: drawing, casting: shadow, on: raster, in: frame)
             return
         }
 
         context.setAlpha(item.opacity)
         context.beginTransparencyLayer(auxiliaryInfo: nil)
         defer { context.endTransparencyLayer() }
-        try paint(item, drawing: drawing, casting: shadow, on: raster, in: frame)
+        try paint(item, of: list, drawing: drawing, casting: shadow, on: raster, in: frame)
     }
 
     // Multiplies the alpha of what the context draws after it by the item's masks' result and its track matte's value
@@ -159,6 +160,7 @@ final class FrameDrawer {
     // The item carried by its transform onto the raster and cut to its reveal, over its shadow when it casts one.
     private func paint(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         casting shadow: DropShadow?,
         on raster: Raster,
@@ -168,13 +170,13 @@ final class FrameDrawer {
         let matrix = matrix(of: item, on: raster)
         guard let shadow else {
             context.concatenate(matrix)
-            if let reveal = cut(of: item, on: raster) { context.clip(to: reveal) }
+            if let reveal = cut(of: item, in: list) { context.clip(to: reveal) }
             try drawing(context)
             return
         }
 
         let cast = CastShadow(shadow, through: matrix, rasterScale: raster.transform.lengthScale)
-        try paint(item, drawing: drawing, castingFromLayer: cast, on: raster, in: frame)
+        try paint(item, of: list, drawing: drawing, castingFromLayer: cast, on: raster, in: frame)
     }
 
     private func shadow(of content: DisplayContent) -> DropShadow? {
@@ -195,6 +197,7 @@ final class FrameDrawer {
     // drawn below the layer, both in the frame's form.
     private func paint(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         castingFromLayer shadow: CastShadow,
         on raster: Raster,
@@ -213,7 +216,7 @@ final class FrameDrawer {
         try mask(layer.context, by: item, over: region, at: layer.bounds, on: raster)
         layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
         layer.context.concatenate(matrix(of: item, on: raster))
-        if let reveal = cut(of: item, on: raster) { layer.context.clip(to: reveal) }
+        if let reveal = cut(of: item, in: list) { layer.context.clip(to: reveal) }
         try drawing(layer.context)
 
         let picture = try layer.ciImage()
@@ -237,21 +240,22 @@ final class FrameDrawer {
     // pixels the item's own edge crosses, so a reveal that holds the item is not drawn.
     private func cut(
         of item: DisplayItem,
-        on raster: Raster
+        in list: DisplayList
     ) -> CGRect? {
         guard let reveal = item.reveal else { return nil }
 
         let cut = CGRect(reveal)
-        guard let drawn = drawnBounds(of: item, on: raster), cut.contains(drawn) else { return cut }
+        guard let drawn = drawnBounds(of: item, in: list), cut.contains(drawn) else { return cut }
 
         return nil
     }
 
     // The box of what the item draws in its own coordinates: a picture's `dest`, the box of a path's or glyphs' outlines
-    // and strokes, and for an adjustment the whole raster, nil where its transform flattens the plane.
+    // and strokes, and for an adjustment the list's frame carried back to them, nil where its transform flattens the
+    // plane.
     private func drawnBounds(
         of item: DisplayItem,
-        on raster: Raster
+        in list: DisplayList
     ) -> CGRect? {
         switch item.content {
         case let .picture(picture):
@@ -263,11 +267,9 @@ final class FrameDrawer {
         case let .glyphs(glyphs):
             return CGRect(glyphs.drawnBounds(carriedBy: item.transform))
 
-        case .adjust:
-            let matrix = matrix(of: item, on: raster)
-            guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return nil }
-
-            return raster.bounds.applying(matrix.inverted())
+        case let .adjust(adjust):
+            let frame = Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
+            return adjust.drawnBounds(carriedBy: item.transform, over: frame).map { CGRect($0) }
         }
     }
 
