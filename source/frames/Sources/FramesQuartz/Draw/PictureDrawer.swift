@@ -37,7 +37,7 @@ struct PictureDrawer {
     func draw(
         _ item: PictureItem,
         source: SourceImage?,
-        matte: CGImage?,
+        matte: SourceImage?,
         seed: Int,
         carriedBy transform: Frames.AffineTransform,
         compositing: Compositing,

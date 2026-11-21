@@ -225,6 +225,55 @@ struct PageDrawingTests {
         }
     }
 
+    @Test("a page matte too large to read whole is asked for only the part that reaches the output")
+    func asksForShownPartOfMatte() throws {
+        // Given
+        let decoder = ReadingDecoder(pageSize: Size(width: 3000, height: 3000))
+        let sut = QuartzRenderer(decoder: decoder)
+        let picture = PictureItem(
+            source: .media(frame(of: "/abs/deck.pdf")),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 50, height: 50),
+            matte: PictureMatte(frame: frame(of: "/abs/matte.pdf"), progress: 0.5, softness: 0.5, isInverted: false)
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 120, b: 0, c: 0, d: 120, tx: 0, ty: 0),
+            content: .picture(picture)
+        )
+
+        // When
+        _ = try sut.frame(of: list(size: 100, items: [item]))
+
+        // Then
+        // The matte is shown at scale 2 over 100 output pixels, and its resampling reads 3 output pixels past them.
+        #expect(decoder.regions(of: "/abs/matte.pdf") == [
+            PageRegionRequest(region: PageRegion(x: 0, y: 0, width: 103, height: 103), scale: 2)
+        ])
+    }
+
+    @Test("a page matte shown through a degenerate map is not read")
+    func skipsMatteOfDegenerateMap() throws {
+        // Given
+        let decoder = ReadingDecoder(pageSize: Size(width: 100, height: 100))
+        let sut = QuartzRenderer(decoder: decoder)
+        let picture = PictureItem(
+            source: .media(frame(of: "/abs/deck.pdf")),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            matte: PictureMatte(frame: frame(of: "/abs/matte.pdf"), progress: 0.5, softness: 0.5, isInverted: false)
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 0, b: 0, c: 0, d: 0, tx: 10, ty: 10),
+            content: .picture(picture)
+        )
+
+        // When
+        _ = try sut.frame(of: list(size: 100, items: [item]))
+
+        // Then
+        #expect(decoder.regions(of: "/abs/matte.pdf").isEmpty)
+    }
+
     // MARK: - Private
     private func frame(of path: String) -> MediaFrame {
         MediaFrame(media: PinnedMedia(source: .page(PinnedFile(path: path, sha256: ""), page: 1)), index: 0)

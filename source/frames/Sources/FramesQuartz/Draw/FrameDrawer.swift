@@ -26,6 +26,8 @@ final class FrameDrawer {
 
     // A page's whole picture is read where it holds at most this many pixels, a 4096 by 4096 square.
     private static let wholePagePixels = 1 << 24
+    // How far past a pixel, in the raster's pixels, a transition matte's resampling reads its picture.
+    private static let matteResamplingReach: CGFloat = 3
 
     private var nested: [(list: DisplayList, raster: Raster, image: CGImage)] = []
 
@@ -227,7 +229,9 @@ final class FrameDrawer {
         case let .picture(picture):
             let matrix = matrix(of: item, on: raster)
             let source = try image(of: picture, shownBy: matrix, on: raster)
-            let matte = try picture.matte.map { try image(of: $0, over: picture.destination, shownBy: matrix) }
+            let matte = try picture.matte.flatMap { try image(of: $0, in: picture, shownBy: matrix, on: raster) }
+            if picture.matte != nil, matte == nil { return { _ in } }
+
             return { [tables] context in
                 try PictureDrawer(tables: tables).draw(
                     picture,
@@ -286,41 +290,97 @@ final class FrameDrawer {
         }
     }
 
-    // A page is drawn from one picture the decoder gives at a scale its frame alone decides (FRAMES-20 Pictures): the
-    // longer axis stretch of the map from the page's media pixels to the raster's pixels, rounded up to a power of two.
-    // The picture is the whole page where the decoder holds it at that scale in at most `wholePagePixels`, so a pan at
-    // one scale reads one picture. Otherwise it is the part of the picture's region that lands on the raster, grown by
-    // how far what is drawn reads past it, at that scale or at the largest scale at which the decoder holds that part.
-    // What of the picture lies outside the region is cut off by the destination's outline before a filter reads it.
+    // A page picture is read in the part of the picture's region the raster shows, grown by how far what is drawn
+    // reads past it.
     private func pageImage(
         of frame: MediaFrame,
         in picture: PictureItem,
         shownBy matrix: CGAffineTransform,
         on raster: Raster
     ) throws -> SourceImage? {
-        let pageSize = try pictures.pageSize(of: frame)
-        let size = CGSize(width: pageSize.width, height: pageSize.height)
-        guard let placement = picture.placement(ofSourceSized: size) else { return nil }
+        let size = try pictures.pageSize(of: frame)
+        guard let placement = picture.placement(ofSourceSized: CGSize(width: size.width, height: size.height)) else {
+            return nil
+        }
 
-        let map = placement.concatenating(matrix)
+        return try pageImage(
+            of: frame,
+            sized: size,
+            within: picture.rectangle.map(CGRect.init),
+            shownBy: placement.concatenating(matrix),
+            reaching: reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale),
+            on: raster
+        )
+    }
+
+    // A transition matte's picture, stretched over the destination. A page is read by the rule of a page picture at
+    // the scale the whole map shows it at, its stretch over the destination and then `matrix`, in the part the raster
+    // shows grown by how far the picture and the matte's resampling read past it. It is nil where none of it is shown.
+    private func image(
+        of matte: PictureMatte,
+        in picture: PictureItem,
+        shownBy matrix: CGAffineTransform,
+        on raster: Raster
+    ) throws -> SourceImage? {
+        guard matte.frame.media.page != nil else { return SourceImage(media: try pictures.image(of: matte.frame)) }
+
+        let size = try pictures.pageSize(of: matte.frame)
+        let destination = picture.destination
+        let stretch = CGAffineTransform(
+            a: destination.width / size.width,
+            b: 0,
+            c: 0,
+            d: destination.height / size.height,
+            tx: destination.x,
+            ty: destination.y
+        )
+        let margin = reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale)
+
+        return try pageImage(
+            of: matte.frame,
+            sized: size,
+            within: nil,
+            shownBy: stretch.concatenating(matrix),
+            reaching: margin + Self.matteResamplingReach,
+            on: raster
+        )
+    }
+
+    // A page is drawn from one picture the decoder gives at a scale its frame alone decides (FRAMES-20 Pictures): the
+    // longer axis stretch of `map`, from the page's media pixels to the raster's pixels, rounded up to a power of two.
+    // The picture is the whole page where the decoder holds it at that scale in at most `wholePagePixels`, so a pan at
+    // one scale reads one picture. Otherwise it is the part of `region`, the whole page where it is nil, that lands on
+    // the raster grown by `margin` of its pixels, at that scale or at the largest scale at which the decoder holds that
+    // part. What of the picture lies outside the region is cut off by the destination's outline before a filter reads
+    // it. It is nil where `map` is degenerate or none of the region lands there.
+    private func pageImage(
+        of frame: MediaFrame,
+        sized size: Size,
+        within region: CGRect?,
+        shownBy map: CGAffineTransform,
+        reaching margin: CGFloat,
+        on raster: Raster
+    ) throws -> SourceImage? {
         guard map.a * map.d - map.b * map.c != 0 else { return nil }
 
-        let largest = CGFloat(pictures.largestPictureSide)
-        let scale = Self.pageScale(shownBy: map)
+        let pageSize = CGSize(width: size.width, height: size.height)
+        let stretch = map.axisScale
+        let scale = pow(2, log2(max(stretch.width, stretch.height)).rounded(.up))
         if
-            let whole = PageRegion(wholePageOf: pageSize, scale: scale, largest: pictures.largestPictureSide),
+            let whole = PageRegion(wholePageOf: size, scale: scale, largest: pictures.largestPictureSide),
             whole.width * whole.height <= Self.wholePagePixels
         {
             let image = try pictures.image(of: frame, region: whole, scale: scale)
-            return SourceImage(image, of: size, transform: CGAffineTransform(scaleX: scale, y: scale))
+            return SourceImage(image, of: pageSize, transform: CGAffineTransform(scaleX: scale, y: scale))
         }
 
-        let margin = reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale)
-        let region = (picture.rectangle.map(CGRect.init) ?? CGRect(origin: .zero, size: size))
-            .intersection(CGRect(origin: .zero, size: size))
-        let visible = raster.bounds.insetBy(dx: -margin, dy: -margin).applying(map.inverted()).intersection(region)
+        let page = CGRect(origin: .zero, size: pageSize)
+        let visible = raster.bounds.insetBy(dx: -margin, dy: -margin)
+            .applying(map.inverted())
+            .intersection(region?.intersection(page) ?? page)
         guard !visible.isNull, !visible.isEmpty else { return nil }
 
+        let largest = CGFloat(pictures.largestPictureSide)
         let held = min(scale, largest / max(visible.width, visible.height))
         let left = (visible.minX * held).rounded(.down)
         let top = (visible.minY * held).rounded(.down)
@@ -334,37 +394,9 @@ final class FrameDrawer {
 
         return SourceImage(
             image,
-            of: size,
+            of: pageSize,
             transform: CGAffineTransform(a: held, b: 0, c: 0, d: held, tx: -left, ty: -top)
         )
-    }
-
-    // A transition matte's picture. A page is read whole at the scale the whole map shows it at, its stretch over the
-    // destination and then `matrix`, by the rule of a page picture, or at the largest scale at which the decoder
-    // holds the whole page.
-    private func image(
-        of matte: PictureMatte,
-        over destination: Rectangle,
-        shownBy matrix: CGAffineTransform
-    ) throws -> CGImage {
-        guard matte.frame.media.page != nil else { return try pictures.image(of: matte.frame) }
-
-        let size = try pictures.pageSize(of: matte.frame)
-        let stretch = CGAffineTransform(scaleX: destination.width / size.width, y: destination.height / size.height)
-        let (region, scale) = PageRegion.wholePage(
-            of: size,
-            atMost: Self.pageScale(shownBy: stretch.concatenating(matrix)),
-            largest: pictures.largestPictureSide
-        )
-
-        return try pictures.image(of: matte.frame, region: region, scale: scale)
-    }
-
-    // The scale a page is drawn at through `map`: its longer axis stretch, rounded up to a power of two.
-    private static func pageScale(shownBy map: CGAffineTransform) -> CGFloat {
-        let stretch = map.axisScale
-
-        return pow(2, log2(max(stretch.width, stretch.height)).rounded(.up))
     }
 
     private func image(
