@@ -66,13 +66,17 @@ struct TimedValueBuilder: Sendable {
         case let (_, .leaf(kind)) where kind.isTimed:
             return try track(merged, written: written, keyframes: keyframes, kind: kind, instant: instant, place: place, leaf: leaf)
 
-        case let (.leaf(value), _):
-            if case let .leaf(kind) = structure {
-                if let keyframe = keyframes.first(where: { $0.value != .unset }) {
-                    throw LookError.keyframedStatic(place: place.keyframe(keyframe.index))
-                }
-                try kind.domain.check(value, place: place.written)
+        // A static leaf takes no keyframe, whether the clip writes it or its default holds.
+        case (_, .leaf):
+            if let keyframe = keyframes.first(where: { $0.value != .unset }) {
+                throw LookError.keyframedStatic(place: place.keyframe(keyframe.index))
             }
+            guard case let .leaf(value) = merged, case let .leaf(kind) = structure else { return .off }
+
+            try kind.domain.check(value, place: place.written)
+            return .fixed(value)
+
+        case let (.leaf(value), _):
             return .fixed(value)
 
         case let (.object(members), _):

@@ -7,7 +7,7 @@
 
 @testable import Frames
 
-// Mixes silence at 48 kHz in stereo, `duration` long.
+// Mixes silence at 48 kHz in stereo, the plan's `length` samples per channel.
 struct RecordingMixer: Mixer {
     // MARK: - Property
     let log: RoleCallLog
@@ -28,16 +28,13 @@ struct RecordingMixer: Mixer {
         guard !refuses else { throw RoleRefusal.mixer }
     }
 
-    func mix(
-        _ plan: MixPlan,
-        duration: Double
-    ) throws -> SoundBuffer {
-        log.record(.mix(duration: duration))
+    func mix(_ plan: MixPlan) throws -> SoundBuffer {
+        log.record(.mix(length: plan.length))
 
         return SoundBuffer(
             sampleRate: 48_000,
             channels: 2,
-            samples: Array(repeating: 0, count: Int((duration * 48_000).rounded()) * 2)
+            samples: Array(repeating: 0, count: plan.length * 2)
         )
     }
 

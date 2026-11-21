@@ -294,12 +294,16 @@ enum LookStructureTable {
     }
 
     // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are
-    // numbers, each taking its default where no layer writes it. Its structure is static, so its presets, its ops and
-    // the number and types of its bands are as the clip writes them.
-    static func audioFilter(presets: [(name: String, parameters: [Parameter])]) -> ValueStructure {
+    // numbers, each taking its default where no layer writes it. Its structure is static, so its presets, its ops, the
+    // number and types of its bands and a limiter's `lookahead` are as the clip or the sequence writes them, and an
+    // argument named in a preset's `staticArguments`, one a static parameter such as a `lookahead` reads, is static too.
+    static func audioFilter(
+        presets: [(name: String, parameters: [Parameter], staticArguments: Set<String>)]
+    ) -> ValueStructure {
         let presetForms = presets.map { preset in
             let arguments = preset.parameters.map { parameter in
-                (name: parameter.name, structure: ValueStructure.leaf(.number()))
+                let kind = preset.staticArguments.contains(parameter.name) ? LeafKind.staticNumber : .number()
+                return (name: parameter.name, structure: ValueStructure.leaf(kind))
             }
             let defaults = preset.parameters.reduce(into: [String: JSONValue]()) { defaults, parameter in
                 defaults[parameter.name] = parameter.defaultValue
@@ -326,7 +330,8 @@ enum LookStructureTable {
     ])))
 
     // An audio op's parameters in the order of the op table, each in its range with its default written, and those
-    // with no default required. A band's `frequency` and `q` are heard by their ratio, so they move geometrically.
+    // with no default required. A band's `frequency` and `q` are heard by their ratio, so they move geometrically. A
+    // limiter's `lookahead` sets the one window its hold and its ramp share, so it is static.
     static func audioOperation(
         _ name: String,
         mixed: Bool = false
@@ -347,6 +352,17 @@ enum LookStructureTable {
                     ("makeup", .leaf(.number()))
                 ],
                 ["knee": .number(0), "attack": .number(0.01), "release": .number(0.1), "makeup": .number(0)]
+            )
+
+        case "limiter":
+            (
+                [
+                    ("gain", .leaf(.number())),
+                    ("ceiling", .leaf(.number(.range(-Double.infinity...0)))),
+                    ("lookahead", .leaf(LeafKind(form: .staticNumber, domain: .range(0.0015...0.05)))),
+                    ("release", .leaf(seconds))
+                ],
+                ["gain": .number(0), "ceiling": .number(-1), "lookahead": .number(0.005), "release": .number(0.1)]
             )
 
         default:

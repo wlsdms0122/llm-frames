@@ -209,7 +209,14 @@ struct SequencePlanner: Sendable {
             clipNested: clipNested
         )
 
-        let plan = SequencePlan(time: tracked.time, format: format, storyline: storyline, clips: clips, sound: sound)
+        let plan = SequencePlan(
+            time: tracked.time,
+            format: format,
+            storyline: storyline,
+            clips: clips,
+            sound: sound,
+            audioFilter: try self.sound.audioFilter(of: tracked.time)
+        )
         guard let margin = format.margin else { return plan }
 
         return try contentFit.fitted(plan, margin: margin)
@@ -724,22 +731,29 @@ struct SequencePlanner: Sendable {
         )
     }
 
-    // A property whose keyframes all lie before or all after the range its clip shows in would only ever show one
-    // value. It is judged on the windows tracking leaves.
+    // A property whose keyframes all lie before or all after the range its clip shows in, or for the sequence's own
+    // keyframes the sequence from 0 to its end, would only ever show one value. It is judged on the windows tracking
+    // leaves.
     private func checkKeyframes(of time: TimePlan) throws {
         for plan in time.storyline {
-            try checkKeyframes(plan.keyframes, visible: plan.drawn, place: plan.place, kind: plan.source.kind)
+            try checkKeyframes(plan.keyframes, visible: plan.drawn, place: plan.place, kind: .clip(plan.source.kind))
         }
         for plan in time.clips {
-            try checkKeyframes(plan.keyframes, visible: plan.visible, place: plan.place, kind: plan.kind)
+            try checkKeyframes(plan.keyframes, visible: plan.visible, place: plan.place, kind: .clip(plan.kind))
         }
+        try checkKeyframes(
+            time.sequence.keyframes,
+            visible: TimeRange(start: 0, end: time.duration),
+            place: time.sequence.place,
+            kind: .sequence
+        )
     }
 
     private func checkKeyframes(
         _ keyframes: [KeyframeInstant],
         visible: TimeRange,
         place: Place,
-        kind: ClipKind
+        kind: PlaceKind
     ) throws {
         let leaves = keyframes.flatMap(\.leaves).reduce(into: [Place]()) { leaves, leaf in
             guard !leaves.contains(leaf) else { return }
@@ -754,7 +768,7 @@ struct SequencePlanner: Sendable {
             guard !isBefore, !isAfter else {
                 throw ResolveError.keyframesOutsideVisibleRange(
                     place: place.appending(key: "keyframes"),
-                    kind: .clip(kind),
+                    kind: kind,
                     leaf: leaf.description,
                     visible: visible
                 )

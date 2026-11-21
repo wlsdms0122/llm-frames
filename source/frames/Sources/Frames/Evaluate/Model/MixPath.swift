@@ -5,18 +5,20 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One way a sound is heard in the output. `layers` are the sounds whose gains and pans reach it, outermost first, and
-// `heard` is where all of them are heard, in outermost sequence time. `clock` maps outermost sequence time to the time
-// played there, media time for a media file and nested sequence time for a nested sequence.
+// One way a sound is heard in the output. `layers` are the sound and the compound clips that hold it, outermost first
+// and the sound last. Every layer's pan reaches it, since pan comes before a bus's sum, and only the sound's own gain,
+// since a compound clip's level is on its bus. `heard` is where all of them are heard, in outermost sequence time.
+// `clock` maps outermost sequence time to the time played there, media time for a media file and nested sequence time
+// for a nested sequence.
 struct MixPath: Equatable, Sendable {
     // MARK: - Property
     let layers: [MixLayer]
     let heard: TimeRange
     let clock: TimeMap
 
-    // Where the product of the layers' gains bends and moves.
+    // Where the sound's own gain bends and moves.
     var gainTimes: EnvelopeTimes {
-        times(of: \.gainTimes)
+        layers.last?.gainTimes ?? EnvelopeTimes(breakpoints: [], moving: [])
     }
 
     // Where the sum of the layers' pans bends and moves.
@@ -36,9 +38,9 @@ struct MixPath: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The product of every layer's gain at an outermost sequence time.
+    // The sound's own gain at an outermost sequence time.
     func gain(at time: Double) -> Double {
-        layers.reduce(1) { $0 * $1.gain(at: time) }
+        layers.last?.gain(at: time) ?? 1
     }
 
     // The sum of every layer's pan at an outermost sequence time, cut to -1 and 1, so a compound clip's pan adds to

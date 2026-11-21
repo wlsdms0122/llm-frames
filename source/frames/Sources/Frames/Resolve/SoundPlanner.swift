@@ -40,6 +40,20 @@ struct SoundPlanner: Sendable {
         return (storyline + sequence).compactMap { $0 }
     }
 
+    // The sequence's own audio filter, its bus's chain, on its sequence time from its own keyframes. A sequence with no
+    // sound takes one too, since its chain processes the silence it sums to.
+    func audioFilter(of time: TimePlan) throws -> TimedValue {
+        let looks = ClipLookPlanner(
+            place: time.sequence.place,
+            kind: .sequence,
+            clock: .sequence,
+            instant: 0,
+            scale: 1,
+            theme: time.theme
+        )
+        return try audioFilters.timed(time.sequence.audioFilter, looks: looks)
+    }
+
     // MARK: - Private
     // A storyline clip plays over its drawn range, its handles included, moved out by its split, and its media exists
     // from media time 0 to the end of the media. Its own side of each crossfade moves with the edge it is at. A
@@ -80,6 +94,7 @@ struct SoundPlanner: Sendable {
             incoming: plan.transition.map { Crossfade(plan: $0, movedBy: -split.before) },
             outgoing: outgoing.map { Crossfade(plan: $0, movedBy: split.after) },
             nested: nested?.sound ?? [],
+            nestedAudioFilter: nested?.audioFilter ?? .off,
             audioFilter: try audioFilters.timed(
                 written?.audioFilter,
                 looks: looks(of: plan.place, kind: plan.source.kind, clock: map, instant: plan.instant, theme: time.theme)
@@ -129,6 +144,7 @@ struct SoundPlanner: Sendable {
             incoming: nil,
             outgoing: nil,
             nested: nested?.sound ?? [],
+            nestedAudioFilter: nested?.audioFilter ?? .off,
             audioFilter: try audioFilters.timed(
                 clipMedia.audioFilter,
                 looks: looks(of: plan.place, kind: plan.kind, clock: plan.clock, instant: plan.instant, theme: time.theme)

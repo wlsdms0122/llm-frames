@@ -16,6 +16,7 @@ enum CommandTable {
         EvaluateCommand(),
         LocateCommand(),
         ProbeCommand(),
+        LoudnessCommand(),
         OCRCommand(),
         TrackCommand(),
         ExtractCommand(),

@@ -5,8 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans the sound of a sequence without opening a file. A nested sequence's sounds are heard through it: their times
-// mapped through its clock, cut to where it is heard, and their gains multiplied by its own.
+// Plans the sound of a sequence without opening a file. Every compound clip and template instance is a bus, one for
+// each repeat of a loop: its sounds' times mapped through its clock and cut to where it is heard, their pans added to
+// its own, and its level on the bus, applied to their sum. A bus that holds no segment and no bus is silence and is
+// left out.
 package struct MixPlanner: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -14,30 +16,72 @@ package struct MixPlanner: Sendable {
 
     // MARK: - Public
     package func mix(of sequence: ResolvedSequence) -> MixPlan {
+        let fps = sequence.format.fps
+        let length = sequence.format.mixLength
         let output = MixPath(
             layers: [],
             heard: TimeRange(start: 0, end: sequence.format.duration),
             clock: .sequence
         )
+        let whole = TimeRange(start: 0, end: Double(length) / Double(MixPlan.sampleRate))
+        let parts = sequence.audio.map { sound in self.parts(of: sound, through: output, fps: fps) }
 
-        return MixPlan(segments: sequence.audio.flatMap { sound in
-            segments(of: sound, through: [output], fps: sequence.format.fps)
-        })
+        return MixPlan(
+            length: length,
+            segments: parts.flatMap(\.segments),
+            buses: parts.flatMap(\.buses),
+            filter: MixFilterEntry.entries(
+                of: sequence.audioFilter,
+                sampler: MixValueSampler(clock: .sequence, heard: whole, fps: fps)
+            )
+        )
+    }
+
+    // The plan of the sequence that plays one clip of the medium at `path` from media time 0 at volume 1, centred and
+    // at speed 1 with no audio filter, as long as its sound, `duration` seconds. The file is not pinned.
+    package func mix(
+        ofMedium path: String,
+        duration: Double
+    ) -> MixPlan {
+        let segment = MixSegment(
+            media: .unpinned(path: path),
+            mediaStart: 0,
+            speed: 1,
+            start: 0,
+            end: duration,
+            envelope: [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: duration, value: 1)],
+            pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: duration, value: 0)]
+        )
+
+        return MixPlan(length: Int((duration * Double(MixPlan.sampleRate)).rounded()), segments: [segment])
     }
 
     // MARK: - Private
-    // `paths` are in time order, so a sound's segments are, and the sounds of a nested sequence come in entry order.
-    private func segments(
+    // A sound's segments, or its buses for a nested sequence, each in time order.
+    private func parts(
         of sound: ResolvedSound,
-        through paths: [MixPath],
+        through path: MixPath,
         fps: Double
-    ) -> [MixSegment] {
-        let own = paths.flatMap { path in self.paths(of: sound, through: path) }
+    ) -> (segments: [MixSegment], buses: [MixBus]) {
+        let own = paths(of: sound, through: path)
         guard let media = sound.media else {
-            return sound.nested.flatMap { nested in segments(of: nested, through: own, fps: fps) }
+            return ([], own.compactMap { path in bus(of: sound, through: path, fps: fps) })
         }
 
-        return own.map { path in MixSegment(media: media, path: path, fps: fps) }
+        return (own.map { path in MixSegment(media: media, path: path, fps: fps) }, [])
+    }
+
+    private func bus(
+        of sound: ResolvedSound,
+        through path: MixPath,
+        fps: Double
+    ) -> MixBus? {
+        let parts = sound.nested.map { nested in self.parts(of: nested, through: path, fps: fps) }
+        let segments = parts.flatMap(\.segments)
+        let buses = parts.flatMap(\.buses)
+        guard !segments.isEmpty || !buses.isEmpty else { return nil }
+
+        return MixBus(path: path, segments: segments, buses: buses, fps: fps)
     }
 
     private func paths(
@@ -52,8 +96,8 @@ package struct MixPlanner: Sendable {
         }
 
         // Every repeat starts at a boundary worked out the same way, so each starts exactly where the last ends. A
-        // segment keeps its filters' state, so the first repeat starts where the sound does: a sound a split starts
-        // early plays the media before `in` and on into the first repeat, where the media does not jump.
+        // sound a split starts early plays the media before `in` and on into the first repeat, where the media does
+        // not jump, so the first repeat starts where the sound does and its filters run on across both.
         let period = sound.played.naturalLength
         let boundary = { (index: Int) in played.origin + Double(index) * period }
 

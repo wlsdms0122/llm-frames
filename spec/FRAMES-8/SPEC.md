@@ -21,6 +21,7 @@ Three clocks meet on a sequence. **Clip time** is a storyline clip's own timelin
 | a storyline clip's own `keyframes` | that clip's clip time |
 | a connected clip's `at` and `keyframes` | its storyline clip's clip time |
 | a sequence clip's `at` and `keyframes` | sequence time |
+| a sequence's own `keyframes` | that sequence's sequence time |
 | `in` and `out` of a storyline clip | that clip's clip time |
 | `in` and `out` of a connected or sequence media clip | that clip's media time |
 
