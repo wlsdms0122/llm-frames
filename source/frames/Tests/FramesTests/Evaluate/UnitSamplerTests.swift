@@ -105,6 +105,33 @@ struct UnitSamplerTests {
         #expect(abs(sample.motion.value(of: .x) - 0.01) < 1e-9)
     }
 
+    @Test("in a sample of a frame with motion blur, a unit's reveal is set by an entrance or exit that writes it, and the title's by a loop that does")
+    func setsRevealInSample() {
+        // Given
+        let wipe = AnimationSpan(length: 1, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.reveal: 0]),
+            SpanKey(t: 1, values: [.reveal: 1])
+        ]))
+        let unitWipe = ResolvedAnimation(entrance: wipe, loop: loop, exit: exit, units: UnitStagger(by: .word, stagger: 0.5))
+        let loopWipe = ResolvedAnimation(entrance: entrance, loop: wipe, exit: exit, units: UnitStagger(by: .word, stagger: 0.5))
+        let schedule = schedule(count: 3, stagger: 0.5, window: TimeRange(start: 0, end: 10))
+        let sampled = SampleTime(instant: 5, frameTime: 5, sample: SampleInstant(instant: 5, frameTime: 5, reads: MotionBlurReads()))
+
+        // When
+        let unitOfUnitWipe = sut.unit(0, of: unitWipe, schedule: schedule, at: sampled)
+        let titleOfUnitWipe = sut.title(of: unitWipe, schedule: schedule, at: sampled)
+        let unitOfLoopWipe = sut.unit(0, of: loopWipe, schedule: schedule, at: sampled)
+        let titleOfLoopWipe = sut.title(of: loopWipe, schedule: schedule, at: sampled)
+        let outsideSample = sut.unit(0, of: unitWipe, schedule: schedule, at: SampleTime(0.5))
+
+        // Then
+        #expect(unitOfUnitWipe.isRevealSet)
+        #expect(!titleOfUnitWipe.isRevealSet)
+        #expect(!unitOfLoopWipe.isRevealSet)
+        #expect(titleOfLoopWipe.isRevealSet)
+        #expect(!outsideSample.isRevealSet)
+    }
+
     // MARK: - Private
     private func animation() -> ResolvedAnimation {
         ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: UnitStagger(by: .word, stagger: 0.5))

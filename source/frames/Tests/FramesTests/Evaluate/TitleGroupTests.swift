@@ -270,6 +270,38 @@ struct TitleGroupTests {
         #expect(list.items.map(\.reveal) == Array(repeating: reveal, count: 9))
     }
 
+    @Test("in a sample of a frame with motion blur, a loop whose wipe is complete writes the title's whole box on the background and every unit, which holds what each unit draws")
+    func writesCompleteLoopOnUnits() throws {
+        // Given
+        let whole = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 1]), SpanKey(t: 1, values: [.reveal: 1])])
+        let grow = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.2]), SpanKey(t: 1, values: [.scale: 1])])
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let animated = animated(
+            clip,
+            entrance: AnimationSpan(length: 0.5, span: grow),
+            loop: AnimationSpan(length: 1, span: whole),
+            stagger: 0.5
+        )
+        let time = SampleTime(instant: 0.25, frameTime: 0.25, sample: SampleInstant(instant: 0.25, frameTime: 0.25, reads: MotionBlurReads()))
+
+        // When
+        let item = try #require(
+            sut.items(of: animated, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time).first
+        )
+
+        // Then
+        guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
+            Issue.record("the title draws a group")
+            return
+        }
+        let background = try #require(list.items.first?.reveal)
+        let units = list.items.dropFirst().compactMap { unit in
+            glyphs(of: unit).map { (reveal: unit.reveal, drawn: $0.drawnBounds(carriedBy: unit.transform)) }
+        }
+        #expect(units.count == 8)
+        #expect(units.allSatisfy { $0.reveal == background && background.contains($0.drawn) })
+    }
+
     @Test("a title's group reads back as written, each unit's item with its layer and its bands")
     func readsGroupBack() throws {
         // Given
