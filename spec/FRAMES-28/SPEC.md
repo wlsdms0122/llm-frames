@@ -61,6 +61,8 @@ The limiter runs from sample -D, D samples before its sound starts, with r[-D - 
 
 **Keyframes.** On a clip the limiter's `gain`, `ceiling` and `release` and its entry's `mix` are timed leaves, as every op parameter is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)): a sampled `ceiling` above 0 is clamped to 0, and a sampled `release` at or below 0 follows its target at once. Its `lookahead` is static, part of the op's structure as a band's `type` is: it sets D, the one window the hold and the ramp share, so it holds one value over the op, and a keyframe that writes it, or writes a preset argument it reads, stops, naming the clip and the keyframe. The limiter has no identity, since it limits at every `gain` and `ceiling`, so it eases in or out by its entry's `mix`. Its state, r and its window, starts at rest wherever the segment's ops start at rest, where a clip's sound starts and on each repeat of a loop ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and it reads silence past the end of its segment.
 
+**Note.** Each repeat of a loop is its own segment, at rest at its start and reading silence before it and past its end, so a limiter on a looping clip sees a cut at each seam, even where the loop's end runs into its start with no break: where the sound is loud at the seam, its detector reads the step's interpolated values, and the gain can dip on both sides of it: over the D samples before the end of one repeat, and over the D samples of the next repeat's pre-roll.
+
 #### Interpolating filter
 
 The four phases h_0 to h_3, each 12 taps, h_p[0] first, as BS.1770-5 Annex 2 gives them. h_2 is h_1 reversed and h_3 is h_0 reversed.
