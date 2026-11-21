@@ -687,8 +687,8 @@ struct ResolvedSequenceReader: Sendable {
         let read = try colorSpace.optional { value in
             try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
         }
-        if let refusal = MediaFile(media: media).pageRefusal(colorSpace: read, isToneMapped: nil) {
-            throw refusal.error(colorSpace: colorSpace, toneMap: nil)
+        if let refused = MediaFile(media: media).pageRefusedColorSpace(read) {
+            throw pageColorSpaceError(colorSpace, refused: refused)
         }
 
         return ResolvedTransitionMedia(media: media, colorSpace: read, duration: try object.member("duration").number())
@@ -719,11 +719,34 @@ struct ResolvedSequenceReader: Sendable {
         let file = MediaFile(media: pinned)
         let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
         let isToneMapped = file.page == nil ? try toneMap.bool() : try toneMap.optional { try $0.bool() }
-        if let refusal = file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
-            throw refusal.error(colorSpace: colorSpace, toneMap: toneMap)
-        }
+        switch file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
+        case .toneMap:
+            throw ModelError.invalidValue(
+                place: toneMap.place,
+                kind: toneMap.kind,
+                reason: "a page is not HDR and takes no toneMap, so it is null here, found \(toneMap.value.written)"
+            )
 
-        return (read, isToneMapped)
+        case let .colorSpace(refused):
+            throw pageColorSpaceError(colorSpace, refused: refused)
+
+        case nil:
+            return (read, isToneMapped)
+        }
+    }
+
+    // The stop of an entry that reads a page in the colour space `refused`, written at `colorSpace`: a page is not HDR,
+    // so it takes only the spaces of standard dynamic range.
+    private func pageColorSpaceError(
+        _ colorSpace: PlacedJSONValue,
+        refused: ColorSpace
+    ) -> ModelError {
+        ModelError.unknownValue(
+            place: colorSpace.place,
+            kind: colorSpace.kind,
+            value: refused.rawValue,
+            allowed: VocabularyTable.standardDynamicRangeColorSpaces
+        )
     }
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {
