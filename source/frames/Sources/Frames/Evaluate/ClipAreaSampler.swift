@@ -12,7 +12,7 @@
 // map's inverse, bounded where the map turns, and the padding is divided by the map's length factor; a shape placed by
 // its geometry gives its geometry's box. Named as the parent, it is its box in the space it gives its children. Resolve
 // has checked that every id names a clip that may be named and that no cycle holds, so the walk through clip areas the
-// named clip writes ends.
+// named clip writes ends. A clip with a corner pin gives its corner pin bounds, its padding not divided by a length factor.
 struct ClipAreaSampler: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -86,6 +86,9 @@ struct ClipAreaSampler: Sendable {
         }
 
         let held = TimeRange(start: named.start, end: named.end).held(time)
+        if named.cornerPin != nil {
+            return cornerPinBounds(of: named, at: held).grown(by: area.padding)
+        }
         if clip.parent == named.id {
             return childBox(of: named, at: held).grown(by: area.padding)
         }
@@ -93,6 +96,17 @@ struct ClipAreaSampler: Sendable {
         let space = ParentEvaluator(sequence: sequence).space(of: named, at: held)
         let length = space.transform.lengthFactor
         return box(of: named, in: space, at: held).grown(by: length > 0 ? area.padding / length : 0)
+    }
+
+    // A clip with a corner pin gives its corner pin bounds, in the space its corner pin is written in, to a sibling
+    // and a child alike, before its tracked motion (FRAMES-27 The key).
+    private func cornerPinBounds(
+        of named: ResolvedClip,
+        at time: Double
+    ) -> Rectangle {
+        let clock = named.parentTrack == nil ? nil : ParentEvaluator(sequence: sequence).space(of: named, at: time).clock
+        let areas = ClipAreaSampler(sequence: sequence, clip: named)
+        return named.cornerPinBounds(areas: areas, clock: clock, at: time) ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
     }
 
     // The named clip's box in the space it is drawn in.

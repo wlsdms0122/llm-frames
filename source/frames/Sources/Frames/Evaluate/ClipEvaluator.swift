@@ -7,7 +7,8 @@
 
 // Items come bottom first, in output pixels of the list the clip is drawn in. A clip that follows its parent's media
 // takes that tracked motion before its parent's map; a media clip tracked in its own media moves its crop and masks
-// instead.
+// instead. A clip with a corner pin is drawn as a group: one picture of a nested list holding what it draws flat in
+// its box, carried onto its corner pin, with the tracked motion and its parent's map as its transform (FRAMES-20).
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -28,6 +29,11 @@ struct ClipEvaluator: Sendable {
         seed: Int,
         at time: Double
     ) -> [DisplayItem] {
+        if clip.cornerPin != nil {
+            let group = self.group(of: clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
+            return group.map { [$0.cut(by: [], trackMatte: trackMatte)] } ?? []
+        }
+
         let mask = masks(of: clip, in: space, at: time)
 
         return drawn(clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
@@ -36,13 +42,15 @@ struct ClipEvaluator: Sendable {
 
     // The map from the space the clip gives its children to output pixels: a title's box at the time, a media clip's
     // media pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in.
-    // Opacity and reveal take no part.
+    // A clip with a corner pin gives the space its corner pin is written in, moved by its tracked motion and not by its
+    // plane (FRAMES-10). Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
         at time: Double
     ) -> AffineTransform {
         let sample = ClipSample(clip: clip, at: time)
+        guard clip.cornerPin == nil else { return space.tracked(by: clip.parentTrack, at: time).transform }
 
         switch clip.content {
         case let .title(text):
@@ -158,6 +166,118 @@ struct ClipEvaluator: Sendable {
         case let .adjustment(filter):
             return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
         }
+    }
+
+    // A clip with a corner pin drawn flat in its box B, `[0, 0, w, h]` at the time: its item as without a corner pin,
+    // with the transform part of its animation about B's centre, opacity 1 and `normal` blend, its reveal, and its masks
+    // in its own space, in a nested list of D, the box its reveal wipes, with B's top left at (-x, -y) for D at (x, y).
+    // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
+    // animation's included, and its blend. Nil where the corner pin draws nothing, and for a clip whose content draws
+    // no box: a shape's items take their placement from its own transform, which a clip with a corner pin has none of.
+    private func group(
+        of clip: ResolvedClip,
+        in space: ClipSpace,
+        picture: PictureItemSource?,
+        compositing: Compositing,
+        seed: Int,
+        at time: Double
+    ) -> DisplayItem? {
+        let sample = ClipSample(clip: clip, at: time)
+        let flat: (box: Rectangle, content: DisplayContent, receiver: (AffineTransform) -> Rectangle, masks: AffineTransform)
+        switch clip.content {
+        case let .title(text):
+            let drawn = text.box(at: time)
+            let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
+            flat = (
+                Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height),
+                .glyphs(glyphs),
+                { glyphs.drawnBounds(carriedBy: $0) },
+                .identity
+            )
+
+        case let .media(media):
+            guard let picture, let size = clip.cornerPin?.size else { return nil }
+
+            let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+            let item = PictureItem(
+                source: picture,
+                rectangle: clip.crop(at: time),
+                destination: box,
+                filter: FilterEntry.entries(of: media.filter, at: time),
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                border: MediaBorder(
+                    sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
+                    factor: sample.lengthFactor
+                ),
+                shadow: DropShadow(
+                    sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                    factor: sample.lengthFactor,
+                    carried: 1
+                )
+            )
+            let receiver = item.shadow.map { box.union($0.castBounds(of: box)) } ?? box
+            let crop = clip.crop(at: time).map { crop in
+                AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
+                    .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
+            }
+            flat = (box, .picture(item), { Rectangle(bounding: $0.apply(toCornersOf: receiver)) }, crop ?? .identity)
+
+        case .shape, .adjustment:
+            return nil
+        }
+
+        let box = Size(width: flat.box.width, height: flat.box.height)
+        guard let cornerPin = clip.drawnCornerPin(box: box, areas: space.areas, clock: space.clock, at: time) else {
+            return nil
+        }
+
+        let plane = ItemPresentation(area: flat.box, opacity: sample.opacity, motion: sample.animation.motion)
+        let bounds = flat.receiver(plane.transform)
+        let transform = plane.transform.concatenating(AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y)))
+        let list = ClipSpace(frame: Rectangle(x: 0, y: 0, width: bounds.width, height: bounds.height))
+        let item = DisplayItem(
+            transform: transform,
+            reveal: sample.animation.reveal.rectangle(wiping: flat.receiver(transform), from: sample.animation.revealFrom),
+            content: flat.content,
+            origin: ItemOrigin(clip: clip)
+        )
+        let mask = clip.ownMasks(at: time).map { mask in
+            ItemMask(mask: mask, transform: flat.masks.concatenating(transform), factor: sample.lengthFactor)
+        }
+        var items = [item]
+        if case let .title(text) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
+           let units = text.units {
+            items = [group(
+                of: clip,
+                text: text,
+                units: units,
+                title: item,
+                glyphs: glyphs,
+                schedule: schedule,
+                in: list,
+                compositing: compositing,
+                seed: seed,
+                at: time
+            )]
+        }
+
+        return DisplayItem(
+            transform: space.tracked(by: clip.parentTrack, at: time).transform,
+            opacity: plane.opacity,
+            blend: sample.blend,
+            content: .picture(PictureItem(
+                source: .displayList(DisplayList(
+                    size: Size(width: bounds.width, height: bounds.height),
+                    background: .transparent,
+                    compositing: compositing,
+                    seed: seed,
+                    items: items.map { $0.cut(by: mask, trackMatte: nil) }
+                )),
+                rectangle: Rectangle(x: -bounds.x, y: -bounds.y, width: box.width, height: box.height),
+                destination: flat.box,
+                cornerPin: cornerPin
+            ))
+        )
     }
 
     // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
