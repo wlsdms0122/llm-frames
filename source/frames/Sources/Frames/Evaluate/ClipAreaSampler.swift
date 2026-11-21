@@ -85,8 +85,7 @@ struct ClipAreaSampler: Sendable {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 
-        let window = TimeRange(start: named.start, end: named.end)
-        let held = time.sample.time(ownedBy: named.isMotionBlurred, in: window)
+        let held = named.valueTime(in: time.sample)
         if clip.parent == named.id {
             return childBox(of: named, at: held).grown(by: area.padding)
         }

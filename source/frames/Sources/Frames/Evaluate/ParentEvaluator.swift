@@ -43,11 +43,10 @@ struct ParentEvaluator: Sendable {
         }
 
         let parentSpace = chain.reversed().reduce(outer) { space, parent in
-            let window = TimeRange(start: parent.start, end: parent.end)
             let transform = clipEvaluator.childTransform(
                 of: parent,
                 in: space.drawing(parent, of: sequence),
-                at: time.sample.time(ownedBy: parent.isMotionBlurred, in: window)
+                at: parent.valueTime(in: time.sample)
             )
             return ClipSpace(frame: frame, transform: transform, clock: parent.clock)
         }
@@ -62,8 +61,7 @@ struct ParentEvaluator: Sendable {
     ) -> AffineTransform {
         let storyline = sequence.storyline
         let entry = storyline[index]
-        let window = transitionSampler.drawnRange(of: index, in: storyline)
-        let own = entry.spaceTransform(at: time.sample.time(ownedBy: entry.isMotionBlurred, in: window))
+        let own = entry.spaceTransform(at: storyline.valueTime(ofEntry: index, in: time.sample))
         let sample = transitionSampler.motion(of: index, in: storyline, at: time.sample)
         let motion = ItemPresentation(area: sequence.format.frame, opacity: 1, motion: sample.motion).transform
 

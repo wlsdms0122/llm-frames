@@ -31,22 +31,8 @@ struct TransitionSampler: Sendable {
     ) -> Double {
         guard let transition = storyline[index].transition else { return 0 }
 
-        let time = sample.time(ownedBy: storyline[index].isMotionBlurred, in: drawnRange(of: index, in: storyline))
+        let time = storyline.valueTime(ofEntry: index, in: sample)
         return progress(through: TimeRange(start: transition.start, end: transition.end), at: time.instant)
-    }
-
-    // The range an entry draws in: its edit range, widened by the transitions at its two ends.
-    func drawnRange(
-        of index: Int,
-        in storyline: [ResolvedStorylineClip]
-    ) -> TimeRange {
-        let entry = storyline[index]
-        let outgoing = storyline.indices.contains(index + 1) ? storyline[index + 1].transition : nil
-
-        return TimeRange(
-            start: min(entry.start, entry.transition?.start ?? entry.start),
-            end: max(entry.end, outgoing?.end ?? entry.end)
-        )
     }
 
     // The motion at a time outside a sample of a frame with motion blur.

@@ -155,6 +155,23 @@ struct MotionBlurEvaluationTests {
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
     }
 
+    @Test("a clip and a storyline entry give the time their values are read at, by their own switch, held in their windows")
+    func givesOwnersValueTime() throws {
+        // Given
+        let sequence = try resolved(clips: [slider(isMotionBlurred: true)])
+        let sample = SampleInstant(time: 4.5, frameTime: 3.99, reads: OwnerReads())
+
+        // When
+        let clip = sequence.clips[0].valueTime(in: sample)
+        let entry = sequence.storyline.valueTime(ofEntry: 0, in: sample)
+
+        // Then
+        #expect(clip.instant == TimeRange(start: 0, end: 4).held(4.5))
+        #expect(clip.frameTime == 3.99)
+        #expect(entry.instant == 3.99)
+        #expect(sequence.storyline.drawnRange(ofEntry: 0) == TimeRange(start: 0, end: 4))
+    }
+
     @Test("a step keyframe at 1.53 holds every instant of the frame at 1.52 at the old place")
     func clampsStepKeyframe() throws {
         // Given

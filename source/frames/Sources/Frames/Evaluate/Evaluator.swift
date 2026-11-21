@@ -161,7 +161,7 @@ package struct Evaluator: Sendable {
     ) -> [DisplayItem] {
         let picture = picture(of: clip, at: sample, seed: seed)
         let origin = ItemOrigin(clip: clip)
-        let time = sample.time(ownedBy: clip.isMotionBlurred, in: TimeRange(start: clip.start, end: clip.end))
+        let time = clip.valueTime(in: sample)
 
         return clipEvaluator.items(
             of: clip,
@@ -284,12 +284,11 @@ package struct Evaluator: Sendable {
         let frame = sequence.format.frame
         let entry = sequence.storyline[index]
         let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
-        let window = transitionSampler.drawnRange(of: index, in: sequence.storyline)
         let items = innerItems(
             of: entry,
-            in: window,
+            in: sequence.storyline.drawnRange(ofEntry: index),
             trackMatte: trackMatte,
-            at: sample.time(ownedBy: entry.isMotionBlurred, in: window),
+            at: sequence.storyline.valueTime(ofEntry: index, in: sample),
             seed: seed
         )
         let list = DisplayList(
