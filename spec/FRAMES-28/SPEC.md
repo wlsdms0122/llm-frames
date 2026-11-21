@@ -30,7 +30,7 @@ A compound clip or a template instance plays its nested sequence's bus inside th
 
 The outermost sequence's bus is the last: its chain runs on the whole mix, and its output is **the mix**, the sound the mixer hands to the encoder. Samples past full scale in the mix are clipped where a file stores them as PCM ([FRAMES-13](../FRAMES-13/SPEC.md#mixing)). A `limiter` at `mix` 1, last in the outermost sequence's `audioFilter`, holds every sample of the mix at or under its `ceiling`, which is 0 or below ([Limiter](#limiter)), so nothing is left to clip.
 
-Level after the sum equals level on each sound where a bus has no chain, since the sum, the pan law and a gain are linear and a gain on both channels commutes with the pan law. So a compound clip with no chain sounds as its sounds each at its level would, and with a chain its fade fades the processed sound, and a compressor in the chain does not undo the fade, as on a clip ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)). The mix plan writes no bus for a compound clip with no chain and multiplies its level into its sounds' gains ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)).
+Every compound clip or template instance that plays sound is a bus, one whose chain is empty included: a bus with an empty chain sums its sounds and applies its level. So a compound clip's fade fades the sound its chain gives, and a compressor in the chain does not undo the fade, as on a clip ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)). A compound clip none of whose clips has sound plays no sound ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)) and is no bus.
 
 **State.** A bus's chain is one sound over its span, as a segment's audio filter is over its segment:
 
@@ -42,6 +42,8 @@ Level after the sum equals level on each sound where a bus has no chain, since t
 **Note.** A bus is content: its chain is part of what the sequence sounds like, as its clips' audio filters are, and `render` writes its file and a delivery file from the one mix ([FRAMES-21](../FRAMES-21/SPEC.md)).
 
 **Note.** A compound clip's `pan` is added to its sounds before their sum, so the chain inside it reads the sound panned, and a compressor, a gate or a limiter there, which reads the louder of the two channels, acts on the panned sound.
+
+**Note.** The mixer applies a compound clip's level to its bus's sum, at each sample from the bus's level envelope as the mix plan writes it, and each inner sound's gain to that sound from its own envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). Where an inner gain and the clip's level both move, the sound is the product of the two envelopes, each joined in straight lines between its own points, which is not one envelope of their product joined between frame points. The mix plan is a wire form ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), and this gives it a new shape for every document that holds a compound clip with sound: the clip's sounds are in a bus that carries its level, and no segment's gain envelope carries a compound clip's level.
 
 ### Limiter
 
