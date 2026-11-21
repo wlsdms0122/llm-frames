@@ -33,16 +33,19 @@ struct PageColorRamp {
 
         let values = space.rampValues
         let expected = values.compactMap(space.linear)
-        guard expected.count == values.count, let drawn = try drawn(values, in: written) else {
-            return .colorSpace(space.name)
+        guard expected.count == values.count else {
+            return .colorSpace("\(space.name), whose formula gives no colour for some of its values")
         }
+        guard let drawn = try drawn(values, in: written) else { return .colorSpace(space.name) }
 
-        let difference = zip(drawn, expected).map { drawn, expected in
+        let differences = zip(drawn, expected).flatMap { drawn, expected in
             zip([drawn.red, drawn.green, drawn.blue], [expected.red, expected.green, expected.blue])
                 .map { drawn, expected in abs(drawn - expected) / max(1, abs(expected)) }
-                .max() ?? 0
-        }.max() ?? 0
-        guard difference <= tolerance else {
+        }
+        // A difference that is no number is past the tolerance too.
+        let past = differences.filter { !($0 <= tolerance) }
+        guard past.isEmpty else {
+            let difference = past.filter { !$0.isNaN }.max() ?? .nan
             return .colorSpace(
                 "\(space.name), which Core Graphics draws \(String(format: "%.1e", difference)) of linear light from its "
                     + "formula"
@@ -61,11 +64,12 @@ struct PageColorRamp {
         guard let space else { return nil }
         let rows = (values.count + columns - 1) / columns
         let operators = values.enumerated().map { index, components in
-            let operands = components.map { value in
-                value == value.rounded() ? "\(Int(value))" : String(format: "%.7f", value)
-            }.joined(separator: " ")
-
-            return "/S0 cs \(operands) scn \(index % columns) \(index / columns) 1 1 re f"
+            [
+                PDFFileWriter.operation("cs", [.name("S0")]),
+                PDFFileWriter.operation("scn", components.map(PDFValue.real)),
+                PDFFileWriter.operation("re", [index % columns, index / columns, 1, 1].map(PDFValue.integer)),
+                PDFFileWriter.operation("f", [])
+            ].joined(separator: " ")
         }.joined(separator: "\n")
         let file = PDFFileWriter.document(pages: [[
             "MediaBox": .array([.integer(0), .integer(0), .integer(columns), .integer(rows)]),

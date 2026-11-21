@@ -138,6 +138,30 @@ struct PageDrawingTests {
         ])
     }
 
+    @Test("a part shown at a scale whose grid positions on the page pass 2^53 is asked for at the largest scale whose positions stay below it")
+    func asksForHeldGridPosition() throws {
+        // Given
+        let decoder = ReadingDecoder(pageSize: Size(width: 4096, height: 4096))
+        let sut = QuartzRenderer(decoder: decoder)
+        let picture = PictureItem(
+            source: .media(frame(of: "/abs/deck.pdf")),
+            rectangle: Rectangle(x: 4000, y: 4000, width: 10, height: 10),
+            destination: Rectangle(x: 0, y: 0, width: 10, height: 10)
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 0x1p44, b: 0, c: 0, d: 0x1p44, tx: 0, ty: 0),
+            content: .picture(picture)
+        )
+
+        // When
+        _ = try sut.frame(of: list(size: 100, items: [item]))
+
+        // Then
+        let requests = decoder.regions(of: "/abs/deck.pdf")
+        #expect(requests.map(\.scale) == [0x1p41])
+        #expect(requests.allSatisfy { $0.region.x + $0.region.width <= 1 << 53 })
+    }
+
     @Test("a page shown at ten times its size has edges as sharp as a path drawn there")
     func drawsZoomedPageSharp() throws {
         // Given

@@ -105,9 +105,16 @@ indirect enum PDFFunction: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The outputs for `inputs`, nil where a PostScript calculator function stops on an error or where a sampled
-    // function's position in its grid is no number.
+    // The outputs for `inputs`, nil where one is no finite number, where a PostScript calculator function stops on an
+    // error, or where a sampled function's position in its grid is no number.
     func callAsFunction(_ inputs: [Double]) -> [Double]? {
+        guard let outputs = outputs(for: inputs), outputs.allSatisfy(\.isFinite) else { return nil }
+
+        return outputs
+    }
+
+    // MARK: - Private
+    private func outputs(for inputs: [Double]) -> [Double]? {
         switch self {
         case let .sampled(domain, range, size, encode, decode, maximumSample, samples):
             let positions = size.indices.map { index in
@@ -157,7 +164,6 @@ indirect enum PDFFunction: Equatable, Sendable {
         }
     }
 
-    // MARK: - Private
     // A sampled function's entries and samples: each sample of `BitsPerSample` bits, the first input varying fastest,
     // with no padding between samples.
     private static func sampled(

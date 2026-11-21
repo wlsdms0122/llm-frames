@@ -193,7 +193,8 @@ final class PageReader: @unchecked Sendable {
         width: Int,
         height: Int
     ) -> Bitmap {
-        let bytes = pixels.map { UInt8((min(max($0, 0), 1) * 255).rounded()) }
+        // A component that is no number is written 0, as the clamp passes it on unchanged.
+        let bytes = pixels.map { UInt8(($0.isNaN ? 0 : min(max($0, 0), 1) * 255).rounded()) }
 
         return Bitmap(width: width, height: height, depth: .eight, bytesPerRow: width * 4, pixels: Data(bytes))
     }

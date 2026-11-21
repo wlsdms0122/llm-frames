@@ -299,6 +299,23 @@ struct PageReaderTests {
             (
                 Self.spot(Self.sampled(size: .integer(2), bitsPerSample: .integer(8), domain: [1, 0]), Data(repeating: 0, count: 6)),
                 "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            ),
+            (
+                Self.lab(range: [.real(1e19), .real(2e19), .real(1e19), .real(2e19)]),
+                "Lab of Range 1e+19 2e+19 1e+19 2e+19"
+            ),
+            (
+                Self.lab(range: [.integer(10), .integer(-10), .integer(-100), .integer(100)]),
+                "a Lab space whose Range is not four finite numbers, each pair's lower end at most its upper"
+            ),
+            (
+                .array([
+                    .name("Separation"),
+                    .name("Spot"),
+                    .array([.name("Indexed"), .name("DeviceRGB"), .integer(1), .string(Data([255, 0, 0, 0, 255, 0]))]),
+                    .dictionary(["FunctionType": .integer(2), "Domain": .array([.integer(0), .integer(1)]), "N": .integer(-1)])
+                ]),
+                "Separation over Indexed over DeviceRGB, whose formula gives no colour for some of its values"
             )
         ]
     )
@@ -470,6 +487,14 @@ struct PageReaderTests {
         _ data: Data
     ) -> PDFValue {
         .array([.name("Separation"), .name("Spot"), .name("DeviceRGB"), .stream(entries, data)])
+    }
+
+    // A Lab space at the D50 white with that `Range`.
+    private static func lab(range: [PDFValue]) -> PDFValue {
+        .array([
+            .name("Lab"),
+            .dictionary(["WhitePoint": .array([.real(0.9642), .integer(1), .real(0.8249)]), "Range": .array(range)])
+        ])
     }
 
     // A sampled function of one input and three outputs, with that `Size` and `BitsPerSample`.

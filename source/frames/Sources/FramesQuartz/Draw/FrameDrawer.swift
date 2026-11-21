@@ -30,6 +30,9 @@ final class FrameDrawer {
     private static let wholePagePixels = 1 << 24
     // How far past a pixel, in the raster's pixels, a transition matte's resampling reads its picture.
     private static let matteResamplingReach: CGFloat = 3
+    // The largest grid position of a page part, 2^53, below which a double holds every whole number, so the region's
+    // corners and the transform the decoder draws it with are exact.
+    private static let largestGridPosition: CGFloat = 0x1p53
 
     private var nested: [(list: DisplayList, raster: Raster, image: CGImage)] = []
 
@@ -381,8 +384,9 @@ final class FrameDrawer {
     // The picture is the whole page where the decoder holds it at that scale in at most `wholePagePixels`, so a pan at
     // one scale reads one picture. Otherwise it is the part of `region`, the whole page where it is nil, that lands on
     // the raster grown by `margin` of its pixels, at that scale or at the largest scale at which the decoder holds that
-    // part. What of the picture lies outside the region is cut off by the destination's outline before a filter reads
-    // it. It is nil where `map` is degenerate or none of the region lands there.
+    // part and the page's grid positions are below `largestGridPosition`. What of the picture lies outside the region
+    // is cut off by the destination's outline before a filter reads it. It is nil where `map` is degenerate or holds a
+    // number that is not finite, or none of the region lands there.
     private func pageImage(
         of frame: MediaFrame,
         sized size: Size,
@@ -391,7 +395,12 @@ final class FrameDrawer {
         reaching margin: CGFloat,
         on raster: Raster
     ) throws -> SourceImage? {
-        guard map.a * map.d - map.b * map.c != 0 else { return nil }
+        guard
+            [map.a, map.b, map.c, map.d, map.tx, map.ty].allSatisfy(\.isFinite),
+            map.a * map.d - map.b * map.c != 0
+        else {
+            return nil
+        }
 
         let pageSize = CGSize(width: size.width, height: size.height)
         let stretch = map.axisScale
@@ -408,10 +417,20 @@ final class FrameDrawer {
         let visible = raster.bounds.insetBy(dx: -margin, dy: -margin)
             .applying(map.inverted())
             .intersection(region?.intersection(page) ?? page)
-        guard !visible.isNull, !visible.isEmpty else { return nil }
+        guard
+            !visible.isNull,
+            !visible.isEmpty,
+            [visible.minX, visible.minY, visible.maxX, visible.maxY].allSatisfy(\.isFinite)
+        else {
+            return nil
+        }
 
         let largest = CGFloat(pictures.largestPictureSide)
-        let held = min(scale, largest / max(visible.width, visible.height))
+        let held = min(
+            scale,
+            largest / max(visible.width, visible.height),
+            Self.largestGridPosition / max(pageSize.width, pageSize.height)
+        )
         let left = (visible.minX * held).rounded(.down)
         let top = (visible.minY * held).rounded(.down)
         let part = PageRegion(

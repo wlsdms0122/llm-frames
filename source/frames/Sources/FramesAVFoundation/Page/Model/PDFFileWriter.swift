@@ -40,6 +40,15 @@ struct PDFFileWriter {
         .stream([:], Data(operators.utf8))
     }
 
+    // An operation of a content stream (ISO 32000-1 7.8.2): `operands`, each written as the file writes an object,
+    // then `operator`.
+    static func operation(
+        _ operator: String,
+        _ operands: [PDFValue]
+    ) -> String {
+        (operands.map { String(decoding: written($0), as: UTF8.self) } + [`operator`]).joined(separator: " ")
+    }
+
     // The reference to `value` as a new object.
     mutating func add(_ value: PDFValue) -> PDFValue {
         objects.append(value)

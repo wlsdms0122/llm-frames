@@ -207,8 +207,17 @@ indirect enum PageColorSpace: Equatable, Sendable {
 
         case "Lab":
             let entries = parameter(1)?.dictionaryValue ?? [:]
-            let range = entries["Range"]?.numbers ?? Self.defaultLabRange
-            self = .lab(white: Self.white(of: entries), range: range.count == 4 ? range : Self.defaultLabRange)
+            let range = entries["Range"].map { $0.numbers ?? [] } ?? Self.defaultLabRange
+            guard
+                range.count == 4,
+                range.allSatisfy(\.isFinite),
+                range[0] <= range[1],
+                range[2] <= range[3]
+            else {
+                self = .malformed("a Lab space whose Range is not four finite numbers, each pair's lower end at most its upper")
+                return
+            }
+            self = .lab(white: Self.white(of: entries), range: range)
 
         case "ICCBased":
             guard case let .stream(entries, profile)? = parameter(1) else {
@@ -305,7 +314,9 @@ indirect enum PageColorSpace: Equatable, Sendable {
             return TransferFunction.sRGB.decode(MediaColorConversion(color).working(encoded, toneMapping: nil))
 
         case let .indexed(base, highValue, lookup):
-            let index = min(max(Int(component(0).rounded()), 0), highValue)
+            let value = component(0)
+            guard value.isFinite else { return nil }
+            let index = Int(min(max(value.rounded(), 0), Double(highValue)))
             let count = base.componentCount
             guard lookup.count >= (index + 1) * count else { return nil }
             let bytes = lookup[index * count..<(index + 1) * count].map { Double($0) / 255 }

@@ -171,6 +171,24 @@ struct PDFFunctionTests {
         #expect(outputs == nil)
     }
 
+    @Test("a function whose output is no finite number gives none")
+    func refusesNonFiniteOutputs() throws {
+        // Given
+        let sut = try #require(PDFFunction(.dictionary([
+            "FunctionType": .integer(2),
+            "Domain": .array([.integer(0), .integer(1)]),
+            "N": .integer(-1)
+        ])))
+
+        // When
+        let atZero = sut([0])
+        let atHalf = sut([0.5])
+
+        // Then
+        #expect(atZero == nil)
+        #expect(atHalf == [2])
+    }
+
     // MARK: - Private
     private static func isClose(
         _ values: [Double],
