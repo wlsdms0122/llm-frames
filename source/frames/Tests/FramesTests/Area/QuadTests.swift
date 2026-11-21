@@ -153,5 +153,26 @@ struct QuadTests {
         #expect(Quad(Rectangle(x: 1300, y: 0, width: 10, height: 10)).bounds(inside: picture) == nil)
     }
 
+    @Test("a display list holds a strictly convex corner pin, and four points at [0, 0] only in a sample list, never other points that are not strictly convex")
+    func decidesCornerPin() throws {
+        // Given
+        let sut = steep
+        let line = Quad(
+            topLeft: Point(x: 0, y: 0),
+            topRight: Point(x: 10, y: 0),
+            bottomRight: Point(x: 20, y: 0),
+            bottomLeft: Point(x: 30, y: 0)
+        )
+        let point = Quad(Rectangle(x: 5, y: 5, width: 0, height: 0))
+
+        // When
+        let decisions = [sut, Quad.collapsed, line, point].map { quad in
+            [false, true].map { quad.isCornerPin(inSampleList: $0) }
+        }
+
+        // Then
+        #expect(decisions == [[true, true], [false, true], [false, false], [false, false]])
+    }
+
     // MARK: - Private
 }
