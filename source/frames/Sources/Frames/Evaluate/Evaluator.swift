@@ -220,7 +220,8 @@ package struct Evaluator: Sendable {
 
     // A storyline picture is two items. The inner one carries the clip's own transform, opacity, masks and track matte
     // inside a nested list the size of the frame; the outer one draws that list and carries the blend, the transition
-    // motion and the matte, so the transition motion acts on everything inside it.
+    // motion and the matte, so the transition motion acts on everything inside it. For a clip with a corner pin the
+    // inner item is its group at opacity 1, and the outer one carries the clip's opacity (FRAMES-27).
     private func storylineItem(
         of index: Int,
         in sequence: ResolvedSequence,
@@ -232,7 +233,13 @@ package struct Evaluator: Sendable {
         let frame = sequence.format.frame
         let entry = sequence.storyline[index]
         let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
-        let items = innerItems(of: entry, trackMatte: trackMatte, at: time, seed: seed)
+        let items = innerItems(
+            of: entry,
+            trackMatte: trackMatte,
+            compositing: sequence.format.compositing,
+            at: time,
+            seed: seed
+        )
         let list = DisplayList(
             size: sequence.format.size,
             background: .transparent,
@@ -242,7 +249,8 @@ package struct Evaluator: Sendable {
         )
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
-        let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
+        let opacity = entry.cornerPin == nil ? 1 : entry.opacity.opacity(at: time)
+        let presentation = ItemPresentation(area: frame, opacity: opacity, motion: sample.motion)
 
         return DisplayItem(
             transform: presentation.transform,
@@ -257,10 +265,21 @@ package struct Evaluator: Sendable {
     private func innerItems(
         of entry: ResolvedStorylineClip,
         trackMatte: ItemTrackMatte?,
+        compositing: Compositing,
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
-        // An entry with a corner pin draws no item here.
+        if let cornerPin = entry.cornerPin {
+            let group = group(
+                of: entry,
+                cornerPin: cornerPin,
+                trackMatte: trackMatte,
+                compositing: compositing,
+                at: time,
+                seed: seed
+            )
+            return group.map { [$0] } ?? []
+        }
         guard let size = entry.box?.size, let scale = entry.scale else { return [] }
 
         let origin = ItemOrigin(entry: entry)
@@ -307,6 +326,73 @@ package struct Evaluator: Sendable {
             origin: origin
         )
         return [item]
+    }
+
+    // A storyline clip with a corner pin drawn flat in its box B, `[0, 0, w, h]`, in a nested list of D, B and its
+    // shadow, with B's top left at (-x, -y) for D at (x, y), its masks inside. The group's `rect` is B in the list, its
+    // `dest` B and its corner pin Q(t); it carries the clip's track matte, and its opacity and blend are the outer
+    // item's. Nil for a solid, which takes no corner pin, and where the corner pin draws nothing: B has no area or Q(t)
+    // is not strictly convex. A storyline clip's corner pin is in output pixels and does not track.
+    private func group(
+        of entry: ResolvedStorylineClip,
+        cornerPin: ResolvedCornerPin,
+        trackMatte: ItemTrackMatte?,
+        compositing: Compositing,
+        at time: Double,
+        seed: Int
+    ) -> DisplayItem? {
+        let points = cornerPin.points.mapValues { $0.map(\.fixed) }.value(at: time)
+        guard let media = entry.media, cornerPin.size.width > 0, cornerPin.size.height > 0, points.count == 4 else {
+            return nil
+        }
+        let quad = Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
+        guard quad.isStrictlyConvex else { return nil }
+
+        let box = Rectangle(x: 0, y: 0, width: cornerPin.size.width, height: cornerPin.size.height)
+        let item = PictureItem(
+            source: source(
+                of: media,
+                colorSpace: entry.colorSpace,
+                isToneMapped: entry.isToneMapped,
+                at: entry.mediaTime(at: time),
+                seed: seed
+            ),
+            rectangle: entry.crop(at: time),
+            destination: box,
+            filter: FilterEntry.entries(of: entry.filter, at: time),
+            radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+            border: MediaBorder(sampled: entry.border.sampled(at: time, as: LookStructureTable.border), factor: 1),
+            shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
+        )
+        let bounds = item.shadow.map { box.union($0.castBounds(of: box)) } ?? box
+        let shift = AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y))
+        let mask = entry.masks(at: time).map { mask in
+            ItemMask(
+                geometry: mask.geometry,
+                transform: mask.transform.concatenating(shift),
+                feather: mask.feather,
+                isInverted: mask.isInverted,
+                mode: mask.mode
+            )
+        }
+        let nested = DisplayItem(transform: shift, mask: mask, content: .picture(item), origin: ItemOrigin(entry: entry))
+
+        return DisplayItem(
+            trackMatte: trackMatte,
+            content: .picture(PictureItem(
+                source: .displayList(DisplayList(
+                    size: Size(width: bounds.width, height: bounds.height),
+                    background: .transparent,
+                    compositing: compositing,
+                    seed: seed,
+                    items: [nested]
+                )),
+                rectangle: Rectangle(x: -bounds.x, y: -bounds.y, width: box.width, height: box.height),
+                destination: box,
+                cornerPin: quad
+            )),
+            origin: ItemOrigin(entry: entry)
+        )
     }
 
     // A nested sequence's list carries no colour space, since its pictures carry what the decoder needs.

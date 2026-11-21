@@ -88,6 +88,80 @@ struct CornerPinEvaluationTests {
         #expect(rectangle == box)
     }
 
+    @Test("a storyline clip with a corner pin draws its group inside the inner list at opacity 1, its opacity and blend on the outer item")
+    func drawsStorylineGroup() throws {
+        // Given
+        let sequence = try resolved(document: #"{ "kind": "sequence", "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "cornerPin": \#(Self.pin), "opacity": 0.5, "blend": "screen" } ] }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let size = try #require(sequence.storyline.first?.cornerPin?.size)
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let outer = try #require(list.items.first)
+        guard case let .picture(storyline) = outer.content, case let .displayList(inner) = storyline.source else {
+            Issue.record("the storyline item is not a picture of a nested list")
+            return
+        }
+        #expect(outer.opacity == 0.5)
+        #expect(outer.blend == "screen")
+        #expect(inner.items.count == 1)
+        let group = try #require(inner.items.first)
+        guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source else {
+            Issue.record("the inner item is not a picture of a nested list")
+            return
+        }
+        #expect(group.transform == .identity)
+        #expect(group.opacity == 1)
+        #expect(group.blend == "normal")
+        #expect(picture.cornerPin == Self.quad)
+        #expect(picture.rectangle == box)
+        #expect(picture.destination == box)
+        #expect(nested.size == size)
+        #expect(nested.items.first?.transform == .identity)
+        guard case let .picture(media) = nested.items.first?.content else {
+            Issue.record("the nested item is not a picture")
+            return
+        }
+        #expect(media.destination == box)
+        #expect(media.cornerPin == nil)
+    }
+
+    @Test("a storyline clip with a corner pin and a shadow carries its masks inside the group, moved with its box")
+    func carriesStorylineMasksInGroup() throws {
+        // Given
+        let sequence = try resolved(document: ##"""
+            { "kind": "sequence", "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "cornerPin": \##(Self.pin),
+              "shadow": { "radius": 10, "offset": [0, 0], "color": "#000000" },
+              "mask": [ { "shape": "rect", "area": [0, 0, 100, 100] } ] } ] }
+            """##)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let entry = try #require(sequence.storyline.first)
+        guard
+            case let .picture(storyline) = list.items.first?.content,
+            case let .displayList(inner) = storyline.source,
+            let group = inner.items.first,
+            case let .picture(picture) = group.content,
+            case let .displayList(nested) = picture.source,
+            let item = nested.items.first
+        else {
+            Issue.record("the storyline item does not hold a group")
+            return
+        }
+        // The shadow's radius of 10 is 5.625 output pixels and reaches three times that past the box.
+        let shift = AffineTransform(translation: Point(x: 16.875, y: 16.875))
+        #expect(picture.rectangle?.x == 16.875)
+        #expect(picture.rectangle?.y == 16.875)
+        #expect(group.mask.isEmpty)
+        #expect(item.transform == shift)
+        #expect(item.mask.map(\.transform) == entry.masks(at: 1).map { $0.transform.concatenating(shift) })
+    }
+
     @Test("a shadow past the box grows the nested list, with the box's top left at minus the list's origin")
     func growsListByShadow() throws {
         // Given
@@ -163,7 +237,10 @@ struct CornerPinEvaluationTests {
 
     // MARK: - Private
     private func resolved(_ clips: String) throws -> ResolvedSequence {
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#
-        return try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+        try resolved(document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#)
+    }
+
+    private func resolved(document: String) throws -> ResolvedSequence {
+        try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 }
