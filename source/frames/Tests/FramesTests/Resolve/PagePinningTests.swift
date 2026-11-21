@@ -116,6 +116,28 @@ struct PagePinningTests {
         #expect(error?.description.hasPrefix(message) == true)
     }
 
+    @Test("a resolved transition's page cover or matte that writes a colour space of high dynamic range stops, naming its place", arguments: ["cover", "matte"])
+    func refusesHighDynamicRangeTransitionPage(key: String) throws {
+        // Given
+        let sut = ResolvedDocumentReader()
+        let cover = Cover(source: .page("/abs/deck.pdf", page: 3), colorSpace: .srgb, span: Span(ease: .linear, keys: []))
+        let matte = Matte(media: "/abs/logo.pdf", colorSpace: .srgb, softness: 0, isInverted: false, ease: .linear)
+        let root = try #require(try JSONReader().read(ResolvedDocumentWriter().write(transition(cover: cover, matte: matte))).objectValue)
+        var entries = try #require(root["storyline"]?.arrayValue)
+        let entry = try #require(entries[1].objectValue)
+        let transition = try #require(entry["transition"]?.objectValue)
+        let media = try #require(transition[key]?.objectValue)
+        let read = transition.setting(key, to: .object(media.setting("colorSpace", to: .string("rec2100-pq"))))
+        entries[1] = .object(entry.setting("transition", to: .object(read)))
+        let text = JSONWriter().write(.object(root.setting("storyline", to: .array(entries))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description.hasPrefix(#"storyline[1].transition.\#(key).colorSpace (\#(key)): unknown value "rec2100-pq""#) == true)
+    }
+
     @Test("two places that read one page in different colour spaces stop, an unwritten one read as srgb")
     func refusesPageInTwoColorSpaces() throws {
         // Given
@@ -160,6 +182,43 @@ struct PagePinningTests {
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes)
+    }
+
+    // A solid and a solid that comes in through a preset `stinger` with that cover and that matte, resolved.
+    private func transition(
+        cover: Cover,
+        matte: Matte
+    ) throws -> ResolvedSequence {
+        let stinger = TransitionPreset(
+            description: "",
+            seconds: 1,
+            over: .incoming,
+            audio: .constantPower,
+            incoming: nil,
+            outgoing: nil,
+            cover: cover,
+            matte: matte
+        )
+        let presets = PresetTable(
+            transitions: ["stinger": stinger],
+            animations: Fixture.presets.animations,
+            filters: Fixture.presets.filters
+        )
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [64, 36] }, "storyline": [ { "solid": "#000000", "duration": 2 },
+                { "solid": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
+            """#
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: hashes)
     }
 
     private func checkMediaColorSpaces(of document: String) throws {

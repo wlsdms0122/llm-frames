@@ -649,7 +649,9 @@ struct ResolvedSequenceReader: Sendable {
         let read = try colorSpace.optional { value in
             try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
         }
-        try checkPageReading(of: MediaFile(media: media), colorSpace: colorSpace, read: read, toneMap: nil, isToneMapped: nil)
+        if let refusal = MediaFile(media: media).pageRefusal(colorSpace: read, isToneMapped: nil) {
+            throw refusal.error(colorSpace: colorSpace, toneMap: nil)
+        }
 
         return ResolvedTransitionMedia(media: media, colorSpace: read, duration: try object.member("duration").number())
     }
@@ -679,40 +681,11 @@ struct ResolvedSequenceReader: Sendable {
         let file = MediaFile(media: pinned)
         let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
         let isToneMapped = file.page == nil ? try toneMap.bool() : try toneMap.optional { try $0.bool() }
-        try checkPageReading(of: file, colorSpace: colorSpace, read: read, toneMap: toneMap, isToneMapped: isToneMapped)
+        if let refusal = file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
+            throw refusal.error(colorSpace: colorSpace, toneMap: toneMap)
+        }
 
         return (read, isToneMapped)
-    }
-
-    // Stops where `file` is a page read as a page is not (`MediaFile.pageRefusal`): tone mapped, or in a colour space of
-    // high dynamic range.
-    private func checkPageReading(
-        of file: MediaFile,
-        colorSpace: PlacedJSONValue,
-        read: ColorSpace?,
-        toneMap: PlacedJSONValue?,
-        isToneMapped: Bool?
-    ) throws {
-        switch file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
-        case .toneMap:
-            guard let toneMap else { return }
-            throw ModelError.invalidValue(
-                place: toneMap.place,
-                kind: toneMap.kind,
-                reason: "a page is not HDR and takes no toneMap, so it is null here, found \(toneMap.value.written)"
-            )
-
-        case let .colorSpace(refused):
-            throw ModelError.unknownValue(
-                place: colorSpace.place,
-                kind: colorSpace.kind,
-                value: refused.rawValue,
-                allowed: VocabularyTable.standardDynamicRangeColorSpaces
-            )
-
-        case nil:
-            return
-        }
     }
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {
