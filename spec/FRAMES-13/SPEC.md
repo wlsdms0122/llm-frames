@@ -47,7 +47,7 @@ A mono sound is placed into both output channels at those gains. A stereo sound 
 - A compound clip's or a template instance's sounds join the outer mix through its bus ([FRAMES-28](../FRAMES-28/SPEC.md#buses)): their times mapped through the compound clip and its pan added to theirs, cut to -1 and 1, then summed, passed through the nested sequence's `audioFilter` and the compound clip's own, and multiplied by the compound clip's volume, fades and crossfade.
 - Sounds that overlap are mixed. Everything is cut at the end of the sequence.
 - The sum of a sequence's sounds is its bus, which the sequence's own `audioFilter` processes ([FRAMES-28](../FRAMES-28/SPEC.md#buses)). The outermost bus's output is the mix, and samples past full scale in it are clipped where a file stores them as PCM, as in an NLE with nothing on its main bus.
-- A sequence with no sound mixes to silence, and its output carries a silent track as long as its frames ([FRAMES-21](../FRAMES-21/SPEC.md)).
+- A sequence with no sound mixes to silence, its bus a silent one ([FRAMES-28](../FRAMES-28/SPEC.md#buses)), and its file carries a silent track as long as its frames, since a file's tracks do not depend on what the sequence holds ([FRAMES-21](../FRAMES-21/SPEC.md)).
 - The mix plan carries each sound as segments with its audio filter, a gain envelope and a pan envelope, and each bus with its chain and level envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), and the mixer applies the filter, the gains and the pan law above to each segment, then each bus's chain and level to its sum.
 
 ### Split edits
