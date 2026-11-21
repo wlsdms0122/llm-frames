@@ -57,7 +57,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 | `image` | a still picture: an image file or a page of a PDF, as wherever a still picture is taken ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | no | yes |
 | `audio` | an audio file | no | yes |
 
-- A media type takes every kind of medium it names, by the kind `probe` gives ([FRAMES-23](../FRAMES-23/SPEC.md)): `video` takes kinds `video` and `imageSequence`, and `image` takes every still, kinds `image` and `page`.
+- A media type takes every kind of medium it names, by the kind `probe` gives ([FRAMES-23](../FRAMES-23/SPEC.md)): `video` takes kinds `video` and `imageSequence`, and `image` takes every still, kinds `image` and `page`. A PDF of more than one page named as a file is no one medium, and stops there as at `read` ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)).
 - `{"param": "<name>"}` stands for a value of the parameter's type, and never for a key. Where it may stand in a preset is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md). In a template it stands anywhere a value of that type is accepted.
 - A `text` stands for text on screen: a title, given as a string or as a run's `text` ([FRAMES-11](../FRAMES-11/SPEC.md)), or the text an area's text form searches for (`text`, `from`, `to`, [FRAMES-2](../FRAMES-2/SPEC.md)).
 - A `choice` stands where one of its options is accepted. Names (presets, styles, shape styles, themes, templates) are taken only by a choice, so what a template lets its user pick is listed.
