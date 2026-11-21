@@ -10,9 +10,10 @@
 // are read in, so a changed file, or a picture no fixed formula converts read with no colour space written, stops
 // before a frame is drawn.
 struct PinnedReferenceChecker: Sendable {
-    // A media file whose pictures the decoder checked, and the colour space they are read in.
+    // A media file or a page of one whose pictures the decoder checked, and the colour space they are read in.
     private struct CheckedPictures: Hashable {
         let path: String
+        let page: Int?
         let colorSpace: ColorSpace?
     }
 
@@ -44,7 +45,7 @@ struct PinnedReferenceChecker: Sendable {
             switch reference {
             case let .media(media, _, colorSpace):
                 let file = MediaFile(media: media)
-                guard checkedPictures.insert(CheckedPictures(path: file.path, colorSpace: colorSpace)).inserted else {
+                guard checkedPictures.insert(CheckedPictures(path: file.path, page: file.page, colorSpace: colorSpace)).inserted else {
                     continue
                 }
                 checked.insert(file.path)

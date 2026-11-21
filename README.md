@@ -4,7 +4,7 @@ frames is a non-linear video editor driven by JSON documents and a command line,
 
 The same model edits a still and a video, since a still is a sequence rendered as one frame. Work goes as it does in any editor: write the document, look at it with `timeline`, `still` and `sheet`, change it, render, and use what was rendered as media in the next document.
 
-frames holds the editing tools that any result uses. What a purpose needs (a lower third for a lecture, an annotation look, a vertical short with subtitles) is made with those tools by packs and extensions, installed beside frames: a pack carries themes, presets, LUTs, media and templates with published parameters, and an extension is a program that reads what frames reports and writes documents. frames composites media and does not generate it. Titles and shapes are built in, and motion graphics, illustrations and diagrams are made with other tools and come in as PNGs, PNG sequences or video with alpha.
+frames holds the editing tools that any result uses. What a purpose needs (a lower third for a lecture, an annotation look, a vertical short with subtitles) is made with those tools by packs and extensions, installed beside frames: a pack carries themes, presets, LUTs, media and templates with published parameters, and an extension is a program that reads what frames reports and writes documents. frames composites media and does not generate it. Titles and shapes are built in, and motion graphics, illustrations and diagrams are made with other tools and come in as PNGs, PNG sequences, video with alpha, or pages of a PDF for vector artwork.
 
 A few rules hold everywhere:
 
@@ -129,7 +129,7 @@ frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allo
 | `render <document> -o <out.mov \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Renders the sequence. A `.mov` is the master of every frame: ProRes 422 HQ, or ProRes 4444 when the background is not opaque, with 24-bit PCM sound. A `.png` is the frame at `--at` (0 when left out), without a time label, at 16 bits per channel. Both are in the sequence's colour space ([Colour](#colour)). `--deliver` also writes an `.mp4` from the same frames: H.264 for an SDR colour space, HEVC Main 10 for an HDR one |
 | `still <document> --at <t>[,<t>...] -o <out.png> [--args <args.json>]` | Draws frames at those sequence times side by side, each with its time label, without encoding a video, as an SDR sRGB preview. The cheap check while you edit |
 | `resolve <document> -o <resolved.json> [--args <args.json>]` | Writes the resolved document: everything found, laid out and planned, with the files it uses pinned by hash |
-| `transcode <in> -o <out> [--quality high\|medium\|low] [--max <px>] [--codec h264\|hevc] [--color-space <name>]` | Writes a delivery file from an image (`.jpg`, `.heic`, `.png`), audio (`.m4a`) or video (`.mp4`, `.mov`, `.m4v`, or `.m4a` for its sound) at a quality level. `--max` caps the longer side, and `--color-space` names the output's colour space ([Colour](#colour)) |
+| `transcode <in> [--page <n>] -o <out> [--quality high\|medium\|low] [--max <px> \| --scale <s>] [--codec h264\|hevc] [--color-space <name>]` | Writes a delivery file from a still (`.jpg`, `.heic`, `.png`), audio (`.m4a`) or video (`.mp4`, `.mov`, `.m4v`, or `.m4a` for its sound) at a quality level. `--max` caps the longer side, and `--color-space` names the output's colour space ([Colour](#colour)). A page of a PDF, which has no pixels of its own, is drawn at `--scale` pixels per point, fractions allowed, by default 4, or the largest at which the decoder holds the page where that is less, and takes no `--max` |
 
 `--args` gives a template its arguments ([Templates](#templates)). A resolved document has its theme and arguments written in, so `--theme` or `--args` with one stops.
 
@@ -145,15 +145,15 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 
 | Command | What it reports |
 | --- | --- |
-| `probe <media> [--json]` | the kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, colour space and audio of a file or a directory of PNGs |
+| `probe <media> [--page <n>] [--json]` | the kind (`image`, `page`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, colour space and audio of a file or a directory of PNGs, and the page count of a PDF (without `--page`, a PDF of more pages gives only its page count) |
 | `loudness <media \| document> [--from <t>] [--to <t>] [--args <args.json>] [--json]` | the integrated loudness, loudness range, largest momentary and short-term loudness, true peak and sample peak of a document's mix, after the sequence's `audioFilter`, or of the mix of one clip of a medium, without rendering pictures. `--from` and `--to` measure part of it, read as part of the whole sound. `--args` with a medium stops, since a medium has no parameters to take them |
-| `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
+| `ocr <still \| video> [--page <n>] [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, for a page of a PDF in points, in the order a text area's `nth` counts them |
 | `track <video> --at <t> --area <area> [--to <t>] [--color-space <name>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each at most 480 pixels on its longer side and labelled with its time |
 | `timeline <document> [--args <args.json>] [--json]` | the plan of time without rendering: every storyline clip's edit, drawn and clip ranges, speed and transition, and every other clip's visible range, kind and animation, each by its place. `--json` also gives each clip's lane and parent |
 | `evaluate <document> --at <t> [--args <args.json>]` | the display list at a time: what is drawn, by which clip, where, and where each title's lines, words and characters lie, as JSON |
-| `locate <document> --at <t> --point <x,y> [--args <args.json>]` | the clips under a point of the output at a time, and for media the frame and pixel it shows |
+| `locate <document> --at <t> --point <x,y> [--args <args.json>]` | the clips under a point of the output at a time, and for media the frame and pixel it shows, for a page of a PDF its page and the point in points |
 
 Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes, as an SDR sRGB preview. `ocr` and `track` read the media in the colour space `--color-space` names, as a clip's `colorSpace` corrects it. `--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Flat white"}'`.
 
@@ -239,11 +239,11 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 | Clip | Keys |
 | --- | --- |
 | storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (image or page, a page without `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation, cornerPin` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
@@ -264,11 +264,12 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 | --- | --- |
 | `"/abs/file"` | an image, video or audio file, judged by its contents, or a `.json` sequence document, which stands as if written there |
 | `"<pack>/<name.ext>"` | a file in a pack's `media/` |
+| `{"file": "/abs/deck.pdf", "page": 3}` | a page of a PDF, from 1 (the file may be `<pack>/<name.pdf>`). A PDF of one page may be named as a file, the same page, and one of more pages named as a file stops |
 | `{"imageSequence": "/abs/dir", "fps": 30}` | every PNG in the directory, in natural order, played like a video (the directory may be `<pack>/<dir>`) |
 | a sequence document object | a compound clip: the nested sequence plays as a video with sound, at its own frame size and with its own background |
 | `{"template": "<pack>/<name>", "args": {...}}` | a template instance ([Templates](#templates)) |
 
-Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha) and compound clips. That is how graphics made elsewhere come in. A compound clip is also how a group of clips acts as one: a picture-in-picture window with its own edit inside, a group that should leave together in a wipe, or an adjustment that should reach only some clips. [FRAMES-3](spec/FRAMES-3/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md)
+Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha), pages of a PDF and compound clips. That is how graphics made elsewhere come in. A page of a PDF is a still with no pixels of its own, taken wherever a still (an image or a page) is: its media pixels are its points, and it is drawn at the size it is shown at, so a logo scaled up or a map zoomed into stays sharp. What it paints nothing over is transparent in an edit, and white where it is read for its values (OCR, a matte's luma, a JPEG). frames fixes its boxes, what of it is drawn, its pixel grid and the colour of what it paints by formulas, and the rest of how it is drawn (anti-aliasing, transparency, the resampling of an image inside it) is the decoder's PDF renderer. The decoder refuses a page that needs a password, that sets drawn text in a font its file does not embed, that draws from another file, or whose drawn content names a colour space it cannot convert by the formula, so every decoder refuses one whose formula is not in the file (CMYK, a LUT-based ICC profile, Separation or DeviceN over one of those). It refuses before it starts, in `probe` as in a render, and `transcode` turns a page refused for its fonts or its colour into a PNG. SVG is converted to PDF first, with `rsvg-convert -f pdf` or Inkscape. A compound clip is also how a group of clips acts as one: a picture-in-picture window with its own edit inside, a group that should leave together in a wipe, or an adjustment that should reach only some clips. [FRAMES-3](spec/FRAMES-3/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md)
 
 ### Time
 
@@ -353,7 +354,7 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 | `{"text": "Flat white", "nth": 0, "padding": 8}` | the recognised line that contains the text, compared without whitespace. More than one match stops and lists them, and `nth` picks one, counted from 0, top to bottom and left to right |
 | `{"from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around both lines and every line between them |
 
-`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, an image's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start, and a `track` object's target on the frame its `time` names. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
+`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, a still's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start, and a `track` object's target on the frame its `time` names. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
 
 ### Titles and runs
 
@@ -643,7 +644,7 @@ Saved as `templates/intro.json` in a pack `mine`, it is used as media with argum
 
 | Parameter key | Means |
 | --- | --- |
-| `type` | `number`, `color`, `choice`, `text`, `video` (a video or image sequence), `sequence`, `image` or `audio` |
+| `type` | `number`, `color`, `choice`, `text`, `video` (a video or image sequence), `sequence`, `image` (a still, an image or a page of a PDF) or `audio` |
 | `default` | a value of the type. A template parameter without one must be given |
 | `description` | one line on what it changes, required |
 | `options` | for a `choice`: the values it may take. Names (presets, styles, themes) are given only through a choice |
@@ -656,13 +657,13 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 
 | Command | Object |
 | --- | --- |
-| `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null` |
+| `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio, pages}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null`, `pages` the page count of a PDF or `null`, and for a page `size` in points, which may be fractions, and `bitDepth` `null` |
 | `loudness` | `{loudness, integrated, range, momentaryMax, shortTermMax, truePeak, samplePeak}`, in LUFS, LU, dBTP and dBFS, each rounded to the nearest hundredth and `null` where the meter gives none |
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
-| `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
+| `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, `media` for a page of a PDF the `{file, page}` object, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
 | `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, cornerPins, characters}`, `transform` and `rect` where an item lies with the corner pins that carry it left out and `cornerPins` those corner pins, innermost first, each `{dest, cornerPin}` as four points, or `null` where none carries it, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
-| `locate` | `{locate, hits}`, topmost first, each `{place, id, kind, item}`, and for a picture of a media file `{media, mediaTime, point}` |
+| `locate` | `{locate, hits}`, topmost first, each `{place, id, kind, item}`, and for a picture of a media file `{media, mediaTime, point, page}`, `page` the page of a PDF or `null` |
 
 Times are rounded to the microsecond and positions, sizes, opacities and the numbers of a `transform` to the millionth. A new field is an addition within a version, and a removed or changed one a new major version ([FRAMES-18](spec/FRAMES-18/SPEC.md)). [FRAMES-23](spec/FRAMES-23/SPEC.md)
 

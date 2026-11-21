@@ -143,7 +143,7 @@ package struct DisplayListWriter: Sendable {
         let matte = picture.matte.map { matte in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
-                JSONMember(key: "frame", value: .number(Double(matte.frame.index))),
+                JSONMember(key: "frame", value: frame(of: matte.frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
                 JSONMember(key: "softness", value: .number(matte.softness)),
@@ -220,7 +220,7 @@ package struct DisplayListWriter: Sendable {
         case let .media(frame):
             .object(JSONObject(members: [
                 JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
-                JSONMember(key: "frame", value: .number(Double(frame.index))),
+                JSONMember(key: "frame", value: self.frame(of: frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
                 JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))
             ]))
@@ -229,6 +229,17 @@ package struct DisplayListWriter: Sendable {
             .object(JSONObject(members: [
                 JSONMember(key: "list", value: .object(JSONObject(members: members(of: list))))
             ]))
+        }
+    }
+
+    // The frame index, null for a page of a PDF.
+    private func frame(of frame: MediaFrame) -> JSONValue {
+        switch frame.picture {
+        case let .frame(index):
+            .number(Double(index))
+
+        case .page:
+            .null
         }
     }
 

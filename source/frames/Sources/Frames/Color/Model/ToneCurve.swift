@@ -9,7 +9,7 @@ import Foundation
 
 // The tone curve of one channel of an ICC profile (ICC.1), from the channel's encoded value to its linear value, both
 // from 0 to 1: a gamma, a parametric curve, or a table interpolated linearly. An encoded value is clipped to 0 to 1, the
-// curve's domain.
+// curve's domain, and the result to 0 to 1, as ICC.1 gives it.
 package enum ToneCurve: Equatable, Sendable {
     // Y = X^gamma, a `curv` of one entry.
     case gamma(Double)
@@ -22,8 +22,11 @@ package enum ToneCurve: Equatable, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     package func linear(_ encoded: Double) -> Double {
-        let x = min(max(encoded, 0), 1)
+        min(max(unclipped(min(max(encoded, 0), 1)), 0), 1)
+    }
 
+    // MARK: - Private
+    private func unclipped(_ x: Double) -> Double {
         switch self {
         case let .gamma(gamma):
             return pow(x, gamma)
@@ -42,7 +45,6 @@ package enum ToneCurve: Equatable, Sendable {
         }
     }
 
-    // MARK: - Private
     // A parameter the function type does not take is 0.
     private func parametric(
         _ x: Double,

@@ -25,12 +25,13 @@ struct CommandHelpTests {
 
         // Then
         #expect(text == """
-            frames probe <media> [--json]
+            frames probe <media> [--page <n>] [--json]
 
             \(ProbeCommand().summary)
 
-              <media>  \(ProbeOptions.positionals[0].help)
-              --json   \(OptionRule.json.help)
+              <media>     \(ProbeOptions.positionals[0].help)
+              --page <n>  \(OptionRule.page.help)
+              --json      \(OptionRule.json.help)
 
             """)
     }

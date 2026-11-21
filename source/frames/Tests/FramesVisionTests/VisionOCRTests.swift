@@ -171,12 +171,41 @@ struct VisionOCRTests {
         #expect(isNearVertically(line.rectangle, drawn), "\(line.rectangle) inked at \(drawn)")
     }
 
+    @Test(
+        "a page's lines are found where they were drawn, in its points, at 4 pixels per point or the held scale",
+        arguments: [16_384, 600]
+    )
+    func recognisesOnPage(largestPictureSide: Int) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("card.pdf")
+        try DocumentWriter(sizes: [Size(width: 300, height: 200)]).write(to: file) { _, canvas in
+            canvas.draw("Send message", font: "Helvetica", size: 24, x: 30, y: 40)
+        }
+        let drawn = inkBox(of: "Send message", font: "Helvetica", size: 24, x: 30, y: 40)
+        let decoder = HeldSideDecoder(largestPictureSide: largestPictureSide)
+        let sut = VisionOCR(decoder: decoder)
+
+        // When
+        let page = MediaFile(path: file, size: Size(width: 300, height: 200), page: 1)
+        let lines = try sut.lines(in: page, atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+
+        // Then
+        let line = try #require(lines.first)
+        #expect(lines.map(\.text) == ["Send message"])
+        #expect(decoder.providerScale(ofPageSize: Size(width: 300, height: 200)) == (largestPictureSide > 1_200 ? 4 : 2))
+        #expect(isNear(line.rectangle, drawn, tolerance: 2), "\(line.rectangle) inked at \(drawn)")
+    }
+
     // MARK: - Private
     private func isNear(
         _ found: Rectangle,
-        _ drawn: Rectangle
+        _ drawn: Rectangle,
+        tolerance: Double? = nil
     ) -> Bool {
-        [
+        let tolerance = tolerance ?? self.tolerance
+
+        return [
             (found.x, drawn.x),
             (found.y, drawn.y),
             (found.x + found.width, drawn.x + drawn.width),

@@ -6,13 +6,15 @@
 //
 
 // `media` is the file as the document wrote it, or nil for a solid, a document written in place and a template
-// instance. `clip` is `[in, out)` on its clip time, `sound` the range its sound plays over, its split applied, or nil
-// where it plays no sound, and `isTimeRemapped` whether its media time comes from `timeRemap`, when its speed is 1.
+// instance, and `page` the page of a PDF it shows, nil for every other medium. `clip` is `[in, out)` on its clip time,
+// `sound` the range its sound plays over, its split applied, or nil where it plays no sound, and `isTimeRemapped`
+// whether its media time comes from `timeRemap`, when its speed is 1.
 struct TimelineStorylineEntry: Equatable, Sendable {
     // MARK: - Property
     let place: String
     let id: String?
     let media: String?
+    let page: Int?
     let edit: TimeRange
     let drawn: TimeRange
     let clip: TimeRange
@@ -27,6 +29,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         place: String,
         id: String?,
         media: String?,
+        page: Int?,
         edit: TimeRange,
         drawn: TimeRange,
         clip: TimeRange,
@@ -39,6 +42,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         self.place = place
         self.id = id
         self.media = media
+        self.page = page
         self.edit = edit
         self.drawn = drawn
         self.clip = clip

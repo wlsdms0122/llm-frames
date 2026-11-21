@@ -8,6 +8,7 @@
 import Foundation
 import FramesAVFoundation
 import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @testable import Frames
@@ -21,6 +22,10 @@ struct MotionBlurRenderTests {
             { "description": "the incoming clip pushes the outgoing one out to the left", "seconds": 1, "ease": "linear",
               "incoming": { "keys": [ { "t": 0, "x": 1 }, { "t": 1, "x": 0 } ] },
               "outgoing": { "keys": [ { "t": 0, "x": 0 }, { "t": 1, "x": -1 } ] } }
+            """#,
+        "animation/wipe": #"""
+            { "description": "wipes in from the left", "entrance": { "seconds": 0.2, "ease": "linear", "revealFrom": "left",
+              "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] } }
             """#
     ]
 
@@ -50,6 +55,35 @@ struct MotionBlurRenderTests {
         #expect(partial.allSatisfy { abs($0 * 16 - ($0 * 16).rounded()) < 0.01 })
     }
 
+    @Test("a page growing while the shutter is open is drawn from its samples, its edges smeared over the distance they move")
+    func smearsGrowingPage() throws {
+        // Given
+        // The white 100 point page fills the 200 pixel frame at scale 1 and grows from scale 0.5 at 0 to 1 at 0.2, so
+        // over the 0.02 seconds of the exposure of the frame at 0.08 each of its edges moves 5 pixels outward.
+        let directory = try TemporaryDirectory()
+        let path = directory.file("white.pdf")
+        try PageWriter().write(width: 100, height: 100, content: "1 g 0 0 100 100 re f", to: path)
+        let document = { (isMotionBlurred: Bool) in
+            try DocumentResolver().resolve(#"""
+                { "kind": "sequence", "format": { "size": [200, 200], "fps": 25 },
+                  "storyline": [ { "media": "\#(path)", "duration": 2, "motionBlur": \#(isMotionBlurred),
+                                   "keyframes": [ { "at": 0, "scale": 0.5, "ease": "linear" }, { "at": 0.2, "scale": 1 } ] } ] }
+                """#)
+        }
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let blurred = try sut.frame(of: Evaluator().displayList(of: document(true), at: 0.08))
+        let sharp = try sut.frame(of: Evaluator().displayList(of: document(false), at: 0.08))
+
+        // Then
+        let partial = { (frame: Bitmap) in
+            (0..<frame.width).map { frame.pixel(x: $0, y: 100)[0] }.filter { $0 > 0.001 && $0 < 0.999 }.count
+        }
+        #expect(blurred.pixel(x: 100, y: 100)[0] > 0.999)
+        #expect(partial(blurred) >= partial(sharp) + 6)
+    }
+
     @Test("a frame where nothing with motion blur moves is the same picture, value for value, as the frame without it")
     func keepsStillFrameExact() throws {
         // Given
@@ -71,6 +105,37 @@ struct MotionBlurRenderTests {
         guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
 
         #expect(samples.count == 16)
+        #expect(frame.pixels == sharp.pixels)
+    }
+
+    @Test(
+        "an adjustment whose wipe is complete is the same picture, value for value, as the frame without motion blur when nothing moves",
+        arguments: [
+            #"{ "shape": "rect", "area": [12.3, 8.6, 30.2, 17.1], "feather": 3 }"#,
+            #"{ "shape": "ellipse", "area": [12.3, 8.6, 30.2, 17.1], "feather": 2, "invert": true }"#
+        ]
+    )
+    func keepsCompleteAdjustmentWipeExact(mask: String) throws {
+        // Given
+        let document = try DocumentResolver(presets: presets).resolve(#"""
+            { "kind": "sequence", "format": { "size": [64, 36], "fps": 25 },
+              "storyline": [ { "solid": "#203040", "duration": 1 } ],
+              "clips": [ { "shape": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 40, "height": 24, "position": [32, 18] },
+                         { "adjust": [ { "op": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
+                           "mask": \#(mask) } ] }
+            """#)
+        let evaluator = Evaluator()
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let list = evaluator.displayList(of: document, at: 0.6)
+        let frame = try sut.frame(of: list)
+        let sharp = try sut.frame(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.6))
+
+        // Then
+        guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
+
+        #expect(samples.allSatisfy { $0.last?.reveal != nil })
         #expect(frame.pixels == sharp.pixels)
     }
 

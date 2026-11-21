@@ -12,6 +12,7 @@ struct OCROptions: CommandOptions, Equatable {
     private static let rangeOptions = ["--from", "--to", "--step"]
 
     static let rules = [
+        OptionRule.page,
         OptionRule(
             "--at",
             value: "<t>",
@@ -39,12 +40,14 @@ struct OCROptions: CommandOptions, Equatable {
     ]
     static let positionals = [
         PositionalRule(
-            "<image | video>",
-            help: "An image, read whole, or a video, read at --at or over a range, as an absolute path."
+            "<still | video>",
+            help: "A still, an image or a PDF, read whole, or a video, read at --at or over a range, as an absolute "
+                + "path."
         )
     ]
 
     let media: String
+    let page: Int?
     let selection: TimeSelection
     let languages: [LanguageTag]?
     let colorSpace: ColorSpace?
@@ -53,6 +56,7 @@ struct OCROptions: CommandOptions, Equatable {
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.media = try arguments.requiredPositionalPath(at: 0)
+        self.page = try arguments.page(of: "--page")
         self.selection = try Self.selection(of: arguments)
         self.languages = try arguments.languages(of: "--languages")
         self.colorSpace = try arguments.choice(of: "--color-space")

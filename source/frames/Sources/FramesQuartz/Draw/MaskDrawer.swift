@@ -12,13 +12,10 @@ import Frames
 
 // Draws the masks of an item as one coverage value for each pixel of a region of output pixels, in floating point.
 // Each mask is blurred by a Gaussian whose standard deviation is its feather, then inverted when it is. A feathered
-// mask is drawn over the region grown on every side by four times its feather, so its blur sees the geometry past the
-// region's edge: the frame does not cut a mask, and an inverted mask's outside goes on past it.
+// mask is drawn over the region grown on every side by its feather's reach (`ItemMask.featherReach`), so its blur sees
+// the geometry past the region's edge: the frame does not cut a mask, and an inverted mask's outside goes on past it.
 struct MaskDrawer {
     // MARK: - Property
-    // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
-    private static let reach = 4.0
-
     // MARK: - Initializer
     // MARK: - Public
     // `region` is in whole pixels of the raster the item's list is drawn on, which the masks' output pixels are carried
@@ -48,7 +45,7 @@ struct MaskDrawer {
         on raster: CGAffineTransform
     ) throws -> [Float] {
         let feather = mask.feather * raster.lengthScale
-        let margin = feather > 0 ? Int((Self.reach * feather).rounded(.up)) : 0
+        let margin = feather > 0 ? Int((ItemMask.featherReach * feather).rounded(.up)) : 0
         let width = Int(region.width)
         let height = Int(region.height)
         let drawn = try fill(mask, over: region.insetBy(dx: CGFloat(-margin), dy: CGFloat(-margin)), on: raster)

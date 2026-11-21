@@ -356,7 +356,7 @@ struct PresetReaderTests {
             (#""seconds": 1, "over": { "param": "e" }"#, "over (transition): expected one of incoming, outgoing, found an object"),
             (#""seconds": 1, "audio": { "param": "e" }"#, "audio (transition): expected one of constant-power, constant-gain, found an object"),
             (#""seconds": 1, "incoming": { "revealFrom": { "param": "e" } }"#, "incoming.revealFrom (incoming): expected one of left, right, top, bottom, found an object"),
-            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, "matte.media (matte): expected a string, found an object"),
+            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, #"matte.media (page): unknown key "param". Allowed: file, page"#),
             (#""seconds": 1, "matte": { "media": "/abs/m.png", "invert": { "param": "n" } }"#, "matte.invert (matte): expected true or false, found an object")
         ]
     )

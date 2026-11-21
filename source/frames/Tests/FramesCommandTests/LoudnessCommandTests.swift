@@ -133,6 +133,20 @@ struct LoudnessCommandTests {
         #expect(sut.standardError == "frames: media \"\(image)\" has no sound to measure\n")
     }
 
+    @Test("a page of a PDF stops as a still does, since it has no sound to measure")
+    func stopsOnPage() throws {
+        // Given
+        let page = sut.directory.file("slide.pdf")
+        try PageWriter().write(width: 32, height: 18, content: "0 g 0 0 32 18 re f", to: page)
+
+        // When
+        let code = sut.run(["loudness", page])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: media \"\(page)\" has no sound to measure\n")
+    }
+
     @Test("--args with a medium stops, since a medium has no params to take them")
     func stopsOnArgumentsOfMedium() async throws {
         // Given

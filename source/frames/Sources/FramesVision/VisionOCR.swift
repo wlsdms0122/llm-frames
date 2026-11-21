@@ -11,7 +11,8 @@ import Frames
 import Vision
 
 // The `vision` OCR provider: Vision's accurate text recognition on the analysis picture the decoder reads, in the
-// recognition languages given, or in the language Vision detects without them. Every other setting that changes what
+// recognition languages given, or in the language Vision detects without them. A page of a PDF is read whole at the
+// provider scale, over white, and its lines are given in its points. Every other setting that changes what
 // is recognised is fixed, so the same picture gives the same lines. Vision's accurate line box reaches below the text
 // by up to a third of the text's height, so each is cut to the ink inside it.
 package struct VisionOCR: Sendable {
@@ -44,15 +45,23 @@ package struct VisionOCR: Sendable {
         }
     }
 
+    // The line in the picture's pixels, divided by `scale`, the pixels per media pixel it was read at.
     private func line(
         from observation: VNRecognizedTextObservation,
-        in picture: Bitmap
+        in picture: Bitmap,
+        scale: Double
     ) -> RecognisedLine? {
         guard let text = observation.topCandidates(1).first?.string else { return nil }
         let size = Size(width: Double(picture.width), height: Double(picture.height))
-        let box = Rectangle(normalizedRect: observation.boundingBox, in: size)
+        let box = scanner.fitted(Rectangle(normalizedRect: observation.boundingBox, in: size), in: picture)
+        let rectangle = Rectangle(
+            x: box.x / scale,
+            y: box.y / scale,
+            width: box.width / scale,
+            height: box.height / scale
+        )
 
-        return RecognisedLine(text: text, rectangle: scanner.fitted(box, in: picture))
+        return RecognisedLine(text: text, rectangle: rectangle)
     }
 }
 
@@ -73,11 +82,16 @@ extension VisionOCR: OCRProvider {
         request.customWords = []
         request.minimumTextHeight = 0
 
+        let reading = PictureReading.analysis(colorSpace: colorSpace)
         let index = file.frameIndex(at: time)
-        let picture = try decoder.picture(of: file, atFrame: index, reading: .analysis(colorSpace: colorSpace))
+        let (picture, scale) = if file.page != nil {
+            try decoder.providerPicture(ofPage: file, reading: reading)
+        } else {
+            (try decoder.picture(of: file, atFrame: index, reading: reading), 1.0)
+        }
         let image = try converter.image(of: picture, file: file.path, index: index)
         try VNImageRequestHandler(cgImage: image).perform([request])
 
-        return (request.results ?? []).compactMap { line(from: $0, in: picture) }
+        return (request.results ?? []).compactMap { line(from: $0, in: picture, scale: scale) }
     }
 }

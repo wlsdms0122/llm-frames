@@ -104,16 +104,18 @@ struct TemplateInstantiator: Sendable {
         }
     }
 
+    // A media parameter's value is of a kind its type takes. A page given to an `image` parameter makes the clips it
+    // fills clips of a page, which stop where their media is read (FRAMES-17).
     private func checkKind(
         of media: JSONValue,
         parameter: Parameter,
         place: Place,
         kind: String
     ) throws {
-        guard let type = parameter.type.mediaKind else { return }
+        guard parameter.type.mediaKind != nil else { return }
 
         let found = try checker.mediaKind(of: media, place: place, kind: kind)
-        guard found == type else {
+        guard parameter.type.takes(found) else {
             throw PackError.argumentOfWrongKind(
                 place: place,
                 kind: kind,

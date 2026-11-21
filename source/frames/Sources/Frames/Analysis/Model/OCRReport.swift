@@ -6,7 +6,8 @@
 //
 
 // What `ocr` prints: the picture's size, the recognition languages asked for, nil where the provider detected them,
-// and the lines recognised on each frame read, in media pixels. An image has one frame at time 0.
+// and the lines recognised on each frame read, in media pixels, which a page of a PDF has in points. A still has one
+// frame at time 0.
 package struct OCRReport: Equatable, Sendable {
     // MARK: - Property
     package let size: Size

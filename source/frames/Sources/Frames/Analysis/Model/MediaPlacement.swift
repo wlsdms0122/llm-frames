@@ -16,9 +16,9 @@ struct MediaPlacement: Equatable, Sendable {
     // The media time of the frame drawn: its pinned time, or 0 for a still.
     var mediaTime: Double {
         let times = frame.media.frameTimes
-        guard times.indices.contains(frame.index) else { return 0 }
+        guard case let .frame(index) = frame.picture, times.indices.contains(index) else { return 0 }
 
-        return times[frame.index]
+        return times[index]
     }
 
     // MARK: - Initializer

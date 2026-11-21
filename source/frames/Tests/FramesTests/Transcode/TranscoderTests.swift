@@ -62,6 +62,131 @@ struct TranscoderTests {
         #expect(result.format == format)
     }
 
+    @Test("a page is drawn whole at --scale, by default at 4 per point or at the held scale, to a 16-bit PNG", arguments: [
+        (nil, Size(width: 100, height: 50.4), 4.0, PageRegion(x: 0, y: 0, width: 400, height: 202)),
+        (1.5, Size(width: 100, height: 50.4), 1.5, PageRegion(x: 0, y: 0, width: 150, height: 76)),
+        (nil, Size(width: 8_192, height: 100), 2.0, PageRegion(x: 0, y: 0, width: 16_384, height: 200))
+    ])
+    func writesPage(
+        scale: Double?,
+        pageSize: Size,
+        drawnScale: Double,
+        region: PageRegion
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "deck.pdf")
+        let output = directory.file("page.png")
+        let sut = pageTranscoder(log: log, input: input, pageCount: 2, pageSize: pageSize)
+
+        // When
+        let result = try sut.transcode(TranscodeRequest(input: input, page: 2, output: output, scale: scale))
+
+        // Then
+        let target = ImageTarget.png(
+            path: output,
+            size: Size(width: Double(region.width), height: Double(region.height)),
+            depth: .sixteen
+        )
+        let reading = PictureReading.working(colorSpace: nil, targetPeak: 203)
+        #expect(log.calls == [
+            .checkMedia(path: input),
+            .checkMedia(path: input),
+            .readPage(path: input, page: 2, region: region, scale: drawnScale, reading: reading),
+            .checkImageTarget(target),
+            .writeImageTarget(target, frame: 0)
+        ])
+        #expect(result.format == .png)
+    }
+
+    @Test("a page its decoder refuses for its colour or fonts is read by the platform into the output's space")
+    func readsPageByPlatform() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "logo.pdf")
+        let output = directory.file("logo.jpg")
+        let sut = pageTranscoder(log: log, input: input, pageCount: 1, colorReading: .platform)
+
+        // When
+        _ = try sut.transcode(TranscodeRequest(input: input, output: output, colorSpace: .displayP3))
+
+        // Then
+        let reads = log.calls.filter { if case .readPage = $0 { true } else { false } }
+        #expect(reads == [
+            .readPage(
+                path: input,
+                page: 1,
+                region: PageRegion(x: 0, y: 0, width: 4, height: 4),
+                scale: 4,
+                reading: .platform(colorSpace: .displayP3)
+            )
+        ])
+    }
+
+    @Test("--max on a page, --scale on an image, and a written --scale the decoder cannot hold stop, naming them")
+    func refusesPageOptions() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let page = try source(in: directory, name: "logo.pdf")
+        let image = try source(in: directory, name: "in.png")
+        let output = try existingOutput(in: directory, name: "out.png")
+        let log = RoleCallLog()
+        let sut = Transcoder(
+            decoder: RecordingDecoder(log: log, pageSize: Size(width: 100, height: 50)),
+            facts: MediaFactTable(
+                files: [image: self.image(width: 40, height: 30)],
+                pages: [page: [Size(width: 100, height: 50)]]
+            ),
+            encoder: RecordingEncoder(log: log)
+        )
+
+        // When
+        let capped = #expect(throws: TranscodeError.self) {
+            try sut.transcode(TranscodeRequest(input: page, output: output, maximumSide: 64))
+        }
+        let scaled = #expect(throws: TranscodeError.self) {
+            try sut.transcode(TranscodeRequest(input: image, output: output, scale: 2))
+        }
+        let large = #expect(throws: TranscodeError.self) {
+            try sut.transcode(TranscodeRequest(input: page, output: output, scale: 200))
+        }
+        let huge = #expect(throws: TranscodeError.self) {
+            try sut.transcode(TranscodeRequest(input: page, output: output, scale: 1e300))
+        }
+
+        // Then
+        #expect(capped == .maximumSideOfPage(input: page))
+        #expect(scaled == .scaleOfRaster(input: image))
+        #expect(large == .pageTooLarge(path: output, scale: 200, size: Size(width: 20_000, height: 10_000), largest: 16_384))
+        #expect(huge == .pageTooLarge(path: output, scale: 1e300, size: Size(width: 100 * 1e300, height: 50 * 1e300), largest: 16_384))
+        #expect(large?.description == """
+            \(JSONValue.string(output).written): --scale 200 draws the page at 20000x10000, and the decoder holds at \
+            most 16384 pixels on a side
+            """)
+        #expect(!log.calls.contains { if case .readPage = $0 { true } else { false } })
+        #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == Self.existing)
+    }
+
+    @Test("a PDF of more than one page with no --page stops, naming its page count")
+    func refusesUnnamedPage() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let log = RoleCallLog()
+        let input = try source(in: directory, name: "deck.pdf")
+        let sut = pageTranscoder(log: log, input: input, pageCount: 3)
+
+        // When
+        let thrown = #expect(throws: AnalysisError.self) {
+            try sut.transcode(TranscodeRequest(input: input, output: directory.file("page.png")))
+        }
+
+        // Then
+        #expect(thrown == .unnamedPage(file: input, pageCount: 3))
+        #expect(log.calls.isEmpty)
+    }
+
     @Test("a sound goes to AAC in an .m4a, read whole through the decoder")
     func writesSound() throws {
         // Given
@@ -744,6 +869,21 @@ struct TranscoderTests {
             decoder: RecordingDecoder(log: log, refuses: refusal == .decoder, colorReading: colorReading),
             facts: MediaFactTable(files: files),
             encoder: RecordingEncoder(log: log, refuses: refusal == .encoder)
+        )
+    }
+
+    // A transcoder whose `input` is a PDF of `pageCount` pages, each of `pageSize` points.
+    private func pageTranscoder(
+        log: RoleCallLog,
+        input: String,
+        pageCount: Int,
+        pageSize: Size = Size(width: 1, height: 1),
+        colorReading: ColorReading = .formulas(.srgb)
+    ) -> Transcoder {
+        Transcoder(
+            decoder: RecordingDecoder(log: log, colorReading: colorReading, pageSize: pageSize),
+            facts: MediaFactTable(files: [:], pages: [input: Array(repeating: pageSize, count: pageCount)]),
+            encoder: RecordingEncoder(log: log)
         )
     }
 

@@ -11,7 +11,7 @@
 struct ResolvedValueReader: Sendable {
     // MARK: - Property
     // The keys of pinned media, which an object holding it carries beside its own.
-    static let mediaKeys = ["file", "sha256", "imageSequence", "frames"]
+    static let mediaKeys = ["file", "sha256", "page", "imageSequence", "frames"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
     static let geometryForms = ["rect", "ellipse", "polyline"]
 
@@ -43,13 +43,15 @@ struct ResolvedValueReader: Sendable {
         PinnedFile(path: try object.member("file").string(), sha256: try object.member("sha256").string())
     }
 
-    // An image sequence is its frame files in order, and the frame times are written only for a video or image
-    // sequence.
+    // An image sequence is its frame files in order, a page of a PDF its file with its number from 1, and the frame
+    // times are written only for a video or image sequence.
     func media(_ object: PlacedJSONObject) throws -> PinnedMedia {
         let source: PinnedSource = if object.contains("imageSequence") {
             .imageSequence(try object.member("imageSequence").elements().map { element in
                 try pinned(element.object(keys: ["file", "sha256"]))
             })
+        } else if let page = object.optionalMember("page") {
+            .page(try pinned(object), page: try pageNumber(page))
         } else {
             .file(try pinned(object))
         }
@@ -1009,5 +1011,19 @@ struct ResolvedValueReader: Sendable {
             let operation = try keys(["amount", "size"] + grainKeys)
             return .grain(amount: try number(operation, "amount"), size: try number(operation, "size"))
         }
+    }
+    // A page's number, a whole number from 1.
+    private func pageNumber(_ value: PlacedJSONValue) throws -> Int {
+        let page = try value.integer()
+        guard page >= 1 else {
+            throw ModelError.wrongType(
+                place: value.place,
+                kind: value.kind,
+                expected: "a whole number, 1 or more",
+                found: value.finding
+            )
+        }
+
+        return page
     }
 }

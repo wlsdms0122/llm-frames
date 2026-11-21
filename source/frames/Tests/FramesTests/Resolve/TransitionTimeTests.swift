@@ -161,6 +161,64 @@ struct TransitionTimeTests {
         #expect(error?.description == #"storyline[1].transition (solid): media "/abs/lost.png" is not there"#)
     }
 
+    @Test("a transition's cover and matte take a page of a PDF, a one-page PDF named as a file its page 1")
+    func probesPageCoverAndMatte() throws {
+        // Given
+        let sut = TimePlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: presets(cover: .page("/abs/deck.pdf", page: 3), matte: ("/abs/logo.pdf", nil)),
+            library: Fixture.library
+        )
+
+        // When
+        let plan = try sut.plan(document: transitionDocument)
+
+        // Then
+        let transition = try #require(plan.storyline[1].transition)
+        #expect(transition.coverMedia?.file == MediaFile(
+            path: "/abs/deck.pdf",
+            size: Size(width: 595.276, height: 841.89),
+            colorReading: .formulas(.srgb),
+            page: 3
+        ))
+        #expect(transition.matteMedia?.file.page == 1)
+        #expect(transition.matteMedia?.file.size == Size(width: 200, height: 100))
+    }
+
+    @Test(
+        "a cover or matte of a PDF of several pages named as a file, a page above the count, a page of no PDF and a PDF of no pages stop",
+        arguments: [
+            (
+                CoverSource.media("/abs/deck.pdf"),
+                #"storyline[1].transition (solid): media "/abs/deck.pdf" is a PDF of 12 pages, more than one picture, so a page of it is named as {"file", "page"}"#
+            ),
+            (
+                .page("/abs/deck.pdf", page: 13),
+                #"storyline[1].transition (solid): media "/abs/deck.pdf" has 12 pages, so it has no page 13"#
+            ),
+            (
+                .page("/abs/card.png", page: 1),
+                #"storyline[1].transition (solid): media "/abs/card.png" is not a PDF, so it has no pages"#
+            ),
+            (
+                .media("/abs/empty.pdf"),
+                #"storyline[1].transition (solid): media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#
+            )
+        ]
+    )
+    func refusesPageCover(cover: CoverSource, message: String) {
+        // Given
+        let sut = TimePlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: presets(cover: cover, matte: nil),
+            library: Fixture.library
+        )
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.plan(document: transitionDocument) }
+        #expect(error?.description == message)
+    }
+
     @Test("a transition written on the first storyline clip stops, even a cut")
     func refusesTransitionOnFirstClip() throws {
         // Given
@@ -242,5 +300,38 @@ struct TransitionTimeTests {
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.plan(document: document) }
         #expect(error?.description == #"theme.defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+    }
+
+    // MARK: - Private
+    private var transitionDocument: JSONValue {
+        get throws {
+            try Fixture.json(#"""
+                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
+                                                     { "solid": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
+                """#)
+        }
+    }
+
+    // A preset `stinger` with that cover and that matte file and page.
+    private func presets(
+        cover: CoverSource,
+        matte: (String, Int?)?
+    ) -> PresetTable {
+        PresetTable(
+            transitions: [
+                "stinger": TransitionPreset(
+                    description: "",
+                    seconds: 1,
+                    over: .incoming,
+                    audio: .constantPower,
+                    incoming: nil,
+                    outgoing: nil,
+                    cover: Cover(source: cover, span: Span(ease: .linear, keys: [])),
+                    matte: matte.map { Matte(media: $0.0, page: $0.1, softness: 0, isInverted: false, ease: .linear) }
+                )
+            ],
+            animations: Fixture.presets.animations,
+            filters: Fixture.presets.filters
+        )
     }
 }

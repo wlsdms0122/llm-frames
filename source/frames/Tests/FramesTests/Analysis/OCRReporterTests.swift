@@ -28,6 +28,7 @@ struct OCRReporterTests {
             size: Size(width: 400, height: 300)
         ),
         "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 400, height: 300)),
+        "/abs/logo.pdf": ProbedMedia(kind: .page, size: Size(width: 200, height: 100)),
         "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1, sound: ProbedSound(channels: 1, sampleRate: 48_000))
     ])
     private let first = RecognisedLine(text: "First", rectangle: Rectangle(x: 10, y: 20, width: 100, height: 30))
@@ -75,6 +76,41 @@ struct OCRReporterTests {
             {"text": "Send", "rect": [94, 188, 128, 42]}]}]}
             """#
         #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("a page is read as a still of its size in points, the page named or the one page of a PDF of one page")
+    func readsPage() throws {
+        // Given
+        let facts = MediaFactTable(
+            files: [:],
+            pages: [
+                "/abs/deck.pdf": [Size(width: 100, height: 50), Size(width: 595.2756, height: 841.8898)],
+                "/abs/logo.pdf": [Size(width: 64, height: 32)]
+            ]
+        )
+        let ocr = OCRTable([
+            "/abs/deck.pdf#2": [(from: 0, lines: [second])],
+            "/abs/logo.pdf#1": [(from: 0, lines: [first])]
+        ])
+        let sut = OCRReporter(mediaFacts: facts, ocr: ocr, languages: nil)
+
+        // When
+        let page = try sut.report(of: "/abs/deck.pdf", page: 2)
+        let onePage = try sut.report(of: "/abs/logo.pdf")
+        let unnamed = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/deck.pdf") }
+        let timed = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/logo.pdf", at: .at(1)) }
+
+        // Then
+        let expected = #"""
+            {"ocr": "1.0.0", "size": [595.2756, 841.8898], "languages": null, "frames": [{"time": 0, "lines": [\#
+            {"text": "Second", "rect": [10, 100, 120.4, 30]}]}]}
+            """#
+        #expect(page.machineOutput.written == expected)
+        #expect(onePage.frames == [OCRFrame(time: 0, lines: [first])])
+        #expect(unnamed?.description == #"""
+            media "/abs/deck.pdf" is a PDF of 2 pages, more than one picture, so --page names the page
+            """#)
+        #expect(timed == .timeOnStill(file: "/abs/logo.pdf"))
     }
 
     @Test("lines come in reading order, top to bottom by row and left to right within a row")
@@ -154,7 +190,12 @@ struct OCRReporterTests {
             (
                 "/abs/card.png",
                 .at(0),
-                #"media "/abs/card.png" is an image, whose one frame is at time 0, so it takes neither --at nor a range"#
+                #"media "/abs/card.png" is a still, whose one picture is at time 0, so it takes neither --at nor a range"#
+            ),
+            (
+                "/abs/logo.pdf",
+                .range(FrameRange(from: nil, to: nil, step: 1)),
+                #"media "/abs/logo.pdf" is a still, whose one picture is at time 0, so it takes neither --at nor a range"#
             ),
             ("/abs/ding.wav", .start, #"media "/abs/ding.wav" is sound, so it has no picture to read"#),
             ("/abs/absent.mov", .start, #"media "/abs/absent.mov" is not there"#)

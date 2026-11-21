@@ -7,16 +7,16 @@
 
 import Frames
 
-// Prints the lines the OCR provider recognises in an image or in video frames, in the recognition languages of
+// Prints the lines the OCR provider recognises in a still or in video frames, in the recognition languages of
 // `--languages` in place of the global `--ocr-languages`: the text for people, or with `--json` the machine output.
 struct OCRCommand: Command {
     // MARK: - Property
     let name = "ocr"
-    let synopsis = "<image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] "
-        + "[--color-space <name>] [--json]"
+    let synopsis = "<still | video> [--page <n>] [--at <t> | --from <t> --to <t> --step <s>] "
+        + "[--languages <tag>[,<tag>...]] [--color-space <name>] [--json]"
     let summary = "Prints the picture's size, then each recognised line as [x, y, w, h] and its text in media "
-        + "pixels, in the order a text area's nth counts them. Over a range it does this for each frame, "
-        + "under its media time."
+        + "pixels, for a page of a PDF in points, in the order a text area's nth counts them. Over a range it "
+        + "does this for each frame, under its media time."
 
     // MARK: - Initializer
     init() { }
@@ -32,7 +32,12 @@ struct OCRCommand: Command {
             ocr: roles.ocr,
             languages: options.languages ?? context.options.ocrLanguages
         )
-        let report = try reporter.report(of: options.media, at: options.selection, colorSpace: options.colorSpace)
+        let report = try reporter.report(
+            of: options.media,
+            page: options.page,
+            at: options.selection,
+            colorSpace: options.colorSpace
+        )
 
         context.output.write(options.isMachineOutput ? JSONWriter().write(report.machineOutput) : report.text + "\n")
     }

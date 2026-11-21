@@ -14,16 +14,25 @@ import Frames
 // below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's source among
 // them, is drawn on a raster at the scale it is shown at, once per frame or sample for each raster, so it is as sharp
 // as its items drawn in place; every length in pixels inside it is scaled with it. A picture with a corner pin is warped
-// onto it from a raster of its whole list. Each list is drawn in the form of the working values its `compositing`
-// names, which its items are composited, covered, resampled, blurred and mixed in, and its picture is converted to the
-// form of the list that shows it. A frame given as sample lists is the mean of their pictures, each drawn as a frame of
-// its items with the list's size, background and compositing, and the nested rasters of one sample are released before
-// the next is drawn. The frame is a half float bitmap of encoded working values.
+// onto it from a raster of its whole list. A page of a PDF is read from the decoder at the scale its raster shows it
+// at, so it is as sharp as its paths drawn there. Each list is drawn in the form of the working values its
+// `compositing` names, which its items are composited, covered, resampled, blurred and mixed in, and its picture is
+// converted to the form of the list that shows it. A frame given as sample lists is the mean of their pictures, each
+// drawn as a frame of its items with the list's size, background and compositing, and the nested rasters of one sample
+// are released before the next is drawn. The frame is a half float bitmap of encoded working values.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
     private let tables: LookUpTableCache
     private let glyphDrawer: GlyphDrawer
+
+    // A page's whole picture is read where it holds at most this many pixels, a 4096 by 4096 square.
+    private static let wholePagePixels = 1 << 24
+    // How far past a pixel, in the raster's pixels, a transition matte's resampling reads its picture.
+    private static let matteResamplingReach: CGFloat = 3
+    // The largest grid position of a page part, 2^53, below which a double holds every whole number, so the region's
+    // corners and the transform the decoder draws it with are exact.
+    private static let largestGridPosition: CGFloat = 0x1p53
 
     private var nested: [(list: DisplayList, raster: Raster, image: CGImage)] = []
 
@@ -87,10 +96,10 @@ final class FrameDrawer {
 
             let drawing = try self.drawing(of: item, over: frame, on: raster, seed: list.seed)
             if mode == .normal {
-                try draw(item, drawing: drawing, on: raster, in: frame)
+                try draw(item, of: list, drawing: drawing, on: raster, in: frame)
             } else {
                 let layer = try FrameContext(width: frame.width, height: frame.height, compositing: list.compositing)
-                try draw(item, drawing: drawing, on: raster, in: layer)
+                try draw(item, of: list, drawing: drawing, on: raster, in: layer)
                 let blended = try Blender()
                     .composite(layer.ciImage(), over: frame.ciImage(), mode: mode, compositing: list.compositing)
                 try frame.replace(with: blended)
@@ -102,6 +111,7 @@ final class FrameDrawer {
 
     private func draw(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         on raster: Raster,
         in frame: FrameContext
@@ -117,14 +127,14 @@ final class FrameDrawer {
         }
 
         guard item.opacity < 1 else {
-            try paint(item, drawing: drawing, casting: shadow, on: raster, in: frame)
+            try paint(item, of: list, drawing: drawing, casting: shadow, on: raster, in: frame)
             return
         }
 
         context.setAlpha(item.opacity)
         context.beginTransparencyLayer(auxiliaryInfo: nil)
         defer { context.endTransparencyLayer() }
-        try paint(item, drawing: drawing, casting: shadow, on: raster, in: frame)
+        try paint(item, of: list, drawing: drawing, casting: shadow, on: raster, in: frame)
     }
 
     // Multiplies the alpha of what the context draws after it by the item's masks' result and its track matte's value
@@ -159,6 +169,7 @@ final class FrameDrawer {
     // The item carried by its transform onto the raster and cut to its reveal, over its shadow when it casts one.
     private func paint(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         casting shadow: DropShadow?,
         on raster: Raster,
@@ -168,13 +179,13 @@ final class FrameDrawer {
         let matrix = matrix(of: item, on: raster)
         guard let shadow else {
             context.concatenate(matrix)
-            if let reveal = cut(of: item, on: raster) { context.clip(to: reveal) }
+            if let reveal = cut(of: item, in: list) { context.clip(to: reveal) }
             try drawing(context)
             return
         }
 
         let cast = CastShadow(shadow, through: matrix, rasterScale: raster.transform.lengthScale)
-        try paint(item, drawing: drawing, castingFromLayer: cast, on: raster, in: frame)
+        try paint(item, of: list, drawing: drawing, castingFromLayer: cast, on: raster, in: frame)
     }
 
     private func shadow(of content: DisplayContent) -> DropShadow? {
@@ -195,6 +206,7 @@ final class FrameDrawer {
     // drawn below the layer, both in the frame's form.
     private func paint(
         _ item: DisplayItem,
+        of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         castingFromLayer shadow: CastShadow,
         on raster: Raster,
@@ -213,7 +225,7 @@ final class FrameDrawer {
         try mask(layer.context, by: item, over: region, at: layer.bounds, on: raster)
         layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
         layer.context.concatenate(matrix(of: item, on: raster))
-        if let reveal = cut(of: item, on: raster) { layer.context.clip(to: reveal) }
+        if let reveal = cut(of: item, in: list) { layer.context.clip(to: reveal) }
         try drawing(layer.context)
 
         let picture = try layer.ciImage()
@@ -237,21 +249,22 @@ final class FrameDrawer {
     // pixels the item's own edge crosses, so a reveal that holds the item is not drawn.
     private func cut(
         of item: DisplayItem,
-        on raster: Raster
+        in list: DisplayList
     ) -> CGRect? {
         guard let reveal = item.reveal else { return nil }
 
         let cut = CGRect(reveal)
-        guard let drawn = drawnBounds(of: item, on: raster), cut.contains(drawn) else { return cut }
+        guard let drawn = drawnBounds(of: item, in: list), cut.contains(drawn) else { return cut }
 
         return nil
     }
 
     // The box of what the item draws in its own coordinates: a picture's `dest`, the box of a path's or glyphs' outlines
-    // and strokes, and for an adjustment the whole raster, nil where its transform flattens the plane.
+    // and strokes, and for an adjustment the list's frame carried back to them and cut to what its masks let through,
+    // nil where its transform flattens the plane.
     private func drawnBounds(
         of item: DisplayItem,
-        on raster: Raster
+        in list: DisplayList
     ) -> CGRect? {
         switch item.content {
         case let .picture(picture):
@@ -263,11 +276,9 @@ final class FrameDrawer {
         case let .glyphs(glyphs):
             return CGRect(glyphs.drawnBounds(carriedBy: item.transform))
 
-        case .adjust:
-            let matrix = matrix(of: item, on: raster)
-            guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return nil }
-
-            return raster.bounds.applying(matrix.inverted())
+        case let .adjust(adjust):
+            let frame = Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
+            return adjust.drawnBounds(carriedBy: item.transform, masks: item.mask, over: frame).map { CGRect($0) }
         }
     }
 
@@ -293,8 +304,11 @@ final class FrameDrawer {
                 return try carried(picture, onto: cornerPin, transform: item.transform, over: frame, on: raster)
             }
 
-            let source = try image(of: picture, shownBy: matrix(of: item, on: raster), on: raster)
-            let matte = try picture.matte.map { try pictures.image(of: $0.frame) }
+            let matrix = matrix(of: item, on: raster)
+            let source = try image(of: picture, shownBy: matrix, on: raster)
+            let matte = try picture.matte.flatMap { try image(of: $0, in: picture, shownBy: matrix, on: raster) }
+            if picture.matte != nil, matte == nil { return { _ in } }
+
             return { [tables] context in
                 try PictureDrawer(tables: tables).draw(
                     picture,
@@ -327,7 +341,9 @@ final class FrameDrawer {
     ) throws -> SourceImage? {
         switch picture.source {
         case let .media(frame):
-            return SourceImage(media: try pictures.image(of: frame))
+            guard frame.picture == .page else { return SourceImage(media: try pictures.image(of: frame)) }
+
+            return try pageImage(of: frame, in: picture, shownBy: matrix, on: raster)
 
         case let .displayList(list):
             let size = CGSize(width: list.size.width, height: list.size.height)
@@ -349,6 +365,135 @@ final class FrameDrawer {
 
             return SourceImage(try image(of: list, on: nested), of: list.size, drawnOn: nested)
         }
+    }
+
+    // A page picture is read in the part of the picture's region the raster shows, grown by how far what is drawn
+    // reads past it.
+    private func pageImage(
+        of frame: MediaFrame,
+        in picture: PictureItem,
+        shownBy matrix: CGAffineTransform,
+        on raster: Raster
+    ) throws -> SourceImage? {
+        let size = try pictures.pageSize(of: frame)
+        guard let placement = picture.placement(ofSourceSized: CGSize(width: size.width, height: size.height)) else {
+            return nil
+        }
+
+        return try pageImage(
+            of: frame,
+            sized: size,
+            within: picture.rectangle.map(CGRect.init),
+            shownBy: placement.concatenating(matrix),
+            reaching: reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale),
+            on: raster
+        )
+    }
+
+    // A transition matte's picture, stretched over the destination. A page is read by the rule of a page picture at
+    // the scale the whole map shows it at, its stretch over the destination and then `matrix`, in the part the raster
+    // shows grown by how far the picture and the matte's resampling read past it. It is nil where none of it is shown.
+    private func image(
+        of matte: PictureMatte,
+        in picture: PictureItem,
+        shownBy matrix: CGAffineTransform,
+        on raster: Raster
+    ) throws -> SourceImage? {
+        guard matte.frame.picture == .page else { return SourceImage(media: try pictures.image(of: matte.frame)) }
+
+        let size = try pictures.pageSize(of: matte.frame)
+        let destination = picture.destination
+        let stretch = CGAffineTransform(
+            a: destination.width / size.width,
+            b: 0,
+            c: 0,
+            d: destination.height / size.height,
+            tx: destination.x,
+            ty: destination.y
+        )
+        let margin = reach(of: picture, through: matrix, rasterScale: raster.transform.lengthScale)
+
+        return try pageImage(
+            of: matte.frame,
+            sized: size,
+            within: nil,
+            shownBy: stretch.concatenating(matrix),
+            reaching: margin + Self.matteResamplingReach,
+            on: raster
+        )
+    }
+
+    // A page is drawn from one picture the decoder gives at a scale its frame alone decides (FRAMES-20 Pictures), each
+    // sample list of a frame by its own items, so samples that agree on region and scale read one picture: the longer
+    // axis stretch of `map`, from the page's media pixels to the raster's pixels, rounded up to a power of two.
+    // The picture is the whole page where the decoder holds it at that scale in at most `wholePagePixels`, so a pan at
+    // one scale reads one picture. Otherwise it is the part of `region`, the whole page where it is nil, that lands on
+    // the raster grown by `margin` of its pixels, at that scale or at the largest scale at which the decoder holds that
+    // part and the page's grid positions are below `largestGridPosition`. What of the picture lies outside the region
+    // is cut off by the destination's outline before a filter reads it. It is nil where `map` is degenerate or holds a
+    // number that is not finite, or none of the region lands there.
+    private func pageImage(
+        of frame: MediaFrame,
+        sized size: Size,
+        within region: CGRect?,
+        shownBy map: CGAffineTransform,
+        reaching margin: CGFloat,
+        on raster: Raster
+    ) throws -> SourceImage? {
+        guard
+            [map.a, map.b, map.c, map.d, map.tx, map.ty].allSatisfy(\.isFinite),
+            map.a * map.d - map.b * map.c != 0
+        else {
+            return nil
+        }
+
+        let pageSize = CGSize(width: size.width, height: size.height)
+        let stretch = map.axisScale
+        let scale = pow(2, log2(max(stretch.width, stretch.height)).rounded(.up))
+        if
+            let whole = PageRegion(wholePageOf: size, scale: scale, largest: pictures.largestPictureSide),
+            whole.width * whole.height <= Self.wholePagePixels
+        {
+            let image = try pictures.image(of: frame, region: whole, scale: scale)
+            return SourceImage(image, of: pageSize, transform: CGAffineTransform(scaleX: scale, y: scale))
+        }
+
+        let page = CGRect(origin: .zero, size: pageSize)
+        let visible = raster.bounds.insetBy(dx: -margin, dy: -margin)
+            .applying(map.inverted())
+            .intersection(region?.intersection(page) ?? page)
+        guard
+            !visible.isNull,
+            !visible.isEmpty,
+            [visible.minX, visible.minY, visible.maxX, visible.maxY].allSatisfy(\.isFinite)
+        else {
+            return nil
+        }
+
+        let largest = CGFloat(pictures.largestPictureSide)
+        let held = min(
+            PageRegion.heldScale(
+                of: Size(width: visible.width, height: visible.height),
+                atMost: scale,
+                largest: pictures.largestPictureSide
+            ),
+            Self.largestGridPosition / max(pageSize.width, pageSize.height)
+        )
+        let left = (visible.minX * held).rounded(.down)
+        let top = (visible.minY * held).rounded(.down)
+        let part = PageRegion(
+            x: Int(left),
+            y: Int(top),
+            width: Int(min(largest, max(1, (visible.maxX * held).rounded(.up) - left))),
+            height: Int(min(largest, max(1, (visible.maxY * held).rounded(.up) - top)))
+        )
+        let image = try pictures.image(of: frame, region: part, scale: held)
+
+        return SourceImage(
+            image,
+            of: pageSize,
+            transform: CGAffineTransform(a: held, b: 0, c: 0, d: held, tx: -left, ty: -top)
+        )
     }
 
     private func image(

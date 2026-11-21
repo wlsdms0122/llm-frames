@@ -35,8 +35,10 @@ struct CommandArgumentTests {
         (["extract", "/abs/clip.mov", "frames"], #"extract: <outdir> "frames" is not an absolute path, and paths are absolute"#),
         (["probe"], "probe: missing <media>"),
         (["probe", "clip.mov"], #"probe: <media> "clip.mov" is not an absolute path, and paths are absolute"#),
+        (["probe", "/abs/deck.pdf", "--page", "0"], #"probe: --page "0" is not a whole number from 1"#),
         (["ocr", "/abs/clip.mov", "--at", "1", "--from", "0"], "ocr: --at and --from are not given together"),
         (["ocr", "/abs/clip.mov", "--to", "1"], "ocr: missing --step <s>"),
+        (["ocr", "/abs/deck.pdf", "--page", "1.5"], #"ocr: --page "1.5" is not a whole number from 1"#),
         (["track", "/abs/clip.mov", "--area", "[0, 0, 1, 1]"], "track: missing --at <t>"),
         (["track", "/abs/clip.mov", "--at", "0"], "track: missing --area <area>"),
         (["evaluate", "/abs/doc.json"], "evaluate: missing --at <t>"),
@@ -50,6 +52,7 @@ struct CommandArgumentTests {
         ),
         (["transcode", "/abs/in.mov", "-o", "/abs/out.mp4", "--codec", "av1"], #"transcode: --codec "av1" is not one of h264, hevc"#),
         (["transcode", "/abs/in.png", "-o", "/abs/out.jpg", "--max", "1.5"], #"transcode: --max "1.5" is not a whole number"#),
+        (["transcode", "/abs/in.pdf", "-o", "/abs/out.png", "--scale", "0"], #"transcode: --scale "0" is not a number above 0"#),
         (
             ["transcode", "/abs/in.png", "-o", "/abs/out.png", "--color-space", "srgb-linear"],
             #"transcode: --color-space "srgb-linear" is not one of srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#

@@ -57,11 +57,13 @@ enum PresetKeyTable {
     )
 
     private static let revealFrom = KeyRule("revealFrom", .literal(VocabularyTable.sides))
+    // A cover's and a matte's media names a file: a name, or a page of a PDF (FRAMES-14).
+    private static let media = ValueType.oneOf([.name, .object(MediaKeyTable.page)])
     private static let cover = ObjectTable(
         kind: "cover",
         rules: [
             KeyRule("color", .color),
-            KeyRule("media", .name),
+            KeyRule("media", media),
             KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("ease", .ease),
             KeyRule("keys", .list(.object(ObjectTable(
@@ -81,7 +83,7 @@ enum PresetKeyTable {
     private static let matte = ObjectTable(
         kind: "matte",
         rules: [
-            KeyRule("media", .name, isRequired: true),
+            KeyRule("media", media, isRequired: true),
             KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("softness", .number(.range(0...1))),
             KeyRule("invert", .bool),

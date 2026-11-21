@@ -74,6 +74,18 @@ struct SequenceReaderTests {
         )))
     }
 
+    @Test("a page of a PDF reads as its file and its page number")
+    func readsPage() throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
+
+        // When
+        let sequence = sut.sequence(from: document)
+
+        // Then
+        #expect(sequence.storyline[0].media == ClipMedia(source: .page(file: "/abs/deck.pdf", page: 3), colorSpace: .rec709))
+    }
+
     @Test("a nested sequence reads as a compound clip whose places continue the place of the clip that holds it")
     func readsCompoundClip() throws {
         // Given

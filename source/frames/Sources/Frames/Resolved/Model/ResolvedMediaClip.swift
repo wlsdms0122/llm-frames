@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A media clip's picture: what it shows, how its pictures are read, how a timed one plays (nil for a still), its filter,
-// and how it fills its box. `colorSpace` is the space that overrides the file's tags, nil where they apply, and
-// `isToneMapped` the clip's `toneMap`, nil for a nested sequence, whose pictures are working values already.
+// A media clip's picture: what it shows, how its pictures are read, how a timed one plays (nil for a still), its
+// filter, and how it fills its box. `colorSpace` is the space that overrides the file's tags, nil where they apply, and
+// `isToneMapped` the clip's `toneMap`, nil for a nested sequence, whose pictures are working values already, and for a
+// page, which takes none.
 struct ResolvedMediaClip: Equatable, Sendable {
     // MARK: - Property
     let media: ResolvedMediaContent

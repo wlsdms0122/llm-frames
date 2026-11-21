@@ -13,6 +13,10 @@ import Frames
 // tone curve tags and no lookup table, and otherwise no colour a fixed formula converts. Numbers are big-endian.
 struct ICCProfileReader {
     // MARK: - Property
+    // A one-entry `curv` stores its gamma in u8Fixed8, so the stored values nearest 1.8, 2.2 and 2.4 stand for them
+    // (FRAMES-26 Media).
+    private static let storedGammas: [Int: Double] = [461: 1.8, 563: 2.2, 614: 2.4]
+
     private let bytes: [UInt8]
 
     // MARK: - Initializer
@@ -116,7 +120,7 @@ struct ICCProfileReader {
                 return .gamma(1)
 
             case 1:
-                return .gamma(Double(entries[0]) / 256)
+                return .gamma(Self.storedGammas[entries[0]] ?? Double(entries[0]) / 256)
 
             default:
                 return .table(entries.map { Double($0) / 65535 })

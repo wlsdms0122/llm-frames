@@ -35,7 +35,7 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardOutput == "kind video\nsize 64x48\nduration 1\nfps 2\nalpha no\ncolor space srgb, 8 bit\naudio none\n")
+        #expect(sut.standardOutput == "kind video\nsize 64x48\nduration 1\nfps 2\nalpha no\ncolor space srgb, 8 bit\naudio none\npages none\n")
     }
 
     @Test("probe --json prints the probe object, its first key the command set to the version")
@@ -48,7 +48,7 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(try keys(of: sut.standardOutput) == ["probe", "kind", "size", "duration", "fps", "alpha", "colorSpace", "audio"])
+        #expect(try keys(of: sut.standardOutput) == ["probe", "kind", "size", "duration", "fps", "alpha", "colorSpace", "audio", "pages"])
         #expect(sut.standardOutput.hasPrefix("{\n  \"probe\": \"\(FramesVersion.current)\",\n  \"kind\": \"video\","))
     }
 
@@ -97,7 +97,7 @@ struct AnalysisCommandTests {
         // Then
         #expect(code == 1)
         #expect(sut.standardError == """
-            frames: media "\(image)" is an image, whose one frame is at time 0, so it takes neither --at nor a range
+            frames: media "\(image)" is a still, whose one picture is at time 0, so it takes neither --at nor a range
 
             """)
     }

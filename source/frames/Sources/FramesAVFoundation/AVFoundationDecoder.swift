@@ -15,14 +15,19 @@ import os
 // working values or analysis pictures, and their sound. A still is read with ImageIO, its orientation applied, and a
 // video with AVFoundation, its preferred transform applied. Each takes its samples as the file stores them and converts
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
-// `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A video
-// and a sound track are loaded once and kept.
+// `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
+// PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept. The largest
+// picture it holds is 16384 pixels on a side.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
+    // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
+    package let largestPictureSide = 16_384
+
     private let converter = PictureConverter()
     private let managedConverter = ManagedPictureConverter()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
+    private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
 
     // MARK: - Initializer
     package init() {}
@@ -35,6 +40,34 @@ package final class AVFoundationDecoder: Sendable {
         videos.withLock { $0[path] = video }
 
         return video
+    }
+
+    // Nil for a file that is no PDF.
+    private func document(at path: String) throws -> PageReader? {
+        if let document = documents.withLock({ $0[path] }) { return document }
+        guard let document = try PageReader(path: path) else { return nil }
+        documents.withLock { $0[path] = document }
+
+        return document
+    }
+
+    // The PDF of a file that names a page.
+    private func document(of file: MediaFile) throws -> (PageReader, Int)? {
+        guard let page = file.page else { return nil }
+        guard let document = try document(at: file.path) else { throw DecoderError.noDocument(file: file.path) }
+
+        return (document, page)
+    }
+
+    // A picture larger than the decoder holds stops, naming its size.
+    private func checkSize(
+        _ size: Size,
+        path: String
+    ) throws {
+        let (width, height) = (Int(size.width.rounded()), Int(size.height.rounded()))
+        guard max(width, height) <= largestPictureSide else {
+            throw DecoderError.pictureSize(file: path, width: width, height: height, largest: largestPictureSide)
+        }
     }
 
     // Nil for a file without a sound track.
@@ -137,6 +170,14 @@ package final class AVFoundationDecoder: Sendable {
 
 extension AVFoundationDecoder: MediaFactProvider {
     // MARK: - Lifecycle
+    // A file is a PDF where it has a page count, and media of another kind by its facts otherwise.
+    package func probedMedium(of file: String) throws -> ProbedMedium? {
+        if let pageCount = try pageCount(of: file) { return .pdf(pageCount: pageCount) }
+
+        return try probedMedia(of: file).map(ProbedMedium.media)
+    }
+
+    // The facts of a file that is no PDF. A PDF is read here as no media.
     package func probedMedia(of file: String) throws -> ProbedMedia? {
         guard FileManager.default.fileExists(atPath: file) else { return nil }
         if let still = try StillReader(path: file) {
@@ -190,6 +231,24 @@ extension AVFoundationDecoder: MediaFactProvider {
             colorSpace: try still.taggedColor(path: first).probed
         )
     }
+
+    // The page count of `file` where it is a PDF, nil where it is not there or is no PDF. A PDF that opens only with a
+    // password throws.
+    package func pageCount(of file: String) throws -> Int? {
+        guard FileManager.default.fileExists(atPath: file) else { return nil }
+
+        return try document(at: file)?.pageCount
+    }
+
+    package func probedPage(
+        _ page: Int,
+        of file: String
+    ) throws -> ProbedPage? {
+        guard FileManager.default.fileExists(atPath: file) else { return nil }
+        guard let document = try document(at: file) else { throw DecoderError.noDocument(file: file) }
+
+        return try document.probed(page)
+    }
 }
 
 extension AVFoundationDecoder: MediaDecoder {
@@ -199,6 +258,7 @@ extension AVFoundationDecoder: MediaDecoder {
         atFrame index: Int,
         reading: PictureReading
     ) throws -> Bitmap {
+        if let page = file.page { throw DecoderError.pageFrame(file: file.path, page: page) }
         if !file.frameFiles.isEmpty {
             guard file.frameFiles.indices.contains(index) else {
                 throw DecoderError.noFrame(file: file.path, index: index, count: file.frameFiles.count)
@@ -206,16 +266,19 @@ extension AVFoundationDecoder: MediaDecoder {
 
             let path = file.frameFiles[index]
             guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+            try checkSize(still.displaySize, path: path)
 
             return try picture(of: still, path: path, reading: reading)
         }
         if let still = try StillReader(path: file.path) {
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
+            try checkSize(still.displaySize, path: file.path)
 
             return try picture(of: still, path: file.path, reading: reading)
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
+        try checkSize(video.displaySize, path: file.path)
         let count = video.frames.count
         guard file.frameTimes.isEmpty || file.frameTimes.count == count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: count)
@@ -234,7 +297,37 @@ extension AVFoundationDecoder: MediaDecoder {
         return try picture(from: image, tagged: video.taggedColor, path: file.path, reading: reading)
     }
 
+    package func picture(
+        of file: MediaFile,
+        region: PageRegion,
+        scale: Double,
+        reading: PictureReading
+    ) throws -> Bitmap {
+        guard let (document, page) = try document(of: file) else { throw DecoderError.unreadable(file: file.path) }
+        guard region.width >= 1, region.height >= 1, scale > 0 else {
+            throw DecoderError.pageRegion(file: file.path, region: region, scale: scale)
+        }
+        guard max(region.width, region.height) <= largestPictureSide else {
+            throw DecoderError.pictureSize(
+                file: file.path,
+                width: region.width,
+                height: region.height,
+                largest: largestPictureSide
+            )
+        }
+
+        return try document.picture(page, region: region, scale: scale, reading: reading)
+    }
+
+    package func pageSize(of file: MediaFile) throws -> Size {
+        guard let (document, page) = try document(of: file) else { throw DecoderError.unreadable(file: file.path) }
+
+        return try document.page(page).1.size
+    }
+
+    // A page's untagged colour is `srgb`, which a written colour space replaces.
     package func colorReading(of file: MediaFile) throws -> ColorReading {
+        if try document(of: file) != nil { return .formulas(.srgb) }
         let path = file.frameFiles.first ?? file.path
         if let still = try StillReader(path: path) { return try still.taggedColor(path: path).colorReading }
         guard let video = try video(at: path) else { throw DecoderError.unreadable(file: path) }
@@ -246,16 +339,25 @@ extension AVFoundationDecoder: MediaDecoder {
         _ file: MediaFile,
         reading: PictureReading?
     ) throws {
+        if let (document, page) = try document(of: file) {
+            _ = try document.page(page)
+            try document.check(page, reading: reading)
+
+            return
+        }
+
         // A nil reading reads only sound, so no colour is checked.
         if !file.frameFiles.isEmpty {
             for path in file.frameFiles {
                 guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+                try checkSize(still.displaySize, path: path)
                 if let reading { try checkColor(try still.taggedColor(path: path), in: reading.colorSpace, path: path) }
             }
 
             return
         }
         if let still = try StillReader(path: file.path) {
+            try checkSize(still.displaySize, path: file.path)
             if let reading {
                 try checkColor(try still.taggedColor(path: file.path), in: reading.colorSpace, path: file.path)
             }
@@ -269,6 +371,7 @@ extension AVFoundationDecoder: MediaDecoder {
 
             return
         }
+        try checkSize(video.displaySize, path: file.path)
         guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
             throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
         }

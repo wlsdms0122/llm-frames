@@ -112,14 +112,9 @@ struct TimePlanner: Sendable {
         let place = clip.place.appending(key: "media")
         let media = try resolver.media(of: clipMedia.source, place: place, kind: .genericClip(.storyline), theme: theme)
             .read(by: clipMedia)
-        try resolver.checkColor(
-            of: media,
-            colorSpace: clipMedia.colorSpace,
-            place: place,
-            kind: .genericClip(.storyline)
-        )
+        try resolver.checkReading(of: media, by: clipMedia, clip: clip.place, in: .storyline)
         let kind = ClipKind.media(media.kind)
-        guard media.kind != .image else {
+        guard !media.kind.isStill else {
             let duration = try stillDuration(of: clip, kind: kind)
             return StorylineSource(kind: kind, media: media, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
@@ -367,17 +362,23 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> TransitionPlan {
         let length = lengths.reduce(seconds, min)
-        let media = { (path: String, colorSpace: ColorSpace?) in
+        let media = { (path: String, page: Int?, colorSpace: ColorSpace?) in
             try resolver.transitionMedia(
                 at: path,
+                page: page,
                 place: place.appending(key: "transition"),
                 kind: .clip(kind),
                 colorSpace: colorSpace
             )
         }
-        let cover: TransitionMedia? = if case let .media(path) = definition.cover?.source {
-            try media(path, definition.cover?.colorSpace)
-        } else {
+        let cover: TransitionMedia? = switch definition.cover?.source {
+        case let .media(path):
+            try media(path, nil, definition.cover?.colorSpace)
+
+        case let .page(path, page):
+            try media(path, page, definition.cover?.colorSpace)
+
+        case .color, nil:
             nil
         }
 
@@ -387,7 +388,7 @@ struct TimePlanner: Sendable {
             range: TimeRange(start: editPoint - length / 2, end: editPoint + length / 2),
             definition: definition,
             coverMedia: cover,
-            matteMedia: try definition.matte.map { try media($0.media, $0.colorSpace) }
+            matteMedia: try definition.matte.map { try media($0.media, $0.page, $0.colorSpace) }
         )
     }
 
@@ -476,14 +477,9 @@ struct TimePlanner: Sendable {
             let kind = try kind(of: clipMedia, media: media, place: clip.place)
             // An audio clip reads no picture of its media.
             if kind != .media(.audio) {
-                try resolver.checkColor(
-                    of: media,
-                    colorSpace: clipMedia.colorSpace,
-                    place: place,
-                    kind: .genericClip(clip.clipPlace)
-                )
+                try resolver.checkReading(of: media, by: clipMedia, clip: clip.place, in: clip.clipPlace)
             }
-            guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
+            guard !media.kind.isStill else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(
                     kind: kind,
