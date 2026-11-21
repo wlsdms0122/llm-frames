@@ -17,9 +17,10 @@ struct MotionBlurEvaluationTests {
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
     // Each leaf that can pass through 0, keyframed so that it does inside the exposure of the frame at the time given: a
-    // picture's border width, written in output pixels at the clip's scale factor, by a picture popping in from scale 0,
-    // a stroke's width from 0, a dash whose `back-out` overshoot clamps every length to 0 from a progress of about 0.43,
-    // and a stroked, dashed and shadowed shape popping in from scale 0.
+    // picture's border width, which a clip takes from its theme and writes in output pixels at its scale factor, so it
+    // reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose `back-out` overshoot
+    // clamps every length to 0 from a progress of about 0.43; and a stroked, dashed and shadowed shape popping in from
+    // scale 0.
     private static let leavesThroughZero: [(String, String?, Double)] = [
         (
             #"""
