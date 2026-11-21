@@ -136,6 +136,8 @@ The mix plan is the sound of a whole sequence: a list of segments, each with a m
 
 It reads [FRAMES-19](../FRAMES-19/SPEC.md) and feeds the roles of [FRAMES-21](../FRAMES-21/SPEC.md). Stacking is [FRAMES-9](../FRAMES-9/SPEC.md), parent transforms [FRAMES-10](../FRAMES-10/SPEC.md), shapes, masks, track mattes and blend modes [FRAMES-11](../FRAMES-11/SPEC.md), tracked motion [FRAMES-12](../FRAMES-12/SPEC.md), the pan law and crossfade curves [FRAMES-13](../FRAMES-13/SPEC.md), transitions and reveal [FRAMES-14](../FRAMES-14/SPEC.md), filter ops [FRAMES-15](../FRAMES-15/SPEC.md), colours, compositing and luma [FRAMES-26](../FRAMES-26/SPEC.md).
 
+Motion blur, its samples and their group are [FRAMES-29](../FRAMES-29/SPEC.md).
+
 ## Alternatives considered
 
 Roles that read the resolved document, as an NLE's playback engine reads its project: every role would implement keyframes, parenting and transitions again, and two of them would disagree.
