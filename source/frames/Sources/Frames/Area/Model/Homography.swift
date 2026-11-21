@@ -14,7 +14,7 @@
 // front of the horizon, where w has the sign it has inside that quad, exactly where w is above 0.
 package struct Homography: Equatable, Sendable {
     // MARK: - Property
-    static let identity = Homography(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0, g: 0, h: 0, i: 1)
+    package static let identity = Homography(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0, g: 0, h: 0, i: 1)
 
     package let a: Double
     package let b: Double
@@ -83,7 +83,7 @@ package struct Homography: Equatable, Sendable {
     }
 
     // The affine transform as a homography, with g = h = 0 and i = 1.
-    init(_ transform: AffineTransform) {
+    package init(_ transform: AffineTransform) {
         self.init(
             a: transform.a,
             b: transform.b,
@@ -173,7 +173,7 @@ package struct Homography: Equatable, Sendable {
     }
 
     // The homography that applies this one first and `other` after it, the matrix product `other` × self.
-    func concatenating(_ other: Homography) -> Homography {
+    package func concatenating(_ other: Homography) -> Homography {
         Homography(
             a: other.a * a + other.c * b + other.tx * g,
             b: other.b * a + other.d * b + other.ty * g,

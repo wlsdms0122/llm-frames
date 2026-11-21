@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/21/26.
 //
 
+import Foundation
 import Testing
 
 @testable import Frames
@@ -225,6 +226,85 @@ struct HomographyTests {
         // Then
         #expect(sut.w(at: Point(x: -3, y: 4)) == 1)
         #expect(point == Point(x: -3, y: 4))
+    }
+
+    @Test(
+        "the stretch at a point is the largest factor by which the map grows a length there, in any direction",
+        arguments: [Point(x: 512, y: 1024), Point(x: 0, y: 0), Point(x: 1024, y: 512), Point(x: 300, y: 700)]
+    )
+    func stretchesLengthAtPoint(point: Point) throws {
+        // Given
+        let sut = try #require(Homography(from: Quad(Rectangle(x: 0, y: 0, width: 1024, height: 1024)), to: steep))
+
+        // When
+        let stretch = try #require(sut.stretch(at: point))
+
+        // Then
+        // The largest length a short step in one of 3600 directions is carried to, over the step's length.
+        let step = 1e-4
+        let center = try #require(sut.apply(to: point))
+        let largest = try (0..<3600).map { index in
+            let angle = Double(index) * Double.pi / 1800
+            let moved = try #require(
+                sut.apply(to: Point(x: point.x + step * cos(angle), y: point.y + step * sin(angle)))
+            )
+            return ((moved.x - center.x) * (moved.x - center.x) + (moved.y - center.y) * (moved.y - center.y))
+                .squareRoot() / step
+        }
+        .max() ?? 0
+        #expect(abs(stretch - largest) <= 1e-3 * largest, "\(stretch) is not \(largest)")
+    }
+
+    @Test("an affine map stretches every point by its larger axis, and a point past the horizon has no stretch")
+    func stretchesAffineAndNotPastHorizon() throws {
+        // Given
+        let affine = Homography(AffineTransform(a: 2, b: 0, c: 0, d: -3, tx: 5, ty: 7))
+        let sut = try #require(Homography(from: box, to: steep))
+
+        // When
+        let affineStretch = affine.stretch(at: Point(x: -40, y: 90))
+        let pastHorizon = sut.stretch(at: Point(x: 960, y: 2160))
+
+        // Then
+        #expect(affineStretch == 3)
+        #expect(pastHorizon == nil)
+    }
+
+    @Test("a rectangle carried onto the steep corner pin lands on its four points, cut to an area")
+    func carriesRectangleWithinArea() throws {
+        // Given
+        let source = Rectangle(x: 0, y: 0, width: 1024, height: 1024)
+        let sut = try #require(Homography(from: Quad(source), to: steep))
+
+        // When
+        let whole = sut.corners(carrying: source, within: Rectangle(x: 0, y: 0, width: 1024, height: 1024))
+        let cut = sut.corners(carrying: source, within: Rectangle(x: 0, y: 0, width: 1024, height: 500))
+
+        // Then
+        #expect(whole.count == 4)
+        for corner in steep.corners {
+            #expect(whole.contains { abs($0.x - corner.x) < 1e-9 && abs($0.y - corner.y) < 1e-9 }, "\(corner)")
+        }
+        #expect(!cut.isEmpty && cut.allSatisfy { $0.y <= 500 + 1e-9 })
+    }
+
+    @Test("a rectangle reaching past the horizon is carried only in front of it, and one wholly past it is not carried")
+    func carriesRectangleInFrontOfHorizon() throws {
+        // Given
+        let source = Rectangle(x: 0, y: 0, width: 1024, height: 1024)
+        let sut = try #require(Homography(from: Quad(source), to: steep))
+        let area = Rectangle(x: -100_000, y: -100_000, width: 200_000, height: 200_000)
+
+        // When
+        let reaching = sut.corners(carrying: Rectangle(x: 0, y: 0, width: 1024, height: 3000), within: area)
+        let past = sut.corners(carrying: Rectangle(x: 0, y: 1200, width: 1024, height: 100), within: area)
+
+        // Then
+        #expect(reaching.count >= 4 && reaching.allSatisfy { $0.x.isFinite && $0.y.isFinite })
+        // The near edge lies towards the horizon, so what lies past it goes down without bound and is cut by the area.
+        #expect(reaching.allSatisfy { $0.y >= 24 - 1e-9 && $0.y <= 100_000 + 1e-6 })
+        #expect(reaching.contains { $0.y > 10_000 })
+        #expect(past.isEmpty)
     }
 
     // MARK: - Private
