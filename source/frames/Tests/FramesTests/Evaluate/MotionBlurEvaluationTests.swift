@@ -267,6 +267,33 @@ struct MotionBlurEvaluationTests {
         #expect(crop(in: atT) != crop(in: next))
     }
 
+    @Test("a box with motionBlur that tracks its parent's media stays on its target in every sample, as it does without motion blur")
+    func keepsTrackedBoxOnTarget() throws {
+        // Given
+        // The exposure of the frame at 0.99 crosses from the media frame at 0.9 to the one at 1, on which the target has
+        // drifted 10 pixels further.
+        let document = { (isMotionBlurred: Bool) in
+            #"""
+                { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+                  "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2, "connected": [
+                    { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": { "text": "Total" },
+                      "track": true, "motionBlur": \#(isMotionBlurred) } ] } ] }
+                """#
+        }
+        let blurred = try drifting(document(true))
+        let sharp = try drifting(document(false))
+
+        // When
+        let samples = try #require(sut.displayList(of: blurred, at: 0.99).samples)
+
+        // Then
+        let target = try bounds(of: "box", in: sut.displayList(of: sharp, at: 0.99).items)
+        let next = try bounds(of: "box", in: sut.displayList(of: sharp, at: 1).items)
+        let drawn = try samples.map { try bounds(of: "box", in: $0) }
+        #expect(drawn.allSatisfy { isClose([$0.x, $0.y, $0.width, $0.height], [target.x, target.y, target.width, target.height]) })
+        #expect(abs(next.x - target.x) > 1)
+    }
+
     @Test("evaluate reports the frame as at T, the list without motion blur")
     func reportsFrameAtT() throws {
         // Given
