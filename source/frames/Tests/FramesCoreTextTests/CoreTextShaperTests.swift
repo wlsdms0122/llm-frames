@@ -11,7 +11,8 @@ import Frames
 import FramesCoreText
 import Testing
 
-@Suite("CoreTextShaper Tests")
+// CoreText's font matching can stop answering when many tasks ask it at once, so the tests run one at a time.
+@Suite("CoreTextShaper Tests", .serialized)
 struct CoreTextShaperTests {
     // MARK: - Property
     private let sut = CoreTextShaper()
@@ -200,6 +201,90 @@ struct CoreTextShaperTests {
         // Then
         #expect(runs.map(\.face) == [latin, hangul])
         #expect(runs.last?.glyphs.map(\.offset) == [5, 6, 7])
+    }
+
+    @Test("a grapheme cluster is set whole in the first face given that has every scalar of it")
+    func choosesFacePerCluster() throws {
+        // Given
+        let hangul = try face("Apple SD Gothic Neo", "AppleSDGothicNeo-Regular")
+        let latin = try face("Helvetica", "Helvetica")
+
+        // When
+        let runs = try shape("Send e\u{303}", [hangul, latin])
+
+        // Then
+        #expect(runs.map(\.face) == [hangul, latin])
+        #expect(runs.first?.glyphs.map(\.offset) == [0, 1, 2, 3, 4])
+        #expect(runs.last?.glyphs.map(\.offset) == [5])
+    }
+
+    @Test(
+        "a default ignorable scalar the face lacks takes no part in choosing the face and is set as nothing",
+        arguments: [
+            ("Helvetica", "Helvetica", "a\u{FE0F}b"),
+            ("Hiragino Sans", "HiraginoSans-W3", "a\u{200D}b"),
+            ("Hiragino Sans", "HiraginoSans-W3", "a\u{2060}b")
+        ]
+    )
+    func leavesDefaultIgnorablesOut(family: String, name: String, text: String) throws {
+        // Given
+        let face = try face(family, name)
+
+        // When
+        let runs = try shape(text, [face])
+
+        // Then
+        #expect(runs.map(\.face) == [face])
+        #expect(runs.flatMap(\.glyphs).map(\.offset) == [0, 2])
+    }
+
+    @Test("a variation sequence the face maps is set in its variant glyph")
+    func keepsVariationSequence() throws {
+        // Given
+        let face = try face("Hiragino Sans", "HiraginoSans-W3")
+
+        // When
+        let plain = try shape("葛", [face]).flatMap(\.glyphs)
+        let variant = try shape("葛\u{E0100}", [face])
+
+        // Then
+        #expect(variant.map(\.face) == [face])
+        #expect(variant.flatMap(\.glyphs).map(\.offset) == [0])
+        #expect(variant.flatMap(\.glyphs).map(\.id) != plain.map(\.id))
+    }
+
+    @Test("a grapheme cluster no face given has whole is set whole in a face found on the machine")
+    func fallsBackPerCluster() throws {
+        // Given
+        let face = try face("Apple SD Gothic Neo", "AppleSDGothicNeo-Regular")
+
+        // When
+        let runs = try shape("ae\u{303}", [face])
+
+        // Then
+        #expect(runs.count == 2)
+        #expect(runs.first?.face == face)
+        #expect(runs.first?.glyphs.map(\.offset) == [0])
+        let fallback = try #require(runs.last)
+        #expect(fallback.face != face)
+        #expect(FileManager.default.fileExists(atPath: fallback.face.file))
+        #expect(fallback.glyphs.map(\.offset).allSatisfy { $0 >= 1 })
+    }
+
+    @Test(
+        "glyphs a script reorders keep glyph order, each with the scalar it was set from",
+        arguments: [("र्क", [2, 0]), ("कि", [1, 0])]
+    )
+    func keepsReorderedOffsets(text: String, offsets: [Int]) throws {
+        // Given
+        let face = try face("Kohinoor Devanagari", "KohinoorDevanagari-Regular")
+
+        // When
+        let runs = try shape(text, [face])
+
+        // Then
+        #expect(runs.map(\.face) == [face])
+        #expect(runs.flatMap(\.glyphs).map(\.offset) == offsets)
     }
 
     @Test("characters no face given has are set in a face found on the machine, which names its file")

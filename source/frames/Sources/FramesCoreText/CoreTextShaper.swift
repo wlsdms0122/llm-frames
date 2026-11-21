@@ -10,9 +10,10 @@ import Foundation
 import Frames
 
 // The `coretext` shaping provider. A face is named by its PostScript name within its file, and its weight, width and
-// style are read from its OS/2 table. A run is set as a CoreText line sets it, with the feature settings given over
-// the font's defaults, in a font whose cascade list is the later faces given; characters none of them has fall back
-// to the face CoreText's own cascade finds on the machine for the first face, which follows its weight and slant.
+// style are read from its OS/2 table. Each grapheme cluster is set in the first face given that maps every scalar of
+// it but its default ignorable ones, else in the face CoreText finds on the machine for it from the first face, which
+// follows its weight and slant. Each stretch of clusters in one face is set as a CoreText line sets it, in that face
+// alone, with the feature settings given over the font's defaults.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
     // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9
@@ -104,38 +105,156 @@ package struct CoreTextShaper: Sendable {
         (CTFontCopyAttribute(font, kCTFontURLAttribute) as? URL)?.path
     }
 
-    // Each face's descriptor carries the feature settings, so the faces of the cascade list are set with them too.
     private func font(
-        of faces: [FontFace],
+        of face: FontFace,
         size: Double,
         features: [FontFeature]
     ) throws -> CTFont {
+        guard let named = descriptor(named: face.name, in: face.file) else {
+            throw ShapingError.faceNotInFile(file: face.file, name: face.name)
+        }
+        let descriptor = CTFontDescriptorCreateCopyWithAttributes(named, attributes(of: features))
+
+        return CTFontCreateWithFontDescriptor(descriptor, size, nil)
+    }
+
+    private func attributes(of features: [FontFeature]) -> CFDictionary {
         let settings = features.map { feature in
             [kCTFontOpenTypeFeatureTag: feature.tag, kCTFontOpenTypeFeatureValue: feature.value] as CFDictionary
         }
-        let descriptors = try faces.map { face in
-            guard let named = descriptor(named: face.name, in: face.file) else {
-                throw ShapingError.faceNotInFile(file: face.file, name: face.name)
-            }
 
-            return CTFontDescriptorCreateCopyWithAttributes(
-                named,
-                [kCTFontFeatureSettingsAttribute: settings] as CFDictionary
-            )
-        }
-        let first = CTFontDescriptorCreateCopyWithAttributes(
-            descriptors[0],
-            [kCTFontCascadeListAttribute: Array(descriptors.dropFirst())] as CFDictionary
-        )
-
-        return CTFontCreateWithFontDescriptor(first, size, nil)
+        return [kCTFontFeatureSettingsAttribute: settings] as CFDictionary
     }
 
-    // The index of the Unicode scalar each UTF-16 offset of `text` lies in.
-    private func scalarIndices(of text: String) -> [Int] {
-        text.unicodeScalars.enumerated().flatMap { index, scalar in
-            Array(repeating: index, count: UTF16.width(scalar))
+    // The font a grapheme cluster is set in. Its default ignorable scalars take no part: a face maps them in a table
+    // of its own or not at all.
+    private func font(
+        for cluster: Character,
+        in fonts: [CTFont],
+        features: [FontFeature]
+    ) -> CTFont {
+        let scalars = Array(cluster.unicodeScalars.filter { !$0.properties.isDefaultIgnorableCodePoint })
+        if let font = fonts.first(where: { maps($0, scalars) }) {
+            return font
         }
+        let text = String(String.UnicodeScalarView(scalars)) as CFString
+        let fallback = CTFontCreateForString(fonts[0], text, CFRange(location: 0, length: CFStringGetLength(text)))
+        let descriptor = CTFontDescriptorCreateWithAttributes(attributes(of: features))
+
+        return CTFontCreateCopyWithAttributes(fallback, 0, nil, descriptor)
+    }
+
+    private func maps(
+        _ font: CTFont,
+        _ scalars: [Unicode.Scalar]
+    ) -> Bool {
+        let characters = scalars.flatMap { Array(String($0).utf16) }
+        guard !characters.isEmpty else { return true }
+        var glyphs = [CGGlyph](repeating: 0, count: characters.count)
+
+        return CTFontGetGlyphsForCharacters(font, characters, &glyphs, characters.count)
+    }
+
+    // The clusters of `text` in stretches set in one font, each scalar with its index in `text`.
+    private func stretches(
+        of text: String,
+        in fonts: [CTFont],
+        features: [FontFeature]
+    ) -> [(font: CTFont, scalars: [(index: Int, scalar: Unicode.Scalar)])] {
+        var stretches: [(font: CTFont, scalars: [(index: Int, scalar: Unicode.Scalar)])] = []
+        var start = 0
+        for cluster in text {
+            let font = font(for: cluster, in: fonts, features: features)
+            let scalars = cluster.unicodeScalars.enumerated().map { (index: start + $0.offset, scalar: $0.element) }
+            start += scalars.count
+
+            if let last = stretches.last, name(of: last.font) == name(of: font) {
+                stretches[stretches.count - 1].scalars += scalars
+            } else {
+                stretches.append((font: font, scalars: scalars))
+            }
+        }
+
+        return stretches
+    }
+
+    private func name(of font: CTFont) -> String {
+        CTFontCopyPostScriptName(font) as String
+    }
+
+    // The scalars a stretch is set from: a default ignorable scalar the font maps neither as a character nor, for a
+    // variation selector, in a variation sequence with the scalar before it is set as nothing, since CoreText would
+    // set its cluster in a face that maps it.
+    private func settable(
+        _ scalars: [(index: Int, scalar: Unicode.Scalar)],
+        in font: CTFont
+    ) -> [(index: Int, scalar: Unicode.Scalar)] {
+        var sequences: VariationSequenceTable?
+
+        return scalars.indices.filter { position in
+            let scalar = scalars[position].scalar
+            guard scalar.properties.isDefaultIgnorableCodePoint, !maps(font, [scalar]) else { return true }
+            guard scalar.properties.isVariationSelector, position > 0 else { return false }
+            let table = sequences ?? VariationSequenceTable(font: font)
+            sequences = table
+
+            return table.contains(base: scalars[position - 1].scalar, selector: scalar)
+        }
+        .map { scalars[$0] }
+    }
+
+    // Glyphs of one stretch in glyph order. `CTRunGetAdvances` is the distance from one glyph's drawn position to the
+    // next one's, a mark's attachment included. Base advances leave out what the font's tables place relative to
+    // another glyph, so the pen moves by them and a glyph's placement offset is its drawn position less the pen, with
+    // CoreText's y, which points up, turned down.
+    private func shape(
+        _ scalars: [(index: Int, scalar: Unicode.Scalar)],
+        in font: CTFont,
+        asked faces: [FontFace],
+        features: [FontFeature]
+    ) throws -> [ShapedRun] {
+        var attributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String): font]
+        // CoreText kerns by the font's `kern` table whatever the feature settings say, and a kern of 0 turns that off.
+        if features.contains(FontFeature(tag: "kern", value: 0)) {
+            attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = 0
+        }
+        let text = String(String.UnicodeScalarView(scalars.map(\.scalar)))
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+        let indices = scalars.flatMap { Array(repeating: $0.index, count: UTF16.width($0.scalar)) }
+
+        var runs: [ShapedRun] = []
+        var pen = 0.0
+        for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
+            let count = CTRunGetGlyphCount(run)
+            var glyphs = [CGGlyph](repeating: 0, count: count)
+            var advances = [CGSize](repeating: .zero, count: count)
+            var positions = [CGPoint](repeating: .zero, count: count)
+            var offsets = [CFIndex](repeating: 0, count: count)
+            let all = CFRange(location: 0, length: count)
+            CTRunGetGlyphs(run, all, &glyphs)
+            CTRunGetBaseAdvancesAndOrigins(run, all, &advances, nil)
+            CTRunGetPositions(run, all, &positions)
+            CTRunGetStringIndices(run, all, &offsets)
+
+            var shaped: [ShapedGlyph] = []
+            for index in 0..<count {
+                shaped.append(
+                    ShapedGlyph(
+                        id: Int(glyphs[index]),
+                        advance: Double(advances[index].width),
+                        offset: indices[offsets[index]],
+                        placementOffset: Point(
+                            x: Double(positions[index].x) - pen,
+                            y: -Double(positions[index].y)
+                        )
+                    )
+                )
+                pen += Double(advances[index].width)
+            }
+            runs.append(ShapedRun(face: try face(of: run, asked: faces), glyphs: shaped))
+        }
+
+        return runs
     }
 }
 
@@ -179,53 +298,17 @@ extension CoreTextShaper: ShapingProvider {
         weight: FontWeight,
         italic: Bool
     ) throws -> [ShapedRun] {
-        let font = try font(of: faces, size: size, features: features)
-        var attributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String): font]
-        // CoreText kerns by the font's `kern` table whatever the feature settings say, and a kern of 0 turns that off.
-        if features.contains(FontFeature(tag: "kern", value: 0)) {
-            attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = 0
-        }
-        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
-        let scalars = scalarIndices(of: text)
+        let fonts = try faces.map { try font(of: $0, size: size, features: features) }
 
-        // `CTRunGetAdvances` is the distance from one glyph's drawn position to the next one's, a mark's attachment
-        // included. Base advances leave out what the font's tables place relative to another glyph, so the pen moves
-        // by them and a glyph's placement offset is its drawn position less the pen.
         var runs: [ShapedRun] = []
-        var pen = 0.0
-        for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
-            let count = CTRunGetGlyphCount(run)
-            var glyphs = [CGGlyph](repeating: 0, count: count)
-            var advances = [CGSize](repeating: .zero, count: count)
-            var positions = [CGPoint](repeating: .zero, count: count)
-            var offsets = [CFIndex](repeating: 0, count: count)
-            let all = CFRange(location: 0, length: count)
-            CTRunGetGlyphs(run, all, &glyphs)
-            CTRunGetBaseAdvancesAndOrigins(run, all, &advances, nil)
-            CTRunGetPositions(run, all, &positions)
-            CTRunGetStringIndices(run, all, &offsets)
-
-            let runFace = try self.face(of: run, asked: faces)
-            var shaped: [ShapedGlyph] = []
-            for index in 0..<count {
-                shaped.append(
-                    ShapedGlyph(
-                        id: Int(glyphs[index]),
-                        advance: Double(advances[index].width),
-                        offset: scalars[offsets[index]],
-                        placementOffset: Point(
-                            x: Double(positions[index].x) - pen,
-                            y: -Double(positions[index].y)
-                        )
-                    )
-                )
-                pen += Double(advances[index].width)
-            }
-
-            if let last = runs.last, last.face == runFace {
-                runs[runs.count - 1] = ShapedRun(face: runFace, glyphs: last.glyphs + shaped)
-            } else {
-                runs.append(ShapedRun(face: runFace, glyphs: shaped))
+        for stretch in stretches(of: text, in: fonts, features: features) {
+            let scalars = settable(stretch.scalars, in: stretch.font)
+            for run in try shape(scalars, in: stretch.font, asked: faces, features: features) {
+                if let last = runs.last, last.face == run.face {
+                    runs[runs.count - 1] = ShapedRun(face: run.face, glyphs: last.glyphs + run.glyphs)
+                } else {
+                    runs.append(run)
+                }
             }
         }
 
