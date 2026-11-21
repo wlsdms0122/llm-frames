@@ -140,7 +140,7 @@ indirect enum PageColorSpace: Equatable, Sendable {
         case let .lab(_, range):
             let chroma: [Double] = [-60, -30, -10, 10, 30, 60]
             let neutral = ramp.map { [$0 * 100, 0, 0] }
-            let colored = [25.0, 50, 75].flatMap { lightness in
+            let colored: [[Double]] = [25.0, 50, 75].flatMap { lightness in
                 chroma.flatMap { a in
                     chroma.map { b in
                         [lightness, min(max(a, range[0]), range[1]), min(max(b, range[2]), range[3])]

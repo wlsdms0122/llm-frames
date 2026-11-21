@@ -14,8 +14,8 @@ import CoreGraphics
 struct OptionalContentConfiguration {
     // MARK: - Property
     private let isOnByDefault: Bool
-    private let on: Set<UnsafeRawPointer>
-    private let off: Set<UnsafeRawPointer>
+    private let on: Set<CGPDFDictionaryRef>
+    private let off: Set<CGPDFDictionaryRef>
 
     // MARK: - Initializer
     init(document: CGPDFDocument) {
@@ -68,7 +68,7 @@ struct OptionalContentConfiguration {
     private static func groups(
         in configuration: CGPDFDictionaryRef,
         key: String
-    ) -> Set<UnsafeRawPointer> {
+    ) -> Set<CGPDFDictionaryRef> {
         var array: CGPDFArrayRef?
         guard CGPDFDictionaryGetArray(configuration, key, &array), let array else { return [] }
 
@@ -76,14 +76,13 @@ struct OptionalContentConfiguration {
             var group: CGPDFDictionaryRef?
             guard CGPDFArrayGetDictionary(array, index, &group), let group else { return nil }
 
-            return UnsafeRawPointer(group)
+            return group
         })
     }
 
     private func isOn(_ group: CGPDFDictionaryRef) -> Bool {
-        let pointer = UnsafeRawPointer(group)
-        if off.contains(pointer) { return false }
-        if on.contains(pointer) { return true }
+        if off.contains(group) { return false }
+        if on.contains(group) { return true }
 
         return isOnByDefault
     }
@@ -105,7 +104,8 @@ struct OptionalContentConfiguration {
 
         var policy: UnsafePointer<CChar>?
         let states = groups.map(isOn)
-        switch CGPDFDictionaryGetName(membership, "P", &policy) ? policy.map { String(cString: $0) } : nil {
+        let written = CGPDFDictionaryGetName(membership, "P", &policy) ? policy.map { String(cString: $0) } : nil
+        switch written {
         case "AllOn":
             return states.allSatisfy { $0 }
 

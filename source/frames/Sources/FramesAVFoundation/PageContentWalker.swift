@@ -27,9 +27,10 @@ final class PageContentWalker {
     private var faults: [PageFault] = []
     private var colorSpaces: [PDFValue] = []
     private var seenColorSpaces: Set<PDFValue> = []
-    private var checkedFonts: Set<UnsafeRawPointer> = []
+    private var checkedFonts: Set<CGPDFDictionaryRef> = []
     private var scannedStreams: Set<String> = []
     private var operators: CGPDFOperatorTableRef?
+    private var contentStreams: [CGPDFContentStreamRef] = []
 
     private var state: PageGraphicsState {
         get { states[states.count - 1] }
@@ -116,9 +117,11 @@ final class PageContentWalker {
 
     private func scan(_ content: CGPDFContentStreamRef) {
         guard let operators else { return }
+        contentStreams.append(content)
         let scanner = CGPDFScannerCreate(content, operators, Unmanaged.passUnretained(self).toOpaque())
         CGPDFScannerScan(scanner)
         CGPDFScannerRelease(scanner)
+        contentStreams.removeLast()
     }
 
     // Scans `stream` with `streamResources`, or the resources in force where it has none, in a copy of the graphics
@@ -127,19 +130,22 @@ final class PageContentWalker {
         _ stream: CGPDFStreamRef,
         resources streamResources: CGPDFDictionaryRef?
     ) {
-        guard let dictionary = CGPDFStreamGetDictionary(stream), let streamResources = streamResources ?? resources.last
+        guard
+            let dictionary = CGPDFStreamGetDictionary(stream),
+            let streamResources = streamResources ?? resources.last,
+            let parent = contentStreams.last
         else {
             return
         }
         let current = state
-        let key = "\(UnsafeRawPointer(dictionary))|\(current.renderMode)|\(current.fill.hashValue)|"
-            + "\(current.stroke.hashValue)|\(current.font.map { "\(UnsafeRawPointer($0))" } ?? "")"
+        let key = "\(dictionary.rawValue)|\(current.renderMode)|\(current.fill.hashValue)|"
+            + "\(current.stroke.hashValue)|\(current.font.map { "\($0.rawValue)" } ?? "")"
         guard scannedStreams.insert(key).inserted else { return }
 
         states.append(current)
         resources.append(streamResources)
         let depth = markedContent.count
-        let content = CGPDFContentStreamCreateWithStream(stream, streamResources, nil)
+        let content = CGPDFContentStreamCreateWithStream(stream, streamResources, parent)
         scan(content)
         CGPDFContentStreamRelease(content)
         markedContent = Array(markedContent.prefix(depth))
@@ -192,7 +198,7 @@ final class PageContentWalker {
         _ font: CGPDFDictionaryRef,
         named name: String
     ) {
-        guard checkedFonts.insert(UnsafeRawPointer(font)).inserted else { return }
+        guard checkedFonts.insert(font).inserted else { return }
 
         if Self.name(font, "Subtype") == "Type3" {
             guard let procedures = Self.dictionary(font, "CharProcs") else { return }
