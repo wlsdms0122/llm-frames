@@ -95,6 +95,74 @@ struct PageContentWalkerTests {
         #expect(content.colorSpaces == [.name("DeviceRGB")])
     }
 
+    @Test("the View event's usage sets the groups it lists after BaseState, ON and OFF, by each group's View usage")
+    func appliesViewEvent() {
+        // Given
+        var writer = PDFFileWriter()
+        let hidden = writer.add(.dictionary([
+            "Type": .name("OCG"),
+            "Name": .string(Data("hidden".utf8)),
+            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("OFF")])])
+        ]))
+        let shown = writer.add(.dictionary([
+            "Type": .name("OCG"),
+            "Name": .string(Data("shown".utf8)),
+            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("ON")])])
+        ]))
+        let page = PageFile.page(
+            "/OC /Hidden BDC 0 0 0 1 k 0 0 10 10 re f EMC /OC /Shown BDC 0.5 g 0 0 5 5 re f EMC",
+            resources: ["Properties": .dictionary(["Hidden": hidden, "Shown": shown])]
+        )
+        let catalog: [String: PDFValue] = ["OCProperties": .dictionary([
+            "OCGs": .array([hidden, shown]),
+            "D": .dictionary([
+                "OFF": .array([shown]),
+                "AS": .array([.dictionary([
+                    "Event": .name("View"),
+                    "OCGs": .array([hidden, shown]),
+                    "Category": .array([.name("View")])
+                ])])
+            ])
+        ])]
+
+        // When
+        let content = walked(page, catalog: catalog, writer: writer)
+
+        // Then
+        #expect(content.faults.isEmpty)
+        #expect(content.colorSpaces == [.name("DeviceGray")])
+    }
+
+    @Test("a usage entry of another event, or a category the group gives no state in, leaves the group as it is")
+    func ignoresOtherEvents() {
+        // Given
+        var writer = PDFFileWriter()
+        let group = writer.add(.dictionary([
+            "Type": .name("OCG"),
+            "Name": .string(Data("print".utf8)),
+            "Usage": .dictionary(["Print": .dictionary(["PrintState": .name("OFF")])])
+        ]))
+        let page = PageFile.page(
+            "/OC /Group BDC 0.5 g 0 0 10 10 re f EMC",
+            resources: ["Properties": .dictionary(["Group": group])]
+        )
+        let catalog: [String: PDFValue] = ["OCProperties": .dictionary([
+            "OCGs": .array([group]),
+            "D": .dictionary([
+                "AS": .array([
+                    .dictionary(["Event": .name("Print"), "OCGs": .array([group]), "Category": .array([.name("Print")])]),
+                    .dictionary(["Event": .name("View"), "OCGs": .array([group]), "Category": .array([.name("Zoom")])])
+                ])
+            ])
+        ])]
+
+        // When
+        let content = walked(page, catalog: catalog, writer: writer)
+
+        // Then
+        #expect(content.colorSpaces == [.name("DeviceGray")])
+    }
+
     @Test("annotations are not read, so a font only an appearance stream sets is not checked")
     func skipsAnnotations() {
         // Given

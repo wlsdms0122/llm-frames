@@ -7,10 +7,10 @@
 
 import CoreGraphics
 
-// The default configuration of a document's optional content (ISO 32000-1 8.11.4.3, `/OCProperties /D`): which
-// optional content groups are on, by its `BaseState` and its `ON` and `OFF` arrays, and so whether a group or a
-// membership dictionary (8.11.2.2, by its `VE` expression or else its `P` policy) shows the content it marks. A
-// document with no optional content shows everything.
+// The default configuration of a document's optional content (ISO 32000-1 8.11.4.3, `/OCProperties /D`) for viewing:
+// which optional content groups are on, by its `BaseState` and its `ON` and `OFF` arrays and then its `AS` entries for
+// the View event (8.11.4.4), and so whether a group or a membership dictionary (8.11.2.2, by its `VE` expression or
+// else its `P` policy) shows the content it marks. A document with no optional content shows everything.
 struct OptionalContentConfiguration {
     // MARK: - Property
     private let isOnByDefault: Bool
@@ -36,9 +36,20 @@ struct OptionalContentConfiguration {
 
         var baseState: UnsafePointer<CChar>?
         let base = CGPDFDictionaryGetName(configuration, "BaseState", &baseState) ? baseState.map { String(cString: $0) } : nil
+        var on = Self.groups(in: configuration, key: "ON")
+        var off = Self.groups(in: configuration, key: "OFF")
+        for (group, isOn) in Self.viewStates(in: configuration) {
+            if isOn {
+                on.insert(group)
+                off.remove(group)
+            } else {
+                off.insert(group)
+                on.remove(group)
+            }
+        }
         self.isOnByDefault = base != "OFF"
-        self.on = Self.groups(in: configuration, key: "ON")
-        self.off = Self.groups(in: configuration, key: "OFF")
+        self.on = on
+        self.off = off
     }
 
     // MARK: - Public
@@ -72,12 +83,77 @@ struct OptionalContentConfiguration {
         var array: CGPDFArrayRef?
         guard CGPDFDictionaryGetArray(configuration, key, &array), let array else { return [] }
 
-        return Set((0..<CGPDFArrayGetCount(array)).compactMap { index in
-            var group: CGPDFDictionaryRef?
-            guard CGPDFArrayGetDictionary(array, index, &group), let group else { return nil }
+        return Set(dictionaries(in: array))
+    }
 
-            return group
-        })
+    // The states the `AS` entries of the View event set, in order: each group an entry lists, by that group's `Usage`
+    // in each category the entry names. A category's state is its dictionary's `ViewState`, `PrintState` or
+    // `ExportState`; the other categories (`Zoom`, `User`, `Language`, `PageElement`) hold none, so they set nothing.
+    private static func viewStates(in configuration: CGPDFDictionaryRef) -> [(CGPDFDictionaryRef, Bool)] {
+        var entries: CGPDFArrayRef?
+        guard CGPDFDictionaryGetArray(configuration, "AS", &entries), let entries else { return [] }
+
+        return dictionaries(in: entries).flatMap { entry -> [(CGPDFDictionaryRef, Bool)] in
+            var event: UnsafePointer<CChar>?
+            var groups: CGPDFArrayRef?
+            var categories: CGPDFArrayRef?
+            guard
+                CGPDFDictionaryGetName(entry, "Event", &event),
+                let event,
+                String(cString: event) == "View",
+                CGPDFDictionaryGetArray(entry, "OCGs", &groups),
+                let groups,
+                CGPDFDictionaryGetArray(entry, "Category", &categories),
+                let categories
+            else { return [] }
+            let names = (0..<CGPDFArrayGetCount(categories)).compactMap { index -> String? in
+                var name: UnsafePointer<CChar>?
+                return CGPDFArrayGetName(categories, index, &name) ? name.map { String(cString: $0) } : nil
+            }
+
+            return dictionaries(in: groups).flatMap { group in
+                names.compactMap { category in state(of: group, in: category).map { (group, $0) } }
+            }
+        }
+    }
+
+    // Whether `group`'s usage in `category` turns it on, nil where it gives no state there.
+    private static func state(
+        of group: CGPDFDictionaryRef,
+        in category: String
+    ) -> Bool? {
+        var usage: CGPDFDictionaryRef?
+        var entry: CGPDFDictionaryRef?
+        var state: UnsafePointer<CChar>?
+        guard
+            ["View", "Print", "Export"].contains(category),
+            CGPDFDictionaryGetDictionary(group, "Usage", &usage),
+            let usage,
+            CGPDFDictionaryGetDictionary(usage, category, &entry),
+            let entry,
+            CGPDFDictionaryGetName(entry, "\(category)State", &state),
+            let state
+        else { return nil }
+
+        switch String(cString: state) {
+        case "ON":
+            return true
+
+        case "OFF":
+            return false
+
+        default:
+            return nil
+        }
+    }
+
+    private static func dictionaries(in array: CGPDFArrayRef) -> [CGPDFDictionaryRef] {
+        (0..<CGPDFArrayGetCount(array)).compactMap { index in
+            var dictionary: CGPDFDictionaryRef?
+            guard CGPDFArrayGetDictionary(array, index, &dictionary), let dictionary else { return nil }
+
+            return dictionary
+        }
     }
 
     private func isOn(_ group: CGPDFDictionaryRef) -> Bool {
