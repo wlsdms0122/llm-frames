@@ -465,7 +465,7 @@ struct ClipAreaEndToEndTests {
         in sequence: ResolvedSequence
     ) throws -> Rectangle {
         let box = try #require(sequence.clips.first { $0.id == id }?.box)
-        let anchor = box.position[0].value.fixed
+        let anchor = box.position.values[0].fixed
 
         return Rectangle(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y, width: box.size.width, height: box.size.height)
     }
@@ -484,7 +484,7 @@ struct ClipAreaEndToEndTests {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 
-        let anchor = box.position[0].value.fixed
+        let anchor = box.position.values[0].fixed
         let drawn = text.box(at: time)
         return Rectangle(
             x: anchor.x - box.anchor.x + drawn.x,

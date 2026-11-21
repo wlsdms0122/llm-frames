@@ -7,10 +7,11 @@
 
 // A clip's corner pin at a time (FRAMES-27), in the space its corner pin is written in. Q'(t) is its keyframes, each
 // clip area taken at the time, brought back through the inverse of its track's homography at its own time when it
-// follows its parent's media, then interpolated point by point; an untracked corner pin is Q(t), its keyframes
-// interpolated. Its corner pin bounds bound Q'(t). The corner pin its group carries is Q(t) = M(t)⁻¹ H(t) Q'(t), inside
-// the clip's transform M(t), and it draws nothing where its box has no area, a corner of Q'(t) does not lie in front
-// of the horizon of H(t), or H(t) Q'(t) is not strictly convex. `clock` is the clock of the media the clip follows.
+// follows its parent's media, a static one being on the track's frame already, then interpolated point by point; an
+// untracked corner pin is Q(t), its keyframes interpolated. Its corner pin bounds bound Q'(t). The corner pin its group
+// carries is Q(t) = M(t)⁻¹ H(t) Q'(t), inside the clip's transform M(t), and it draws nothing where its box has no
+// area, a corner of Q'(t) does not lie in front of the horizon of H(t), or H(t) Q'(t) is not strictly convex. `clock`
+// is the clock of the media the clip follows.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -23,10 +24,11 @@ extension ResolvedClip {
         guard let cornerPin else { return nil }
 
         let keyframes = areas?.points(of: cornerPin.points, at: time)
-            ?? cornerPin.points.map { $0.map { points in points.map(\.fixed) } }
-        let brought = keyframes.map { keyframe in
-            keyframe.map { points in broughtBack(points, on: clock, at: keyframe.at) }
-        }
+            ?? cornerPin.points.mapValues { points in points.map(\.fixed) }
+        let brought = keyframes.carried(
+            keyframe: { points, at in broughtBack(points, on: clock, at: at) },
+            onTrackFrame: { $0 }
+        )
         let points = brought.value(at: time)
         guard points.count == 4 else { return nil }
 
@@ -84,7 +86,7 @@ extension ResolvedClip {
             let track = parentTrack,
             let clock,
             points.count == 4,
-            cornerPin?.points.contains(where: { $0.value.contains { $0.clipArea != nil } }) != true,
+            cornerPin?.points.values.contains(where: { $0.contains { $0.clipArea != nil } }) != true,
             let homography = track.track.homography(atMediaTime: clock.mediaTime(atSequenceTime: time)),
             let frame = homography.apply(to: track.track.target)
         else {

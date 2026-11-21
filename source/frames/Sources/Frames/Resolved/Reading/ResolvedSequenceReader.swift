@@ -271,7 +271,7 @@ struct ResolvedSequenceReader: Sendable {
             box: cornerPin == nil
                 ? ResolvedBox(
                     size: try values.size(entry.member("size")),
-                    position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
+                    position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
                     anchor: try values.point(entry.member("anchor"))
                 )
                 : nil,
@@ -338,7 +338,7 @@ struct ResolvedSequenceReader: Sendable {
         let written = try clip.member("cornerPin")
         guard !written.isNull else { return nil }
 
-        let points = try values.keyframes(written) { value in
+        let points = try values.followedKeyframes(written) { value in
             let points = try value.elements()
             guard points.count == 4 else { throw value.wrongType("four points") }
 
@@ -421,7 +421,7 @@ struct ResolvedSequenceReader: Sendable {
         let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
-                try values.keyframes(clip.member("points")) { points in
+                try values.followedKeyframes(clip.member("points")) { points in
                     try points.elements().map { try values.geometryPoint($0) }
                 },
                 isClosed: try clip.member("closed").bool(),
@@ -435,7 +435,7 @@ struct ResolvedSequenceReader: Sendable {
             )
         } else {
             .area(
-                try values.keyframes(clip.member("area"), read: values.geometryArea),
+                try values.followedKeyframes(clip.member("area"), read: values.geometryArea),
                 outset: try values.timed(clip.member("outset"), as: LookStructureTable.length),
                 placement: try placement(of: clip)
             )
@@ -464,7 +464,7 @@ struct ResolvedSequenceReader: Sendable {
     ) throws -> ResolvedBox {
         ResolvedBox(
             size: try values.size(size),
-            position: try values.keyframes(position) { try values.geometryPoint($0) },
+            position: try values.followedKeyframes(position) { try values.geometryPoint($0) },
             anchor: try values.point(anchor)
         )
     }
@@ -472,7 +472,7 @@ struct ResolvedSequenceReader: Sendable {
     private func placement(of clip: PlacedJSONObject) throws -> GeometryPlacement {
         GeometryPlacement(
             position: try clip.member("position").optional { value in
-                try values.keyframes(value) { try values.geometryPoint($0) }
+                try values.followedKeyframes(value) { try values.geometryPoint($0) }
             },
             anchor: try clip.member("anchor").optional(values.geometryAnchor)
         )

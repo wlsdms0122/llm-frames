@@ -56,24 +56,24 @@ struct ClipAreaSampler: Sendable {
 
     // Each keyframe at `time`, a clip area in it the named clip's box at `time`, so a span next to one moves with it.
     func rectangles(
-        of keyframes: [Keyframe<GeometryArea>],
+        of keyframes: FollowedValue<GeometryArea>,
         at time: Double
-    ) -> [Keyframe<Rectangle>] {
-        keyframes.map { $0.map { rectangle(of: $0, at: time) } }
+    ) -> FollowedValue<Rectangle> {
+        keyframes.mapValues { rectangle(of: $0, at: time) }
     }
 
     func points(
-        of keyframes: [Keyframe<GeometryPoint>],
+        of keyframes: FollowedValue<GeometryPoint>,
         at time: Double
-    ) -> [Keyframe<Point>] {
-        keyframes.map { $0.map { point(of: $0, at: time) } }
+    ) -> FollowedValue<Point> {
+        keyframes.mapValues { point(of: $0, at: time) }
     }
 
     func points(
-        of keyframes: [Keyframe<[GeometryPoint]>],
+        of keyframes: FollowedValue<[GeometryPoint]>,
         at time: Double
-    ) -> [Keyframe<[Point]>] {
-        keyframes.map { $0.map { points in points.map { point(of: $0, at: time) } } }
+    ) -> FollowedValue<[Point]> {
+        keyframes.mapValues { points in points.map { point(of: $0, at: time) } }
     }
 
     // MARK: - Private

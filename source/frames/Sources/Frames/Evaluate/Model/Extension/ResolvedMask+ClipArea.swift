@@ -20,10 +20,10 @@ extension ResolvedMask {
         let rectangle = { (rectangle: ResolvedMaskRectangle) -> ResolvedMaskRectangle in
             switch rectangle {
             case let .area(keyframes):
-                .area(keyframes.map { $0.map(area) })
+                .area(keyframes.mapValues(area))
 
             case let .box(width, height, position):
-                .box(width: width, height: height, position: position.map { $0.map(point) })
+                .box(width: width, height: height, position: position.mapValues(point))
             }
         }
 
@@ -35,7 +35,7 @@ extension ResolvedMask {
             .ellipse(rectangle(box))
 
         case let .polyline(points):
-            .polyline(points.map { keyframes in keyframes.map { $0.map(point) } })
+            .polyline(points.map { $0.mapValues(point) })
         }
 
         return ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)

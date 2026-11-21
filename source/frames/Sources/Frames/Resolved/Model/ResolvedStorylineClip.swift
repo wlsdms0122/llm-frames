@@ -31,7 +31,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let timeRemap: [Keyframe<Double>]?
     let start: Double
     let end: Double
-    let crop: [Keyframe<Crop>]
+    let crop: FollowedValue<Crop>
     let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
@@ -70,7 +70,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         timeRemap: [Keyframe<Double>]?,
         start: Double,
         end: Double,
-        crop: [Keyframe<Crop>],
+        crop: FollowedValue<Crop>,
         mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,

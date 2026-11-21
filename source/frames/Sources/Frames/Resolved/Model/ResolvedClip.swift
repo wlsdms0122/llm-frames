@@ -26,7 +26,7 @@ struct ResolvedClip: Equatable, Sendable {
     let parent: String?
     let box: ResolvedBox?
     let cornerPin: ResolvedCornerPin?
-    let crop: [Keyframe<Crop>]?
+    let crop: FollowedValue<Crop>?
     let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
@@ -59,7 +59,7 @@ struct ResolvedClip: Equatable, Sendable {
         parent: String?,
         box: ResolvedBox?,
         cornerPin: ResolvedCornerPin? = nil,
-        crop: [Keyframe<Crop>]?,
+        crop: FollowedValue<Crop>?,
         mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,

@@ -5,10 +5,11 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant. A title,
-// a media clip or a shape given by `width` and `height` carries its box, or its corner pin where one places it, and a
-// shape placed by its geometry carries its placement in its own entry. Scale and rotation belong to anything drawn but
-// an adjustment and a clip with a corner pin.
+// A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant but a
+// followed value true on the track's frame, which stays a static value. A title, a media clip or a shape given by
+// `width` and `height` carries its box, or its corner pin where one places it, and a shape placed by its geometry
+// carries its placement in its own entry. Scale and rotation belong to anything drawn but an adjustment and a clip with
+// a corner pin.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -19,6 +20,7 @@ extension ResolvedClip {
     ) throws {
         let instant = plan.instant
         let appearance = geometry.appearance
+        let onTrackFrame = geometry.onTrackFrame
         let content = try Self.content(of: plan, geometry: geometry, hashes: hashes)
         let isTransformed = if case .adjustment = content { false } else { geometry.cornerPin == nil }
 
@@ -32,12 +34,20 @@ extension ResolvedClip {
             storyline: plan.storyline,
             parent: plan.parent?.id,
             box: geometry.box.map { box in
-                ResolvedBox(size: box.size, position: box.position.keyframes(at: instant) { $0 }, anchor: box.anchor)
+                ResolvedBox(
+                    size: box.size,
+                    position: box.position.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
+                    anchor: box.anchor
+                )
             },
             cornerPin: geometry.cornerPin.map { pin in
-                ResolvedCornerPin(size: pin.size, points: pin.points.keyframes(at: instant) { $0 })
+                ResolvedCornerPin(
+                    size: pin.size,
+                    points: pin.points.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.cornerPin)) { $0 }
+                )
             },
-            crop: appearance.media?.crop.keyframes(at: instant) { Crop($0) },
+            crop: appearance.media?.crop
+                .followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.crop)) { Crop($0) },
             mask: geometry.mask,
             trackMatte: plan.trackMatte,
             track: try geometry.track.map { try ResolvedTrack(track: $0, hashes: hashes) },

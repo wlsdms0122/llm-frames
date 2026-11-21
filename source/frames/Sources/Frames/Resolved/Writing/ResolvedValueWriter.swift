@@ -215,6 +215,25 @@ struct ResolvedValueWriter: Sendable {
         self.keyframes(keyframes) { .number($0) }
     }
 
+    // A value a track can carry as a keyframe list, or a static value true on the track's frame as its value (FRAMES-19
+    // Timed values).
+    func followed<Value>(
+        _ followed: FollowedValue<Value>,
+        value: (Value) -> JSONValue
+    ) -> JSONValue {
+        switch followed {
+        case let .onTrackFrame(written):
+            value(written)
+
+        case let .keyframes(keyframes):
+            self.keyframes(keyframes, value: value)
+        }
+    }
+
+    func followedNumbers(_ followed: FollowedValue<Double>) -> JSONValue {
+        self.followed(followed) { .number($0) }
+    }
+
     // A scale is written as its pair, `[sx, sy]`.
     func scales(_ keyframes: [Keyframe<Scale>]) -> JSONValue {
         self.keyframes(keyframes) { scale in numbers([scale.x, scale.y]) }
@@ -453,14 +472,14 @@ struct ResolvedValueWriter: Sendable {
 
         switch geometry {
         case let .rect(rectangle, radius):
-            return form("rect", members(of: rectangle) + [JSONMember(key: "radius", value: numbers(radius))])
+            return form("rect", members(of: rectangle) + [JSONMember(key: "radius", value: followedNumbers(radius))])
 
         case let .ellipse(rectangle):
             return form("ellipse", members(of: rectangle))
 
         case let .polyline(points):
             return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map { keyframes($0, value: geometryPoint) })),
+                JSONMember(key: "points", value: .array(points.map { followed($0, value: geometryPoint) })),
                 JSONMember(key: "closed", value: .bool(true))
             ])
         }
@@ -469,13 +488,13 @@ struct ResolvedValueWriter: Sendable {
     private func members(of rectangle: ResolvedMaskRectangle) -> [JSONMember] {
         switch rectangle {
         case let .area(area):
-            [JSONMember(key: "rect", value: keyframes(area, value: geometryArea))]
+            [JSONMember(key: "rect", value: followed(area, value: geometryArea))]
 
         case let .box(width, height, position):
             [
-                JSONMember(key: "width", value: numbers(width)),
-                JSONMember(key: "height", value: numbers(height)),
-                JSONMember(key: "position", value: keyframes(position, value: geometryPoint))
+                JSONMember(key: "width", value: followedNumbers(width)),
+                JSONMember(key: "height", value: followedNumbers(height)),
+                JSONMember(key: "position", value: followed(position, value: geometryPoint))
             ]
         }
     }

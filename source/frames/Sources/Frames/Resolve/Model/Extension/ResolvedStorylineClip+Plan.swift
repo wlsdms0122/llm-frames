@@ -9,7 +9,8 @@
 // size of its first crop, so evaluation fills the box with it as it is, and a clip written without a crop shows its
 // whole picture, conformed the same way. A clip with a corner pin conforms it to the box its corner pin places. A
 // solid's box is the frame at the origin, so its transform is the identity. A static crop is one keyframe at the
-// clip's `in`, and so is every other static property.
+// clip's instant, and so is every other static property, but a tracked clip's crop true on the track's frame, which
+// stays a static value.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -23,7 +24,7 @@ extension ResolvedStorylineClip {
         let clipBox = appearance.box
             ?? ClipBox(size: format.size, position: .value(.point(format.frame.center)), anchor: format.frame.center)
         let cornerPin = appearance.cornerPin.map { pin in
-            ResolvedCornerPin(size: pin.size, points: pin.points.keyframes(at: plan.instant) { $0 })
+            ResolvedCornerPin(size: pin.size, points: .keyframes(pin.points.keyframes(at: plan.instant) { $0 }))
         }
         let size = cornerPin?.size ?? clipBox.size
         let conformer = CropConformer()
@@ -33,8 +34,9 @@ extension ResolvedStorylineClip {
         }
         let file: MediaFile? = if case let .file(file) = plan.source.media?.source { file } else { nil }
         let whole = geometry.nested?.format.size ?? file?.size ?? format.size
-        let crop = geometry.crop?.keyframes(at: plan.instant) { conform($0.rectangle) }
-            ?? [Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))]
+        let crop = geometry.crop?
+            .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0.rectangle) }
+            ?? .keyframes([Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))])
 
         self.init(
             place: plan.place.description,
@@ -59,7 +61,7 @@ extension ResolvedStorylineClip {
             box: cornerPin == nil
                 ? ResolvedBox(
                     size: clipBox.size,
-                    position: clipBox.position.keyframes(at: plan.instant) { $0 },
+                    position: .keyframes(clipBox.position.keyframes(at: plan.instant) { $0 }),
                     anchor: clipBox.anchor
                 )
                 : nil,

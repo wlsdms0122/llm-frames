@@ -104,30 +104,46 @@ struct ParentSpacePlanner: Sendable {
 
     // The masks of a shape placed by its geometry or of an adjustment are in its parent's space, and each keyframe of
     // a mask's area, position or point found by text is brought back at its own time as an area, a position or a
-    // point is. A box keeps its written size. Every other clip's mask is in its own space.
+    // point is. A box keeps its written size. Every other clip's mask is in its own space. A followed mask written
+    // without keyframes is true on the track's frame, but a leaf a text form found other than the track's target.
     func mask(of index: Int) throws -> [ResolvedMask]? {
         let plan = tracked.time.clips[index]
         guard let found = masks[index] else { return nil }
-        guard let parent = plan.parent, plan.space == .parent else { return found.map(\.mask) }
 
+        let isOnTrackFrame = plan.onTrackFrame(of: written[index]).contains(.mask)
         return try found.map { found in
-            try found.mask.carried(
-                area: { area, time, leaf in
-                    guard found.isFoundByText(leaf, at: time) else { return area }
+            let mask = try broughtBack(found, of: index)
+            guard isOnTrackFrame, let target = written[index].track else { return mask }
 
-                    return bringBack(area, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
-                },
-                point: { point, time, leaf in
-                    guard found.isFoundByText(leaf, at: time) else { return point }
-
-                    return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
-                },
-                scale: { _ in 1 }
-            )
+            return mask.onTrackFrame { leaf in
+                target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
+            }
         }
     }
 
     // MARK: - Private
+    private func broughtBack(
+        _ found: FoundMask,
+        of index: Int
+    ) throws -> ResolvedMask {
+        let plan = tracked.time.clips[index]
+        guard let parent = plan.parent, plan.space == .parent else { return found.mask }
+
+        return try found.mask.carried(
+            area: { area, time, leaf in
+                guard let time, found.isFoundByText(leaf, at: time) else { return area }
+
+                return bringBack(area, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
+            },
+            point: { point, time, leaf in
+                guard let time, found.isFoundByText(leaf, at: time) else { return point }
+
+                return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
+            },
+            scale: { _ in 1 }
+        )
+    }
+
     // A list of points brought back point by point, those found by text.
     private func points(
         _ found: PropertyValue<[GeometryPoint]>?,
@@ -217,12 +233,16 @@ struct ParentSpacePlanner: Sendable {
         let plan = tracked.time.clips[index]
         let written = written[index]
         let track = tracked.clips[index]
+        let onTrackFrame = plan.onTrackFrame(of: written)
         return ParentTransformPlan(
             geometry: ShapeGeometry(
                 plan: shape.geometry,
-                area: try area(of: index)?.keyframes(at: plan.instant) { $0.geometry },
-                points: try points(of: index)?.keyframes(at: plan.instant) { $0 },
-                position: try position(of: index)?.keyframes(at: plan.instant) { $0 },
+                area: try area(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.area)) { $0.geometry },
+                points: try points(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.points)) { $0 },
+                position: try position(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
                 instant: plan.instant,
                 track: track
             ),

@@ -22,7 +22,7 @@ extension ResolvedStorylineClip {
             )
         }
 
-        let anchor = box.position.map { $0.map(\.fixed) }.value(at: time)
+        let anchor = box.position.mapValues(\.fixed).value(at: time)
         return ItemPresentation(
             box: box.size,
             anchor: box.anchor,

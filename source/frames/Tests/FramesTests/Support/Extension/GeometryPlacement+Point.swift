@@ -15,7 +15,7 @@ extension GeometryPlacement {
         position: [Keyframe<Point>]?,
         anchor: Point?
     ) {
-        self.init(position: position?.map { $0.map(GeometryPoint.point) }, anchor: anchor.map(GeometryAnchor.point))
+        self.init(position: position.map { .keyframes($0.map { $0.map(GeometryPoint.point) }) }, anchor: anchor.map(GeometryAnchor.point))
     }
 
     // MARK: - Public

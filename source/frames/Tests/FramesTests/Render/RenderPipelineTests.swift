@@ -405,7 +405,7 @@ struct RenderPipelineTests {
             speed: 1,
             start: 0,
             end: duration,
-            crop: [Keyframe(at: 0, value: Crop(whole))],
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: nil,
             filter: .off,
             transition: nil,

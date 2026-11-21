@@ -16,7 +16,7 @@ extension ResolvedBox {
         position: [Keyframe<Point>],
         anchor: Point
     ) {
-        self.init(size: size, position: position.map { $0.map(GeometryPoint.point) }, anchor: anchor)
+        self.init(size: size, position: .keyframes(position.map { $0.map(GeometryPoint.point) }), anchor: anchor)
     }
 
     // MARK: - Public

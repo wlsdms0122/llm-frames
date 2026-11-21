@@ -135,7 +135,7 @@ struct ContentFitPlanner: Sendable {
         let parents = ParentEvaluator(sequence: sequence)
         let storyline = sequence.storyline.filter { $0.media != nil }.compactMap { entry -> Rectangle? in
             if let pin = entry.cornerPin {
-                return Rectangle(bounding: pin.points.map { $0.map { $0.map(\.fixed) } }.value(at: 0))
+                return Rectangle(bounding: pin.points.mapValues { $0.map(\.fixed) }.value(at: 0))
             }
             guard let box = entry.box else { return nil }
 

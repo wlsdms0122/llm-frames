@@ -277,7 +277,7 @@ struct ShapeAppearanceTests {
 
         // Then
         #expect(shape.geometry == .area(
-            [Keyframe(at: 0, value: .rectangle(Rectangle(x: 100, y: 100, width: 200, height: 100)))],
+            .keyframes([Keyframe(at: 0, value: .rectangle(Rectangle(x: 100, y: 100, width: 200, height: 100)))]),
             outset: 10,
             placement: GeometryPlacement(
                 position: [Keyframe(at: 0, value: Point(x: 500, y: 300))],
@@ -308,8 +308,8 @@ struct ShapeAppearanceTests {
             Issue.record("the rect is placed by its area and the path by its points")
             return
         }
-        let total = try #require(area.first?.value.fixed)
-        #expect(points.map(\.value) == [[.point(Point(x: 10, y: 20)), .point(total.point(named: "left"))]])
+        let total = try #require(area.values.first?.fixed)
+        #expect(points.values == [[.point(Point(x: 10, y: 20)), .point(total.point(named: "left"))]])
         #expect(isClosed)
         #expect(placement.anchor == nil)
         #expect(clips[1].box == nil)

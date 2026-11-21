@@ -150,6 +150,7 @@ struct SequencePlanner: Sendable {
                 crop: crops[index],
                 mask: storylineMasks[index],
                 track: tracked.storyline[index],
+                isCropOnTrackFrame: time.sequence.storyline[index].isCropOnTrackFrame,
                 nested: storylineNested[index],
                 filter: try appearances.filter(
                     time.sequence.storyline[index].filter,
@@ -209,6 +210,7 @@ struct SequencePlanner: Sendable {
                 crop: placed[index].crop,
                 mask: placed[index].mask,
                 track: tracked.clips[index],
+                onTrackFrame: tracked.time.clips[index].onTrackFrame(of: written[index]),
                 isInOutputPixels: found[index].isInOutputPixels,
                 title: title,
                 nested: clipNested[index],
@@ -444,6 +446,8 @@ struct SequencePlanner: Sendable {
     }
 
     // A storyline clip's mask is in the media pixels of its own media, found there as its crop is. A solid takes none.
+    // A tracked clip's mask written without keyframes is true on the track's frame, but a leaf a text form found other
+    // than the track's target.
     private func mask(
         of plan: StorylinePlan,
         written: StorylineClip,
@@ -467,7 +471,13 @@ struct SequencePlanner: Sendable {
             lengthScale: lengthScale
         )
         return try planner.masks(mask, in: picture, pictureClock: ownClock(.storyline(plan), track: written.track))?
-            .map(\.mask)
+            .map { found in
+                guard let target = written.track, mask.keyframes.isEmpty else { return found.mask }
+
+                return found.mask.onTrackFrame { leaf in
+                    target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
+                }
+            }
     }
 
     // A storyline clip has no parent, so its position is in output pixels and a text form stops.

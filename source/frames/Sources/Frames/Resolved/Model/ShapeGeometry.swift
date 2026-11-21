@@ -11,8 +11,8 @@
 // side, and its box is as written. A shape placed by its area or its points carries where it goes.
 enum ShapeGeometry: Equatable, Sendable {
     case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: TimedValue)
-    case area([Keyframe<GeometryArea>], outset: TimedValue, placement: GeometryPlacement)
-    case points([Keyframe<[GeometryPoint]>], isClosed: Bool, placement: GeometryPlacement)
+    case area(FollowedValue<GeometryArea>, outset: TimedValue, placement: GeometryPlacement)
+    case points(FollowedValue<[GeometryPoint]>, isClosed: Bool, placement: GeometryPlacement)
 
     // MARK: - Property
     // Where a shape placed by its geometry goes, nil for one placed by its box.
@@ -28,7 +28,7 @@ enum ShapeGeometry: Equatable, Sendable {
 
     // Whether a keyframe of its area, points or position is a clip area, which only evaluation knows the rectangle of.
     var holdsClipArea: Bool {
-        let position = placement?.position?.contains { $0.value.clipArea != nil } ?? false
+        let position = placement?.position?.values.contains { $0.clipArea != nil } ?? false
         return position || geometryHoldsClipArea
     }
 
@@ -39,10 +39,10 @@ enum ShapeGeometry: Equatable, Sendable {
             false
 
         case let .area(area, _, _):
-            area.contains { $0.value.clipArea != nil }
+            area.values.contains { $0.clipArea != nil }
 
         case let .points(points, _, _):
-            points.contains { $0.value.contains { $0.clipArea != nil } }
+            points.values.contains { $0.contains { $0.clipArea != nil } }
         }
     }
 

@@ -38,7 +38,7 @@ struct ParentTransformPlan: Equatable, Sendable {
             placing: bounds(at: time),
             anchor: placement?.anchor,
             position: placement?.position.map { position in
-                (track?.position(position) ?? position).map { $0.map(\.fixed) }.value(at: time)
+                (track?.position(position) ?? position).mapValues(\.fixed).value(at: time)
             },
             scale: scale.value(at: time),
             rotation: rotation.value(at: time)
@@ -52,10 +52,10 @@ struct ParentTransformPlan: Equatable, Sendable {
             Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time))
 
         case let .area(area, _, _):
-            (track?.area(area) ?? area).map { $0.map(\.fixed) }.value(at: time)
+            (track?.area(area) ?? area).mapValues(\.fixed).value(at: time)
 
         case let .points(points, _, _):
-            Rectangle(bounding: (track?.points(points) ?? points).map { $0.map { $0.map(\.fixed) } }.value(at: time))
+            Rectangle(bounding: (track?.points(points) ?? points).mapValues { $0.map(\.fixed) }.value(at: time))
         }
     }
 }

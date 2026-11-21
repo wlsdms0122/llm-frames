@@ -12,12 +12,12 @@
 struct ResolvedCornerPin: Equatable, Sendable {
     // MARK: - Property
     let size: Size
-    let points: [Keyframe<[GeometryPoint]>]
+    let points: FollowedValue<[GeometryPoint]>
 
     // MARK: - Initializer
     init(
         size: Size,
-        points: [Keyframe<[GeometryPoint]>]
+        points: FollowedValue<[GeometryPoint]>
     ) {
         self.size = size
         self.points = points

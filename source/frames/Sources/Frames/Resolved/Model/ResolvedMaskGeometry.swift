@@ -8,9 +8,9 @@
 // A mask's geometry with each of its numbers timed: a rect with its corner radius, an ellipse, or a closed polyline
 // with a keyframe list per point, a point of which may be a clip area's.
 enum ResolvedMaskGeometry: Equatable, Sendable {
-    case rect(ResolvedMaskRectangle, radius: [Keyframe<Double>])
+    case rect(ResolvedMaskRectangle, radius: FollowedValue<Double>)
     case ellipse(ResolvedMaskRectangle)
-    case polyline([[Keyframe<GeometryPoint>]])
+    case polyline([FollowedValue<GeometryPoint>])
 
     // MARK: - Property
     // MARK: - Initializer
@@ -24,7 +24,7 @@ enum ResolvedMaskGeometry: Equatable, Sendable {
             .ellipse(rectangle.sampled(at: time))
 
         case let .polyline(points):
-            .polyline(points.map { $0.map { $0.map(\.fixed) }.value(at: time) }, isClosed: true)
+            .polyline(points.map { $0.mapValues(\.fixed).value(at: time) }, isClosed: true)
         }
     }
 
