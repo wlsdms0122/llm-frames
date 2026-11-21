@@ -261,7 +261,65 @@ struct TemplateInstantiatorTests {
         #expect(error?.description == #"storyline[0].media.args.still (template arguments): media "/abs/deck.pdf" is a PDF of 12 pages, more than one picture, so a page of it is named as {"file", "page"}"#)
     }
 
+    @Test(
+        "an image parameter given a page makes its clips clips of a page, so toneMap and an HDR colorSpace on them stop",
+        arguments: [
+            (
+                #""toneMap": false"#,
+                #"shorts/leak: storyline[0] (page): unknown key "toneMap""#
+            ),
+            (
+                #""colorSpace": "rec2100-pq""#,
+                #"shorts/leak: storyline[0].colorSpace (page): unknown value "rec2100-pq""#
+            )
+        ]
+    )
+    func refusesHighDynamicRangeKeysOnPageArgument(key: String, message: String) throws {
+        // Given
+        let template = try template(stillTemplate(key: key))
+        let arguments = try Fixture.object(#"{ "still": { "file": "/abs/deck.pdf", "page": 4 } }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description.hasPrefix(message) == true)
+    }
+
+    @Test("an image parameter given an image keeps the still row, toneMap and an HDR colorSpace included")
+    func takesHighDynamicRangeKeysOnImageArgument() throws {
+        // Given
+        let template = try template(stillTemplate(key: #""toneMap": false, "colorSpace": "rec2100-pq""#))
+        let arguments = try Fixture.object(#"{ "still": "/abs/card.png" }"#)
+
+        // When
+        let instance = try sut.instance(of: template, arguments: arguments, place: place)
+
+        // Then
+        #expect(instance.document.objectValue?["storyline"]?.arrayValue?[0].objectValue?["toneMap"] == .bool(false))
+    }
+
+    @Test("a connected clip whose image parameter is given a one-page PDF stops at toneMap")
+    func refusesToneMapOnConnectedPageArgument() throws {
+        // Given
+        let template = try template(#"""
+            { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
+              "storyline": [ { "solid": "#000000", "duration": 2,
+                "connected": [ { "media": { "param": "still" }, "toneMap": true } ] } ] }
+            """#)
+        let arguments = try Fixture.object(#"{ "still": "/abs/logo.pdf" }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description.hasPrefix(#"shorts/leak: storyline[0].connected[0] (page): unknown key "toneMap""#) == true)
+    }
+
     // MARK: - Private
+    private func stillTemplate(key: String) -> String {
+        #"""
+        { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
+          "storyline": [ { "media": { "param": "still" }, "duration": 2, \#(key) } ] }
+        """#
+    }
+
     private var stillTemplate: String {
         #"""
         { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
