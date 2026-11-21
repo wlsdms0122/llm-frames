@@ -67,7 +67,7 @@ struct TemplateInstantiator: Sendable {
         place: Place,
         template: Template
     ) throws {
-        let found = if arguments.contains(parameter.name) {
+        if arguments.contains(parameter.name) {
             try checkKind(
                 of: value,
                 parameter: parameter,
@@ -83,66 +83,6 @@ struct TemplateInstantiator: Sendable {
             )
         }
         try checkPlaces(of: value, parameter: parameter, template: template)
-        if found == .page { try checkPageClips(of: parameter, template: template) }
-    }
-
-    // The template was checked with the still row for an `image` parameter, so a clip whose media is a page takes the
-    // keys of a page only once it is known to be one: no `toneMap`, and a `colorSpace` of the SDR names (FRAMES-17).
-    private func checkPageClips(
-        of parameter: Parameter,
-        template: Template
-    ) throws {
-        for reference in template.references where reference.name == parameter.name {
-            guard
-                reference.place.components.last == .key("media"),
-                let clipPlace = clipPlace(of: reference.place),
-                let clip = value(at: reference.place.components.dropLast(), in: template.document)?.objectValue
-            else { continue }
-            let place = Place(file: reference.place.file, components: Array(reference.place.components.dropLast()))
-            let table = ClipKeyTable.table(for: .media(.page), in: clipPlace)
-            guard !clip.contains("toneMap") else {
-                throw ModelError.unknownKey(place: place, kind: table.kind, key: "toneMap", allowed: table.keys)
-            }
-            if let colorSpace = clip["colorSpace"], let rule = table.rule(named: "colorSpace") {
-                try checker.check(colorSpace, as: rule.type, place: place.appending(key: "colorSpace"), kind: table.kind)
-            }
-        }
-    }
-
-    // The place of a clip by the list that holds it, from the place of its media.
-    private func clipPlace(of mediaPlace: Place) -> ClipPlace? {
-        let list = mediaPlace.components.dropLast(2).last?.key
-        switch list {
-        case "storyline":
-            return .storyline
-
-        case "connected":
-            return .connected
-
-        case "clips":
-            return .sequence
-
-        default:
-            return nil
-        }
-    }
-
-    private func value(
-        at components: ArraySlice<PlaceComponent>,
-        in value: JSONValue
-    ) -> JSONValue? {
-        guard let component = components.first else { return value }
-
-        switch (component, value) {
-        case let (.key(key), .object(object)):
-            return object[key].flatMap { self.value(at: components.dropFirst(), in: $0) }
-
-        case let (.index(index, _), .array(elements)) where elements.indices.contains(index):
-            return self.value(at: components.dropFirst(), in: elements[index])
-
-        default:
-            return nil
-        }
     }
 
     // A place can take less than its parameter's type, such as whole pixels for a number, so the value is checked
@@ -164,14 +104,15 @@ struct TemplateInstantiator: Sendable {
         }
     }
 
-    // The kind of a media parameter's value, nil for any other parameter.
+    // A media parameter's value is of a kind its type takes. A page given to an `image` parameter makes the clips it
+    // fills clips of a page, which stop where their media is read (FRAMES-17).
     private func checkKind(
         of media: JSONValue,
         parameter: Parameter,
         place: Place,
         kind: String
-    ) throws -> MediaKind? {
-        guard parameter.type.mediaKind != nil else { return nil }
+    ) throws {
+        guard parameter.type.mediaKind != nil else { return }
 
         let found = try checker.mediaKind(of: media, place: place, kind: kind)
         guard parameter.type.takes(found) else {
@@ -183,7 +124,5 @@ struct TemplateInstantiator: Sendable {
                 found: found
             )
         }
-
-        return found
     }
 }

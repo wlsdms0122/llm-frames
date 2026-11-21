@@ -112,12 +112,7 @@ struct TimePlanner: Sendable {
         let place = clip.place.appending(key: "media")
         let media = try resolver.media(of: clipMedia.source, place: place, kind: .genericClip(.storyline), theme: theme)
             .read(by: clipMedia)
-        try resolver.checkColor(
-            of: media,
-            colorSpace: clipMedia.colorSpace,
-            place: place,
-            kind: .genericClip(.storyline)
-        )
+        try resolver.checkReading(of: media, by: clipMedia, clip: clip.place, in: .storyline)
         let kind = ClipKind.media(media.kind)
         guard !media.kind.isStill else {
             let duration = try stillDuration(of: clip, kind: kind)
@@ -482,12 +477,7 @@ struct TimePlanner: Sendable {
             let kind = try kind(of: clipMedia, media: media, place: clip.place)
             // An audio clip reads no picture of its media.
             if kind != .media(.audio) {
-                try resolver.checkColor(
-                    of: media,
-                    colorSpace: clipMedia.colorSpace,
-                    place: place,
-                    kind: .genericClip(clip.clipPlace)
-                )
+                try resolver.checkReading(of: media, by: clipMedia, clip: clip.place, in: clip.clipPlace)
             }
             guard !media.kind.isStill else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {

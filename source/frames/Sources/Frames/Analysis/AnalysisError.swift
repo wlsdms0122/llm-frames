@@ -18,6 +18,7 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case pageOfNonPDF(file: String, page: Int)
     case missingPage(file: String, page: Int, pageCount: Int)
     case unnamedPage(file: String, pageCount: Int)
+    case highDynamicRangePage(file: String, page: Int, colorSpace: ColorSpace)
 
     // MARK: - Property
     var description: String {
@@ -58,6 +59,11 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unnamedPage(file, pageCount):
             "media \(quoted(file)) is a PDF of \(pageCount) pages, more than one picture, so --page names the page"
+
+        case let .highDynamicRangePage(file, page, colorSpace):
+            "--color-space: media \(quoted(file)) page \(page) is not HDR, so it is read in a colour space of standard "
+                + "dynamic range, not \(quoted(colorSpace.rawValue)). Allowed: "
+                + VocabularyTable.standardDynamicRangeColorSpaces.joined(separator: ", ")
         }
     }
 

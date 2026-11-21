@@ -268,11 +268,8 @@ enum ClipKeyTable {
         case "loop", "closed", "picture", "toneMap":
             .bool
 
-        // A page of a PDF is not HDR, so it is named in a space of standard dynamic range.
         case "colorSpace":
-            kind == .media(.page)
-                ? .literal(VocabularyTable.standardDynamicRangeColorSpaces)
-                : .literal(VocabularyTable.colorSpaces)
+            .literal(VocabularyTable.colorSpaces)
 
         // A media clip's and a storyline clip's shadow take the same forms as a shape's.
         case "shadow":
@@ -425,7 +422,8 @@ enum ClipKeyTable {
 
     // A compound clip's or a template instance's sound is a mix of several sounds, so it takes no `audioFilter`, and its
     // pictures are working values already, so it takes no `colorSpace` or `toneMap`; its clips take their own. A page
-    // of a PDF is not HDR, so it takes no `toneMap`.
+    // of a PDF takes the keys of a still here, and what it refuses of them is known only where its media is read
+    // (`MediaFile.pageRefusal`).
     private static func takes(
         _ key: String,
         kind: ClipKind
@@ -433,9 +431,6 @@ enum ClipKeyTable {
         switch kind {
         case .media(.sequence):
             !["audioFilter", "colorSpace", "toneMap"].contains(key)
-
-        case .media(.page):
-            key != "toneMap"
 
         default:
             true

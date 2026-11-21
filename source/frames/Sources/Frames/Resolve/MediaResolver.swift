@@ -119,30 +119,51 @@ struct MediaResolver: Sendable {
         }
     }
 
-    // A picture only the platform's colour management reads stops at the place that names it, unless that place writes
-    // the colour space it is read in (FRAMES-26 Media). `place` is one that reads the pictures of `media`. A nested
-    // sequence's own clips are checked where they are planned.
-    func checkColor(
+    // How the clip at `place` in `clipPlace` reads `media` by what it writes. A page takes no `toneMap` and only a
+    // `colorSpace` of standard dynamic range, and a picture only the platform's colour management reads stops unless
+    // the clip writes the colour space it is read in (FRAMES-26 Media). A nested sequence's own clips are checked where
+    // they are planned.
+    func checkReading(
         of media: MediaPlan,
-        colorSpace: ColorSpace?,
-        place: Place,
-        kind: PlaceKind
+        by clipMedia: ClipMedia,
+        clip place: Place,
+        in clipPlace: ClipPlace
     ) throws {
         guard case let .file(file) = media.source else { return }
 
-        try checkColor(
-            of: file.colorReading,
-            colorSpace: colorSpace,
-            place: place,
-            kind: kind,
-            reference: media.reference ?? file.path
-        )
+        switch file.pageRefusal(colorSpace: clipMedia.colorSpace, isToneMapped: clipMedia.isToneMapped) {
+        case .toneMap:
+            let table = ClipKeyTable.table(for: .media(media.kind), in: clipPlace)
+            throw ModelError.unknownKey(
+                place: place,
+                kind: table.kind,
+                key: "toneMap",
+                allowed: table.keys.filter { $0 != "toneMap" }
+            )
+
+        case let .colorSpace(colorSpace):
+            throw ModelError.unknownValue(
+                place: place.appending(key: "colorSpace"),
+                kind: ClipKind.media(media.kind).label,
+                value: colorSpace.rawValue,
+                allowed: VocabularyTable.standardDynamicRangeColorSpaces
+            )
+
+        case nil:
+            try checkColor(
+                of: file.colorReading,
+                colorSpace: clipMedia.colorSpace,
+                place: place.appending(key: "media"),
+                kind: .genericClip(clipPlace),
+                reference: media.reference ?? file.path
+            )
+        }
     }
 
     // A transition's cover or matte file, by the absolute path its preset was resolved to, with the page of a PDF and
     // the `colorSpace` its preset writes for it. A preset names a file, so it is never an image sequence or a document.
     // A transition always reads its picture, so its colour is checked here. No key check probes a preset's media, so
-    // the stops of a page come here (FRAMES-3 PDF pages).
+    // the stops of a page come here (FRAMES-3 PDF pages), a `colorSpace` of HDR range on a page among them.
     func transitionMedia(
         at path: String,
         page: Int?,
@@ -151,6 +172,18 @@ struct MediaResolver: Sendable {
         colorSpace: ColorSpace?
     ) throws -> TransitionMedia {
         if let file = try pageFile(at: path, page: page, place: place, kind: kind, reference: path) {
+            if case let .colorSpace(refused) = file.pageRefusal(colorSpace: colorSpace, isToneMapped: nil),
+                let page = file.page
+            {
+                throw ModelError.highDynamicRangePage(
+                    place: place,
+                    kind: kind.label,
+                    reference: path,
+                    page: page,
+                    colorSpace: refused
+                )
+            }
+
             return TransitionMedia(file: file, duration: 0)
         }
         guard

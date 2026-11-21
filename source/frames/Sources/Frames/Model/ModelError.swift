@@ -25,6 +25,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case unnamedPage(place: Place, kind: String, reference: String, pageCount: Int)
     case missingPage(place: Place, kind: String, reference: String, page: Int, pageCount: Int)
     case pageOfNonPDF(place: Place, kind: String, reference: String)
+    case highDynamicRangePage(place: Place, kind: String, reference: String, page: Int, colorSpace: ColorSpace)
     case unknownTemplate(place: Place, kind: String, name: String)
     case misplacedMedia(place: Place, kind: String, reason: String)
     case easeWithoutFollowingKeyframe(place: Place, leaves: [Place])
@@ -91,6 +92,9 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .pageOfNonPDF(place, kind, reference):
             "\(place) (\(kind)): media \"\(reference)\" is not a PDF, so it has no pages"
+
+        case let .highDynamicRangePage(place, kind, reference, page, colorSpace):
+            "\(place) (\(kind)): media \"\(reference)\" page \(page) is not HDR, so it is read in a colour space of standard dynamic range, not \"\(colorSpace.rawValue)\". Allowed: \(VocabularyTable.standardDynamicRangeColorSpaces.joined(separator: ", "))"
 
         case let .unknownTemplate(place, kind, name):
             "\(place) (\(kind)): unknown template \"\(name)\""

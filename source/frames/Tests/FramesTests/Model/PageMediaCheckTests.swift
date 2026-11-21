@@ -61,41 +61,6 @@ struct PageMediaCheckTests {
     }
 
     @Test(
-        "toneMap on a clip whose media is a page stops as a key of another media row",
-        arguments: [
-            (
-                #"{ "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 2 }, "toneMap": false } ] }"#,
-                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
-            ),
-            (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/logo.pdf", "toneMap": true } ] } ] }"#,
-                #"storyline[0].connected[0] (page): unknown key "toneMap". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, media, colorSpace, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow"#
-            )
-        ]
-    )
-    func refusesToneMapOnPage(
-        body: String,
-        message: String
-    ) throws {
-        // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
-
-        // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == message)
-    }
-
-    @Test("a page's colorSpace takes the spaces of standard dynamic range, and an HDR name stops", arguments: ["rec2100-pq", "rec2100-hlg"])
-    func refusesHighDynamicRangeColorSpace(name: String) throws {
-        // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 1 }, "colorSpace": "\#(name)" } ] }"#)
-
-        // When, Then
-        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].colorSpace (page): unknown value "\#(name)". Allowed: srgb, display-p3, rec2020, rec709"#)
-    }
-
-    @Test(
         "a PDF of several pages named as a file stops, naming the file and its page count",
         arguments: [
             (
