@@ -1,6 +1,6 @@
 //
 //  PageWriter.swift
-//  FramesQuartzTests
+//  FramesTestMedia
 //
 //  Created by JSilver on 11/21/26.
 //
@@ -9,11 +9,13 @@ import Foundation
 
 // Writes a PDF of one page of `width` by `height` points whose content stream is `content`, in the page's own
 // coordinates, y pointing up from the bottom left, in DeviceGray or DeviceRGB.
-struct PageWriter {
+package struct PageWriter {
     // MARK: - Property
     // MARK: - Initializer
+    package init() { }
+
     // MARK: - Public
-    func write(
+    package func write(
         width: Double,
         height: Double,
         content: String,
