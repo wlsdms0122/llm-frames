@@ -5,13 +5,14 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Flattens a display list into what each of its items covers of the output frame, bottom first. A picture of a nested
-// list is replaced by that list's background and items, carried through the picture's source rect, destination and
-// transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
-// covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
-// arrowheads, a glyphs item's box (a unit's item cut to its unit's box by its reveal), and an adjustment's list frame,
-// each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
-// source is not drawn as items of the list, and does not cut what its item covers.
+// Flattens a display list into its items, bottom first, each with the map from its own coordinates to output pixels,
+// its extent in them, and what it covers of the output frame. A picture of a nested list is replaced by that list's
+// background and items, carried through the picture's source rect, destination and transform and cut by its mask,
+// reveal and destination, so they cover only what the picture shows. What an item covers follows its shape in convex
+// pieces: a picture's destination, a path's geometry with its stroke and arrowheads, a glyphs item's box (a unit's item cut to its unit's box by its reveal), and an
+// adjustment's list frame, each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners,
+// transition mattes and track mattes are left out: a track matte's source is not drawn as items of the list, and does
+// not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -40,6 +41,8 @@ struct DisplayListFlattener: Sendable {
                 origin: state.origin,
                 item: .background,
                 opacity: state.opacity,
+                transform: state.transform,
+                rect: frame,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
 
@@ -53,12 +56,16 @@ struct DisplayListFlattener: Sendable {
         state: GraphicsState
     ) -> [FlattenedItem] {
         let own = state.holding(item)
+        let transform: AffineTransform
+        let rect: Rectangle
         let coverage: ItemCoverage
         switch item.content {
         case let .picture(picture):
             return items(of: picture, own: own)
 
         case let .path(path):
+            transform = own.transform
+            rect = box(of: path.geometry)
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
 
         case let .glyphs(glyphs):
@@ -69,10 +76,14 @@ struct DisplayListFlattener: Sendable {
                 : glyphs.unitBox ?? Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
             guard let box else { return [] }
 
+            transform = own.transform
+            rect = extent(of: glyphs)
             coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
+            transform = state.transform
+            rect = frame
             coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
         }
 
@@ -80,6 +91,8 @@ struct DisplayListFlattener: Sendable {
             origin: own.origin,
             item: ItemKind(content: item.content),
             opacity: own.opacity,
+            transform: transform,
+            rect: rect,
             coverage: coverage
         )]
     }
@@ -100,6 +113,8 @@ struct DisplayListFlattener: Sendable {
                 origin: own.origin,
                 item: .picture,
                 opacity: own.opacity,
+                transform: own.transform,
+                rect: picture.destination,
                 coverage: coverage,
                 media: placement
             )]
@@ -114,6 +129,23 @@ struct DisplayListFlattener: Sendable {
             )
             return items(of: list, state: nested)
         }
+    }
+
+    // The box of a path's geometry as the list gives it, without its stroke.
+    private func box(of geometry: PathGeometry) -> Rectangle {
+        switch geometry {
+        case let .rect(rectangle, _), let .ellipse(rectangle):
+            rectangle
+
+        case let .polyline(points, _):
+            Rectangle(bounding: points)
+        }
+    }
+
+    // The extent of a glyphs item in its own coordinates: a unit's glyph box for a unit's item, and the whole text box
+    // otherwise.
+    private func extent(of glyphs: GlyphsItem) -> Rectangle {
+        glyphs.unitGlyphBox ?? glyphs.textBox
     }
 
     // The transform that carries `rectangle` onto `other`.

@@ -117,30 +117,39 @@ struct EvaluationReporterTests {
 
         // Then
         // The nested background and the fill without a clip of its own are the compound clip's picture.
+        let doubled = AffineTransform(scale: 2, about: Point(x: 0, y: 0))
         #expect(report.items == [
             EvaluationItem(
                 origin: nil,
                 item: .background,
                 bounds: Rectangle(x: 0, y: 0, width: 200, height: 100),
-                opacity: 1
+                opacity: 1,
+                transform: .identity,
+                rect: Rectangle(x: 0, y: 0, width: 200, height: 100)
             ),
             EvaluationItem(
                 origin: entry,
                 item: .background,
                 bounds: Rectangle(x: 0, y: 0, width: 200, height: 100),
-                opacity: 0.5
+                opacity: 0.5,
+                transform: doubled,
+                rect: Rectangle(x: 0, y: 0, width: 100, height: 50)
             ),
             EvaluationItem(
                 origin: nested,
                 item: .path,
                 bounds: Rectangle(x: 0, y: 0, width: 100, height: 50),
-                opacity: 0.5
+                opacity: 0.5,
+                transform: doubled,
+                rect: Rectangle(x: 0, y: 0, width: 50, height: 25)
             ),
             EvaluationItem(
                 origin: entry,
                 item: .path,
                 bounds: Rectangle(x: 100, y: 50, width: 100, height: 50),
-                opacity: 0.5
+                opacity: 0.5,
+                transform: doubled,
+                rect: Rectangle(x: 50, y: 25, width: 50, height: 25)
             )
         ])
     }
@@ -164,8 +173,16 @@ struct EvaluationReporterTests {
         let report = sut.report(of: list([DisplayItem(content: .picture(picture), origin: entry)]), at: 0)
 
         // Then
+        // The source rect's top left lands on the destination's, four times as large.
         #expect(report.items == [
-            EvaluationItem(origin: nested, item: .path, bounds: Rectangle(x: 0, y: 0, width: 200, height: 100), opacity: 1)
+            EvaluationItem(
+                origin: nested,
+                item: .path,
+                bounds: Rectangle(x: 0, y: 0, width: 200, height: 100),
+                opacity: 1,
+                transform: AffineTransform(a: 4, b: 0, c: 0, d: 4, tx: -200, ty: -200),
+                rect: Rectangle(x: 0, y: 0, width: 100, height: 100)
+            )
         ])
     }
 
@@ -197,7 +214,130 @@ struct EvaluationReporterTests {
         ])
     }
 
-    @Test("a resolved document is evaluated at the time, and its clips report their places, ids, kinds and bounds")
+    @Test("a nested list's items report the maps of the pictures holding them composed with their own, and their rects")
+    func reportsNestedTransforms() {
+        // Given
+        let inner = DisplayList(size: Size(width: 100, height: 50), background: red, seed: 0, items: [
+            DisplayItem(
+                transform: AffineTransform(translation: Point(x: 10, y: 0)),
+                content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 20, height: 10), color: black)),
+                origin: nested
+            ),
+            DisplayItem(
+                transform: AffineTransform(translation: Point(x: 5, y: 5)),
+                reveal: Rectangle(x: 0, y: 0, width: 100, height: 50),
+                content: .adjust(AdjustItem(filter: []))
+            )
+        ])
+        let picture = PictureItem(
+            source: .displayList(inner),
+            rectangle: nil,
+            destination: Rectangle(x: 20, y: 10, width: 50, height: 25)
+        )
+        let item = DisplayItem(
+            transform: AffineTransform(scale: 2, about: Point(x: 0, y: 0)),
+            content: .picture(picture),
+            origin: entry
+        )
+
+        // When
+        let report = sut.report(of: list([item], background: black), at: 0)
+
+        // Then
+        // The picture maps the list's pixels (x, y) to (20 + x / 2, 10 + y / 2) and its transform doubles that, so the
+        // list's pixels land at (40 + x, 20 + y), and the path's own at (50 + x, 20 + y). The adjustment's own
+        // transform carries only its reveal.
+        let list = AffineTransform(translation: Point(x: 40, y: 20))
+        #expect(report.items.map(\.transform) == [
+            .identity,
+            list,
+            AffineTransform(translation: Point(x: 50, y: 20)),
+            list
+        ])
+        #expect(report.items.map(\.rect) == [
+            Rectangle(x: 0, y: 0, width: 200, height: 100),
+            Rectangle(x: 0, y: 0, width: 100, height: 50),
+            Rectangle(x: 0, y: 0, width: 20, height: 10),
+            Rectangle(x: 0, y: 0, width: 100, height: 50)
+        ])
+    }
+
+    @Test("a turned, masked picture reports its whole destination as its rect, and its bounds only what shows")
+    func reportsPictureRect() throws {
+        // Given
+        let destination = Rectangle(x: 80, y: 40, width: 40, height: 20)
+        let item = DisplayItem(
+            transform: AffineTransform(rotation: 90, about: Point(x: 100, y: 50)),
+            mask: mask(Rectangle(x: 0, y: 0, width: 100, height: 100)),
+            content: .picture(PictureItem(source: .media(frame), rectangle: nil, destination: destination)),
+            origin: title
+        )
+
+        // When
+        let report = sut.report(of: list([item]), at: 0)
+
+        // Then
+        let reported = try #require(report.items.first)
+        #expect(reported.rect == destination)
+        #expect(isClose(reported.transform, AffineTransform(rotation: 90, about: Point(x: 100, y: 50))))
+        #expect(isClose(try #require(reported.bounds), Rectangle(x: 90, y: 30, width: 10, height: 40)))
+    }
+
+    @Test("a path's rect is the box of its geometry without its stroke, a polyline's the box of its points")
+    func reportsPathRect() {
+        // Given
+        let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .arrow)
+        let ellipse = DisplayItem(content: .path(PathItem(
+            geometry: .ellipse(Rectangle(x: 20, y: 20, width: 40, height: 30)),
+            fill: nil,
+            stroke: stroke
+        )))
+        let polyline = DisplayItem(content: .path(PathItem(
+            geometry: .polyline([Point(x: 100, y: 10), Point(x: 160, y: 10), Point(x: 160, y: 50)], isClosed: false),
+            fill: nil,
+            stroke: stroke
+        )))
+
+        // When
+        let report = sut.report(of: list([ellipse, polyline]), at: 0)
+
+        // Then
+        #expect(report.items.map(\.rect) == [
+            Rectangle(x: 20, y: 20, width: 40, height: 30),
+            Rectangle(x: 100, y: 10, width: 60, height: 40)
+        ])
+    }
+
+    @Test("a whole title's glyphs item reports its text box as its rect, and a unit's item its glyph box")
+    func reportsGlyphsRect() {
+        // Given
+        let size = Size(width: 100, height: 40)
+        let title = GlyphsItem(size: size, runs: [run(stroke: nil, highlight: nil)], background: nil)
+        let unit = GlyphsItem(
+            size: size,
+            runs: [run(stroke: nil, highlight: nil)],
+            layer: .fills,
+            unitBox: Rectangle(x: 0, y: 0, width: 50, height: 40),
+            unitGlyphBox: Rectangle(x: 5, y: 10, width: 30, height: 20),
+            background: nil
+        )
+        let moved = AffineTransform(translation: Point(x: 20, y: 20))
+
+        // When
+        let report = sut.report(of: list([
+            DisplayItem(transform: moved, content: .glyphs(title), origin: self.title),
+            DisplayItem(transform: moved, content: .glyphs(unit), origin: self.title)
+        ]), at: 0)
+
+        // Then
+        #expect(report.items.map(\.transform) == [moved, moved])
+        #expect(report.items.map(\.rect) == [
+            Rectangle(x: 0, y: 0, width: 100, height: 40),
+            Rectangle(x: 5, y: 10, width: 30, height: 20)
+        ])
+    }
+
+    @Test("a resolved document is evaluated at the time, its clips reporting places, ids, kinds, bounds and rects")
     func reportsResolvedDocument() throws {
         // Given
         let document = try resolved(#"""
@@ -215,18 +355,29 @@ struct EvaluationReporterTests {
         #expect(report.time == 1.5)
         #expect(report.size == Size(width: 1080, height: 1920))
         #expect(report.items == [
-            EvaluationItem(origin: nil, item: .background, bounds: frame, opacity: 1),
+            EvaluationItem(
+                origin: nil,
+                item: .background,
+                bounds: frame,
+                opacity: 1,
+                transform: .identity,
+                rect: frame
+            ),
             EvaluationItem(
                 origin: ItemOrigin(place: "storyline[0]#intro", id: "intro", kind: "video"),
                 item: .picture,
                 bounds: frame,
-                opacity: 1
+                opacity: 1,
+                transform: .identity,
+                rect: frame
             ),
             EvaluationItem(
                 origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "rect"),
                 item: .path,
                 bounds: Rectangle(x: 100, y: 200, width: 300, height: 400),
-                opacity: 1
+                opacity: 1,
+                transform: .identity,
+                rect: Rectangle(x: 100, y: 200, width: 300, height: 400)
             )
         ])
     }
@@ -312,7 +463,7 @@ struct EvaluationReporterTests {
         #expect(places.filter { $0 == "storyline[0].connected[0]" }.count == 1)
     }
 
-    @Test("the machine output is the evaluate object FRAMES-23 gives, bounds and opacity rounded to a millionth")
+    @Test("the machine output is the evaluate object FRAMES-23 gives, its numbers rounded to a millionth")
     func writesMachineOutput() throws {
         // Given
         let turned = DisplayItem(
@@ -339,7 +490,9 @@ struct EvaluationReporterTests {
                   "kind": null,
                   "item": "background",
                   "bounds": [0, 0, 200, 100],
-                  "opacity": 1
+                  "opacity": 1,
+                  "transform": [1, 0, 0, 1, 0, 0],
+                  "rect": [0, 0, 200, 100]
                 },
                 {
                   "place": "clips[0]#title",
@@ -347,7 +500,9 @@ struct EvaluationReporterTests {
                   "kind": "title",
                   "item": "path",
                   "bounds": [90, 30, 20, 40],
-                  "opacity": 0.3
+                  "opacity": 0.3,
+                  "transform": [0, 1, -1, 0, 150, -50],
+                  "rect": [80, 40, 40, 20]
                 }
               ]
             }
@@ -368,8 +523,39 @@ struct EvaluationReporterTests {
         DisplayList(size: size, background: background ?? transparent, seed: 0, items: items)
     }
 
+    // A picture of the first frame of a file evaluation opens nothing of.
+    private var frame: MediaFrame {
+        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: ""))), index: 0)
+    }
+
+    // A run of one glyph at the pen (10, 30) of the item's own coordinates.
+    private func run(
+        stroke: TextStroke?,
+        highlight: DrawnHighlight?
+    ) -> DrawnGlyphRun {
+        DrawnGlyphRun(
+            font: PinnedFile(path: "/abs/font.ttf", sha256: ""),
+            face: "Regular",
+            size: 24,
+            color: black,
+            stroke: stroke,
+            highlight: highlight,
+            underline: nil,
+            glyphs: [PositionedGlyph(id: 1, x: 10, y: 30)]
+        )
+    }
+
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    private func isClose(
+        _ transform: AffineTransform,
+        _ other: AffineTransform
+    ) -> Bool {
+        [transform.a - other.a, transform.b - other.b, transform.c - other.c, transform.d - other.d,
+         transform.tx - other.tx, transform.ty - other.ty]
+            .allSatisfy { abs($0) < 1e-9 }
     }
 
     private func isClose(
