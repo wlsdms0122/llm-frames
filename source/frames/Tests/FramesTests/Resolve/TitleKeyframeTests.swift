@@ -71,7 +71,7 @@ struct TitleKeyframeTests {
             """#
 
         // When, Then
-        let message = place + " (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+        let message = place + " (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
         let error = #expect(throws: (any Error).self) { try title(clip) }
         #expect(error.map(String.init(describing:)) == message)
     }

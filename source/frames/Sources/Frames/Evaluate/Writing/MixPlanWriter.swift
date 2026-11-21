@@ -22,14 +22,28 @@ package struct MixPlanWriter: Sendable {
     func document(_ plan: MixPlan) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "mixPlan", value: .string(FramesVersion.current)),
-            JSONMember(key: "segments", value: .array(plan.segments.map(segment)))
+            JSONMember(key: "length", value: .number(Double(plan.length))),
+            JSONMember(key: "segments", value: .array(plan.segments.map(segment))),
+            JSONMember(key: "buses", value: .array(plan.buses.map(bus))),
+            JSONMember(key: "filter", value: .array(plan.filter.map(entry)))
         ]))
     }
 
     // MARK: - Private
+    private func bus(_ bus: MixBus) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "start", value: .number(bus.start)),
+            JSONMember(key: "end", value: .number(bus.end)),
+            JSONMember(key: "segments", value: .array(bus.segments.map(segment))),
+            JSONMember(key: "buses", value: .array(bus.buses.map(self.bus))),
+            JSONMember(key: "filter", value: .array(bus.filter.map(entry))),
+            JSONMember(key: "envelope", value: points(bus.envelope))
+        ]))
+    }
+
     private func segment(_ segment: MixSegment) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "media", value: .object(JSONObject(members: values.media(segment.media)))),
+            JSONMember(key: "media", value: .object(JSONObject(members: media(segment.media)))),
             JSONMember(key: "mediaStart", value: .number(segment.mediaStart)),
             JSONMember(key: "speed", value: .number(segment.speed)),
             JSONMember(key: "start", value: .number(segment.start)),
@@ -38,6 +52,17 @@ package struct MixPlanWriter: Sendable {
             JSONMember(key: "envelope", value: points(segment.envelope)),
             JSONMember(key: "pan", value: points(segment.pan))
         ]))
+    }
+
+    // Pinned media as a resolved document writes it, and a file nothing pins as its path alone.
+    private func media(_ media: MixMedia) -> [JSONMember] {
+        switch media {
+        case let .pinned(media):
+            values.media(media)
+
+        case let .unpinned(path):
+            [JSONMember(key: "file", value: .string(path))]
+        }
     }
 
     private func entry(_ entry: MixFilterEntry) -> JSONValue {
@@ -70,6 +95,14 @@ package struct MixPlanWriter: Sendable {
                 JSONMember(key: "attack", value: value(gate.attack)),
                 JSONMember(key: "hold", value: value(gate.hold)),
                 JSONMember(key: "release", value: value(gate.release))
+            ]
+
+        case let .limiter(limiter):
+            [
+                JSONMember(key: "gain", value: value(limiter.gain)),
+                JSONMember(key: "ceiling", value: value(limiter.ceiling)),
+                JSONMember(key: "lookahead", value: .number(limiter.lookahead)),
+                JSONMember(key: "release", value: value(limiter.release))
             ]
         }
 

@@ -16,7 +16,7 @@ extension MixSegment {
         atSamples samples: Range<Int>,
         sampleRate: Double
     ) -> [Float] {
-        values(of: envelope, atSamples: samples, sampleRate: sampleRate, empty: 1)
+        EnvelopeCursor.values(of: envelope, atSamples: samples, sampleRate: sampleRate, empty: 1)
     }
 
     // The pan at each output sample of `samples`, the centre where the pan envelope has no points.
@@ -24,19 +24,8 @@ extension MixSegment {
         atSamples samples: Range<Int>,
         sampleRate: Double
     ) -> [Float] {
-        values(of: pan, atSamples: samples, sampleRate: sampleRate, empty: 0)
+        EnvelopeCursor.values(of: pan, atSamples: samples, sampleRate: sampleRate, empty: 0)
     }
 
     // MARK: - Private
-    private func values(
-        of points: [EnvelopePoint],
-        atSamples samples: Range<Int>,
-        sampleRate: Double,
-        empty: Float
-    ) -> [Float] {
-        guard !points.isEmpty else { return Array(repeating: empty, count: samples.count) }
-        var cursor = EnvelopeCursor(points: points)
-
-        return samples.map { Float(cursor.value(at: Double($0) / sampleRate)) }
-    }
 }

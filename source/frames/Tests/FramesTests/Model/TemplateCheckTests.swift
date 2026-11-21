@@ -172,7 +172,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media.args.shot (sequence): unknown key "opz". Allowed: kind, format, theme, params, storyline, clips"#)
+        #expect(error?.description == #"storyline[0].media.args.shot (sequence): unknown key "opz". Allowed: kind, format, theme, params, storyline, clips, audioFilter, keyframes"#)
     }
 
     @Test("a template named by a choice parameter takes the probed kind its options share")

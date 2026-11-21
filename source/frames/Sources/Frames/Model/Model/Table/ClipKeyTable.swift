@@ -25,27 +25,11 @@ enum ClipKeyTable {
         return ObjectTable(kind: kind.label, rules: rules)
     }
 
-    // A media clip of a video or a compound clip written with `"picture": false`, which takes only its media's sound
-    // and so an audio clip's keys, and `picture`. A compound clip's or a template instance's sound takes no
-    // `audioFilter`, for the reason `takes(_:kind:)` gives.
-    static func soundTable(
-        of media: MediaKind,
-        in place: ClipPlace
-    ) -> ObjectTable {
+    // A media clip of a video, a compound clip or a template instance written with `"picture": false`, which takes
+    // only its media's sound and so an audio clip's keys, and `picture`.
+    static func soundTable(in place: ClipPlace) -> ObjectTable {
         let audio = table(for: .media(.audio), in: place)
-        let picture = KeyRule("picture", .bool)
-        guard media == .sequence else { return ObjectTable(kind: audio.kind, rules: audio.rules + [picture]) }
-
-        let keyframes = keyframeTable(for: .media(.audio), in: place)
-        let mixed = ObjectTable(
-            kind: keyframes.kind,
-            rules: keyframes.rules.filter { $0.name != "audioFilter" },
-            groups: [KeyGroup(keys: keyframable(for: .media(.audio), in: place).filter { $0 != "audioFilter" }, isExclusive: false)]
-        )
-        let rules = audio.rules.filter { $0.name != "audioFilter" }.map { rule in
-            rule.name == "keyframes" ? KeyRule("keyframes", .list(.object(mixed))) : rule
-        }
-        return ObjectTable(kind: audio.kind, rules: rules + [picture])
+        return ObjectTable(kind: audio.kind, rules: audio.rules + [KeyRule("picture", .bool)])
     }
 
     // The preset choice a clip key takes, which is the same for every kind and place, or nil for a key that takes none.
@@ -420,13 +404,13 @@ enum ClipKeyTable {
         }
     }
 
-    // A compound clip's or a template instance's sound is a mix of several sounds, so it takes no `audioFilter`, and its
-    // pictures are working values already, so it takes no `colorSpace` or `toneMap`; its clips take their own.
+    // A compound clip's or a template instance's pictures are working values already, so it takes no `colorSpace` or
+    // `toneMap`; its clips take their own.
     private static func takes(
         _ key: String,
         kind: ClipKind
     ) -> Bool {
-        !["audioFilter", "colorSpace", "toneMap"].contains(key) || kind != .media(.sequence)
+        !["colorSpace", "toneMap"].contains(key) || kind != .media(.sequence)
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {

@@ -14,16 +14,16 @@ extension MixSegment {
         fps: Double
     ) {
         let heard = path.heard
-        // Only the media's own sound takes an audio filter; the layers outside it are compound clips, which take none.
-        let filter: [MixFilterEntry] = path.layers.last.map { layer in
-            guard case let .list(entries) = layer.sound.audioFilter else { return [] }
-
-            let sampler = MixValueSampler(clock: layer.clock, heard: heard, fps: fps)
-            return entries.compactMap { MixFilterEntry(timed: $0, sampler: sampler) }
+        // The chains of the compound clips that hold the sound run on their buses, so a segment's filter is its own.
+        let filter = path.layers.last.map { layer in
+            MixFilterEntry.entries(
+                of: layer.sound.audioFilter,
+                sampler: MixValueSampler(clock: layer.clock, heard: heard, fps: fps)
+            )
         } ?? []
 
         self.init(
-            media: media,
+            media: .pinned(media),
             mediaStart: path.clock.clipTime(atSequenceTime: heard.start),
             speed: path.clock.speed,
             start: heard.start,

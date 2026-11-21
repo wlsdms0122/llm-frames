@@ -178,7 +178,7 @@ struct RenderOutputTests {
             Issue.record("refused with \(String(describing: error))")
             return
         }
-        #expect(segment == 0 && speed == 40)
+        #expect(segment == "segments[0]" && speed == 40)
         #expect(try contents(of: output).isEmpty)
     }
 

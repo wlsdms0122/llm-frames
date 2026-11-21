@@ -16,6 +16,10 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveStep(step: Double)
     case emptyRange(from: Double, to: Double)
     case sampledList
+    case noSound(file: String)
+    case beforeSoundStart(option: String, time: Double)
+    case atOrAfterSoundEnd(option: String, time: Double, end: Double)
+    case afterSoundEnd(option: String, time: Double, end: Double)
 
     // MARK: - Property
     var description: String {
@@ -49,6 +53,18 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case .sampledList:
             "the display list holds samples, an exposure in which an item has no one place, and the frame is reported as at its instant"
+
+        case let .noSound(file):
+            "media \(quoted(file)) has no sound to measure"
+
+        case let .beforeSoundStart(option, time):
+            "\(option): second \(number(time)) is before the start of the sound"
+
+        case let .atOrAfterSoundEnd(option, time, end):
+            "\(option): second \(number(time)) is at or after the end of the sound at \(number(end))"
+
+        case let .afterSoundEnd(option, time, end):
+            "\(option): second \(number(time)) is after the end of the sound at \(number(end))"
         }
     }
 
