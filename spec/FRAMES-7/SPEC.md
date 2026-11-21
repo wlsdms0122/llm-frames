@@ -68,11 +68,11 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | format | `size, fps, background, conform, colorSpace, peak, compositing` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
 | storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| storyline clip, still (an image or a page of a PDF, [FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, still (an image or a page of a PDF, [FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages), which takes no `toneMap`, [FRAMES-26](../FRAMES-26/SPEC.md#media)) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (an image or a page of a PDF) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (an image or a page of a PDF, which takes no `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
 | audio clip of a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's but `audioFilter`, and `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
