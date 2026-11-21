@@ -103,7 +103,7 @@ struct DisplayListChecker {
         else {
             throw QuartzError.unsupportedCornerPin(place: "\(place).cornerPin")
         }
-        guard cornerPin.isStrictlyConvex || (isInSample && cornerPin == .collapsed) else {
+        guard cornerPin.isCornerPin(inSampleList: isInSample) else {
             throw QuartzError.nonConvexCornerPin(place: "\(place).cornerPin")
         }
     }

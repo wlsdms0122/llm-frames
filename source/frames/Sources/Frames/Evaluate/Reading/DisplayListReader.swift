@@ -397,16 +397,14 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // Four points the corners of `dest` go to, strictly convex, so the homography that carries the picture onto them
-    // takes `dest` onto their inside without passing through infinity (FRAMES-27). In a sample list they may also be
-    // four points at [0, 0], where a clip's group draws nothing.
+    // Four points the corners of `dest` go to, a corner pin a display list holds (`Quad.isCornerPin(inSampleList:)`).
     private func cornerPin(_ value: PlacedJSONValue) throws -> Quad {
         let elements = try value.elements()
         guard elements.count == 4 else { throw value.wrongType("a list of 4 points") }
 
         let corners = try elements.map(values.point)
         let quad = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-        guard quad.isStrictlyConvex || (isInSample && quad == .collapsed) else {
+        guard quad.isCornerPin(inSampleList: isInSample) else {
             let form = isInSample
                 ? "a corner pin in a sample list is a strictly convex quadrilateral or four points at [0, 0]"
                 : "a corner pin is a strictly convex quadrilateral"
