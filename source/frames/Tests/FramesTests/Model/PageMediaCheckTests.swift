@@ -36,8 +36,8 @@ struct PageMediaCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
               { "media": "/abs/run.mp4", "connected": [
-                { "id": "page", "at": 0, "media": { "file": "/abs/deck.pdf", "page": 3 }, "crop": { "text": "Total", "padding": 4 } },
-                { "at": 0, "parent": "page", "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" } } ] }
+                { "id": "page", "at": [0, 2], "media": { "file": "/abs/deck.pdf", "page": 3 }, "crop": { "text": "Total", "padding": 4 } },
+                { "at": [0, 2], "parent": "page", "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" } } ] }
             ] }
             """#)
 
