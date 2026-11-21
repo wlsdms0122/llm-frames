@@ -151,7 +151,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each at most 480 pixels on its longer side and labelled with its time |
 | `timeline <document> [--args <args.json>] [--json]` | the plan of time without rendering: every storyline clip's edit, drawn and clip ranges, speed and transition, and every other clip's visible range, kind and animation, each by its place. `--json` also gives each clip's lane and parent |
-| `evaluate <document> --at <t> [--args <args.json>]` | the display list at a time: what is drawn, by which clip, where, as JSON |
+| `evaluate <document> --at <t> [--args <args.json>]` | the display list at a time: what is drawn, by which clip, where, and where each title's lines, words and characters lie, as JSON |
 | `locate <document> --at <t> --point <x,y> [--args <args.json>]` | the clips under a point of the output at a time, and for media the frame and pixel it shows |
 
 Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes, as an SDR sRGB preview. `ocr` and `track` read the media in the colour space `--color-space` names, as a clip's `colorSpace` corrects it. `--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Flat white"}'`.
@@ -633,7 +633,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
-| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, characters}`, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, lines, words}` |
+| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, characters}`, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
 | `locate` | `{locate, hits}`, topmost first, each `{place, id, kind, item}`, and for a picture of a media file `{media, mediaTime, point}` |
 
 Times are rounded to the microsecond and positions, sizes, opacities and the numbers of a `transform` to the millionth. A new field is an addition within a version, and a removed or changed one a new major version ([FRAMES-18](spec/FRAMES-18/SPEC.md)). [FRAMES-23](spec/FRAMES-23/SPEC.md)
