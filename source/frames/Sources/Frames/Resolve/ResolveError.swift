@@ -56,7 +56,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
     case cornerPinOnGeometry(place: Place, kind: PlaceKind)
     case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
-    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double)
+    // `time` is the keyframe's, nil for a static corner pin found at the clip's instant.
+    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double?)
     case trackOnStorylineCornerPin(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
@@ -268,8 +269,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "since its outline is in its space already"
 
         case let .cornerPinNotBroughtBack(place, kind, time):
-            "\(place) (\(kind.label)): the corner pin at \(number(time)), brought back through the inverse of the "
-                + "track's homography there, does not lie wholly in front of its horizon or is not strictly convex"
+            "\(place) (\(kind.label)): the corner pin"
+                + (time.map { " at \(number($0))" } ?? ", found at the clip's instant")
+                + ", brought back through the inverse of the track's homography there, does not lie wholly in front of its "
+                + "horizon or is not strictly convex"
 
         case let .cornerPinNotConvex(place, kind, time):
             "\(place) (\(kind.label)): the corner pin\(time.map { " at \(number($0))" } ?? "") is not strictly convex, "

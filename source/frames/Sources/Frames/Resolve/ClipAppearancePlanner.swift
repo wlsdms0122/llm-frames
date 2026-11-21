@@ -36,33 +36,55 @@ struct ClipAppearancePlanner: Sendable {
     // Each keyframe of a tracked corner pin is brought back through the inverse of the track's homography at its own
     // time, on the frame shown there or the nearest frame followed, and a corner at or beyond that inverse's horizon, or
     // a corner pin brought back that is not strictly convex, stops (FRAMES-27 A tracked corner pin). A static corner pin
-    // is written on the track's frame, where the homography is the identity. A keyframe holding a clip area is the named
-    // clip's box at each instant, which only evaluation knows.
+    // true on the track's frame is where the homography is the identity; one a text form found other than the track's
+    // target is one keyframe at the clip's instant, and is brought back there as a keyframe is (FRAMES-19 Timed
+    // values). A keyframe holding a clip area is the named clip's box at each instant, which only evaluation knows.
     private func checkBroughtBack(
         of points: PropertyValue<[GeometryPoint]>,
         written: PropertyValue<[PositionForm]>,
         track: TrackedMedia,
+        isOnTrackFrame: Bool,
+        instant: Double,
         place: Place,
         kind: PlaceKind
     ) throws {
-        guard case let .keyframes(keyframes) = points, case let .keyframes(writtenKeyframes) = written else { return }
-
-        for keyframe in keyframes where keyframe.value.count == 4 && keyframe.value.allSatisfy({ $0.clipArea == nil }) {
-            let corners = keyframe.value.map(\.fixed)
-            let pin = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-            let homography = track.homography(at: keyframe.at)
-            let frame = homography.flatMap { $0.apply(to: track.track.target) }
-            let broughtBack = homography.flatMap { homography in
-                frame.flatMap { homography.inverse.apply(to: pin, inFrontOf: $0) }
+        switch (points, written) {
+        case let (.keyframes(keyframes), .keyframes(writtenKeyframes)):
+            for keyframe in keyframes where !isBroughtBack(keyframe.value, track: track, at: keyframe.at) {
+                throw ResolveError.cornerPinNotBroughtBack(
+                    place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
+                    kind: kind,
+                    time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
+                )
             }
-            guard broughtBack?.isStrictlyConvex != true else { continue }
 
-            throw ResolveError.cornerPinNotBroughtBack(
-                place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
-                kind: kind,
-                time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
-            )
+        case let (.value(points), .value):
+            guard !isOnTrackFrame, !isBroughtBack(points, track: track, at: instant) else { return }
+
+            throw ResolveError.cornerPinNotBroughtBack(place: place.appending(key: "cornerPin"), kind: kind, time: nil)
+
+        default:
+            return
         }
+    }
+
+    // Whether a corner pin at the time lies wholly in front of the horizon of the inverse of the track's homography and
+    // is strictly convex brought back. One holding a clip area is not brought back.
+    private func isBroughtBack(
+        _ points: [GeometryPoint],
+        track: TrackedMedia,
+        at time: Double
+    ) -> Bool {
+        guard points.count == 4, points.allSatisfy({ $0.clipArea == nil }) else { return true }
+
+        let corners = points.map(\.fixed)
+        let pin = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
+        let homography = track.homography(at: time)
+        let frame = homography.flatMap { $0.apply(to: track.track.target) }
+        let broughtBack = homography.flatMap { homography in
+            frame.flatMap { homography.inverse.apply(to: pin, inFrontOf: $0) }
+        }
+        return broughtBack?.isStrictlyConvex == true
     }
 
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
@@ -164,7 +186,15 @@ struct ClipAppearancePlanner: Sendable {
         }
         try checkConvexity(of: points, written: pin, place: written.place, kind: kind)
         if let track {
-            try checkBroughtBack(of: points, written: pin, track: track, place: written.place, kind: kind)
+            try checkBroughtBack(
+                of: points,
+                written: pin,
+                track: track,
+                isOnTrackFrame: plan.onTrackFrame(of: written).contains(.cornerPin),
+                instant: plan.instant,
+                place: written.place,
+                kind: kind
+            )
         }
         guard
             let size = boxSize(of: plan, written: written, crop: crop, title: title, picture: picture, shape: shape, format: format)
