@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/21/26.
 //
 
-// Every title of a sequence and of the sequences nested in it, by place, each with the time evaluation samples it at
-// when the sequence is drawn at a time: a nested sequence is sampled at its clip's or storyline entry's `mediaTime(at:)`,
-// the time `Evaluator` draws it at. Whether a title is drawn at that time is for its items to say.
+// Every title of a sequence and of the sequences nested in it, by place, each with the time the list without motion
+// blur samples it at when the sequence is drawn at a time: a nested sequence is sampled at its clip's or storyline
+// entry's `mediaTime(at:)`, the time `Evaluator` draws it at in that list. Whether a title is drawn at that time is for
+// its items to say.
 extension ResolvedSequence {
     // MARK: - Property
     // MARK: - Initializer
