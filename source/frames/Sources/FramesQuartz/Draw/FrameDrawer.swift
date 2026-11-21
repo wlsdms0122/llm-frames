@@ -10,13 +10,15 @@ import CoreImage
 import Frames
 
 // Draws the display lists of one output frame, items bottom first. An item's masks and track matte multiply its alpha
-// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow.
-// Opacity below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's
-// source among them, is drawn on a raster at the scale it is shown at, once per frame for each raster, so it is as
-// sharp as its items drawn in place; every length in pixels inside it is scaled with it. Each list is drawn in the form
-// of the working values its `compositing` names, which its items are composited, covered, resampled, blurred and mixed
-// in, and its picture is converted to the form of the list that shows it. The frame is a half float bitmap of encoded
-// working values.
+// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow. Opacity
+// below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's source among
+// them, is drawn on a raster at the scale it is shown at, once per frame or sample for each raster, so it is as sharp
+// as its items drawn in place; every length in pixels inside it is scaled with it. Each list is drawn in the form of
+// the working values its `compositing` names, which its items are composited, covered, resampled, blurred and mixed in,
+// and its picture is converted to the form of the list that shows it. A frame given as sample lists is the mean of
+// their pictures, each drawn as a frame of its items with the list's size, background and compositing, and the nested
+// rasters of one sample are released before the next is drawn. The frame is a half float bitmap of encoded working
+// values.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -37,8 +39,23 @@ final class FrameDrawer {
     }
 
     // MARK: - Public
+    // Sample lists that are all equal draw one picture, which is their mean.
     func draw(_ list: DisplayList) throws -> FrameContext {
-        try draw(list, on: Raster(holding: list.size))
+        let raster = Raster(holding: list.size)
+        guard let samples = list.samples, let first = samples.first else {
+            return try draw(list.items, of: list, place: "items", on: raster)
+        }
+        guard samples.contains(where: { $0 != first }) else {
+            return try draw(first, of: list, place: "samples[0]", on: raster)
+        }
+
+        let sum = AccumulationBuffer(width: raster.width, height: raster.height)
+        for (index, sample) in samples.enumerated() {
+            sum.add(try draw(sample, of: list, place: "samples[\(index)]", on: raster))
+            nested.removeAll()
+        }
+
+        return try sum.mean(compositing: list.compositing)
     }
 
     // MARK: - Private
@@ -46,13 +63,23 @@ final class FrameDrawer {
         _ list: DisplayList,
         on raster: Raster
     ) throws -> FrameContext {
+        try draw(list.items, of: list, place: "items", on: raster)
+    }
+
+    // `items` are the list's own or one of its sample lists, and `place` is their path in the list.
+    private func draw(
+        _ items: [DisplayItem],
+        of list: DisplayList,
+        place: String,
+        on raster: Raster
+    ) throws -> FrameContext {
         let frame = try FrameContext(width: raster.width, height: raster.height, compositing: list.compositing)
         frame.context.setFillColor(list.background.cgColor)
         frame.context.fill(frame.bounds)
 
-        for (index, item) in list.items.enumerated() {
+        for (index, item) in items.enumerated() {
             guard let mode = BlendMode(rawValue: item.blend) else {
-                throw QuartzError.unsupportedBlend(name: item.blend, place: "items[\(index)].blend")
+                throw QuartzError.unsupportedBlend(name: item.blend, place: "\(place)[\(index)].blend")
             }
             guard item.opacity > 0 else { continue }
 
