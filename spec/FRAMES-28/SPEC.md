@@ -1,14 +1,14 @@
-# FRAMES-28: Master and loudness
+# FRAMES-28: Buses and loudness
 
 Status: draft
 
 ## Summary
 
-The master chain and the loudness meter: a sequence's own `audioFilter`, which processes its mix after the sum and before the file, as an NLE's master or main bus takes effects; `limiter`, an audio op with a look-ahead and a true-peak detector, written out so every mixer limits the same way and usable on clips as on the master; and the meter that `loudness` prints, ITU-R BS.1770-5 integrated loudness, EBU Tech 3341 momentary and short-term loudness, EBU Tech 3342 loudness range, and BS.1770-5 true peak, measured on one sound, a medium's or the one a document's `render` writes. A loudness target is not a key: an extension measures and writes the gain that reaches it.
+Buses and the loudness meter: every sequence's sum is a bus whose chain is the sequence's own `audioFilter`, run on the sum of its sounds wherever the sequence plays, as a compound clip's or a template instance's bus inside another sequence and as the mix when it is the outermost, as an NLE's submix and main bus take effects; `limiter`, an audio op with a look-ahead and a true-peak detector, written out so every mixer limits the same way and usable on clips as on buses; and the meter that `loudness` prints, ITU-R BS.1770-5 integrated loudness, EBU Tech 3341 momentary and short-term loudness, EBU Tech 3342 loudness range, and BS.1770-5 true peak, measured on one sound, a medium's or a document's mix. A loudness target is not a key: an extension measures and writes the gain that reaches it.
 
 ## Motivation
 
-A mix is made to a loudness and under a peak: EBU R 128 asks for -23 LUFS and a true peak at or below -1 dBTP, and the streaming services normalise to their own levels. Without a master chain the mix is the plain sum of its sounds, and the samples a hot passage carries past full scale are clipped where the master stores them as 24-bit PCM ([FRAMES-21](../FRAMES-21/SPEC.md)), before any file exists, so no tool run on the file afterwards can take the clip back out. A limiter on each clip does not hold the sum of several clips under a ceiling. And without a meter an agent cannot know how loud its mix is: it could only render, encode and measure the encoded file with another tool, which reads the clipped sum and gives a number frames cannot promise. With a sequence `audioFilter` and `limiter` every sample of the mix is held at or under a ceiling by a published formula, and with `loudness` an extension that normalises to -23 LUFS measures the document, writes the difference into the limiter's `gain`, and measures again.
+A mix is made to a loudness and under a peak: EBU R 128 asks for -23 LUFS and a true peak at or below -1 dBTP, and the streaming services normalise to their own levels. Without a chain on the sequence's bus the mix is the plain sum of its sounds, and the samples a hot passage carries past full scale are clipped where `render` stores them as 24-bit PCM in its file ([FRAMES-21](../FRAMES-21/SPEC.md)), so no tool run on the file afterwards can take the clip back out. A limiter or a compressor on each clip does not act on the sum of several clips, as one on a dialogue submix or on the main bus does. And without a meter an agent cannot know how loud its mix is: it could only render, encode and measure the encoded file with another tool, which reads the clipped sum and gives a number frames cannot promise. With a sequence `audioFilter` and `limiter` every sample of the mix is held at or under a ceiling by a published formula, and with `loudness` an extension that normalises to -23 LUFS measures the document, writes the difference into the limiter's `gain`, and measures again.
 
 ## Rules
 
@@ -45,7 +45,7 @@ Level after the sum equals level on each sound where a bus has no chain, since t
 
 ### Limiter
 
-`limiter` is an op of the audio filter table ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), taken by a clip's `audioFilter`, by an audio preset's `ops` and by the master chain. It raises a sound by `gain`, then turns it down wherever its true peak would pass `ceiling`, along a ramp `lookahead` seconds long that ends at the peak, and lets it back up by `release`, as an NLE's limiter does (Final Cut Pro's Limiter with Gain, Lookahead and Release, Premiere Pro's Hard Limiter with Input Boost).
+`limiter` is an op of the audio filter table ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), taken by a clip's `audioFilter`, by an audio preset's `ops` and by a sequence's `audioFilter`. It raises a sound by `gain`, then turns it down wherever its true peak would pass `ceiling`, along a ramp `lookahead` seconds long that ends at the peak, and lets it back up by `release`, as an NLE's limiter does (Final Cut Pro's Limiter with Gain, Lookahead and Release, Premiere Pro's Hard Limiter with Input Boost).
 
 | Parameter | Form | Default |
 | --- | --- | --- |
@@ -139,9 +139,9 @@ The meter measures stereo sound at 48 kHz, two channels L and R, as the mixer gi
 
 `loudness` measures one sound with the meter and prints its measures as machine output ([FRAMES-23](../FRAMES-23/SPEC.md)).
 
-- A document's sound is the sound `render` writes: the document resolved and mixed, without rendering pictures, as `render` mixes it, with the same mixer, over the mix plan's length ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), after its master chain and before it is clipped and encoded. The sound before the master chain is the same document without its `audioFilter`, which an extension measures by writing that document.
+- A document's sound is its mix ([Buses](#buses)): the document resolved and mixed, without rendering pictures, as `render` mixes it, with the same mixer, over the mix plan's length ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), the outermost bus's output after its chain, before it is clipped where a file stores it as PCM and encoded. The sum before the chain is the mix of the same document without its `audioFilter`, which an extension measures by writing that document.
 - A medium's sound is the sound the mixer plays for a clip of it at `volume` 1 and `pan` 0, with no `audioFilter`, from media time 0 at `speed` 1 ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)): read through the decoder, resampled to 48 kHz, a sound of more than two channels downmixed by ITU-R BS.775 ([FRAMES-21](../FRAMES-21/SPEC.md)), and a mono sound placed at the centre by the pan law, so a mono or stereo file reads as a BS.1770-5 meter reads it.
-- The range is the samples n from a to b - 1 whose time n / 48000 lies in `[--from, --to)`: media time for a medium and sequence time for a document, from 0 and to the end of the sound when they are not written, the medium's sound or the mix plan's length. With `--from` or `--to` the meter reads the range as an interval of the whole sound ([Loudness meter](#loudness-meter)), so a limited master measured over part of itself reads the same samples and interpolated points there as over the whole of it, and no false peak at the cut.
+- The range is the samples n from a to b - 1 whose time n / 48000 lies in `[--from, --to)`: media time for a medium and sequence time for a document, from 0 and to the end of the sound when they are not written, the medium's sound or the mix plan's length. With `--from` or `--to` the meter reads the range as an interval of the whole sound ([Loudness meter](#loudness-meter)), so a limited mix measured over part of itself reads the same samples and interpolated points there as over the whole of it, and no false peak at the cut.
 
 **Note.** A medium of more than two channels is measured after the BS.775 downmix the mixer applies, so a 5.1 file reads otherwise than on a 5.1 BS.1770-5 meter, which weights its surrounds by 1.41 and adds the channels' powers. The measures `loudness` prints are those of the sound a clip of the file plays in a frames mix.
 
@@ -151,25 +151,25 @@ The meter measures stereo sound at 48 kHz, two channels L and R, as the mixer gi
 
 ## Interactions
 
-The audio op table, its checks, keyframes and state at rest are [FRAMES-13](../FRAMES-13/SPEC.md), and the sequence key is in the key table of [FRAMES-7](../FRAMES-7/SPEC.md). The resolved sequence carries the master chain ([FRAMES-19](../FRAMES-19/SPEC.md)), the mix plan carries it as `master` beside its length ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), and the mixer runs it ([FRAMES-21](../FRAMES-21/SPEC.md)). The `loudness` command's usage, options and machine output are [FRAMES-23](../FRAMES-23/SPEC.md), the checks on a limited master are [FRAMES-24](../FRAMES-24/SPEC.md), and the extensions that normalise loudness are [FRAMES-25](../FRAMES-25/SPEC.md). Audio presets are [FRAMES-14](../FRAMES-14/SPEC.md).
+The audio op table, its checks, keyframes and state at rest are [FRAMES-13](../FRAMES-13/SPEC.md), and the sequence key is in the key table of [FRAMES-7](../FRAMES-7/SPEC.md). The resolved sequence carries its chain ([FRAMES-19](../FRAMES-19/SPEC.md)), the mix plan carries its buses as a tree with each chain as `filter` beside its length ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), and the mixer sums and runs them ([FRAMES-21](../FRAMES-21/SPEC.md)). The `loudness` command's usage, options and machine output are [FRAMES-23](../FRAMES-23/SPEC.md), the checks on buses and a limited mix are [FRAMES-24](../FRAMES-24/SPEC.md), and the extensions that normalise loudness are [FRAMES-25](../FRAMES-25/SPEC.md). Audio presets are [FRAMES-14](../FRAMES-14/SPEC.md).
 
 ## Alternatives considered
 
 A loudness target as a key the mixer reaches in two passes, measuring and then setting the gain: an extension reaches it with the meter and the limiter's `gain`, a document then holds the gain it is mixed at, and none of Premiere Pro, Final Cut Pro, DaVinci Resolve and After Effects keeps a live loudness target on a timeline's mix.
 
-Resolve measuring the mix and pinning a master gain: resolve calls providers and never a role, and the mix is the mixer's output.
+Resolve measuring the mix and pinning a gain on it: resolve calls providers and never a role, and the mix is the mixer's output.
 
 A platform limiter (AUPeakLimiter, Logic's Limiter): its algorithm is not published, and the formulas of the audio ops are the contract ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)).
 
 A ceiling in `format`: a limiter is an audio effect every NLE also puts on clips, so it belongs in the one op table.
 
-`loudness` reporting the mix before the master chain beside the sound after it: the mix before it is the same document without its `audioFilter`, which an extension measures by writing that document, and one measurement of one sound gives a medium and a document the same output.
+`loudness` reporting the sum before the outermost chain beside the mix: the sum before it is the mix of the same document without its `audioFilter`, which an extension measures by writing that document, and one measurement of one sound gives a medium and a document the same output.
 
 A sample-peak limiter: it misses the peaks between samples that AAC decoding and digital to analogue converters reproduce (BS.1770-5 Annex 2, Attachment 1).
 
-A nested sequence's `audioFilter` ignored, as a compound clip's `colorSpace` is inside another sequence ([FRAMES-9](../FRAMES-9/SPEC.md)): `colorSpace` is how a sequence's output is encoded, and the master chain is part of its sound, so ignoring it would change how the sequence sounds inside another.
+A nested sequence's `audioFilter` ignored, as a compound clip's `colorSpace` is inside another sequence ([FRAMES-9](../FRAMES-9/SPEC.md)): `colorSpace` is how a sequence's output is encoded, and its chain is part of its sound, so ignoring it would change how the sequence sounds inside another.
 
-A master chain set for a delivery codec: the master chain is the sequence's own sound, and the master and the delivery file are encoded from it ([FRAMES-21](../FRAMES-21/SPEC.md)). A limit for one delivery is another render of the document, a document an extension writes with its own master chain.
+A sequence's chain set for a delivery codec: the chain is part of the sequence's own sound, and the master and the delivery file are both encoded from the one mix ([FRAMES-21](../FRAMES-21/SPEC.md)). A limit for one delivery is another render of the document, a document an extension writes with its own `audioFilter`.
 
 A compound clip's `pan` after its bus, as a balance on the sum: a mono sound inside it is placed by the equal-power pan law and a stereo one by a balance ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), so a balance after the sum would change the sound of every compound clip that holds a mono sound and whose `pan` is not 0.
 
@@ -177,9 +177,9 @@ A compound clip's level before its bus, multiplied into each of its sounds' gain
 
 A looped compound clip's chain at rest at each repeat, as a clip's audio filter is: a clip's filter starts again because its media jumps there, and a bus's chain runs on the sum in the outermost sequence's time, where the repeats follow one another as one sound.
 
-A master `volume` key: the limiter's `gain` is the master gain, as Final Cut Pro's Limiter Gain and Premiere Pro's Input Boost are.
+A `volume` key on the sequence: the `gain` of a `limiter` at `mix` 1 in its `audioFilter` raises or lowers the whole sum before it limits it, as Final Cut Pro's Limiter Gain and Premiere Pro's Input Boost do, and a compound clip's `volume` sets its bus's level in the sequence that holds it.
 
-A separate `gain` op: it would add nothing over `volume` on clips and the limiter's `gain` on the master.
+A separate `gain` op: it would add nothing over `volume` on clips and compound clips and a limiter's `gain` on a sequence.
 
 A `lookahead` that takes keyframes: the hold and the ramp share its window, so a moving one would have the hold look as far ahead as the largest value the sound takes, and a value written at one time would move the gain before every peak of the sound.
 
@@ -187,6 +187,6 @@ The gain smoothed by a mean of linear gains: the compressor and the gate smooth 
 
 ## Notes
 
-**Note.** The mixer holds the whole mix in memory, and the master chain and the meter each pass over all of it: the limiter's interpolation costs 48 multiplications and additions per sample per channel, and the meter's `momentaryMax` and `shortTermMax` read a window at every sample, which running sums make one pass. An hour of stereo at 48 kHz in 32-bit floats is about 1.4 GB per copy of the mix.
+**Note.** The mixer holds the whole mix in memory, and the buses' chains and the meter each pass over all of it: the limiter's interpolation costs 48 multiplications and additions per sample per channel, and the meter's `momentaryMax` and `shortTermMax` read a window at every sample, which running sums make one pass. An hour of stereo at 48 kHz in 32-bit floats is about 1.4 GB per copy of the mix.
 
-**Note.** Lossy coding such as AAC can raise a true peak, so a delivery file can read above its limited master. frames has not measured how far its own delivery AAC raises it.
+**Note.** Lossy coding such as AAC can raise a true peak, so a delivery file can read above the limited mix it is encoded from. frames has not measured how far its own delivery AAC raises it.
