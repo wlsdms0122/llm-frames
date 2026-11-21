@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box and its glyph box
-// are their boxes as resolved, moved with the first glyph of the characters it holds and widened by how far their last
-// glyph moves beyond it. A part is cut where the next unit's first held glyph is then, and the first and last parts of
-// a piece reach past its ends, so they hold its padding at any value.
+// A title's units at an instant, in its text box then, whose top left is `textBox(at:)`'s origin. A unit's box and its
+// glyph box are their boxes as resolved, moved with the first glyph of the characters it holds and widened by how far
+// their last glyph moves beyond it. A part is cut where the next unit's first held glyph is then, and the first and last
+// parts of a piece reach past its ends, so they hold its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -31,13 +31,32 @@ extension ResolvedText {
         return moved(unit.glyphBox, of: unit, at: time)
     }
 
+    // The unit's drawn extent at `time`: the smallest box that holds the glyph boxes then of the characters that go with
+    // it and of the hanging spaces it draws, each raised by its run's baseline shift then. A unit that draws no glyph
+    // has its glyph box then.
+    func extent(
+        of index: Int,
+        at time: Double
+    ) -> Rectangle {
+        guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
+
+        let moves = glyphMoves(at: time)
+        let characters = unit.characters
+        let stretch = lines[characters.line].clusters[characters.first..<(characters.first + characters.count)]
+        let glyphBoxes = glyphBoxes(of: Array(stretch), on: characters.line, moves: moves, at: time)
+            + unit.hangingLines.flatMap { line in glyphBoxes(of: lines[line].hanging, on: line, moves: moves, at: time) }
+        guard let first = glyphBoxes.first else { return glyphBox(of: index, at: time) }
+
+        return glyphBoxes.dropFirst().reduce(first) { $0.union($1) }
+    }
+
     func parts(
         of index: Int,
         at time: Double
     ) -> [UnitPart] {
         guard let units, units.indices.contains(index) else { return [] }
 
-        let origin = box(at: time)
+        let origin = textBox(at: time)
         let moves = glyphMoves(at: time)
 
         return units[index].parts.map { part in
@@ -67,7 +86,7 @@ extension ResolvedText {
         of unit: PlacedUnit,
         at time: Double
     ) -> Rectangle {
-        let origin = self.box(at: time)
+        let origin = textBox(at: time)
         let moves = glyphMoves(at: time)
         let held = heldGlyphs(of: unit)
         let start = firstMove(of: unit, moves: moves)

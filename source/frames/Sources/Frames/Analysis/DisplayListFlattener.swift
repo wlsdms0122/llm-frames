@@ -70,7 +70,7 @@ struct DisplayListFlattener: Sendable {
 
         case let .glyphs(glyphs):
             transform = own.transform
-            rect = extent(of: glyphs)
+            rect = glyphs.extent
             let drawn = drawn(by: glyphs, carriedBy: item.transform)
             coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
 
@@ -136,24 +136,16 @@ struct DisplayListFlattener: Sendable {
         }
     }
 
-    // The extent of a glyphs item in its own coordinates: a unit's glyph box for a unit's item, and the whole text box
-    // otherwise.
-    private func extent(of glyphs: GlyphsItem) -> Rectangle {
-        glyphs.unitGlyphBox ?? glyphs.textBox
-    }
-
     // What a glyphs item draws in its own coordinates, its stroke drawn in the pixels of its list on the outlines
-    // `transform` carries: its glyph box with its stroke and pieces joined with its background's rect, and for a
-    // title's background drawn alone, which holds no runs, its background's rect, or nothing without one.
+    // `transform` carries: its extent with its stroke and pieces joined with its background's rect, and for a title's
+    // background drawn alone, which holds no runs, its background's rect, or nothing without one.
     private func drawn(
         by glyphs: GlyphsItem,
         carriedBy transform: AffineTransform
     ) -> Rectangle? {
-        let background = glyphs.background?.rectangle
-        guard !glyphs.runs.isEmpty || glyphs.layer != nil else { return background }
+        guard !glyphs.runs.isEmpty || glyphs.layer != nil else { return glyphs.background?.rectangle }
 
-        let drawn = glyphs.drawnBounds(carriedBy: transform)
-        return background.map(drawn.union) ?? drawn
+        return glyphs.drawnBounds(carriedBy: transform)
     }
 
     // The transform that carries `rectangle` onto `other`.

@@ -121,15 +121,17 @@ struct ClipEvaluatorTests {
 
         // Then
         // Doubled and turned a quarter clockwise about (50, 40), which stays at (100, 200) once the box sits at
-        // (50, 160): the box's top left goes to (180, 100), and its x axis points down.
+        // (50, 160): the box's top left goes to (180, 100), and its x axis points down. The item lies in the text box,
+        // 8 right and 4 down in the box, which the background fills past it by its padding.
         let item = try #require(items.first)
-        let expected = AffineTransform(a: 0, b: 2, c: -2, d: 0, tx: 180, ty: 100)
+        let box = AffineTransform(a: 0, b: 2, c: -2, d: 0, tx: 180, ty: 100)
+        let expected = AffineTransform(translation: Point(x: 8, y: 4)).concatenating(box)
         #expect(items.count == 1)
         #expect(isClose(item.transform, expected))
         #expect(item.content == .glyphs(GlyphsItem(
-            size: Size(width: 100, height: 40),
+            size: Size(width: 84, height: 32),
             runs: [],
-            background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 6, color: white)
+            background: GlyphBackground(rectangle: Rectangle(x: -8, y: -4, width: 100, height: 40), radius: 6, color: white)
         )))
     }
 
@@ -154,17 +156,18 @@ struct ClipEvaluatorTests {
     }
 
     @Test(
-        "a mask's geometry is in the space its clip gives its children and is carried with it under a parent",
-        arguments: ["title", "media clip with a crop", "box shape", "area shape", "adjustment"]
+        "a mask's geometry is in its clip's own space, a title's text box, and is carried with it under a parent",
+        arguments: ["title", "title with a background", "media clip with a crop", "box shape", "area shape", "adjustment"]
     )
     func carriesMaskInClipSpace(kind: String) throws {
         // Given
         // Under the parent, the anchor point of a clip with a box of its own is carried and its box keeps its size. A
-        // title's 100 x 40 box anchored at (50, 40) on (100, 200) lands with its top left at (160, 360). The media
-        // clip's 80 x 40 box shows the crop (100, 50, 200, 100) of its media at 0.4 of its size, its top left at
-        // (70, 60). The rect's 40 x 20 box anchored at its centre on (60, 30) has its top left at (110, 50). The area
-        // shape turns a quarter about the centre (60, 30) of its area, and the adjustment doubles about the centre of
-        // its mask's bounds, before the parent's map.
+        // title's 100 x 40 box anchored at (50, 40) on (100, 200) lands with its top left at (160, 360), and a padding
+        // of 4 down and 8 across puts its text box 8 right and 4 down of that. The media clip's 80 x 40 box shows the
+        // crop (100, 50, 200, 100) of its media at 0.4 of its size, its top left at (70, 60). The rect's 40 x 20 box
+        // anchored at its centre on (60, 30) has its top left at (110, 50). The area shape turns a quarter about the
+        // centre (60, 30) of its area, and the adjustment doubles about the centre of its mask's bounds, before the
+        // parent's map.
         let clip: ResolvedClip
         let geometry: PathGeometry
         let expected: [(Point, Point)]
@@ -177,6 +180,19 @@ struct ClipEvaluatorTests {
                 box: box(size: Size(width: 100, height: 40), at: Point(x: 50, y: 160), anchor: Point(x: 50, y: 40))
             )
             expected = [(Point(x: 0, y: 0), Point(x: 160, y: 360)), (Point(x: 100, y: 40), Point(x: 260, y: 400))]
+
+        case "title with a background":
+            geometry = .rect(Rectangle(x: 0, y: 0, width: 84, height: 32), radius: 0)
+            clip = masked(
+                .title(ResolvedText(
+                    size: Size(width: 100, height: 40),
+                    background: TextBackground(color: white, padding: Size(width: 8, height: 4), radius: 0),
+                    runs: []
+                )),
+                mask: geometry,
+                box: box(size: Size(width: 100, height: 40), at: Point(x: 50, y: 160), anchor: Point(x: 50, y: 40))
+            )
+            expected = [(Point(x: 0, y: 0), Point(x: 168, y: 364)), (Point(x: 84, y: 32), Point(x: 252, y: 396))]
 
         case "media clip with a crop":
             geometry = .ellipse(Rectangle(x: 100, y: 50, width: 200, height: 100))

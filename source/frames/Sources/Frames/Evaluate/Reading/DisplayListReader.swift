@@ -152,7 +152,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "layer", "unitBox", "unitGlyphBox", "background"]
+            ["size", "runs", "layer", "unitBox", "extent", "background"]
 
         default:
             ["filter"]
@@ -409,7 +409,7 @@ package struct DisplayListReader: Sendable {
             runs: try values.drawnRuns(item.member("runs")),
             layer: try item.member("layer").optional { try literal($0) },
             unitBox: try item.member("unitBox").optional { try values.rectangle($0) },
-            unitGlyphBox: try item.member("unitGlyphBox").optional { try values.rectangle($0) },
+            extent: try values.rectangle(item.member("extent")),
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 

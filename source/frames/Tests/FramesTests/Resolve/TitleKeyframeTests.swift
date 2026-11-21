@@ -367,7 +367,7 @@ struct TitleKeyframeTests {
         #expect(text.lines.count == 2)
     }
 
-    @Test("a background's keyframed padding grows the title's box around its text box, and its background fills it")
+    @Test("a background's keyframed padding grows the title's box around its text box, and its background fills it past the text box its item lies in")
     func growsBoxByPadding() throws {
         // Given
         let text = try resolvedText(#"""
@@ -383,10 +383,10 @@ struct TitleKeyframeTests {
         // Then
         #expect(text.size == Size(width: 40, height: 40))
         #expect(box == Rectangle(x: -20, y: -10, width: 80, height: 60))
-        #expect(sut.size == Size(width: 80, height: 60))
-        #expect(sut.background?.rectangle == Rectangle(x: 0, y: 0, width: 80, height: 60))
+        #expect(sut.size == Size(width: 40, height: 40))
+        #expect(sut.background?.rectangle == Rectangle(x: -20, y: -10, width: 80, height: 60))
         #expect(sut.background?.color == Color(written: "#FF0000FF"))
-        #expect(sut.runs[0].glyphs.first.map { Point(x: $0.x, y: $0.y) } == Point(x: 20, y: 42))
+        #expect(sut.runs[0].glyphs.first.map { Point(x: $0.x, y: $0.y) } == Point(x: 0, y: 32))
     }
 
     @Test("a title's box grown at an instant keeps its text box where resolve placed it in the frame")
@@ -409,8 +409,8 @@ struct TitleKeyframeTests {
 
             return true
         })
-        #expect(item.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 380, y: 215))
-        #expect(item.transform.apply(to: Point(x: 20, y: 10)) == Point(x: 400, y: 225))
+        #expect(item.transform.apply(to: Point(x: 0, y: 0)) == Point(x: 400, y: 225))
+        #expect(item.transform.apply(to: Point(x: -20, y: -10)) == Point(x: 380, y: 215))
     }
 
     @Test("evaluation draws highlight and underline pieces over their glyphs where they are at an instant")
@@ -458,6 +458,70 @@ struct TitleKeyframeTests {
             Rectangle(x: 0, y: 42, width: 40, height: 2)
         ])
         #expect(sut.drawnBounds(carriedBy: .identity) == Rectangle(x: -4, y: -2, width: 48, height: 46))
+    }
+
+    @Test("evaluation moves a line's hanging spaces with its last character, by the tracking and the line height at an instant")
+    func movesHangingSpacesWithLastCharacter() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "a\nbc ", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "paragraph": { "lineHeight": 50 } },
+                             { "at": 1, "character": { "tracking": 100 }, "paragraph": { "lineHeight": 70 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: 0.5)
+        let box = text.box(at: 0.5)
+
+        // Then
+        // At 0.5 the tracking is 2 after "b" and none after "c", the line's last character, and the second line drops
+        // 10. The space hanging after "c" moves with "c" and widens nothing.
+        #expect(text.lines.map { $0.hanging.count } == [0, 1])
+        #expect(moves.flatMap { $0 } == [
+            Point(x: 0, y: 0),
+            Point(x: 0, y: 10),
+            Point(x: 2, y: 10),
+            Point(x: 2, y: 10)
+        ])
+        #expect(box.width == 42)
+    }
+
+    @Test("a ligature kept under keyframed tracking takes one step after it, and none when it ends its line")
+    func stepsOnceAfterLigature() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "fix", "style": "caption", "position": [400, 225], "character": { "features": { "liga": 1 } },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: 0.5)
+        let box = text.box(at: 0.5)
+
+        // Then
+        // "fi" is one glyph 40 wide and "x" 20, so one step of 2 follows the ligature and none follows "x".
+        #expect(text.lines.first?.clusters.map(\.glyphs.count) == [1, 0, 1])
+        #expect(moves == [[Point(x: 0, y: 0), Point(x: 2, y: 0)]])
+        #expect(box.width == 62)
+    }
+
+    @Test("a title's extent holds its text box and the glyph box of everything it draws, a raised run and a hanging space included")
+    func holdsRaisedGlyphsInExtent() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "a ", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "baselineShift": 0 } }, { "at": 1, "character": { "baselineShift": 10 } } ] }
+            """#)
+
+        // When
+        let sut = GlyphsItem(text: text, factor: 1, at: 1)
+
+        // Then
+        // "a" is 20 wide and the space after it 10, each from 32 above the baseline at 32 to 8 below, raised by 10.
+        // The title's item draws that grown by 2, half its stroke.
+        #expect(sut.size == Size(width: 20, height: 40))
+        #expect(sut.extent == Rectangle(x: 0, y: -10, width: 30, height: 50))
+        #expect(sut.drawnBounds(carriedBy: .identity) == Rectangle(x: -2, y: -12, width: 34, height: 54))
     }
 
     @Test("an animation over a title whose line height opens offsets it by its box then and scales it about its anchor point, which stays")

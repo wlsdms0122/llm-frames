@@ -147,8 +147,11 @@ struct ContentFitPlanner: Sendable {
     ) -> Rectangle? {
         switch clip.content {
         case let .title(text):
-            // The child map places the title's box at the time, which its glyphs item fills.
-            let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
+            // The child map places the title's box at the time, and its glyphs item lies in its text box inside it.
+            let box = text.box(at: 0)
+            let textBox = text.textBox(at: 0)
+            let transform = AffineTransform(translation: Point(x: textBox.x - box.x, y: textBox.y - box.y))
+                .concatenating(clipEvaluator.childTransform(of: clip, in: space, at: 0))
             return GlyphsItem(text: text, factor: 1, at: 0).filledRects()
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }

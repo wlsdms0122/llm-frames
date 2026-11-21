@@ -341,7 +341,7 @@ struct EvaluationReporterTests {
         #expect(hits.map(\.item) == [.glyphs])
     }
 
-    @Test("a unit's item reports and covers its glyph box, and a title's background alone its background or nothing")
+    @Test("a unit's item reports and covers its extent, and a title's background alone its background or nothing")
     func reportsUnitGlyphs() {
         // Given
         let size = Size(width: 100, height: 40)
@@ -350,7 +350,7 @@ struct EvaluationReporterTests {
             runs: [run(stroke: nil, highlight: nil)],
             layer: .fills,
             unitBox: Rectangle(x: 0, y: 0, width: 50, height: 40),
-            unitGlyphBox: Rectangle(x: 5, y: 10, width: 30, height: 20),
+            extent: Rectangle(x: 5, y: 10, width: 30, height: 20),
             background: nil
         )
         let background = GlyphsItem(

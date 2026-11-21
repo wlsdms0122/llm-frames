@@ -58,13 +58,15 @@ struct ContactSheetComposerTests {
         let sheet = try sut.sheet(of: cells, size: Size(width: 1920, height: 1080), columns: 1, face: face)
 
         // Then
-        // At S 48, "0s" is 48 wide with 24 on each side, and its line box of 48 has 12 above and below.
+        // At S 48, "0s" is 48 wide with 24 on each side, and its line box of 48 has 12 above and below. The item lies
+        // in the label's text box, which its background reaches past by that padding.
         let label = try #require(labelGlyphs(of: sheet).first)
         let run = try #require(label.runs.first)
-        #expect(label.size == Size(width: 96, height: 72))
+        #expect(label.size.width == 48)
+        #expect(abs(label.size.height - 48) < 0.000001)
         #expect(
             label.background == GlyphBackground(
-                rectangle: Rectangle(x: 0, y: 0, width: 96, height: 72),
+                rectangle: Rectangle(x: -24, y: -12, width: 96, height: 72),
                 radius: 48 * 0.3,
                 color: Color(written: "#000000B3")
             )
@@ -74,8 +76,8 @@ struct ContactSheetComposerTests {
         #expect(run.face == face.name)
         #expect(run.font.path == face.file)
         #expect(run.color == Color(written: "#FFFFFFFF"))
-        #expect(run.glyphs.map(\.x) == [24, 48])
-        #expect(run.glyphs.allSatisfy { abs($0.y - (12 + 0.8 * 48)) < 0.000001 })
+        #expect(run.glyphs.map(\.x) == [0, 24])
+        #expect(run.glyphs.allSatisfy { abs($0.y - 0.8 * 48) < 0.000001 })
     }
 
     @Test("each label's background has its top left half a label size from its frame's top left")
@@ -189,11 +191,12 @@ struct ContactSheetComposerTests {
     }
 
     // Where each label's box, which its background fills, lies in the sheet.
+    // Where each label's background has its top left on the sheet.
     private func labelOrigins(of sheet: DisplayList) -> [Point] {
         sheet.items.compactMap { item in
-            guard case .glyphs = item.content else { return nil }
+            guard case let .glyphs(glyphs) = item.content, let background = glyphs.background else { return nil }
 
-            return Point(x: item.transform.tx, y: item.transform.ty)
+            return item.transform.apply(to: Point(x: background.rectangle.x, y: background.rectangle.y))
         }
     }
 }
