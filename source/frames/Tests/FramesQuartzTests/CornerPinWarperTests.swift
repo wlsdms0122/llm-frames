@@ -9,6 +9,7 @@ import CoreGraphics
 import CoreImage
 import Frames
 @testable import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @Suite("CornerPinWarper Tests")
@@ -29,7 +30,14 @@ struct CornerPinWarperTests {
         let picture = source.picture
         let homography = try #require(Homography(from: Self.box, to: pin.quad))
         let destination = CGRect(x: 0, y: 0, width: Self.side, height: Self.side)
-        let mean = AreaMean(carrying: picture, through: homography, width: Self.side, height: Self.side)
+        let mean = AreaMean(
+            carrying: picture.pixels,
+            width: picture.width,
+            height: picture.height,
+            through: homography,
+            outputWidth: Self.side,
+            outputHeight: Self.side
+        )
 
         // When
         let carried = try sut.warp(picture.image, through: homography, onto: destination)

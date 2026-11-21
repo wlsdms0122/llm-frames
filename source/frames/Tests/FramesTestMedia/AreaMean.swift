@@ -1,6 +1,6 @@
 //
 //  AreaMean.swift
-//  FramesQuartzTests
+//  FramesTestMedia
 //
 //  Created by JSilver on 11/21/26.
 //
@@ -13,30 +13,33 @@ import Frames
 // the bilinear reconstruction of its pixels with each pixel's value at its centre and transparent outside. The mean is
 // taken over n × n samples a pixel, n at least 16 and more where neighbouring samples would land over a quarter of a
 // source pixel apart. Source and output are premultiplied RGBA in y-down pixels, rows top first.
-struct AreaMean {
+package struct AreaMean {
     // MARK: - Property
     private static let leastCount = 16
     private static let mostCount = 256
 
-    let width: Int
-    let height: Int
-    let pixels: [Float]
+    package let width: Int
+    package let height: Int
+    package let pixels: [Float]
 
     // MARK: - Initializer
-    // The mean of `source` carried by `homography`, which takes the source's pixels to the output's, over an output of
-    // `width` by `height` pixels.
-    init(
-        carrying source: PixelGrid,
+    // The mean of a source of `sourceWidth` by `sourceHeight` premultiplied RGBA `pixels`, rows top first, carried by
+    // `homography`, which takes the source's pixels to the output's, over an output of `width` by `height` pixels.
+    package init(
+        carrying pixels: [Float],
+        width sourceWidth: Int,
+        height sourceHeight: Int,
         through homography: Homography,
-        width: Int,
-        height: Int
+        outputWidth width: Int,
+        outputHeight height: Int
     ) {
+        let source = (width: sourceWidth, height: sourceHeight)
         let inverse = homography.inverse
         let rows = Self.rows(reachedBy: source, through: homography, height: height)
-        var pixels = [Float](repeating: 0, count: width * height * 4)
-        source.pixels.withUnsafeBufferPointer { buffer in
+        var means = [Float](repeating: 0, count: width * height * 4)
+        pixels.withUnsafeBufferPointer { buffer in
             nonisolated(unsafe) let sourcePixels = buffer
-            pixels.withUnsafeMutableBufferPointer { buffer in
+            means.withUnsafeMutableBufferPointer { buffer in
                 nonisolated(unsafe) let output = buffer
                 DispatchQueue.concurrentPerform(iterations: rows.count) { index in
                     let row = rows.lowerBound + index
@@ -54,7 +57,7 @@ struct AreaMean {
 
         self.width = width
         self.height = height
-        self.pixels = pixels
+        self.pixels = means
     }
 
     // MARK: - Public
@@ -62,7 +65,7 @@ struct AreaMean {
     // The output rows the reconstruction can reach: those around the source's box widened by one source pixel, or every
     // row when part of that box lies at or beyond the horizon.
     private static func rows(
-        reachedBy source: PixelGrid,
+        reachedBy source: (width: Int, height: Int),
         through homography: Homography,
         height: Int
     ) -> Range<Int> {
@@ -82,7 +85,7 @@ struct AreaMean {
         column: Int,
         row: Int,
         inverse: Homography,
-        of source: PixelGrid,
+        of source: (width: Int, height: Int),
         _ pixels: UnsafeBufferPointer<Float>
     ) -> (Float, Float, Float, Float) {
         let count = sampleCount(column: column, row: row, inverse: inverse)
@@ -133,7 +136,7 @@ struct AreaMean {
     private static func addBilinear(
         at u: Double,
         _ v: Double,
-        of source: PixelGrid,
+        of source: (width: Int, height: Int),
         _ pixels: UnsafeBufferPointer<Float>,
         to sum: inout (Double, Double, Double, Double)
     ) {
@@ -153,7 +156,7 @@ struct AreaMean {
         _ column: Int,
         _ row: Int,
         _ weight: Double,
-        of source: PixelGrid,
+        of source: (width: Int, height: Int),
         _ pixels: UnsafeBufferPointer<Float>,
         to sum: inout (Double, Double, Double, Double)
     ) {
