@@ -110,7 +110,7 @@ struct LocationReporterTests {
         let item = DisplayItem(transform: .identity, content: .picture(picture), origin: clip)
 
         // When
-        let report = sut.report(of: list([item]), point: Point(x: 10.25, y: 20))
+        let report = try sut.report(of: list([item]), point: Point(x: 10.25, y: 20))
 
         // Then
         let hit = try #require(report.hits.first)
