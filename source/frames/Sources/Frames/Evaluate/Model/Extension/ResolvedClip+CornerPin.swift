@@ -6,9 +6,9 @@
 //
 
 // A clip's corner pin at a time (FRAMES-27), in the space its corner pin is written in. Q'(t) is its keyframes, each
-// clip area taken at the time, brought back through the inverse of its track's homography at its own time when it
-// follows its parent's media, a static one being on the track's frame already, then interpolated point by point; an
-// untracked corner pin is Q(t), its keyframes interpolated. Its corner pin bounds bound Q'(t). The corner pin its group
+// brought back to the track's frame at its own time when it follows its parent's media as `Track.broughtBack` brings
+// it back, a static one being on the track's frame already, then each clip area taken at the time and the keyframes
+// interpolated point by point; an untracked corner pin is Q(t), its keyframes interpolated. Its corner pin bounds bound Q'(t). The corner pin its group
 // carries is Q(t) = M(t)⁻¹ H(t) Q'(t), inside the clip's transform M(t), and it draws nothing where its box has no
 // area, a corner of Q'(t) does not lie in front of the horizon of H(t), or H(t) Q'(t) is not strictly convex. `clock`
 // is the clock of the media the clip follows.
@@ -23,13 +23,12 @@ extension ResolvedClip {
     ) -> Quad? {
         guard let cornerPin else { return nil }
 
-        let keyframes = areas?.points(of: cornerPin.points, at: time)
-            ?? cornerPin.points.mapValues { points in points.map(\.fixed) }
-        let brought = keyframes.carried(
+        let brought = cornerPin.points.carried(
             keyframe: { points, at in broughtBack(points, on: clock, at: at) },
             onTrackFrame: { $0 }
         )
-        let points = brought.value(at: time)
+        let keyframes = areas?.points(of: brought, at: time) ?? brought.mapValues { points in points.map(\.fixed) }
+        let points = keyframes.value(at: time)
         guard points.count == 4 else { return nil }
 
         return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
@@ -74,26 +73,15 @@ extension ResolvedClip {
     }
 
     // MARK: - Private
-    // A keyframe's points brought back through the inverse of the homography of the frame its time shows, in front of
-    // whose horizon resolve has checked they lie. A keyframe holding a clip area is the named clip's box at the time
-    // and is not brought back, and neither is an untracked corner pin.
+    // A keyframe brought back to the track's frame at its own time, where its clip follows its parent's media; resolve
+    // has checked that every keyframe of numbers comes back.
     private func broughtBack(
-        _ points: [Point],
+        _ points: [GeometryPoint],
         on clock: MediaClock?,
         at time: Double
-    ) -> [Point] {
-        guard
-            let track = parentTrack,
-            let clock,
-            points.count == 4,
-            cornerPin?.points.values.contains(where: { $0.contains { $0.clipArea != nil } }) != true,
-            let homography = track.track.homography(atMediaTime: clock.mediaTime(atSequenceTime: time)),
-            let frame = homography.apply(to: track.track.target)
-        else {
-            return points
-        }
+    ) -> [GeometryPoint] {
+        guard let track = parentTrack, let clock else { return points }
 
-        let pin = Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
-        return homography.inverse.apply(to: pin, inFrontOf: frame)?.corners ?? points
+        return track.track.broughtBack(points, atMediaTime: clock.mediaTime(atSequenceTime: time)) ?? points
     }
 }

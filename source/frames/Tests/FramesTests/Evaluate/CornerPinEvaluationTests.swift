@@ -281,7 +281,65 @@ struct CornerPinEvaluationTests {
         #expect(abs(corner.x - 150) < 1e-9 && abs(corner.y - 120) < 1e-9)
     }
 
+    @Test("a tracked corner pin brings back each keyframe of numbers at its own time, though another keyframe holds a clip area, so it draws at that time what it writes")
+    func bringsBackNumberKeyframeBesideClipArea() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, so the track's homography there is
+        // not its motion. The untracked clip draws the same four points as the tracked one's keyframe at 0.5.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let corners = ["top-left", "top-right", "bottom-right", "bottom-left"]
+            .map { #"{ "area": { "clip": "bar" }, "point": "\#($0)" }"# }
+            .joined(separator: ", ")
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
+                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "keyframes": [ { "at": 0.5, "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] },
+                                 { "at": 0.9, "cornerPin": [\#(corners)] } ] },
+                { "id": "still", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
+                  "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
+            """#
+        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.5)
+
+        // Then
+        let drawn = { (id: String) throws -> [Point] in
+            let item = try #require(list.items.first { $0.origin?.id == id })
+            guard case let .picture(picture) = item.content else {
+                Issue.record("the group is not a picture")
+                return []
+            }
+
+            return try #require(picture.cornerPin).corners.map(item.transform.apply)
+        }
+        let tracked = try drawn("tracked")
+        let still = try drawn("still")
+        #expect(tracked.count == 4)
+        #expect(zip(tracked, still).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
     // MARK: - Private
+    private func resolved(
+        document: String,
+        tracker: any TrackerProvider
+    ) throws -> ResolvedSequence {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: tracker,
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
     private func resolved(_ clips: String) throws -> ResolvedSequence {
         try resolved(document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#)
     }

@@ -68,23 +68,13 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // Whether a corner pin at the time lies wholly in front of the horizon of the inverse of the track's homography and
-    // is strictly convex brought back. One holding a clip area is not brought back.
+    // Whether a corner pin at the time comes back to the track's frame, as evaluation brings it back.
     private func isBroughtBack(
         _ points: [GeometryPoint],
         track: TrackedMedia,
         at time: Double
     ) -> Bool {
-        guard points.count == 4, points.allSatisfy({ $0.clipArea == nil }) else { return true }
-
-        let corners = points.map(\.fixed)
-        let pin = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-        let homography = track.homography(at: time)
-        let frame = homography.flatMap { $0.apply(to: track.track.target) }
-        let broughtBack = homography.flatMap { homography in
-            frame.flatMap { homography.inverse.apply(to: pin, inFrontOf: $0) }
-        }
-        return broughtBack?.isStrictlyConvex == true
+        track.track.broughtBack(points, atMediaTime: track.clock.mediaTime(atSequenceTime: time)) != nil
     }
 
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
