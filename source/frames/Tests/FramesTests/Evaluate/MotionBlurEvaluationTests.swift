@@ -62,7 +62,6 @@ struct MotionBlurEvaluationTests {
         let samples = try #require(list.samples)
         #expect(samples.count == 16)
         #expect(samples.allSatisfy { $0 == sut.displayListWithoutMotionBlur(of: sequence, at: 1).items })
-        #expect(list.items.isEmpty)
     }
 
     @Test("a sliding clip with motionBlur stands at each instant in its sample, and the samples read back")
@@ -368,6 +367,18 @@ struct MotionBlurEvaluationTests {
         let drawn = try samples.map { try bounds(of: "box", in: $0) }
         #expect(drawn.allSatisfy { isClose([$0.x, $0.y, $0.width, $0.height], [target.x, target.y, target.width, target.height]) })
         #expect(abs(next.x - target.x) > 1)
+    }
+
+    @Test("a list given as samples stops a report, since an item has no one place in an exposure")
+    func refusesToReportSamples() throws {
+        // Given
+        let list = sut.displayList(of: try resolved(clips: [slider(isMotionBlurred: true)]), at: 1)
+
+        // When
+        let report = { try EvaluationReporter().report(of: list, at: 1) }
+
+        // Then
+        #expect(throws: AnalysisError.sampledList) { try report() }
     }
 
     @Test("evaluate reports the frame as at T, the list without motion blur")

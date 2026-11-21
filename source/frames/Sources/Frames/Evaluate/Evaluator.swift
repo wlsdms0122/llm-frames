@@ -48,13 +48,7 @@ package struct Evaluator: Sendable {
         let reads = OwnerReads()
         let instants = format.shutter.instants(at: time, fps: format.fps)
         let sample = { (instant: Double) in
-            evaluator.displayList(
-                of: sequence,
-                at: SampleInstant(time: instant, frameTime: time, reads: reads),
-                seed: list.seed,
-                colorSpace: format.colorSpace,
-                peak: format.peak
-            ).items
+            evaluator.items(of: sequence, at: SampleInstant(time: instant, frameTime: time, reads: reads), seed: list.seed)
         }
 
         // The first sample tells whether the frame reads a value a clip with `motionBlur` owns.
@@ -100,12 +94,6 @@ package struct Evaluator: Sendable {
         peak: Double? = nil
     ) -> DisplayList {
         let format = sequence.format
-        let transition = ActiveTransition(storyline: sequence.storyline, at: sample.frameTime)
-        let parents = ParentEvaluator(sequence: sequence)
-        let items = clipItems(of: sequence, parents: parents, side: .below, at: sample, seed: seed)
-            + storylineItems(of: sequence, parents: parents, transition: transition, at: sample, seed: seed)
-            + coverItems(of: transition, in: sequence.storyline, frame: format.frame, at: sample)
-            + clipItems(of: sequence, parents: parents, side: .above, at: sample, seed: seed)
 
         return DisplayList(
             size: format.size,
@@ -114,8 +102,22 @@ package struct Evaluator: Sendable {
             peak: peak,
             compositing: format.compositing,
             seed: seed,
-            items: items
+            items: items(of: sequence, at: sample, seed: seed)
         )
+    }
+
+    private func items(
+        of sequence: ResolvedSequence,
+        at sample: SampleInstant,
+        seed: Int
+    ) -> [DisplayItem] {
+        let transition = ActiveTransition(storyline: sequence.storyline, at: sample.frameTime)
+        let parents = ParentEvaluator(sequence: sequence)
+
+        return clipItems(of: sequence, parents: parents, side: .below, at: sample, seed: seed)
+            + storylineItems(of: sequence, parents: parents, transition: transition, at: sample, seed: seed)
+            + coverItems(of: transition, in: sequence.storyline, frame: sequence.format.frame, at: sample)
+            + clipItems(of: sequence, parents: parents, side: .above, at: sample, seed: seed)
     }
 
     private func clipItems(

@@ -302,7 +302,7 @@ struct TitleGroupTests {
             """#)
         let flattener = DisplayListFlattener()
         let flattened = { (clip: ResolvedClip) in
-            flattener.items(of: DisplayList(
+            try flattener.items(of: DisplayList(
                 size: Size(width: 1920, height: 1080),
                 background: Color(written: "#00000000"),
                 seed: 0,
@@ -323,8 +323,8 @@ struct TitleGroupTests {
         let word = Point(x: 400 + 15, y: 225)
 
         // When
-        let plainItems = flattened(plain)
-        let boxedItems = flattened(boxed)
+        let plainItems = try flattened(plain)
+        let boxedItems = try flattened(boxed)
 
         // Then
         #expect(plainItems.count == 8)

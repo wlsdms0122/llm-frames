@@ -39,31 +39,33 @@ final class FrameDrawer {
     }
 
     // MARK: - Public
-    // Sample lists that are all equal draw one picture, which is their mean.
     func draw(_ list: DisplayList) throws -> FrameContext {
-        let raster = Raster(holding: list.size)
-        guard let samples = list.samples, let first = samples.first else {
-            return try draw(list.items, of: list, place: "items", on: raster)
-        }
-        guard samples.contains(where: { $0 != first }) else {
-            return try draw(first, of: list, place: "samples[0]", on: raster)
-        }
-
-        let sum = AccumulationBuffer(width: raster.width, height: raster.height)
-        for (index, sample) in samples.enumerated() {
-            sum.add(try draw(sample, of: list, place: "samples[\(index)]", on: raster))
-            nested.removeAll()
-        }
-
-        return try sum.mean(compositing: list.compositing)
+        try draw(list, on: Raster(holding: list.size))
     }
 
     // MARK: - Private
+    // Sample lists that are all equal draw one picture, which is their mean.
     private func draw(
         _ list: DisplayList,
         on raster: Raster
     ) throws -> FrameContext {
-        try draw(list.items, of: list, place: "items", on: raster)
+        switch list.content {
+        case let .items(items):
+            return try draw(items, of: list, place: "items", on: raster)
+
+        case let .samples(samples):
+            guard let first = samples.first, samples.contains(where: { $0 != first }) else {
+                return try draw(samples.first ?? [], of: list, place: "samples[0]", on: raster)
+            }
+
+            let sum = AccumulationBuffer(width: raster.width, height: raster.height)
+            for (index, sample) in samples.enumerated() {
+                sum.add(try draw(sample, of: list, place: "samples[\(index)]", on: raster))
+                nested.removeAll()
+            }
+
+            return try sum.mean(compositing: list.compositing)
+        }
     }
 
     // `items` are the list's own or one of its sample lists, and `place` is their path in the list.
@@ -345,10 +347,20 @@ final class FrameDrawer {
     // is drawn on the same raster and read as far out as the item casts its shadow from. A nested list's own raster is
     // grown past this raster by its picture's reach, so it adds nothing here.
     private func reach(of list: DisplayList) -> CGFloat {
+        switch list.content {
+        case let .items(items):
+            return reach(of: items)
+
+        case let .samples(samples):
+            return samples.map(reach(of:)).max() ?? 0
+        }
+    }
+
+    private func reach(of items: [DisplayItem]) -> CGFloat {
         let chain = FilterChain(tables: tables)
         var adjustments = 0.0
         var mattes = 0.0
-        for item in list.items {
+        for item in items {
             if case let .adjust(adjust) = item.content {
                 adjustments += chain.reach(of: adjust.filter)
             }

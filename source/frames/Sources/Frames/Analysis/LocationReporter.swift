@@ -27,14 +27,14 @@ package struct LocationReporter: Sendable {
     ) throws -> LocationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), point: point)
+        return try report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), point: point)
     }
 
     func report(
         of list: DisplayList,
         point: Point
-    ) -> LocationReport {
-        LocationReport(hits: flattener.items(of: list).reversed()
+    ) throws -> LocationReport {
+        LocationReport(hits: try flattener.items(of: list).reversed()
             .filter { $0.coverage.contains(point) }
             .map { LocationHit($0, point: point) }
         )

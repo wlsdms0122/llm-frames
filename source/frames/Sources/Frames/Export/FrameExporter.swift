@@ -156,7 +156,12 @@ package struct FrameExporter: Sendable {
         labelFace: FontFace,
         to output: String
     ) throws {
-        let isDrawn = { (list: DisplayList) in sequenceOutput.space != .srgb || list.samples != nil }
+        let isDrawn = { (list: DisplayList) in
+            switch list.content {
+            case .items: sequenceOutput.space != .srgb
+            case .samples: true
+            }
+        }
         let drawn = frames.frames.compactMap { frame -> (time: Double, list: DisplayList)? in
             guard case let .displayList(list) = frame.picture, isDrawn(list) else { return nil }
 

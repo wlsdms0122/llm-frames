@@ -42,9 +42,13 @@ package struct DisplayListWriter: Sendable {
     // A list with samples writes them in place of its items, each sample a list of items.
     private func items(of list: DisplayList) -> JSONMember {
         let items = { (items: [DisplayItem]) in JSONValue.array(items.map { self.item(of: $0, seed: list.seed) }) }
-        guard let samples = list.samples else { return JSONMember(key: "items", value: items(list.items)) }
+        switch list.content {
+        case let .items(listItems):
+            return JSONMember(key: "items", value: items(listItems))
 
-        return JSONMember(key: "samples", value: .array(samples.map(items)))
+        case let .samples(samples):
+            return JSONMember(key: "samples", value: .array(samples.map(items)))
+        }
     }
 
     private func item(

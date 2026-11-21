@@ -68,7 +68,9 @@ struct MotionBlurRenderTests {
         let sharp = try sut.frame(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.4))
 
         // Then
-        #expect(list.samples?.count == 16)
+        guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
+
+        #expect(samples.count == 16)
         #expect(frame.pixels == sharp.pixels)
     }
 
@@ -89,7 +91,7 @@ struct MotionBlurRenderTests {
         let frame = try sut.frame(of: list)
 
         // Then
-        #expect(list.samples != nil)
+        guard case .samples = list.content else { Issue.record("the list holds items"); return }
         #expect((0..<frame.width).allSatisfy { abs(frame.pixel(x: $0, y: 2)[3] - 1) < 0.001 })
         #expect((0..<frame.width).contains { frame.pixel(x: $0, y: 2)[0] < 0.999 && frame.pixel(x: $0, y: 2)[2] < 0.999 })
     }

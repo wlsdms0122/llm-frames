@@ -18,7 +18,7 @@ extension Renderer {
         do {
             try check(list)
         } catch {
-            guard list.samples != nil else { throw error }
+            guard case .samples = list.content else { throw error }
 
             throw RenderError.sampledFrame(time: time, reason: String(describing: error))
         }

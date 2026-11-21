@@ -813,7 +813,6 @@ struct DisplayListReaderTests {
         #expect(writer.write(read) == writer.write(list))
         #expect(read.seed == 7)
         #expect(read.samples?.count == 3)
-        #expect(read.items.isEmpty)
     }
 
     @Test("a list with samples writes them after its compositing, each a list of items, in place of its items")

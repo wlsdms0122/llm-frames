@@ -5,12 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What a role draws for one frame. `size` is in output pixels and `items` are bottom first. A frame with motion blur
-// holds `samples` in place of `items`, its sample lists in order, each a whole list of items of the frame at one instant
-// of its exposure, and the frame is their mean. Only the outermost list holds samples, and it then has no `items`.
-// `colorSpace` is the space the encoder writes the frame in and `peak` the `format.peak` a `rec2100-pq` output is
-// clipped to, both carried by the outermost list only, `peak` only in a `rec2100-pq` one, and nil in a nested one, and
-// `compositing` the form its items' sums of colours are taken in. `seed` is the number of the output frame being drawn,
+// What a role draws for one frame. `size` is in output pixels and `content` is its items or, for a frame with motion
+// blur, its sample lists. `colorSpace` is the space the encoder writes the frame in and `peak` the `format.peak` a
+// `rec2100-pq` output is clipped to, both carried by the outermost list only, `peak` only in a `rec2100-pq` one, and nil
+// in a nested one, and `compositing` the form its items' sums of colours are taken in. `seed` is the number of the output frame being drawn,
 // the seed of every `grain` operation in the list, and a nested list carries its outer frame's seed.
 package struct DisplayList: Equatable, Sendable {
     // MARK: - Property
@@ -20,8 +18,7 @@ package struct DisplayList: Equatable, Sendable {
     package let peak: Double?
     package let compositing: Compositing
     package let seed: Int
-    package let items: [DisplayItem]
-    package let samples: [[DisplayItem]]?
+    package let content: DisplayListContent
 
     // MARK: - Initializer
     package init(
@@ -40,8 +37,7 @@ package struct DisplayList: Equatable, Sendable {
             peak: peak,
             compositing: compositing,
             seed: seed,
-            items: items,
-            samples: nil
+            content: .items(items)
         )
     }
 
@@ -61,8 +57,7 @@ package struct DisplayList: Equatable, Sendable {
             peak: peak,
             compositing: compositing,
             seed: seed,
-            items: [],
-            samples: samples
+            content: .samples(samples)
         )
     }
 
@@ -73,8 +68,7 @@ package struct DisplayList: Equatable, Sendable {
         peak: Double?,
         compositing: Compositing,
         seed: Int,
-        items: [DisplayItem],
-        samples: [[DisplayItem]]?
+        content: DisplayListContent
     ) {
         self.size = size
         self.background = background
@@ -82,8 +76,7 @@ package struct DisplayList: Equatable, Sendable {
         self.peak = peak
         self.compositing = compositing
         self.seed = seed
-        self.items = items
-        self.samples = samples
+        self.content = content
     }
 
     // MARK: - Public

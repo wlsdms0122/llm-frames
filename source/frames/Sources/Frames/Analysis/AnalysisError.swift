@@ -15,6 +15,7 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case afterMediaEnd(option: String, time: Double, file: String, end: Double)
     case nonPositiveStep(step: Double)
     case emptyRange(from: Double, to: Double)
+    case sampledList
 
     // MARK: - Property
     var description: String {
@@ -45,6 +46,9 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .emptyRange(from, to):
             "--from: \(number(from)) is not before --to \(number(to))"
+
+        case .sampledList:
+            "the display list holds samples, an exposure in which an item has no one place, and the frame is reported as at its instant"
         }
     }
 

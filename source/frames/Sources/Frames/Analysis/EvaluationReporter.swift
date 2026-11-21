@@ -22,14 +22,14 @@ package struct EvaluationReporter: Sendable {
     ) throws -> EvaluationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), at: time)
+        return try report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), at: time)
     }
 
     func report(
         of list: DisplayList,
         at time: Double
-    ) -> EvaluationReport {
-        EvaluationReport(time: time, size: list.size, items: flattener.items(of: list).map(EvaluationItem.init))
+    ) throws -> EvaluationReport {
+        EvaluationReport(time: time, size: list.size, items: try flattener.items(of: list).map(EvaluationItem.init))
     }
 
     // MARK: - Private

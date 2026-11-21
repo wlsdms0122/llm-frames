@@ -26,13 +26,14 @@ struct DisplayListChecker {
         _ list: DisplayList,
         place: String = ""
     ) throws {
-        guard let samples = list.samples else {
-            try check(list.items, place: "\(place)items")
-            return
-        }
+        switch list.content {
+        case let .items(items):
+            try check(items, place: "\(place)items")
 
-        for (index, sample) in samples.enumerated() {
-            try check(sample, place: "\(place)samples[\(index)]")
+        case let .samples(samples):
+            for (index, sample) in samples.enumerated() {
+                try check(sample, place: "\(place)samples[\(index)]")
+            }
         }
     }
 
