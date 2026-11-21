@@ -222,6 +222,15 @@ struct KeyChecker: Sendable {
                 try check(element, as: AreaKeyTable.point, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
+        case .mediaQuad:
+            guard let elements = value.arrayValue, elements.count == 4 else {
+                throw wrongType(value, type, place, kind)
+            }
+
+            for (index, element) in elements.enumerated() {
+                try check(element, as: .numbers(2, .any), place: place.appending(index: index), kind: kind, scope: &scope)
+            }
+
         case let .list(elementType):
             guard let elements = value.arrayValue else { throw wrongType(value, type, place, kind) }
             for (index, element) in elements.enumerated() {
@@ -251,6 +260,13 @@ struct KeyChecker: Sendable {
             if case let .object(object) = value, object.contains("scale") {
                 try checkObject(object, as: AreaKeyTable.cropScale, place: place, scope: &scope)
             } else {
+                try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
+            }
+
+        case .track:
+            if case let .object(object) = value, ["time", "area", "frames"].contains(where: object.contains) {
+                try checkObject(object, as: ClipKeyTable.track, place: place, scope: &scope)
+            } else if value != .bool(true) {
                 try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
             }
 
@@ -1450,7 +1466,8 @@ struct KeyChecker: Sendable {
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.quad, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.quad, .array), (.mediaQuad, .array),
+             (.list, .array),
              (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
@@ -1458,7 +1475,8 @@ struct KeyChecker: Sendable {
              (.filterOperation, .object), (.audioOperation, .object), (.document, .object):
             true
 
-        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number), (.margin, .array):
+        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.track, .bool),
+             (.track, .array), (.track, .object), (.margin, .number), (.margin, .array):
             true
 
         case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array), (.runs, .string),
@@ -1543,6 +1561,9 @@ struct KeyChecker: Sendable {
         case .quad:
             "a list of four points"
 
+        case .mediaQuad:
+            "a list of four points [x, y] of numbers"
+
         case .list:
             "a list"
 
@@ -1554,6 +1575,9 @@ struct KeyChecker: Sendable {
 
         case .crop:
             "an area or {scale}"
+
+        case .track:
+            "true, an area or a track object"
 
         case .margin:
             "a whole number, 0 or more, or a list of 2 or 4 of them"

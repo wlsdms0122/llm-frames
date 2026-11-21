@@ -68,7 +68,7 @@ package struct TrackReporter: Sendable {
         let last = end.map { max(time, $0) } ?? duration
         let range = (file.frameTime(at: first) ?? first)...last
         let frames = try Result {
-            try follower.follow(found.target, in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
+            try follower.follow(Quad(found.target), in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
         }
         .mapError { error in
             ProviderError.failed(

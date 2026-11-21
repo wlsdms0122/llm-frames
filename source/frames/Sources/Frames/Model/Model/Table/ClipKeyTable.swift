@@ -148,6 +148,27 @@ enum ClipKeyTable {
         ]
     )
 
+    // `track` as an object (FRAMES-12): the media time of the track's frame, and beside it at most one of a named area
+    // and track data. An object without `time`, or with both, stops naming `track`.
+    static let track = ObjectTable(
+        kind: "track",
+        rules: [
+            KeyRule("time", .number(.any), isRequired: true),
+            KeyRule("area", .area),
+            KeyRule("frames", .list(.object(trackDataFrame)))
+        ],
+        groups: [KeyGroup(keys: ["area", "frames"], isExclusive: true, isOptional: true)]
+    )
+
+    // A frame of track data: a media time, and the target's quad on the frame it names in media pixels.
+    static let trackDataFrame = ObjectTable(
+        kind: "track data frame",
+        rules: [
+            KeyRule("time", .number(.any), isRequired: true),
+            KeyRule("quad", .mediaQuad, isRequired: true)
+        ]
+    )
+
     // Properties written only in keyframes, so a static value stops.
     static let keyframedOnly = ["timeRemap"]
 
@@ -257,7 +278,7 @@ enum ClipKeyTable {
             .clips(.connected)
 
         case "track":
-            .oneOf([.exactly(.bool(true)), .area])
+            .track
 
         case "crop":
             .crop

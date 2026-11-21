@@ -56,6 +56,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
     case cornerPinOnGeometry(place: Place, kind: PlaceKind)
     case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
+    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double)
     case trackOnStorylineCornerPin(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
@@ -83,6 +84,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
+    case trackOwnKeyframed(place: Place, kind: PlaceKind)
+    case trackTimeOutside(place: Place, kind: PlaceKind, time: Double)
+    case instantNotFollowed(place: Place, kind: PlaceKind, mediaTime: Double)
+    case trackData(place: Place, kind: PlaceKind, reason: TrackDataRefusal)
     case flatParent(place: Place, kind: PlaceKind, instant: Double)
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
@@ -262,6 +267,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a shape placed by its area or points takes no \"cornerPin\", "
                 + "since its outline is in its space already"
 
+        case let .cornerPinNotBroughtBack(place, kind, time):
+            "\(place) (\(kind.label)): the corner pin at \(number(time)), brought back through the inverse of the "
+                + "track's homography there, does not lie wholly in front of its horizon or is not strictly convex"
+
         case let .cornerPinNotConvex(place, kind, time):
             "\(place) (\(kind.label)): the corner pin\(time.map { " at \(number($0))" } ?? "") is not strictly convex, "
                 + "so no homography takes the clip's box to it"
@@ -377,6 +386,20 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
 
+        case let .trackOwnKeyframed(place, kind):
+            "\(place) (\(kind.label)): the geometry \"track\" follows is keyframed, and a keyframe's value is where it "
+                + "is at its own time, so none is written on the frame \"time\" names"
+
+        case let .trackTimeOutside(place, kind, time):
+            "\(place) (\(kind.label)): media time \(number(time)) names no frame of the tracked media"
+
+        case let .instantNotFollowed(place, kind, mediaTime):
+            "\(place) (\(kind.label)): the clip's instant shows media time \(number(mediaTime)), a frame the track does "
+                + "not follow, so its window holds none"
+
+        case let .trackData(place, kind, reason):
+            "\(place) (\(kind.label)): \(words(of: reason))"
+
         case let .flatParent(place, kind, instant):
             "\(place) (\(kind.label)): found by text at \(number(instant)), where its parent's transform has a scale "
                 + "of 0 on an axis and cannot be undone to bring it into the parent's space"
@@ -401,6 +424,31 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    private func words(of refusal: TrackDataRefusal) -> String {
+        switch refusal {
+        case .outsideMedia:
+            "the frame's time names no frame of the tracked media"
+
+        case .notConvex:
+            "the quad is not strictly convex"
+
+        case .otherOrientation:
+            "the quad runs the other way round than the quad of the frame \"time\" names"
+
+        case .outOfOrder:
+            "the frames are not in time order"
+
+        case .sameFrame:
+            "two frames name one media frame"
+
+        case .gap:
+            "a media frame between this frame and the one before it has no frame of the data"
+
+        case .noTarget:
+            "\"time\" names no frame of \"frames\", so the data gives no target"
+        }
+    }
+
     private func words(of refusal: TrackMatteRefusal) -> String {
         switch refusal {
         case .storyline:

@@ -94,7 +94,8 @@ struct SequencePlanner: Sendable {
             storylineMasks: storylineMasks,
             crops: found.map(\.crop),
             areas: found.map(\.area),
-            masks: found.map { $0.mask?.map(\.mask) }
+            masks: found.map { $0.mask?.map(\.mask) },
+            cornerPins: found.map(\.cornerPin)
         )
         try checkKeyframes(of: tracked.time)
         let shapes = try tracked.time.clips.indices.map { index in

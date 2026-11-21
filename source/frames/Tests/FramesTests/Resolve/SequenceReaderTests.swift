@@ -136,11 +136,11 @@ struct SequenceReaderTests {
         let title = sequence.storyline[0].connected[1]
         #expect(sequence.format.size == .fixed(Size(width: 1080, height: 1920)))
         #expect(sequence.format.conform == .fill)
-        #expect(sequence.storyline[0].track == .own)
+        #expect(sequence.storyline[0].track == .own(time: nil))
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(ellipse.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
         #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: LookProperty(written: .string("accent")))))
-        #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0)))
+        #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0), time: nil))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
     }

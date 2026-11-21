@@ -130,5 +130,28 @@ struct QuadTests {
         #expect(sut.orientation == nil)
     }
 
+    @Test("the part of a quad inside a rectangle is bounded by the points where its edges cross the rectangle's")
+    func boundsPartInside() throws {
+        // Given
+        // The quad crosses the bottom edge at y 2622 along its left edge from (100, 2600) to (60, 2700) and its right
+        // edge from (300, 2600) to (340, 2700).
+        let sut = Quad(
+            topLeft: Point(x: 100, y: 2600),
+            topRight: Point(x: 300, y: 2600),
+            bottomRight: Point(x: 340, y: 2700),
+            bottomLeft: Point(x: 60, y: 2700)
+        )
+        let picture = Rectangle(x: 0, y: 0, width: 1206, height: 2622)
+
+        // When
+        let bounds = try #require(sut.bounds(inside: picture))
+
+        // Then
+        #expect(!sut.isInside(picture))
+        #expect(abs(bounds.x - 91.2) < 1e-9 && abs(bounds.width - 217.6) < 1e-9)
+        #expect(bounds.y == 2600 && abs(bounds.height - 22) < 1e-9)
+        #expect(Quad(Rectangle(x: 1300, y: 0, width: 10, height: 10)).bounds(inside: picture) == nil)
+    }
+
     // MARK: - Private
 }

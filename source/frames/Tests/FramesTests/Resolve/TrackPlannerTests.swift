@@ -67,7 +67,7 @@ struct TrackPlannerTests {
         let time = try plan(storyline: #""track": { "text": "Total" }"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.storyline[0])
@@ -86,7 +86,7 @@ struct TrackPlannerTests {
         let time = try plan(storyline: #""track": { "text": "Total" }"#)
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }) }
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil }) }
         #expect(error?.description == #"""
             storyline[0]#screen.track (video): the tracker follows its target only over [0, 1.5) and loses it inside the \#
             edit range [0, 2)
@@ -104,7 +104,7 @@ struct TrackPlannerTests {
             """#))
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil, nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil, nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.storyline[0])
@@ -121,7 +121,7 @@ struct TrackPlannerTests {
         let time = try plan(storyline: #""track": { "text": "Total" }, \#(reverse)"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [], masks: [])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [], masks: [], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.storyline[0])
@@ -145,7 +145,7 @@ struct TrackPlannerTests {
         )
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [nil])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0]?.track)
@@ -170,7 +170,7 @@ struct TrackPlannerTests {
         )
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [nil])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0]?.track)
@@ -202,7 +202,8 @@ struct TrackPlannerTests {
                 PropertyKeyframe(index: 1, at: 1.2, value: .found(found(total, at: 2.2)), ease: .linear),
                 PropertyKeyframe(index: 0, at: 0.8, value: .found(found(total, at: 1.8)), ease: .linear)
             ])],
-            masks: [nil]
+            masks: [nil],
+            cornerPins: time.clips.map { _ in nil }
         )
 
         // Then
@@ -221,7 +222,7 @@ struct TrackPlannerTests {
         let crop = Rectangle(x: 120, y: 300, width: 400, height: 300)
 
         // When
-        let staticPlan = try sut.plan(staticTime, storylineCrops: [.value(found(total, at: 1))], storylineMasks: staticTime.storyline.map { _ in nil }, crops: staticTime.clips.map { _ in nil }, areas: [], masks: staticTime.clips.map { _ in nil })
+        let staticPlan = try sut.plan(staticTime, storylineCrops: [.value(found(total, at: 1))], storylineMasks: staticTime.storyline.map { _ in nil }, crops: staticTime.clips.map { _ in nil }, areas: [], masks: staticTime.clips.map { _ in nil }, cornerPins: staticTime.clips.map { _ in nil })
         let keyframedPlan = try sut.plan(
             keyframedTime,
             storylineCrops: [.keyframes([
@@ -231,7 +232,8 @@ struct TrackPlannerTests {
             storylineMasks: keyframedTime.storyline.map { _ in nil },
             crops: keyframedTime.clips.map { _ in nil },
             areas: [],
-            masks: keyframedTime.clips.map { _ in nil }
+            masks: keyframedTime.clips.map { _ in nil },
+            cornerPins: keyframedTime.clips.map { _ in nil }
         )
 
         // Then
@@ -256,7 +258,7 @@ struct TrackPlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [.value(found(total, at: 1))], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil })
+            try sut.plan(time, storylineCrops: [.value(found(total, at: 1))], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
         }
         #expect(error?.description == #"""
             storyline[0]#screen.track (video): "track": true follows the clip's own area, mask or crop, and it has none \#
@@ -271,7 +273,7 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0]?.track)
@@ -295,7 +297,7 @@ struct TrackPlannerTests {
             """#))
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil, nil], masks: [nil, nil])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil, nil], masks: [nil, nil], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[1])
@@ -320,7 +322,7 @@ struct TrackPlannerTests {
             """#))
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0])
@@ -343,7 +345,7 @@ struct TrackPlannerTests {
             """#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil])
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0])
@@ -366,8 +368,8 @@ struct TrackPlannerTests {
         let crop = Rectangle(x: 120, y: 300, width: 400, height: 300)
 
         // When
-        let croppedPlan = try sut.plan(cropped, storylineCrops: [nil], storylineMasks: [nil], crops: [.value(found(crop, at: 0))], areas: [nil], masks: [nil])
-        let maskedPlan = try sut.plan(masked, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [[mask(.ellipse(total))]])
+        let croppedPlan = try sut.plan(cropped, storylineCrops: [nil], storylineMasks: [nil], crops: [.value(found(crop, at: 0))], areas: [nil], masks: [nil], cornerPins: cropped.clips.map { _ in nil })
+        let maskedPlan = try sut.plan(masked, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [[mask(.ellipse(total))]], cornerPins: masked.clips.map { _ in nil })
 
         // Then
         #expect(croppedPlan.clips[0]?.track.target == Quad(crop))
@@ -383,7 +385,7 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
         #expect(plan.clips[0]?.track.mediaTime == 1)
@@ -409,7 +411,8 @@ struct TrackPlannerTests {
                 PropertyKeyframe(index: 1, at: 1.2, value: .found(found(total, at: 2.2)), ease: .linear),
                 PropertyKeyframe(index: 0, at: 0.8, value: .found(found(first, at: 1.8)), ease: .linear)
             ])],
-            masks: time.clips.map { _ in nil }
+            masks: time.clips.map { _ in nil },
+            cornerPins: time.clips.map { _ in nil }
         )
 
         // Then
@@ -424,7 +427,7 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }) }
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil }) }
         #expect(error?.description == #"""
             storyline[0]#screen.connected[0] (rect): never visible, since the tracker follows its target on none of the \#
             frames of its visible range [0.5, 1.5)
@@ -439,7 +442,7 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [1106, 100, 200, 40], "at": [0, 2], "track": true }"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [.value(.found(found(target, at: 1)))], masks: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [.value(.found(found(target, at: 1)))], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
         let track = try #require(plan.clips[0]?.track)
@@ -457,7 +460,7 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1.5, 2.5], "track": [1300, 100, 100, 40] }"#)
 
         // When, Then
-        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }) }
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil }) }
         #expect(error?.description == #"""
             storyline[0]#screen.connected[0] (rect): never visible, since the tracker follows its target on none of the \#
             frames of its visible range [0.5, 1.5)
@@ -478,7 +481,7 @@ struct TrackPlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: time.storyline.map { _ in nil }, storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: time.clips.map { _ in nil }, masks: time.clips.map { _ in nil })
+            try sut.plan(time, storylineCrops: time.storyline.map { _ in nil }, storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: time.clips.map { _ in nil }, masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
         }
         #expect(error?.description == message)
     }
@@ -496,7 +499,7 @@ struct TrackPlannerTests {
         ]
 
         // When
-        let staticPlan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [masks])
+        let staticPlan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [masks], cornerPins: time.clips.map { _ in nil })
         let keyframedPlan = try sut.plan(
             time,
             storylineCrops: [nil],
@@ -511,7 +514,8 @@ struct TrackPlannerTests {
                 ResolvedMask(samples: [
                     (at: 0.8, geometry: .polyline([Point(x: 50, y: 60), Point(x: 70, y: 60), Point(x: 60, y: 100)], isClosed: true), feather: 0)
                 ])
-            ]]
+            ]],
+            cornerPins: time.clips.map { _ in nil }
         )
 
         // Then
@@ -534,7 +538,8 @@ struct TrackPlannerTests {
             storylineMasks: [[mask(.ellipse(total)), mask(.rect(Rectangle(x: 300, y: 100, width: 20, height: 100), radius: 0))]],
             crops: time.clips.map { _ in nil },
             areas: [],
-            masks: []
+            masks: [],
+            cornerPins: time.clips.map { _ in nil }
         )
 
         // Then
@@ -554,10 +559,10 @@ struct TrackPlannerTests {
 
         // When
         let shapeError = #expect(throws: ResolveError.self) {
-            try sut.plan(shape, storylineCrops: [nil], storylineMasks: [nil], crops: shape.clips.map { _ in nil }, areas: [.value(.found(found(total, at: 1)))], masks: [masks])
+            try sut.plan(shape, storylineCrops: [nil], storylineMasks: [nil], crops: shape.clips.map { _ in nil }, areas: [.value(.found(found(total, at: 1)))], masks: [masks], cornerPins: shape.clips.map { _ in nil })
         }
         let storylineError = #expect(throws: ResolveError.self) {
-            try sut.plan(storyline, storylineCrops: [.value(found(total, at: 1))], storylineMasks: [masks], crops: storyline.clips.map { _ in nil }, areas: [], masks: [])
+            try sut.plan(storyline, storylineCrops: [.value(found(total, at: 1))], storylineMasks: [masks], crops: storyline.clips.map { _ in nil }, areas: [], masks: [], cornerPins: storyline.clips.map { _ in nil })
         }
 
         // Then
@@ -581,9 +586,9 @@ struct TrackPlannerTests {
         let masks: [[ResolvedMask]?] = [[mask(.ellipse(Rectangle(x: 0, y: 0, width: 50, height: 50)))]]
 
         // When
-        let plan = try sut.plan(named, storylineCrops: crops, storylineMasks: masks, crops: named.clips.map { _ in nil }, areas: [], masks: [])
+        let plan = try sut.plan(named, storylineCrops: crops, storylineMasks: masks, crops: named.clips.map { _ in nil }, areas: [], masks: [], cornerPins: named.clips.map { _ in nil })
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(own, storylineCrops: crops, storylineMasks: masks, crops: own.clips.map { _ in nil }, areas: [], masks: [])
+            try sut.plan(own, storylineCrops: crops, storylineMasks: masks, crops: own.clips.map { _ in nil }, areas: [], masks: [], cornerPins: own.clips.map { _ in nil })
         }
 
         // Then
@@ -605,7 +610,7 @@ struct TrackPlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [[mask(.ellipse(total))]])
+            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [nil], masks: [[mask(.ellipse(total))]], cornerPins: time.clips.map { _ in nil })
         }
         #expect(error?.description == #"""
             storyline[0]#screen.connected[0].track (rect): "track": true follows the clip's own area, mask or crop, and it \#
