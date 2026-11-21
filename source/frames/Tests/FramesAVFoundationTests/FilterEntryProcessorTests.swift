@@ -28,6 +28,9 @@ struct FilterEntryProcessorTests {
         ))
     ]
 
+    // A limiter at its defaults.
+    private static let limiter = MixLimiter(gain: .constant(0), ceiling: .constant(-1), lookahead: 0.005, release: .constant(0.1))
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("an entry at `mix` 0 is its dry input, sample for sample")
@@ -70,16 +73,76 @@ struct FilterEntryProcessorTests {
         let entries = operations.map { MixFilterEntry(operations: [$0], mix: .constant(1)) }
         let sut = SegmentFilter(filter: entries, sampleRate: Self.sampleRate)
         let chained = FilterEntryProcessor(entry: MixFilterEntry(operations: operations, mix: .constant(1)), sampleRate: Self.sampleRate)
-        let inputs = signal(count: 4800)
+        let inputs = signal(count: 4800).map { StereoSample(left: Double(Float($0.left)), right: Double(Float($0.right))) }
 
         // When
-        let outputs = inputs.enumerated().map { sut.process($1, atSample: $0) }
+        let outputs = filtered(inputs, by: sut)
 
         // Then
-        #expect(outputs == inputs.enumerated().map { chained.process($1, atSample: $0) })
+        let expected = inputs.enumerated().map { chained.process($1, atSample: $0) }
+        #expect(outputs == expected.map { StereoSample(left: Double(Float($0.left)), right: Double(Float($0.right))) })
+    }
+
+    @Test("an entry with a limiter at `mix` 0.5 is half its dry input and half its limited sound")
+    func mixesLimitedEntry() {
+        // Given
+        let limited = operations + [.limiter(Self.limiter)]
+        let sut = SegmentFilter(filter: [MixFilterEntry(operations: limited, mix: .constant(0.5))], sampleRate: Self.sampleRate)
+        let wet = SegmentFilter(filter: [MixFilterEntry(operations: limited, mix: .constant(1))], sampleRate: Self.sampleRate)
+        let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
+
+        // When
+        let outputs = filtered(inputs, by: sut)
+
+        // Then
+        let wets = filtered(inputs, by: wet)
+        let rounded = inputs.map { StereoSample(left: Double(Float($0.left)), right: Double(Float($0.right))) }
+        let deviation = (0..<9600).map { sample in
+            let expected = rounded[sample].mixed(with: wets[sample], by: 0.5)
+            return max(abs(outputs[sample].left - expected.left), abs(outputs[sample].right - expected.right))
+        }.max()!
+        #expect(deviation < 1e-6, "\(deviation)")
+        #expect(wets.allSatisfy { max(abs($0.left), abs($0.right)) <= pow(10, -1.0 / 20) * (1 + 1e-6) })
+    }
+
+    @Test("an entry with a limiter between two others takes the sound the one before it gives and gives the next its own")
+    func runsLimiterInChain() {
+        // Given
+        let entries = [
+            MixFilterEntry(operations: [operations[0]], mix: .constant(1)),
+            MixFilterEntry(operations: [.limiter(Self.limiter)], mix: .constant(1)),
+            MixFilterEntry(operations: [operations[1]], mix: .constant(1))
+        ]
+        let sut = SegmentFilter(filter: entries, sampleRate: Self.sampleRate)
+        let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
+
+        // When
+        let outputs = filtered(inputs, by: sut)
+
+        // Then
+        let separate = entries.reduce(inputs) { sound, entry in
+            filtered(sound, by: SegmentFilter(filter: [entry], sampleRate: Self.sampleRate))
+        }
+        #expect(outputs == separate)
     }
 
     // MARK: - Private
+    // `inputs` through `filter` as one sound from sequence sample 0.
+    private func filtered(
+        _ inputs: [StereoSample],
+        by filter: SegmentFilter
+    ) -> [StereoSample] {
+        var left = inputs.map { Float($0.left) }
+        var right = inputs.map { Float($0.right) }
+        left.withUnsafeMutableBufferPointer { left in
+            right.withUnsafeMutableBufferPointer { right in
+                filter.process([left.baseAddress!, right.baseAddress!], frames: inputs.count, first: 0)
+            }
+        }
+
+        return zip(left, right).map { StereoSample(left: Double($0), right: Double($1)) }
+    }
+
     // A 440 Hz and a 5 kHz tone, louder on the left.
     private func signal(count: Int) -> [StereoSample] {
         (0..<count).map { sample in

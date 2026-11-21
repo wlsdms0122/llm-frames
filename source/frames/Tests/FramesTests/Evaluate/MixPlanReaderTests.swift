@@ -22,8 +22,8 @@ struct MixPlanReaderTests {
     )
     private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
 
-    // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, and a gate
-    // fading in by its `mix`.
+    // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, a gate
+    // fading in by its `mix`, and a limiter whose `gain` moves.
     private static let filter = [
         MixFilterEntry(
             operations: [
@@ -61,6 +61,17 @@ struct MixPlanReaderTests {
                 ))
             ],
             mix: .envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)])
+        ),
+        MixFilterEntry(
+            operations: [
+                .limiter(MixLimiter(
+                    gain: .envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 4.5)]),
+                    ceiling: .constant(-1),
+                    lookahead: 0.005,
+                    release: .constant(0.1)
+                ))
+            ],
+            mix: .constant(1)
         )
     ]
 
@@ -198,7 +209,23 @@ struct MixPlanReaderTests {
         #expect(band?.objectValue?.keys == ["type", "frequency", "q"])
         #expect(band?.objectValue?["frequency"] == .array([.array([.number(0), .number(80)]), .array([.number(1), .number(160)])]))
         #expect(band?.objectValue?["q"] == .number(0.7071))
-        #expect(entries?.last?.objectValue?["mix"]?.arrayValue?.count == 3)
+        #expect(entries?[1].objectValue?["mix"]?.arrayValue?.count == 3)
+    }
+
+    @Test("a limiter is written with its parameters in the op table's order, its static `lookahead` a plain number")
+    func writesLimiter() throws {
+        // Given
+        let plan = Self.plans[1]
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+        let limiter = segment?["filter"]?.arrayValue?.last?.objectValue?["ops"]?.arrayValue?.first?.objectValue
+
+        // Then
+        #expect(limiter?.keys == ["op", "gain", "ceiling", "lookahead", "release"])
+        #expect(limiter?["op"] == .string("limiter"))
+        #expect(limiter?["gain"] == .array([.array([.number(0), .number(0)]), .array([.number(3), .number(4.5)])]))
+        #expect(limiter?["ceiling"] == .number(-1) && limiter?["lookahead"] == .number(0.005))
     }
 
     @Test(
@@ -216,8 +243,18 @@ struct MixPlanReaderTests {
             ),
             (
                 #""op": "compressor","#,
+                #""op": "saturator","#,
+                #"segments[0].filter[0].ops[1].op (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter"#
+            ),
+            (
+                #""lookahead": 0.005"#,
+                #""lookahead": [[0, 0.005]]"#,
+                #"segments[0].filter[2].ops[0].lookahead (limiter): expected a number, found a list of 1"#
+            ),
+            (
                 #""op": "limiter","#,
-                #"segments[0].filter[0].ops[1].op (audio op): unknown value "limiter". Allowed: eq, compressor, gate"#
+                #""op": "limiter", "threshold": -1,"#,
+                #"segments[0].filter[2].ops[0] (limiter): unknown key "threshold". Allowed: op, gain, ceiling, lookahead, release"#
             ),
             (
                 #""op": "compressor","#,

@@ -17,7 +17,7 @@ package enum SoundSignal: Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // The signal of `channel` at frame `index` of a sound at `sampleRate` frames a second.
-    func value(
+    package func value(
         channel: Int,
         at index: Int,
         sampleRate: Int

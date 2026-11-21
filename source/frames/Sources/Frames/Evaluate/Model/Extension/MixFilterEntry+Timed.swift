@@ -71,6 +71,18 @@ extension MixFilterEntry {
                 makeup: makeup
             ))
 
+        case "op:limiter":
+            guard
+                let gain = number("gain"),
+                let ceiling = number("ceiling"),
+                let lookahead = staticNumber(body["lookahead"], sampler: sampler),
+                let release = number("release")
+            else {
+                return nil
+            }
+
+            return .limiter(MixLimiter(gain: gain, ceiling: ceiling, lookahead: lookahead, release: release))
+
         default:
             guard
                 let threshold = number("threshold"),
@@ -84,6 +96,19 @@ extension MixFilterEntry {
 
             return .gate(MixGate(threshold: threshold, range: range, attack: attack, hold: hold, release: release))
         }
+    }
+
+    // A static number, such as a limiter's `lookahead`: written as it is, or one value over the whole sound.
+    private static func staticNumber(
+        _ value: TimedValue?,
+        sampler: MixValueSampler
+    ) -> Double? {
+        if case let .fixed(written) = value {
+            return written.numberValue
+        }
+        guard case let .constant(number) = sampler.value(value, as: .number()) else { return nil }
+
+        return number
     }
 
     private static func band(

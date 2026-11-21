@@ -71,6 +71,14 @@ package struct MixPlanWriter: Sendable {
                 JSONMember(key: "hold", value: value(gate.hold)),
                 JSONMember(key: "release", value: value(gate.release))
             ]
+
+        case let .limiter(limiter):
+            [
+                JSONMember(key: "gain", value: value(limiter.gain)),
+                JSONMember(key: "ceiling", value: value(limiter.ceiling)),
+                JSONMember(key: "lookahead", value: .number(limiter.lookahead)),
+                JSONMember(key: "release", value: value(limiter.release))
+            ]
         }
 
         return .object(JSONObject(members: [name] + members))
