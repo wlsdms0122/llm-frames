@@ -111,7 +111,7 @@ A mask is `{geometry, transform, feather, invert, mode}`: `geometry` in one of t
 Evaluation has done everything above pixels: keyframes and eases (springs included), clip areas at t ([FRAMES-2](../FRAMES-2/SPEC.md)), animation spans and how they combine, transition motion, cover and matte progress, reveal, parent transforms, masks, track mattes, tracked motion, time remapping, and the visible windows. A role is left with the items as written.
 
 - Evaluation writes `seed` into every `grain` op: the number of the output frame being drawn, k for frame k of the outermost sequence (evaluated at k / fps), and the frame whose interval holds t for `still`, `evaluate` and a PNG. Nested lists take the outer frame's seed, so grain belongs to the output frame and two pictures in a transition share it.
-- Evaluation has also drawn every clip with motion blur at the sample instants of the frame's exposure and grouped its samples ([FRAMES-29](../FRAMES-29/SPEC.md)). The values in a sample list are sampled at its instant, and its media frames and tracked motion at the frame's instant t. A sample list takes the seed of the output frame, as every nested list does, whatever its instant.
+- Evaluation has also drawn every clip whose `motionBlur` is `true` at the sample instants of the frame's exposure, which the outermost sequence's `format.motionBlur` gives, and grouped its samples ([FRAMES-29](../FRAMES-29/SPEC.md)). The values in a sample list are sampled at its instant, and its media frames and tracked motion at the frame's instant t. A sample list takes the seed of the output frame, as every nested list does, whatever its instant.
 
 ### JSON form
 

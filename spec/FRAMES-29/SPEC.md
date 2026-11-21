@@ -41,7 +41,7 @@ A frame's instant T is k / fps for frame k of `render` ([FRAMES-21](../FRAMES-21
 
 ```
 d   = 1 / (360 × fps)                       seconds per degree of shutter
-tᵢ = T + (P + A × (i + 0.5) / N) × d       for i = 0, 1, ..., N - 1
+tᵢ  = T + (P + A × (i + 0.5) / N) × d      for i = 0, 1, ..., N - 1
 ```
 
 Each sample weighs 1 / N: the shutter is a box, open with the same weight over its whole interval. Under the defaults at 25 fps the exposure of frame k runs from T - 0.01 to T + 0.01 seconds, and t₀ is T - 0.009375.
