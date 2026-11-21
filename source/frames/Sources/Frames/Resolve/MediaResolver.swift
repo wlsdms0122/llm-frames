@@ -85,6 +85,15 @@ struct MediaResolver: Sendable {
                 duration: duration
             )
 
+        // The probe reads no page of a PDF, so a page is media it cannot read.
+        case let .page(reference, page):
+            throw ResolveError.unreadableMedia(
+                place: place,
+                kind: kind,
+                reference: reference,
+                reason: "the probe reads no page of a PDF, page \(page) among them"
+            )
+
         case let .compound(document):
             return nested(try planner(library: library).plan(document, theme: theme), reference: nil)
 

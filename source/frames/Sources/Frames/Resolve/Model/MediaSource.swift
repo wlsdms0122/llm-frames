@@ -11,6 +11,7 @@
 enum MediaSource: Equatable, Sendable {
     case file(String)
     case imageSequence(directory: String, fps: Double)
+    case page(file: String, page: Int)
     case compound(SequenceDocument)
     case template(name: String, arguments: JSONObject, passedOnThemes: PassedOnThemeTable)
     indirect case argument(MediaSource, theme: MergedTheme)
