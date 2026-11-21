@@ -249,14 +249,10 @@ package struct DisplayListReader: Sendable {
             filter: try filter(item.member("filter"), seed: seed),
             matte: try item.member("matte").optional { value in
                 let matte = try value.object(keys: ["source", "frame", "colorSpace", "progress", "softness", "invert"])
-                let frame = try frame(of: matte, mediaKey: "source")
+                let reading = PictureReading.analysis(colorSpace: try colorSpace(matte.member("colorSpace")))
 
                 return PictureMatte(
-                    frame: MediaFrame(
-                        media: frame.media,
-                        index: frame.index ?? 0,
-                        reading: .analysis(colorSpace: try colorSpace(matte.member("colorSpace")))
-                    ),
+                    frame: try frame(of: matte, mediaKey: "source", reading: reading),
                     progress: try matte.member("progress").number(),
                     softness: try matte.member("softness").number(),
                     isInverted: try matte.member("invert").bool()
@@ -333,16 +329,12 @@ package struct DisplayListReader: Sendable {
     ) throws -> PictureItemSource {
         guard value.value.objectValue?.contains("list") == true else {
             let source = try value.object(keys: ["media", "frame", "colorSpace", "targetPeak"])
-            let frame = try frame(of: source, mediaKey: "media")
+            let reading = PictureReading.working(
+                colorSpace: try colorSpace(source.member("colorSpace")),
+                targetPeak: try source.member("targetPeak").optional(targetPeak)
+            )
 
-            return .media(MediaFrame(
-                media: frame.media,
-                index: frame.index ?? 0,
-                reading: .working(
-                    colorSpace: try colorSpace(source.member("colorSpace")),
-                    targetPeak: try source.member("targetPeak").optional(targetPeak)
-                )
-            ))
+            return .media(try frame(of: source, mediaKey: "media", reading: reading))
         }
 
         return .displayList(try nestedList(value, seed: seed))
@@ -361,7 +353,8 @@ package struct DisplayListReader: Sendable {
     // PDF has frame null.
     private func frame(
         of object: PlacedJSONObject,
-        mediaKey: String
+        mediaKey: String,
+        reading: PictureReading
     ) throws -> MediaFrame {
         let media = try values.media(object.member(mediaKey))
         let frame = try object.member("frame")
@@ -370,7 +363,7 @@ package struct DisplayListReader: Sendable {
                 throw EvaluateError.frameOfPage(place: frame.place, kind: frame.kind, written: frame.value.written)
             }
 
-            return MediaFrame(media: media, index: 0)
+            return MediaFrame(media: media, index: 0, reading: reading)
         }
 
         let index = try frame.integer()
@@ -379,7 +372,7 @@ package struct DisplayListReader: Sendable {
             throw EvaluateError.frameOutOfRange(place: frame.place, kind: frame.kind, frame: index, count: count)
         }
 
-        return MediaFrame(media: media, index: index)
+        return MediaFrame(media: media, index: index, reading: reading)
     }
 
     // The space a picture is read in, null where its file's tags apply.

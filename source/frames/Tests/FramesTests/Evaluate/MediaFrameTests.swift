@@ -25,7 +25,7 @@ struct MediaFrameTests {
         let sut = MediaFrame(media: media, mediaTime: 0.05)
 
         // Then
-        #expect(sut.index == 1)
+        #expect(sut.picture == .frame(1))
         #expect(sut.file == files[1])
     }
 
@@ -38,7 +38,7 @@ struct MediaFrameTests {
         let sut = MediaFrame(media: media, mediaTime: 1.2)
 
         // Then
-        #expect(sut.index == 2)
+        #expect(sut.picture == .frame(2))
         #expect(sut.file == files[0])
     }
 
@@ -51,7 +51,21 @@ struct MediaFrameTests {
         let sut = MediaFrame(media: media, mediaTime: 3)
 
         // Then
-        #expect(sut.index == 0)
+        #expect(sut.picture == .frame(0))
         #expect(sut.file == files[2])
+    }
+
+    @Test("a page of a PDF is read as that page, by no frame, and with no target peak")
+    func readsPageAsPage() {
+        // Given
+        let media = PinnedMedia(source: .page(files[0], page: 2))
+
+        // When
+        let sut = MediaFrame(media: media, index: 3, reading: .working(colorSpace: .srgb, targetPeak: 1000))
+
+        // Then
+        #expect(sut.picture == .page)
+        #expect(sut.reading == .working(colorSpace: .srgb, targetPeak: nil))
+        #expect(sut.file == files[0])
     }
 }

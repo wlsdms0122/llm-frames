@@ -18,7 +18,7 @@ final class MediaPictureCache: Sendable {
     private static let picturesPerFile = 4
 
     private let decoder: any MediaDecoder
-    private let pictures = OSAllocatedUnfairLock<[String: [(index: Int, reading: PictureReading, image: CGImage)]]>(
+    private let pictures = OSAllocatedUnfairLock<[String: [(picture: MediaPicture, reading: PictureReading, image: CGImage)]]>(
         uncheckedState: [:]
     )
     private let pages = OSAllocatedUnfairLock<[String: [(request: PageRequest, image: CGImage)]]>(uncheckedState: [:])
@@ -33,20 +33,21 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Public
-    // The frame's picture, read as the frame says: working values, or an analysis picture for a transition matte.
+    // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
+    // picture for a transition matte.
     func image(of frame: MediaFrame) throws -> CGImage {
+        let picture = frame.picture
         let reading = frame.reading
-        let index = frame.index ?? 0
         let file = MediaFile(media: frame.media)
         let kept = pictures.withLock { pictures in
-            pictures[file.path]?.first { $0.index == index && $0.reading == reading }?.image
+            pictures[file.path]?.first { $0.picture == picture && $0.reading == reading }?.image
         }
         if let kept { return kept }
 
-        let image = try decoder.picture(of: file, atFrame: index, reading: reading).cgImage()
+        let image = try decoder.picture(of: frame).cgImage()
         pictures.withLock { pictures in
-            let others = (pictures[file.path] ?? []).filter { $0.index != index || $0.reading != reading }
-            pictures[file.path] = Array((others + [(index, reading, image)]).suffix(Self.picturesPerFile))
+            let others = (pictures[file.path] ?? []).filter { $0.picture != picture || $0.reading != reading }
+            pictures[file.path] = Array((others + [(picture, reading, image)]).suffix(Self.picturesPerFile))
         }
 
         return image

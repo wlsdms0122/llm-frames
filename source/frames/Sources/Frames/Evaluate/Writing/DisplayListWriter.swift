@@ -219,7 +219,13 @@ package struct DisplayListWriter: Sendable {
 
     // The frame index, null for a page of a PDF.
     private func frame(of frame: MediaFrame) -> JSONValue {
-        frame.index.map { .number(Double($0)) } ?? .null
+        switch frame.picture {
+        case let .frame(index):
+            .number(Double(index))
+
+        case .page:
+            .null
+        }
     }
 
     private func rectangle(_ rectangle: Rectangle?) -> JSONValue {

@@ -63,7 +63,7 @@ struct PictureDrawer {
             return
         }
 
-        let isPage = if case let .media(frame) = item.source { frame.media.page != nil } else { false }
+        let isPage = if case let .media(frame) = item.source { frame.picture == .page } else { false }
         let scale = isPage ? shownScale(in: context) : scale(of: destination, in: context)
         guard scale > 0 else { return }
 

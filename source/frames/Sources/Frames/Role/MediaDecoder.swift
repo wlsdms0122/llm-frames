@@ -75,9 +75,17 @@ extension MediaDecoder {
         try picture(of: file, atFrame: index, reading: .tagged)
     }
 
-    // A display list's media frame, read as the frame says. A page has no frame, so the decoder refuses it here.
+    // A display list's media frame, read as the frame says: a frame by its index, and a page whole as a provider reads
+    // it.
     package func picture(of frame: MediaFrame) throws -> Bitmap {
-        try picture(of: MediaFile(media: frame.media), atFrame: frame.index ?? 0, reading: frame.reading)
+        let file = MediaFile(media: frame.media)
+        switch frame.picture {
+        case let .frame(index):
+            return try picture(of: file, atFrame: index, reading: frame.reading)
+
+        case .page:
+            return try providerPicture(ofPage: file, reading: frame.reading).picture
+        }
     }
 
     // The scale a provider reads a page of `size` media pixels at: 4 pixels per media pixel, or the largest at which

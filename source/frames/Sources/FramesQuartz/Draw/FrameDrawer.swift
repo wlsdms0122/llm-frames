@@ -264,7 +264,7 @@ final class FrameDrawer {
     ) throws -> SourceImage? {
         switch picture.source {
         case let .media(frame):
-            guard frame.media.page != nil else { return SourceImage(media: try pictures.image(of: frame)) }
+            guard frame.picture == .page else { return SourceImage(media: try pictures.image(of: frame)) }
 
             return try pageImage(of: frame, in: picture, shownBy: matrix, on: raster)
 
@@ -322,7 +322,7 @@ final class FrameDrawer {
         shownBy matrix: CGAffineTransform,
         on raster: Raster
     ) throws -> SourceImage? {
-        guard matte.frame.media.page != nil else { return SourceImage(media: try pictures.image(of: matte.frame)) }
+        guard matte.frame.picture == .page else { return SourceImage(media: try pictures.image(of: matte.frame)) }
 
         let size = try pictures.pageSize(of: matte.frame)
         let destination = picture.destination
