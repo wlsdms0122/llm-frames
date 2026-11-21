@@ -207,6 +207,115 @@ struct DisplayListReaderTests {
         .grain(amount: 0.2, size: 1.5)
     ]
 
+    // `items` with a picture of a nested list under a track matte, at 12, and a grain, at 13, so a sample list holds
+    // every field of the Moves columns.
+    private static let sampleItems = items + [
+        DisplayItem(
+            trackMatte: ItemTrackMatte(
+                source: DisplayList(size: Size(width: 1080, height: 1920), background: Color(written: "#000000"), seed: 0, items: [items[2]]),
+                mode: .luma,
+                isInverted: false
+            ),
+            content: .picture(PictureItem(
+                source: .displayList(DisplayList(size: Size(width: 400, height: 300), background: Color(written: "#000000"), seed: 0, items: [items[4]])),
+                rectangle: nil,
+                destination: Rectangle(x: 100, y: 100, width: 400, height: 300)
+            ))
+        ),
+        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.2, size: 1.5)])])))
+    ]
+
+    // A path in the written list with samples, what is put there or nil to remove it, and the message of the stop.
+    private static let samplesForms: [([String], JSONValue?, String)] = [
+        (["items"], JSONValue.array([]), #"top level (display list): takes only one of "items", "samples""#),
+        (["samples"], nil, "top level (display list): needs one of items, samples"),
+        (["samples", "1"], nil, "samples (display list): a list with samples holds at least two sample lists, found 1"),
+        (
+            ["samples", "0", "12", "source", "list", "samples"],
+            JSONValue.array([.array([]), .array([])]),
+            "samples[0][12].source.list.samples (display list): only the outermost list of a frame holds samples"
+        )
+    ]
+
+    // A path in the second sample list, what is written there or nil to remove it, and the place the reading stops at.
+    private static let unmovedFields: [([String], String?, String)] = [
+        (["1", "0", "blend"], #""screen""#, "samples[1][0].blend (picture)"),
+        (["1", "0", "origin", "place"], #""storyline[2]""#, "samples[1][0].origin.place (picture)"),
+        (["1", "0", "mask"], "null", "samples[1][0].mask (picture)"),
+        (["1", "0", "mask", "1", "invert"], "false", "samples[1][0].mask[1].invert (picture)"),
+        (["1", "0", "mask", "2", "mode"], #""add""#, "samples[1][0].mask[2].mode (picture)"),
+        (["1", "0", "source", "frame"], "1", "samples[1][0].source.frame (picture)"),
+        (["1", "0", "source", "colorSpace"], #""srgb""#, "samples[1][0].source.colorSpace (picture)"),
+        (["1", "0", "matte", "softness"], "0.2", "samples[1][0].matte.softness (picture)"),
+        (["1", "0", "matte", "invert"], "false", "samples[1][0].matte.invert (picture)"),
+        (["1", "0", "filter"], "[]", "samples[1][0].filter (picture)"),
+        (
+            ["1", "0", "filter", "0", "ops"],
+            #"[{ "op": "blur", "radius": 2 }, { "op": "exposure", "ev": 0.5 }]"#,
+            "samples[1][0].filter[0].ops[0].op (picture)"
+        ),
+        (["1", "4", "stroke", "join"], #""round""#, "samples[1][4].stroke.join (path)"),
+        (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
+        (["1", "4", "stroke", "end"], #""arrow""#, "samples[1][4].stroke.end (path)"),
+        (["1", "6", "runs", "0", "file"], #""/abs/Other.ttf""#, "samples[1][6].runs[0].file (glyphs)"),
+        (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
+        (["1", "6", "runs", "0", "size"], "30", "samples[1][6].runs[0].size (glyphs)"),
+        (["1", "6", "runs", "0", "glyphs", "1", "0"], "77", "samples[1][6].runs[0].glyphs[1][0] (glyphs)"),
+        (["1", "11", "layer"], #""fills""#, "samples[1][11].layer (glyphs)"),
+        (["1", "12", "trackMatte", "mode"], #""alpha""#, "samples[1][12].trackMatte.mode (picture)"),
+        (["1", "12", "trackMatte", "invert"], "true", "samples[1][12].trackMatte.invert (picture)"),
+        (
+            ["1", "12", "trackMatte", "source", "list", "items", "0", "origin"],
+            "null",
+            "samples[1][12].trackMatte.source.list.items[0].origin (path)"
+        ),
+        (["1", "12", "source", "list", "size"], "[200, 150]", "samples[1][12].source.list.size[0] (picture)"),
+        (["1", "12", "source", "list", "items"], "[]", "samples[1][12].source.list.items (picture)"),
+        (["1", "12", "source", "list", "items", "0", "blend"], #""screen""#, "samples[1][12].source.list.items[0].blend (path)"),
+        (["1", "13"], nil, "samples[1] (display list)")
+    ]
+
+    // A path in the second sample list and what is written there.
+    private static let movedFields: [([String], String)] = [
+        (["0", "transform"], "[1, 0, 0, 1, 5, 5]"),
+        (["0", "opacity"], "0.25"),
+        (["0", "reveal"], "null"),
+        (["0", "mask", "1", "geometry"], #"{ "ellipse": { "rect": [1, 2, 3, 4] } }"#),
+        (["0", "mask", "1", "transform"], "[1, 0, 0, 1, 0, 0]"),
+        (["0", "mask", "1", "feather"], "2"),
+        (["0", "rect"], "[0, 0, 100, 100]"),
+        (["0", "dest"], "[0, 0, 10, 10]"),
+        (["0", "filter", "0", "mix"], "1"),
+        (["0", "filter", "0", "ops", "0", "ev"], "1"),
+        (["0", "matte", "progress"], "0.75"),
+        (["0", "radius"], "0"),
+        (["0", "border"], "null"),
+        (["0", "shadow"], "null"),
+        (["2", "fill"], #""color(srgb 1 1 1 / 1)""#),
+        (["2", "shadow"], "null"),
+        (["4", "geometry"], #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 2 } }"#),
+        (["4", "stroke", "width"], "3"),
+        (["4", "stroke", "paint"], #""color(srgb 1 1 1 / 1)""#),
+        (["4", "stroke", "dash"], "[2, 2]"),
+        (["4", "stroke", "dashOffset"], "1"),
+        (["4", "trim"], "[0, 1]"),
+        (["6", "size"], "[100, 40]"),
+        (["6", "background"], "null"),
+        (["6", "runs", "0", "color"], #""color(srgb 1 0 0 / 1)""#),
+        (["6", "runs", "0", "stroke"], "null"),
+        (["6", "runs", "0", "highlight"], "null"),
+        (["6", "runs", "0", "underline"], "null"),
+        (["6", "runs", "0", "glyphs", "1", "1"], "20"),
+        (["6", "runs", "0", "glyphs", "1", "2"], "30"),
+        (["8", "filter", "0", "ops", "0", "amount"], "0.5"),
+        (["11", "unitBox"], "[0, 0, 1, 1]"),
+        (["11", "unitGlyphBox"], "[0, 0, 1, 1]"),
+        (["12", "dest"], "[0, 0, 200, 150]"),
+        (["12", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
+        (["12", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
+        (["13", "filter", "0", "ops", "0", "amount"], "0.4")
+    ]
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("every kind of display item reads back to the item it was written from", arguments: items.indices)
@@ -655,7 +764,191 @@ struct DisplayListReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test("a list with samples reads back and writes the same text again, its seed from a grain in its samples")
+    func readsWrittenSamples() throws {
+        // Given
+        let moved = Self.sampleItems.enumerated().map { index, item in
+            DisplayItem(
+                transform: AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: Double(index), ty: 0),
+                opacity: item.opacity / 2,
+                blend: item.blend,
+                mask: item.mask,
+                trackMatte: item.trackMatte,
+                reveal: item.reveal,
+                content: item.content,
+                origin: item.origin
+            )
+        }
+        let list = DisplayList(
+            size: Size(width: 1080, height: 1920),
+            background: Color(written: "#000000"),
+            colorSpace: .srgb,
+            seed: 7,
+            samples: [Self.sampleItems, moved, Self.sampleItems]
+        )
+
+        // When
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(writer.write(read) == writer.write(list))
+        #expect(read.seed == 7)
+        #expect(read.samples?.count == 3)
+        #expect(read.items.isEmpty)
+    }
+
+    @Test("a list with samples writes them after its compositing, each a list of items, in place of its items")
+    func writesSamplesMembers() throws {
+        // Given
+        let list = samplesList()
+
+        // When
+        let document = writer.document(list).objectValue
+        let samples = document?["samples"]?.arrayValue
+
+        // Then
+        #expect(document?.keys == ["displayList", "size", "background", "colorSpace", "peak", "compositing", "samples"])
+        #expect(samples?.count == 2)
+        #expect(samples?.first == writer.document(self.list(items: Self.sampleItems)).objectValue?["items"])
+    }
+
+    @Test(
+        "an outermost list with both items and samples or neither, samples of fewer than two lists, or samples in a nested list stops",
+        arguments: samplesForms
+    )
+    func refusesSamplesForm(
+        path: [String],
+        value: JSONValue?,
+        message: String
+    ) throws {
+        // Given
+        let text = try writtenSamples(replacing: path, with: value)
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a sample list that differs from the first in a field the Moves columns do not mark stops, naming its place",
+        arguments: unmovedFields
+    )
+    func refusesDifferentSample(
+        path: [String],
+        written: String?,
+        place: String
+    ) throws {
+        // Given
+        let text = try writtenSamples(replacing: ["samples"] + path, with: written.map(Fixture.json))
+
+        // When
+        let error = #expect(throws: EvaluateError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == """
+            \(place): differs from the first sample list, and the sample lists of a frame hold the same items in the same \
+            order and differ only in the fields that move
+            """)
+    }
+
+    @Test(
+        "a sample list that differs from the first only in fields the Moves columns mark reads",
+        arguments: movedFields
+    )
+    func readsMovedSample(
+        path: [String],
+        written: String
+    ) throws {
+        // Given
+        let text = try writtenSamples(replacing: ["samples", "1"] + path, with: Fixture.json(written))
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read.samples?.count == 2)
+        #expect(read.samples?.first == Self.sampleItems)
+        #expect(read.samples?.last != Self.sampleItems)
+    }
+
+    @Test("a grain in a later sample list with a seed other than the first grain's stops, naming its place")
+    func refusesDifferentSeedInSample() throws {
+        // Given
+        let text = try writtenSamples(replacing: ["samples", "1", "13", "filter", "0", "ops", "0", "seed"], with: .number(5))
+
+        // When
+        let error = #expect(throws: EvaluateError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == """
+            samples[1][13].filter[0].ops[0].seed (adjust): seed 5 differs from 0, the seed of the first grain in the list, \
+            and every grain of an output frame takes that frame's number
+            """)
+    }
+
     // MARK: - Private
+    // The outermost list with two equal sample lists of `sampleItems`.
+    private func samplesList() -> DisplayList {
+        DisplayList(
+            size: Size(width: 1080, height: 1920),
+            background: Color(written: "#000000"),
+            colorSpace: .srgb,
+            seed: 0,
+            samples: [Self.sampleItems, Self.sampleItems]
+        )
+    }
+
+    // `samplesList()` written, with `value` put at `path`, or what is there removed where `value` is nil. A component
+    // names a key of an object, or the index of an element of a list.
+    private func writtenSamples(
+        replacing path: [String],
+        with value: JSONValue?
+    ) throws -> String {
+        let document = try JSONReader().read(writer.write(samplesList()))
+
+        return try JSONWriter().write(#require(replacing(path[...], with: value, in: document)))
+    }
+
+    private func replacing(
+        _ path: ArraySlice<String>,
+        with value: JSONValue?,
+        in written: JSONValue
+    ) -> JSONValue? {
+        guard let component = path.first else { return value }
+
+        switch written {
+        case let .object(object):
+            guard let member = object[component] ?? (path.count == 1 ? .null : nil) else {
+                Issue.record("\(component) is not a key of the object")
+                return written
+            }
+            guard let replaced = replacing(path.dropFirst(), with: value, in: member) else {
+                return .object(JSONObject(members: object.members.filter { $0.key != component }))
+            }
+
+            return .object(object.setting(component, to: replaced))
+
+        case var .array(elements):
+            guard let index = Int(component), elements.indices.contains(index) else {
+                Issue.record("\(component) is not an index of the list")
+                return written
+            }
+            guard let replaced = replacing(path.dropFirst(), with: value, in: elements[index]) else {
+                elements.remove(at: index)
+                return .array(elements)
+            }
+
+            elements[index] = replaced
+            return .array(elements)
+
+        default:
+            Issue.record("\(component) names a member of a value that has none")
+            return written
+        }
+    }
+
     // The outermost list by default, which carries a colour space; a nested one carries none.
     private func list(
         size: Size = Size(width: 1080, height: 1920),

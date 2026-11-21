@@ -227,6 +227,27 @@ struct QuartzRendererTests {
         }
     }
 
+    @Test("check walks every sample list, naming its place there")
+    func refusesUnknownBlendInSample() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 1, height: 1), color: Color(written: "#FF0000"))
+        let list = DisplayList(
+            size: Size(width: 1, height: 1),
+            background: Color(written: "#FFFFFF"),
+            seed: 0,
+            samples: [[DisplayItem(content: .path(fill))], [DisplayItem(blend: "linear-dodge", content: .path(fill))]]
+        )
+
+        // When
+        let checking = { try sut.check(list) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedBlend(name: "linear-dodge", place: "samples[1][0].blend")) {
+            try checking()
+        }
+    }
+
     // Each cube is pinned by its own SHA-256, so only its contents are wrong. `line` is where the reader stops.
     @Test(
         "check refuses a pinned cube that does not read as a 3D LUT, naming its place and the cube's error",
