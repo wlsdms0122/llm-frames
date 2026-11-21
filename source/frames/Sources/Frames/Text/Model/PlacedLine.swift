@@ -6,23 +6,36 @@
 //
 
 // A line as it is set: its width at the static tracking, the y of its baseline in the text's box at the static line
-// height, and its grapheme clusters in order, up to its last visible one, since the spaces that end a line hang
-// outside it and move nothing.
+// height, the largest ascent and descent among its runs, and its range of the title's text. `clusters` are its
+// characters, its grapheme clusters up to the last one that is not a space, and `hanging` the spaces after them, which
+// hang past its end and are no character. A line with no character has the empty range where it starts.
 struct PlacedLine: Equatable, Sendable {
     // MARK: - Property
     let width: Double
     let baseline: Double
-    let clusters: [GlyphRange]
+    let ascent: Double
+    let descent: Double
+    let range: Range<Int>
+    let clusters: [PlacedCluster]
+    let hanging: [PlacedCluster]
 
     // MARK: - Initializer
     init(
         width: Double,
         baseline: Double,
-        clusters: [GlyphRange]
+        ascent: Double,
+        descent: Double,
+        range: Range<Int>,
+        clusters: [PlacedCluster],
+        hanging: [PlacedCluster]
     ) {
         self.width = width
         self.baseline = baseline
+        self.ascent = ascent
+        self.descent = descent
+        self.range = range
         self.clusters = clusters
+        self.hanging = hanging
     }
 
     // MARK: - Public

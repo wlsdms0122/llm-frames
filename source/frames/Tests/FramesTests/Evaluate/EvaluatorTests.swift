@@ -1545,6 +1545,7 @@ struct EvaluatorTests {
             color: .track([Keyframe(at: 0, value: .color(white))]),
             stroke: .off,
             baselineShift: .off,
+            staticTracking: 0,
             tracking: .off,
             highlight: nil,
             underline: nil,

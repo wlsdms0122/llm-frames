@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import Foundation
 import Testing
 
 @testable import Frames
@@ -188,6 +189,38 @@ struct ResolvedDocumentReaderTests {
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": { "text": "Total" }, "connected": [
             { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true },
             { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": { "text": "Send" } } ] } ] }
+        """#
+
+    // The title `name` of the example of the resolved document, written whole with its hashes in full.
+    private static let nameTitle = #"""
+        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null, "align": "left",
+          "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
+          "text": "Mina Baker", "words": [ [0, 4], [5, 10] ],
+          "lines": [ { "width": 216.2, "baseline": 45.7, "ascent": 45.7, "descent": 10.2, "range": [0, 10],
+                       "clusters": [ [0, 0, 1, 0, 1, 41.8], [0, 1, 1, 1, 2, 12.4], [0, 2, 1, 2, 3, 28.5],
+                                     [0, 3, 1, 3, 4, 27.6], [0, 4, 1, 4, 5, 13.3], [1, 0, 1, 5, 6, 24.7],
+                                     [1, 1, 1, 6, 7, 19.3], [1, 2, 1, 7, 8, 18], [1, 3, 1, 8, 9, 19.3],
+                                     [1, 4, 1, 9, 10, 11.3] ],
+                       "hanging": [] } ],
+          "units": null,
+          "runs": [
+            { "source": 0, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
+              "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue-Bold", "size": 48,
+              "color": [ { "at": 1.2, "value": "color(srgb 1 1 1 / 1)", "ease": "linear" } ], "stroke": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "staticTracking": 0, "tracking": null,
+              "highlight": null, "underline": null,
+              "glyphs": [ [48, 0, 45.7, 0, 0], [76, 41.8, 45.7, 0, 0], [81, 54.2, 45.7, 0, 0], [68, 82.7, 45.7, 0, 0], [3, 110.3, 45.7, 0, 0] ] },
+            { "source": 1, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
+              "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue", "size": 36,
+              "color": [ { "at": 1.2, "value": "color(srgb 0.788235294117647 0.8392156862745098 0.9176470588235294 / 1)", "ease": "linear" } ],
+              "stroke": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "staticTracking": 0, "tracking": null,
+              "highlight": { "color": [ { "at": 1.2, "value": "color(srgb 0.9490196078431372 0.7176470588235294 0.0196078431372549 / 1)", "ease": "linear" } ],
+                             "padding": [ { "at": 1.2, "value": [2, 8], "ease": "linear" } ],
+                             "radius": [ { "at": 1.2, "value": 4, "ease": "linear" } ],
+                             "rects": [ [123.6, 11.4, 92.6, 42] ] },
+              "underline": null,
+              "glyphs": [ [37, 123.6, 45.7, 0, 0], [68, 148.3, 45.7, 0, 0], [78, 167.6, 45.7, 0, 0], [72, 185.6, 45.7, 0, 0], [85, 204.9, 45.7, 0, 0] ] } ] }
         """#
 
     // MARK: - Initializer
@@ -673,10 +706,270 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test("a title read back from a file keeps its static tracking and draws each mark where the font places it")
+    func drawsMarksReadFromFile() throws {
+        // Given
+        // The acute is placed 0.3 em left of and 0.2 em above its pen, and the title's runs are set 100 apart.
+        let shaper = ShaperTable(placements: ["\u{301}": Point(x: -0.3, y: -0.2)])
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "e\u0301x", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "tracking": 100 } } ] }
+            """#,
+            shaper: shaper
+        )
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("frames-marks-\(UUID().uuidString).json")
+        try writer.write(document).write(to: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        // When
+        let read = try sut.read(String(contentsOf: file, encoding: .utf8))
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let run = try #require(title.runs.first)
+        let mark = try #require(run.glyphs.dropFirst().first)
+        let drawn = GlyphsItem(text: title, factor: 1, at: SampleTime(0)).runs[0].glyphs[1]
+        #expect(read == document)
+        #expect(run.staticTracking == run.size / 10)
+        #expect(mark.placementOffset == Point(x: -0.3 * run.size, y: -0.2 * run.size))
+        #expect(Point(x: drawn.x, y: drawn.y) == Point(x: mark.x + mark.placementOffset.x, y: mark.y + mark.placementOffset.y))
+    }
+
+    @Test("a tracked title from resolve reads back, a ligature that ends its line taking no tracking after it")
+    func readsTrackedLigature() throws {
+        // Given
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "xfi", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "tracking": 100, "features": { "liga": 1 } } } ] }
+            """#
+        )
+
+        // When
+        let read = try sut.read(writer.write(document))
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let line = try #require(title.lines.first)
+        let tracking = title.runs[0].staticTracking
+        #expect(read == document)
+        #expect(tracking > 0)
+        #expect(line.clusters.map(\.glyphs.count) == [1, 1, 0])
+        #expect(abs(line.width - line.clusters[0].advance - tracking - line.clusters[1].advance) < 1e-9)
+    }
+
+    @Test("a title whose advances hold its tracking stops when read, naming the title's place")
+    func refusesTrackingInAdvances() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0], "character": { "tracking": 100 } } ] }
+            """#
+        )
+        let folded = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[0].objectValue)
+            let tracking = try #require(run["staticTracking"]?.numberValue)
+            runs[0] = .object(run.setting("staticTracking", to: .number(0)))
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            let clusters = try #require(line["clusters"]?.arrayValue).map { cluster in
+                var numbers = try #require(cluster.arrayValue)
+                numbers[5] = .number(try #require(numbers[5].numberValue) + tracking)
+
+                return JSONValue.array(numbers)
+            }
+            lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            return title.setting("runs", to: .array(runs)).setting("lines", to: .array(lines))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(folded) }
+
+        // Then
+        #expect(error?.description == #"""
+            clips[0].title (clip): line 0's pen positions do not follow its clusters' advances, its runs' static \#
+            tracking and its width
+            """#)
+    }
+
+    @Test(
+        "a title's cluster, line or word range past its text, or clusters that do not go up along a line, stop when read",
+        arguments: [
+            ("cluster", "expected [run, first, count, start, end, advance] within the text's 5 scalars"),
+            ("line", "expected [start, end] within the text's 5 scalars"),
+            ("word", "expected [start, end] within the text's 5 scalars"),
+            ("order", "line 0's clusters do not go up along the text")
+        ]
+    )
+    func refusesTextRange(
+        change: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            var clusters = try #require(line["clusters"]?.arrayValue)
+            var words = try #require(title["words"]?.arrayValue)
+            switch change {
+            case "cluster":
+                var numbers = try #require(clusters[4].arrayValue)
+                numbers[4] = .number(99)
+                clusters[4] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            case "line":
+                lines[0] = .object(line.setting("range", to: .array([.number(0), .number(99)])))
+
+            case "word":
+                words[0] = .array([.number(0), .number(99)])
+
+            default:
+                var numbers = try #require(clusters[1].arrayValue)
+                numbers[3] = .number(0)
+                numbers[4] = .number(1)
+                clusters[1] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+            }
+
+            return title.setting("lines", to: .array(lines)).setting("words", to: .array(words))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(message) == true)
+    }
+
+    @Test(
+        "a unit's part naming a run past the title's runs, a piece past its run's pieces, a negative piece or a run with neither highlight nor underline stops when read",
+        arguments: ["run", "piece", "negative piece", "plain run"]
+    )
+    func refusesUnitPart(change: String) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "highlight": { "color": "#FF0000" } },
+                           "animation": { "preset": "frames/fade", "by": "word" } } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            var units = try #require(title["units"]?.arrayValue)
+            let unit = try #require(units[0].objectValue)
+            var parts = try #require(unit["parts"]?.arrayValue)
+            var part = try #require(parts.first?.arrayValue)
+            switch change {
+            case "run":
+                part[0] = .number(Double(runs.count))
+
+            case "piece":
+                part[1] = .number(1)
+
+            case "negative piece":
+                part[1] = .number(-1)
+
+            default:
+                let run = try #require(runs[0].objectValue)
+                runs[0] = .object(run.setting("highlight", to: .null))
+            }
+            parts[0] = .array(part)
+            units[0] = .object(unit.setting("parts", to: .array(parts)))
+
+            return title.setting("runs", to: .array(runs)).setting("units", to: .array(units))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(
+            "units[0].parts[0] (clip): expected [run, piece, x0, x1] naming a highlight or underline piece of one of the title's runs"
+        ) == true)
+    }
+
+    @Test("a glyph id an OpenType face cannot hold stops when read", arguments: [-1, 65536])
+    func refusesGlyphID(id: Double) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[0].objectValue)
+            var glyphs = try #require(run["glyphs"]?.arrayValue)
+            var glyph = try #require(glyphs.first?.arrayValue)
+            glyph[0] = .number(id)
+            glyphs[0] = .array(glyph)
+            runs[0] = .object(run.setting("glyphs", to: .array(glyphs)))
+
+            return title.setting("runs", to: .array(runs))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(
+            "runs[0].glyphs[0] (clip): expected [glyph id, x, y, dx, dy] with a glyph id from 0 to 65535"
+        ) == true)
+    }
+
+    @Test("the title of the example of the resolved document reads, and writes back as it was written")
+    func readsExampleTitle() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 6 } ],
+              "clips": [ { "title": "Mina Baker", "style": "title", "at": [1.2, 5], "position": [128, 900] } ] }
+            """#
+        )
+        let name = try Fixture.json(Self.nameTitle)
+        let document = try replacingTitle(ofClip: 0, in: text) { _ in try #require(name.objectValue) }
+
+        // When
+        let read = try sut.read(document)
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let written = try #require(writer.document(read).objectValue)
+        let clip = try #require(written["clips"]?.arrayValue?.first?.objectValue)
+        #expect(title.text == "Mina Baker")
+        #expect(clip["title"] == name)
+    }
+
     // MARK: - Private
     private func resolved(
         _ document: String,
-        tracker: TrackerTable = Fixture.tracker
+        tracker: TrackerTable = Fixture.tracker,
+        shaper: ShaperTable = Fixture.shaper
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
@@ -684,7 +977,7 @@ struct ResolvedDocumentReaderTests {
             ocr: Fixture.ocr,
             languages: nil,
             tracker: tracker,
-            shaper: Fixture.shaper,
+            shaper: shaper,
             library: Fixture.library
         )
 
@@ -705,6 +998,20 @@ struct ResolvedDocumentReaderTests {
         var clips = try #require(root["clips"]?.arrayValue)
         let clip = try #require(clips[index].objectValue)
         clips[index] = .object(clip.setting(key, to: try Fixture.json(value)))
+
+        return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
+    }
+
+    private func replacingTitle(
+        ofClip index: Int,
+        in text: String,
+        _ change: (JSONObject) throws -> JSONObject
+    ) throws -> String {
+        let root = try #require(try JSONReader().read(text).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[index].objectValue)
+        let title = try #require(clip["title"]?.objectValue)
+        clips[index] = .object(clip.setting("title", to: .object(try change(title))))
 
         return JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
     }

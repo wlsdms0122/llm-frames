@@ -40,5 +40,10 @@ struct ResolvedMediaClip: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // A still has no clock and shows media time 0.
+    func mediaTime(at time: Double) -> Double {
+        clock?.mediaTime(atSequenceTime: time) ?? 0
+    }
+
     // MARK: - Private
 }

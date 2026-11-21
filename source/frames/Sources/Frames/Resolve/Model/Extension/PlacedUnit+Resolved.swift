@@ -6,35 +6,30 @@
 //
 
 // A unit as resolved, its box holding what it draws at its widest over the keyframes: its glyph box grown on every side
-// by half the widest stroke among its glyphs, then to hold its highlight parts at their largest padding and its
-// underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds the
-// padding there.
+// by half the widest stroke among the glyphs it draws, then to hold its highlight parts at their largest padding and
+// its underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds
+// the padding there.
 extension PlacedUnit {
     // MARK: - Property
     // MARK: - Initializer
     init(
         drawing unit: PlacedUnit,
+        lines: [PlacedLine],
         runs: [ResolvedGlyphRun]
     ) {
         let stroke = unit.glyphs.flatMap { Self.values(of: runs[$0.run].stroke["width"]) }.compactMap(\.first).max() ?? 0
         let parts = unit.parts.flatMap { part in
             let run = runs[part.run]
-            let highlight = run.highlight.flatMap { highlight in
-                highlight.rects.indices.contains(part.piece)
-                    ? Self.drawn(part, of: highlight.rects[part.piece], padding: highlight.padding)
-                    : nil
-            }
-            let underline = run.underline.flatMap { underline in
-                underline.rects.indices.contains(part.piece)
-                    ? Self.drawn(part, of: underline.rects[part.piece], underline: underline)
-                    : nil
-            }
+            let highlight = run.highlight.map { Self.drawn(part, of: $0.rects[part.piece], padding: $0.padding) }
+            let underline = run.underline.map { Self.drawn(part, of: $0.rects[part.piece], underline: $0) }
 
             return [highlight, underline].compactMap { $0 }
         }
 
         self.init(
-            glyphs: unit.glyphs,
+            characters: unit.characters,
+            hangingLines: unit.hangingLines,
+            lines: lines,
             glyphBox: unit.glyphBox,
             box: parts.reduce(unit.glyphBox.grown(by: stroke / 2)) { $0.union($1) },
             parts: unit.parts

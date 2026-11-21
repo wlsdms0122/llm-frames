@@ -29,9 +29,9 @@ struct GlyphDrawer {
         carriedBy transform: Frames.AffineTransform,
         in context: CGContext
     ) throws {
-        let draws = { (layer: GlyphLayer) in item.layer == nil || item.layer == layer }
+        let draws = { (layer: GlyphLayer) in item.unit.map { $0.layer == layer } ?? true }
 
-        if item.layer == nil, let background = item.background {
+        if item.unit == nil, let background = item.background {
             context.addPath(PathOutline(.rect(background.rectangle, radius: background.radius)).path)
             context.setFillColor(background.color.cgColor)
             context.fillPath()
@@ -114,8 +114,7 @@ struct GlyphDrawer {
     ) {
         for (index, rect) in rects.enumerated() {
             context.saveGState()
-            if let bands, index < bands.count {
-                let band = bands[index]
+            if let band = bands?[index] {
                 let margin = rect.width + rect.height
                 let start = band.lowerBound > rect.x
                     ? pixelEdge(near: band.lowerBound, y: rect.y, in: context)

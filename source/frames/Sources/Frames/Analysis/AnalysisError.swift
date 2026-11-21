@@ -20,6 +20,8 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case beforeSoundStart(option: String, time: Double)
     case atOrAfterSoundEnd(option: String, time: Double, end: Double)
     case afterSoundEnd(option: String, time: Double, end: Double)
+    // `units` is how many units the title has, nil for a title not animated by unit.
+    case unknownUnit(place: String, kind: String, unit: Int, units: Int?)
 
     // MARK: - Property
     var description: String {
@@ -65,6 +67,10 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .afterSoundEnd(option, time, end):
             "\(option): second \(number(time)) is after the end of the sound at \(number(end))"
+
+        case let .unknownUnit(place, kind, unit, units):
+            "\(place) (\(kind)): the item draws unit \(unit) of the title, "
+                + (units.map { $0 == 0 ? "which has no unit" : "whose units are 0 to \($0 - 1)" } ?? "which is not animated by unit")
         }
     }
 

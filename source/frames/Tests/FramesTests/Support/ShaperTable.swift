@@ -10,8 +10,11 @@
 // A shaping provider over a table. Every family it has holds a regular and a bold upright face unless `styles` names
 // its faces, and a pack's family is in the file whose name starts with the family's. Each scalar is a glyph `advances`
 // wide in ems, `fi` is one ligature glyph an em wide unless `liga` is 0, and `AV` kerns by a tenth of an em unless
-// `kern` is 0. A character `lacks` names for a family is set in the next face, and one in `missing` or that no face
-// has in `fallback`.
+// `kern` is 0. A grapheme cluster with a scalar `lacks` names for a family is set whole in the next face, and one with
+// a scalar in `missing` or that no face has whole in `fallback`, default ignorable scalars left out of both. A scalar
+// in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in its
+// face, as a pre-base matra is. A scalar in `ignored` is set as nothing, as a shaper leaves out a default ignorable
+// scalar its face does not map.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
@@ -23,6 +26,9 @@ struct ShaperTable: ShapingProvider {
     let missing: Set<Unicode.Scalar>
     let lacks: [String: Set<Unicode.Scalar>]
     let styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]]
+    let placements: [Unicode.Scalar: Point]
+    let prebase: Set<Unicode.Scalar>
+    let ignored: Set<Unicode.Scalar>
 
     // MARK: - Initializer
     init(
@@ -30,13 +36,19 @@ struct ShaperTable: ShapingProvider {
         advances: [Unicode.Scalar: Double] = [" ": 0.25],
         missing: Set<Unicode.Scalar> = [],
         lacks: [String: Set<Unicode.Scalar>] = [:],
-        styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]] = [:]
+        styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]] = [:],
+        placements: [Unicode.Scalar: Point] = [:],
+        prebase: Set<Unicode.Scalar> = [],
+        ignored: Set<Unicode.Scalar> = []
     ) {
         self.installed = installed
         self.advances = advances
         self.missing = missing
         self.lacks = lacks
         self.styles = styles
+        self.placements = placements
+        self.prebase = prebase
+        self.ignored = ignored
     }
 
     // MARK: - Public
@@ -104,24 +116,36 @@ struct ShaperTable: ShapingProvider {
         let isLigated = !features.contains(FontFeature(tag: "liga", value: 0))
         let isKerned = !features.contains(FontFeature(tag: "kern", value: 0))
         let scalars = Array(text.unicodeScalars)
+        let scalarFaces = text.flatMap { cluster in
+            Array(repeating: face(for: cluster, among: faces), count: cluster.unicodeScalars.count)
+        }
 
         var runs: [ShapedRun] = []
         var offset = 0
         while offset < scalars.count {
             let scalar = scalars[offset]
+            guard !ignored.contains(scalar) else {
+                offset += 1
+                continue
+            }
+
             let next = scalars.indices.contains(offset + 1) ? scalars[offset + 1] : nil
-            let runFace = face(for: scalar, among: faces)
+            let runFace = scalarFaces[offset]
             let isLigature = isLigated && scalar == "f" && next == "i"
             let kern = isKerned && scalar == "A" && next == "V" ? Self.kerning : 0
             let advance = isLigature ? 1 : (advances[scalar] ?? 0.5) - kern
             let glyph = ShapedGlyph(
                 id: isLigature ? Self.ligature : Int(scalar.value),
                 advance: advance * size,
-                offset: offset
+                offset: offset,
+                placementOffset: placements[scalar].map { Point(x: $0.x * size, y: $0.y * size) } ?? Point(x: 0, y: 0)
             )
 
             if let last = runs.last, last.face == runFace {
-                runs[runs.count - 1] = ShapedRun(face: runFace, glyphs: last.glyphs + [glyph])
+                let glyphs = prebase.contains(scalar) && !last.glyphs.isEmpty
+                    ? Array(last.glyphs.dropLast()) + [glyph, last.glyphs[last.glyphs.count - 1]]
+                    : last.glyphs + [glyph]
+                runs[runs.count - 1] = ShapedRun(face: runFace, glyphs: glyphs)
             } else {
                 runs.append(ShapedRun(face: runFace, glyphs: [glyph]))
             }
@@ -142,13 +166,16 @@ struct ShaperTable: ShapingProvider {
     }
 
     private func face(
-        for scalar: Unicode.Scalar,
+        for cluster: Character,
         among faces: [FontFace]
     ) -> FontFace {
-        guard !missing.contains(scalar) else { return Self.fallback }
+        let scalars = cluster.unicodeScalars.filter { !$0.properties.isDefaultIgnorableCodePoint }
+        guard !scalars.contains(where: missing.contains) else { return Self.fallback }
 
         let found = faces.first { face in
-            !lacks.contains { family, scalars in face.name.hasPrefix(family + "-") && scalars.contains(scalar) }
+            !lacks.contains { family, lacked in
+                face.name.hasPrefix(family + "-") && scalars.contains(where: lacked.contains)
+            }
         }
 
         return found ?? Self.fallback

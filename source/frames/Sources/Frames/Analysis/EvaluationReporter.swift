@@ -6,7 +6,11 @@
 //
 
 // Evaluates a resolved sequence at a time in [0, duration) and reports its display list as `evaluate` prints it,
-// nested lists flattened.
+// nested lists flattened, with the text of every title drawn then. A frame with motion blur is reported as the list it
+// has without motion blur (FRAMES-29). A title's text is read from the resolved title at the time that list draws it
+// at, not from its items. A title's first item names it and gives its text box's map to output pixels: its one item, or
+// the background item under its units, which carries the title's transform without a unit's motion. A unit's `fills`
+// item reports the characters of the unit it names, of the title its origin names.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()
@@ -22,15 +26,66 @@ package struct EvaluationReporter: Sendable {
     ) throws -> EvaluationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return try report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), at: time)
+        return try report(
+            of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time),
+            titles: sequence.titles(at: time),
+            at: time
+        )
     }
 
+    // `titles` are the resolved titles the list's glyphs items are drawn from, by place.
     func report(
         of list: DisplayList,
+        titles: [String: TitleSample] = [:],
         at time: Double
     ) throws -> EvaluationReport {
-        EvaluationReport(time: time, size: list.size, items: try flattener.items(of: list).map(EvaluationItem.init))
+        var items: [EvaluationItem] = []
+        var texts: [EvaluationText] = []
+        for item in try flattener.items(of: list) {
+            guard item.item == .glyphs, let origin = item.origin, let title = titles[origin.place] else {
+                items.append(EvaluationItem(item))
+                continue
+            }
+
+            if !texts.contains(where: { $0.place == origin.place }) {
+                texts.append(text(of: title, origin: origin, transform: item.transform))
+            }
+            switch item.characters {
+            case .title:
+                items.append(EvaluationItem(item, characters: title.text.characters(at: title.time)))
+
+            case let .unit(unit):
+                items.append(EvaluationItem(item, characters: try title.text.characters(of: unit, at: title.time, drawnBy: origin)))
+
+            case .none:
+                items.append(EvaluationItem(item))
+            }
+        }
+
+        return EvaluationReport(time: time, size: list.size, items: items, texts: texts)
     }
 
     // MARK: - Private
+    // The title's box is its text box grown by its background's padding, given in its text box.
+    private func text(
+        of title: TitleSample,
+        origin: ItemOrigin,
+        transform: AffineTransform
+    ) -> EvaluationText {
+        let text = title.text
+        let time = title.time
+        let textBox = text.textBox(at: time)
+        let box = text.box(at: time)
+
+        return EvaluationText(
+            place: origin.place,
+            id: origin.id,
+            text: text.text,
+            size: Size(width: textBox.width, height: textBox.height),
+            box: Rectangle(x: box.x - textBox.x, y: box.y - textBox.y, width: box.width, height: box.height),
+            transform: transform,
+            lines: text.evaluationLines(at: time),
+            words: text.evaluationWords
+        )
+    }
 }

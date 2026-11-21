@@ -8,7 +8,7 @@
 @testable import Frames
 
 // Text as resolve gives a title no keyframe moves: its background held, its text box its box less the background's
-// padding, without a width, lines or a line height.
+// padding, wrapping at its text box's width, without text, lines or a line height.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -27,7 +27,7 @@ extension ResolvedText {
                 width: size.width - padding.width * 2,
                 height: size.height - padding.height * 2
             ),
-            width: nil,
+            width: size.width - padding.width * 2,
             background: background.map { background in
                 ResolvedBackground(
                     color: .held(.color(background.color)),
@@ -37,7 +37,9 @@ extension ResolvedText {
             },
             align: .left,
             lineHeight: .off,
-            lines: nil,
+            text: "",
+            words: [],
+            lines: [],
             units: nil,
             runs: runs
         )
