@@ -10,13 +10,13 @@ import CoreImage
 import Frames
 
 // Draws the display lists of one output frame, items bottom first. An item's masks and track matte multiply its alpha
-// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow.
-// Opacity below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's
-// source among them, is drawn on a raster at the scale it is shown at, once per frame for each raster, so it is as
-// sharp as its items drawn in place; every length in pixels inside it is scaled with it. Each list is drawn in the form
-// of the working values its `compositing` names, which its items are composited, covered, resampled, blurred and mixed
-// in, and its picture is converted to the form of the list that shows it. The frame is a half float bitmap of encoded
-// working values.
+// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow. Opacity
+// below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's source among
+// them, is drawn on a raster at the scale it is shown at, once per frame for each raster, so it is as sharp as its
+// items drawn in place; every length in pixels inside it is scaled with it. A picture with a corner pin is warped onto
+// it from a raster of its whole list. Each list is drawn in the form of the working values its `compositing` names,
+// which its items are composited, covered, resampled, blurred and mixed in, and its picture is converted to the form of
+// the list that shows it. The frame is a half float bitmap of encoded working values.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -221,6 +221,10 @@ final class FrameDrawer {
     ) throws -> (CGContext) throws -> Void {
         switch item.content {
         case let .picture(picture):
+            if let cornerPin = picture.cornerPin {
+                return try carried(picture, onto: cornerPin, transform: item.transform, over: frame, on: raster)
+            }
+
             let source = try image(of: picture, shownBy: matrix(of: item, on: raster), on: raster)
             let matte = try picture.matte.map { try pictures.image(of: $0.frame) }
             return { [tables] context in
@@ -335,6 +339,45 @@ final class FrameDrawer {
         }
 
         return adjustments + mattes
+    }
+
+    // A picture carried onto its corner pin by W = H(`dest` → `cornerPin`) and then by its item's transform onto the
+    // raster (FRAMES-20 Pictures). Its whole list is drawn at the scale that map stretches it, warped onto the raster
+    // in the frame's form, and drawn back in the raster's pixels, which the item's matrix is undone for. The checker
+    // lets through only a clip's group, a picture of a nested list with no filter, matte, radius, border or shadow.
+    private func carried(
+        _ picture: PictureItem,
+        onto cornerPin: Quad,
+        transform: Frames.AffineTransform,
+        over frame: FrameContext,
+        on raster: Raster
+    ) throws -> (CGContext) throws -> Void {
+        let matrix = CGAffineTransform(transform).concatenating(raster.transform)
+        guard
+            case let .displayList(list) = picture.source,
+            matrix.a * matrix.d - matrix.b * matrix.c != 0,
+            let placement = picture.placement(ofSourceSized: CGSize(width: list.size.width, height: list.size.height)),
+            let cornerPinMap = Homography(from: Quad(picture.destination), to: cornerPin)
+        else {
+            return { _ in }
+        }
+
+        let map = Homography(placement).concatenating(cornerPinMap).concatenating(Homography(matrix))
+        guard let nested = Raster(showing: list.size, through: map, within: raster.bounds, reading: reach(of: list)) else {
+            return { _ in }
+        }
+
+        let source = CIImage(cgImage: try image(of: list, on: nested))
+        let warped = try CornerPinWarper()
+            .warp(source, through: Homography(nested.transform.inverted()).concatenating(map), onto: raster.bounds)
+        guard !warped.extent.isEmpty else { return { _ in } }
+
+        let image = try FrameContext.cgImage(of: warped, in: raster.bounds, compositing: frame.compositing)
+
+        return { context in
+            context.concatenate(matrix.inverted())
+            context.drawUpright(image, in: raster.bounds)
+        }
     }
 
     // The whole backdrop through the adjustment's filter, drawn back over the frame in the raster's pixels, which the

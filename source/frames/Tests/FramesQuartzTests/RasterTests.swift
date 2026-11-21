@@ -74,5 +74,56 @@ struct RasterTests {
         #expect(sut == nil)
     }
 
+    @Test("a list carried by an affine homography is drawn at its larger axis scale, the same along both axes")
+    func drawsCarriedListAtStretch() throws {
+        // Given
+        let map = Homography(CGAffineTransform(a: 0.5, b: 0, c: 0, d: 0.75, tx: 10, ty: 20))
+
+        // When
+        let sut = try #require(
+            Raster(showing: Self.size, through: map, within: CGRect(x: 0, y: 0, width: 200, height: 200), reading: 0)
+        )
+
+        // Then
+        #expect(sut.transform.a == 0.75 && sut.transform.d == 0.75)
+        #expect(sut.width == 75 && sut.height == 75)
+    }
+
+    @Test("a list carried towards a horizon holds at most twice the pixels of the area it lands in")
+    func capsListTowardsHorizon() throws {
+        // Given
+        let box = Quad(Rectangle(x: 0, y: 0, width: 1024, height: 1024))
+        let steep = Quad(
+            topLeft: Point(x: 462, y: 24),
+            topRight: Point(x: 562, y: 24),
+            bottomRight: Point(x: 1012, y: 1004),
+            bottomLeft: Point(x: 12, y: 1004)
+        )
+        let map = try #require(Homography(from: box, to: steep))
+        let area = CGRect(x: 0, y: 0, width: 1024, height: 1024)
+
+        // When
+        let sut = try #require(Raster(showing: Size(width: 1024, height: 1400), through: map, within: area, reading: 0))
+
+        // Then
+        // Its near edge stretches rows about tenfold, so the scale is held below it.
+        let stretch = try #require(map.stretch(at: Point(x: 512, y: 1024)))
+        #expect(stretch > 9)
+        #expect(sut.transform.a < stretch)
+        #expect(sut.width * sut.height <= 2 * 1024 * 1024 + 2 * (sut.width + sut.height) + 4)
+    }
+
+    @Test("a list carried wholly outside the area has no raster")
+    func skipsCarriedListOutsideArea() {
+        // Given
+        let map = Homography(CGAffineTransform(translationX: 200, y: 0))
+
+        // When
+        let sut = Raster(showing: Self.size, through: map, within: Self.area, reading: 0)
+
+        // Then
+        #expect(sut == nil)
+    }
+
     // MARK: - Private
 }
