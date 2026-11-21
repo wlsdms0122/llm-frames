@@ -435,7 +435,7 @@ struct SequencePlanner: Sendable {
         return try finder.crops(
             crop,
             in: picture,
-            pictureClock: .storyline(plan),
+            pictureClock: ownClock(.storyline(plan), track: written.track),
             clock: plan.map,
             instant: plan.instant,
             place: written.place,
@@ -466,7 +466,8 @@ struct SequencePlanner: Sendable {
             instant: plan.instant,
             lengthScale: lengthScale
         )
-        return try planner.masks(mask, in: picture, pictureClock: .storyline(plan))?.map(\.mask)
+        return try planner.masks(mask, in: picture, pictureClock: ownClock(.storyline(plan), track: written.track))?
+            .map(\.mask)
     }
 
     // A storyline clip has no parent, so its position is in output pixels and a text form stops.
@@ -566,7 +567,7 @@ struct SequencePlanner: Sendable {
                 area,
                 key: "area",
                 in: space.picture,
-                pictureClock: space.clock,
+                pictureClock: ownClock(space.clock, track: written.track),
                 clock: plan.clock,
                 instant: plan.instant,
                 lengthScale: lengthScale,
@@ -612,7 +613,9 @@ struct SequencePlanner: Sendable {
                 try finder.crops(
                     crop,
                     in: picture,
-                    pictureClock: plan.mediaClock.map { .media($0) } ?? .still,
+                    pictureClock: plan.isPinned
+                        ? plan.mediaClock.map { .media($0) } ?? .still
+                        : ownClock(plan.mediaClock.map { .media($0) } ?? .still, track: written.track),
                     clock: plan.clock,
                     instant: plan.instant,
                     place: written.place,
@@ -634,7 +637,9 @@ struct SequencePlanner: Sendable {
             mask = try planner.masks(
                 written.mask,
                 in: picture,
-                pictureClock: plan.mediaClock.map { .media($0) } ?? .still
+                pictureClock: plan.isPinned
+                    ? plan.mediaClock.map { .media($0) } ?? .still
+                    : ownClock(plan.mediaClock.map { .media($0) } ?? .still, track: written.track)
             )
         } else if plan.space == .box {
             let box = Picture(name: plan.id ?? written.place.description, source: .space, size: format.size)
@@ -645,7 +650,7 @@ struct SequencePlanner: Sendable {
             mask = try planner.masks(
                 written.mask,
                 in: space.picture,
-                pictureClock: space.clock,
+                pictureClock: plan.isPinned ? space.clock : ownClock(space.clock, track: written.track),
                 textStop: space.isOutputPixels ? { .textAreaInOutputPixels(place: $0, kind: .clip(plan.kind)) } : nil,
                 takesClipArea: true
             )
@@ -708,6 +713,18 @@ struct SequencePlanner: Sendable {
         guard case let .shape(shape) = clip.content else { return nil }
 
         return shape.points
+    }
+
+    // The clock a clip's own geometry is searched on: under `{"time": t}` the frame t names in the media the clip
+    // follows, so the geometry `true` follows is found on the track's frame (FRAMES-12 The track), and otherwise
+    // `clock`. A picture that holds still is not the media followed.
+    private func ownClock(
+        _ clock: PictureClock,
+        track: TrackTarget?
+    ) -> PictureClock {
+        guard case let .own(time) = track, let time, clock != .still else { return clock }
+
+        return .frame(time)
     }
 
     // The place of the first point of the list under `key` given by an area written with text.

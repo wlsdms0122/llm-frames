@@ -135,6 +135,32 @@ struct TrackFormTests {
         #expect(track.samples.first?.quad == Quad(moved(total, down: -10)))
     }
 
+    @Test("true written as an object with a time searches the clip's own geometry by text on the frame the time names, not at the instant")
+    func searchesOwnOnTrackFrame() throws {
+        // Given
+        let moved = moved(total, down: 30)
+        let sut = SequencePlanner(
+            ocr: OCRTable(["/abs/screen.mp4": [
+                (from: 0, lines: [RecognisedLine(text: "Total", rectangle: total)]),
+                (from: 1.5, lines: [RecognisedLine(text: "Total", rectangle: moved)])
+            ]]),
+            languages: nil,
+            tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes]),
+            shaper: Fixture.shaper,
+            presets: Fixture.presets,
+            library: Fixture.library
+        )
+        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1, 3], "track": { "time": 1.5 } }"#)
+
+        // When
+        let plan = try sut.plan(time)
+
+        // Then
+        let clip = plan.clips[0]
+        #expect(clip.track?.track.target == Quad(moved))
+        #expect(clip.area == .value(.found(FoundArea(rectangle: moved, target: moved, mediaTime: 1.5, lines: [RecognisedLine(text: "Total", rectangle: moved)]))))
+    }
+
     @Test("a track object with a time stops where the geometry it follows is keyframed")
     func refusesKeyframedOwnFromTime() throws {
         // Given
