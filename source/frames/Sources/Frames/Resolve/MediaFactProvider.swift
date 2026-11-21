@@ -6,8 +6,10 @@
 //
 
 // What the probe tells about the media a document names, as far as resolve needs it. A file or directory that is not
-// there has no facts, and one that is there but cannot be read as media throws why.
+// there has no facts, and one that is there but cannot be read as media throws why. A file that is not a PDF has no
+// page count.
 package protocol MediaFactProvider: Sendable {
     func probedMedia(of file: String) throws -> ProbedMedia?
     func probedImageSequence(at directory: String) throws -> ProbedImageSequence?
+    func pageCount(of file: String) throws -> Int?
 }
