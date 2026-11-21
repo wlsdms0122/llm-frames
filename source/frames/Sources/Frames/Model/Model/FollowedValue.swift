@@ -60,13 +60,7 @@ enum FollowedValue<Value: Equatable & Sendable>: Equatable, Sendable {
 
     // The same value with each value transformed alike, at whatever time it holds.
     func mapValues<Other: Equatable & Sendable>(_ transform: (Value) throws -> Other) rethrows -> FollowedValue<Other> {
-        switch self {
-        case let .onTrackFrame(value):
-            .onTrackFrame(try transform(value))
-
-        case let .keyframes(keyframes):
-            .keyframes(try keyframes.map { Keyframe(at: $0.at, value: try transform($0.value), ease: $0.ease) })
-        }
+        try carried(keyframe: { value, _ in try transform(value) }, onTrackFrame: transform)
     }
 
     // The same value with each keyframe transformed at its own time, and a static value by `onTrackFrame`.
