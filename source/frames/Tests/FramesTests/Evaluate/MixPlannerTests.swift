@@ -66,7 +66,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 2,
                 speed: 1,
                 start: 0,
@@ -88,7 +88,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 3,
                 speed: 2,
                 start: 1,
@@ -175,7 +175,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 0,
@@ -184,7 +184,7 @@ struct MixPlannerTests {
                 pan: envelope([[0, 0], [2.5, 0]])
             ),
             MixSegment(
-                media: voice,
+                media: .pinned(voice),
                 mediaStart: 9.5,
                 speed: 1,
                 start: 1.5,
@@ -307,7 +307,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 8,
                 speed: 1,
                 start: 0,
@@ -353,7 +353,7 @@ struct MixPlannerTests {
                 end: 3,
                 segments: [
                     MixSegment(
-                        media: music,
+                        media: .pinned(music),
                         mediaStart: 0,
                         speed: 2,
                         start: 1,
@@ -383,7 +383,7 @@ struct MixPlannerTests {
                 end: 4,
                 segments: [
                     MixSegment(
-                        media: music,
+                        media: .pinned(music),
                         mediaStart: 6,
                         speed: 1,
                         start: 3,
@@ -479,7 +479,7 @@ struct MixPlannerTests {
                 end: 2,
                 segments: [
                     MixSegment(
-                        media: voice,
+                        media: .pinned(voice),
                         mediaStart: 0,
                         speed: 1,
                         start: 0,
@@ -494,7 +494,7 @@ struct MixPlannerTests {
                         end: 2,
                         segments: [
                             MixSegment(
-                                media: music,
+                                media: .pinned(music),
                                 mediaStart: 0,
                                 speed: 1,
                                 start: 0,
@@ -526,7 +526,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.buses.count == 1)
         #expect(plan.buses.first?.buses == [])
-        #expect(plan.buses.first?.segments.map(\.media) == [voice])
+        #expect(plan.buses.first?.segments.map(\.media) == [.pinned(voice)])
     }
 
     @Test("a bus's chain is the nested sequence's entries mapped through the compound clip's clock, then the clip's own")
@@ -603,6 +603,25 @@ struct MixPlannerTests {
         // Then
         #expect(plan.length == length)
         #expect(plan.filter.isEmpty)
+    }
+
+    @Test("the plan of one medium plays one clip of it, not pinned, from media time 0 at gain 1, centred, at speed 1 and with no filter, as long as its sound")
+    func plansMedium() {
+        // When
+        let plan = sut.mix(ofMedium: "/abs/tone.wav", duration: 1.50001)
+
+        // Then
+        #expect(plan == MixPlan(length: 72_000, segments: [
+            MixSegment(
+                media: .unpinned(path: "/abs/tone.wav"),
+                mediaStart: 0,
+                speed: 1,
+                start: 0,
+                end: 1.50001,
+                envelope: envelope([[0, 1], [1.50001, 1]]),
+                pan: envelope([[0, 0], [1.50001, 0]])
+            )
+        ]))
     }
 
     // MARK: - Private
@@ -693,7 +712,7 @@ struct MixPlannerTests {
         end: Double
     ) -> MixSegment {
         MixSegment(
-            media: media,
+            media: .pinned(media),
             mediaStart: mediaStart,
             speed: speed,
             start: start,

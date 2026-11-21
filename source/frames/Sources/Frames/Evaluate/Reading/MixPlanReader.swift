@@ -78,7 +78,7 @@ package struct MixPlanReader: Sendable {
         let segment = try value.object(kind: "segment", keys: Self.segmentKeys)
 
         return MixSegment(
-            media: try values.media(segment.member("media")),
+            media: .pinned(try values.media(segment.member("media"))),
             mediaStart: try segment.member("mediaStart").number(),
             speed: try segment.member("speed").number(),
             start: try segment.member("start").number(),

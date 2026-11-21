@@ -37,6 +37,25 @@ package struct MixPlanner: Sendable {
         )
     }
 
+    // The plan of the sequence that plays one clip of the medium at `path` from media time 0 at volume 1, centred and
+    // at speed 1 with no audio filter, as long as its sound, `duration` seconds. The file is not pinned.
+    package func mix(
+        ofMedium path: String,
+        duration: Double
+    ) -> MixPlan {
+        let segment = MixSegment(
+            media: .unpinned(path: path),
+            mediaStart: 0,
+            speed: 1,
+            start: 0,
+            end: duration,
+            envelope: [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: duration, value: 1)],
+            pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: duration, value: 0)]
+        )
+
+        return MixPlan(length: Int((duration * Double(MixPlan.sampleRate)).rounded()), segments: [segment])
+    }
+
     // MARK: - Private
     // A sound's segments, or its buses for a nested sequence, each in time order.
     private func parts(

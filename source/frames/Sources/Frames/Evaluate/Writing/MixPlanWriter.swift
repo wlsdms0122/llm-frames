@@ -43,7 +43,7 @@ package struct MixPlanWriter: Sendable {
 
     private func segment(_ segment: MixSegment) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "media", value: .object(JSONObject(members: values.media(segment.media)))),
+            JSONMember(key: "media", value: .object(JSONObject(members: media(segment.media)))),
             JSONMember(key: "mediaStart", value: .number(segment.mediaStart)),
             JSONMember(key: "speed", value: .number(segment.speed)),
             JSONMember(key: "start", value: .number(segment.start)),
@@ -52,6 +52,17 @@ package struct MixPlanWriter: Sendable {
             JSONMember(key: "envelope", value: points(segment.envelope)),
             JSONMember(key: "pan", value: points(segment.pan))
         ]))
+    }
+
+    // Pinned media as a resolved document writes it, and a file nothing pins as its path alone.
+    private func media(_ media: MixMedia) -> [JSONMember] {
+        switch media {
+        case let .pinned(media):
+            values.media(media)
+
+        case let .unpinned(path):
+            [JSONMember(key: "file", value: .string(path))]
+        }
     }
 
     private func entry(_ entry: MixFilterEntry) -> JSONValue {

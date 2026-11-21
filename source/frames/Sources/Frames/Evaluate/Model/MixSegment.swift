@@ -10,7 +10,7 @@
 // `end`, joined in straight lines. `filter` runs on the sound before the gain and the pan, empty when it has none.
 package struct MixSegment: Equatable, Sendable {
     // MARK: - Property
-    package let media: PinnedMedia
+    package let media: MixMedia
     package let mediaStart: Double
     package let speed: Double
     package let start: Double
@@ -21,7 +21,7 @@ package struct MixSegment: Equatable, Sendable {
 
     // MARK: - Initializer
     package init(
-        media: PinnedMedia,
+        media: MixMedia,
         mediaStart: Double,
         speed: Double,
         start: Double,

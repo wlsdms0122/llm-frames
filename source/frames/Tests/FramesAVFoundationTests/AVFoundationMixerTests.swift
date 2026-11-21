@@ -740,7 +740,7 @@ struct AVFoundationMixerTests {
         pan: Double = 0
     ) -> MixSegment {
         MixSegment(
-            media: PinnedMedia(source: .file(PinnedFile(path: file, sha256: ""))),
+            media: .unpinned(path: file),
             mediaStart: mediaStart,
             speed: speed,
             start: start,
@@ -797,7 +797,7 @@ struct AVFoundationMixerTests {
 
     // The first second of a file's sound as the decoder reads it.
     private func decoded(_ file: String) throws -> SoundBuffer {
-        try AVFoundationDecoder().sound(of: MediaFile(media: segment(of: file, from: 0, to: 1).media), from: 0, to: 1)
+        try AVFoundationDecoder().sound(of: MediaFile(path: file), from: 0, to: 1)
     }
 
     private func channel(

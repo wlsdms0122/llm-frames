@@ -23,7 +23,7 @@ extension MixSegment {
         } ?? []
 
         self.init(
-            media: media,
+            media: .pinned(media),
             mediaStart: path.clock.clipTime(atSequenceTime: heard.start),
             speed: path.clock.speed,
             start: heard.start,

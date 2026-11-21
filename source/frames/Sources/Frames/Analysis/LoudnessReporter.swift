@@ -46,9 +46,8 @@ package struct LoudnessReporter: Sendable {
         to: Double?
     ) throws -> Loudness {
         let mix = try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
-        let end = Double(mix.plan.length) / Double(MixPlan.sampleRate)
 
-        return try loudness(of: { try mix.mixed() }, end: end, from: from, to: to)
+        return try loudness(of: mix, end: Double(mix.plan.length) / Double(MixPlan.sampleRate), from: from, to: to)
     }
 
     package func loudness(
@@ -63,29 +62,16 @@ package struct LoudnessReporter: Sendable {
         guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
         guard probed.sound != nil else { throw AnalysisError.noSound(file: path) }
 
-        let end = probed.duration
-        // The plan is mixed here and never written, so its file is not pinned and nothing reads its digest.
-        let segment = MixSegment(
-            media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))),
-            mediaStart: 0,
-            speed: 1,
-            start: 0,
-            end: end,
-            envelope: [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: end, value: 1)],
-            pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: end, value: 0)]
-        )
-        let length = Int((end * Double(MixPlan.sampleRate)).rounded())
-        let plan = MixPlan(length: length, segments: [segment])
-        try mixer.check(plan)
+        let mix = try SequenceMix(ofMedium: path, duration: probed.duration, mixer: mixer)
 
-        return try loudness(of: { try mixer.mix(plan) }, end: end, from: from, to: to)
+        return try loudness(of: mix, end: probed.duration, from: from, to: to)
     }
 
     // MARK: - Private
-    // The measures of the mix `mixed` gives over [from, to), its sound ending at `end` seconds. It is mixed only after
-    // the range checks out.
+    // The measures of `mix` over [from, to), its sound ending at `end` seconds. It is mixed only after the range checks
+    // out.
     private func loudness(
-        of mixed: () throws -> SoundBuffer,
+        of mix: SequenceMix,
         end: Double,
         from: Double?,
         to: Double?
@@ -97,7 +83,7 @@ package struct LoudnessReporter: Sendable {
         guard stop <= end else { throw AnalysisError.afterSoundEnd(option: "--to", time: stop, end: end) }
         guard start < stop else { throw AnalysisError.emptyRange(from: start, to: stop) }
 
-        let sound = try mixed()
+        let sound = try mix.mixed()
         let first = min(firstSample(atOrAfter: start), sound.frameCount)
         let last = min(firstSample(atOrAfter: stop), sound.frameCount)
 

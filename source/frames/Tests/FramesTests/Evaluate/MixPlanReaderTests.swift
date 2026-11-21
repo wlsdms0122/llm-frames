@@ -82,7 +82,7 @@ struct MixPlanReaderTests {
         MixPlan(length: 0, segments: []),
         MixPlan(length: 192_000, segments: [
             MixSegment(
-                media: video,
+                media: .pinned(video),
                 mediaStart: 2,
                 speed: 2,
                 start: 0,
@@ -92,7 +92,7 @@ struct MixPlanReaderTests {
                 pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 0)]
             ),
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 0,
@@ -101,7 +101,7 @@ struct MixPlanReaderTests {
                 pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 2.5, value: -0.4)]
             ),
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 2.5,
@@ -109,7 +109,7 @@ struct MixPlanReaderTests {
                 envelope: [EnvelopePoint(time: 2.5, value: 0.3), EnvelopePoint(time: 3.033333, value: 0.15), EnvelopePoint(time: 4, value: 0)],
                 pan: [EnvelopePoint(time: 2.5, value: -0.4), EnvelopePoint(time: 4, value: -0.4)]
             ),
-            MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
+            MixSegment(media: .pinned(video), mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
         ]),
         MixPlan(
             length: 4805,
@@ -120,7 +120,7 @@ struct MixPlanReaderTests {
                     end: 0.1,
                     segments: [
                         MixSegment(
-                            media: music,
+                            media: .pinned(music),
                             mediaStart: 1,
                             speed: 1,
                             start: 0,
@@ -133,7 +133,7 @@ struct MixPlanReaderTests {
                         MixBus(
                             start: 0.05,
                             end: 0.1,
-                            segments: [MixSegment(media: video, mediaStart: 0, speed: 2, start: 0.05, end: 0.1, envelope: [], pan: [])],
+                            segments: [MixSegment(media: .pinned(video), mediaStart: 0, speed: 2, start: 0.05, end: 0.1, envelope: [], pan: [])],
                             envelope: [EnvelopePoint(time: 0.05, value: 0.8), EnvelopePoint(time: 0.1, value: 0)]
                         )
                     ],
@@ -321,6 +321,18 @@ struct MixPlanReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("a segment of a file nothing pins writes its media as the file alone")
+    func writesUnpinnedMedia() throws {
+        // Given
+        let plan = MixPlanner().mix(ofMedium: "/abs/tone.wav", duration: 1)
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+
+        // Then
+        #expect(segment?["media"] == .object(JSONObject(members: [JSONMember(key: "file", value: .string("/abs/tone.wav"))])))
     }
 
     // MARK: - Private

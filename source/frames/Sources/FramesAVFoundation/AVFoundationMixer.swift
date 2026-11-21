@@ -162,8 +162,15 @@ package final class AVFoundationMixer: Sendable {
         from start: Double,
         to end: Double
     ) throws -> (path: String, sound: SoundBuffer) {
-        let file = MediaFile(media: segment.media)
-        guard case .file = segment.media.source else { throw MixerError.noSound(segment: place, file: file.path) }
+        let file: MediaFile
+        switch segment.media {
+        case let .pinned(media):
+            file = MediaFile(media: media)
+            guard case .file = media.source else { throw MixerError.noSound(segment: place, file: file.path) }
+
+        case let .unpinned(path):
+            file = MediaFile(path: path)
+        }
 
         do {
             return (file.path, try decoder.sound(of: file, from: start, to: end))
