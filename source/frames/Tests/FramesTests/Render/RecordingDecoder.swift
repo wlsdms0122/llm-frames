@@ -8,23 +8,27 @@
 @testable import Frames
 
 // Gives each file the colour reading `colorReading` names and every picture as the bitmap of its frame index, a region
-// of a page as that of frame 0, and every page a size of 1 by 1. A picture read other than tagged is recorded. A check of
-// pictures read in no colour space refuses a `platform` reading, as a decoder refuses a picture no fixed formula converts.
+// of a page as that of frame 0, and every page a size of `pageSize`. A picture read other than tagged and every region
+// of a page read are recorded. A check of pictures read in no colour space refuses a `platform` reading, as a decoder
+// refuses a picture no fixed formula converts.
 struct RecordingDecoder: MediaDecoder {
     // MARK: - Property
     let log: RoleCallLog
     let refuses: Bool
     let colorReading: ColorReading
+    let pageSize: Size
 
     // MARK: - Initializer
     init(
         log: RoleCallLog,
         refuses: Bool = false,
-        colorReading: ColorReading = .formulas(.srgb)
+        colorReading: ColorReading = .formulas(.srgb),
+        pageSize: Size = Size(width: 1, height: 1)
     ) {
         self.log = log
         self.refuses = refuses
         self.colorReading = colorReading
+        self.pageSize = pageSize
     }
 
     // MARK: - Lifecycle
@@ -50,11 +54,13 @@ struct RecordingDecoder: MediaDecoder {
         scale: Double,
         reading: PictureReading
     ) throws -> Bitmap {
-        Bitmap(frame: 0)
+        log.record(.readPage(path: file.path, page: file.page, region: region, scale: scale, reading: reading))
+
+        return Bitmap(frame: 0)
     }
 
     func pageSize(of file: MediaFile) throws -> Size {
-        Size(width: 1, height: 1)
+        pageSize
     }
 
     func colorReading(of file: MediaFile) throws -> ColorReading {

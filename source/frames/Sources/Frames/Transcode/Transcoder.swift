@@ -8,16 +8,19 @@
 import Foundation
 
 // Writes a media file again, smaller, through the roles: the input is judged by its contents through the decoder's
-// probe, read through the decoder and written with the encoder. An image goes to a JPEG, HEIC or PNG, a sound to AAC
-// in an .m4a, and a video to H.264 or HEVC in an .mp4, .mov or .m4v with its sound in AAC, or to its sound alone in an
-// .m4a. Pictures are taken as the decoder displays them, turned, and nothing else of the input is carried over.
-// A picture is written in the source's colour space when a sequence can be output in it, in `srgb` otherwise, or in the
-// one `--color-space` names: read as a sequence of that space reads a media clip with `toneMap` true, so an HDR source
-// is tone mapped to the space's peak where its own is above it, or, where the decoder's reading is the platform's, read
-// once by the platform's colour management into that space (FRAMES-23). Everything that can stop does before anything
-// is written, in this order: `--max`, the input, the paths, the output extension, `--codec` and `--color-space`, a
-// video's sound or frame rate, the size `--max` gives a video, the decoder on the input, an HDR colour space for H.264
-// or JPEG, and the encoder on the target and on the sound read for it. An existing output file is removed only then.
+// probe, read through the decoder and written with the encoder. A still goes to a JPEG, HEIC or PNG, a sound to AAC in
+// an .m4a, and a video to H.264 or HEVC in an .mp4, .mov or .m4v with its sound in AAC, or to its sound alone in an
+// .m4a. A page of a PDF is the page `--page` names, or the one page of a PDF of one page; a PDF of more pages with no
+// page named stops, naming its page count. Pictures are taken as the decoder displays them, turned, and nothing else of
+// the input is carried over. A picture is written in the source's colour space when a sequence can be output in it, in
+// `srgb` otherwise, or in the one `--color-space` names: read as a sequence of that space reads a media clip with
+// `toneMap` true, so an HDR source is tone mapped to the space's peak where its own is above it, or, where the
+// decoder's reading is the platform's, read once by the platform's colour management into that space (FRAMES-23).
+// Everything that can stop does before anything is written, in this order: `--max`, the input and its page, `--scale`
+// on a source with pixels of its own, the paths, `--max` on a page, the output extension, `--codec` and
+// `--color-space`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, the size
+// `--scale` gives a page, an HDR colour space for H.264 or JPEG, and the encoder on the target and on the sound read
+// for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -44,9 +47,29 @@ package struct Transcoder: Sendable {
         if let maximumSide = request.maximumSide, maximumSide <= 0 {
             throw TranscodeError.maximumSide(maximumSide)
         }
+        switch try facts.commandPage(request.page, of: request.input) {
+        case let .page(number):
+            try checkPaths(of: request)
+            let sourceByteCount = try byteCount(of: request.input)
+            let format = try transcodePage(number, for: request)
+
+            return TranscodeResult(
+                path: request.output,
+                byteCount: try byteCount(of: request.output),
+                sourceByteCount: sourceByteCount,
+                format: format
+            )
+
+        case let .unnamed(pageCount):
+            throw AnalysisError.unnamedPage(file: request.input, pageCount: pageCount)
+
+        case .notPDF:
+            break
+        }
         guard let media = try facts.probedMedia(of: request.input) else {
             throw TranscodeError.missingInput(path: request.input)
         }
+        if request.scale != nil, media.kind != .audio { throw TranscodeError.scaleOfRaster(input: request.input) }
         try checkPaths(of: request)
         let sourceByteCount = try byteCount(of: request.input)
 
@@ -103,6 +126,59 @@ package struct Transcoder: Sendable {
 
         default:
             .png(path: request.output, size: fitted, depth: depth, output: output)
+        }
+        try encoder.check(target)
+
+        try removeExisting(request.output)
+        try encoder.writeImage(picture, for: target)
+
+        return TranscodeFormat(target)
+    }
+
+    // A page is drawn whole at `--scale` pixels per point, or at the scale a provider reads it at (FRAMES-23). The
+    // decoder's fixed formulas read it where they can, and the platform's colour management and fonts read a page they
+    // refuse for its colour or its fonts; a page the platform reading refuses too stops.
+    private func transcodePage(
+        _ number: Int,
+        for request: TranscodeRequest
+    ) throws -> TranscodeFormat {
+        if request.maximumSide != nil { throw TranscodeError.maximumSideOfPage(input: request.input) }
+        try checkExtension(of: request, kind: .page, allowed: Self.imageExtensions)
+        try checkNoCodec(in: request)
+
+        let file = MediaFile(path: request.input, colorReading: .formulas(.srgb), page: number)
+        let output = output(of: .formulas(.srgb), for: request)
+        if request.outputExtension == "jpg", output.space.isHighDynamicRange {
+            throw TranscodeError.highDynamicRangeJPEG(path: request.output, colorSpace: output.space)
+        }
+        let platform = PictureReading.platform(colorSpace: output.space)
+        try decoder.check(file, reading: platform)
+        let size = try decoder.pageSize(of: file)
+        let scale = request.scale ?? decoder.providerScale(ofPageSize: size)
+        let region = PageRegion(wholePageOf: size, scale: scale)
+        guard max(region.width, region.height) <= decoder.largestPictureSide else {
+            throw TranscodeError.pageTooLarge(
+                path: request.output,
+                scale: scale,
+                width: region.width,
+                height: region.height,
+                largest: decoder.largestPictureSide
+            )
+        }
+
+        let formulas = pictureReading(of: .formulas(.srgb), for: output)
+        let reading = (try? decoder.check(file, reading: formulas)) == nil ? platform : formulas
+        let picture = try decoder.picture(of: file, region: region, scale: scale, reading: reading)
+        let fitted = Size(width: Double(region.width), height: Double(region.height))
+        let target: ImageTarget = switch request.outputExtension {
+        case "jpg":
+            .jpeg(path: request.output, size: fitted, quality: request.quality, output: output)
+
+        case "heic":
+            .heic(path: request.output, size: fitted, quality: request.quality, output: output)
+
+        default:
+            .png(path: request.output, size: fitted, depth: .sixteen, output: output)
         }
         try encoder.check(target)
 

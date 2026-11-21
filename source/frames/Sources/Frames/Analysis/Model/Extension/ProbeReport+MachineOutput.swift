@@ -7,7 +7,8 @@
 
 // `{"probe": "1.0.0", kind, size, duration, fps, alpha, colorSpace, audio, pages}`, the object `probe --json` prints.
 // `size` is `[width, height]`, rounded to the millionth, `colorSpace` is `{name, primaries, transfer, matrix, bitDepth,
-// hdr}`, `audio` is `{channels, sampleRate}` and `pages` the page count of a PDF, each `null` where the medium has none.
+// hdr}`, `audio` is `{channels, sampleRate}` and `pages` the page count of a PDF, each `null` where the medium has
+// none.
 extension ProbeReport {
     // MARK: - Property
     package var machineOutput: JSONValue {

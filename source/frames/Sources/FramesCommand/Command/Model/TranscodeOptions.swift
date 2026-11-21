@@ -12,11 +12,12 @@ struct TranscodeOptions: CommandOptions, Equatable {
     private static let defaultQuality = EncodeQuality.medium
 
     static let rules = [
+        OptionRule.page,
         OptionRule(
             "-o",
             value: "<out>",
             help: "The file written, as an absolute path. Its extension picks the format: .jpg, .heic or .png "
-                + "for an image, .m4a for audio, and .mp4, .mov or .m4v for a video, or .m4a for its sound."
+                + "for a still, .m4a for audio, and .mp4, .mov or .m4v for a video, or .m4a for its sound."
         ),
         OptionRule(
             "--quality",
@@ -26,7 +27,14 @@ struct TranscodeOptions: CommandOptions, Equatable {
         OptionRule(
             "--max",
             value: "<px>",
-            help: "The most pixels the longer side has. A smaller source is not enlarged. Default: the source's size."
+            help: "The most pixels the longer side of a source with pixels of its own has. A smaller source is not "
+                + "enlarged. Default: the source's size."
+        ),
+        OptionRule(
+            "--scale",
+            value: "<s>",
+            help: "The pixels per point a page of a PDF is drawn at, a number above 0. Default: 4, or the largest at "
+                + "which the decoder holds the page where that is less."
         ),
         OptionRule(
             "--codec",
@@ -42,7 +50,7 @@ struct TranscodeOptions: CommandOptions, Equatable {
                 + ". Default: the source's, or srgb when it is outside these."
         )
     ]
-    static let positionals = [PositionalRule("<in>", help: "The image, audio or video file, as an absolute path.")]
+    static let positionals = [PositionalRule("<in>", help: "The image, PDF, audio or video file, as an absolute path.")]
 
     let request: TranscodeRequest
 
@@ -50,9 +58,11 @@ struct TranscodeOptions: CommandOptions, Equatable {
     init(_ arguments: ScannedArguments) throws {
         self.request = TranscodeRequest(
             input: try arguments.requiredPositionalPath(at: 0),
+            page: try arguments.page(of: "--page"),
             output: try arguments.requiredPath(of: "-o"),
             quality: try arguments.choice(of: "--quality") ?? Self.defaultQuality,
             maximumSide: try arguments.integer(of: "--max"),
+            scale: try arguments.positiveNumber(of: "--scale"),
             codec: try arguments.choice(of: "--codec"),
             colorSpace: try arguments.choice(of: "--color-space")
         )
