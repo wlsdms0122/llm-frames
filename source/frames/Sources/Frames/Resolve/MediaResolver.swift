@@ -175,16 +175,8 @@ struct MediaResolver: Sendable {
         switch try medium(at: path, place: place, kind: kind, reference: path) {
         case let .pdf(pageCount):
             let file = try pageFile(at: path, page: page, of: pageCount, place: place, kind: kind, reference: path)
-            if case let .colorSpace(refused) = file.pageRefusal(colorSpace: colorSpace, isToneMapped: nil),
-                let page = file.page
-            {
-                throw ModelError.highDynamicRangePage(
-                    place: place,
-                    kind: kind.label,
-                    reference: path,
-                    page: page,
-                    colorSpace: refused
-                )
+            if let refusal = file.pageRefusal(colorSpace: colorSpace, isToneMapped: nil), let page = file.page {
+                throw refusal.error(place: place, kind: kind, reference: path, page: page)
             }
 
             return TransitionMedia(file: file, duration: 0)
