@@ -19,13 +19,11 @@ struct Reveal: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The part of the rectangle a wipe from the edge has shown, nil when it shows all of it.
+    // The part of the rectangle a wipe from the edge has shown, the whole of it at 1.
     func rectangle(
         wiping rectangle: Rectangle,
         from edge: RevealEdge
-    ) -> Rectangle? {
-        guard amount < 1 else { return nil }
-
+    ) -> Rectangle {
         let width = rectangle.width * amount
         let height = rectangle.height * amount
 

@@ -42,7 +42,7 @@ struct RevealTests {
         #expect(wiped == shown)
     }
 
-    @Test("a wipe that shows everything gives no rectangle, and one that shows nothing an empty one")
+    @Test("a wipe that shows everything gives the whole rectangle, and one that shows nothing an empty one")
     func wipesEnds() {
         // Given
         let whole = Reveal.full
@@ -53,8 +53,35 @@ struct RevealTests {
         let noneWiped = none.rectangle(wiping: rectangle, from: .left)
 
         // Then
-        #expect(wholeWiped == nil)
+        #expect(wholeWiped == rectangle)
         #expect(noneWiped == Rectangle(x: 10, y: 20, width: 0, height: 50))
+    }
+
+    @Test("a complete wipe writes no rectangle where no reveal is set, and the whole one where a reveal is set")
+    func writesCompleteWipe() {
+        // Given
+        let unset = MotionSample(motion: Motion(), revealFrom: .left)
+        let set = MotionSample(motion: Motion(values: [.reveal: 1]), revealFrom: .left, isRevealSet: true)
+
+        // When
+        let unsetShown = unset.revealRectangle(wiping: rectangle)
+        let setShown = set.revealRectangle(wiping: rectangle)
+
+        // Then
+        #expect(unsetShown == nil)
+        #expect(setShown == rectangle)
+    }
+
+    @Test("a wipe under way writes the part it shows whether or not a reveal is set", arguments: [false, true])
+    func writesWipeUnderWay(isRevealSet: Bool) {
+        // Given
+        let sut = MotionSample(motion: Motion(values: [.reveal: 0.4]), revealFrom: .left, isRevealSet: isRevealSet)
+
+        // When
+        let shown = sut.revealRectangle(wiping: rectangle)
+
+        // Then
+        #expect(shown == Rectangle(x: 10, y: 20, width: 40, height: 50))
     }
 
     @Test("a box's stroke is trimmed to the amount shown")

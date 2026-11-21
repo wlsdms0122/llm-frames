@@ -17,7 +17,9 @@ struct UnitSampler: Sendable {
     init() { }
 
     // MARK: - Public
-    // The title's motion and a unit's, read on T's side of the jumps in a sample of a frame with motion blur.
+    // The title's motion and a unit's, read on T's side of the jumps in a sample of a frame with motion blur. There the
+    // title has its reveal set where the loop writes `reveal`, and a unit where its entrance or its exit does, each
+    // where T lies in the schedule's window.
     func title(
         of animation: ResolvedAnimation,
         schedule: UnitSchedule,
@@ -25,7 +27,10 @@ struct UnitSampler: Sendable {
     ) -> MotionSample {
         guard time.sample.isSample else { return title(of: animation, schedule: schedule, at: time.instant) }
 
+        let isRevealSet = animation.loop?.span.writes(.reveal) ?? false
+
         return title(of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+            .settingReveal(schedule.window.contains(time.frameTime) && isRevealSet)
     }
 
     func unit(
@@ -37,7 +42,10 @@ struct UnitSampler: Sendable {
         guard schedule.window.contains(time.instant) else { return .none }
         guard time.sample.isSample else { return unit(index, of: animation, schedule: schedule, at: time.instant) }
 
+        let spans = [animation.entrance, animation.exit].compactMap { $0?.span }
+
         return unit(index, of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+            .settingReveal(schedule.window.contains(time.frameTime) && spans.contains { $0.writes(.reveal) })
     }
 
     // The motion of the whole title at a time outside a sample of a frame with motion blur: the loop over the

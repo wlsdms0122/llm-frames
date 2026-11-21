@@ -55,7 +55,7 @@ struct ShapeEvaluator: Sendable {
             transform: laid.transform,
             opacity: laid.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: receiverBox(of: path, carriedBy: laid.transform), from: sample.animation.revealFrom),
+            reveal: sample.animation.revealRectangle(wiping: receiverBox(of: path, carriedBy: laid.transform)),
             content: .path(path)
         )]
     }

@@ -16,12 +16,13 @@ struct MotionBlurEvaluationTests {
     // MARK: - Property
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
-    // Each leaf that can pass through 0, keyframed so that it does inside the exposure of the frame at the time given: a
-    // picture's border width, which a clip takes from its theme and writes in output pixels at its scale factor, so it
-    // reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose `back-out` overshoot
-    // clamps every length to 0 from a progress of about 0.43; and a stroked, dashed and shadowed shape popping in from
-    // scale 0.
-    private static let leavesThroughZero: [(String, String?, Double)] = [
+    // Each field whose value can reach an end, keyframed or animated so that it does inside the exposure of the frame at
+    // the time given: a picture's border width, which a clip takes from its theme and writes in output pixels at its
+    // scale factor, so it reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose
+    // `back-out` overshoot clamps every length to 0 from a progress of about 0.43; a stroked, dashed and shadowed shape
+    // popping in from scale 0; and a reveal reaching 1, by a shape's wipe from 1 to 1.5, complete after T and before
+    // it, by a picture's, and by a wipe transition from 1.5 to 2.5 inside a compound clip.
+    private static let valuesThroughEnds: [(String, String?, Double)] = [
         (
             #"""
             { "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "border": true, "motionBlur": true,
@@ -56,6 +57,37 @@ struct MotionBlurEvaluationTests {
             """#,
             #"{ "shutterPhase": -180 }"#,
             1.01
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#,
+            nil,
+            1.49
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#,
+            #"{ "shutterPhase": -180 }"#,
+            1.51
+        ),
+        (
+            #"{ "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "animation": "mine/wipe-in", "motionBlur": true }"#,
+            nil,
+            1.49
+        ),
+        (
+            #"""
+            { "id": "leaf", "at": [0, 4],
+              "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
+                         "storyline": [ { "solid": "#000000", "duration": 2 },
+                                        { "solid": "#FFFFFF", "duration": 2, "transition": "mine/wipe-in", "motionBlur": true } ] } }
+            """#,
+            nil,
+            2.49
         )
     ]
 
@@ -198,10 +230,10 @@ struct MotionBlurEvaluationTests {
     }
 
     @Test(
-        "a leaf keyframed through 0 over an exposure is written with the same keys in every sample, and the samples read back",
-        arguments: leavesThroughZero
+        "a field whose value reaches an end over an exposure is written with the same keys in every sample, and the samples read back",
+        arguments: valuesThroughEnds
     )
-    func keepsKeysOfLeafThroughZero(
+    func keepsKeysOfValueThroughEnd(
         clip: String,
         shutter: String?,
         time: Double
@@ -219,6 +251,30 @@ struct MotionBlurEvaluationTests {
         #expect(samples.count == 16)
         #expect(samples.allSatisfy { keys(of: $0) == firstKeys })
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a wipe that ends inside the exposure is written in every sample, whole once complete, and an item no reveal is set on in none")
+    func keepsRevealInEverySample() throws {
+        // Given
+        let wiped = #"""
+            { "id": "wiped", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#
+        let sequence = try resolved(clips: [wiped], shutter: #"{ "shutterPhase": -180 }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.51)
+
+        // Then
+        let samples = try #require(list.samples)
+        let reveals = try samples.map { try item("wiped", in: $0).reveal }
+        let whole = try #require(reveals.last ?? nil)
+        let atT = try item("wiped", in: sut.displayListWithoutMotionBlur(of: sequence, at: 1.51).items)
+        #expect(reveals.allSatisfy { $0 != nil })
+        #expect((reveals.first??.width ?? whole.width) < whole.width)
+        #expect(whole.width == 100)
+        #expect(atT.reveal == nil)
+        #expect(try samples.allSatisfy { try item("back", in: $0).reveal == nil })
     }
 
     @Test("a clip and a storyline entry give the time their values are read at, by their own switch, held in their windows")

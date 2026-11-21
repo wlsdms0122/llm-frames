@@ -168,7 +168,7 @@ final class FrameDrawer {
         let matrix = matrix(of: item, on: raster)
         guard let shadow else {
             context.concatenate(matrix)
-            if let reveal = item.reveal { context.clip(to: CGRect(reveal)) }
+            if let reveal = cut(of: item, on: raster) { context.clip(to: reveal) }
             try drawing(context)
             return
         }
@@ -213,7 +213,7 @@ final class FrameDrawer {
         try mask(layer.context, by: item, over: region, at: layer.bounds, on: raster)
         layer.context.translateBy(x: CGFloat(margin), y: CGFloat(margin))
         layer.context.concatenate(matrix(of: item, on: raster))
-        if let reveal = item.reveal { layer.context.clip(to: CGRect(reveal)) }
+        if let reveal = cut(of: item, on: raster) { layer.context.clip(to: reveal) }
         try drawing(layer.context)
 
         let picture = try layer.ciImage()
@@ -230,6 +230,45 @@ final class FrameDrawer {
 
         context.drawUpright(try FrameContext.cgImage(of: moved, in: shown, compositing: compositing), in: bounds)
         context.drawUpright(try FrameContext.cgImage(of: picture, in: shown, compositing: compositing), in: bounds)
+    }
+
+    // The rectangle the item's reveal cuts it to in its own coordinates, nil where it has none or where the rectangle
+    // holds everything the item draws, which a hard straight edge leaves whole. A clip's smoothed edge would scale the
+    // pixels the item's own edge crosses, so a reveal that holds the item is not drawn.
+    private func cut(
+        of item: DisplayItem,
+        on raster: Raster
+    ) -> CGRect? {
+        guard let reveal = item.reveal else { return nil }
+
+        let cut = CGRect(reveal)
+        guard let drawn = drawnBounds(of: item, on: raster), cut.contains(drawn) else { return cut }
+
+        return nil
+    }
+
+    // The box of what the item draws in its own coordinates: a picture's `dest`, the box of a path's or glyphs' outlines
+    // and strokes, and for an adjustment the whole raster, nil where its transform flattens the plane.
+    private func drawnBounds(
+        of item: DisplayItem,
+        on raster: Raster
+    ) -> CGRect? {
+        switch item.content {
+        case let .picture(picture):
+            return CGRect(picture.destination)
+
+        case let .path(path):
+            return CGRect(path.drawnBounds(carriedBy: item.transform))
+
+        case let .glyphs(glyphs):
+            return CGRect(glyphs.drawnBounds(carriedBy: item.transform))
+
+        case .adjust:
+            let matrix = matrix(of: item, on: raster)
+            guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return nil }
+
+            return raster.bounds.applying(matrix.inverted())
+        }
     }
 
     // The item's own coordinates into the raster's pixels.
