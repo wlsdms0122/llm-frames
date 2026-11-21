@@ -50,7 +50,7 @@ package struct PageRegion: Equatable, Hashable, Sendable {
         atMost scale: Double,
         largest: Int
     ) -> (region: PageRegion, scale: Double) {
-        let held = min(scale, Double(largest) / max(size.width, size.height))
+        let held = heldScale(of: size, atMost: scale, largest: largest)
         let side = wholePageSide(of: size, scale: held)
         let region = PageRegion(
             x: 0,
@@ -63,6 +63,16 @@ package struct PageRegion: Equatable, Hashable, Sendable {
     }
 
     // MARK: - Public
+    // `scale`, or where the decoder does not hold a picture of `size` media pixels at `scale`, the largest scale at
+    // which it does, its longer side `largest` (FRAMES-21 Rules).
+    package static func heldScale(
+        of size: Size,
+        atMost scale: Double,
+        largest: Int
+    ) -> Double {
+        min(scale, Double(largest) / max(size.width, size.height))
+    }
+
     // The sides of the whole page of `size` media pixels at `scale` in grid pixels, max(1, round(w × s)) by
     // max(1, round(h × s)), which may be past every whole number.
     package static func wholePageSide(

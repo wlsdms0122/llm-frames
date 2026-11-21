@@ -91,7 +91,7 @@ extension MediaDecoder {
     // The scale a provider reads a page of `size` media pixels at: 4 pixels per media pixel, or the largest at which
     // the decoder holds the whole page where that is less (FRAMES-21 Rules).
     package func providerScale(ofPageSize size: Size) -> Double {
-        min(4, Double(largestPictureSide) / max(size.width, size.height))
+        PageRegion.heldScale(of: size, atMost: 4, largest: largestPictureSide)
     }
 
     // The whole page `file` names as a provider reads it, at `providerScale(ofPageSize:)`, read as `reading` says,
@@ -100,7 +100,12 @@ extension MediaDecoder {
         ofPage file: MediaFile,
         reading: PictureReading
     ) throws -> (picture: Bitmap, scale: Double) {
-        let (region, scale) = PageRegion.wholePage(of: try pageSize(of: file), atMost: 4, largest: largestPictureSide)
+        let size = try pageSize(of: file)
+        let (region, scale) = PageRegion.wholePage(
+            of: size,
+            atMost: providerScale(ofPageSize: size),
+            largest: largestPictureSide
+        )
 
         return (try picture(of: file, region: region, scale: scale, reading: reading), scale)
     }

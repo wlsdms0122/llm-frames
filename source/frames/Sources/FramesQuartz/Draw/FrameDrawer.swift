@@ -427,8 +427,11 @@ final class FrameDrawer {
 
         let largest = CGFloat(pictures.largestPictureSide)
         let held = min(
-            scale,
-            largest / max(visible.width, visible.height),
+            PageRegion.heldScale(
+                of: Size(width: visible.width, height: visible.height),
+                atMost: scale,
+                largest: pictures.largestPictureSide
+            ),
             Self.largestGridPosition / max(pageSize.width, pageSize.height)
         )
         let left = (visible.minX * held).rounded(.down)
