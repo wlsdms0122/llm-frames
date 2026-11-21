@@ -118,8 +118,8 @@ package struct RenderPipeline: Sendable {
             try encoder.check(target)
         }
 
-        // A sequence without sound gets silence, so every master and delivery carries the same tracks.
-        let sound = try mixer.mix(plan, duration: format.renderedDuration)
+        // A sequence without sound mixes to silence, so every master and delivery carries one sound track.
+        let sound = try mixer.mix(plan)
         let writers = try targets.map { target in
             try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
         }

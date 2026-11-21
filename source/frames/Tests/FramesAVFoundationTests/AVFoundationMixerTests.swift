@@ -71,7 +71,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]))
 
         // Then
         #expect(mixed.sampleRate == 48_000 && mixed.channels == 2)
@@ -89,7 +89,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]))
 
         // Then
         #expect(deviation(of: mixed, channel: 0, from: writer, sourceChannel: 0, frames: 0..<rate) < tolerance)
@@ -111,7 +111,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]))
 
         // Then
         let leftDeviation = deviation(
@@ -142,7 +142,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]))
 
         // Then
         let middle = 12_000..<36_000
@@ -160,7 +160,7 @@ struct AVFoundationMixerTests {
         let expected = SoundWriter(end: 1, levels: [0.25])
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1.5)]), duration: 1.5)
+        let mixed = try sut.mix(MixPlan(length: 72000, segments: [segment(of: file, from: 0, to: 1.5)]))
 
         // Then
         #expect(abs(crossings(of: mixed, frames: 4_800..<43_200) - 704) <= 1)
@@ -183,7 +183,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, envelope: ramp)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, envelope: ramp)]))
 
         // Then
         let middle = 23_900..<24_100
@@ -199,14 +199,14 @@ struct AVFoundationMixerTests {
         let file = directory.file("mono.wav")
         let writer = SoundWriter(end: 2, levels: [0.75])
         try await writer.write(to: file)
-        let plan = MixPlan(length: 48000, segments: [
+        let plan = MixPlan(length: 72000, segments: [
             segment(of: file, from: 0, to: 1),
             segment(of: file, mediaStart: 0.5, from: 0.5, to: 1.5)
         ])
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(plan, duration: 1.5)
+        let mixed = try sut.mix(plan)
 
         // Then
         #expect(
@@ -230,7 +230,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0.25, to: 0.75)]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0.25, to: 0.75)]))
 
         // Then
         let placed = (12_000..<36_000).map { frame in
@@ -250,7 +250,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, speed: 2, from: 0, to: 1.5)]), duration: 1.5)
+        let mixed = try sut.mix(MixPlan(length: 72000, segments: [segment(of: file, speed: 2, from: 0, to: 1.5)]))
 
         // Then
         let frames = 9_600..<38_400
@@ -260,8 +260,8 @@ struct AVFoundationMixerTests {
         #expect(peak(of: mixed, channel: 0, frames: 48_000..<72_000) == 0)
     }
 
-    @Test("the output is 48 kHz stereo of round(duration × 48000) frames", arguments: [1, 0.5, 1.0 / 3, 2.000_01])
-    func lastsDuration(duration: Double) async throws {
+    @Test("the output is 48 kHz stereo of the plan's length, from sequence time 0", arguments: [48_000, 24_000, 16_000, 96_001])
+    func lastsLength(length: Int) async throws {
         // Given
         let directory = try TemporaryDirectory()
         let file = directory.file("mono.wav")
@@ -269,11 +269,11 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 3)]), duration: duration)
+        let mixed = try sut.mix(MixPlan(length: length, segments: [segment(of: file, from: 0, to: 3)]))
 
         // Then
         #expect(mixed.sampleRate == 48_000 && mixed.channels == 2)
-        #expect(mixed.frameCount == Int((duration * 48_000).rounded()))
+        #expect(mixed.frameCount == length)
     }
 
     @Test("a mono noise panned left, centre and right keeps its power, each channel 3.01 dB down at the centre")
@@ -287,7 +287,7 @@ struct AVFoundationMixerTests {
 
         // When
         let mixed = try [-1.0, 0, 1].map { pan in
-            try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: pan)]), duration: 1)
+            try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: pan)]))
         }
 
         // Then
@@ -310,8 +310,8 @@ struct AVFoundationMixerTests {
         let source = try decoded(file)
 
         // When
-        let centred = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 0)]), duration: 1)
-        let right = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 1)]), duration: 1)
+        let centred = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 0)]))
+        let right = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 1)]))
 
         // Then
         #expect(centred.samples == source.samples)
@@ -333,8 +333,8 @@ struct AVFoundationMixerTests {
         let right = Array(UnsafeBufferPointer(start: channels[1], count: rate))
 
         // When
-        let centred = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 0)]), duration: 1)
-        let leftward = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: -0.5)]), duration: 1)
+        let centred = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: 0)]))
+        let leftward = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, pan: -0.5)]))
 
         // Then
         #expect(channel(0, of: centred) == left)
@@ -369,7 +369,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(plan, duration: 3)
+        let mixed = try sut.mix(plan)
 
         // Then
         let windows = windowPowers(of: mixed)
@@ -433,10 +433,9 @@ struct AVFoundationMixerTests {
 
         // When
         let faded = try sut.mix(
-            MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter, envelope: fade)]),
-            duration: 1
+            MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter, envelope: fade)])
         )
-        let held = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter)]), duration: 1)
+        let held = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: Self.compressorFilter)]))
 
         // Then
         let deviation = (0..<rate).map { frame in
@@ -460,7 +459,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(plan, duration: 1)
+        let mixed = try sut.mix(plan)
 
         // Then
         let repeated = (0..<24_000).allSatisfy { frame in
@@ -481,8 +480,8 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let filtered = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: [dry])]), duration: 1)
-        let plain = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]), duration: 1)
+        let filtered = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: [dry])]))
+        let plain = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1)]))
 
         // Then
         #expect(filtered.samples == plain.samples)
@@ -502,7 +501,7 @@ struct AVFoundationMixerTests {
         let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
 
         // When
-        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: [limiter])]), duration: 1)
+        let mixed = try sut.mix(MixPlan(length: 48000, segments: [segment(of: file, from: 0, to: 1, filter: [limiter])]))
 
         // Then
         let ceiling = Float(pow(10, -6.0 / 20)) * centre
@@ -510,7 +509,226 @@ struct AVFoundationMixerTests {
         #expect(peak(of: mixed, channel: 0, frames: 24_000..<rate) > ceiling * 0.99)
     }
 
+    @Test("a bus with an empty chain at level 1 sums its segments and buses as if they were laid flat in the plan")
+    func sumsBus() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        try await SoundWriter(end: 2, levels: [0.25, 0.1]).write(to: file)
+        let outer = segment(of: file, from: 0.25, to: 1, pan: -0.5)
+        let inner = segment(of: file, mediaStart: 0.5, from: 0.5, to: 0.75, pan: 0.5)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let bused = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0.25, to: 1, segments: [outer], buses: [bus(from: 0.5, to: 0.75, segments: [inner])])
+        ]))
+        let flat = try sut.mix(MixPlan(length: 48_000, segments: [outer, inner]))
+
+        // Then
+        #expect(bused.samples == flat.samples)
+        #expect(peak(of: bused, channel: 0, frames: 24_000..<36_000) > 0.2)
+        #expect(peak(of: bused, channel: 0, frames: 0..<12_000) == 0)
+    }
+
+    @Test("a bus's fade-out scales the output of its chain: each sample is the fade's gain times the sound without the fade")
+    func fadesBusAfterChain() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1, levels: [0.5]).write(to: file)
+        let fadeOut = [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 1, value: 0)]
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let faded = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 1, segments: [segment(of: file, from: 0, to: 1)], filter: Self.compressorFilter, envelope: fadeOut)
+        ]))
+        let held = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 1, segments: [segment(of: file, from: 0, to: 1)], filter: Self.compressorFilter)
+        ]))
+
+        // Then
+        let deviation = (0..<rate).map { frame in
+            let gain = Float(min(1, 2 - 2 * Double(frame) / Double(rate)))
+            return abs(faded.samples[frame * 2] - gain * held.samples[frame * 2])
+        }.max()!
+        #expect(deviation < 1e-6, "\(deviation)")
+        #expect(peak(of: held, channel: 0, frames: 24_000..<rate) < 0.5 * centre * 0.9)
+    }
+
+    @Test("a bus's chain starts at rest at the first sample of its span, so the buses of a loop's repeats sound the same")
+    func startsBusChainAtRest() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1, levels: [0.5]).write(to: file)
+        let plan = MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 0.5, segments: [segment(of: file, from: 0, to: 0.5)], filter: Self.compressorFilter),
+            bus(from: 0.5, to: 1, segments: [segment(of: file, from: 0.5, to: 1)], filter: Self.compressorFilter)
+        ])
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(plan)
+
+        // Then
+        let repeated = (0..<24_000).allSatisfy { frame in
+            mixed.samples[frame * 2] == mixed.samples[(24_000 + frame) * 2]
+        }
+        #expect(repeated)
+        #expect(peak(of: mixed, channel: 0, frames: 24_000..<24_048) > 1.5 * peak(of: mixed, channel: 0, frames: 12_000..<24_000))
+    }
+
+    @Test("a bus's limiter holds the sum of its sounds under the ceiling over its whole span, reading silence around it")
+    func limitsBusSum() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1, levels: [0.9]).write(to: file)
+        let limiter = MixFilterEntry(
+            operations: [.limiter(MixLimiter(gain: .constant(0), ceiling: .constant(-6), lookahead: 0.005, release: .constant(0.1)))],
+            mix: .constant(1)
+        )
+        let plan = MixPlan(length: 48_000, segments: [], buses: [
+            bus(
+                from: 0.25,
+                to: 0.75,
+                segments: [segment(of: file, from: 0.25, to: 0.75), segment(of: file, from: 0.25, to: 0.75)],
+                filter: [limiter]
+            )
+        ])
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(plan)
+
+        // Then
+        let ceiling = Float(pow(10, -6.0 / 20))
+        #expect(peak(of: mixed, channel: 0, frames: 12_000..<36_000) <= ceiling * (1 + 1e-6))
+        #expect(peak(of: mixed, channel: 0, frames: 24_000..<36_000) > ceiling * 0.99)
+        #expect(peak(of: mixed, channel: 0, frames: 0..<12_000) == 0)
+        #expect(peak(of: mixed, channel: 0, frames: 36_000..<rate) == 0)
+    }
+
+    @Test(
+        "a mix whose plan chain ends with a limiter at `mix` 1 holds every sample at or under its ceiling",
+        arguments: [0.0015, 0.005, 0.05]
+    )
+    func limitsMix(lookahead: Double) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        try await SoundWriter(end: 2, levels: [0.9, 0.6]).write(to: file)
+        let compressor = Self.compressorFilter[0]
+        let limiter = MixFilterEntry(
+            operations: [.limiter(MixLimiter(gain: .constant(12), ceiling: .constant(-1), lookahead: lookahead, release: .constant(0.1)))],
+            mix: .constant(1)
+        )
+        let plan = MixPlan(
+            length: 96_000,
+            segments: [segment(of: file, from: 0, to: 2)],
+            buses: [bus(from: 0.5, to: 1.5, segments: [segment(of: file, mediaStart: 0.3, from: 0.5, to: 1.5, pan: 0.4)])],
+            filter: [compressor, limiter]
+        )
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(plan)
+
+        // Then
+        let ceiling = Float(pow(10, -1.0 / 20))
+        let largest = mixed.samples.map(abs).max()!
+        #expect(largest <= ceiling * (1 + 1e-6), "\(largest)")
+        #expect(largest > ceiling * 0.99)
+    }
+
+    @Test("where an inner gain and the bus's level both move, the sound is their product, each joined between its own points")
+    func multipliesLevelAfterSum() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        try await SoundWriter(end: 1, levels: [0.5]).write(to: file)
+        let gain = [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 1, value: 1)]
+        let level = [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: 0.3, value: 0.25), EnvelopePoint(time: 1, value: 0.75)]
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 1, segments: [segment(of: file, from: 0, to: 1, envelope: gain)], envelope: level)
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: file, from: 0, to: 1)]))
+
+        // Then
+        let deviation = (0..<rate).map { frame in
+            let time = Double(frame) / Double(rate)
+            let joined = time < 0.3 ? 1 - 0.75 * time / 0.3 : 0.25 + 0.5 * (time - 0.3) / 0.7
+            return abs(mixed.samples[frame * 2] - Float(time * joined) * plain.samples[frame * 2])
+        }.max()!
+        #expect(deviation < 1e-6, "\(deviation)")
+    }
+
+    @Test("a held level on a bus gives the sound a held gain on each of its segments gives, pan before the sum")
+    func holdsLevelAsGain() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("stereo.wav")
+        try await SoundWriter(end: 1, levels: [0.25, 0.1]).write(to: file)
+        let half = [EnvelopePoint(time: 0, value: 0.5), EnvelopePoint(time: 1, value: 0.5)]
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let bused = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 1, segments: [segment(of: file, from: 0, to: 1, pan: 0.3)], envelope: half)
+        ]))
+        let flat = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: file, from: 0, to: 1, envelope: half, pan: 0.3)]))
+
+        // Then
+        #expect(bused.samples == flat.samples)
+    }
+
+    @Test("checking a plan walks its buses, naming a segment inside one by its place in the plan")
+    func refusesSilentFileInBus() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sound = directory.file("mono.wav")
+        let video = directory.file("silent.mov")
+        try await SoundWriter(end: 1).write(to: sound)
+        try await MovieWriter(size: Size(width: 64, height: 64), frameTimes: [0], end: 1)
+            .write(to: video) { _, _ in }
+        let plan = MixPlan(length: 48_000, segments: [segment(of: sound, from: 0, to: 1)], buses: [
+            bus(from: 0, to: 1, segments: [], buses: [
+                bus(from: 0, to: 1, segments: [segment(of: sound, from: 0, to: 1), segment(of: video, from: 0, to: 1)])
+            ])
+        ])
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let error = #expect(throws: MixerError.self) { try sut.check(plan) }
+
+        // Then
+        #expect(error?.description == "mix plan buses[0].buses[0].segments[1]: media \(video) has no sound track")
+    }
+
     // MARK: - Private
+    private func bus(
+        from start: Double,
+        to end: Double,
+        segments: [MixSegment],
+        buses: [MixBus] = [],
+        filter: [MixFilterEntry] = [],
+        envelope: [EnvelopePoint]? = nil
+    ) -> MixBus {
+        MixBus(
+            start: start,
+            end: end,
+            segments: segments,
+            buses: buses,
+            filter: filter,
+            envelope: envelope ?? [EnvelopePoint(time: start, value: 1), EnvelopePoint(time: end, value: 1)]
+        )
+    }
+
     private func segment(
         of file: String,
         mediaStart: Double = 0,

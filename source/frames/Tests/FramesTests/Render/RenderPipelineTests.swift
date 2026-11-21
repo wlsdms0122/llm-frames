@@ -40,7 +40,7 @@ struct RenderPipelineTests {
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
         #expect(log.calls == checks(of: sequence) + [
-            .mix(duration: 1),
+            .mix(length: 48_000),
             .videoWriter(.master(path: master, alpha: false), size: size, fps: 2, sound: silence),
             .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence),
             .draw(frame: 0),
@@ -161,17 +161,21 @@ struct RenderPipelineTests {
         #expect(log.calls.isEmpty)
     }
 
-    @Test("frames are drawn at k / fps while inside the sequence, and the sound lasts as long as they do", arguments: [
-        (10.0, 1.0, 10),
-        (10.0, 1.01, 11),
-        (29.97, 2.0, 60),
-        (10.0, 0.1 + 0.2, 3),
-        (30.0, 0.01, 1)
+    // A minute at a written 29.97 mixes round(1799 × 1601.6) samples at the presented 30000 / 1001, 3 fewer than the
+    // written rate gives.
+    @Test("frames are drawn at k / fps while inside the sequence, and the sound lasts as long as they do at the presented rate", arguments: [
+        (10.0, 1.0, 10, 48_000),
+        (10.0, 1.01, 11, 52_800),
+        (29.97, 2.0, 60, 96_096),
+        (29.97, 60.0, 1799, 2_881_278),
+        (10.0, 0.1 + 0.2, 3, 14_400),
+        (30.0, 0.01, 1, 1_600)
     ])
     func countsFrames(
         fps: Double,
         duration: Double,
-        count: Int
+        count: Int,
+        length: Int
     ) throws {
         // Given
         let log = RoleCallLog()
@@ -187,7 +191,7 @@ struct RenderPipelineTests {
         #expect(drawn == Array(0..<count))
         #expect(Double(count - 1) / fps < duration)
         #expect(abs(Double(count) / fps - duration) <= 1 / fps)
-        #expect(log.calls.contains(.mix(duration: Double(count) / fps)))
+        #expect(log.calls.contains(.mix(length: length)))
     }
 
     @Test("a sequence without sound is mixed from an empty plan, so its master carries a silent track")

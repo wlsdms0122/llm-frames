@@ -8,10 +8,11 @@
 import AVFoundation
 import Frames
 
-// A segment's audio filter over its stereo sound at 48 kHz, after the downmix, the resampling and the time stretch
-// and before the gain and the pan. It is made at rest, so each segment, and each repeat of a loop, which is a segment
-// of its own, starts every op at rest. Entries none of whose ops reads ahead run together sample by sample, and an
-// entry with a limiter runs over the whole sound, reading silence past its end.
+// An audio filter over a stereo sound at 48 kHz: a segment's, after the downmix, the resampling and the time stretch
+// and before the gain and the pan, or a bus's chain, over the bus's sum and before its level. It is made at rest, so
+// each segment and each bus, and so each repeat of a loop, starts every op at rest. Entries none of whose ops reads
+// ahead run together sample by sample, and an entry with a limiter runs over the whole sound, reading silence before
+// its start and past its end.
 final class SegmentFilter {
     // MARK: - Property
     private let entries: [FilterEntryProcessor]
