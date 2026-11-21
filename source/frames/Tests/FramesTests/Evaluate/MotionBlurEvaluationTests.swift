@@ -246,6 +246,27 @@ struct MotionBlurEvaluationTests {
         #expect(samples[0] != samples[15])
     }
 
+    @Test("a clip with motionBlur whose crop tracks its media is carried by the motion of the media frame of T in every sample")
+    func carriesTrackedCropAtT() throws {
+        // Given
+        // The exposure of the frame at 0.99 crosses from the media frame at 0.9 to the one at 1, whose motions differ by
+        // 10 pixels.
+        let sequence = try drifting(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": { "text": "Total" }, "track": true, "motionBlur": true } ] }
+            """#)
+
+        // When
+        let samples = try #require(sut.displayList(of: sequence, at: 0.99).samples)
+
+        // Then
+        let atT = sut.displayListWithoutMotionBlur(of: sequence, at: 0.99).items
+        let next = sut.displayListWithoutMotionBlur(of: sequence, at: 1).items
+        #expect(samples.allSatisfy { $0 == atT })
+        #expect(crop(in: atT) != nil)
+        #expect(crop(in: atT) != crop(in: next))
+    }
+
     @Test("evaluate reports the frame as at T, the list without motion blur")
     func reportsFrameAtT() throws {
         // Given
@@ -310,6 +331,22 @@ struct MotionBlurEvaluationTests {
 
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    // Resolved with a tracker whose target drifts 100 pixels a second over `/abs/screen.mp4`, which shows a new frame
+    // every 0.1 seconds.
+    private func drifting(_ document: String) throws -> ResolvedSequence {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 100, y: 0)),
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     // Two solids with a push from 1.5 to 2.5: the incoming one from x 1 to 0 of the frame, the outgoing from 0 to -1.
@@ -392,6 +429,15 @@ struct MotionBlurEvaluationTests {
         }
 
         return list.items
+    }
+
+    // The crop of the media the storyline picture shows.
+    private func crop(in items: [DisplayItem]) -> Rectangle? {
+        guard case let .picture(outer) = items.first?.content,
+              case let .displayList(list) = outer.source,
+              case let .picture(inner) = list.items.first?.content else { return nil }
+
+        return inner.rectangle
     }
 
     // The media frame the storyline picture shows.

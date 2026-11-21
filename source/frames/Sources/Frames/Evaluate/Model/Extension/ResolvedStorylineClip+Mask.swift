@@ -21,7 +21,7 @@ extension ResolvedStorylineClip {
             return mask.map { ItemMask(mask: $0.sampled(at: time), transform: transform, factor: factor) }
         }
 
-        let transform = track.transform(on: clock, at: time.instant).concatenating(spaceTransform(at: time))
+        let transform = track.transform(on: clock, at: time).concatenating(spaceTransform(at: time))
         return track.masks(of: mask, on: clock, at: time).map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }
 

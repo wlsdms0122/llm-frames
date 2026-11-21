@@ -7,7 +7,8 @@
 
 // Each keyframe of a tracked clip's geometry is brought back through the motion at its own `at` into the instant's
 // coordinates, in the media pixels the clip follows, and interpolated there. `transform` carries the instant to the
-// frame shown at a time.
+// frame shown at a time. The motion that carries a value is the motion of the media frame shown at T, the time's
+// `frameTime`, so it adds no blur inside a frame (FRAMES-29).
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -94,14 +95,14 @@ extension ResolvedTrack {
             )
         }
 
-        return uprightMotion(on: clock, at: time.instant).carry(brought.value(at: time).rectangle)
+        return uprightMotion(on: clock, at: time.frameTime).carry(brought.value(at: time).rectangle)
     }
 
     func transform(
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
-        motion(atMediaTime: clock.mediaTime(atSequenceTime: time)).transform
+        motion(atMediaTime: clock.mediaTime(atSequenceTime: time.frameTime)).transform
     }
 
     // MARK: - Private

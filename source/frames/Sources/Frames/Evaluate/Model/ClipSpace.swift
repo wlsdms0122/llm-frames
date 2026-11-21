@@ -105,7 +105,7 @@ struct ClipSpace: Sendable {
     ) -> ClipSpace {
         guard let track, let clock else { return self }
 
-        let tracked = track.transform(on: clock, at: time.frameTime)
+        let tracked = track.transform(on: clock, at: time)
         return ClipSpace(
             frame: frame,
             transform: tracked.concatenating(transform),

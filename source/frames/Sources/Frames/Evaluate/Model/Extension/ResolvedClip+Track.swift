@@ -56,7 +56,7 @@ extension ResolvedClip {
     func ownMotion(at time: SampleTime) -> AffineTransform {
         guard let track, let clock = ownMediaClock else { return .identity }
 
-        return track.transform(on: clock, at: time.instant)
+        return track.transform(on: clock, at: time)
     }
 
     // MARK: - Private
