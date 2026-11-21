@@ -10,7 +10,8 @@ import Frames
 
 // A segment's audio filter over its stereo sound at 48 kHz, after the downmix, the resampling and the time stretch
 // and before the gain and the pan. It is made at rest, so each segment, and each repeat of a loop, which is a segment
-// of its own, starts every op at rest.
+// of its own, starts every op at rest. Entries none of whose ops reads ahead run together sample by sample, and an
+// entry with a limiter runs over the whole sound, reading silence past its end.
 final class SegmentFilter {
     // MARK: - Property
     private let entries: [FilterEntryProcessor]
@@ -24,7 +25,7 @@ final class SegmentFilter {
     }
 
     // MARK: - Public
-    // `first` is the sequence sample the buffer's first frame plays at.
+    // `first` is the sequence sample the buffer's first frame plays at, and the sound ends after `frames` frames.
     func process(
         _ buffer: AVAudioPCMBuffer,
         frames: Int,
@@ -32,19 +33,32 @@ final class SegmentFilter {
     ) {
         guard !entries.isEmpty, let channels = buffer.floatChannelData else { return }
 
-        for frame in 0..<frames {
-            let input = StereoSample(left: Double(channels[0][frame]), right: Double(channels[1][frame]))
-            let output = process(input, atSample: first + frame)
-            channels[0][frame] = Float(output.left)
-            channels[1][frame] = Float(output.right)
-        }
+        process([channels[0], channels[1]], frames: frames, first: first)
     }
 
+    // Runs the filter over `frames` samples of each of the two `channels` in place, frame 0 at sequence sample `first`.
     func process(
-        _ input: StereoSample,
-        atSample sample: Int
-    ) -> StereoSample {
-        entries.reduce(input) { output, entry in entry.process(output, atSample: sample) }
+        _ channels: [UnsafeMutablePointer<Float>],
+        frames: Int,
+        first: Int
+    ) {
+        var start = 0
+        while start < entries.count {
+            guard !entries[start].readsAhead else {
+                entries[start].process(channels, frames: frames, first: first)
+                start += 1
+                continue
+            }
+
+            let run = entries[start...].prefix { !$0.readsAhead }
+            for frame in 0..<frames {
+                let input = StereoSample(left: Double(channels[0][frame]), right: Double(channels[1][frame]))
+                let output = run.reduce(input) { output, entry in entry.process(output, atSample: first + frame) }
+                channels[0][frame] = Float(output.left)
+                channels[1][frame] = Float(output.right)
+            }
+            start += run.count
+        }
     }
 
     // MARK: - Private

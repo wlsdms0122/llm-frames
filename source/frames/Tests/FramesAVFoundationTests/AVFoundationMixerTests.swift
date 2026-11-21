@@ -488,6 +488,28 @@ struct AVFoundationMixerTests {
         #expect(filtered.samples == plain.samples)
     }
 
+    @Test("a segment's limiter holds every sample of its sound under the ceiling, before the gain and the pan")
+    func limitsSegment() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("mono.wav")
+        let writer = SoundWriter(end: 1, levels: [0.9])
+        try await writer.write(to: file)
+        let limiter = MixFilterEntry(
+            operations: [.limiter(MixLimiter(gain: .constant(12), ceiling: .constant(-6), lookahead: 0.005, release: .constant(0.1)))],
+            mix: .constant(1)
+        )
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(MixPlan(segments: [segment(of: file, from: 0, to: 1, filter: [limiter])]), duration: 1)
+
+        // Then
+        let ceiling = Float(pow(10, -6.0 / 20)) * centre
+        #expect(peak(of: mixed, channel: 0, frames: 0..<rate) <= ceiling * (1 + 1e-6))
+        #expect(peak(of: mixed, channel: 0, frames: 24_000..<rate) > ceiling * 0.99)
+    }
+
     // MARK: - Private
     private func segment(
         of file: String,

@@ -12,7 +12,10 @@ package struct MixPlanReader: Sendable {
     private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"]
     private static let compressorKeys = ["op", "threshold", "ratio", "knee", "attack", "release", "makeup"]
     private static let gateKeys = ["op", "threshold", "range", "attack", "hold", "release"]
-    private static let operationKeys = ["op", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup"]
+    private static let limiterKeys = ["op", "gain", "ceiling", "lookahead", "release"]
+    private static let operationKeys = [
+        "op", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup", "gain", "ceiling", "lookahead"
+    ]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
@@ -96,7 +99,7 @@ package struct MixPlanReader: Sendable {
                 makeup: try mixValue(compressor.member("makeup"))
             ))
 
-        default:
+        case "gate":
             let gate = try value.object(kind: "gate", keys: Self.gateKeys)
             return .gate(MixGate(
                 threshold: try mixValue(gate.member("threshold")),
@@ -104,6 +107,15 @@ package struct MixPlanReader: Sendable {
                 attack: try mixValue(gate.member("attack")),
                 hold: try mixValue(gate.member("hold")),
                 release: try mixValue(gate.member("release"))
+            ))
+
+        default:
+            let limiter = try value.object(kind: "limiter", keys: Self.limiterKeys)
+            return .limiter(MixLimiter(
+                gain: try mixValue(limiter.member("gain")),
+                ceiling: try mixValue(limiter.member("ceiling")),
+                lookahead: try limiter.member("lookahead").number(),
+                release: try mixValue(limiter.member("release"))
             ))
         }
     }
