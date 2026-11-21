@@ -45,7 +45,8 @@ struct DocumentPlannerTests {
             ],
             imageSequences: [
                 media.appendingPathComponent("frames").path: (1...12).map { media.appendingPathComponent("frames/\($0).png").path }
-            ]
+            ],
+            pages: ["/abs/deck.pdf": [Size(width: 200, height: 100), Size(width: 200, height: 100)]]
         )
         sut = DocumentPlanner(
             mediaFacts: mediaFacts,
@@ -202,6 +203,23 @@ struct DocumentPlannerTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document) }
         #expect(error?.description == "storyline[0].media.storyline[0] (video): in 5 is at or after the end of the media at 4")
+    }
+
+    @Test("toneMap on a clip of a page an instance is given stops where resolve reads it, continuing the entry's place")
+    func continuesPlaceOfPageArgumentStop() throws {
+        // Given
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } }, "storyline": [ { "media": { "param": "still" }, "duration": 2, "toneMap": false } ] }"#,
+            in: "shorts",
+            at: "templates/still.json"
+        )
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": { "template": "shorts/still", "args": { "still": { "file": "/abs/deck.pdf", "page": 2 } } } } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.plan(document) }
+        #expect(error?.description.hasPrefix(#"storyline[0].media.storyline[0] (page): unknown key "toneMap". Allowed: "#) == true)
     }
 
     @Test("a template given as the document takes its arguments from --args, checked in that file")
