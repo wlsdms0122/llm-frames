@@ -67,6 +67,7 @@ every media file is read through the decoder
 - A built-in tracker that follows perspective. The `point` tracker reports each quad as a similarity image of the target, and a perspective track made outside frames comes in as track data ([FRAMES-12](FRAMES-12/SPEC.md#track-data)), which a corner pin rides ([FRAMES-27](FRAMES-27/SPEC.md)).
 - Curved paths. A path shape is straight segments between its points ([FRAMES-11](FRAMES-11/SPEC.md)).
 - Right-to-left and mixed-direction text. Text is laid out left to right, so `align` names physical sides.
+- Ink bounds of text. `evaluate` reports where text lies by its characters' glyph boxes, made of advances, ascents and descents ([FRAMES-5](FRAMES-5/SPEC.md#units)), and a program that needs the outlines as drawn measures a frame from `extract`.
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.

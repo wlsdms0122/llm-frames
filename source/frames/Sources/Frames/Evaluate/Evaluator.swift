@@ -206,7 +206,6 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A still has no clock and shows media time 0.
     private func picture(
         of clip: ResolvedClip,
         at sample: SampleInstant,

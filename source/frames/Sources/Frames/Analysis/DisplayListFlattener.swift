@@ -5,15 +5,15 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Flattens a display list into what each of its items covers of the output frame, bottom first. A picture of a nested
-// list is replaced by that list's background and items, carried through the picture's source rect, destination and
-// transform and cut by its mask, reveal and destination, so they cover only what the picture shows. A picture with a
-// corner pin shows its whole list and carries it on from its destination to its corner pin by their homography, each
-// shape cut to the part in front of its horizon first (FRAMES-20, FRAMES-23). What an item covers follows its shape in
-// convex pieces: a picture's destination, a path's geometry with its stroke and arrowheads, a glyphs item's box (a
-// unit's item cut to its unit's box by its reveal), and an adjustment's list frame, each cut to the region its masks
-// bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
-// source is not drawn as items of the list, and does not cut what its item covers.
+// Flattens a display list into its items, bottom first, each with its transform, its extent in its own coordinates, and
+// what it covers of the output frame. A picture of a nested list is replaced by that list's background and items,
+// carried through the picture's source rect, destination and transform and cut by its mask, reveal and destination, so
+// they cover only what the picture shows. A picture with a corner pin shows its whole list and carries it on from its
+// destination to its corner pin by their homography, each shape cut to the part in front of its horizon first
+// (FRAMES-20, FRAMES-23). What an item covers follows its shape in convex pieces: a picture's destination, a path's
+// geometry with its stroke and arrowheads, what a glyphs item draws, and an adjustment's list frame, each cut to the
+// region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out:
+// a track matte's source is not drawn as items of the list, and does not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -45,6 +45,8 @@ struct DisplayListFlattener: Sendable {
                 origin: state.origin,
                 item: .background,
                 opacity: state.opacity,
+                transform: state.transform,
+                rect: frame,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
 
@@ -58,34 +60,43 @@ struct DisplayListFlattener: Sendable {
         state: GraphicsState
     ) throws -> [FlattenedItem] {
         let own = state.holding(item)
+        let transform: AffineTransform
+        let rect: Rectangle
         let coverage: ItemCoverage
+        let characters: CharacterScope?
         switch item.content {
         case let .picture(picture):
             return try items(of: picture, own: own)
 
         case let .path(path):
+            transform = own.transform
+            rect = box(of: path.geometry)
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
+            characters = nil
 
         case let .glyphs(glyphs):
-            // A title's background drawn alone, under its units, covers only its rect, or nothing without one, and a
-            // unit's item its unit's box.
-            let box = glyphs.runs.isEmpty && glyphs.layer == nil
-                ? glyphs.background?.rectangle
-                : glyphs.unitBox ?? Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
-            guard let box else { return [] }
-
-            coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
+            transform = own.transform
+            rect = glyphs.extent
+            let drawn = drawn(by: glyphs, carriedBy: item.transform)
+            coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
+            characters = scope(of: glyphs)
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
+            transform = state.transform
+            rect = frame
             coverage = own.cut(ItemCoverage(pieces: [state.carried(ConvexPolygon(rectangle: frame))]))
+            characters = nil
         }
 
         return [FlattenedItem(
             origin: own.origin,
             item: ItemKind(content: item.content),
             opacity: own.opacity,
-            coverage: coverage
+            transform: transform,
+            rect: rect,
+            coverage: coverage,
+            characters: characters
         )]
     }
 
@@ -108,6 +119,8 @@ struct DisplayListFlattener: Sendable {
                 origin: own.origin,
                 item: .picture,
                 opacity: own.opacity,
+                transform: own.transform,
+                rect: picture.destination,
                 coverage: coverage,
                 media: placement
             )]
@@ -125,6 +138,37 @@ struct DisplayListFlattener: Sendable {
 
             return try items(of: list, state: own.nesting(transform: transform, cornerPin: homography))
         }
+    }
+
+    // The box of a path's geometry as the list gives it, without its stroke.
+    private func box(of geometry: PathGeometry) -> Rectangle {
+        switch geometry {
+        case let .rect(rectangle, _), let .ellipse(rectangle):
+            rectangle
+
+        case let .polyline(points, _):
+            Rectangle(bounding: points)
+        }
+    }
+
+    // What a glyphs item draws in its own coordinates, its stroke drawn in the pixels of its list on the outlines
+    // `transform` carries: its extent with its stroke and pieces joined with its background's rect, and for a title's
+    // background drawn alone, which holds no runs, its background's rect, or nothing without one.
+    private func drawn(
+        by glyphs: GlyphsItem,
+        carriedBy transform: AffineTransform
+    ) -> Rectangle? {
+        guard !glyphs.runs.isEmpty || glyphs.unit != nil else { return glyphs.background?.rectangle }
+
+        return glyphs.drawnBounds(carriedBy: transform)
+    }
+
+    // A title's one item that draws its runs reports every character, and a unit's `fills` item the characters of the
+    // unit it names. A title's background drawn alone and every other layer of a unit report none.
+    private func scope(of glyphs: GlyphsItem) -> CharacterScope? {
+        guard let unit = glyphs.unit else { return glyphs.runs.isEmpty ? nil : .title }
+
+        return unit.layer == .fills ? .unit(unit.index) : nil
     }
 
     // The transform that carries `rectangle` onto `other`.

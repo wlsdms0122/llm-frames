@@ -7,9 +7,9 @@
 
 // A title or label as shaped: its box size in output pixels and its `textBox` in that box, both at the static
 // tracking, line height and background padding, the `width` it wraps at (nil for text without one), its background,
-// its lines' `align`, its `lineHeight` timed, and its glyph runs. `lines` is nil, or, for a title whose tracking or
-// line height takes keyframes, its lines, along and with which evaluation moves the glyphs. `units` is nil, or, for a
-// title animated by unit, its units in reading order.
+// its lines' `align`, its `lineHeight` timed, and its glyph runs. `text` is the text its ranges count in Unicode
+// scalars, `words` its words in reading order, each its range, and `lines` its lines, along and with which evaluation moves the glyphs. `units` is nil, or, for a title
+// animated by unit, its units in reading order.
 struct ResolvedText: Equatable, Sendable {
     // MARK: - Property
     let size: Size
@@ -18,7 +18,9 @@ struct ResolvedText: Equatable, Sendable {
     let background: ResolvedBackground?
     let align: TextAlignment
     let lineHeight: TimedValue
-    let lines: [PlacedLine]?
+    let text: String
+    let words: [Range<Int>]
+    let lines: [PlacedLine]
     let units: [PlacedUnit]?
     let runs: [ResolvedGlyphRun]
 
@@ -30,7 +32,9 @@ struct ResolvedText: Equatable, Sendable {
         background: ResolvedBackground?,
         align: TextAlignment,
         lineHeight: TimedValue,
-        lines: [PlacedLine]?,
+        text: String,
+        words: [Range<Int>],
+        lines: [PlacedLine],
         units: [PlacedUnit]?,
         runs: [ResolvedGlyphRun]
     ) {
@@ -40,6 +44,8 @@ struct ResolvedText: Equatable, Sendable {
         self.background = background
         self.align = align
         self.lineHeight = lineHeight
+        self.text = text
+        self.words = words
         self.lines = lines
         self.units = units
         self.runs = runs

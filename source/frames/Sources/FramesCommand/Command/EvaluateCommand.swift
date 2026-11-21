@@ -7,13 +7,14 @@
 
 import Frames
 
-// Prints, as machine output, the display list of a document at a sequence time, with the clip that drew each item.
+// Prints, as machine output, the display list of a document at a sequence time, with the clip that drew each item, and
+// the text of every title drawn then.
 struct EvaluateCommand: Command {
     // MARK: - Property
     let name = "evaluate"
     let synopsis = "<document.json> --at <t> [--args <args.json>]"
     let summary = "Prints the display list at a sequence time as JSON, bottom first: each item, the clip or op that "
-        + "drew it, and the output rectangle it covers."
+        + "drew it, the output rectangle it covers and the characters it draws, and every title's lines and words."
 
     // MARK: - Initializer
     init() { }

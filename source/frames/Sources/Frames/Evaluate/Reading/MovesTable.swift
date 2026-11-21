@@ -69,7 +69,7 @@ struct MovesTable: Sendable {
                 other: .fixed
             )),
             "unitBox": .moves,
-            "unitGlyphBox": .moves,
+            "extent": .moves,
             "background": .moves,
             "size": .moves
         ],

@@ -219,7 +219,24 @@ struct ResolvedDocumentWriterTests {
                     "ease": "linear"
                   }
                 ],
-                "lines": null,
+                "text": "Hi",
+                "words": [
+                  [0, 2]
+                ],
+                "lines": [
+                  {
+                    "width": 20.25,
+                    "baseline": 20.7,
+                    "ascent": 16.2,
+                    "descent": 4.05,
+                    "range": [0, 2],
+                    "clusters": [
+                      [0, 0, 1, 0, 1, 10.125],
+                      [0, 1, 1, 1, 2, 10.125]
+                    ],
+                    "hanging": []
+                  }
+                ],
                 "units": null,
                 "runs": [
                   {
@@ -243,12 +260,13 @@ struct ResolvedDocumentWriterTests {
                         "ease": "linear"
                       }
                     ],
+                    "staticTracking": 0,
                     "tracking": null,
                     "highlight": null,
                     "underline": null,
                     "glyphs": [
-                      [72, 9, 20.7],
-                      [105, 19.125, 20.7]
+                      [72, 9, 20.7, 0, 0],
+                      [105, 19.125, 20.7, 0, 0]
                     ]
                   }
                 ]

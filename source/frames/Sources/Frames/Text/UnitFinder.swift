@@ -5,179 +5,154 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// Splits laid out text into the units a title animated by unit moves, in reading order. Spaces belong to no unit, and
-// no unit crosses a line. Units that would share a glyph, as a ligature sets two clusters in one, are one unit.
+// Splits laid out text into the units a title animated by unit moves, in reading order. Spaces are no unit: each goes
+// with the unit before it on its line, or the line's first, so the characters that go with a unit are one stretch of
+// its line, and no unit crosses a line. Units that the characters of one group of glyphs go with are one unit. A line's
+// hanging spaces are drawn by its last unit, and those of a line with no unit by the unit before them in reading order,
+// or by the title's first unit.
 struct UnitFinder: Sendable {
     // MARK: - Property
-    private let segmenter = WordSegmenter()
-
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // `lines` are the clusters of each line up to its last visible one, `extents` each line's span down the text's box
-    // from its baseline less its largest ascent to its baseline plus its largest descent, and `runs` the text's glyph
-    // runs, which hold the highlight and underline pieces. A run's glyphs may lie in no cluster, as a cluster split over
-    // two faces leaves its glyphs in the earlier face, so a run's line is its own.
+    // `text` is the text every range counts, `words` its words in reading order, each its range, `spans` the glyph box
+    // span across its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
+    // and underline pieces.
     func units(
         by unit: TextUnit,
-        lines: [[PlacedCluster]],
-        extents: [ClosedRange<Double>],
+        text: String,
+        words: [Range<Int>],
+        lines: [PlacedLine],
+        spans: [[ClosedRange<Double>]],
         runs: [GlyphRun]
     ) -> [PlacedUnit] {
-        var units: [(line: Int, unit: PlacedUnit)] = []
-        for (line, clusters) in lines.enumerated() {
-            for group in groups(of: clusters, by: unit) {
-                let members = group.map { clusters[$0] }
-                guard let first = members.first, let last = members.last else { continue }
+        let scalars = Array(text.unicodeScalars)
+        let spaces = lines.map { line in line.clusters.map { scalars[$0.range].isSpace } }
+        let stretches = lines.enumerated().flatMap { index, line in
+            self.stretches(of: line, spaces: spaces[index], words: words, by: unit)
+                .map { CharacterRange(line: index, first: $0.lowerBound, count: $0.count) }
+        }
+        guard !stretches.isEmpty else { return [] }
 
-                let extent = extents[line]
-                let box = Rectangle(
-                    x: first.start,
-                    y: extent.lowerBound,
-                    width: last.end - first.start,
-                    height: extent.upperBound - extent.lowerBound
-                )
-                units.append((line, PlacedUnit(glyphs: glyphs(of: members), glyphBox: box, box: box, parts: [])))
-            }
+        var hangingLines = stretches.map { _ in [Int]() }
+        for (index, line) in lines.enumerated() where !line.hanging.isEmpty {
+            let owner = stretches.lastIndex { $0.line == index }
+                ?? stretches.lastIndex { $0.line < index }
+                ?? 0
+            hangingLines[owner].append(index)
         }
 
-        var parts = units.map { _ in [UnitPart]() }
+        var parts = stretches.map { _ in [UnitPart]() }
         for (index, run) in runs.enumerated() {
-            let onLine = units.indices.filter { units[$0].line == run.line }
-            let carriers = onLine.filter { unit in
-                units[unit].unit.glyphs.contains { runs[$0.run].source == run.source }
-            }
-            for (piece, span) in spans(of: run).enumerated() {
-                guard !carriers.isEmpty else {
-                    if let owner = owner(ofSpacesIn: index, of: run, onLine: onLine, units: units) {
-                        parts[owner].append(UnitPart(run: index, piece: piece, span: span))
-                    }
-                    continue
+            let carriers = stretches.indices.filter { unit in
+                let stretch = stretches[unit]
+                return stretch.line == run.line && lines[stretch.line].clusters[stretch.clusters].contains {
+                    runs[$0.glyphs.run].source == run.source
                 }
-
+            }
+            for (piece, span) in pieces(of: run).enumerated() {
                 for (order, unit) in carriers.enumerated() {
-                    let start = order == 0 ? span.lowerBound : units[unit].unit.glyphBox.x
-                    let end = order == carriers.count - 1 ? span.upperBound : units[carriers[order + 1]].unit.glyphBox.x
+                    let start = order == 0 ? span.lowerBound : glyphStart(of: stretches[unit], spans: spans)
+                    let end = order == carriers.count - 1
+                        ? span.upperBound
+                        : glyphStart(of: stretches[carriers[order + 1]], spans: spans)
                     parts[unit].append(UnitPart(run: index, piece: piece, span: start...end))
                 }
             }
         }
 
-        return zip(units, parts).map { element, parts in
-            PlacedUnit(glyphs: element.unit.glyphs, glyphBox: element.unit.glyphBox, box: element.unit.box, parts: parts)
+        return stretches.indices.map { index in
+            let stretch = stretches[index]
+            let line = lines[stretch.line]
+            let held = stretch.clusters.filter { !spaces[stretch.line][$0] }
+            let first = held.first.map { spans[stretch.line][$0].lowerBound } ?? 0
+            let last = held.last.map { spans[stretch.line][$0].upperBound } ?? first
+            let box = Rectangle(
+                x: first,
+                y: line.baseline - line.ascent,
+                width: last - first,
+                height: line.ascent + line.descent
+            )
+
+            return PlacedUnit(
+                characters: stretch,
+                hangingLines: hangingLines[index],
+                lines: lines,
+                glyphBox: box,
+                box: box,
+                parts: parts[index]
+            )
         }
     }
 
     // MARK: - Private
-    // A piece of spaces alone goes with the unit before it on its line, or the line's first, so its part stays on its
-    // line. On a line with no unit it goes with the unit before it in reading order, or the title's first, so every
-    // piece of a title with a unit is drawn by one.
-    private func owner(
-        ofSpacesIn index: Int,
-        of run: GlyphRun,
-        onLine: [Int],
-        units: [(line: Int, unit: PlacedUnit)]
-    ) -> Int? {
-        let before = onLine.last { units[$0].unit.glyphs.first.map { $0.run < index } ?? false }
-        let earlier = units.indices.last { units[$0].line < run.line }
+    // The stretches of a line's characters that go with its units, in order. Each unit holds the characters `held`
+    // gives it, and the characters after its first up to the next unit's first go with it, the line's first unit also
+    // taking those before it. A unit whose first character is a later character of a group of glyphs joins the unit
+    // before it, which the group's first character goes with. `spaces` says which of the line's characters are spaces.
+    private func stretches(
+        of line: PlacedLine,
+        spaces: [Bool],
+        words: [Range<Int>],
+        by unit: TextUnit
+    ) -> [Range<Int>] {
+        let starts = held(of: line, spaces: spaces, words: words, by: unit).compactMap(\.first)
+            .reduce(into: [Int]()) { starts, start in
+                let isLater = line.clusters[start].glyphs.count == 0
+                    && line.clusters[..<start].contains { $0.glyphs.count > 0 }
+                if starts.isEmpty || !isLater {
+                    starts.append(start)
+                }
+            }
 
-        return before ?? onLine.first ?? earlier ?? units.indices.first
+        return starts.indices.map { index in
+            let start = index == 0 ? 0 : starts[index]
+            let end = starts.indices.contains(index + 1) ? starts[index + 1] : line.clusters.count
+
+            return start..<end
+        }
     }
 
-    // The clusters of each unit on a line, by their index, in order.
-    private func groups(
-        of clusters: [PlacedCluster],
+    // The characters each unit of a line holds, by their index, in order. A word holds the characters of its range on
+    // the line but its spaces, so a word a line breaks inside is a unit on each line. A character in no word goes with
+    // the unit before it, and a character that is not a space, on a line that would hold no unit, is a unit of its own.
+    private func held(
+        of line: PlacedLine,
+        spaces: [Bool],
+        words: [Range<Int>],
         by unit: TextUnit
     ) -> [[Int]] {
-        let visible = clusters.indices.filter { !clusters[$0].character.isWhitespace }
+        let visible = spaces.indices.filter { !spaces[$0] }
         let groups: [[Int]]
         switch unit {
         case .character:
             groups = visible.map { [$0] }
 
         case .word:
-            groups = words(of: clusters)
+            groups = words.filter { $0.overlaps(line.range) }.compactMap { word in
+                let held = visible.filter { word.contains(line.clusters[$0].range.lowerBound) }
+
+                return held.isEmpty ? nil : held
+            }
 
         case .line:
             groups = visible.isEmpty ? [] : [visible]
         }
 
-        return groups.reduce(into: [[Int]]()) { merged, group in
-            guard
-                let first = group.first,
-                clusters[first].glyphs.count == 0,
-                let previous = merged.last?.last,
-                previous == first - 1
-            else {
-                merged.append(group)
-                return
-            }
-
-            merged[merged.count - 1] += group
-        }
+        return groups.isEmpty ? visible.map { [$0] } : groups
     }
 
-    // A piece between word boundaries that holds a letter, a digit or an ideograph is a word. A piece of punctuation
-    // or symbols, with the pieces of them it touches, joins the word it touches, the one before it when it touches
-    // two, and is a unit of its own when it touches none.
-    private func words(of clusters: [PlacedCluster]) -> [[Int]] {
-        let characters = clusters.map(\.character)
-        let segments = segmenter.segments(of: characters)
-        let isSpace = { (segment: Range<Int>) in characters[segment].allSatisfy(\.isWhitespace) }
-        let isWord = { (segment: Range<Int>) in
-            characters[segment].contains { character in
-                character.unicodeScalars.first.map { scalar in
-                    scalar.properties.isAlphabetic
-                        || scalar.properties.isIdeographic
-                        || scalar.properties.generalCategory == .decimalNumber
-                } ?? false
-            }
-        }
-
-        var groups: [[Int]] = []
-        var punctuation: [Int] = []
-        var isAfterWord = false
-        for segment in segments {
-            if isSpace(segment) {
-                if !punctuation.isEmpty {
-                    groups.append(punctuation)
-                    punctuation = []
-                }
-                isAfterWord = false
-            } else if isWord(segment) {
-                groups.append(punctuation + Array(segment))
-                punctuation = []
-                isAfterWord = true
-            } else if isAfterWord {
-                groups[groups.count - 1] += Array(segment)
-            } else {
-                punctuation += Array(segment)
-            }
-        }
-        if !punctuation.isEmpty {
-            groups.append(punctuation)
-        }
-
-        return groups
-    }
-
-    // A unit's glyphs, each run of them a range.
-    private func glyphs(of clusters: [PlacedCluster]) -> [GlyphRange] {
-        clusters.reduce(into: [GlyphRange]()) { ranges, cluster in
-            let glyphs = cluster.glyphs
-            guard glyphs.count > 0 else { return }
-
-            if let last = ranges.last, last.run == glyphs.run, last.first + last.count == glyphs.first {
-                ranges[ranges.count - 1] = GlyphRange(run: last.run, first: last.first, count: last.count + glyphs.count)
-            } else {
-                ranges.append(glyphs)
-            }
-        }
+    // Where a unit's first character's glyph box starts across its line.
+    private func glyphStart(
+        of stretch: CharacterRange,
+        spans: [[ClosedRange<Double>]]
+    ) -> Double {
+        spans[stretch.line][stretch.first].lowerBound
     }
 
     // A run's pieces across the line, its highlight's and its underline's being the same.
-    private func spans(of run: GlyphRun) -> [ClosedRange<Double>] {
+    private func pieces(of run: GlyphRun) -> [ClosedRange<Double>] {
         let highlights = run.highlights.map { $0.x...($0.x + $0.width) }
         let underlines = run.underlines.map { $0.x...($0.x + $0.width) }
 

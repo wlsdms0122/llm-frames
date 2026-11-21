@@ -103,17 +103,20 @@ struct ClipEvaluator: Sendable {
             // A title carries its box.
             guard let box = clip.box else { return [] }
 
+            // Its item lies in its text box, inside its box at the time.
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
+            let textBox = text.textBox(at: time)
             let item = boxItem(
                 of: clip,
                 box: box,
                 drawn: text.box(at: time),
+                origin: Point(x: textBox.x, y: textBox.y),
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
                 at: time
             ) { glyphs.drawnBounds(carriedBy: $0) }
-            guard let schedule = sample.schedule, let units = text.units else { return [item] }
+            guard let schedule = sample.schedule, let units = text.units, !units.isEmpty else { return [item] }
 
             return [group(
                 of: clip,
@@ -155,6 +158,7 @@ struct ClipEvaluator: Sendable {
                 of: clip,
                 box: box,
                 drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
+                origin: Point(x: 0, y: 0),
                 sample: sample,
                 in: space,
                 content: .picture(item),
@@ -297,10 +301,10 @@ struct ClipEvaluator: Sendable {
 
     // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
     // the title's opacity and blend, and its masks and track matte once they cut it, so its units do not show through
-    // each other. Inside, every item is in `title`'s box and takes its transform: the background as it is, and each
-    // unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. A unit's
-    // reveal wipes what the unit draws, as a whole title's wipes what the title draws. The loop plays only while every
-    // unit rests, so `title`'s reveal, the loop's, cuts every item in the title's box.
+    // each other. Inside, every item is in the title's text box and takes `title`'s transform: the background as it is,
+    // and each unit's items, one for each layer in four passes, composed with the unit's motion about the unit's box. A
+    // unit's reveal wipes what the unit draws, as a whole title's wipes what the title draws. The loop plays only while
+    // every unit rests, so `title`'s reveal, the loop's, cuts every item in the title's text box.
     private func group(
         of clip: ResolvedClip,
         text: ResolvedText,
@@ -323,12 +327,11 @@ struct ClipEvaluator: Sendable {
             let parts = text.parts(of: index, at: time)
             let layers = GlyphLayer.allCases.map { layer in
                 GlyphsItem(
+                    drawing: UnitDrawing(layer: layer, index: index, box: box),
                     carrying: units[index].glyphs,
                     parts: parts,
-                    in: box,
-                    glyphBox: text.glyphBox(of: index, at: time),
+                    extent: text.extent(of: index, at: time),
                     of: glyphs,
-                    layer: layer,
                     factor: factor
                 )
             }
@@ -350,7 +353,7 @@ struct ClipEvaluator: Sendable {
         let background = DisplayItem(
             transform: item.transform,
             reveal: item.reveal,
-            content: .glyphs(GlyphsItem(size: glyphs.size, runs: [], background: glyphs.background)),
+            content: .glyphs(GlyphsItem(size: glyphs.size, runs: [], extent: glyphs.extent, background: glyphs.background)),
             origin: origin
         )
         let passes = GlyphLayer.allCases.indices.flatMap { layer in unitItems.map { $0[layer] } }
@@ -369,7 +372,7 @@ struct ClipEvaluator: Sendable {
         )
     }
 
-    // A unit's reveal and the loop's are in the title's box, and a unit shows where both show.
+    // A unit's reveal and the loop's are in the title's text box, and a unit shows where both show.
     private func reveal(
         of unit: Rectangle?,
         within loop: Rectangle?
@@ -379,12 +382,14 @@ struct ClipEvaluator: Sendable {
         return unit.intersection(loop) ?? Rectangle(x: unit.x, y: unit.y, width: 0, height: 0)
     }
 
-    // `drawn` is the item's own box at the time, in the clip's box at its placed size, and `receiver` what the item
-    // draws in its own pixels under the item's transform, which the reveal wipes across.
+    // `drawn` is the clip's box at the time, in its box at its placed size, `origin` where the item's own coordinates
+    // start in that box, and `receiver` what the item draws in its own coordinates under the item's transform, which
+    // the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
         drawn: Rectangle,
+        origin: Point,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
@@ -393,8 +398,7 @@ struct ClipEvaluator: Sendable {
     ) -> DisplayItem {
         let size = Size(width: drawn.width, height: drawn.height)
         let presentation = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time)
-        let transform = AffineTransform(translation: Point(x: drawn.x, y: drawn.y))
-            .concatenating(presentation.transform)
+        let transform = AffineTransform(translation: origin).concatenating(presentation.transform)
 
         return DisplayItem(
             transform: transform,
@@ -469,8 +473,8 @@ struct ClipEvaluator: Sendable {
         )
     }
 
-    // A placed shape and an adjustment write their masks in their parent's space, and any other clip in its own box or
-    // media pixels.
+    // A placed shape and an adjustment write their masks in their parent's space, a title in its text box, which lies
+    // inside the box its children see, and any other clip in its own box or media pixels.
     private func masks(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -481,7 +485,17 @@ struct ClipEvaluator: Sendable {
         let masks = clip.space == .parent
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
             : clip.ownMasks(at: time)
-        let transform = clip.ownMotion(at: time).concatenating(childTransform(of: clip, in: space, at: time))
+        let inBox = if case let .title(text) = clip.content {
+            AffineTransform(translation: Point(
+                x: text.textBox(at: time).x - text.box(at: time).x,
+                y: text.textBox(at: time).y - text.box(at: time).y
+            ))
+        } else {
+            AffineTransform.identity
+        }
+        let transform = inBox
+            .concatenating(clip.ownMotion(at: time))
+            .concatenating(childTransform(of: clip, in: space, at: time))
         let factor = ClipSample(clip: clip, at: time).lengthFactor
         return masks.map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }

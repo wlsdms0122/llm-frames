@@ -34,19 +34,27 @@ struct TitleUnitTests {
         let read = try reader.text(PlacedJSONValue(writer.text(text), place: .root, kind: "title"))
 
         // Then
-        #expect(text.units == [
-            PlacedUnit(
-                glyphs: [GlyphRange(run: 0, first: 0, count: 2)],
-                glyphBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
-                box: Rectangle(x: -10, y: -8, width: 60, height: 56),
-                parts: [UnitPart(run: 0, piece: 0, span: 0...50)]
-            ),
-            PlacedUnit(
-                glyphs: [GlyphRange(run: 0, first: 3, count: 2)],
-                glyphBox: Rectangle(x: 50, y: 0, width: 40, height: 40),
-                box: Rectangle(x: 48, y: -8, width: 52, height: 56),
-                parts: [UnitPart(run: 0, piece: 0, span: 50...90)]
-            )
+        // "ab" draws the space after it.
+        #expect(text.units?.map(\.characters) == [
+            CharacterRange(line: 0, first: 0, count: 3),
+            CharacterRange(line: 0, first: 3, count: 2)
+        ])
+        #expect(text.units?.map(\.hangingLines) == [[], []])
+        #expect(text.units?.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 3)],
+            [GlyphRange(run: 0, first: 3, count: 2)]
+        ])
+        #expect(text.units?.map(\.glyphBox) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 50, y: 0, width: 40, height: 40)
+        ])
+        #expect(text.units?.map(\.box) == [
+            Rectangle(x: -10, y: -8, width: 60, height: 56),
+            Rectangle(x: 48, y: -8, width: 52, height: 56)
+        ])
+        #expect(text.units?.map(\.parts) == [
+            [UnitPart(run: 0, piece: 0, span: 0...50)],
+            [UnitPart(run: 0, piece: 0, span: 50...90)]
         ])
         #expect(read == text)
     }
