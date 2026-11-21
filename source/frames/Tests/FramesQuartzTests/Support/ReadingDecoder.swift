@@ -9,8 +9,8 @@ import Foundation
 import Frames
 import os
 
-// Gives every picture as a white 2 by 2 bitmap at depth `eight`, and records each reading it is asked for by the path
-// of the file read.
+// Gives every picture, a frame or a region of a page, as a white 2 by 2 bitmap at depth `eight`, and records each
+// reading it is asked for by the path of the file read.
 final class ReadingDecoder: MediaDecoder {
     // MARK: - Property
     private let readings = OSAllocatedUnfairLock<[String: [PictureReading]]>(initialState: [:])
@@ -19,9 +19,24 @@ final class ReadingDecoder: MediaDecoder {
     init() {}
 
     // MARK: - Lifecycle
+    var largestPictureSide: Int {
+        16_384
+    }
+
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        reading: PictureReading
+    ) throws -> Bitmap {
+        readings.withLock { $0[file.path, default: []].append(reading) }
+
+        return Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16))
+    }
+
+    func picture(
+        of file: MediaFile,
+        region: PageRegion,
+        scale: Double,
         reading: PictureReading
     ) throws -> Bitmap {
         readings.withLock { $0[file.path, default: []].append(reading) }

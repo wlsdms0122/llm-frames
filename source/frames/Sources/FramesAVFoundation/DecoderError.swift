@@ -16,6 +16,13 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case frameCount(file: String, pinned: Int, counted: Int)
     case noSound(file: String)
     case unconvertibleColor(file: String, reason: String)
+    case pictureSize(file: String, width: Int, height: Int, largest: Int)
+    case lockedDocument(file: String)
+    case noPage(file: String, page: Int, count: Int)
+    case noDocument(file: String)
+    case unreadablePage(file: String, page: Int, fault: PageFault)
+    case pageFrame(file: String, page: Int)
+    case pageRegion(file: String, region: PageRegion, scale: Double)
 
     // MARK: - Property
     package var description: String {
@@ -44,6 +51,32 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unconvertibleColor(file, reason):
             "media \(file) cannot be read: \(reason), which no fixed formula converts. Write the colorSpace it is in "
                 + "where it is named, or convert it with transcode"
+
+        case let .pictureSize(file, width, height, largest):
+            "media \(file) gives a picture of \(width)x\(height), larger than the \(largest) pixels on a side this "
+                + "decoder holds"
+
+        case let .lockedDocument(file):
+            "media \(file) cannot be read: the PDF opens only with a password"
+
+        case let .noPage(file, page, count):
+            "media \(file) has no page \(page): it has \(count)"
+
+        case let .noDocument(file):
+            "media \(file) is not a PDF, so it has no page"
+
+        case let .unreadablePage(file, page, fault):
+            fault.suggestsConversion
+                ? "media \(file) page \(page) cannot be read: \(fault.reason). Convert it with transcode, or with a "
+                    + "program that writes a PDF this decoder reads"
+                : "media \(file) page \(page) cannot be read: \(fault.reason)"
+
+        case let .pageFrame(file, page):
+            "media \(file) page \(page) is read by a region and a scale, not by a frame"
+
+        case let .pageRegion(file, region, scale):
+            "media \(file) cannot give the region \(region.width)x\(region.height) at scale \(scale): a region is at "
+                + "least 1 pixel on a side, at a scale above 0"
         }
     }
 
