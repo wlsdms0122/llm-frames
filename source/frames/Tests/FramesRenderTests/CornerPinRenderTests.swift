@@ -205,7 +205,45 @@ struct CornerPinRenderTests {
         #expect(pinnedEdges.allSatisfy { $0 <= 2 }, "\(pinnedEdges) against \(scaledEdges)")
     }
 
+    @Test("a page of a PDF pinned onto its box enlarged 4 times has edges as sharp as the pinned title's bound")
+    func drawsEnlargedPageSharp() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let path = directory.file("square.pdf")
+        try PageWriter().write(width: 100, height: 100, content: "0 g 20 20 60 60 re f", to: path)
+        let resolver = try DocumentResolver()
+        let placeholder = try resolver.resolve(page(at: path, #""cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]"#))
+        let size = try #require(placeholder.clips.first?.cornerPin?.size)
+        let (width, height) = (size.width * 4, size.height * 4)
+        let enlarged = Quad(Rectangle(x: 320 - width / 2, y: 320 - height / 2, width: width, height: height))
+        let pinned = try resolver.resolve(page(at: path, #""cornerPin": \#(written(enlarged))"#))
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let bitmap = try sut.frame(of: Evaluator().displayList(of: pinned, at: 0))
+
+        // Then
+        // The page is asked for at the scale its pinned list is drawn at, so its square's edges spread over at most
+        // the one pixel the warp adds to a sharp edge, as the pinned title's, where a page drawn at its own size and
+        // enlarged 4 times after would spread them over 5 or 6.
+        let edges = partialPixels(in: bitmap)
+        #expect(edges.allSatisfy { $0 <= 2 }, "\(edges)")
+        #expect(bitmap.pixel(x: 320, y: 320)[3] > 0.999)
+    }
+
     // MARK: - Private
+    // A 640 × 640 sequence on a transparent background holding the page of a PDF at `path` with the given keys.
+    private func page(
+        at path: String,
+        _ keys: String
+    ) -> String {
+        #"""
+            { "kind": "sequence", "format": { "size": [640, 640], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
+              "storyline": [ { "solid": "#00000000", "duration": 1 } ],
+              "clips": [ { "media": { "file": "\#(path)", "page": 1 }, "at": [0, 1], \#(keys) } ] }
+            """#
+    }
+
     // A 1024 × 1024 sequence on a transparent background whose storyline clip shows the still at its own pixels.
     private func document(
         showing path: String,

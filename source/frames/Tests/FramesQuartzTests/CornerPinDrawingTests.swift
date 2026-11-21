@@ -156,6 +156,41 @@ struct CornerPinDrawingTests {
         expect(bitmap, at: Point(x: 67, y: 108), equals: [0, 0, 1, 1], tolerance: 0.02)
     }
 
+    @Test("a list holding a page of a PDF carried towards a horizon past the pixel limit is drawn at the scale the limit allows, and the page is asked for at that scale, not at its own size")
+    func asksPageAtPinnedRasterScale() throws {
+        // Given
+        let decoder = ReadingDecoder(pageSize: Size(width: 8, height: 8))
+        let sut = QuartzRenderer(decoder: decoder)
+        let page = DisplayItem(content: .picture(PictureItem(
+            source: .media(MediaFrame(
+                media: PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: ""), page: 1)),
+                index: 0
+            )),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 8, height: 8)
+        )))
+        let cornerPin = Quad(
+            topLeft: Point(x: 60, y: 8),
+            topRight: Point(x: 68, y: 8),
+            bottomRight: Point(x: 124, y: 120),
+            bottomLeft: Point(x: 4, y: 120)
+        )
+        let destination = Rectangle(x: 0, y: 0, width: 8, height: 8)
+        let picture = pinned(list(size: 8, items: [page]), destination: destination, cornerPin: cornerPin)
+
+        // When
+        _ = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+
+        // Then
+        // The corner pin stretches the list's bottom row more than 30 times, past the limit of twice the output's
+        // pixels, which allows the 8 x 8 list about 22 raster pixels a list pixel. A page is no picture of pixels, so
+        // the list is drawn at that scale and the page is asked for at it, where at the list's own size it would be
+        // asked for at 1.
+        let scales = decoder.regions(of: "/abs/deck.pdf").map(\.scale)
+        #expect(!scales.isEmpty)
+        #expect(scales.allSatisfy { $0 >= 16 }, "\(scales)")
+    }
+
     @Test("a picture with a corner pin shows its whole list, the part outside its region carried past its destination")
     func showsWholeList() throws {
         // Given
