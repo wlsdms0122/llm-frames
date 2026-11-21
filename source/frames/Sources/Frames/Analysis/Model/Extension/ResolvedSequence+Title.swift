@@ -6,8 +6,8 @@
 //
 
 // Every title of a sequence and of the sequences nested in it, by place, each with the time evaluation samples it at
-// when the sequence is drawn at a time: a nested sequence is drawn at the media time its clip or storyline entry shows
-// then, as `Evaluator` draws it. Whether a title is drawn at that time is for its items to say.
+// when the sequence is drawn at a time: a nested sequence is sampled at its clip's or storyline entry's `mediaTime(at:)`,
+// the time `Evaluator` draws it at. Whether a title is drawn at that time is for its items to say.
 extension ResolvedSequence {
     // MARK: - Property
     // MARK: - Initializer
@@ -25,7 +25,7 @@ extension ResolvedSequence {
 
             case let .media(media):
                 if case let .nested(sequence) = media.media {
-                    sequence.titles(at: media.clock?.mediaTime(atSequenceTime: time) ?? 0)
+                    sequence.titles(at: media.mediaTime(at: time))
                 } else {
                     [:]
                 }

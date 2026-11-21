@@ -157,7 +157,6 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A still has no clock and shows media time 0.
     private func picture(
         of clip: ResolvedClip,
         at time: Double,
@@ -169,7 +168,7 @@ package struct Evaluator: Sendable {
             of: media.media,
             colorSpace: media.colorSpace,
             isToneMapped: media.isToneMapped,
-            at: media.clock?.mediaTime(atSequenceTime: time) ?? 0,
+            at: media.mediaTime(at: time),
             seed: seed
         )
     }
