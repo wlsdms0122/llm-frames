@@ -274,7 +274,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""loop": true,"#,
                 #""loop": true, "scale": [],"#,
-                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, nestedAudioFilter, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing, audioFilter"#
+                #"audio[1] (audio): unknown key "scale". Allowed: place, media, nested, in, origin, out, speed, loop, start, end, audible, volume, pan, fadeIn, fadeOut, incoming, outgoing, audioFilter"#
             )
         ]
     )

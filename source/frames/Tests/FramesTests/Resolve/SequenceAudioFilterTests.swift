@@ -164,8 +164,8 @@ struct SequenceAudioFilterTests {
         #expect(limiter?["lookahead"] == .number(0.01))
         #expect(limiter?["gain"]?.arrayValue?.count == 1)
         let audio = members.first { $0.key == "audio" }?.value.arrayValue ?? []
-        #expect(audio.first?.objectValue?["nestedAudioFilter"] == .null)
-        let nested = audio.last?.objectValue?["nestedAudioFilter"]?.arrayValue?.first?.objectValue
+        #expect(audio.first?.objectValue?["nested"] == .null)
+        let nested = audio.last?.objectValue?["nested"]?.objectValue?["audioFilter"]?.arrayValue?.first?.objectValue
         let ceiling = nested?["ops"]?.arrayValue?.first?.objectValue?["ceiling"]?.arrayValue?.first?.objectValue
         #expect(ceiling?["value"] == .number(-6))
         #expect(audio.last?.objectValue?["audioFilter"] == .null)

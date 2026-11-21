@@ -457,19 +457,19 @@ struct ResolvedSequenceReader: Sendable {
 
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
-            "place", "media", "nested", "nestedAudioFilter", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
+            "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
             "pan", "fadeIn", "fadeOut", "incoming", "outgoing", "audioFilter"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
+        let nested = try sound.member("nested").optional { try $0.object(kind: "nested", keys: ["audio", "audioFilter"]) }
 
         return ResolvedSound(
             place: try sound.member("place").string(),
             media: try sound.member("media").optional(values.media),
-            nested: try sound.member("nested").elements().map(self.sound),
-            nestedAudioFilter: try values.timed(
-                sound.member("nestedAudioFilter"),
-                as: LookStructureTable.resolvedAudioFilter
-            ),
+            nested: try nested?.member("audio").elements().map(self.sound) ?? [],
+            nestedAudioFilter: try nested.map { nested in
+                try values.timed(nested.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
+            } ?? .off,
             played: PlayedRange(
                 map: TimeMap(
                     origin: try sound.member("origin").number(),

@@ -361,7 +361,10 @@ struct ResolvedSequenceWriterTests {
         #expect(nested.keys == ["kind", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(nested["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue?["file"] == .string("/abs/run.mp4"))
         #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["media"] == .null)
-        #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.arrayValue?.count == 1)
+        let sound = try #require(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue)
+        #expect(sound.keys == ["audio", "audioFilter"])
+        #expect(sound["audio"]?.arrayValue?.count == 1)
+        #expect(sound["audioFilter"] == .null)
     }
 
     @Test("audio is every source of sound, with its volume and pan in sequence time")
