@@ -11,10 +11,12 @@
 // carries the item to the coordinates of the innermost picture with a corner pin holding it, or to output pixels where
 // none does, and each corner pin is the homography from its picture's destination to its corner pin followed by the
 // transform that carries that picture's coordinates on, innermost first. A shape is cut to the part in front of each
-// corner pin's horizon before that corner pin carries it.
+// corner pin's horizon before that corner pin carries it. `affineTransform` is the same chain with every corner pin left
+// out, the map P_n R_n ... P_1 R_1 T an item reports as its transform (FRAMES-23).
 struct GraphicsState: Equatable, Sendable {
     // MARK: - Property
     let transform: AffineTransform
+    let affineTransform: AffineTransform
     let cornerPins: [Homography]
     let clips: [ConvexPolygon]
     let opacity: Double
@@ -28,12 +30,14 @@ struct GraphicsState: Equatable, Sendable {
     // MARK: - Initializer
     init(
         transform: AffineTransform,
+        affineTransform: AffineTransform? = nil,
         cornerPins: [Homography] = [],
         clips: [ConvexPolygon],
         opacity: Double,
         origin: ItemOrigin?
     ) {
         self.transform = transform
+        self.affineTransform = affineTransform ?? transform
         self.cornerPins = cornerPins
         self.clips = clips
         self.opacity = opacity
@@ -46,6 +50,7 @@ struct GraphicsState: Equatable, Sendable {
     func holding(_ item: DisplayItem) -> GraphicsState {
         let held = GraphicsState(
             transform: item.transform.concatenating(transform),
+            affineTransform: item.transform.concatenating(affineTransform),
             cornerPins: cornerPins,
             clips: clips,
             opacity: opacity * item.opacity,
@@ -66,6 +71,7 @@ struct GraphicsState: Equatable, Sendable {
     ) -> GraphicsState {
         let nested = GraphicsState(
             transform: transform.concatenating(self.transform),
+            affineTransform: transform.concatenating(affineTransform),
             cornerPins: cornerPins,
             clips: clips,
             opacity: opacity,
@@ -87,6 +93,7 @@ struct GraphicsState: Equatable, Sendable {
     ) -> GraphicsState {
         GraphicsState(
             transform: transform,
+            affineTransform: transform.concatenating(affineTransform),
             cornerPins: [cornerPin.concatenating(Homography(self.transform))] + cornerPins,
             clips: clips,
             opacity: opacity,
@@ -118,6 +125,7 @@ struct GraphicsState: Equatable, Sendable {
     private func cut(by polygons: [ConvexPolygon]) -> GraphicsState {
         GraphicsState(
             transform: transform,
+            affineTransform: affineTransform,
             cornerPins: cornerPins,
             clips: clips + polygons,
             opacity: opacity,
