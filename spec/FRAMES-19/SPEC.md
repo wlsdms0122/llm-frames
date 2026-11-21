@@ -99,7 +99,11 @@ How it is written, so the same plan gives the same bytes:
     { "media": { "file": "/abs/score.m4a", "sha256": "c07d9a1e44f2" }, "in": 0, "out": 184.2, "speed": 1, "start": 0, "origin": 0, "end": 9, "loop": false,
       "volume": [ { "at": 0, "value": 0.4, "ease": "linear" }, { "at": 8, "value": 0.4, "ease": "linear" }, { "at": 9, "value": 0, "ease": "linear" } ],
       "pan": [ { "at": 0, "value": -0.2, "ease": "linear" } ], "audioFilter": null }
-  ]
+  ],
+  "audioFilter": [
+    { "ops": [ { "op": "limiter", "gain": [ { "at": 0, "value": 2.5, "ease": "linear" } ], "ceiling": [ { "at": 0, "value": -1, "ease": "linear" } ],
+                 "lookahead": [ { "at": 0, "value": 0.005, "ease": "linear" } ], "release": [ { "at": 0, "value": 0.1, "ease": "linear" } ] } ],
+      "mix": [ { "at": 0, "value": 1, "ease": "linear" } ] } ]
 }
 ```
 
@@ -114,6 +118,7 @@ How it is written, so the same plan gives the same bytes:
 - An adjustment entry carries `adjust`, its filter as a timed list of entries `{ops, mix}`, and its `mask`, which is where it applies.
 - A clip's or a storyline entry's `track` is `null` or `{media, time, target, frames}`: the pinned media it follows (its own, or its parent's), the target's quadrilateral as found on the frame at media time `time`, before padding, and every frame followed as `{time, quad, motion}` in media time. A quadrilateral is four points `[[x, y], [x, y], [x, y], [x, y]]` in media pixels, top left, top right, bottom right and bottom left as the target faces on the frame it was found. `motion` is the similarity fitted from the target to that frame's quadrilateral ([FRAMES-12](../FRAMES-12/SPEC.md)), as an affine matrix `[a, b, c, d, tx, ty]` in media pixels, in the form of the display list's `transform` ([FRAMES-20](../FRAMES-20/SPEC.md)). A `motion` that is not a similarity, `[a, b, -b, a, tx, ty]` with a scale above 0, stops reading, naming its place. So does a `media` that is not the media its clip follows: its own for a storyline entry and for a media clip of video or image sequence, and its parent's for any other clip ([FRAMES-12](../FRAMES-12/SPEC.md)).
 - An audio entry is a source of sound, storyline clips included, with its `volume` and `pan` keyframes in sequence time, its fades, its transitions, and its `audioFilter` as `null` or a timed list of entries `{ops, mix}` in sequence time, presets and arguments applied, every default parameter written ([FRAMES-13](../FRAMES-13/SPEC.md)). Evaluation multiplies them into the mix plan. Its `incoming` and `outgoing` are `null` or `{start, end, audio}`: the range of the transition it crossfades over and the curve its preset's `audio` names ([FRAMES-14](../FRAMES-14/SPEC.md)). It plays from clip time `in` at sequence time `origin`. A storyline clip's audio entry runs over its drawn range with its edges moved by its `split`, and a connected clip's over its visible window with its edges moved by its `split`, its `start` and `end` written so, and its `incoming` and `outgoing` are moved with the edge they cross, as [FRAMES-13](../FRAMES-13/SPEC.md) places them. A clip with `timeRemap` plays no sound, so it has no audio entry ([FRAMES-8](../FRAMES-8/SPEC.md)).
+- The sequence's `audioFilter`, its master chain ([FRAMES-28](../FRAMES-28/SPEC.md#the-master)), follows `audio`: `null` where the sequence has none, or a list of entries `{ops, mix}` as an audio entry's, presets and arguments applied and every default parameter written, each number a keyframe list of one keyframe at 0, since it is static. A nested resolved sequence writes it `null`, since a sequence used as media takes none.
 - A compound clip or a sequence template instance carries its nested resolved sequence in place of a media file. Its `size`, `background`, `conform` and `compositing` apply ([FRAMES-3](../FRAMES-3/SPEC.md)).
 
 ### Reading a resolved document
