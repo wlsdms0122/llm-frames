@@ -66,12 +66,12 @@ struct PageColorRampTests {
             .name("Pattern")
         ]
     )
-    func passes(_ written: PDFValue) {
+    func passes(_ written: PDFValue) throws {
         // Given
         let sut = PageColorSpace(written)
 
         // When
-        let fault = PageColorRamp.fault(of: sut, written: written)
+        let fault = try PageColorRamp.fault(of: sut, written: written)
 
         // Then
         #expect(fault == nil)
@@ -93,7 +93,7 @@ struct PageColorRampTests {
         let sut = PageColorSpace(written)
 
         // When
-        let fault = try #require(PageColorRamp.fault(of: sut, written: written))
+        let fault = try #require(try PageColorRamp.fault(of: sut, written: written))
 
         // Then
         #expect(fault.reason.contains("which Core Graphics draws"))
@@ -113,7 +113,7 @@ struct PageColorRampTests {
         let sut = PageColorSpace(written)
 
         // When
-        let fault = try #require(PageColorRamp.fault(of: sut, written: written))
+        let fault = try #require(try PageColorRamp.fault(of: sut, written: written))
 
         // Then
         #expect(fault.reason.contains("no formula is fixed"))

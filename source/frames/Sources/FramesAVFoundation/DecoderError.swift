@@ -23,6 +23,7 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadablePage(file: String, page: Int, fault: PageFault)
     case pageFrame(file: String, page: Int)
     case pageRegion(file: String, region: PageRegion, scale: Double)
+    case pageBitmap(width: Int, height: Int)
 
     // MARK: - Property
     package var description: String {
@@ -77,6 +78,9 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .pageRegion(file, region, scale):
             "media \(file) cannot give the region \(region.width)x\(region.height) at scale \(scale): a region is at "
                 + "least 1 pixel on a side, at a scale above 0"
+
+        case let .pageBitmap(width, height):
+            "a bitmap of \(width)x\(height) pixels to draw a page in cannot be made"
         }
     }
 

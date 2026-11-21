@@ -10,7 +10,8 @@ import Foundation
 
 // Draws a page of a PDF with Core Graphics into a bitmap of 32-bit floats, RGBA with premultiplied alpha, rows top
 // first, where nothing is painted transparent, or over opaque white where `isOverWhite` is set. Core Graphics draws no
-// annotations, and does not clip to the crop box, so `clip` is the part of user space drawn.
+// annotations, and does not clip to the crop box, so `clip` is the part of user space drawn. A bitmap Core Graphics
+// cannot make stops.
 struct PageRasterizer {
     // MARK: - Property
     // MARK: - Initializer
@@ -24,9 +25,9 @@ struct PageRasterizer {
         space: CGColorSpace,
         intent: CGColorRenderingIntent = .defaultIntent,
         isOverWhite: Bool = false
-    ) -> [Float] {
+    ) throws -> [Float] {
         var pixels = [Float](repeating: 0, count: width * height * 4)
-        pixels.withUnsafeMutableBytes { buffer in
+        try pixels.withUnsafeMutableBytes { buffer in
             guard
                 let context = CGContext(
                     data: buffer.baseAddress,
@@ -40,7 +41,7 @@ struct PageRasterizer {
                         | CGBitmapInfo.byteOrder32Little.rawValue
                 )
             else {
-                return
+                throw DecoderError.pageBitmap(width: width, height: height)
             }
 
             context.setRenderingIntent(intent)

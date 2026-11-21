@@ -117,7 +117,7 @@ final class PageReader: @unchecked Sendable {
         // A page read for its values is the page over white, the paper a viewer shows (FRAMES-3 PDF pages).
         let isAnalysis = if case .analysis = reading { true } else { false }
 
-        var pixels = PageRasterizer.pixels(
+        var pixels = try PageRasterizer.pixels(
             of: page,
             width: region.width,
             height: region.height,
@@ -145,8 +145,10 @@ final class PageReader: @unchecked Sendable {
 
         let content = PageContentWalker(document: document).content(of: page)
         let spaces = content.colorSpaces.map { ($0, PageColorSpace($0)) }
-        let colorFault = content.faults.first { if case .colorSpace = $0 { true } else { false } }
-            ?? spaces.lazy.compactMap { written, space in PageColorRamp.fault(of: space, written: written) }.first
+        var colorFault = content.faults.first { if case .colorSpace = $0 { true } else { false } }
+        for (written, space) in spaces where colorFault == nil {
+            colorFault = try PageColorRamp.fault(of: space, written: written)
+        }
         let result = PageCheck(
             drawing: content.faults.first { fault in
                 switch fault {

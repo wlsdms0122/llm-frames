@@ -27,13 +27,13 @@ struct PageColorRamp {
     static func fault(
         of space: PageColorSpace,
         written: PDFValue
-    ) -> PageFault? {
+    ) throws -> PageFault? {
         if let reason = space.noFormula { return .colorSpace(reason) }
         if case .pattern = space { return nil }
 
         let values = space.rampValues
         let expected = values.compactMap(space.linear)
-        guard expected.count == values.count, let drawn = drawn(values, in: written) else {
+        guard expected.count == values.count, let drawn = try drawn(values, in: written) else {
             return .colorSpace(space.name)
         }
 
@@ -57,7 +57,7 @@ struct PageColorRamp {
     private static func drawn(
         _ values: [[Double]],
         in written: PDFValue
-    ) -> [RGB]? {
+    ) throws -> [RGB]? {
         guard let space else { return nil }
         let rows = (values.count + columns - 1) / columns
         let operators = values.enumerated().map { index, components in
@@ -79,7 +79,7 @@ struct PageColorRamp {
             return nil
         }
 
-        let pixels = PageRasterizer.pixels(
+        let pixels = try PageRasterizer.pixels(
             of: page,
             width: columns,
             height: rows,
