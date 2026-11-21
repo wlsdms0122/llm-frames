@@ -12,18 +12,36 @@ A mix is made to a loudness and under a peak: EBU R 128 asks for -23 LUFS and a 
 
 ## Rules
 
-### The master
+### Buses
 
-A sequence's `audioFilter` is its **master chain**: the audio filter its mix passes through after every sound is summed and before the mix goes to the encoder, as an NLE's master or main bus takes effects.
+Every sequence's sum is a **bus**: the sum of its sounds, passed through a chain of audio filters, as an NLE's submix or main bus takes effects. A sequence's `audioFilter` is its bus's **chain** wherever the sequence plays: rendered on its own, and as the media of a compound clip or a template instance inside another sequence ([FRAMES-17](../FRAMES-17/SPEC.md)).
 
 - It takes the forms of a clip's `audioFilter` ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)): a preset name, `{preset, args, mix}`, an op, or a list of those, the first applied first, with every op of the op table, the `limiter` among them. It is checked as a clip's is.
 - It is static, since a sequence takes no keyframes: each op parameter and each entry's `mix` holds one value over the whole sequence.
-- The mixer sums the segments of the mix plan, each after its own audio filter, gains and pan ([FRAMES-13](../FRAMES-13/SPEC.md#mixing)), then runs the master chain over the stereo sum, each entry's ops on both channels and its output mixed with its input by its `mix`, then hands the result to the encoder. It runs over the whole mix, the mix plan's length of N samples from sequence time 0, as long as the output's frames last ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), as one sound: its ops start at rest at sequence time 0 as a segment's do ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), a limiter as [Limiter](#limiter) gives, and a limiter reads silence past the end of the mix.
-- Samples past full scale after the master chain are still clipped where a file stores them as PCM ([FRAMES-13](../FRAMES-13/SPEC.md#mixing)). A `limiter` at `mix` 1, last in the chain, holds every sample of the master at or under its `ceiling`, which is 0 or below ([Limiter](#limiter)), so nothing is left to clip.
-- `audioFilter` on a sequence with no sound, one none of whose clips plays sound ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), stops, since it would process silence.
-- `audioFilter` on a sequence used as media inside another, a compound clip's document or a template instanced in another sequence ([FRAMES-17](../FRAMES-17/SPEC.md)), stops, naming the place: there it is a bus on that clip's sound, a mix of several sounds inside another mix, which the mix plan does not carry ([README](../README.md#what-frames-leaves-out)). A template rendered on its own takes its `audioFilter` as any sequence does, and a sequence rendered to a file plays inside another as media with its master chain in it ([FRAMES-25](../FRAMES-25/SPEC.md)).
+- The chain runs on the stereo sum, each entry's ops on both channels and its output mixed with its input by its `mix`.
+- A sequence with no sound, one none of whose clips plays sound ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), takes an `audioFilter` as any sequence does, and its chain processes silence: every op of the table gives silence for silence, so the sequence still plays no sound. A template is checked once, before its arguments ([FRAMES-17](../FRAMES-17/SPEC.md)), so whether its arguments play sound never decides whether its `audioFilter` stands.
 
-**Note.** The master chain is content: the bus of the sequence's own sum, part of what the sequence sounds like, as its clips' audio filters are, and `render` writes the master and its delivery file from that one sound ([FRAMES-21](../FRAMES-21/SPEC.md)). Inside another sequence the nested sequence's sum passes through its master chain and then through the clip's own `audioFilter`, in series, the master chain first. A nested sequence's `audioFilter` and a compound clip's `audioFilter` both stop ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), so a mix plan that carries buses adds them as a minor version ([FRAMES-18](../FRAMES-18/SPEC.md)), and nothing that renders today changes meaning.
+A compound clip or a template instance plays its nested sequence's bus inside the sequence that holds it, in this order:
+
+1. Its inner sounds are placed as [FRAMES-13](../FRAMES-13/SPEC.md#mixing) places them: each with its own audio filter, level and pan, and the compound clip's `pan` added to each sound's pan, cut to -1 and 1. Pan comes before the sum.
+2. The bus sums them, with the buses of the compound clips inside it, in the outermost sequence's time, each sound after the compound clip's retiming, as the mix plan lays segments ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)).
+3. The nested sequence's `audioFilter` runs on the sum, then the compound clip's own `audioFilter`, which takes keyframes as a clip's does ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), then the compound clip's level: its `volume`, its fades and a transition's crossfade.
+4. The result is added to the bus of the sequence that holds the compound clip.
+
+The outermost sequence's bus is the last: its chain runs on the whole mix, and its output is **the mix**, the sound the mixer hands to the encoder. Samples past full scale in the mix are clipped where a file stores them as PCM ([FRAMES-13](../FRAMES-13/SPEC.md#mixing)). A `limiter` at `mix` 1, last in the outermost sequence's `audioFilter`, holds every sample of the mix at or under its `ceiling`, which is 0 or below ([Limiter](#limiter)), so nothing is left to clip.
+
+Level after the sum equals level on each sound where a bus has no chain, since the sum, the pan law and a gain are linear and a gain on both channels commutes with the pan law. So a compound clip with no chain sounds as its sounds each at its level would, and with a chain its fade fades the processed sound, and a compressor in the chain does not undo the fade, as on a clip ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)).
+
+**State.** A bus's chain is one sound over its span, as a segment's audio filter is over its segment:
+
+- The span of a compound clip's bus is where its sound is heard: the range its sound plays over ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), its drawn range or its visible window with its edges moved by its `split`, in the outermost sequence's time, cut to the span of the bus that holds it and to the end of the sequence. The outermost bus spans the mix plan's length, the N samples from sequence time 0 ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). A bus's samples are the samples k of the mix whose time k / 48000 lies in its span.
+- Its ops start at rest at the first sample of its span, as a segment's do ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), read the bus's sum over its span and silence before it and past its end, and their output outside the span is not heard. A limiter there runs as [Limiter](#limiter) gives over a sound of the span's samples: its pre-roll reads silence, and over the last D samples of the span its look-ahead reads silence, so it turns the sound down there only for peaks inside the span.
+- The chain runs in the outermost sequence's time, after the compound clip's retiming: a compound clip at `speed` 2 plays its sounds twice as fast with their pitch kept, and its chain's seconds (a `release`, a `lookahead`, a `hold`) are seconds of the outermost sequence.
+- A looped compound clip is one bus over its whole span. Each repeat's sounds are segments of their own, at rest at the start of each repeat ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and the chain runs on across the seams without starting again, since a sum has no media that jumps.
+
+**Note.** A bus is content: its chain is part of what the sequence sounds like, as its clips' audio filters are, and `render` writes its file and a delivery file from the one mix ([FRAMES-21](../FRAMES-21/SPEC.md)).
+
+**Note.** A compound clip's `pan` is added to its sounds before their sum, so the chain inside it reads the sound panned, and a compressor, a gate or a limiter there, which reads the louder of the two channels, acts on the panned sound.
 
 ### Limiter
 
@@ -153,7 +171,11 @@ A nested sequence's `audioFilter` ignored, as a compound clip's `colorSpace` is 
 
 A master chain set for a delivery codec: the master chain is the sequence's own sound, and the master and the delivery file are encoded from it ([FRAMES-21](../FRAMES-21/SPEC.md)). A limit for one delivery is another render of the document, a document an extension writes with its own master chain.
 
-Audio filters on compound clips, as buses, now: they need a mix plan shaped as a tree and a change to how a compound clip's pan is added to its sounds' ([FRAMES-13](../FRAMES-13/SPEC.md#mixing)), and a compound clip rendered to a file and placed as an audio clip takes an `audioFilter` meanwhile.
+A compound clip's `pan` after its bus, as a balance on the sum: a mono sound inside it is placed by the equal-power pan law and a stereo one by a balance ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), so a balance after the sum would change the sound of every compound clip that holds a mono sound and whose `pan` is not 0.
+
+A compound clip's level before its bus, multiplied into each of its sounds' gains: a fade would then reach the chain before its ops, and a compressor or a limiter in it would undo the fade.
+
+A looped compound clip's chain at rest at each repeat, as a clip's audio filter is: a clip's filter starts again because its media jumps there, and a bus's chain runs on the sum in the outermost sequence's time, where the repeats follow one another as one sound.
 
 A master `volume` key: the limiter's `gain` is the master gain, as Final Cut Pro's Limiter Gain and Premiere Pro's Input Boost are.
 
