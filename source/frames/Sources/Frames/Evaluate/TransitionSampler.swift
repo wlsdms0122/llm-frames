@@ -34,7 +34,7 @@ struct TransitionSampler: Sendable {
         let time = storyline.valueTime(ofEntry: index, in: sample)
 
         return SampleProgress(
-            instant: progress(through: range, at: time.instant),
+            progress: progress(through: range, at: time.instant),
             frameProgress: progress(through: range, at: sample.frameTime)
         )
     }
@@ -71,7 +71,7 @@ struct TransitionSampler: Sendable {
         of span: Span,
         at progress: SampleProgress
     ) -> Double {
-        evaluator.motion(of: span, at: progress.instant, onSideOf: progress.frameProgress).value(of: .opacity)
+        evaluator.motion(of: span, at: progress.progress, onSideOf: progress.frameProgress).value(of: .opacity)
     }
 
     // The luminance below which a matte shows the incoming storyline picture. A `step` ease holds T's side of its end.
@@ -79,9 +79,9 @@ struct TransitionSampler: Sendable {
         easedBy ease: Ease,
         at progress: SampleProgress
     ) -> Double {
-        let isStepEnd = ease == .step && (progress.frameProgress < 1) != (progress.instant < 1)
+        let isStepEnd = ease == .step && (progress.frameProgress < 1) != (progress.progress < 1)
 
-        return ease.value(at: isStepEnd ? progress.frameProgress : progress.instant)
+        return ease.value(at: isStepEnd ? progress.frameProgress : progress.progress)
     }
 
     // MARK: - Private
@@ -97,7 +97,7 @@ struct TransitionSampler: Sendable {
         let progress = progress(of: transition, broughtBy: index, in: storyline, at: sample)
 
         return MotionSample(
-            motion: evaluator.motion(of: span, at: progress.instant, onSideOf: progress.frameProgress),
+            motion: evaluator.motion(of: span, at: progress.progress, onSideOf: progress.frameProgress),
             revealFrom: span.revealFrom
         )
     }
