@@ -103,7 +103,12 @@ struct RenderPipelineTests {
 
         // Then
         #expect(error == .sampledFrame(time: 0.5, reason: "\(RoleRefusal.renderer)"))
-        #expect(log.calls == [.checkList(frame: 0), .checkList(frame: 1), .checkList(frame: 2)])
+        #expect(log.calls == [
+            .checkPlan(MixPlanner().mix(of: sequence)),
+            .checkList(frame: 0),
+            .checkList(frame: 1),
+            .checkList(frame: 2)
+        ])
     }
 
     @Test("a pinned file whose hash changed is refused at the place that pins it before any role is called")
