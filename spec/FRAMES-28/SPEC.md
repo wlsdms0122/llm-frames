@@ -27,39 +27,39 @@ A sequence's `audioFilter` is its **master chain**: the audio filter its mix pas
 
 ### Limiter
 
-`limiter` is an op of the audio filter table ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), taken by a clip's `audioFilter`, by an audio preset's `ops` and by the master chain. It raises a sound by `gain`, then turns it down wherever its true peak would pass `ceiling`, starting `lookahead` seconds before the peak so the sound is never cut, and lets it back up by `release`, as an NLE's limiter does (Final Cut Pro's Limiter with Gain, Lookahead and Release, Premiere Pro's Hard Limiter with Input Boost).
+`limiter` is an op of the audio filter table ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), taken by a clip's `audioFilter`, by an audio preset's `ops` and by the master chain. It raises a sound by `gain`, then turns it down wherever its true peak would pass `ceiling`, along a ramp `lookahead` seconds long that ends at the peak, and lets it back up by `release`, as an NLE's limiter does (Final Cut Pro's Limiter with Gain, Lookahead and Release, Premiere Pro's Hard Limiter with Input Boost).
 
 | Parameter | Form | Default |
 | --- | --- | --- |
 | `gain` | dB, the input gain | 0 |
 | `ceiling` | dBTP, 0 or less | -1, the maximum true peak of EBU R 128 |
-| `lookahead` | seconds, above 0 and at most 0.05 | 0.005 |
+| `lookahead` | seconds, from 0.0015 to 0.05, static | 0.005 |
 | `release` | seconds, above 0 | 0.1 |
 
 A parameter outside its range stops where it is written, and in a preset when it is read, as every op's does ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)).
 
-**The formula.** With Fs = 48000, a sound of N samples per channel, x_c[n] the op's input on channel c at sample n, n from 0 to N - 1, and a parameter that moves on a clip taken at each sample from its envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), holding its first or last value outside the sound:
+**The formula.** With Fs = 48000, a sound of N samples per channel, x_c[n] the op's input on channel c at sample n, n from 0 to N - 1, and a `gain`, `ceiling` or `release` that moves on a clip taken at each sample from its envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), holding its first or last value outside the sound:
 
 1. **Gain.** x'_c[n] = 10^(`gain`[n] / 20) × x_c[n], with x'_c[n] = 0 for every n before 0 and from N on: the limiter reads silence before its sound starts and past its end.
 2. **Interpolation.** On each channel, the four phases of the 48-tap interpolating filter of ITU-R BS.1770-5 Annex 2 ([Interpolating filter](#interpolating-filter)) give u_c,p[m] = Σ h_p[k] x'_c[m - k] over k from 0 to 11, for p from 0 to 3. The four values u_c,0[n + 6] to u_c,3[n + 6] are the sound oversampled 4 times between samples n and n + 1, at about n + 1/8, n + 3/8, n + 5/8 and n + 7/8.
 3. **Detector.** P[n] is the largest of |x'_c[n]| and the eight values |u_c,p[n + 5]| and |u_c,p[n + 6]|, p from 0 to 3, over all its channels: the sample and the true peak of the two intervals beside it, linked across the channels as the compressor's level is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), so it never moves a stereo image. Its level is L[n] = 20 log10(P[n]) in dBTP, and a silent P[n] of 0 is a level below every ceiling.
 4. **Target.** c[n] = min(0, `ceiling`[n] - L[n]) in dB: the gain that brings P[n] to the ceiling, and 0 dB where it is already under it.
-5. **Look-ahead.** With D[n] = round(`lookahead`[n] × Fs) samples, halves rounded up, and D the largest D[n] for n from 0 to N - 1, the hold h[n] = min of c[k] over k from n to n + D.
+5. **Look-ahead.** With D = round(`lookahead` × Fs) samples, halves rounded up, from 72 to 2400, the hold h[n] = min of c[k] over k from n to n + D.
 6. **Release.** r[n] = h[n] where h[n] ≤ r[n - 1], and r[n] = β r[n - 1] + (1 - β) h[n] where h[n] > r[n - 1], with β = exp(-1 / (`release`[n] × Fs)): the gain falls to its hold at once and rises back to it as the release smoothing of the compressor does ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)).
-7. **Smoothing.** g[n] = (r[n - D[n]] + ... + r[n]) / (D[n] + 1), the mean of r in dB over the D[n] + 1 samples that end at n, so the gain falls along a ramp D[n] samples long that ends at the peak.
+7. **Smoothing.** g[n] = (r[n - D] + ... + r[n]) / (D + 1), the mean of r in dB over the D + 1 samples that end at n, so the gain falls along a ramp D samples long that ends at the peak.
 8. **Output.** y_c[n] = x'_c[n] × 10^(g[n] / 20) on every channel, for n from 0 to N - 1.
 
 The limiter runs from sample -D, D samples before its sound starts, with r[-D - 1] = 0 dB, so its first sample's gain is read over samples it has computed. At rest it has a gain of 0 dB and reads silence. Its output is aligned with its input, with no latency: it reads ahead in its input, which the mixer holds whole.
 
-**What it holds.** Every k from n - D[n] to n has n inside [k, k + D], so h[k] ≤ c[n], and r[k] ≤ h[k] at every k, so g[n] ≤ c[n] at every sample: the gain applied at n brings the sample at n and the interpolated values beside it to the ceiling or under it. A moving `lookahead` changes how long the ramp is and keeps that bound, since the hold looks D ahead, the largest window the sound takes.
+**What it holds.** Every k from n - D to n has n inside [k, k + D], so h[k] ≤ c[n], and r[k] ≤ h[k] at every k, so g[n] ≤ c[n] at every sample: the gain applied at n brings P[n], the input's sample at n and its interpolated values in the two intervals beside it, to the ceiling or under it. So every output sample y_c[n] is at or under the ceiling. An interpolated value of the output reads 12 output samples, each at its own gain. Where g holds over those 12 samples the value is the input's interpolated value times that gain, so it is at or under the ceiling too. Where g moves within them it is another weighted sum of the input, whose taps take both signs, and the formula gives it no bound: a bound from the ramp's slope grows with how far the input passes the ceiling, since the slope does, so frames states none.
 
-**Note.** The gain moves between samples, so the `truePeak` of the output, which the meter reads from the output's own samples, can pass the ceiling where the gain falls fastest, by less than 0.01 dB on the sounds measured (sines, noise bursts and a dense mix 8 dB over full scale, at a `lookahead` from 0.0015 to 0.01). A shorter `lookahead` makes the ramp steeper and distorts low tones, and a shorter `release` lets the gain pump with the sound's waveform at low frequencies.
+**Note.** The `truePeak` of the output, which the meter reads from the output's own samples, passes the ceiling where the gain moves within the filter's 12 taps, and is measured, not proven. On the sounds measured (sines from 50 Hz to 0.45 of the sample rate, square waves, clicks, white noise and noise bursts from 9 dB to 50 dB over full scale, and a dense mix 8 dB over full scale, at a `lookahead` of 0.0015, 0.002, 0.005, 0.01 and 0.05 and a `release` from 0.000001 to 1) it read at most 0.025 dB over the ceiling, on white noise 50 dB over it at a `lookahead` of 0.0015 and a `release` of 0.000001, and under 0.005 dB over it from a `lookahead` of 0.005. Below a `lookahead` of 0.0015 the ramp is a few samples long and the gain moves inside the 12 taps: at one sample or none the output read up to 2 dB over the ceiling, so the range starts at 0.0015. A shorter `lookahead` also makes the ramp steeper and distorts low tones, and a shorter `release` lets the gain pump with the sound's waveform at low frequencies.
 
 **Note.** The ceiling is held as frames' meter reads a true peak ([Loudness meter](#loudness-meter)). The four points of the Annex 2 filter can read a peak between them up to 0.55 dB low at 0.45 of the sample rate, as BS.1770-5 says of 4 times oversampling, and another meter interpolates otherwise: a limited mix read with a 16 times interpolator came out up to 0.23 dB above its ceiling. A document whose acceptance another meter decides takes a `ceiling` about 0.3 dB lower.
 
 **Note.** The limiter is defined by its formula, which is the contract: a running minimum of the target gain over the look-ahead window, then a mean over a window of the same length, so the gain meets each peak along a ramp and never after it.
 
-**Keyframes.** On a clip the limiter's `gain`, `ceiling`, `lookahead` and `release` and its entry's `mix` are timed leaves, as every op parameter is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)): a sampled `ceiling` above 0 is clamped to 0, a sampled `lookahead` above 0.05 to 0.05 and one at or below 0 is a window of 0 samples, and a sampled `release` at or below 0 follows its target at once. The limiter has no identity, since it limits at every `gain` and `ceiling`, so it eases in or out by its entry's `mix`. Its state, r and its window, starts at rest wherever the segment's ops start at rest, where a clip's sound starts and on each repeat of a loop ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and it reads silence past the end of its segment.
+**Keyframes.** On a clip the limiter's `gain`, `ceiling` and `release` and its entry's `mix` are timed leaves, as every op parameter is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)): a sampled `ceiling` above 0 is clamped to 0, and a sampled `release` at or below 0 follows its target at once. Its `lookahead` is static, part of the op's structure as a band's `type` is: it sets D, the one window the hold and the ramp share, so it holds one value over the op, and a keyframe that writes it, or writes a preset argument it reads, stops, naming the clip and the keyframe. The limiter has no identity, since it limits at every `gain` and `ceiling`, so it eases in or out by its entry's `mix`. Its state, r and its window, starts at rest wherever the segment's ops start at rest, where a clip's sound starts and on each repeat of a loop ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and it reads silence past the end of its segment.
 
 #### Interpolating filter
 
@@ -148,7 +148,7 @@ A master `volume` key: the limiter's `gain` is the master gain, as Final Cut Pro
 
 A separate `gain` op: it would add nothing over `volume` on clips and the limiter's `gain` on the master.
 
-A `lookahead` that cannot take keyframes: it is a number whose change alters no decision resolve makes once ([FRAMES-4](../FRAMES-4/SPEC.md)), and the hold over the largest window keeps the limiter's bound while it moves.
+A `lookahead` that takes keyframes: the hold and the ramp share its window, so a moving one would have the hold look as far ahead as the largest value the sound takes, and a value written at one time would move the gain before every peak of the sound.
 
 The gain smoothed by a mean of linear gains: the compressor and the gate smooth their gain in dB ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and the limiter's release and ramp do the same, so the three ops share one domain and either domain keeps the bound.
 
