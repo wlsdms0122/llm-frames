@@ -42,7 +42,6 @@ package struct GlyphsItem: Equatable, Sendable {
         at time: SampleTime
     ) {
         let textBox = text.textBox(at: time)
-        let box = text.box(at: time)
         let moves = text.glyphMoves(at: time)
         let pieceMoves = text.pieceMoves(of: moves)
         let placed = { (move: Point) in Point(x: move.x - textBox.x, y: move.y - textBox.y) }
@@ -65,12 +64,7 @@ package struct GlyphsItem: Equatable, Sendable {
             background: text.background.flatMap { background in
                 background.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     GlyphBackground(
-                        rectangle: Rectangle(
-                            x: box.x - textBox.x,
-                            y: box.y - textBox.y,
-                            width: box.width,
-                            height: box.height
-                        ),
+                        rectangle: text.boxInTextBox(at: time),
                         radius: background.radius.sampled(at: time, as: .leaf(.length(.any))).number ?? 0,
                         color: color
                     )

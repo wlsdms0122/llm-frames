@@ -67,7 +67,7 @@ package struct EvaluationReporter: Sendable {
     }
 
     // MARK: - Private
-    // The title's box is its text box grown by its background's padding, given in its text box.
+    // The title's box is its text box grown by its background's padding, given in its text box's coordinates.
     private func text(
         of title: TitleSample,
         origin: ItemOrigin,
@@ -76,14 +76,13 @@ package struct EvaluationReporter: Sendable {
         let text = title.text
         let time = title.time
         let textBox = text.textBox(at: time)
-        let box = text.box(at: time)
 
         return EvaluationText(
             place: origin.place,
             id: origin.id,
             text: text.text,
             size: Size(width: textBox.width, height: textBox.height),
-            box: Rectangle(x: box.x - textBox.x, y: box.y - textBox.y, width: box.width, height: box.height),
+            box: text.boxInTextBox(at: time),
             transform: item.transform,
             cornerPins: item.cornerPins,
             lines: text.evaluationLines(at: time),
