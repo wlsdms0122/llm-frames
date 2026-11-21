@@ -15,6 +15,9 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case afterMediaEnd(option: String, time: Double, file: String, end: Double)
     case nonPositiveStep(step: Double)
     case emptyRange(from: Double, to: Double)
+    case pageOfNonPDF(file: String, page: Int)
+    case missingPage(file: String, page: Int, pageCount: Int)
+    case unnamedPage(file: String, pageCount: Int)
 
     // MARK: - Property
     var description: String {
@@ -45,6 +48,16 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .emptyRange(from, to):
             "--from: \(number(from)) is not before --to \(number(to))"
+
+        case let .pageOfNonPDF(file, page):
+            "--page: media \(quoted(file)) is not a PDF, so it has no page \(page)"
+
+        case let .missingPage(file, page, pageCount):
+            "--page: media \(quoted(file)) has \(pageCount) \(pageCount == 1 ? "page" : "pages"), so it has no "
+                + "page \(page)"
+
+        case let .unnamedPage(file, pageCount):
+            "media \(quoted(file)) is a PDF of \(pageCount) pages, more than one picture, so --page names the page"
         }
     }
 

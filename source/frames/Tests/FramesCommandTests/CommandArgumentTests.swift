@@ -35,6 +35,7 @@ struct CommandArgumentTests {
         (["extract", "/abs/clip.mov", "frames"], #"extract: <outdir> "frames" is not an absolute path, and paths are absolute"#),
         (["probe"], "probe: missing <media>"),
         (["probe", "clip.mov"], #"probe: <media> "clip.mov" is not an absolute path, and paths are absolute"#),
+        (["probe", "/abs/deck.pdf", "--page", "0"], #"probe: --page "0" is not a whole number from 1"#),
         (["ocr", "/abs/clip.mov", "--at", "1", "--from", "0"], "ocr: --at and --from are not given together"),
         (["ocr", "/abs/clip.mov", "--to", "1"], "ocr: missing --step <s>"),
         (["track", "/abs/clip.mov", "--area", "[0, 0, 1, 1]"], "track: missing --at <t>"),

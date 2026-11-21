@@ -124,6 +124,26 @@ struct ScannedArguments: Equatable, Sendable {
         return integer
     }
 
+    // A whole number from 1, the number of a page of a PDF.
+    func page(of option: String) throws -> Int? {
+        guard let value = values[option] else { return nil }
+        guard let page = Int(value), page >= 1 else {
+            throw invalidValue(of: option, value, expected: "a whole number from 1")
+        }
+
+        return page
+    }
+
+    // A number above 0, fractions allowed.
+    func positiveNumber(of option: String) throws -> Double? {
+        guard let value = values[option] else { return nil }
+        guard let number = number(value), number > 0 else {
+            throw invalidValue(of: option, value, expected: "a number above 0")
+        }
+
+        return number
+    }
+
     // `x,y`.
     func requiredPoint(of option: String) throws -> Point {
         let value = try requiredValue(of: option)

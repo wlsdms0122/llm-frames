@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"probe": "1.0.0", kind, size, duration, fps, alpha, colorSpace, audio}`, the object `probe --json` prints. `size`
-// is `[width, height]`, `colorSpace` is `{name, primaries, transfer, matrix, bitDepth, hdr}` and `audio` is
-// `{channels, sampleRate}`, each `null` where the medium has none.
+// `{"probe": "1.0.0", kind, size, duration, fps, alpha, colorSpace, audio, pages}`, the object `probe --json` prints.
+// `size` is `[width, height]`, rounded to the millionth, `colorSpace` is `{name, primaries, transfer, matrix, bitDepth,
+// hdr}`, `audio` is `{channels, sampleRate}` and `pages` the page count of a PDF, each `null` where the medium has none.
 extension ProbeReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -20,13 +20,14 @@ extension ProbeReport {
 
         return .object(JSONObject(members: [
             JSONMember(key: "probe", value: .string(FramesVersion.current)),
-            JSONMember(key: "kind", value: .string(kind)),
-            JSONMember(key: "size", value: size.map { .array([.number($0.width), .number($0.height)]) } ?? .null),
+            JSONMember(key: "kind", value: kind.map(JSONValue.string) ?? .null),
+            JSONMember(key: "size", value: size.map { .array([.measure($0.width), .measure($0.height)]) } ?? .null),
             JSONMember(key: "duration", value: duration.map(JSONValue.time) ?? .null),
             JSONMember(key: "fps", value: fps.map(JSONValue.number) ?? .null),
-            JSONMember(key: "alpha", value: .bool(hasAlpha)),
+            JSONMember(key: "alpha", value: hasAlpha.map(JSONValue.bool) ?? .null),
             JSONMember(key: "colorSpace", value: colorSpace.map(Self.written) ?? .null),
-            JSONMember(key: "audio", value: audio ?? .null)
+            JSONMember(key: "audio", value: audio ?? .null),
+            JSONMember(key: "pages", value: pageCount.map { .number(Double($0)) } ?? .null)
         ]))
     }
 
@@ -34,14 +35,14 @@ extension ProbeReport {
     // MARK: - Public
     // MARK: - Private
     private static func written(_ colorSpace: ProbedColorSpace) -> JSONValue {
-        let codePoint = { (value: Int?) in value.map { JSONValue.number(Double($0)) } ?? .null }
+        let wholeNumber = { (value: Int?) in value.map { JSONValue.number(Double($0)) } ?? .null }
 
         return .object(JSONObject(members: [
             JSONMember(key: "name", value: colorSpace.name.map { .string($0.rawValue) } ?? .null),
-            JSONMember(key: "primaries", value: codePoint(colorSpace.primaries)),
-            JSONMember(key: "transfer", value: codePoint(colorSpace.transfer)),
-            JSONMember(key: "matrix", value: codePoint(colorSpace.matrix)),
-            JSONMember(key: "bitDepth", value: .number(Double(colorSpace.bitDepth))),
+            JSONMember(key: "primaries", value: wholeNumber(colorSpace.primaries)),
+            JSONMember(key: "transfer", value: wholeNumber(colorSpace.transfer)),
+            JSONMember(key: "matrix", value: wholeNumber(colorSpace.matrix)),
+            JSONMember(key: "bitDepth", value: wholeNumber(colorSpace.bitDepth)),
             JSONMember(key: "hdr", value: .bool(colorSpace.isHighDynamicRange))
         ]))
     }
