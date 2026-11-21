@@ -227,6 +227,43 @@ struct QuartzRendererTests {
         }
     }
 
+    @Test("check accepts a corner pin on a picture of a nested list, as a clip's group carries it")
+    func acceptsCornerPinGroup() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let item = cornerPinned(.none)
+
+        // When
+        let checking = { try sut.check(list(size: 4, items: [item])) }
+
+        // Then
+        #expect(throws: Never.self) { try checking() }
+    }
+
+    // A clip's group carries none of what the picture or item adds here (FRAMES-20 Pictures).
+    @Test(
+        "check refuses a corner pin on a picture no group draws, naming its place",
+        arguments: [CornerPinAddition.media, .filter, .radius, .border, .shadow, .reveal]
+    )
+    func refusesCornerPinOutsideGroup(addition: CornerPinAddition) throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let nested = list(size: 4, items: [cornerPinned(addition)])
+        let picture = PictureItem(
+            source: .displayList(nested),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4)
+        )
+
+        // When
+        let checking = { try sut.check(list(size: 4, items: [DisplayItem(content: .picture(picture))])) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedCornerPin(place: "items[0].source.items[0].cornerPin")) {
+            try checking()
+        }
+    }
+
     // Each cube is pinned by its own SHA-256, so only its contents are wrong. `line` is where the reader stops.
     @Test(
         "check refuses a pinned cube that does not read as a 3D LUT, naming its place and the cube's error",
@@ -324,6 +361,37 @@ struct QuartzRendererTests {
     }
 
     // MARK: - Private
+    // A picture of a 4 x 4 list carried onto a trapezoid, with `addition` added to it or its item.
+    private func cornerPinned(_ addition: CornerPinAddition) -> DisplayItem {
+        let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 4, height: 4), color: Color(written: "#FF0000"))
+        let source: PictureItemSource = addition == .media
+            ? .media(MediaFrame(
+                media: PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: ""))),
+                index: 0
+            ))
+            : .displayList(list(size: 4, items: [DisplayItem(content: .path(fill))]))
+        let picture = PictureItem(
+            source: source,
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 4, height: 4),
+            filter: addition == .filter ? [FilterEntry(operations: [.exposure(ev: 1)])] : [],
+            radius: addition == .radius ? 1 : 0,
+            border: addition == .border ? MediaBorder(width: 1, color: Color(written: "#000000")) : nil,
+            shadow: addition == .shadow ? DropShadow(radius: 1, offset: Point(x: 1, y: 1), color: Color(written: "#000000")) : nil,
+            cornerPin: Quad(
+                topLeft: Point(x: 1, y: 0),
+                topRight: Point(x: 3, y: 0),
+                bottomRight: Point(x: 4, y: 4),
+                bottomLeft: Point(x: 0, y: 4)
+            )
+        )
+
+        return DisplayItem(
+            reveal: addition == .reveal ? Rectangle(x: 0, y: 0, width: 2, height: 4) : nil,
+            content: .picture(picture)
+        )
+    }
+
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {
         [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
@@ -352,3 +420,4 @@ struct QuartzRendererTests {
         )
     }
 }
+

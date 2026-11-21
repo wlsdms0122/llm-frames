@@ -11,6 +11,7 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownKernel(name: String)
     case unsupportedBlend(name: String, place: String)
     case unreadableTable(place: String, error: FilterError)
+    case unsupportedCornerPin(place: String)
     case kernelFailed(name: String)
     case faceNotInFile(file: String, face: String)
     case unmadeBitmap(width: Int, height: Int)
@@ -27,6 +28,10 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableTable(place, error):
             "the quartz renderer cannot read the LUT at \(place): \(error)"
+
+        case let .unsupportedCornerPin(place):
+            "the quartz renderer draws a corner pin only on a picture of a nested display list with no filter, matte, "
+                + "radius, border, shadow or reveal, as a clip's group is, found one at \(place)"
 
         case let .kernelFailed(name):
             "the quartz kernel \(name) gave no image"

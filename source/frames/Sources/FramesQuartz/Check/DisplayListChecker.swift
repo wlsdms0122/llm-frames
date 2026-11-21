@@ -9,8 +9,9 @@ import Frames
 
 // Walks a display list and the lists nested in it for what the quartz renderer cannot draw, naming each refusal with
 // its place in the list. It draws every item kind and filter operation, so what it refuses is a blend mode it has no
-// kernel for and a `lut` whose `.cube` does not read as a 3D LUT. It reads each LUT through the renderer's cache, so
-// drawing reads none again.
+// kernel for, a `lut` whose `.cube` does not read as a 3D LUT, and a corner pin on a picture other than a clip's group
+// (FRAMES-20 Pictures): it warps a nested list's raster onto the corner pin, and a group has no filter, matte, radius,
+// border, shadow or reveal. It reads each LUT through the renderer's cache, so drawing reads none again.
 struct DisplayListChecker {
     // MARK: - Property
     private let tables: LookUpTableCache
@@ -37,6 +38,9 @@ struct DisplayListChecker {
 
             switch item.content {
             case let .picture(picture):
+                if picture.cornerPin != nil {
+                    try checkCornerPin(of: picture, reveal: item.reveal, place: itemPlace)
+                }
                 try check(picture.filter, place: itemPlace)
                 if case let .displayList(nested) = picture.source {
                     try check(nested, place: "\(itemPlace).source.")
@@ -52,6 +56,25 @@ struct DisplayListChecker {
     }
 
     // MARK: - Private
+    // `place` is the item's.
+    private func checkCornerPin(
+        of picture: PictureItem,
+        reveal: Rectangle?,
+        place: String
+    ) throws {
+        guard
+            case .displayList = picture.source,
+            picture.filter.isEmpty,
+            picture.matte == nil,
+            picture.radius == 0,
+            picture.border == nil,
+            picture.shadow == nil,
+            reveal == nil
+        else {
+            throw QuartzError.unsupportedCornerPin(place: "\(place).cornerPin")
+        }
+    }
+
     // `place` is the item's.
     private func check(
         _ filter: [FilterEntry],
