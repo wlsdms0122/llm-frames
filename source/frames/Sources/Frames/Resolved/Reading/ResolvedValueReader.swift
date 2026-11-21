@@ -469,6 +469,7 @@ struct ResolvedValueReader: Sendable {
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
+        let runs = try runs(text.member("runs"))
         let lines = try text.member("lines").elements().map { element in
             let line = try element.object(keys: ["width", "baseline", "ascent", "descent", "range", "clusters", "hanging"])
 
@@ -478,8 +479,15 @@ struct ResolvedValueReader: Sendable {
                 ascent: try line.member("ascent").number(),
                 descent: try line.member("descent").number(),
                 range: try scalarRange(line.member("range")),
-                clusters: try line.member("clusters").elements().map(cluster),
-                hanging: try line.member("hanging").elements().map(cluster)
+                clusters: try line.member("clusters").elements().map { try cluster($0, in: runs) },
+                hanging: try line.member("hanging").elements().map { try cluster($0, in: runs) }
+            )
+        }
+        for (index, line) in lines.enumerated() where !pensFollow(on: line, runs: runs) {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "line \(index)'s pen positions do not follow its clusters' advances, its runs' static tracking and its width"
             )
         }
 
@@ -521,7 +529,7 @@ struct ResolvedValueReader: Sendable {
                     )
                 }
             },
-            runs: try runs(text.member("runs"))
+            runs: runs
         )
     }
 
@@ -755,8 +763,11 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance]`.
-    private func cluster(_ value: PlacedJSONValue) throws -> PlacedCluster {
+    // A line's cluster is `[run, first, count, start, end, advance]`, its glyphs a range of one of `runs`.
+    private func cluster(
+        _ value: PlacedJSONValue,
+        in runs: [ResolvedGlyphRun]
+    ) throws -> PlacedCluster {
         let numbers = try value.numbers(count: 6)
         guard
             let run = Int(exactly: numbers[0]),
@@ -764,6 +775,10 @@ struct ResolvedValueReader: Sendable {
             let count = Int(exactly: numbers[2]),
             let start = Int(exactly: numbers[3]),
             let end = Int(exactly: numbers[4]),
+            runs.indices.contains(run),
+            first >= 0,
+            count >= 0,
+            first + count <= runs[run].glyphs.count,
             start <= end
         else {
             throw value.wrongType("[run, first, count, start, end, advance]")
@@ -772,6 +787,33 @@ struct ResolvedValueReader: Sendable {
         let glyphs = GlyphRange(run: run, first: first, count: count)
 
         return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5])
+    }
+
+    // A line's clusters and then its hanging spaces, those with no glyph of their own left out, each start at the pen
+    // start of the one before plus its advance, plus its run's static tracking when it is a character other than the
+    // last character taken. The last character ends at the first one's pen start plus the line's width, and a line with
+    // no character taken has a width of 0.
+    private func pensFollow(
+        on line: PlacedLine,
+        runs: [ResolvedGlyphRun]
+    ) -> Bool {
+        let tolerance = 1e-6
+        let characters = line.clusters.filter { $0.glyphs.count > 0 }
+        let taken = characters.map { (cluster: $0, isCharacter: true) }
+            + line.hanging.filter { $0.glyphs.count > 0 }.map { (cluster: $0, isCharacter: false) }
+        let pens = taken.map { runs[$0.cluster.glyphs.run].glyphs[$0.cluster.glyphs.first].x }
+
+        for index in taken.indices.dropFirst() {
+            let previous = taken[index - 1]
+            let tracking = previous.isCharacter && index - 1 != characters.count - 1
+                ? runs[previous.cluster.glyphs.run].staticTracking
+                : 0
+            guard abs(pens[index - 1] + previous.cluster.advance + tracking - pens[index]) <= tolerance else { return false }
+        }
+
+        guard let last = characters.last else { return abs(line.width) <= tolerance }
+
+        return abs(pens[0] + line.width - pens[characters.count - 1] - last.advance) <= tolerance
     }
 
     // A range is `[start, end]`, counted in Unicode scalars.
