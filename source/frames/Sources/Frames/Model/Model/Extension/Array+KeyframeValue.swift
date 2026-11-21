@@ -20,5 +20,20 @@ extension Array {
         Swift.min(Swift.max(value(at: time), 0), 1)
     }
 
+    // The value at an instant clamped to T's side of the jumps between them, T being the frame's instant.
+    func value<Value: Interpolable>(
+        at time: Double,
+        onSideOf frameTime: Double
+    ) -> Value where Element == Keyframe<Value> {
+        KeyframeTrack(keyframes: self).value(at: time, onSideOf: frameTime) ?? self[0].value
+    }
+
+    func opacity(
+        at time: Double,
+        onSideOf frameTime: Double
+    ) -> Double where Element == Keyframe<Double> {
+        Swift.min(Swift.max(value(at: time, onSideOf: frameTime), 0), 1)
+    }
+
     // MARK: - Private
 }

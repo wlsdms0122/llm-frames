@@ -29,6 +29,21 @@ enum MediaPlayback: Equatable, Sendable {
         }
     }
 
+    // The media time at an instant on T's side, T being the frame's instant: remap keys are clamped at their jumps,
+    // while a line has none, and a played range's loop seam and its hold at `out` are not jumps.
+    func mediaTime(
+        atSequenceTime time: Double,
+        onSideOf frameTime: Double
+    ) -> Double {
+        switch self {
+        case .line, .played:
+            mediaTime(atSequenceTime: time)
+
+        case let .remapped(keyframes):
+            keyframes.value(at: time, onSideOf: frameTime)
+        }
+    }
+
     // The sequence time a media time is shown at, where one exists: a line moves one way without end, while a played
     // range holds or loops past `out` and remap keys may hold or reverse, so they give nil.
     func sequenceTime(ofMediaTime time: Double) -> Double? {
