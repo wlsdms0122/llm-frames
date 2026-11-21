@@ -14,7 +14,7 @@ import Frames
 // adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
 // chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
 // added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
-// samples, and that is the mix. The sum is not clipped.
+// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate = Double(MixPlan.sampleRate)
@@ -102,7 +102,8 @@ package final class AVFoundationMixer: Sendable {
         let heard = min(last - first, Int(buffer.frameLength))
         let from = max(span.lowerBound - first, 0)
         guard from < heard, let channels = buffer.floatChannelData else { return }
-        SegmentFilter(filter: segment.filter, sampleRate: Self.sampleRate).process(buffer, frames: heard, first: first)
+        SegmentFilter(filter: segment.filter, sampleRate: Self.sampleRate)
+            .process(buffer, frames: heard, first: first)
         let offset = first - span.lowerBound
         for frame in from..<heard {
             let gain = gains[frame]
@@ -150,6 +151,30 @@ package final class AVFoundationMixer: Sendable {
         }
     }
 
+    // Interleaves a planar stereo sum of `frames` samples per channel in place: left sample k moves to 2k and right
+    // sample k to 2k + 1. That moves place p to 2p mod (2 frames - 1), every place but the last, which stays, and the
+    // move is made one cycle of places at a time, a bit a place marking the places already filled.
+    private func interleave(
+        _ samples: inout [Float],
+        frames: Int
+    ) {
+        let modulus = 2 * frames - 1
+        guard modulus > 2 else { return }
+
+        var filled = [UInt64](repeating: 0, count: modulus / 64 + 1)
+        samples.withUnsafeMutableBufferPointer { samples in
+            for start in 1..<modulus where filled[start / 64] & (1 << (start % 64)) == 0 {
+                var place = start
+                var carried = samples[start]
+                repeat {
+                    place = 2 * place % modulus
+                    swap(&carried, &samples[place])
+                    filled[place / 64] |= 1 << (place % 64)
+                } while place != start
+            }
+        }
+    }
+
     // The first sample of a span edge at `time`, by the span rule: round(sample rate × time), halves up.
     private func sample(at time: Double) -> Int {
         Int((time * Self.sampleRate).rounded())
@@ -190,14 +215,9 @@ extension AVFoundationMixer: Mixer {
 
     package func mix(_ plan: MixPlan) throws -> SoundBuffer {
         let length = plan.length
-        var sum = try sum(segments: plan.segments, buses: plan.buses, over: 0..<length, place: "")
-        filter(&sum, frames: length, by: plan.filter, first: 0)
-
-        var samples = [Float](repeating: 0, count: length * 2)
-        for frame in 0..<length {
-            samples[frame * 2] = sum[frame]
-            samples[frame * 2 + 1] = sum[length + frame]
-        }
+        var samples = try sum(segments: plan.segments, buses: plan.buses, over: 0..<length, place: "")
+        filter(&samples, frames: length, by: plan.filter, first: 0)
+        interleave(&samples, frames: length)
 
         return SoundBuffer(sampleRate: Self.sampleRate, channels: 2, samples: samples)
     }
