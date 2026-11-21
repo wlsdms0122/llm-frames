@@ -537,7 +537,7 @@ struct ResolvedValueReader: Sendable {
                         lines: lines,
                         glyphBox: try rectangle(unit.member("glyphBox")),
                         box: try rectangle(unit.member("box")),
-                        parts: try unit.member("parts").elements().map(unitPart)
+                        parts: try unit.member("parts").elements().map { try unitPart($0, in: runs) }
                     )
                 }
             },
@@ -687,10 +687,12 @@ struct ResolvedValueReader: Sendable {
             },
             glyphs: try run.member("glyphs").elements().map { element in
                 let numbers = try element.numbers(count: 5)
-                guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y, dx, dy]") }
+                guard let id = UInt16(exactly: numbers[0]) else {
+                    throw element.wrongType("[glyph id, x, y, dx, dy] with a glyph id from 0 to 65535")
+                }
 
                 return PositionedGlyph(
-                    id: id,
+                    id: Int(id),
                     x: numbers[1],
                     y: numbers[2],
                     placementOffset: Point(x: numbers[3], y: numbers[4])
@@ -716,31 +718,39 @@ struct ResolvedValueReader: Sendable {
             },
             highlight: try run.member("highlight").optional { value in
                 let highlight = try value.object(keys: ["rects", "radius", "color", "bands"])
+                let rects = try highlight.member("rects").elements().map(rectangle)
 
                 return DrawnHighlight(
-                    rects: try highlight.member("rects").elements().map(rectangle),
+                    rects: rects,
                     radius: try highlight.member("radius").number(),
                     color: try color(highlight.member("color")),
-                    bands: try bands(highlight.member("bands"))
+                    bands: try bands(highlight.member("bands"), count: rects.count)
                 )
             },
             underline: try run.member("underline").optional { value in
                 let underline = try value.object(keys: ["rects", "color", "bands"])
+                let rects = try underline.member("rects").elements().map(rectangle)
 
                 return DrawnUnderline(
-                    rects: try underline.member("rects").elements().map(rectangle),
+                    rects: rects,
                     color: try color(underline.member("color")),
-                    bands: try bands(underline.member("bands"))
+                    bands: try bands(underline.member("bands"), count: rects.count)
                 )
             },
             glyphs: try glyphs(run.member("glyphs"))
         )
     }
 
-    // A band is `[x0, x1]`, x0 no greater than x1.
-    private func bands(_ value: PlacedJSONValue) throws -> [ClosedRange<Double>]? {
+    // A band is `[x0, x1]`, x0 no greater than x1, one for each of the `count` rectangles.
+    private func bands(
+        _ value: PlacedJSONValue,
+        count: Int
+    ) throws -> [ClosedRange<Double>]? {
         try value.optional { value in
-            try value.elements().map { element in
+            let elements = try value.elements()
+            guard elements.count == count else { throw value.wrongType("a band for each rect, \(count) in all") }
+
+            return try elements.map { element in
                 let numbers = try element.numbers(count: 2)
                 guard numbers[0] <= numbers[1] else { throw element.wrongType("[x0, x1] with x0 no greater than x1") }
 
@@ -765,11 +775,23 @@ struct ResolvedValueReader: Sendable {
         return UnitStagger(by: unit, stagger: seconds)
     }
 
-    // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.
-    private func unitPart(_ value: PlacedJSONValue) throws -> UnitPart {
+    // A unit's part is `[run, piece, x0, x1]`: a piece of one of `runs` with a highlight or an underline, the piece one
+    // of that run's highlight pieces and of its underline pieces where it has each, and its span from x0 to x1.
+    private func unitPart(
+        _ value: PlacedJSONValue,
+        in runs: [ResolvedGlyphRun]
+    ) throws -> UnitPart {
         let numbers = try value.numbers(count: 4)
-        guard let run = Int(exactly: numbers[0]), let piece = Int(exactly: numbers[1]), numbers[2] <= numbers[3] else {
-            throw value.wrongType("[run, piece, x0, x1]")
+        guard
+            let run = Int(exactly: numbers[0]),
+            let piece = Int(exactly: numbers[1]),
+            runs.indices.contains(run),
+            runs[run].highlight != nil || runs[run].underline != nil,
+            runs[run].highlight.map({ $0.rects.indices.contains(piece) }) ?? true,
+            runs[run].underline.map({ $0.rects.indices.contains(piece) }) ?? true,
+            numbers[2] <= numbers[3]
+        else {
+            throw value.wrongType("[run, piece, x0, x1] naming a highlight or underline piece of one of the title's runs")
         }
 
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
@@ -872,13 +894,16 @@ struct ResolvedValueReader: Sendable {
         return CharacterRange(line: line, first: first, count: count)
     }
 
-    // A drawn glyph is `[id, x, y]`, where it is drawn, read with no placement offset.
+    // A drawn glyph is `[id, x, y]`, where it is drawn, read with no placement offset, its id one an OpenType face can
+    // hold.
     private func glyphs(_ value: PlacedJSONValue) throws -> [PositionedGlyph] {
         try value.elements().map { element in
             let numbers = try element.numbers(count: 3)
-            guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }
+            guard let id = UInt16(exactly: numbers[0]) else {
+                throw element.wrongType("[glyph id, x, y] with a glyph id from 0 to 65535")
+            }
 
-            return PositionedGlyph(id: id, x: numbers[1], y: numbers[2])
+            return PositionedGlyph(id: Int(id), x: numbers[1], y: numbers[2])
         }
     }
 

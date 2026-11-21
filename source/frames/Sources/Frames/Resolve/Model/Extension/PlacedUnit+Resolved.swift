@@ -20,16 +20,8 @@ extension PlacedUnit {
         let stroke = unit.glyphs.flatMap { Self.values(of: runs[$0.run].stroke["width"]) }.compactMap(\.first).max() ?? 0
         let parts = unit.parts.flatMap { part in
             let run = runs[part.run]
-            let highlight = run.highlight.flatMap { highlight in
-                highlight.rects.indices.contains(part.piece)
-                    ? Self.drawn(part, of: highlight.rects[part.piece], padding: highlight.padding)
-                    : nil
-            }
-            let underline = run.underline.flatMap { underline in
-                underline.rects.indices.contains(part.piece)
-                    ? Self.drawn(part, of: underline.rects[part.piece], underline: underline)
-                    : nil
-            }
+            let highlight = run.highlight.map { Self.drawn(part, of: $0.rects[part.piece], padding: $0.padding) }
+            let underline = run.underline.map { Self.drawn(part, of: $0.rects[part.piece], underline: $0) }
 
             return [highlight, underline].compactMap { $0 }
         }

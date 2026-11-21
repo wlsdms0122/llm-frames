@@ -97,12 +97,12 @@ package struct GlyphsItem: Equatable, Sendable {
     ) {
         self.init(
             size: item.size,
-            runs: item.runs.indices.compactMap { index in
-                let ranges = glyphs.filter { $0.run == index }
-                let carried = parts.filter { $0.run == index }
-                guard !ranges.isEmpty || !carried.isEmpty else { return nil }
-
-                return item.runs[index].carrying(glyphs: ranges, parts: carried, factor: factor)
+            runs: Set(glyphs.map(\.run) + parts.map(\.run)).sorted().map { index in
+                item.runs[index].carrying(
+                    glyphs: glyphs.filter { $0.run == index },
+                    parts: parts.filter { $0.run == index },
+                    factor: factor
+                )
             },
             layer: layer,
             unitBox: box,

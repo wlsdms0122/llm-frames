@@ -515,7 +515,9 @@ struct DisplayListReaderTests {
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
-            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#)
+            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#),
+            (#""bands": ["#, #""bands": [[30, 40], "#, "items[6].runs[0].highlight.bands (glyphs): expected a band for each rect, 1 in all, found a list of 2"),
+            (#"[43, 12, 36]"#, #"[65536, 12, 36]"#, #"items[6].runs[0].glyphs[0] (glyphs): expected [glyph id, x, y] with a glyph id from 0 to 65535, found a list of 3"#)
         ]
     )
     func refusesUnreadableMember(

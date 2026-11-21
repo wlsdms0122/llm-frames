@@ -860,6 +860,85 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.contains(message) == true)
     }
 
+    @Test(
+        "a unit's part naming a run past the title's runs, a piece past its run's pieces, a negative piece or a run with neither highlight nor underline stops when read",
+        arguments: ["run", "piece", "negative piece", "plain run"]
+    )
+    func refusesUnitPart(change: String) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "highlight": { "color": "#FF0000" } },
+                           "animation": { "preset": "frames/fade", "by": "word" } } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            var units = try #require(title["units"]?.arrayValue)
+            let unit = try #require(units[0].objectValue)
+            var parts = try #require(unit["parts"]?.arrayValue)
+            var part = try #require(parts.first?.arrayValue)
+            switch change {
+            case "run":
+                part[0] = .number(Double(runs.count))
+
+            case "piece":
+                part[1] = .number(1)
+
+            case "negative piece":
+                part[1] = .number(-1)
+
+            default:
+                let run = try #require(runs[0].objectValue)
+                runs[0] = .object(run.setting("highlight", to: .null))
+            }
+            parts[0] = .array(part)
+            units[0] = .object(unit.setting("parts", to: .array(parts)))
+
+            return title.setting("runs", to: .array(runs)).setting("units", to: .array(units))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(
+            "units[0].parts[0] (clip): expected [run, piece, x0, x1] naming a highlight or underline piece of one of the title's runs"
+        ) == true)
+    }
+
+    @Test("a glyph id an OpenType face cannot hold stops when read", arguments: [-1, 65536])
+    func refusesGlyphID(id: Double) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[0].objectValue)
+            var glyphs = try #require(run["glyphs"]?.arrayValue)
+            var glyph = try #require(glyphs.first?.arrayValue)
+            glyph[0] = .number(id)
+            glyphs[0] = .array(glyph)
+            runs[0] = .object(run.setting("glyphs", to: .array(glyphs)))
+
+            return title.setting("runs", to: .array(runs))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(
+            "runs[0].glyphs[0] (clip): expected [glyph id, x, y, dx, dy] with a glyph id from 0 to 65535"
+        ) == true)
+    }
+
     @Test("the title of the example of the resolved document reads, and writes back as it was written")
     func readsExampleTitle() throws {
         // Given

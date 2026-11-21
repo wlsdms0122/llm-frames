@@ -114,8 +114,7 @@ struct GlyphDrawer {
     ) {
         for (index, rect) in rects.enumerated() {
             context.saveGState()
-            if let bands, index < bands.count {
-                let band = bands[index]
+            if let band = bands?[index] {
                 let margin = rect.width + rect.height
                 let start = band.lowerBound > rect.x
                     ? pixelEdge(near: band.lowerBound, y: rect.y, in: context)
