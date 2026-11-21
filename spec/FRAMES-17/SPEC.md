@@ -54,7 +54,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 | `text` | a string | no | yes |
 | `video` | a video, or an image sequence | no | yes |
 | `sequence` | a compound clip: a sequence document, or a sequence template instance | no | yes |
-| `image` | an image file, or a page of a PDF ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | no | yes |
+| `image` | a still picture: an image file or a page of a PDF, as wherever a still picture is taken ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | no | yes |
 | `audio` | an audio file | no | yes |
 
 - `{"param": "<name>"}` stands for a value of the parameter's type, and never for a key. Where it may stand in a preset is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md). In a template it stands anywhere a value of that type is accepted.
