@@ -322,7 +322,120 @@ struct CornerPinEvaluationTests {
         #expect(zip(tracked, still).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
     }
 
+    @Test("a corner pin with motionBlur keyframed to move gives its group in every sample at that sample's corner pin, and the samples read back")
+    func movesCornerPinInEverySample() throws {
+        // Given
+        let sequence = try resolved(document: #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+              { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "motionBlur": true, "keyframes": [
+                { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]], "ease": "linear" },
+                { "at": 2, "cornerPin": [[300, 100], [700, 100], [700, 400], [300, 400]] } ] } ] }
+            """#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let samples = try #require(list.samples)
+        let pins = try samples.map { try cornerPin(of: "card", in: $0) }
+        #expect(samples.count == 16)
+        #expect(pins.allSatisfy { $0.isStrictlyConvex })
+        #expect(pins.first != pins.last)
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a tracked corner pin with motionBlur that crosses its horizon inside the exposure gives its group in every sample, four points at [0, 0] where it draws nothing, and the samples read back")
+    func keepsCornerPinAcrossHorizonInEverySample() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, whose homography takes (x, y) to
+        // ((x + 2y) / w, 2.5y / w) with w = 1 + 0.04y, so its horizon is y = -25 on the track's frame. The corner pin
+        // goes from beyond the horizon at 0 to [10, 0, 80, 25] on that frame at 1, so its top corners cross the horizon
+        // at 0.58333, between the instants 0.583125 and 0.584375 of the frame at 0.57.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let tracker = QuadTrackerTable(base: target, quads: [(0.0, target)] + (1...10).map { (Double($0) / 10, far) })
+        let document = { (isMotionBlurred: Bool) in
+            #"""
+                { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+                  "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                    { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
+                      "motionBlur": \#(isMotionBlurred), "track": { "time": 0, "area": [0, 0, 100, 100] },
+                      "keyframes": [ { "at": 0, "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]], "ease": "linear" },
+                                     { "at": 1, "cornerPin": [[10, 0], [90, 0], [70, 31.25], [30, 31.25]] } ] } ] } ] }
+                """#
+        }
+        let blurred = try resolved(document: document(true), tracker: tracker)
+        let sharp = try resolved(document: document(false), tracker: tracker)
+
+        // When
+        let list = sut.displayList(of: blurred, at: 0.57)
+
+        // Then
+        let samples = try #require(list.samples)
+        let pins = try samples.map { try cornerPin(of: "pinned", in: $0) }
+        let none = Quad(Rectangle(x: 0, y: 0, width: 0, height: 0))
+        #expect(samples.count == 16)
+        #expect(pins.prefix(11).allSatisfy { $0 == none })
+        #expect(pins.suffix(5).allSatisfy { $0.isStrictlyConvex })
+        #expect(!sut.displayList(of: sharp, at: 0.57).items.contains { $0.origin?.id == "pinned" })
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a storyline clip with motionBlur whose corner pin folds inside the exposure gives its group in every sample, four points at [0, 0] where it draws nothing")
+    func keepsStorylineGroupInEverySample() throws {
+        // Given
+        // The top corners cross at 1 and the bottom ones at 1.333, so the corner pin is not strictly convex between them.
+        // The frame at 0.99 has its samples at 0.990625 to 1.009375, eight on each side of 1.
+        let sequence = try resolved(document: #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "motionBlur": true, "keyframes": [
+                { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]], "ease": "linear" },
+                { "at": 2, "cornerPin": [[500, 100], [100, 100], [200, 400], [400, 400]] } ] } ] }
+            """#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.99)
+
+        // Then
+        let samples = try #require(list.samples)
+        let pins = samples.map(storylineCornerPin(in:))
+        #expect(samples.count == 16)
+        #expect(pins.prefix(8).allSatisfy { $0?.isStrictlyConvex == true })
+        #expect(pins.suffix(8).allSatisfy { $0 == .collapsed })
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
     // MARK: - Private
+    // The corner pin of the one group in the inner list of the storyline item first in `items`.
+    private func storylineCornerPin(in items: [DisplayItem]) -> Quad? {
+        guard
+            case let .picture(storyline) = items.first?.content,
+            case let .displayList(inner) = storyline.source,
+            inner.items.count == 1,
+            case let .picture(group) = inner.items.first?.content
+        else {
+            return nil
+        }
+
+        return group.cornerPin
+    }
+
+    // The corner pin of the one group the clip named `id` draws in `items`.
+    private func cornerPin(
+        of id: String,
+        in items: [DisplayItem]
+    ) throws -> Quad {
+        let groups = items.filter { $0.origin?.id == id }
+        #expect(groups.count == 1)
+        guard case let .picture(picture) = try #require(groups.first).content else {
+            Issue.record("the group is not a picture")
+            return Quad(Rectangle(x: 0, y: 0, width: 0, height: 0))
+        }
+
+        return try #require(picture.cornerPin)
+    }
+
     private func resolved(
         document: String,
         tracker: any TrackerProvider

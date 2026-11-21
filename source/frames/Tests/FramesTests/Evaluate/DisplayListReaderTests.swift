@@ -339,6 +339,8 @@ struct DisplayListReaderTests {
         (["8", "filter", "0", "ops", "0", "amount"], "0.5"),
         (["11", "unitBox"], "[0, 0, 1, 1]"),
         (["11", "unitGlyphBox"], "[0, 0, 1, 1]"),
+        (["12", "cornerPin"], "[[800, 300], [1131, 352], [1102, 918], [779, 861]]"),
+        (["12", "cornerPin"], "[[0, 0], [0, 0], [0, 0], [0, 0]]"),
         (["13", "dest"], "[0, 0, 200, 150]"),
         (["13", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
         (["13", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
@@ -549,7 +551,8 @@ struct DisplayListReaderTests {
         "a picture's corner pin that is not four points or not strictly convex stops, naming its place",
         arguments: [
             ("[[0, 0], [10, 0], [10, 10]]", "items[0].cornerPin (picture): expected a list of 4 points, found a list of 3"),
-            ("[[0, 0], [10, 0], [10, 10], [10, 20]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [10, 0], [10, 10], [10, 20]]")
+            ("[[0, 0], [10, 0], [10, 10], [10, 20]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [10, 0], [10, 10], [10, 20]]"),
+            ("[[0, 0], [0, 0], [0, 0], [0, 0]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [0, 0], [0, 0], [0, 0]]")
         ]
     )
     func refusesCornerPin(
@@ -964,6 +967,24 @@ struct DisplayListReaderTests {
         #expect(read.samples?.count == 2)
         #expect(read.samples?.first == Self.sampleItems)
         #expect(read.samples?.last != Self.sampleItems)
+    }
+
+    @Test(
+        "a corner pin in a sample list that is neither strictly convex nor four points at [0, 0] stops, naming its place",
+        arguments: ["[[1, 1], [1, 1], [1, 1], [1, 1]]", "[[0, 0], [10, 0], [10, 10], [10, 20]]"]
+    )
+    func refusesCornerPinInSample(written: String) throws {
+        // Given
+        let text = try writtenSamples(replacing: ["samples", "1", "12", "cornerPin"], with: Fixture.json(written))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == """
+            samples[1][12].cornerPin (picture): a corner pin in a sample list is a strictly convex quadrilateral or four \
+            points at [0, 0], found \(written)
+            """)
     }
 
     @Test("a grain in a later sample list with a seed other than the first grain's stops, naming its place")
