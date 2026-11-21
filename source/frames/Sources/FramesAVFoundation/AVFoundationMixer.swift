@@ -102,7 +102,7 @@ package final class AVFoundationMixer: Sendable {
         let heard = min(last - first, Int(buffer.frameLength))
         let from = max(span.lowerBound - first, 0)
         guard from < heard, let channels = buffer.floatChannelData else { return }
-        SegmentFilter(filter: segment.filter, sampleRate: Self.sampleRate)
+        AudioFilterChain(filter: segment.filter, sampleRate: Self.sampleRate)
             .process(buffer, frames: heard, first: first)
         let offset = first - span.lowerBound
         for frame in from..<heard {
@@ -146,7 +146,7 @@ package final class AVFoundationMixer: Sendable {
         sum.withUnsafeMutableBufferPointer { samples in
             guard let left = samples.baseAddress else { return }
 
-            SegmentFilter(filter: filter, sampleRate: Self.sampleRate)
+            AudioFilterChain(filter: filter, sampleRate: Self.sampleRate)
                 .process([left, left + frames], frames: frames, first: first)
         }
     }

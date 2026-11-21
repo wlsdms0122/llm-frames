@@ -71,7 +71,7 @@ struct FilterEntryProcessorTests {
     func runsEntriesInOrder() {
         // Given
         let entries = operations.map { MixFilterEntry(operations: [$0], mix: .constant(1)) }
-        let sut = SegmentFilter(filter: entries, sampleRate: Self.sampleRate)
+        let sut = AudioFilterChain(filter: entries, sampleRate: Self.sampleRate)
         let chained = FilterEntryProcessor(entry: MixFilterEntry(operations: operations, mix: .constant(1)), sampleRate: Self.sampleRate)
         let inputs = signal(count: 4800).map { StereoSample(left: Double(Float($0.left)), right: Double(Float($0.right))) }
 
@@ -87,8 +87,8 @@ struct FilterEntryProcessorTests {
     func mixesLimitedEntry() {
         // Given
         let limited = operations + [.limiter(Self.limiter)]
-        let sut = SegmentFilter(filter: [MixFilterEntry(operations: limited, mix: .constant(0.5))], sampleRate: Self.sampleRate)
-        let wet = SegmentFilter(filter: [MixFilterEntry(operations: limited, mix: .constant(1))], sampleRate: Self.sampleRate)
+        let sut = AudioFilterChain(filter: [MixFilterEntry(operations: limited, mix: .constant(0.5))], sampleRate: Self.sampleRate)
+        let wet = AudioFilterChain(filter: [MixFilterEntry(operations: limited, mix: .constant(1))], sampleRate: Self.sampleRate)
         let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
 
         // When
@@ -113,7 +113,7 @@ struct FilterEntryProcessorTests {
             MixFilterEntry(operations: [.limiter(Self.limiter)], mix: .constant(1)),
             MixFilterEntry(operations: [operations[1]], mix: .constant(1))
         ]
-        let sut = SegmentFilter(filter: entries, sampleRate: Self.sampleRate)
+        let sut = AudioFilterChain(filter: entries, sampleRate: Self.sampleRate)
         let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
 
         // When
@@ -121,7 +121,7 @@ struct FilterEntryProcessorTests {
 
         // Then
         let separate = entries.reduce(inputs) { sound, entry in
-            filtered(sound, by: SegmentFilter(filter: [entry], sampleRate: Self.sampleRate))
+            filtered(sound, by: AudioFilterChain(filter: [entry], sampleRate: Self.sampleRate))
         }
         #expect(outputs == separate)
     }
@@ -130,7 +130,7 @@ struct FilterEntryProcessorTests {
     // `inputs` through `filter` as one sound from sequence sample 0.
     private func filtered(
         _ inputs: [StereoSample],
-        by filter: SegmentFilter
+        by filter: AudioFilterChain
     ) -> [StereoSample] {
         var left = inputs.map { Float($0.left) }
         var right = inputs.map { Float($0.right) }

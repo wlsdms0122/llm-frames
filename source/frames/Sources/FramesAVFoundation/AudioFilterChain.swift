@@ -1,5 +1,5 @@
 //
-//  SegmentFilter.swift
+//  AudioFilterChain.swift
 //  FramesAVFoundation
 //
 //  Created by JSilver on 11/19/26.
@@ -8,12 +8,12 @@
 import AVFoundation
 import Frames
 
-// An audio filter over a stereo sound at 48 kHz: a segment's, after the downmix, the resampling and the time stretch
-// and before the gain and the pan, or a bus's chain, over the bus's sum and before its level. It is made at rest, so
-// each segment and each bus, and so each repeat of a loop, starts every op at rest. Entries none of whose ops reads
-// ahead run together sample by sample, and an entry with a limiter runs over the whole sound, reading silence before
-// its start and past its end.
-final class SegmentFilter {
+// A chain of audio filter entries over a stereo sound at the mix plan's sample rate: a segment's `audioFilter`, after
+// the downmix, the resampling and the time stretch and before the gain and the pan, a bus's chain, over the bus's sum
+// and before its level, or the plan's chain, over the whole mix. It is made at rest, so each segment and each bus, and
+// so each repeat of a loop, starts every op at rest. Entries none of whose ops reads ahead run together sample by
+// sample, and an entry with a limiter runs over the whole sound, reading silence before its start and past its end.
+final class AudioFilterChain {
     // MARK: - Property
     private let entries: [FilterEntryProcessor]
 
@@ -37,7 +37,7 @@ final class SegmentFilter {
         process([channels[0], channels[1]], frames: frames, first: first)
     }
 
-    // Runs the filter over `frames` samples of each of the two `channels` in place, frame 0 at sequence sample `first`.
+    // Runs the chain over `frames` samples of each of the two `channels` in place, frame 0 at sequence sample `first`.
     func process(
         _ channels: [UnsafeMutablePointer<Float>],
         frames: Int,
