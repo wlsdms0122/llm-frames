@@ -16,15 +16,17 @@ Things in a shot move. A title pinned to a moving sign, a blur kept on a face wh
 
 `track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area ([FRAMES-2](../FRAMES-2/SPEC.md)), in any form allowed where it is written, `true` for the clip's own geometry, or track data ([below](#track-data)):
 
-- `true` follows the clip's own geometry in the media it follows: its `area` (a rect or ellipse placed by area), its `mask` (the bounding box of every mask's geometry, without feather), its `crop` (a storyline or media clip whose crop is an area), or its `cornerPin` (the quadrilateral of its four corners, [FRAMES-27](../FRAMES-27/SPEC.md)). A clip that has more than one of these in the media it follows, or none, stops on `true`, since it must name its target. A `{scale}` crop, or no crop, is not an area. A title, still or compound clip has none in the media it follows, its parent's, so it names its target. A clip with a corner pin follows its parent's media, where its crop and masks are not, so `true` follows its corner pin.
-- The **tracked media** is the clip's own media when the clip is a storyline clip or media clip of video or image sequence without a corner pin. Otherwise it is its parent's media ([FRAMES-10](../FRAMES-10/SPEC.md)), when the parent is a storyline clip or media clip of video or image sequence without a corner pin. A clip with a corner pin is placed in its parent's space ([FRAMES-27](../FRAMES-27/SPEC.md)), so it follows its parent's media whatever its kind, and a parent with a corner pin gives its children the space its corner pin is written in and not its media's pixels. Anywhere else (an unparented title, shape or adjustment, a still or compound clip, a storyline clip with a corner pin, a clip parented to a title, a shape, a still or a clip with a corner pin) `track` stops, since there is no picture to follow.
-- The target is an area in the tracked media's pixels. On a clip that tracks its own media, a named target is in its own media pixels, as its crop and mask are. On a clip that tracks its parent's media, it is in its parent's space, as its position and area are.
+- **The tracked media is decided by the space the followed value is written in**, not by the clip's kind. A value written in the clip's own media pixels, the `crop` and `mask` of a storyline clip or media clip, follows the clip's own media. A value written in its parent's space ([FRAMES-10](../FRAMES-10/SPEC.md)), an `area`, a point (a `position`, a path's `points`), the `mask` of a shape or an adjustment clip, or a `cornerPin` ([FRAMES-27](../FRAMES-27/SPEC.md)), follows its parent's media. Only a video or an image sequence has frames to follow, so a space counts only where it is the media pixels of one: the clip's own media, or its parent's when the parent is a storyline clip or media clip of video or image sequence without a corner pin, since a parent with a corner pin gives its children the space its corner pin is written in and not its media's pixels.
+- The rule by kind is its consequence. A storyline clip or media clip of video or image sequence tracks its own media, where its crop and masks are; a storyline clip with a corner pin does too, since its corner pin is written in the frame, which has no media, and it is drawn as written. A title, a shape, an adjustment clip, a still or a compound clip has no media of its own to follow, so it tracks its parent's media, where its position, area, points and masks are. A clip with a corner pin under a parent of video or image sequence tracks its parent's media, where its corner pin is. `track` stops where no space counts (an unparented title, shape, adjustment, still or compound clip, a clip parented to a title, a shape, a still, an adjustment clip or a clip with a corner pin), since there is no picture to follow.
+- **A clip whose followed values lie in both spaces stops on `track`**, naming them, whether it holds `true`, a target or track data, since a track follows one picture and its target is written in one: a media clip of video or image sequence with a corner pin and an area `crop` or a `mask`, under a parent of video or image sequence. The way through is a compound clip: inside it, the media clip follows its own mask; outside, the compound clip carries the corner pin and follows its parent's media.
+- `true` follows the clip's own geometry in the media it tracks: its `area` (a rect or ellipse placed by area), its `mask` (the bounding box of every mask's geometry, without feather), its `crop` (a storyline or media clip whose crop is an area), or its `cornerPin` (the quadrilateral of its four corners, [FRAMES-27](../FRAMES-27/SPEC.md)). A clip that has more than one of these, or none, stops on `true`, since it must name its target. A `{scale}` crop, or no crop, is not an area. A title, still or compound clip without a corner pin has none in the media it tracks, its parent's, so it names its target.
+- The target is an area in the tracked media's pixels. On a clip that tracks its own media, a named target is in its own media pixels, as its crop and mask are. On a clip that tracks its parent's media, it is in its parent's space, as its position, area and corner pin are.
 
 **Note.** A clip with video of its own that should follow its parent's picture is parented to a shape that tracks it, as an After Effects layer is parented to a tracked null. The shape can be drawn at no opacity.
 
 ### The track
 
-The target is found at the clip's instant ([FRAMES-2](../FRAMES-2/SPEC.md)), before its padding, and the tracker provider ([FRAMES-21](../FRAMES-21/SPEC.md)) follows it backwards and forwards from that frame of the tracked media until it has covered every media frame the clip can show at the instants it draws (through the time map of the tracked media's clip, `timeRemap` and handles included, [FRAMES-8](../FRAMES-8/SPEC.md)), and the frames between them and the instant. On each frame it gives the target's quadrilateral (quad): four points in media pixels, the target's top left, top right, bottom right and bottom left corners in that order, as the target faces on the frame where it was found. The target as found is its quad: an area's four corners, or a corner pin's four points. A tracker reads only the media's pixels, so it is given the target's quad when the quad lies inside the picture, and otherwise the rectangle that bounds the part of the target inside the picture, as its four corners. Each quad it reports for what it was given, r for g, is carried to the whole target p by the homography between them, so the target's quad on that frame is H(g → r) applied to each corner of p ([FRAMES-27](../FRAMES-27/SPEC.md#the-homography)). A target with no part inside the picture is followed on no frame, and the rules of where the target is lost apply.
+The target is found at the clip's instant ([FRAMES-2](../FRAMES-2/SPEC.md)), before its padding, and the tracker provider ([FRAMES-21](../FRAMES-21/SPEC.md)) follows it backwards and forwards from that frame of the tracked media until it has covered every media frame the clip can show at the instants it draws (through the time map of the tracked media's clip, `timeRemap` and handles included, [FRAMES-8](../FRAMES-8/SPEC.md)), and the frames between them and the instant. On each frame it gives the target's quadrilateral (quad): four points in media pixels, the target's top left, top right, bottom right and bottom left corners in that order, as the target faces on the frame where it was found. The target as found is its quad: an area's four corners, a corner pin's four points, or the quad track data gives for the frame the instant shows ([Track data](#track-data)). A tracker reads only the media's pixels, so it is given the target's quad when the quad lies inside the picture, and otherwise the rectangle that bounds the part of the target inside the picture, as its four corners. Each quad it reports for what it was given, r for g, is carried to the whole target p by the homography between them, so the target's quad on that frame is H(g → r) applied to each corner of p ([FRAMES-27](../FRAMES-27/SPEC.md#the-homography)). A target with no part inside the picture is followed on no frame, and the rules of where the target is lost apply.
 
 - The track is a motion, a function of the tracked media's media time: on each frame, the similarity transform (a move, one uniform scale and one rotation) that takes the target's quad at the instant, corners p₁ to p₄, nearest by least squares to its quad on that frame, corners q₁ to q₄ in the same order. With p̄ and q̄ the centroids, pᵢ' = pᵢ - p̄ and qᵢ' = qᵢ - q̄:
 
@@ -51,41 +53,35 @@ The target is found at the clip's instant ([FRAMES-2](../FRAMES-2/SPEC.md)), bef
 
 ### Track data
 
-Track data is a track made outside frames, written as the value of `track` in place of a target for the tracker provider: an object of these keys, all required. A `track` object that holds `frames` is track data, and any other object is an area ([FRAMES-2](../FRAMES-2/SPEC.md)).
+Track data is a track made outside frames, written as the value of `track` in place of a target for the tracker provider: an object of one key, `frames`, which is required. A `track` object that holds `frames` is track data, and any other object is an area ([FRAMES-2](../FRAMES-2/SPEC.md)).
 
 | Key | Form | Meaning |
 | --- | --- | --- |
-| `time` | a number, media seconds | the media time of the frame the target is given on |
-| `target` | a quad: four points `[x, y]` of numbers | the target's quad on that frame, in media pixels of the tracked media, its top left, top right, bottom right and bottom left corners |
-| `frames` | a list of `{time, quad}`, at least one | every frame followed, in time order: a media time, and the target's quad on that frame as `target` gives one |
+| `frames` | a list of `{time, quad}`, at least one, each key required | every frame followed, in time order: a media time, and the target's quad on that frame, four points `[x, y]` of numbers in media pixels of the tracked media, its top left, top right, bottom right and bottom left corners |
 
-It is the object `track --json` prints ([FRAMES-23](../FRAMES-23/SPEC.md)) with its `track` key and each frame's `motion` and `homography` taken out.
+The target is the quad of the frame the clip's instant shows ([FRAMES-2](../FRAMES-2/SPEC.md)), so the motion and the homography are the identity at the instant by construction, and no other frame of reference is written. An extension that turns the object `track --json` prints ([FRAMES-23](../FRAMES-23/SPEC.md)) into track data keeps its `frames` and drops its `track`, `time` and `target` keys and each frame's `motion`.
 
 - The clip follows the target as a clip that names its target does. Its tracked media is the one the rules above give, the quads given stand where the tracker's would, resolve fits each frame's motion and homography to them as [The track](#the-track) says and pins the resolved track, and windows narrow where the data names no frame, as where the target is lost. `--tracker` is not called for a clip that writes track data.
-- A media time of the data names the frame of the tracked media whose presentation interval holds it ([FRAMES-3](../FRAMES-3/SPEC.md)), so an outside tracker's times need not match the media's to the microsecond. The resolved track writes `time` and each frame's `time` as the timestamp of the frame they name.
+- A media time of the data names the frame of the tracked media whose presentation interval holds it ([FRAMES-3](../FRAMES-3/SPEC.md)), so an outside tracker's times need not match the media's to the microsecond. The resolved track writes each frame's `time` as the timestamp of the frame it names, and its `time` and `target` as those of the frame the instant shows.
 - A clip with a corner pin that writes track data rides the homography of its quads, so a planar tracker run outside frames drives a corner pin ([FRAMES-27](../FRAMES-27/SPEC.md#a-tracked-corner-pin)).
 - A frame whose quad is not strictly convex is not followed (above), as a tracker's.
 
-Track data stops at `resolve`, naming its place, `...track.target` or `...track.frames[i]`:
+Track data stops at `resolve`, naming its place, `...track` or `...track.frames[i]`:
 
-- a key other than `time`, `target` and `frames`, or than `time` and `quad` in a frame, or a missing one;
+- a key other than `frames`, or than `time` and `quad` in a frame, or a missing one;
 - a point that is not two finite numbers, or a quad that is not four points;
-- a `target` that is not strictly convex ([FRAMES-27](../FRAMES-27/SPEC.md#the-homography)), since neither the motion nor the homography is fitted from it;
 - frames out of time order, or two frames that name one media frame;
 - a gap: a media frame between the first frame named and the last that no frame names;
-- a `time` that names a frame no frame of `frames` names, or that frame's quad not equal to `target`;
-- a frame the clip's instant shows ([FRAMES-2](../FRAMES-2/SPEC.md)) that no frame of `frames` names, since the clip's window would hold no instant;
+- a frame the clip's instant shows ([FRAMES-2](../FRAMES-2/SPEC.md)) that no frame of `frames` names, naming that frame's media time, since the data would give no target;
 - tracked media that is not a video or an image sequence, as for every `track`.
 
 ```json
-"track": { "time": 2.04,
-           "target": [ [812, 304], [1131, 352], [1102, 918], [779, 861] ],
-           "frames": [ { "time": 2, "quad": [ [810, 301], [1130, 350], [1101, 916], [777, 858] ] },
+"track": { "frames": [ { "time": 2, "quad": [ [810, 301], [1130, 350], [1101, 916], [777, 858] ] },
                        { "time": 2.04, "quad": [ [812, 304], [1131, 352], [1102, 918], [779, 861] ] },
                        { "time": 2.08, "quad": [ [815, 306], [1131, 355], [1102, 921], [781, 863] ] } ] }
 ```
 
-The frames are cut short. A clip that writes this follows the target from media second 2 to 2.08 and is visible where its instants show those frames.
+The frames are cut short. A clip whose instant shows media second 2.04 takes the quad there as its target, follows it from media second 2 to 2.08, and is visible where its instants show those frames.
 
 ## Interactions
 
@@ -98,6 +94,10 @@ Tracking as an area form: an area cannot move a position or keep a crop's zoom a
 An outside track written as keyframes on a parent, one for each frame, as After Effects' tracker writes them: a crop and a mask that follow their own media cannot be carried by a parent, the keyframes lie on clip time where a hold, a reverse or a `timeRemap` must play the motion by media time, and a lost target would not narrow the window. One fact would be spread over a value for each frame and kept in step by hand. Track data keeps it one value.
 
 Track data that also takes each frame's `motion` and ignores it: a value that does nothing breaks the rule that unknown keys stop, and the fit is resolve's to make.
+
+Track data with a `time` and a `target` of its own, the reference frame an outside tracker chose: the homography from one frame's quad to another's does not depend on the target, so the reference would decide only where keyframes are brought back to and what the motion is fitted from, hidden in a choice made for the tracker's reasons, and it would need a rule to agree with the clip's instant and with the frame's quad. The clip's instant already names that frame.
+
+A tracked media chosen by the clip's kind: a clip whose values lie in its parent's space, as a corner pin's do, would follow media its values are not written in, and a clip with values in both spaces could not be told apart from one with values in one.
 
 A tracker that reports a rectangle, with move and scale only: a turning subject would leave its title upright and drifting. Four corners give the rotation, and the same report leaves room for perspective later.
 
