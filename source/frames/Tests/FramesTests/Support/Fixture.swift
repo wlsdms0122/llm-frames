@@ -30,8 +30,12 @@ enum Fixture {
             "/abs/before.png": .image,
             "/abs/after.png": .image
         ],
+        pageCounts: pageCounts,
         templates: ["pack/intro", "pack/card"]
     )
+
+    // `/abs/logo.pdf` is a PDF of one page, and `/abs/deck.pdf` one of twelve.
+    static let pageCounts = ["/abs/logo.pdf": 1, "/abs/deck.pdf": 12]
 
     // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent. `/abs/card.png` is tagged sRGB.
     static let mediaFacts = MediaFactTable(
@@ -93,7 +97,8 @@ enum Fixture {
             ),
             "/abs/matte.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))
         ],
-        imageSequences: ["/abs/frames": imageSequenceFiles]
+        imageSequences: ["/abs/frames": imageSequenceFiles],
+        pageCounts: pageCounts
     )
 
     // Twelve frames in natural order, so frame 10 comes after frame 9.

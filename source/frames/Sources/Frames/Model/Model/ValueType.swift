@@ -13,6 +13,7 @@ indirect enum ValueType: Equatable, Sendable {
     case number(NumberDomain)
     case integer
     case nonNegativeInteger
+    case positiveInteger
     case text
     case name
     case color

@@ -60,7 +60,7 @@ package struct Transcoder: Sendable {
         case .video:
             try transcodeVideo(media, for: request)
 
-        case .sequence:
+        case .sequence, .page:
             throw TranscodeError.unsupportedInput(path: request.input)
         }
 

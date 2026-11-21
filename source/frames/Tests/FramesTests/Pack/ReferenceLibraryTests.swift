@@ -174,6 +174,24 @@ struct ReferenceLibraryTests {
         #expect(try sut.mediaFile(named: "nopack/leak.mov") == nil)
     }
 
+    @Test("a PDF named <pack>/<file> has the page count its probe finds, and media that is not a PDF has none")
+    func countsPackPages() throws {
+        // Given
+        let deck = directory.installed.appendingPathComponent("shorts/media/deck.pdf").path
+        let sut = directory.library(mediaFacts: MediaFactTable(files: [:], pageCounts: [deck: 3]))
+        try directory.write("%PDF-1.7", in: "shorts", at: "media/deck.pdf")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/deck.pdf" } ] }"#, in: "shorts", at: "media/intro.json")
+
+        // When
+        let count = try sut.pageCount(of: "shorts/deck.pdf")
+
+        // Then
+        #expect(count == 3)
+        #expect(try sut.pageCount(of: "shorts/intro.json") == nil)
+        #expect(try sut.pageCount(of: "shorts/leak.mov") == nil)
+        #expect(try sut.pageCount(of: "nopack/deck.pdf") == nil)
+    }
+
     @Test("a .json document used as media is read from the pack's media, checked, and has the kind of document it is")
     func findsDocument() throws {
         // Given

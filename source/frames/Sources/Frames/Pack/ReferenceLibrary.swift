@@ -55,6 +55,17 @@ package struct ReferenceLibrary: MediaKindProvider {
         }
     }
 
+    // A document is no PDF, so it is not read for a page count.
+    func pageCount(of reference: String) throws -> Int? {
+        guard !isDocument(reference), let file = try mediaFile(named: reference) else { return nil }
+
+        do {
+            return try mediaFacts.pageCount(of: file)
+        } catch {
+            throw UnreadableMediaError(reason: error)
+        }
+    }
+
     func hasTemplate(named name: String) throws -> Bool {
         try template(named: name) != nil
     }

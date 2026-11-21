@@ -93,6 +93,9 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
         case .video:
             "a video"
 
+        case .page:
+            "a page of a PDF"
+
         case .sequence:
             "an image sequence"
         }

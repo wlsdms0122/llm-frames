@@ -165,6 +165,11 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .positiveInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer >= 1 else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .color, .unnamedColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
@@ -751,6 +756,9 @@ struct KeyChecker: Sendable {
         case let .object(object) where object.contains("template"):
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
 
+        case let .object(object) where object.contains("file"):
+            try checkObject(object, as: MediaKeyTable.page, place: place, scope: &scope)
+
         case .object:
             throw ModelError.missingKey(place: place, kind: "media", keys: MediaKeyTable.keys)
 
@@ -789,6 +797,14 @@ struct KeyChecker: Sendable {
         case let .object(object) where object.contains("template"):
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
 
+        case let .object(object) where object.contains("file"):
+            return try pageKind(
+                of: object["file"]?.stringValue ?? "",
+                page: object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 0,
+                place: place,
+                kind: kind
+            )
+
         default:
             // The only other value the shape check lets through is an image sequence, which plays as video.
             return .video
@@ -816,11 +832,20 @@ struct KeyChecker: Sendable {
         return .sequence
     }
 
+    // A PDF of one page named as a file is that page, and one of more pages names more than one picture.
     private func probedKind(
         of reference: String,
         place: Place,
         kind: String
     ) throws -> MediaKind {
+        if let pageCount = try pageCount(of: reference, place: place, kind: kind) {
+            guard pageCount == 1 else {
+                throw ModelError.unnamedPage(place: place, kind: kind, reference: reference, pageCount: pageCount)
+            }
+
+            return .page
+        }
+
         let probed: MediaKind?
         do {
             probed = try mediaKinds.mediaKind(of: reference)
@@ -832,6 +857,42 @@ struct KeyChecker: Sendable {
         }
 
         return probed
+    }
+
+    // A page names its PDF, and media that is there but is not a PDF holds no page.
+    private func pageKind(
+        of reference: String,
+        page: Int,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        guard let pageCount = try pageCount(of: reference, place: place, kind: kind) else {
+            _ = try probedKind(of: reference, place: place, kind: kind)
+            throw ModelError.pageOfNonPDF(place: place.appending(key: "page"), kind: kind, reference: reference)
+        }
+        guard page <= pageCount else {
+            throw ModelError.missingPage(
+                place: place.appending(key: "page"),
+                kind: kind,
+                reference: reference,
+                page: page,
+                pageCount: pageCount
+            )
+        }
+
+        return .page
+    }
+
+    private func pageCount(
+        of reference: String,
+        place: Place,
+        kind: String
+    ) throws -> Int? {
+        do {
+            return try mediaKinds.pageCount(of: reference)
+        } catch let error as UnreadableMediaError {
+            throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
+        }
     }
 
     private func checkDocument(
@@ -1176,7 +1237,7 @@ struct KeyChecker: Sendable {
     ) throws -> MediaKind {
         let name = object["param"]?.stringValue ?? ""
         let parameterType = scope.parameters[name]?["type"]?.stringValue ?? ""
-        guard let mediaKind = MediaKind(rawValue: parameterType) else {
+        guard let mediaKind = ParameterType(rawValue: parameterType)?.mediaKind else {
             throw ModelError.misplacedParameter(
                 place: place,
                 kind: kind,
@@ -1376,7 +1437,7 @@ struct KeyChecker: Sendable {
             parameterType == "number" || parameterType == "color"
 
         case .media:
-            MediaKind(rawValue: parameterType) != nil
+            ParameterType(rawValue: parameterType)?.mediaKind != nil
 
         case .text, .runs:
             parameterType == "text"
@@ -1434,7 +1495,7 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number):
+        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.unnamedColor, .string),
@@ -1502,6 +1563,9 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeInteger:
             "a whole number, 0 or more"
+
+        case .positiveInteger:
+            "a whole number, 1 or more"
 
         case .text, .name, .identifier:
             "a string"
