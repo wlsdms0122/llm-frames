@@ -281,6 +281,39 @@ struct CornerPinEvaluationTests {
         #expect(abs(corner.x - 150) < 1e-9 && abs(corner.y - 120) < 1e-9)
     }
 
+    @Test("a title with a corner pin, a background padding and a mask has its mask in its glyphs item's coordinates, its text box, as without a corner pin, and the text box at the padding in its box")
+    func carriesTitleMasksWithGlyphs() throws {
+        // Given
+        let title = ##""title": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "shape": "rect", "area": [0, 0, 20, 20] } ]"##
+        let pinned = try resolved(#"{ "id": "card", \#(title), "cornerPin": \#(Self.pin) }"#)
+        let placed = try resolved(#"{ "id": "card", \#(title), "position": [400, 300] }"#)
+
+        // When
+        let list = sut.displayList(of: pinned, at: 1)
+        let unpinned = sut.displayList(of: placed, at: 1)
+
+        // Then
+        guard
+            case let .picture(picture) = list.items.last?.content,
+            case let .displayList(nested) = picture.source,
+            let item = nested.items.first,
+            let rectangle = picture.rectangle
+        else {
+            Issue.record("the group is not a picture of a nested list")
+            return
+        }
+        let unpinnedItem = try #require(unpinned.items.last)
+        let mask = try #require(item.mask.first)
+        let unpinnedMask = try #require(unpinnedItem.mask.first)
+        // The group's rect is B in the list, so B's top left lies at the rect's origin there.
+        let corner = mask.transform.apply(to: Point(x: 0, y: 0))
+        // The padding of [8, 12] is 4.5 by 6.75 output pixels in a frame 1080 pixels wide.
+        #expect(item.mask.count == 1)
+        #expect(isClose(mask.transform, item.transform))
+        #expect(isClose(unpinnedMask.transform, unpinnedItem.transform))
+        #expect(abs(corner.x - rectangle.x - 6.75) < 1e-9 && abs(corner.y - rectangle.y - 4.5) < 1e-9)
+    }
+
     @Test("a tracked corner pin brings back each keyframe of numbers at its own time, though another keyframe holds a clip area, so it draws at that time what it writes")
     func bringsBackNumberKeyframeBesideClipArea() throws {
         // Given
@@ -434,6 +467,15 @@ struct CornerPinEvaluationTests {
         }
 
         return try #require(picture.cornerPin)
+    }
+
+    private func isClose(
+        _ transform: AffineTransform,
+        _ other: AffineTransform
+    ) -> Bool {
+        [transform.a - other.a, transform.b - other.b, transform.c - other.c, transform.d - other.d,
+         transform.tx - other.tx, transform.ty - other.ty]
+            .allSatisfy { abs($0) < 1e-9 }
     }
 
     private func resolved(
