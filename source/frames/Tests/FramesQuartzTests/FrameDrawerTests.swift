@@ -190,7 +190,63 @@ struct FrameDrawerTests {
         expect(bitmap.pixel(x: 30, y: 20), equals: [1, 0, 0, 1])
     }
 
+    @Test(
+        "a reveal whose rectangle holds everything the item draws draws it exactly as no reveal",
+        arguments: [0, 1, 2, 3]
+    )
+    func drawsWholeRevealAsNone(index: Int) throws {
+        // Given
+        let (item, reveal) = Self.wholeReveals[index]
+        let revealed = DisplayItem(
+            transform: item.transform,
+            opacity: item.opacity,
+            reveal: reveal,
+            content: item.content
+        )
+        let behind = DisplayItem(content: .path(PathItem(filling: Rectangle(x: 10, y: 50, width: 100, height: 20), color: Self.black)))
+
+        // When
+        let without = try sut.frame(of: list(size: 120, background: "#808080", items: [behind, item]))
+        let with = try sut.frame(of: list(size: 120, background: "#808080", items: [behind, revealed]))
+
+        // Then
+        #expect(without == with)
+    }
+
     // MARK: - Private
+    // Items whose edges cross pixels, each with a rectangle that holds everything it draws: a turned path filled and
+    // stroked, a turned path with a shadow, a turned picture of a nested list, and an adjustment over the whole frame.
+    private static let wholeReveals: [(DisplayItem, Rectangle)] = {
+        let turn = AffineTransform(a: 0.866, b: 0.5, c: -0.5, d: 0.866, tx: 60.3, ty: 20.7)
+        let stroked = PathItem(
+            geometry: .ellipse(Rectangle(x: 0.4, y: 0.2, width: 50.3, height: 30.1)),
+            fill: .color(Color(written: "#FF0000")),
+            stroke: PathStroke(width: 3, paint: .color(Self.white), join: .round, cap: .round, start: .none, end: .none)
+        )
+        let shadowed = PathItem(
+            geometry: .rect(Rectangle(x: 0.4, y: 0.2, width: 50.3, height: 30.1), radius: 4),
+            fill: .color(Color(written: "#00FF00")),
+            stroke: nil,
+            shadow: DropShadow(radius: 2, offset: Point(x: 3, y: 4), color: Self.black)
+        )
+        let nested = DisplayList(
+            size: Size(width: 40, height: 20),
+            background: Color(written: "#0000FF"),
+            seed: 0,
+            items: [DisplayItem(content: .path(PathItem(filling: Rectangle(x: 5, y: 5, width: 10, height: 10), color: Self.white)))]
+        )
+        let destination = Rectangle(x: 0.3, y: 0.6, width: 40.2, height: 20.3)
+        let picture = PictureItem(source: .displayList(nested), rectangle: Rectangle(x: 0, y: 0, width: 40, height: 20), destination: destination)
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [.exposure(ev: 1)])])
+
+        return [
+            (DisplayItem(transform: turn, content: .path(stroked)), stroked.drawnBounds(carriedBy: turn)),
+            (DisplayItem(transform: turn, content: .path(shadowed)), shadowed.drawnBounds(carriedBy: turn)),
+            (DisplayItem(transform: turn, opacity: 0.5, content: .picture(picture)), destination),
+            (DisplayItem(content: .adjust(adjust)), Rectangle(x: 0, y: 0, width: 120, height: 120))
+        ]
+    }()
+
     private func list(
         size: Double,
         background: String,
