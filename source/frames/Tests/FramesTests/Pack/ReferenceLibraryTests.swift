@@ -178,7 +178,7 @@ struct ReferenceLibraryTests {
     func countsPackPages() throws {
         // Given
         let deck = directory.installed.appendingPathComponent("shorts/media/deck.pdf").path
-        let sut = directory.library(mediaFacts: MediaFactTable(files: [:], pageCounts: [deck: 3]))
+        let sut = directory.library(mediaFacts: MediaFactTable(files: [:], pages: [deck: Array(repeating: Size(width: 612, height: 792), count: 3)]))
         try directory.write("%PDF-1.7", in: "shorts", at: "media/deck.pdf")
         try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/deck.pdf" } ] }"#, in: "shorts", at: "media/intro.json")
 

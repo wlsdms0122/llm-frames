@@ -35,7 +35,13 @@ enum Fixture {
     )
 
     // `/abs/logo.pdf` is a PDF of one page, and `/abs/deck.pdf` one of twelve.
-    static let pageCounts = ["/abs/logo.pdf": 1, "/abs/deck.pdf": 12]
+    static let pageCounts = pages.mapValues(\.count)
+
+    // The page sizes of each PDF, in points: `/abs/logo.pdf` is 200 by 100 and `/abs/deck.pdf` is twelve A4 pages.
+    static let pages = [
+        "/abs/logo.pdf": [Size(width: 200, height: 100)],
+        "/abs/deck.pdf": Array(repeating: Size(width: 595.276, height: 841.89), count: 12)
+    ]
 
     // `/abs/run.mp4` and the audio files hold sound, and the other videos are silent. `/abs/card.png` is tagged sRGB.
     static let mediaFacts = MediaFactTable(
@@ -98,7 +104,7 @@ enum Fixture {
             "/abs/matte.png": ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))
         ],
         imageSequences: ["/abs/frames": imageSequenceFiles],
-        pageCounts: pageCounts
+        pages: pages
     )
 
     // Twelve frames in natural order, so frame 10 comes after frame 9.
