@@ -29,9 +29,9 @@ struct GlyphDrawer {
         carriedBy transform: Frames.AffineTransform,
         in context: CGContext
     ) throws {
-        let draws = { (layer: GlyphLayer) in item.layer == nil || item.layer == layer }
+        let draws = { (layer: GlyphLayer) in item.unit.map { $0.layer == layer } ?? true }
 
-        if item.layer == nil, let background = item.background {
+        if item.unit == nil, let background = item.background {
             context.addPath(PathOutline(.rect(background.rectangle, radius: background.radius)).path)
             context.setFillColor(background.color.cgColor)
             context.fillPath()

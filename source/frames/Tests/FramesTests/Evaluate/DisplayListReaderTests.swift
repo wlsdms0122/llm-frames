@@ -182,9 +182,7 @@ struct DisplayListReaderTests {
         DisplayItem(content: .glyphs(GlyphsItem(
             size: Size(width: 10, height: 10),
             runs: [],
-            layer: .strokes,
-            unit: 3,
-            unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
+            unit: UnitDrawing(layer: .strokes, index: 3, box: Rectangle(x: 2, y: 1, width: 6, height: 8)),
             extent: Rectangle(x: 3, y: 2, width: 4, height: 6),
             background: nil
         )), origin: ItemOrigin(place: "clips[1]", id: "lower", kind: "title"))
@@ -648,6 +646,10 @@ struct DisplayListReaderTests {
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
             (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#),
+            (#""layer": "strokes""#, #""layer": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only unit and unitBox"),
+            (#""unit": 3"#, #""unit": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only layer and unitBox"),
+            (#""unitBox": [2, 1, 6, 8]"#, #""unitBox": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only layer and unit"),
+            (#""unit": null"#, #""unit": 0"#, "items[6] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only unit"),
             (#""bands": ["#, #""bands": [[30, 40], "#, "items[6].runs[0].highlight.bands (glyphs): expected a band for each rect, 1 in all, found a list of 2"),
             (#"[43, 12, 36]"#, #"[65536, 12, 36]"#, #"items[6].runs[0].glyphs[0] (glyphs): expected [glyph id, x, y] with a glyph id from 0 to 65535, found a list of 3"#)
         ]
@@ -1033,9 +1035,7 @@ struct DisplayListReaderTests {
         DisplayItem(content: .glyphs(GlyphsItem(
             size: Size(width: 10, height: 10),
             runs: [],
-            layer: layer,
-            unit: unit,
-            unitBox: Rectangle(x: 0, y: 0, width: 5, height: 10),
+            unit: UnitDrawing(layer: layer, index: unit, box: Rectangle(x: 0, y: 0, width: 5, height: 10)),
             extent: Rectangle(x: 0, y: 0, width: 5, height: 10),
             background: nil
         )))

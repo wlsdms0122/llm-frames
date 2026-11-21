@@ -28,12 +28,16 @@ extension ResolvedText {
         }
     }
 
-    // The characters of the unit at `index`: those it holds and the spaces that go with it, in reading order.
+    // The characters of the unit at `index`: those it holds and the spaces that go with it, in reading order. `origin`
+    // names the item that draws the unit, and the title it is drawn from.
     func characters(
         of index: Int,
-        at time: SampleTime
-    ) -> [EvaluationCharacter] {
-        guard let units, units.indices.contains(index) else { return [] }
+        at time: SampleTime,
+        drawnBy origin: ItemOrigin
+    ) throws -> [EvaluationCharacter] {
+        guard let units, units.indices.contains(index) else {
+            throw AnalysisError.unknownUnit(place: origin.place, kind: origin.kind, unit: index, units: units?.count)
+        }
 
         let stretch = units[index].characters
 

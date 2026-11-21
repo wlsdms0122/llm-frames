@@ -491,13 +491,7 @@ package struct DisplayListReader: Sendable {
         GlyphsItem(
             size: try values.size(item.member("size")),
             runs: try values.drawnRuns(item.member("runs")),
-            layer: try item.member("layer").optional { try literal($0) },
-            unit: try item.member("unit").optional { value in
-                guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
-
-                return unit
-            },
-            unitBox: try item.member("unitBox").optional { try values.rectangle($0) },
+            unit: try unit(of: item),
             extent: try values.rectangle(item.member("extent")),
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
@@ -511,10 +505,37 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    private func fillsUnit(of item: DisplayItem) -> Int? {
-        guard case let .glyphs(glyphs) = item.content, glyphs.layer == .fills else { return nil }
+    // A unit's item carries its layer, its unit's index and its unit's box, and a title's own item none of them.
+    private func unit(of item: PlacedJSONObject) throws -> UnitDrawing? {
+        let layer: GlyphLayer? = try item.member("layer").optional { try literal($0) }
+        let index = try item.member("unit").optional { value in
+            guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
 
-        return glyphs.unit
+            return unit
+        }
+        let box = try item.member("unitBox").optional { try values.rectangle($0) }
+        switch (layer, index, box) {
+        case let (layer?, index?, box?):
+            return UnitDrawing(layer: layer, index: index, box: box)
+
+        case (nil, nil, nil):
+            return nil
+
+        default:
+            let found = [("layer", layer != nil), ("unit", index != nil), ("unitBox", box != nil)].filter(\.1).map(\.0)
+            throw ModelError.invalidValue(
+                place: item.place,
+                kind: item.kind,
+                reason: "a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only "
+                    + found.joined(separator: " and ")
+            )
+        }
+    }
+
+    private func fillsUnit(of item: DisplayItem) -> Int? {
+        guard case let .glyphs(glyphs) = item.content, let unit = glyphs.unit, unit.layer == .fills else { return nil }
+
+        return unit.index
     }
 
     private func filter(

@@ -50,7 +50,7 @@ struct TitleGroupTests {
         #expect(list.size == Size(width: 1920, height: 1080))
         #expect(list.seed == 7)
         #expect(list.items.map(\.origin) == Array(repeating: ItemOrigin(clip: clip), count: 9))
-        #expect(list.items.map { self.glyphs(of: $0)?.unit } == [nil] + (0..<4).flatMap { _ in [0, 1] })
+        #expect(list.items.map { self.glyphs(of: $0)?.unit?.index } == [nil] + (0..<4).flatMap { _ in [0, 1] })
         #expect(list.items.map(\.transform) == Array(repeating: single.transform, count: 9))
         #expect(list.items.map { layer(of: $0) } == [GlyphLayer?.none] + GlyphLayer.allCases.flatMap { [$0, $0] })
         // "ab" draws the space after it.
@@ -291,7 +291,7 @@ struct TitleGroupTests {
         // Then
         #expect(text.units == [])
         #expect(items.count == 1)
-        #expect(items.first.flatMap { glyphs(of: $0) }?.layer == nil)
+        #expect(items.first.flatMap { glyphs(of: $0) }?.unit == nil)
         #expect(items.first.flatMap { glyphs(of: $0) } != nil)
     }
 
@@ -419,7 +419,7 @@ struct TitleGroupTests {
     }
 
     private func layer(of item: DisplayItem) -> GlyphLayer? {
-        glyphs(of: item)?.layer
+        glyphs(of: item)?.unit?.layer
     }
 
     private func highlight(of item: DisplayItem) -> DrawnHighlight? {

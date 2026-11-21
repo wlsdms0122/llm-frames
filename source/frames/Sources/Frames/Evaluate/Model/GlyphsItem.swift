@@ -5,19 +5,15 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Shaped glyphs and their background in a title's text box at one instant, of `size`, origin at its top left. `layer`
-// is nil for an item that draws every step, or the one step a unit's item draws. `unit` is the index among its title's
-// units in reading order of a unit's item's unit, and nil for any other item. `unitBox` is a unit's box for a unit's
-// item, which holds its stroke and its parts, and nil for any other. `extent` is the drawn extent of its glyphs, its
-// unit's for a unit's item and its title's for any other, which is the text box when it is not given. The background's
-// rect is the text box grown by the background's padding.
+// Shaped glyphs and their background in a title's text box at one instant, of `size`, origin at its top left. `unit` is
+// what a unit's item draws of its unit, and nil for a title's own item, which draws every step. `extent` is the drawn
+// extent of its glyphs, its unit's for a unit's item and its title's for any other, which is the text box when it is
+// not given. The background's rect is the text box grown by the background's padding.
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
     package let runs: [DrawnGlyphRun]
-    package let layer: GlyphLayer?
-    package let unit: Int?
-    package let unitBox: Rectangle?
+    package let unit: UnitDrawing?
     package let extent: Rectangle
     package let background: GlyphBackground?
 
@@ -25,17 +21,13 @@ package struct GlyphsItem: Equatable, Sendable {
     package init(
         size: Size,
         runs: [DrawnGlyphRun],
-        layer: GlyphLayer? = nil,
-        unit: Int? = nil,
-        unitBox: Rectangle? = nil,
+        unit: UnitDrawing? = nil,
         extent: Rectangle? = nil,
         background: GlyphBackground?
     ) {
         self.size = size
         self.runs = runs
-        self.layer = layer
         self.unit = unit
-        self.unitBox = unitBox
         self.extent = extent ?? Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         self.background = background
     }
@@ -87,17 +79,15 @@ package struct GlyphsItem: Equatable, Sendable {
         )
     }
 
-    // The item of `layer` of the unit at `unit` from the whole title's `item`: the unit's `glyphs` in their runs and the
-    // pieces its `parts` name, in its `box`, with its drawn `extent`, with no background, its strokes widened by
-    // `factor`, the scale factor of the unit's motion. A run the unit has neither glyphs nor parts of is left out.
+    // The item that draws `unit` from the whole title's `item`: the unit's `glyphs` in their runs and the pieces its
+    // `parts` name, with its drawn `extent`, with no background, its strokes widened by `factor`, the scale factor of the
+    // unit's motion. A run the unit has neither glyphs nor parts of is left out.
     init(
-        unit: Int,
+        drawing unit: UnitDrawing,
         carrying glyphs: [GlyphRange],
         parts: [UnitPart],
-        in box: Rectangle,
         extent: Rectangle,
         of item: GlyphsItem,
-        layer: GlyphLayer,
         factor: Double
     ) {
         self.init(
@@ -109,9 +99,7 @@ package struct GlyphsItem: Equatable, Sendable {
                     factor: factor
                 )
             },
-            layer: layer,
             unit: unit,
-            unitBox: box,
             extent: extent,
             background: nil
         )

@@ -56,7 +56,7 @@ package struct EvaluationReporter: Sendable {
                 items.append(EvaluationItem(item, characters: title.text.characters(at: titleTime)))
 
             case let .unit(unit):
-                items.append(EvaluationItem(item, characters: title.text.characters(of: unit, at: titleTime)))
+                items.append(EvaluationItem(item, characters: try title.text.characters(of: unit, at: titleTime, drawnBy: origin)))
 
             case .none:
                 items.append(EvaluationItem(item))

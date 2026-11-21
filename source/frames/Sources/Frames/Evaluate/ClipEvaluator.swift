@@ -193,13 +193,11 @@ struct ClipEvaluator: Sendable {
             let parts = text.parts(of: index, at: time)
             let layers = GlyphLayer.allCases.map { layer in
                 GlyphsItem(
-                    unit: index,
+                    drawing: UnitDrawing(layer: layer, index: index, box: box),
                     carrying: units[index].glyphs,
                     parts: parts,
-                    in: box,
                     extent: text.extent(of: index, at: time),
                     of: glyphs,
-                    layer: layer,
                     factor: factor
                 )
             }

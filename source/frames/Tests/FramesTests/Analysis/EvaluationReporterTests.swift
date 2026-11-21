@@ -348,8 +348,7 @@ struct EvaluationReporterTests {
         let unit = GlyphsItem(
             size: size,
             runs: [run(stroke: nil, highlight: nil)],
-            layer: .fills,
-            unitBox: Rectangle(x: 0, y: 0, width: 50, height: 40),
+            unit: UnitDrawing(layer: .fills, index: 0, box: Rectangle(x: 0, y: 0, width: 50, height: 40)),
             extent: Rectangle(x: 5, y: 10, width: 30, height: 20),
             background: nil
         )
@@ -390,9 +389,7 @@ struct EvaluationReporterTests {
             GlyphsItem(
                 size: Size(width: 100, height: 40),
                 runs: [self.run(stroke: nil, highlight: nil)],
-                layer: .fills,
-                unit: unit,
-                unitBox: Rectangle(x: 0, y: 0, width: 50, height: 40),
+                unit: UnitDrawing(layer: .fills, index: unit, box: Rectangle(x: 0, y: 0, width: 50, height: 40)),
                 extent: Rectangle(x: 0, y: 0, width: 50, height: 40),
                 background: nil
             )
@@ -411,6 +408,45 @@ struct EvaluationReporterTests {
 
         // Then
         #expect(report.items.map { $0.characters?.map(\.text) } == [["c", "d"], ["a", "b", " "]])
+    }
+
+    @Test(
+        "a unit's item that names a unit its title does not have stops, naming the title and the units it has",
+        arguments: [
+            (#""by": "word""#, 2, "whose units are 0 to 1"),
+            (#""by": "character""#, 5, "whose units are 0 to 3"),
+            ("", 0, "which is not animated by unit")
+        ]
+    )
+    func refusesUnknownUnit(
+        by: String,
+        unit: Int,
+        reason: String
+    ) throws {
+        // Given
+        let animation = by.isEmpty ? "" : #", "animation": { "preset": "frames/fade", \#(by) }"#
+        let document = try resolved(titled(#"{ "title": "ab cd"\#(animation) }"#))
+        let titles = document.titles(at: 1)
+        let place = try #require(titles.keys.first)
+        let item = GlyphsItem(
+            size: Size(width: 100, height: 40),
+            runs: [run(stroke: nil, highlight: nil)],
+            unit: UnitDrawing(layer: .fills, index: unit, box: Rectangle(x: 0, y: 0, width: 50, height: 40)),
+            extent: Rectangle(x: 0, y: 0, width: 50, height: 40),
+            background: nil
+        )
+
+        // When
+        let error = #expect(throws: AnalysisError.self) {
+            try sut.report(
+                of: list([DisplayItem(content: .glyphs(item), origin: ItemOrigin(place: place, id: "t", kind: "title"))]),
+                titles: titles,
+                at: 1
+            )
+        }
+
+        // Then
+        #expect(error?.description == "\(place) (title): the item draws unit \(unit) of the title, \(reason)")
     }
 
     @Test("a resolved document is evaluated at the time, its clips reporting places, ids, kinds, bounds and rects")

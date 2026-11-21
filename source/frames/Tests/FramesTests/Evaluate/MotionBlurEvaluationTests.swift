@@ -508,7 +508,7 @@ struct MotionBlurEvaluationTests {
         let samples = try #require(list.samples)
         let units = try samples.map { try glyphs(of: "title", in: $0).filter { $0.unit != nil } }
         // Each of the four passes draws the units "a", "b ", "c" and "d" in reading order.
-        #expect(units.allSatisfy { $0.compactMap(\.unit) == Array(repeating: [0, 1, 2, 3], count: 4).flatMap { $0 } })
+        #expect(units.allSatisfy { $0.compactMap(\.unit?.index) == Array(repeating: [0, 1, 2, 3], count: 4).flatMap { $0 } })
         #expect(units.first?.map(\.extent) != units.last?.map(\.extent))
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
     }

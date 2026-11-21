@@ -151,7 +151,7 @@ struct DisplayListFlattener: Sendable {
         by glyphs: GlyphsItem,
         carriedBy transform: AffineTransform
     ) -> Rectangle? {
-        guard !glyphs.runs.isEmpty || glyphs.layer != nil else { return glyphs.background?.rectangle }
+        guard !glyphs.runs.isEmpty || glyphs.unit != nil else { return glyphs.background?.rectangle }
 
         return glyphs.drawnBounds(carriedBy: transform)
     }
@@ -159,16 +159,9 @@ struct DisplayListFlattener: Sendable {
     // A title's one item that draws its runs reports every character, and a unit's `fills` item the characters of the
     // unit it names. A title's background drawn alone and every other layer of a unit report none.
     private func scope(of glyphs: GlyphsItem) -> CharacterScope? {
-        switch glyphs.layer {
-        case .none:
-            glyphs.runs.isEmpty ? nil : .title
+        guard let unit = glyphs.unit else { return glyphs.runs.isEmpty ? nil : .title }
 
-        case .fills:
-            glyphs.unit.map(CharacterScope.unit)
-
-        case .highlights, .underlines, .strokes:
-            nil
-        }
+        return unit.layer == .fills ? .unit(unit.index) : nil
     }
 
     // The transform that carries `rectangle` onto `other`.
