@@ -9,8 +9,9 @@ import Frames
 
 extension DisplayList {
     // MARK: - Property
-    // Whether the list draws a picture of pixels, a media frame, itself, in a nested list or in a track matte's source,
-    // in any of its sample lists for a list with samples.
+    // Whether the list draws a picture of pixels, a frame of raster media, itself, in a nested list or in a track matte's
+    // source, in any of its sample lists for a list with samples. A page of a PDF is none, since it is asked for at the
+    // scale it is shown at.
     var holdsPixels: Bool {
         let items = switch content {
         case let .items(items):
@@ -23,8 +24,8 @@ extension DisplayList {
         return items.contains { item in
             if case let .picture(picture) = item.content {
                 switch picture.source {
-                case .media:
-                    return true
+                case let .media(frame):
+                    if frame.picture != .page { return true }
 
                 case let .displayList(list):
                     if list.holdsPixels { return true }

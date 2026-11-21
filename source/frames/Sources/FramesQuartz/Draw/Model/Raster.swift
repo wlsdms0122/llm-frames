@@ -64,7 +64,7 @@ struct Raster: Equatable {
     // any direction, at the points it carries into the area, sampled on a grid over that part and at its corners, where
     // that factor is above 1, and 1 where it is not, so a picture of pixels the list holds is resampled once, in the
     // warp. Where the pixel limit does not allow the whole factor, a list that `holdsPixels` is drawn at its own size
-    // for the same reason, and any other at the largest scale the limit allows. Either is held to the limit. Nil when
+    // for the same reason, and any other, one holding a page of a PDF included, at the largest scale the limit allows. Either is held to the limit. Nil when
     // none of the list lands in the area.
     init?(
         showing size: Size,
