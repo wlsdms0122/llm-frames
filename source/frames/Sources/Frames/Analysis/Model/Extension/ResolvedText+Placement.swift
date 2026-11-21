@@ -8,8 +8,9 @@
 // Where a title's text lies at an instant, as `evaluate` reports it, in its text box then and read from the resolved
 // title alone. A character lies in its glyph box then, the box of its first glyph's pen and its advance on its line,
 // moved as its glyphs move then and raised by its run's baseline shift then, and sits on its line's baseline then less
-// that shift. A character with no glyph of its own lies where its group's first character does. A line lies where its
-// baseline is then, with no shift. A space hanging at a line's end is no character.
+// that shift. A character with no glyph of its own lies where its group's first character does, and one with no
+// character with glyphs before it on its line where the line starts then. A line lies where its baseline is then, with
+// no shift. A space hanging at a line's end is no character.
 extension ResolvedText {
     // MARK: - Property
     var evaluationWords: [EvaluationWord] {
@@ -23,7 +24,7 @@ extension ResolvedText {
         let moves = glyphMoves(at: time)
 
         return lines.indices.flatMap { line in
-            lines[line].clusters.indices.compactMap { character(at: $0, on: line, moves: moves, at: time) }
+            characters(lines[line].clusters.indices, on: line, moves: moves, at: time)
         }
     }
 
@@ -34,11 +35,14 @@ extension ResolvedText {
     ) -> [EvaluationCharacter] {
         guard let units, units.indices.contains(index) else { return [] }
 
-        let moves = glyphMoves(at: time)
-        let characters = units[index].characters
-        return (characters.first..<(characters.first + characters.count)).compactMap { cluster in
-            character(at: cluster, on: characters.line, moves: moves, at: time)
-        }
+        let stretch = units[index].characters
+
+        return characters(
+            stretch.first..<(stretch.first + stretch.count),
+            on: stretch.line,
+            moves: glyphMoves(at: time),
+            at: time
+        )
     }
 
     func evaluationLines(at time: Double) -> [EvaluationLine] {
@@ -56,23 +60,23 @@ extension ResolvedText {
     }
 
     // MARK: - Private
-    private func character(
-        at index: Int,
+    private func characters(
+        _ indices: Range<Int>,
         on line: Int,
         moves: [[Point]],
         at time: Double
-    ) -> EvaluationCharacter? {
-        let clusters = lines[line].clusters
-        let cluster = clusters[index]
-        guard let owner = clusters[...index].last(where: { $0.glyphs.count > 0 }),
-              let rect = glyphBoxes(of: [owner], on: line, moves: moves, at: time).first
-        else { return nil }
+    ) -> [EvaluationCharacter] {
+        let rects = glyphBoxes(ofCharacters: indices, on: line, moves: moves, at: time)
 
-        return EvaluationCharacter(
-            text: text.text(over: cluster.range),
-            range: cluster.range,
-            rect: rect,
-            baseline: rect.y + lines[line].ascent
-        )
+        return zip(indices, rects).map { index, rect in
+            let cluster = lines[line].clusters[index]
+
+            return EvaluationCharacter(
+                text: text.text(over: cluster.range),
+                range: cluster.range,
+                rect: rect,
+                baseline: rect.y + lines[line].ascent
+            )
+        }
     }
 }

@@ -13,7 +13,8 @@
 // `kern` is 0. A grapheme cluster with a scalar `lacks` names for a family is set whole in the next face, and one with
 // a scalar in `missing` or that no face has whole in `fallback`, default ignorable scalars left out of both. A scalar
 // in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in its
-// face, as a pre-base matra is.
+// face, as a pre-base matra is. A scalar in `ignored` is set as nothing, as a shaper leaves out a default ignorable
+// scalar its face does not map.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
@@ -27,6 +28,7 @@ struct ShaperTable: ShapingProvider {
     let styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]]
     let placements: [Unicode.Scalar: Point]
     let prebase: Set<Unicode.Scalar>
+    let ignored: Set<Unicode.Scalar>
 
     // MARK: - Initializer
     init(
@@ -36,7 +38,8 @@ struct ShaperTable: ShapingProvider {
         lacks: [String: Set<Unicode.Scalar>] = [:],
         styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]] = [:],
         placements: [Unicode.Scalar: Point] = [:],
-        prebase: Set<Unicode.Scalar> = []
+        prebase: Set<Unicode.Scalar> = [],
+        ignored: Set<Unicode.Scalar> = []
     ) {
         self.installed = installed
         self.advances = advances
@@ -45,6 +48,7 @@ struct ShaperTable: ShapingProvider {
         self.styles = styles
         self.placements = placements
         self.prebase = prebase
+        self.ignored = ignored
     }
 
     // MARK: - Public
@@ -120,6 +124,11 @@ struct ShaperTable: ShapingProvider {
         var offset = 0
         while offset < scalars.count {
             let scalar = scalars[offset]
+            guard !ignored.contains(scalar) else {
+                offset += 1
+                continue
+            }
+
             let next = scalars.indices.contains(offset + 1) ? scalars[offset + 1] : nil
             let runFace = scalarFaces[offset]
             let isLigature = isLigated && scalar == "f" && next == "i"

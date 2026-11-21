@@ -32,8 +32,7 @@ extension ResolvedText {
     }
 
     // The unit's drawn extent at `time`: the smallest box that holds the glyph boxes then of the characters that go with
-    // it and of the hanging spaces it draws, each raised by its run's baseline shift then. A unit that draws no glyph
-    // has its glyph box then.
+    // it and of the hanging spaces it draws, each raised by its run's baseline shift then.
     func extent(
         of index: Int,
         at time: Double
@@ -42,8 +41,8 @@ extension ResolvedText {
 
         let moves = glyphMoves(at: time)
         let characters = unit.characters
-        let stretch = lines[characters.line].clusters[characters.first..<(characters.first + characters.count)]
-        let glyphBoxes = glyphBoxes(of: Array(stretch), on: characters.line, moves: moves, at: time)
+        let stretch = characters.first..<(characters.first + characters.count)
+        let glyphBoxes = glyphBoxes(ofCharacters: stretch, on: characters.line, moves: moves, at: time)
             + unit.hangingLines.flatMap { line in glyphBoxes(of: lines[line].hanging, on: line, moves: moves, at: time) }
         guard let first = glyphBoxes.first else { return glyphBox(of: index, at: time) }
 

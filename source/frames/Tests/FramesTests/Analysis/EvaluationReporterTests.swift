@@ -723,6 +723,53 @@ struct EvaluationReporterTests {
         #expect(text.words == [])
     }
 
+    @Test("a character with no glyph is reported with its group's first character, or where its line starts when none comes before it")
+    func reportsCharactersWithoutGlyphs() throws {
+        // Given
+        let shaper = ShaperTable(ignored: ["\u{200B}", "\u{2060}"])
+        let document = try resolved(titled(#"{ "title": "\u200Bab\n\u2060" }"#), shaper: shaper)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let second = try #require(report.texts.first?.lines.last?.baseline)
+        let group = Rectangle(x: 0, y: 0, width: 20, height: 40)
+        #expect(item.characters == [
+            EvaluationCharacter(text: "\u{200B}", range: 0..<1, rect: group, baseline: 32),
+            EvaluationCharacter(text: "a", range: 1..<2, rect: group, baseline: 32),
+            EvaluationCharacter(text: "b", range: 2..<3, rect: Rectangle(x: 20, y: 0, width: 20, height: 40), baseline: 32),
+            EvaluationCharacter(
+                text: "\u{2060}",
+                range: 4..<5,
+                rect: Rectangle(x: 0, y: second - 32, width: 0, height: 40),
+                baseline: second
+            )
+        ])
+    }
+
+    @Test("a unit of a character alone on a line with no glyph reports it where the line starts, which its extent is")
+    func reportsUnitWithoutGlyphs() throws {
+        // Given
+        let shaper = ShaperTable(ignored: ["\u{200B}", "\u{2060}"])
+        let document = try resolved(
+            titled(#"{ "title": "\u200Bab\n\u2060", "animation": { "preset": "frames/fade", "by": "word" } }"#),
+            shaper: shaper
+        )
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let fills = report.items.filter { $0.characters != nil }
+        let joiner = try #require(fills.last?.characters?.first)
+        #expect(fills.map { $0.characters?.map(\.text) } == [["\u{200B}", "a", "b"], ["\u{2060}"]])
+        #expect(joiner.rect.width == 0)
+        #expect(joiner.rect.x == 0)
+        #expect(fills.last?.rect == joiner.rect)
+    }
+
     @Test("a title's box is its text box grown by its background's padding, in its text box, and its characters stay put")
     func reportsPaddedBox() throws {
         // Given
@@ -906,6 +953,23 @@ struct EvaluationReporterTests {
             languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    private func resolved(
+        _ document: String,
+        shaper: ShaperTable
+    ) throws -> ResolvedSequence {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: shaper,
             library: Fixture.library
         )
 

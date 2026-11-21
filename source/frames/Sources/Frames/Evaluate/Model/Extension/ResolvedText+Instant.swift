@@ -9,7 +9,8 @@
 // with their lines by the line height then, and each line is placed again by `align` on its width then. Its box is its
 // text box then grown by its background's padding then. A glyph box is a character's or a hanging space's: from the pen
 // where its glyphs begin, as wide as its advance, and down its line from the baseline less the line's ascent to the
-// baseline plus its descent.
+// baseline plus its descent. A character with no glyph of its own has its group's first character's glyph box, and one
+// with no character with glyphs before it on its line a box as wide as nothing where the line starts.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -43,13 +44,13 @@ extension ResolvedText {
     }
 
     // The title's drawn extent at `time`, in its text box then: the text box grown to hold the glyph box then of every
-    // character with glyphs of its own and of every space hanging at a line's end, each raised by its run's baseline
-    // shift then.
+    // character and of every space hanging at a line's end, each raised by its run's baseline shift then.
     func extent(at time: Double) -> Rectangle {
         let box = textBox(at: time)
         let moves = glyphMoves(at: time)
         let glyphBoxes = lines.indices.flatMap { line in
-            glyphBoxes(of: lines[line].clusters + lines[line].hanging, on: line, moves: moves, at: time)
+            glyphBoxes(ofCharacters: lines[line].clusters.indices, on: line, moves: moves, at: time)
+                + glyphBoxes(of: lines[line].hanging, on: line, moves: moves, at: time)
         }
 
         return glyphBoxes.reduce(Rectangle(x: 0, y: 0, width: box.width, height: box.height)) { $0.union($1) }
@@ -93,20 +94,31 @@ extension ResolvedText {
         at time: Double
     ) -> [Rectangle] {
         let origin = textBox(at: time)
-        let ascent = lines[line].ascent
-        let descent = lines[line].descent
 
         return clusters.filter { $0.glyphs.count > 0 }.map { cluster in
-            let run = runs[cluster.glyphs.run]
-            let move = moves[cluster.glyphs.run][cluster.glyphs.first]
-            let shift = run.baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
+            glyphBox(of: cluster, on: line, origin: origin, moves: moves, at: time)
+        }
+    }
 
-            return Rectangle(
-                x: run.glyphs[cluster.glyphs.first].x + move.x - origin.x,
-                y: lines[line].baseline + move.y - shift - ascent - origin.y,
-                width: cluster.advance,
-                height: ascent + descent
-            )
+    // The glyph box at `time` of each character at `indices` on the line at `line`, in the text box then. A character
+    // with no glyph of its own has the box of the nearest character before it on its line with glyphs, its group's first
+    // character, and one with none before it a box as wide as nothing where the line starts then, on its line's baseline
+    // then raised by its run's baseline shift then.
+    func glyphBoxes(
+        ofCharacters indices: Range<Int>,
+        on line: Int,
+        moves: [[Point]],
+        at time: Double
+    ) -> [Rectangle] {
+        let origin = textBox(at: time)
+        let clusters = lines[line].clusters
+
+        return indices.map { index in
+            guard let owner = clusters[...index].last(where: { $0.glyphs.count > 0 }) else {
+                return lineStart(of: clusters[index], on: line, origin: origin, at: time)
+            }
+
+            return glyphBox(of: owner, on: line, origin: origin, moves: moves, at: time)
         }
     }
 
@@ -142,6 +154,46 @@ extension ResolvedText {
     }
 
     // MARK: - Private
+    private func glyphBox(
+        of cluster: PlacedCluster,
+        on line: Int,
+        origin: Rectangle,
+        moves: [[Point]],
+        at time: Double
+    ) -> Rectangle {
+        let run = runs[cluster.glyphs.run]
+        let move = moves[cluster.glyphs.run][cluster.glyphs.first]
+        let shift = run.baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
+
+        return Rectangle(
+            x: run.glyphs[cluster.glyphs.first].x + move.x - origin.x,
+            y: lines[line].baseline + move.y - shift - lines[line].ascent - origin.y,
+            width: cluster.advance,
+            height: lines[line].ascent + lines[line].descent
+        )
+    }
+
+    // The box as wide as nothing of `cluster`, which has no glyph, where the line at `line` starts at `time`: at the
+    // line's place by `align` on its width then.
+    private func lineStart(
+        of cluster: PlacedCluster,
+        on line: Int,
+        origin: Rectangle,
+        at time: Double
+    ) -> Rectangle {
+        let placed = lines[line]
+        let width = placed.width + addedWidth(of: placed, steps: trackingSteps(at: time))
+        let drop = lineDrops(at: time)[line]
+        let shift = runs[cluster.glyphs.run].baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
+
+        return Rectangle(
+            x: textBox.x + align.offset(of: width, in: textBox.width) - origin.x,
+            y: placed.baseline + drop - shift - placed.ascent - origin.y,
+            width: 0,
+            height: placed.ascent + placed.descent
+        )
+    }
+
     // The background's padding at `time`, written vertical then horizontal.
     private func padding(at time: Double) -> Size {
         let structure = ValueStructure.leaf(.lengths(count: 2, domain: .nonNegative))
