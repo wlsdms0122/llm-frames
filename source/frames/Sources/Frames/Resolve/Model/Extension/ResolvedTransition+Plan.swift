@@ -21,13 +21,13 @@ extension ResolvedTransition {
             case let (.color(color), _):
                 return ResolvedCover(source: .color(Color(written: color)), span: cover.span)
 
-            case let (.media, .some(media)):
+            case let (.media, .some(media)), let (.page, .some(media)):
                 return ResolvedCover(
                     source: .media(try ResolvedTransitionMedia(plan: media, colorSpace: cover.colorSpace, hashes: hashes)),
                     span: cover.span
                 )
 
-            case (.media, .none):
+            case (.media, .none), (.page, .none):
                 return nil
             }
         }

@@ -10,15 +10,22 @@ import Frames
 import os
 
 // Media pictures read through the decoder, kept for the renderer's lifetime: the last few frames of each file, as a
-// sequence draws a file's frames in order and a transition shows two of them. A frame is kept for each reading of it.
+// sequence draws a file's frames in order and a transition shows two of them, and the last few pictures of each page.
+// A frame is kept for each reading of it, and a page's picture for each region, scale and reading, so a picture is
+// reused only for the very request a frame makes (FRAMES-20 Pictures).
 final class MediaPictureCache: Sendable {
     // MARK: - Property
-    private static let framesPerFile = 4
+    private static let picturesPerFile = 4
 
     private let decoder: any MediaDecoder
-    private let pictures = OSAllocatedUnfairLock<[String: [(index: Int, reading: PictureReading, image: CGImage)]]>(
+    private let pictures = OSAllocatedUnfairLock<[String: [(picture: MediaPicture, reading: PictureReading, image: CGImage)]]>(
         uncheckedState: [:]
     )
+    private let pages = OSAllocatedUnfairLock<[String: [(request: PageRequest, image: CGImage)]]>(uncheckedState: [:])
+
+    var largestPictureSide: Int {
+        decoder.largestPictureSide
+    }
 
     // MARK: - Initializer
     init(decoder: any MediaDecoder) {
@@ -26,22 +33,49 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Public
-    // The frame's picture, read as the frame says: working values, or an analysis picture for a transition matte.
+    // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
+    // picture for a transition matte.
     func image(of frame: MediaFrame) throws -> CGImage {
+        let picture = frame.picture
         let reading = frame.reading
         let file = MediaFile(media: frame.media)
         let kept = pictures.withLock { pictures in
-            pictures[file.path]?.first { $0.index == frame.index && $0.reading == reading }?.image
+            pictures[file.path]?.first { $0.picture == picture && $0.reading == reading }?.image
         }
         if let kept { return kept }
 
-        let image = try decoder.picture(of: file, atFrame: frame.index, reading: reading).cgImage()
+        let image = try decoder.picture(of: frame).cgImage()
         pictures.withLock { pictures in
-            let others = (pictures[file.path] ?? []).filter { $0.index != frame.index || $0.reading != reading }
-            pictures[file.path] = Array((others + [(frame.index, reading, image)]).suffix(Self.framesPerFile))
+            let others = (pictures[file.path] ?? []).filter { $0.picture != picture || $0.reading != reading }
+            pictures[file.path] = Array((others + [(picture, reading, image)]).suffix(Self.picturesPerFile))
         }
 
         return image
+    }
+
+    // `region` of the grid of the frame's page at `scale`, read as the frame says.
+    func image(
+        of frame: MediaFrame,
+        region: PageRegion,
+        scale: Double
+    ) throws -> CGImage {
+        let file = MediaFile(media: frame.media)
+        let request = PageRequest(page: file.page, region: region, scale: scale, reading: frame.reading)
+        let kept = pages.withLock { pages in pages[file.path]?.first { $0.request == request }?.image }
+        if let kept { return kept }
+
+        let image = try decoder.picture(of: file, region: region, scale: scale, reading: frame.reading).cgImage()
+        pages.withLock { pages in
+            let others = (pages[file.path] ?? []).filter { $0.request != request }
+            pages[file.path] = Array((others + [(request, image)]).suffix(Self.picturesPerFile))
+        }
+
+        return image
+    }
+
+    // The size in media pixels of the frame's page.
+    func pageSize(of frame: MediaFrame) throws -> Size {
+        try decoder.pageSize(of: MediaFile(media: frame.media))
     }
 
     // MARK: - Private

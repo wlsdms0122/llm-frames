@@ -50,12 +50,12 @@ package struct ItemOrigin: Equatable, Sendable {
 
     // MARK: - Public
     // MARK: - Private
-    // Pinned media with frame times is a video or image sequence, and without them a still. A nested sequence is a
-    // compound clip or a template instance.
+    // Pinned media with frame times is a video or image sequence, a pinned page a page, and other media without frame
+    // times an image. A nested sequence is a compound clip or a template instance.
     private static func kind(of media: ResolvedMediaContent) -> MediaKind {
         switch media {
         case let .pinned(media):
-            media.frameTimes.isEmpty ? .image : .video
+            media.page != nil ? .page : media.frameTimes.isEmpty ? .image : .video
 
         case .nested:
             .sequence

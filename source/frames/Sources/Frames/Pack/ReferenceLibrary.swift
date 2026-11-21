@@ -43,15 +43,27 @@ package struct ReferenceLibrary: MediaKindProvider {
     }
 
     // MARK: - Lifecycle
-    // A document is a sequence, and a media file's kind is the one its probe finds, or its failure.
-    func mediaKind(of reference: String) throws -> MediaKind? {
-        guard !isDocument(reference) else { return try document(named: reference).map { _ in .sequence } }
+    // A document is a sequence, and a media file is what its probe finds, a PDF by its page count, or its failure.
+    func mediaKind(of reference: String) throws -> ProbedKind? {
+        guard !isDocument(reference) else { return try document(named: reference).map { _ in .media(.sequence) } }
         guard let file = try mediaFile(named: reference) else { return nil }
 
+        let medium: ProbedMedium?
         do {
-            return try mediaFacts.probedMedia(of: file)?.kind
+            medium = try mediaFacts.probedMedium(of: file)
         } catch {
             throw UnreadableMediaError(reason: error)
+        }
+
+        return switch medium {
+        case let .pdf(pageCount)?:
+            .pdf(pageCount: pageCount)
+
+        case let .media(probed)?:
+            .media(probed.kind)
+
+        case nil:
+            nil
         }
     }
 

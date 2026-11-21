@@ -35,6 +35,19 @@ struct PresetValueResolverTests {
             at: "presets/transition/stinger.json"
         )
         try directory.write(
+            #"""
+            { "description": "deck", "seconds": 1, "cover": { "media": { "file": "shorts/deck.pdf", "page": 2 } },
+              "matte": { "media": { "file": "/abs/logo.pdf", "page": 1 } } }
+            """#,
+            in: "shorts",
+            at: "presets/transition/deck.json"
+        )
+        try directory.write(
+            #"{ "description": "zero", "seconds": 1, "matte": { "media": { "file": "/abs/logo.pdf", "page": 0 } } }"#,
+            in: "shorts",
+            at: "presets/transition/zero.json"
+        )
+        try directory.write(
             #"{ "description": "loose", "seconds": 1, "matte": { "media": "wipe.png" } }"#,
             in: "shorts",
             at: "presets/transition/loose.json"
@@ -75,6 +88,31 @@ struct PresetValueResolverTests {
 
         // Then
         #expect(resolved.cover?.source == .media("/abs/stinger.mov"))
+    }
+
+    @Test("a cover and a matte take a page of a PDF as {file, page}, its file found as any preset file is")
+    func readsPageMedia() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+        let preset = try #require(try presets().transition(PresetInstance(name: "shorts/deck")))
+        let deck = directory.installed.appendingPathComponent("shorts/media/deck.pdf").standardizedFileURL.path
+
+        // When
+        let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
+
+        // Then
+        #expect(resolved.cover?.source == .page(deck, page: 2))
+        #expect(resolved.matte?.media == "/abs/logo.pdf")
+        #expect(resolved.matte?.page == 1)
+    }
+
+    @Test("a cover's or a matte's page that is not a whole number from 1 stops at the key check")
+    func refusesPageBelowOne() {
+        // When
+        let error = #expect(throws: (any Error).self) { try presets().transition(PresetInstance(name: "shorts/zero")) }
+
+        // Then
+        #expect("\(error.map { "\($0)" } ?? "")".contains("matte.media.page"))
     }
 
     @Test("a matte named by a bare name names no file and stops")

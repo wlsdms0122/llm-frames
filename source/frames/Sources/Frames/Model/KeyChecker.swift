@@ -165,6 +165,11 @@ struct KeyChecker: Sendable {
                 throw wrongType(value, type, place, kind)
             }
 
+        case .positiveInteger:
+            guard let number = value.numberValue, let integer = Int(exactly: number), integer >= 1 else {
+                throw wrongType(value, type, place, kind)
+            }
+
         case .color, .unnamedColor:
             try checkColor(value, as: type, place: place, kind: kind)
 
@@ -777,6 +782,9 @@ struct KeyChecker: Sendable {
         case let .object(object) where object.contains("template"):
             try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
 
+        case let .object(object) where object.contains("file"):
+            try checkObject(object, as: MediaKeyTable.page, place: place, scope: &scope)
+
         case .object:
             throw ModelError.missingKey(place: place, kind: "media", keys: MediaKeyTable.keys)
 
@@ -815,6 +823,14 @@ struct KeyChecker: Sendable {
         case let .object(object) where object.contains("template"):
             return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
 
+        case let .object(object) where object.contains("file"):
+            return try pageKind(
+                of: object["file"]?.stringValue ?? "",
+                page: object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 0,
+                place: place,
+                kind: kind
+            )
+
         default:
             // The only other value the shape check lets through is an image sequence, which plays as video.
             return .video
@@ -842,22 +858,79 @@ struct KeyChecker: Sendable {
         return .sequence
     }
 
+    // A PDF of one page named as a file is that page, and one of more pages names more than one picture.
     private func probedKind(
         of reference: String,
         place: Place,
         kind: String
     ) throws -> MediaKind {
-        let probed: MediaKind?
+        switch try referencedKind(of: reference, place: place, kind: kind) {
+        case let .pdf(pageCount):
+            try pageKind(of: reference, page: nil, pageCount: pageCount, place: place, kind: kind)
+
+        case let .media(probed):
+            probed
+        }
+    }
+
+    // A page names its PDF, and media that is there but is not a PDF holds no page.
+    private func pageKind(
+        of reference: String,
+        page: Int,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        guard case let .pdf(pageCount) = try referencedKind(of: reference, place: place, kind: kind) else {
+            throw ModelError.pageOfNonPDF(place: place.appending(key: "page"), kind: kind, reference: reference)
+        }
+
+        return try pageKind(of: reference, page: page, pageCount: pageCount, place: place, kind: kind)
+    }
+
+    // The kind of the page a reference names of a PDF of `pageCount` pages, by `page`, nil where none is written.
+    private func pageKind(
+        of reference: String,
+        page: Int?,
+        pageCount: Int,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        switch PageChoice(page: page, pageCount: pageCount) {
+        case .page:
+            return .page
+
+        case let .unnamed(pageCount):
+            throw ModelError.unnamedPage(place: place, kind: kind, reference: reference, pageCount: pageCount)
+
+        case let .missing(page, pageCount):
+            throw ModelError.missingPage(
+                place: place.appending(key: "page"),
+                kind: kind,
+                reference: reference,
+                page: page,
+                pageCount: pageCount
+            )
+
+        case .empty:
+            throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: PageChoice.emptyReason)
+        }
+    }
+
+    // What `reference` names. Media that is not there stops, and so does media the probe cannot read, with why.
+    private func referencedKind(
+        of reference: String,
+        place: Place,
+        kind: String
+    ) throws -> ProbedKind {
+        let found: ProbedKind?
         do {
-            probed = try mediaKinds.mediaKind(of: reference)
+            found = try mediaKinds.mediaKind(of: reference)
         } catch let error as UnreadableMediaError {
             throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
         }
-        guard let probed else {
-            throw ModelError.missingMedia(place: place, kind: kind, reference: reference)
-        }
+        guard let found else { throw ModelError.missingMedia(place: place, kind: kind, reference: reference) }
 
-        return probed
+        return found
     }
 
     private func checkDocument(
@@ -1206,7 +1279,7 @@ struct KeyChecker: Sendable {
     ) throws -> MediaKind {
         let name = object["param"]?.stringValue ?? ""
         let parameterType = scope.parameters[name]?["type"]?.stringValue ?? ""
-        guard let mediaKind = MediaKind(rawValue: parameterType) else {
+        guard let mediaKind = ParameterType(rawValue: parameterType)?.mediaKind else {
             throw ModelError.misplacedParameter(
                 place: place,
                 kind: kind,
@@ -1406,7 +1479,7 @@ struct KeyChecker: Sendable {
             parameterType == "number" || parameterType == "color"
 
         case .media:
-            MediaKind(rawValue: parameterType) != nil
+            ParameterType(rawValue: parameterType)?.mediaKind != nil
 
         case .text, .runs:
             parameterType == "text"
@@ -1464,7 +1537,7 @@ struct KeyChecker: Sendable {
         case (.bool, .bool):
             true
 
-        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number):
+        case (.number, .number), (.integer, .number), (.nonNegativeInteger, .number), (.positiveInteger, .number):
             true
 
         case (.text, .string), (.name, .string), (.color, .string), (.unnamedColor, .string),
@@ -1532,6 +1605,9 @@ struct KeyChecker: Sendable {
 
         case .nonNegativeInteger:
             "a whole number, 0 or more"
+
+        case .positiveInteger:
+            "a whole number, 1 or more"
 
         case .text, .name, .identifier:
             "a string"

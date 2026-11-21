@@ -21,6 +21,7 @@ struct DisplayListReaderTests {
         frameTimes: [0, 0.033367, 0.066733]
     )
     private static let still = PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: hash)))
+    private static let page = PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: hash), page: 3))
     private static let imageSequence = PinnedMedia(
         source: .imageSequence([
             PinnedFile(path: "/abs/frames/0001.png", sha256: hash),
@@ -226,7 +227,18 @@ struct DisplayListReaderTests {
             .lut(file: PinnedFile(path: "/abs/film.cube", sha256: hash), amount: 0.5),
             .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
             .levels(input: [0.05, 0.95], output: [0, 1])
-        ])])))
+        ])]))),
+        DisplayItem(content: .picture(PictureItem(
+            source: .media(MediaFrame(media: page, index: 0)),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50),
+            destination: Rectangle(x: 0, y: 0, width: 400, height: 200),
+            matte: PictureMatte(
+                frame: MediaFrame(media: page, index: 0, reading: .analysis(colorSpace: nil)),
+                progress: 0.5,
+                softness: 0.1,
+                isInverted: false
+            )
+        )))
     ]
 
     // A path in the written list with samples, what is put there or nil to remove it, and the message of the stop.
@@ -290,7 +302,10 @@ struct DisplayListReaderTests {
             "samples[1][14].filter[0].ops[0].sha256 (adjust)"
         ),
         (["1", "14", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][14].filter[0].ops[0].space (adjust)"),
-        (["1", "14"], nil, "samples[1] (display list)")
+        (["1", "14"], nil, "samples[1] (display list)"),
+        (["1", "15", "source", "media", "file"], #""/abs/other.pdf""#, "samples[1][15].source.media.file (picture)"),
+        (["1", "15", "source", "media", "page"], "1", "samples[1][15].source.media.page (picture)"),
+        (["1", "15", "matte", "source", "page"], "1", "samples[1][15].matte.source.page (picture)")
     ]
 
     // A path in the second sample list and what is written there.
@@ -336,7 +351,9 @@ struct DisplayListReaderTests {
         (["14", "filter", "0", "ops", "1", "radius"], "8"),
         (["14", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
         (["14", "filter", "0", "ops", "2", "input"], "[0, 1]"),
-        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]")
+        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]"),
+        (["15", "rect"], "[10, 5, 50, 25]"),
+        (["15", "dest"], "[0, 0, 440, 220]")
     ]
 
     // MARK: - Initializer
@@ -492,6 +509,59 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(error?.description == "items[0].trackMatte.source (path): the track matte's source is 540 by 960, and a track matte's source is the size of the list that holds its item, 1080 by 1920")
+    }
+
+    @Test("a page source is written with its page, frame null and target peak null, and reads back, as a page matte does")
+    func writesPageSource() throws {
+        // Given
+        let matte = PictureMatte(
+            frame: MediaFrame(media: Self.page, index: 0, reading: .analysis(colorSpace: nil)),
+            progress: 0.5,
+            softness: 0.1,
+            isInverted: false
+        )
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: Self.page, index: 0, reading: .working(colorSpace: .srgb, targetPeak: 203))),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
+            matte: matte
+        )
+        let list = list(items: [DisplayItem(content: .picture(picture))])
+
+        // When
+        let written = writer.write(list)
+        let read = try sut.read(written)
+
+        // Then
+        #expect(written.contains(#""page": 3"#))
+        #expect(written.ranges(of: #""frame": null"#).count == 2)
+        #expect(written.contains(#""targetPeak": 203"#) == false)
+        #expect(read == list)
+    }
+
+    @Test("a page source with a frame index stops, naming its place")
+    func refusesFrameOfPage() throws {
+        // Given
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: Self.page, index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
+        )
+        let text = replacingFirst(
+            #""frame": null"#,
+            with: #""frame": 0"#,
+            in: writer.write(list(items: [DisplayItem(content: .picture(picture))]))
+        )
+
+        // When
+        let error = #expect(throws: (any Error).self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            (error as? CustomStringConvertible)?.description
+                == "items[0].source.frame (picture): frame 0 is given for a page of a PDF, which is read by region and "
+                + "scale, so its frame is null"
+        )
     }
 
     @Test("a list with no grain reads with seed 0, since only a grain carries the seed")

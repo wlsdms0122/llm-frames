@@ -56,6 +56,39 @@ struct TranscodeOutputTests {
         #expect(probed?.size == size)
     }
 
+    @Test("a page is drawn at --scale to a 16-bit PNG, unpainted area transparent, or to a JPEG over white", arguments: [
+        ("png", 16, [0.0, 0, 0, 0]),
+        ("jpg", 8, [1.0, 1, 1, 1])
+    ])
+    func transcodesPage(
+        outputExtension: String,
+        bitsPerComponent: Int,
+        unpainted: [Double]
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("logo.pdf")
+        try DocumentWriter(sizes: [Size(width: 20, height: 10)]).write(to: input) { _, canvas in
+            canvas.fill(Rectangle(x: 0, y: 0, width: 10, height: 10), red: 255, green: 0, blue: 0)
+        }
+        let output = directory.file("logo.\(outputExtension)")
+        let (sut, decoder) = transcoder()
+
+        // When
+        _ = try sut.transcode(TranscodeRequest(input: input, output: output, scale: 2.5))
+
+        // Then
+        let source = try #require(CGImageSourceCreateWithURL(URL(fileURLWithPath: output) as CFURL, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        #expect(image.width == 50 && image.height == 25)
+        #expect(image.bitsPerComponent == bitsPerComponent)
+        let picture = try decoder.picture(of: MediaFile(path: output), atFrame: 0)
+        let painted = pixel(of: picture, x: 10, y: 12)
+        let empty = pixel(of: picture, x: 40, y: 12)
+        #expect(zip(painted, [1.0, 0, 0, 1]).allSatisfy { abs($0 - $1) < 0.01 }, "\(painted)")
+        #expect(zip(empty, unpainted).allSatisfy { abs($0 - $1) < 0.01 }, "\(empty)")
+    }
+
     @Test("a sound transcodes to an .m4a of the same length")
     func transcodesSound() async throws {
         // Given

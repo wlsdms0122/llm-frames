@@ -95,6 +95,28 @@ struct LocationReporterTests {
         #expect(abs(point.x - 50) < 1e-9 && abs(point.y - 25) < 1e-9)
     }
 
+    @Test("a point on a page of a PDF lies in its points, with its page and the media time an image gives")
+    func mapsPointOnPage() throws {
+        // Given
+        // The 100 x 50 box shows the 200 x 100 point page, so one box pixel is two points.
+        let page = PinnedMedia(
+            source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: String(repeating: "b", count: 64)), page: 3)
+        )
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: page, index: 0)),
+            rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 50)
+        )
+        let item = DisplayItem(transform: .identity, content: .picture(picture), origin: clip)
+
+        // When
+        let report = try sut.report(of: list([item]), point: Point(x: 10.25, y: 20))
+
+        // Then
+        let hit = try #require(report.hits.first)
+        #expect(hit.media == LocatedMedia(file: "/abs/deck.pdf", mediaTime: 0, point: Point(x: 20.5, y: 40), page: 3))
+    }
+
     @Test("a point in a nested list maps through the list's picture and the item inside it, named by its own clip")
     func mapsPointThroughNestedList() throws {
         // Given
@@ -349,7 +371,8 @@ struct LocationReporterTests {
                   "item": "picture",
                   "media": "/abs/run.mp4",
                   "mediaTime": 0.5,
-                  "point": [0.3, 4]
+                  "point": [0.3, 4],
+                  "page": null
                 },
                 {
                   "place": null,

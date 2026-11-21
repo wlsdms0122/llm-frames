@@ -31,7 +31,7 @@ struct TrackReporterTests {
             size: Size(width: 400, height: 300)
         ),
         "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 400, height: 300))
-    ])
+    ], pages: ["/abs/deck.pdf": [Size(width: 612, height: 792)]])
     private let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
     private let sends = [
         Rectangle(x: 20, y: 200, width: 80, height: 30),
@@ -153,14 +153,15 @@ struct TrackReporterTests {
         #expect(report.track.samples.map(\.time) == followed)
     }
 
-    @Test("a bad or unmatched area stops, naming `--area`, and so do an image and times outside the video", arguments: [
+    @Test("a bad or unmatched area stops, naming `--area`, and so do an image, a page and times outside the video", arguments: [
         ("/abs/clip.mov", "Total", 0.5, nil, "--area: line 1, column 1: "),
         ("/abs/clip.mov", #"{"text": "Total", "nht": 1}"#, 0.5, nil, #"--area (text area): unknown key "nht". "#),
         ("/abs/clip.mov", #""Total""#, 0.5, nil, #"--area (area): expected an area, found "Total""#),
         ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from, clip"),
         ("/abs/clip.mov", #"{"text": "Missing"}"#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
         ("/abs/clip.mov", #"{"text": "Send"}"#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
-        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is an image, and only a video has frames"#),
+        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is a still, and only a video has frames"#),
+        ("/abs/deck.pdf", #"{"text": "Total"}"#, 0, nil, #"media "/abs/deck.pdf" is a still, and only a video has frames"#),
         ("/abs/clip.mov", #"{"text": "Total"}"#, 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
         ("/abs/clip.mov", #"{"text": "Total"}"#, 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
         ("/abs/absent.mov", #"{"text": "Total"}"#, 0, nil, #"media "/abs/absent.mov" is not there"#)

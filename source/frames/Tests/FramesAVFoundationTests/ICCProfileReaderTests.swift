@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Frames
 @testable import FramesAVFoundation
 import Testing
 
@@ -26,6 +27,30 @@ struct ICCProfileReaderTests {
 
         // Then
         #expect((try? color.get()) != nil)
+    }
+
+    @Test(
+        "a curv of one entry reads its u8Fixed8 gamma as stored, except the values nearest 1.8, 2.2 and 2.4, which stand for them",
+        arguments: [
+            ([UInt8](arrayLiteral: 0x01, 0xCD), 1.8),
+            ([0x02, 0x33], 2.2),
+            ([0x02, 0x66], 2.4),
+            ([0x02, 0x00], 2.0),
+            ([0x02, 0x34], 2.203125)
+        ]
+    )
+    func readsOneEntryCurve(
+        entry: [UInt8],
+        gamma: Double
+    ) {
+        // Given
+        let sut = ICCProfileReader(data: Data(greyProfile(curve: curv(count: 1) + entry)))
+
+        // When
+        let color = sut.color()
+
+        // Then
+        #expect(color == .success(MediaColor(profile: MatrixProfile(greyCurve: .gamma(gamma)))))
     }
 
     @Test("a curv that claims more entries than the profile holds reads as no colour a formula converts, at once")

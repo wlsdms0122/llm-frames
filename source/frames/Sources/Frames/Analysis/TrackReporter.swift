@@ -40,9 +40,9 @@ package struct TrackReporter: Sendable {
         colorSpace: ColorSpace? = nil
     ) throws -> TrackReport {
         let form = try area(text)
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
-        guard probed.kind == .video, let size = probed.size else {
-            throw AnalysisError.notVideo(file: path, kind: probed.kind)
+        guard let medium = try mediaFacts.probedMedium(of: path) else { throw AnalysisError.missingMedia(file: path) }
+        guard case let .media(probed) = medium, probed.kind == .video, let size = probed.size else {
+            throw AnalysisError.notVideo(file: path, kind: medium.kind)
         }
 
         let duration = probed.duration

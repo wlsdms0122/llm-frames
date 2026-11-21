@@ -563,7 +563,7 @@ struct ClipAppearancePlanner: Sendable {
         case let .argument(source, _):
             isTemplate(source)
 
-        case .file, .imageSequence, .compound:
+        case .file, .imageSequence, .page, .compound:
             false
         }
     }

@@ -24,8 +24,9 @@ struct MovesTable: Sendable {
     ))
     // Every numeric parameter a filter op is written with.
     private static let parameters = ["ev", "amount", "kelvin", "degrees", "input", "output", "radius", "color", "size"]
-    // A source is a media frame, equal in every sample, or `{list}`, whose items take their marks and whose own `size`,
-    // `background` and `compositing` are equal in every sample.
+    // A source is a media frame or a page of a PDF, its media (a page's `page` included), `frame`, `colorSpace` and
+    // `targetPeak` equal in every sample, or `{list}`, whose items take their marks and whose own `size`, `background`
+    // and `compositing` are equal in every sample. A matte's `source` and `frame` are equal in every sample too.
     private static let source = MovesMark.members(["list": .members(["items": .items], other: .fixed)], other: .fixed)
     private static let common: [String: MovesMark] = [
         "transform": .moves,

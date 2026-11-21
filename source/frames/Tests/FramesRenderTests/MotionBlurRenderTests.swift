@@ -8,6 +8,7 @@
 import Foundation
 import FramesAVFoundation
 import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @testable import Frames
@@ -48,6 +49,35 @@ struct MotionBlurRenderTests {
         #expect(reds.filter { $0 >= 0.999 }.count == 10)
         #expect(Set(partial.map { ($0 * 16).rounded() }) == Set((1...15).map { Double($0) }))
         #expect(partial.allSatisfy { abs($0 * 16 - ($0 * 16).rounded()) < 0.01 })
+    }
+
+    @Test("a page growing while the shutter is open is drawn from its samples, its edges smeared over the distance they move")
+    func smearsGrowingPage() throws {
+        // Given
+        // The white 100 point page fills the 200 pixel frame at scale 1 and grows from scale 0.5 at 0 to 1 at 0.2, so
+        // over the 0.02 seconds of the exposure of the frame at 0.08 each of its edges moves 5 pixels outward.
+        let directory = try TemporaryDirectory()
+        let path = directory.file("white.pdf")
+        try PageWriter().write(width: 100, height: 100, content: "1 g 0 0 100 100 re f", to: path)
+        let document = { (isMotionBlurred: Bool) in
+            try DocumentResolver().resolve(#"""
+                { "kind": "sequence", "format": { "size": [200, 200], "fps": 25 },
+                  "storyline": [ { "media": "\#(path)", "duration": 2, "motionBlur": \#(isMotionBlurred),
+                                   "keyframes": [ { "at": 0, "scale": 0.5, "ease": "linear" }, { "at": 0.2, "scale": 1 } ] } ] }
+                """#)
+        }
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let blurred = try sut.frame(of: Evaluator().displayList(of: document(true), at: 0.08))
+        let sharp = try sut.frame(of: Evaluator().displayList(of: document(false), at: 0.08))
+
+        // Then
+        let partial = { (frame: Bitmap) in
+            (0..<frame.width).map { frame.pixel(x: $0, y: 100)[0] }.filter { $0 > 0.001 && $0 < 0.999 }.count
+        }
+        #expect(blurred.pixel(x: 100, y: 100)[0] > 0.999)
+        #expect(partial(blurred) >= partial(sharp) + 6)
     }
 
     @Test("a frame where nothing with motion blur moves is the same picture, value for value, as the frame without it")

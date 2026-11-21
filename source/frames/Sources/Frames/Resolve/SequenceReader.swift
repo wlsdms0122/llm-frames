@@ -222,6 +222,9 @@ struct SequenceReader: Sendable {
         if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
             return .imageSequence(directory: directory, fps: fps)
         }
+        if let file = object["file"]?.stringValue, let page = object["page"]?.numberValue.flatMap({ Int(exactly: $0) }) {
+            return .page(file: file, page: page)
+        }
         return .compound(sequence(from: value, place: place))
     }
 

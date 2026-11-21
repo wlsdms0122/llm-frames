@@ -50,7 +50,7 @@ struct ProbeReporterTests {
         let expected = #"""
             {"probe": "1.0.0", "kind": "video", "size": [1080, 1920], "duration": 2, "fps": 29.97, "alpha": false, \#
             "colorSpace": {"name": "rec2100-pq", "primaries": 9, "transfer": 16, "matrix": 9, "bitDepth": 10, \#
-            "hdr": true}, "audio": {"channels": 2, "sampleRate": 48000}}
+            "hdr": true}, "audio": {"channels": 2, "sampleRate": 48000}, "pages": null}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -76,6 +76,102 @@ struct ProbeReporterTests {
         ])))
     }
 
+    @Test("a still has no duration, a page of a PDF as an image")
+    func writesNoDurationForStill() {
+        // Given
+        let page = ProbedMedia(kind: .page, duration: 5, size: Size(width: 595.276, height: 841.89))
+
+        // When
+        let report = ProbeReport(page)
+
+        // Then
+        #expect(report.kind == "page")
+        #expect(report.duration == nil)
+    }
+
+    @Test("a page is probed with its size in points, alpha, srgb with no bits per channel and the page count")
+    func writesPage() throws {
+        // Given
+        let facts = MediaFactTable(
+            files: [:],
+            pages: ["/abs/deck.pdf": [Size(width: 595.2756, height: 841.8898), Size(width: 100, height: 50)]]
+        )
+        let sut = ProbeReporter(mediaFacts: facts)
+
+        // When
+        let report = try sut.report(of: "/abs/deck.pdf", page: 1)
+
+        // Then
+        let expected = #"""
+            {"probe": "1.0.0", "kind": "page", "size": [595.2756, 841.8898], "duration": null, "fps": null, \#
+            "alpha": true, "colorSpace": {"name": "srgb", "primaries": 1, "transfer": 13, "matrix": null, \#
+            "bitDepth": null, "hdr": false}, "audio": null, "pages": 2}
+            """#
+        #expect(report.machineOutput.written == expected)
+        #expect(report.text.contains("color space srgb\naudio none\npages 2"))
+    }
+
+    @Test("a PDF of one page is that page, and one of more pages with no page named gives only its page count")
+    func writesPageCount() throws {
+        // Given
+        let facts = MediaFactTable(
+            files: [:],
+            pages: [
+                "/abs/logo.pdf": [Size(width: 64, height: 32)],
+                "/abs/deck.pdf": [Size(width: 10, height: 10), Size(width: 20, height: 20)]
+            ]
+        )
+        let sut = ProbeReporter(mediaFacts: facts)
+
+        // When
+        let one = try sut.report(of: "/abs/logo.pdf")
+        let several = try sut.report(of: "/abs/deck.pdf")
+
+        // Then
+        #expect(one.kind == "page" && one.size == Size(width: 64, height: 32) && one.pageCount == 1)
+        let expected = #"""
+            {"probe": "1.0.0", "kind": null, "size": null, "duration": null, "fps": null, "alpha": null, \#
+            "colorSpace": null, "audio": null, "pages": 2}
+            """#
+        #expect(several.machineOutput.written == expected)
+    }
+
+    @Test("pages is null for media that is no PDF, and a page above the count or of a file that is no PDF stops")
+    func refusesMissingPage() throws {
+        // Given
+        let facts = MediaFactTable(
+            files: ["/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 8, height: 8))],
+            pages: ["/abs/deck.pdf": [Size(width: 10, height: 10), Size(width: 20, height: 20)]]
+        )
+        let sut = ProbeReporter(mediaFacts: facts)
+
+        // When
+        let image = try sut.report(of: "/abs/card.png").machineOutput.objectValue
+        let above = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/deck.pdf", page: 3) }
+        let notPDF = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/card.png", page: 1) }
+        let missing = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/absent.pdf", page: 1) }
+
+        // Then
+        #expect(image?["pages"] == .null)
+        #expect(above?.description == #"--page: media "/abs/deck.pdf" has 2 pages, so it has no page 3"#)
+        #expect(notPDF?.description == #"--page: media "/abs/card.png" is not a PDF, so it has no page 1"#)
+        #expect(missing?.description == #"media "/abs/absent.pdf" is not there"#)
+    }
+
+    @Test("a PDF of no pages is media that cannot be read, with a page named or none")
+    func refusesPdfOfNoPages() throws {
+        // Given
+        let sut = ProbeReporter(mediaFacts: MediaFactTable(files: [:], pages: ["/abs/empty.pdf": []]))
+
+        // When
+        let unnamed = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/empty.pdf") }
+        let named = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/empty.pdf", page: 1) }
+
+        // Then
+        #expect(unnamed?.description == #"media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#)
+        #expect(named?.description == #"media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#)
+    }
+
     @Test("the text gives one fact a line, none where the medium has none")
     func writesText() throws {
         // Given
@@ -92,7 +188,8 @@ struct ProbeReporterTests {
             "fps 29.97",
             "alpha no",
             "color space none",
-            "audio 2 channels, 48000 Hz"
+            "audio 2 channels, 48000 Hz",
+            "pages none"
         ])
         #expect(try sut.report(of: "/abs/card.png").text.contains("duration none\nfps none\nalpha no\ncolor space"))
     }

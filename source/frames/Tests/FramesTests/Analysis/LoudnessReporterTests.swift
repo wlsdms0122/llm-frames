@@ -42,6 +42,23 @@ struct LoudnessReporterTests {
         #expect(log.calls.isEmpty)
     }
 
+    @Test("a PDF has no sound, so its loudness stops as a still's does")
+    func refusesPage() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = LoudnessReporter(
+            decoder: RecordingDecoder(log: log),
+            mixer: RecordingMixer(log: log),
+            mediaFacts: MediaFactTable(files: [:], pages: ["/abs/deck.pdf": [Size(width: 612, height: 792)]]),
+            hasher: FileHashTable()
+        )
+
+        // When, Then
+        #expect(throws: AnalysisError.noSound(file: "/abs/deck.pdf")) {
+            try sut.loudness(ofMedium: "/abs/deck.pdf", from: nil, to: nil)
+        }
+    }
+
     @Test("a resolved document whose files are as they were pinned is checked by the decoder and the mixer, then mixed")
     func mixesPinnedSequence() throws {
         // Given

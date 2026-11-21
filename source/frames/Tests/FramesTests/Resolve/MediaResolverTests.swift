@@ -89,13 +89,14 @@ struct MediaResolverTests {
     func refusesUnconvertibleColor() throws {
         // Given
         let sut = MediaResolver(mediaFacts: unconvertibleFacts, presets: Fixture.presets, library: Fixture.library)
-        let place = Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])
+        let clip = Place(components: [.key("storyline"), .index(0, id: nil)])
+        let place = clip.appending(key: "media")
 
         let media = try sut.media(of: .file("/abs/print.jpg"), place: place, kind: .genericClip(.storyline), theme: .base)
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.checkColor(of: media, colorSpace: nil, place: place, kind: .genericClip(.storyline))
+            try sut.checkReading(of: media, by: ClipMedia(source: .file("/abs/print.jpg")), clip: clip, in: .storyline)
         }
 
         // Then
@@ -116,7 +117,13 @@ struct MediaResolverTests {
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.transitionMedia(at: "/abs/print.jpg", place: place, kind: .clip(.media(.video)), colorSpace: nil)
+            try sut.transitionMedia(
+                at: "/abs/print.jpg",
+                page: nil,
+                place: place,
+                kind: .clip(.media(.video)),
+                colorSpace: nil
+            )
         }
 
         // Then
@@ -131,9 +138,15 @@ struct MediaResolverTests {
         let media = try sut.media(of: .file("/abs/print.jpg"), place: .root, kind: .genericClip(.storyline), theme: .base)
 
         // When
-        try sut.checkColor(of: media, colorSpace: .srgb, place: .root, kind: .genericClip(.storyline))
+        try sut.checkReading(
+            of: media,
+            by: ClipMedia(source: .file("/abs/print.jpg"), colorSpace: .srgb),
+            clip: .root,
+            in: .storyline
+        )
         let matte = try sut.transitionMedia(
             at: "/abs/print.jpg",
+            page: nil,
             place: .root,
             kind: .clip(.media(.video)),
             colorSpace: .srgb

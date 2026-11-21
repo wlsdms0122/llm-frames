@@ -405,12 +405,19 @@ enum ClipKeyTable {
     }
 
     // A compound clip's or a template instance's pictures are working values already, so it takes no `colorSpace` or
-    // `toneMap`; its clips take their own.
+    // `toneMap`; its clips take their own. A page of a PDF takes the keys of a still here, and what it refuses of them
+    // is known only where its media is read (`MediaFile.pageRefusal`).
     private static func takes(
         _ key: String,
         kind: ClipKind
     ) -> Bool {
-        !["colorSpace", "toneMap"].contains(key) || kind != .media(.sequence)
+        switch kind {
+        case .media(.sequence):
+            !["colorSpace", "toneMap"].contains(key)
+
+        default:
+            true
+        }
     }
 
     private static func takesSingleStart(_ kind: ClipKind) -> Bool {

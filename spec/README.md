@@ -13,7 +13,7 @@ A document is a sequence, as in an NLE: a primary storyline of clips, clips conn
 frames holds the editing tools that any result uses. The shape of a purpose (an annotation look, where a title goes in a lecture, a grid of pictures side by side, a band of text above a vertical cut) is made with those tools by packs and extensions, installed beside frames and not part of it ([FRAMES-25](FRAMES-25/SPEC.md)).
 
 - A resolved document and the files it pins are enough to make the result again.
-- frames composites media and does not generate it. Motion graphics, illustrations and diagrams are made with other tools (HTML in a headless browser, an image model, a design tool) and arrive as media: a PNG, a PNG sequence, or a video with alpha.
+- frames composites media and does not generate it. Motion graphics, illustrations and diagrams are made with other tools (HTML in a headless browser, an image model, a design tool) and arrive as media: a PNG, a PNG sequence, a video with alpha, or for vector artwork a page of a PDF, a still with no pixels of its own, which is drawn at whatever size it is shown at ([FRAMES-3](FRAMES-3/SPEC.md)).
 - Titles, shapes (rect, ellipse, path), masks and track mattes are built in, as the basics of any NLE. Their geometry is part of frames, and how they move is keyframes and presets.
 - Looks and edits can be shared and sold as packs: presets, themes, LUTs, mattes, overlays and templates with published parameters ([FRAMES-17](FRAMES-17/SPEC.md)).
 
@@ -56,7 +56,7 @@ every media file is read through the decoder
 - **Decoder, renderer, mixer, encoder:** the four roles that read media and make pixels, sound and files ([FRAMES-21](FRAMES-21/SPEC.md)). Between the decoder and the encoder every picture holds working values, one extended-range sRGB for every sequence with one set of formulas. The sequence's colour space decides how its output is encoded and clipped, and by its peak, for `rec2100-pq` its `format.peak`, with each media clip's `toneMap`, whether an HDR picture brighter than that peak is tone mapped down to it on the way in ([FRAMES-26](FRAMES-26/SPEC.md)).
 - **Providers:** OCR, shaping and tracking, which resolve and the analysis tools call ([FRAMES-21](FRAMES-21/SPEC.md)). They read media files (through the decoder) and fonts, never drawn pixels, so no resolved value depends on a renderer. A resolved document needs neither again.
 - **Analysis:** commands that give the agent and extensions facts to write a document with, as versioned JSON ([FRAMES-23](FRAMES-23/SPEC.md)). They take no part in rendering.
-- **Transcode:** writes a delivery file at a quality level from an image, audio or video file with the encoder role. It is not part of rendering.
+- **Transcode:** writes a delivery file at a quality level from a still, an audio file or a video file with the encoder role. It is not part of rendering.
 
 ### What frames leaves out
 
@@ -71,6 +71,7 @@ every media file is read through the decoder
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.
+- SVG. Vector artwork arrives as a page of a PDF, and an extension converts SVG to PDF (`rsvg-convert -f pdf`, Inkscape) before it is named ([FRAMES-3](FRAMES-3/SPEC.md)).
 - Fetching packs over the network. Installing is copying.
 
 Adding any of these later raises the minor version ([FRAMES-18](FRAMES-18/SPEC.md)). Whoever adds one updates the key tables, the README and the specification together.

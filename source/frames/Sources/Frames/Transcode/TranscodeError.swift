@@ -21,6 +21,9 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
     case undersizedVideo(path: String, maximumSide: Int?, size: Size)
     case unremovable(path: String, reason: String)
     case unmeasurable(path: String)
+    case maximumSideOfPage(input: String)
+    case scaleOfRaster(input: String)
+    case pageTooLarge(path: String, scale: Double, size: Size, largest: Int)
 
     // MARK: - Property
     package var description: String {
@@ -72,6 +75,19 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
 
         case let .unmeasurable(path):
             "\(quoted(path)): its size cannot be read"
+
+        case let .maximumSideOfPage(input):
+            "--max: \(quoted(input)) is a page of a PDF, which has no pixels of its own to cap, so --scale gives the "
+                + "pixels per point it is drawn at"
+
+        case let .scaleOfRaster(input):
+            "--scale: \(quoted(input)) has pixels of its own, and --scale is the pixels per point of a page of a PDF, "
+                + "so --max caps its longer side"
+
+        case let .pageTooLarge(path, scale, size, largest):
+            "\(quoted(path)): --scale \(JSONValue.number(scale).written) draws the page at "
+                + "\(JSONValue.number(size.width).written)x\(JSONValue.number(size.height).written), and the decoder "
+                + "holds at most \(largest) pixels on a side"
         }
     }
 
@@ -92,6 +108,9 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
 
         case .video:
             "a video"
+
+        case .page:
+            "a page of a PDF"
 
         case .sequence:
             "an image sequence"

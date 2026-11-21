@@ -66,7 +66,7 @@ A storyline clip with sound and a visual media clip with sound, connected or in 
 A connected or sequence media clip of a video, a compound clip or a sequence template instance that takes only its media's sound (`"picture": false`, [FRAMES-7](../FRAMES-7/SPEC.md)) is an audio clip of that sound, as Final Cut Pro detaches a clip's audio and Premiere Pro unlinks it: music taken from a music video, or a recording's sound laid under other pictures. It takes the keys of an audio clip and `picture`, and plays as an audio clip of a sound file would: its window, `in`, `out`, `speed` and `loop` place the sound as [FRAMES-8](../FRAMES-8/SPEC.md) places any sound, and nothing of its picture is read, drawn or measured. `picture` is `true` when it is not written.
 
 - A J or an L cut of a storyline clip or a visual media clip is its `split` ([Split edits](#split-edits)), not an audio clip of its sound beside it.
-- `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: an image, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
+- `picture` on a storyline clip stops, since a storyline clip is a picture ([FRAMES-9](../FRAMES-9/SPEC.md)), and so does `picture` on media with no picture to leave out or no sound to keep: a still, an image sequence and an audio file. `"picture": false` on a video without a sound track, or on a compound clip none of whose clips has sound, stops, since it would play nothing.
 
 ### Audio filters
 

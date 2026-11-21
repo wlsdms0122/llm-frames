@@ -246,13 +246,15 @@ struct FrameExporterTests {
         #expect(frames[2].isPixel(x: 80, y: 89, blue, tolerance: 1.0 / 255))
     }
 
-    @Test("a time outside the sequence, an output that is not a PNG and a file that is not a video stop")
+    @Test("a time outside the sequence, an output that is not a PNG and a file that is not a video, a PDF included, stop")
     func refusesBadArguments() throws {
         // Given
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try sequence(in: media)
         let still = media.file("orange.png")
+        let page = media.file("card.pdf")
+        try PageWriter().write(width: 100, height: 100, content: "1 g 0 0 100 100 re f", to: page)
         let face = try labelFace()
         let sut = exporter()
 
@@ -280,6 +282,9 @@ struct FrameExporterTests {
         }
         #expect(throws: ExportError.notVideo(path: still, kind: .image)) {
             try sut.extract(.video(path: still), range: FrameRange(), to: output.file("frames"))
+        }
+        #expect(throws: ExportError.notVideo(path: page, kind: .page)) {
+            try sut.extract(.video(path: page), range: FrameRange(), to: output.file("frames"))
         }
         #expect(throws: ExportError.missingMedia(path: media.file("none.mov"))) {
             try sut.extract(.video(path: media.file("none.mov")), range: FrameRange(), to: output.file("frames"))

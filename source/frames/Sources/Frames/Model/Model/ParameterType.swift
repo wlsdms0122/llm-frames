@@ -23,5 +23,10 @@ package enum ParameterType: String, Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
+    // Whether a media parameter of this type takes media of `kind`: `image` takes every still.
+    func takes(_ kind: MediaKind) -> Bool {
+        self == .image ? kind.isStill : mediaKind == kind
+    }
+
     // MARK: - Private
 }

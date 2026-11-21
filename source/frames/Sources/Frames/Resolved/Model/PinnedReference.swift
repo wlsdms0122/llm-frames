@@ -31,6 +31,9 @@ enum PinnedReference: Equatable, Sendable {
 
             case let .imageSequence(files):
                 files
+
+            case let .page(file, _):
+                [file]
             }
 
         case let .file(file, _):

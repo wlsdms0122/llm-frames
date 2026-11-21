@@ -479,6 +479,28 @@ struct MotionBlurEvaluationTests {
         #expect(samples[0] != samples[15])
     }
 
+    @Test("a page with motionBlur and a keyframed scale shows the one page in every sample, and the samples read back")
+    func showsOnePage() throws {
+        // Given
+        let sequence = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "media": "/abs/logo.pdf", "duration": 4, "motionBlur": true,
+                               "keyframes": [ { "at": 0, "scale": 1 }, { "at": 4, "scale": 2 } ] } ] }
+            """#)
+        let list = sut.displayList(of: sequence, at: 1.03)
+
+        // When
+        let read = try DisplayListReader().read(DisplayListWriter().write(list))
+
+        // Then
+        let samples = try #require(read.samples)
+        let frames = samples.map { mediaFrame(in: $0) }
+        #expect(samples.count == 16)
+        #expect(frames.allSatisfy { $0?.picture == .page && $0 == frames[0] })
+        #expect(frames[0] == mediaFrame(in: sut.displayListWithoutMotionBlur(of: sequence, at: 1.03).items))
+        #expect(samples[0] != samples[15])
+    }
+
     @Test("a clip with motionBlur whose crop tracks its media is carried by the motion of the media frame of T in every sample")
     func carriesTrackedCropAtT() throws {
         // Given

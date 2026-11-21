@@ -22,7 +22,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // A video or image file with its frame times, none for a still or sound. An image sequence is its frame files in
-    // order, each pinned.
+    // order, each pinned, and a page of a PDF its file with `page`.
     func media(_ media: PinnedMedia) -> [JSONMember] {
         let pinned = switch media.source {
         case let .file(file):
@@ -30,6 +30,9 @@ struct ResolvedValueWriter: Sendable {
 
         case let .imageSequence(files):
             [JSONMember(key: "imageSequence", value: .array(files.map { .object(JSONObject(members: self.pinned($0))) }))]
+
+        case let .page(file, page):
+            self.pinned(file) + [JSONMember(key: "page", value: .number(Double(page)))]
         }
         let frames = media.frameTimes.isEmpty ? [] : [JSONMember(key: "frames", value: numbers(media.frameTimes))]
 

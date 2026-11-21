@@ -12,9 +12,11 @@ import Frames
 struct TranscodeCommand: Command {
     // MARK: - Property
     let name = "transcode"
-    let synopsis = "<in> -o <out> [--quality high|medium|low] [--max <px>] [--codec h264|hevc] [--color-space <name>]"
-    let summary = "Writes a delivery file from an image, audio or video file, in the format the output's extension "
-        + "names and at a quality level. Metadata is not copied, and rotation is applied to the pixels."
+    let synopsis = "<in> [--page <n>] -o <out> [--quality high|medium|low] [--max <px> | --scale <s>] "
+        + "[--codec h264|hevc] [--color-space <name>]"
+    let summary = "Writes a delivery file from a still, audio or video file, in the format the output's extension "
+        + "names and at a quality level. Metadata is not copied, and rotation is applied to the pixels. A page of a "
+        + "PDF is drawn at --scale pixels per point."
 
     // MARK: - Initializer
     init() { }

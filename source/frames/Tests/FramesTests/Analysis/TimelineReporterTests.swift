@@ -87,6 +87,31 @@ struct TimelineReporterTests {
         #expect(report.text.split(separator: "\n").last == "clips[0]  title  visible [0, 4)  sound -  lane 2  parent -  animation 0.25s / - / -")
     }
 
+    @Test("a storyline page of a PDF has its media as the {file, page} object, a PDF of one page named as a file too")
+    func writesPageMedia() throws {
+        // Given
+        let value = try Fixture.json(#"""
+            { "kind": "sequence",
+              "storyline": [
+                { "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2 },
+                { "media": "/abs/logo.pdf", "duration": 1 }
+              ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: value)
+        let resolved = sut.report(of: try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable()))
+
+        // Then
+        let media = { (report: TimelineReport) in
+            report.machineOutput.objectValue?["storyline"]?.arrayValue?.map { $0.objectValue?["media"]?.written }
+        }
+        let expected = [#"{"file": "/abs/deck.pdf", "page": 3}"#, #"{"file": "/abs/logo.pdf", "page": 1}"#]
+        #expect(media(report) == expected)
+        #expect(media(resolved) == expected)
+        #expect(report.text.contains("/abs/deck.pdf page 3"))
+    }
+
     @Test("a resolved compound clip reports its nested sequence, with places continued")
     func nestsResolvedCompoundTimeline() throws {
         // Given
