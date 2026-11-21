@@ -10,7 +10,7 @@ import Frames
 
 // A picture's source drawn: `size` is the source's own size, in media pixels or a nested list's output pixels, which
 // a picture's region is measured in, and `transform` carries those coordinates into the image's pixels, y pointing
-// down. A nested list's image may hold only part of the list, at another scale.
+// down. A nested list's image and a page's may hold only part of the source, at another scale.
 struct SourceImage {
     // MARK: - Property
     let image: CGImage
@@ -32,6 +32,16 @@ struct SourceImage {
         self.image = image
         self.size = CGSize(width: size.width, height: size.height)
         self.transform = raster.transform
+    }
+
+    init(
+        _ image: CGImage,
+        of size: CGSize,
+        transform: CGAffineTransform
+    ) {
+        self.image = image
+        self.size = size
+        self.transform = transform
     }
 
     // MARK: - Public

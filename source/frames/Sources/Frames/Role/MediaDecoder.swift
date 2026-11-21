@@ -35,6 +35,10 @@ package protocol MediaDecoder: Sendable {
         reading: PictureReading
     ) throws -> Bitmap
 
+    // The size in media pixels of the page `file` names, as it is displayed (FRAMES-3 PDF pages), which its pixel grid
+    // covers at scale 1. A file that names no page, or a page the file does not hold, stops.
+    func pageSize(of file: MediaFile) throws -> Size
+
     // How the pictures of `file`, a video, a still, an image sequence directory or a page, are taken to working values.
     func colorReading(of file: MediaFile) throws -> ColorReading
 
@@ -71,9 +75,9 @@ extension MediaDecoder {
         try picture(of: file, atFrame: index, reading: .tagged)
     }
 
-    // A display list's media frame, read as the frame says.
+    // A display list's media frame, read as the frame says. A page has no frame, so the decoder refuses it here.
     package func picture(of frame: MediaFrame) throws -> Bitmap {
-        try picture(of: MediaFile(media: frame.media), atFrame: frame.index, reading: frame.reading)
+        try picture(of: MediaFile(media: frame.media), atFrame: frame.index ?? 0, reading: frame.reading)
     }
 
     // MARK: - Private

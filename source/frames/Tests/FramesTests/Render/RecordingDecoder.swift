@@ -8,8 +8,8 @@
 @testable import Frames
 
 // Gives each file the colour reading `colorReading` names and every picture as the bitmap of its frame index, a region
-// of a page as that of frame 0. A picture read other than tagged is recorded. A check of pictures read in no colour
-// space refuses a `platform` reading, as a decoder refuses a picture no fixed formula converts.
+// of a page as that of frame 0, and every page a size of 1 by 1. A picture read other than tagged is recorded. A check of
+// pictures read in no colour space refuses a `platform` reading, as a decoder refuses a picture no fixed formula converts.
 struct RecordingDecoder: MediaDecoder {
     // MARK: - Property
     let log: RoleCallLog
@@ -51,6 +51,10 @@ struct RecordingDecoder: MediaDecoder {
         reading: PictureReading
     ) throws -> Bitmap {
         Bitmap(frame: 0)
+    }
+
+    func pageSize(of file: MediaFile) throws -> Size {
+        Size(width: 1, height: 1)
     }
 
     func colorReading(of file: MediaFile) throws -> ColorReading {

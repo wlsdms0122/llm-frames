@@ -13,7 +13,7 @@ package struct PinnedMedia: Equatable, Sendable {
     package let frameTimes: [Double]
 
     // The number of the page pinned, nil for every medium that is no page of a PDF.
-    var page: Int? {
+    package var page: Int? {
         guard case let .page(_, page) = source else { return nil }
 
         return page

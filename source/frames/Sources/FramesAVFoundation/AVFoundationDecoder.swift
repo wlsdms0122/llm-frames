@@ -309,6 +309,12 @@ extension AVFoundationDecoder: MediaDecoder {
         return try document.picture(page, region: region, scale: scale, reading: reading)
     }
 
+    package func pageSize(of file: MediaFile) throws -> Size {
+        guard let (document, page) = try document(of: file) else { throw DecoderError.unreadable(file: file.path) }
+
+        return try document.page(page).1.size
+    }
+
     // A page's untagged colour is `srgb`, which a written colour space replaces.
     package func colorReading(of file: MediaFile) throws -> ColorReading {
         if try document(of: file) != nil { return .formulas(.srgb) }
