@@ -37,6 +37,8 @@ Rendering is four roles. The renderer and the mixer take the two outputs of eval
 
 `--decoder`, `--renderer`, `--mixer` and `--encoder` pick each role by the name of its implementation. The renderer defaults to `quartz` (Core Graphics and Core Image), and the others to `avfoundation`.
 
+The `avfoundation` decoder draws a page of a PDF with Core Graphics. It decides whether it converts a colour space of a page by the formulas of [FRAMES-26](../FRAMES-26/SPEC.md#media) by drawing a ramp of that space's values as it draws the page and comparing it with the formula, and it refuses a space whose ramp differs from the formula by more than 1e-4 of linear light ([FRAMES-26](../FRAMES-26/SPEC.md#notes)).
+
 ### Providers
 
 | Provider | Takes | Gives |
