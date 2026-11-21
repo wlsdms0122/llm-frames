@@ -31,7 +31,7 @@ extension TimelineReport {
         let members = [
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: text(entry.id)),
-            JSONMember(key: "media", value: text(entry.media)),
+            JSONMember(key: "media", value: media(of: entry)),
             JSONMember(key: "edit", value: output(entry.edit)),
             JSONMember(key: "drawn", value: output(entry.drawn)),
             JSONMember(key: "clip", value: output(entry.clip)),
@@ -84,6 +84,16 @@ extension TimelineReport {
 
     private func output(_ range: TimeRange) -> JSONValue {
         .array([.time(range.start), .time(range.end)])
+    }
+
+    // The file as written, and for a page of a PDF the `{file, page}` object.
+    private func media(of entry: TimelineStorylineEntry) -> JSONValue {
+        guard let file = entry.media, let page = entry.page else { return text(entry.media) }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "file", value: .string(file)),
+            JSONMember(key: "page", value: .number(Double(page)))
+        ]))
     }
 
     private func text(_ string: String?) -> JSONValue {

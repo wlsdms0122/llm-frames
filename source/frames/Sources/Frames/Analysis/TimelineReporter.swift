@@ -79,6 +79,7 @@ package struct TimelineReporter: Sendable {
             place: clip.place.description,
             id: clip.id,
             media: clip.source.media?.reference,
+            page: clip.source.media.flatMap(page(of:)),
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,
@@ -157,6 +158,7 @@ package struct TimelineReporter: Sendable {
             place: clip.place,
             id: clip.id,
             media: clip.media.flatMap(file(of:)),
+            page: clip.media.flatMap(page(of:)),
             edit: edit,
             drawn: drawn,
             clip: TimeRange(start: clip.in, end: clip.out),
@@ -240,6 +242,18 @@ package struct TimelineReporter: Sendable {
         case let .page(file, _):
             return file.path
         }
+    }
+
+    private func page(of media: MediaPlan) -> Int? {
+        guard case let .file(file) = media.source else { return nil }
+
+        return file.page
+    }
+
+    private func page(of media: ResolvedMediaContent) -> Int? {
+        guard case let .pinned(pinned) = media else { return nil }
+
+        return pinned.page
     }
 
     private func nestedReport(of media: ResolvedMediaContent) -> TimelineReport? {

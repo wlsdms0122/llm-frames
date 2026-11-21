@@ -23,7 +23,7 @@ extension TimelineReport {
             } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",
-                entry.media ?? "-",
+                entry.media.map { media in entry.page.map { "\(media) page \($0)" } ?? media } ?? "-",
                 "edit \(written(entry.edit))",
                 "drawn \(written(entry.drawn))",
                 "clip \(written(entry.clip))",
