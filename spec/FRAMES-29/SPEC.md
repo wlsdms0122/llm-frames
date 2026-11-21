@@ -59,7 +59,7 @@ A group has N samples. Its sample at the instant tᵢ is a display list Lᵢ the
 
 **A track matte is part of what a clip draws at each instant.** In sample i, a clip's track matte is the matte clip's picture with the matte clip's pose at tᵢ and its content at T ([FRAMES-11](../FRAMES-11/SPEC.md)). So a matte that moves with the clip it cuts gives the mean of the matte times the picture. A clip used as a track matte is not drawn on its own ([FRAMES-11](../FRAMES-11/SPEC.md)), so its own `motionBlur` is not read: it moves in the samples of the clip it cuts, and it is held at T for a clip without motion blur.
 
-The group draws one `picture` item in the holding list:
+A group of clips other than an adjustment clip draws one `picture` item in the holding list:
 
 | Field | Value |
 | --- | --- |
