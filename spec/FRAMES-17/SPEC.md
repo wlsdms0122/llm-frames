@@ -57,6 +57,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 | `image` | a still picture: an image file or a page of a PDF, as wherever a still picture is taken ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | no | yes |
 | `audio` | an audio file | no | yes |
 
+- A media type takes every kind of medium it names, by the kind `probe` gives ([FRAMES-23](../FRAMES-23/SPEC.md)): `video` takes kinds `video` and `imageSequence`, and `image` takes every still, kinds `image` and `page`.
 - `{"param": "<name>"}` stands for a value of the parameter's type, and never for a key. Where it may stand in a preset is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md). In a template it stands anywhere a value of that type is accepted.
 - A `text` stands for text on screen: a title, given as a string or as a run's `text` ([FRAMES-11](../FRAMES-11/SPEC.md)), or the text an area's text form searches for (`text`, `from`, `to`, [FRAMES-2](../FRAMES-2/SPEC.md)).
 - A `choice` stands where one of its options is accepted. Names (presets, styles, shape styles, themes, templates) are taken only by a choice, so what a template lets its user pick is listed.
@@ -106,5 +107,7 @@ Pack versions are [FRAMES-18](../FRAMES-18/SPEC.md). What resolve takes from a p
 ## Alternatives considered
 
 A template that takes the theme of the document it is used in: it would change with every caller. Separate parameter forms for presets and templates: two tables to learn and keep in step, and a colour or a choice that is written one way in a lower third and another way in the dip it uses. A template that may open any value without declaring it: its user could not tell what it is meant to change, and it could not be checked before an argument is given. Packs that carry code (scripts, plug-ins): every role must be able to draw what a pack holds, so packs carry data only (README).
+
+The parameter type `image` renamed `still`, the word [FRAMES-7](../FRAMES-7/SPEC.md) uses for an image or a page: it names what the type takes, but every template that declares an `image` parameter would change, a major change ([FRAMES-18](../FRAMES-18/SPEC.md)), so it is a change of its own and not part of taking pages. `video` takes `imageSequence` under a name of one of its kinds in the same way.
 
 ## Notes
