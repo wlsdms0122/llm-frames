@@ -73,7 +73,7 @@ One chroma upsampling filter fixed for every decoder: a platform's video decoder
 
 One PDF renderer fixed for every decoder: how a page's content becomes a picture beyond what [FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages) fixes is each 2D library's own (Core Graphics, Skia, pdfium), and fixing it would leave a decoder to write a PDF renderer itself. So it is left to the decoder and the difference is named, as chroma upsampling is.
 
-A page's region cut from a larger draw, or stitched from tiles: a cut costs the larger draw, and tiles drawn alone differ from one draw at their seams and inside them, where thin strokes are covered differently, so a picture is one draw of the region it needs.
+A page's region cut from a larger draw, or stitched from tiles: a cut costs the larger draw, and tiles drawn alone differ from one draw at their seams and inside them, where thin strokes are covered differently, so a picture is one draw of the one region its frame decides.
 
 ## Notes
 
