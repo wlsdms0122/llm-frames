@@ -161,6 +161,39 @@ struct TrackFormTests {
         #expect(clip.area == .value(.found(FoundArea(rectangle: moved, target: moved, mediaTime: 1.5, lines: [RecognisedLine(text: "Total", rectangle: moved)]))))
     }
 
+    @Test(
+        "true written as an object with a time searches a corner pin's text in its parent's media on the frame the time names, not at the instant",
+        arguments: ["/abs/card.png", "/abs/short.mp4"]
+    )
+    func searchesCornerPinOnTrackFrame(media: String) throws {
+        // Given
+        let moved = moved(total, down: 30)
+        let sut = SequencePlanner(
+            ocr: OCRTable(["/abs/screen.mp4": [
+                (from: 0, lines: [RecognisedLine(text: "Total", rectangle: total)]),
+                (from: 1.5, lines: [RecognisedLine(text: "Total", rectangle: moved)])
+            ]]),
+            languages: nil,
+            tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes]),
+            shaper: Fixture.shaper,
+            presets: Fixture.presets,
+            library: Fixture.library
+        )
+        let corners = ["top-left", "top-right", "bottom-right", "bottom-left"]
+            .map { #"{ "area": { "text": "Total" }, "point": "\#($0)" }"# }
+            .joined(separator: ", ")
+        let time = try plan(#"{ "media": "\#(media)", "parent": "screen", "width": 300, "cornerPin": [\#(corners)], "at": [1, 3], "track": { "time": 1.5 } }"#)
+
+        // When
+        let plan = try sut.plan(time)
+
+        // Then
+        let clip = plan.clips[0]
+        #expect(clip.track?.file.path == "/abs/screen.mp4")
+        #expect(clip.track?.track.target == Quad(moved))
+        #expect(clip.cornerPin?.points == .value(Quad(moved).corners.map(GeometryPoint.point)))
+    }
+
     @Test("a track object with a time stops where the geometry it follows is keyframed")
     func refusesKeyframedOwnFromTime() throws {
         // Given
