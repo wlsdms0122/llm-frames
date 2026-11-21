@@ -75,11 +75,12 @@ struct MixPlanReaderTests {
         )
     ]
 
-    // A video's sound at speed 2 with a fade in and an audio filter, a loop of music as one segment per repeat under a
-    // ducking envelope and panning left, and a compound clip's sound as a segment of its own.
+    // A silent plan; a video's sound at speed 2 with a fade in and an audio filter, a loop of music as one segment per
+    // repeat under a ducking envelope and panning left, and a sound at speed 0.5; and a compound clip's bus holding a
+    // sound and the bus of a compound clip inside it, its chain and level moving, under the sequence's chain.
     private static let plans = [
-        MixPlan(segments: []),
-        MixPlan(segments: [
+        MixPlan(length: 0, segments: []),
+        MixPlan(length: 192_000, segments: [
             MixSegment(
                 media: video,
                 mediaStart: 2,
@@ -109,7 +110,39 @@ struct MixPlanReaderTests {
                 pan: [EnvelopePoint(time: 2.5, value: -0.4), EnvelopePoint(time: 4, value: -0.4)]
             ),
             MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
-        ])
+        ]),
+        MixPlan(
+            length: 4805,
+            segments: [],
+            buses: [
+                MixBus(
+                    start: 0,
+                    end: 0.1,
+                    segments: [
+                        MixSegment(
+                            media: music,
+                            mediaStart: 1,
+                            speed: 1,
+                            start: 0,
+                            end: 0.1,
+                            envelope: [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: 0.1, value: 1)],
+                            pan: [EnvelopePoint(time: 0, value: 0.5), EnvelopePoint(time: 0.1, value: 0.5)]
+                        )
+                    ],
+                    buses: [
+                        MixBus(
+                            start: 0.05,
+                            end: 0.1,
+                            segments: [MixSegment(media: video, mediaStart: 0, speed: 2, start: 0.05, end: 0.1, envelope: [], pan: [])],
+                            envelope: [EnvelopePoint(time: 0.05, value: 0.8), EnvelopePoint(time: 0.1, value: 0)]
+                        )
+                    ],
+                    filter: Array(filter.suffix(2)),
+                    envelope: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.033367, value: 1), EnvelopePoint(time: 0.1, value: 1)]
+                )
+            ],
+            filter: Array(filter.prefix(1))
+        )
     ]
 
     // MARK: - Initializer
@@ -175,7 +208,9 @@ struct MixPlanReaderTests {
             (#""mixPlan": "1.0.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
             (#""speed": 2,"#, "", #"segments[0] (segment): missing key "speed""#),
             (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, filter, envelope, pan"#),
-            (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, segments"#),
+            (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, length, segments, buses, filter"#),
+            (#""length": 192000,"#, "", #"top level (mix plan): missing key "length""#),
+            (#""length": 192000,"#, #""length": 192000.5,"#, #"length (mix plan): expected a whole number, found 192000.5"#),
             (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)
         ]
     )

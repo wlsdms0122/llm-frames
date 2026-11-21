@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// An audio op of a segment's filter, by the name it has in a document and in the mix plan.
+// An audio op of a segment's filter or a bus's chain, by the name it has in a document and in the mix plan.
 package enum MixFilterOperation: Equatable, Sendable {
     case eq(bands: [MixBand])
     case compressor(MixCompressor)

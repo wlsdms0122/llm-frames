@@ -22,11 +22,25 @@ package struct MixPlanWriter: Sendable {
     func document(_ plan: MixPlan) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "mixPlan", value: .string(FramesVersion.current)),
-            JSONMember(key: "segments", value: .array(plan.segments.map(segment)))
+            JSONMember(key: "length", value: .number(Double(plan.length))),
+            JSONMember(key: "segments", value: .array(plan.segments.map(segment))),
+            JSONMember(key: "buses", value: .array(plan.buses.map(bus))),
+            JSONMember(key: "filter", value: .array(plan.filter.map(entry)))
         ]))
     }
 
     // MARK: - Private
+    private func bus(_ bus: MixBus) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "start", value: .number(bus.start)),
+            JSONMember(key: "end", value: .number(bus.end)),
+            JSONMember(key: "segments", value: .array(bus.segments.map(segment))),
+            JSONMember(key: "buses", value: .array(bus.buses.map(self.bus))),
+            JSONMember(key: "filter", value: .array(bus.filter.map(entry))),
+            JSONMember(key: "envelope", value: points(bus.envelope))
+        ]))
+    }
+
     private func segment(_ segment: MixSegment) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "media", value: .object(JSONObject(members: values.media(segment.media)))),

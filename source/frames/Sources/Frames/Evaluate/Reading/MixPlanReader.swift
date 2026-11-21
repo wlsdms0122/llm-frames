@@ -9,7 +9,9 @@
 // missing or of another type, or a key the writer never writes there, stops naming its place.
 package struct MixPlanReader: Sendable {
     // MARK: - Property
+    private static let planKeys = ["mixPlan", "length", "segments", "buses", "filter"]
     private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"]
+    private static let busKeys = ["start", "end", "segments", "buses", "filter", "envelope"]
     private static let compressorKeys = ["op", "threshold", "ratio", "knee", "attack", "release", "makeup"]
     private static let gateKeys = ["op", "threshold", "range", "attack", "hold", "release"]
     private static let limiterKeys = ["op", "gain", "ceiling", "lookahead", "release"]
@@ -48,12 +50,30 @@ package struct MixPlanReader: Sendable {
             )
         }
 
-        let plan = try root.object(keys: ["mixPlan", "segments"])
+        let plan = try root.object(keys: Self.planKeys)
 
-        return MixPlan(segments: try plan.member("segments").elements().map(segment))
+        return MixPlan(
+            length: try plan.member("length").integer(),
+            segments: try plan.member("segments").elements().map(segment),
+            buses: try plan.member("buses").elements().map(bus),
+            filter: try plan.member("filter").elements().map(entry)
+        )
     }
 
     // MARK: - Private
+    private func bus(_ value: PlacedJSONValue) throws -> MixBus {
+        let bus = try value.object(kind: "bus", keys: Self.busKeys)
+
+        return MixBus(
+            start: try bus.member("start").number(),
+            end: try bus.member("end").number(),
+            segments: try bus.member("segments").elements().map(segment),
+            buses: try bus.member("buses").elements().map(self.bus),
+            filter: try bus.member("filter").elements().map(entry),
+            envelope: try points(bus.member("envelope"))
+        )
+    }
+
     private func segment(_ value: PlacedJSONValue) throws -> MixSegment {
         let segment = try value.object(kind: "segment", keys: Self.segmentKeys)
 

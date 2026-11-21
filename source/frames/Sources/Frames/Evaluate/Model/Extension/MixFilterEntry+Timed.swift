@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// An entry of a sound's resolved audio filter, `{ops, mix}`, as a segment carries it, each leaf written by `sampler`.
+// An entry of a resolved audio filter, `{ops, mix}`, as a segment's filter or a bus's chain carries it, each leaf
+// written by `sampler`.
 // Resolve writes every parameter, its default included, so an op or a band missing one is left out.
 extension MixFilterEntry {
     // MARK: - Property
@@ -25,6 +26,16 @@ extension MixFilterEntry {
     }
 
     // MARK: - Public
+    // A sound's or a sequence's resolved audio filter as entries, `[]` for none.
+    static func entries(
+        of filter: TimedValue,
+        sampler: MixValueSampler
+    ) -> [MixFilterEntry] {
+        guard case let .list(entries) = filter else { return [] }
+
+        return entries.compactMap { MixFilterEntry(timed: $0, sampler: sampler) }
+    }
+
     // MARK: - Private
     private static func operation(
         _ value: TimedValue,

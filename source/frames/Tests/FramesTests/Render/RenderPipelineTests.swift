@@ -201,7 +201,7 @@ struct RenderPipelineTests {
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
-        #expect(log.calls.contains(.checkPlan(MixPlan(segments: []))))
+        #expect(log.calls.contains(.checkPlan(MixPlan(length: 48000, segments: []))))
         let target = EncodeTarget.master(path: master, alpha: false)
         #expect(log.calls.contains(.videoWriter(target, size: size, fps: 2, sound: silence)))
     }
