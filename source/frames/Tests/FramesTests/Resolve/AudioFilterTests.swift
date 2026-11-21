@@ -338,10 +338,8 @@ struct AudioFilterTests {
     }
 
     @Test(
-        "the key tables refuse an audio filter on a compound clip and its sound, a gain on a pass band and an unknown op",
+        "the key tables refuse a gain on a pass band",
         arguments: [
-            (#"{ "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 } }"#, "audioFilter"),
-            (#"{ "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "picture": false, "audioFilter": { "op": "gate", "threshold": -50 } }"#, "audioFilter"),
             (#"{ "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 100, "gain": 3 } ] } }"#, "gain")
         ]
     )
@@ -383,6 +381,50 @@ struct AudioFilterTests {
 
         // When, Then
         try checker.check(document: document)
+    }
+
+    @Test("the key tables take an audio filter and its keyframes on a compound clip, a storyline one and its sound alone")
+    func acceptsCompoundAudioFilter() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "limiter" },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 1, "audioFilter": { "gain": 3 } } ] } ],
+              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 } },
+                         { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "picture": false, "audioFilter": { "op": "gate", "threshold": -50 },
+                           "keyframes": [ { "at": 0, "audioFilter": { "mix": 0 } }, { "at": 1, "audioFilter": { "mix": 1 } } ] } ] }
+            """#)
+
+        // When, Then
+        try checker.check(document: document)
+    }
+
+    @Test("a compound clip's audio filter resolves on its sound, its keyframes in sequence time as a sequence clip's are")
+    func resolvesCompoundAudioFilter() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ] }, "picture": false, "at": 1,
+                "audioFilter": { "op": "limiter", "ceiling": -3 },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 1, "audioFilter": { "gain": 6 } } ] } ] }
+            """#)
+
+        // Then
+        #expect(plan.sound[1].nested.count == 1)
+        let limiter = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 0.5))
+        #expect(limiter["gain"]?.number == 3)
+        #expect(limiter["ceiling"]?.number == -3)
+    }
+
+    @Test("an audio filter on a compound clip none of whose clips has sound stops")
+    func refusesSilentCompoundClip() throws {
+        // When, Then
+        #expect(throws: ResolveError.audioFilterWithoutSound(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.sequence)))) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 } } ] }
+                """#)
+        }
     }
 
     @Test("a limiter resolves with its defaults written and its lookahead a plain number")

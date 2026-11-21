@@ -938,8 +938,8 @@ struct KeyChecker: Sendable {
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
             let takesSound = clipPlace != .storyline && object["picture"] == .bool(false)
                 && (clipKind == .media(.video) || clipKind == .media(.sequence))
-            let table = if takesSound, case let .media(media) = clipKind {
-                ClipKeyTable.soundTable(of: media, in: clipPlace)
+            let table = if takesSound {
+                ClipKeyTable.soundTable(in: clipPlace)
             } else {
                 ClipKeyTable.table(for: clipKind, in: clipPlace)
             }
