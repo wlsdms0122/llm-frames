@@ -55,7 +55,7 @@ The limiter runs from sample -D, D samples before its sound starts, with r[-D - 
 
 **Note.** The gain moves between samples, so the true peak of the output, which the interpolation reads from the output's own samples, can pass the ceiling by a small amount where the gain falls fastest. A shorter `lookahead` makes the ramp steeper, and a shorter `release` lets the gain pump with the sound's waveform at low frequencies.
 
-**Note.** The construction, a running minimum of the target gain over the look-ahead window followed by a mean over a window of the same length, is the standard look-ahead brickwall limiter of the audio literature. It is defined here by its formula, which is the contract, and not by a citation.
+**Note.** The limiter is defined by its formula, which is the contract: a running minimum of the target gain over the look-ahead window, then a mean over a window of the same length, so the gain meets each peak along a ramp and never after it.
 
 **Keyframes.** On a clip the limiter's `gain`, `ceiling`, `lookahead` and `release` and its entry's `mix` are timed leaves, as every op parameter is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)): a sampled `ceiling` above 0 is clamped to 0, a sampled `lookahead` above 0.05 to 0.05 and one at or below 0 is a window of 0 samples, and a sampled `release` at or below 0 follows its target at once. The limiter has no identity, since it limits at every `gain` and `ceiling`, so it eases in or out by its entry's `mix`. Its state, r and its window, starts at rest wherever the segment's ops start at rest, where a clip's sound starts and on each repeat of a loop ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)), and it reads silence past the end of its segment.
 
