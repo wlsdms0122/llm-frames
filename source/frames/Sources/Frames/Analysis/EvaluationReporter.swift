@@ -22,7 +22,7 @@ package struct EvaluationReporter: Sendable {
     ) throws -> EvaluationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayList(of: sequence, at: time), at: time)
+        return report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), at: time)
     }
 
     func report(

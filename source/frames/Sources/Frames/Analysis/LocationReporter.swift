@@ -27,7 +27,7 @@ package struct LocationReporter: Sendable {
     ) throws -> LocationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayList(of: sequence, at: time), point: point)
+        return report(of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time), point: point)
     }
 
     func report(
