@@ -300,7 +300,8 @@ struct ClipEvaluator: Sendable {
     }
 
     // Its opacity mixes the filtered result with what is below, and its blend composites the filtered result onto the
-    // unfiltered one.
+    // unfiltered one. Its reveal wipes across what it draws, the list's frame in its own coordinates cut to what its
+    // masks let through, and where its transform flattens the plane it draws nothing, whatever the box.
     private func adjustItem(
         of clip: ResolvedClip,
         filter: TimedValue,
@@ -308,15 +309,20 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: SampleTime
     ) -> DisplayItem {
-        let bounds = maskBounds(of: clip, in: space, at: time)
         let presentation = adjustPresentation(of: clip, sample: sample, in: space, at: time)
+        let adjust = AdjustItem(filter: FilterEntry.entries(of: filter, at: time))
+        let receiver = adjust.drawnBounds(
+            carriedBy: presentation.transform,
+            masks: masks(of: clip, in: space, at: time),
+            over: space.frame
+        ) ?? space.frame
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.revealRectangle(wiping: bounds ?? space.frame),
-            content: .adjust(AdjustItem(filter: FilterEntry.entries(of: filter, at: time)))
+            reveal: sample.animation.revealRectangle(wiping: receiver),
+            content: .adjust(adjust)
         )
     }
 

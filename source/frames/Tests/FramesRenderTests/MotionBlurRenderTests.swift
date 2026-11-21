@@ -22,6 +22,10 @@ struct MotionBlurRenderTests {
             { "description": "the incoming clip pushes the outgoing one out to the left", "seconds": 1, "ease": "linear",
               "incoming": { "keys": [ { "t": 0, "x": 1 }, { "t": 1, "x": 0 } ] },
               "outgoing": { "keys": [ { "t": 0, "x": 0 }, { "t": 1, "x": -1 } ] } }
+            """#,
+        "animation/wipe": #"""
+            { "description": "wipes in from the left", "entrance": { "seconds": 0.2, "ease": "linear", "revealFrom": "left",
+              "keys": [ { "t": 0, "reveal": 0 }, { "t": 1, "reveal": 1 } ] } }
             """#
     ]
 
@@ -101,6 +105,37 @@ struct MotionBlurRenderTests {
         guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
 
         #expect(samples.count == 16)
+        #expect(frame.pixels == sharp.pixels)
+    }
+
+    @Test(
+        "an adjustment whose wipe is complete is the same picture, value for value, as the frame without motion blur when nothing moves",
+        arguments: [
+            #"{ "shape": "rect", "area": [12.3, 8.6, 30.2, 17.1], "feather": 3 }"#,
+            #"{ "shape": "ellipse", "area": [12.3, 8.6, 30.2, 17.1], "feather": 2, "invert": true }"#
+        ]
+    )
+    func keepsCompleteAdjustmentWipeExact(mask: String) throws {
+        // Given
+        let document = try DocumentResolver(presets: presets).resolve(#"""
+            { "kind": "sequence", "format": { "size": [64, 36], "fps": 25 },
+              "storyline": [ { "solid": "#203040", "duration": 1 } ],
+              "clips": [ { "shape": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 40, "height": 24, "position": [32, 18] },
+                         { "adjust": [ { "op": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
+                           "mask": \#(mask) } ] }
+            """#)
+        let evaluator = Evaluator()
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let list = evaluator.displayList(of: document, at: 0.6)
+        let frame = try sut.frame(of: list)
+        let sharp = try sut.frame(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.6))
+
+        // Then
+        guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
+
+        #expect(samples.allSatisfy { $0.last?.reveal != nil })
         #expect(frame.pixels == sharp.pixels)
     }
 

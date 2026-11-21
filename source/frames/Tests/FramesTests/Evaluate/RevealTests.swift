@@ -57,6 +57,23 @@ struct RevealTests {
         #expect(noneWiped == Rectangle(x: 10, y: 20, width: 0, height: 50))
     }
 
+    @Test(
+        "a complete wipe from any side gives the rectangle itself, its edges not moved by rounding",
+        arguments: [RevealEdge.left, .right, .top, .bottom]
+    )
+    func wipesWholeExactly(edge: RevealEdge) {
+        // Given
+        // 0.1 + 0.2 - 0.2 is 0.10000000000000003 in floating point.
+        let rectangle = Rectangle(x: 0.1, y: 0.1, width: 0.2, height: 0.2)
+        let sut = Reveal.full
+
+        // When
+        let wiped = sut.rectangle(wiping: rectangle, from: edge)
+
+        // Then
+        #expect(wiped == rectangle)
+    }
+
     @Test("a complete wipe writes no rectangle where no reveal is set, and the whole one where a reveal is set")
     func writesCompleteWipe() {
         // Given

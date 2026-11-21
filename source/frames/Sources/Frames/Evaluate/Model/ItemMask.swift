@@ -11,6 +11,10 @@
 // says how it combines with the masks before it.
 package struct ItemMask: Equatable, Sendable {
     // MARK: - Property
+    // How far past its geometry, in multiples of its feather, a mask's blurred coverage is drawn: past four standard
+    // deviations a Gaussian holds less than a ten-thousandth of its weight.
+    package static let featherReach = 4.0
+
     package let geometry: PathGeometry
     package let transform: AffineTransform
     package let feather: Double

@@ -192,7 +192,7 @@ struct FrameDrawerTests {
 
     @Test(
         "a reveal whose rectangle holds everything the item draws draws it exactly as no reveal",
-        arguments: [0, 1, 2, 3]
+        arguments: [0, 1, 2, 3, 4, 5]
     )
     func drawsWholeRevealAsNone(index: Int) throws {
         // Given
@@ -200,6 +200,7 @@ struct FrameDrawerTests {
         let revealed = DisplayItem(
             transform: item.transform,
             opacity: item.opacity,
+            mask: item.mask,
             reveal: reveal,
             content: item.content
         )
@@ -215,7 +216,9 @@ struct FrameDrawerTests {
 
     // MARK: - Private
     // Items whose edges cross pixels, each with a rectangle that holds everything it draws: a turned path filled and
-    // stroked, a turned path with a shadow, a turned picture of a nested list, and an adjustment over the whole frame.
+    // stroked, a turned path with a shadow, a turned picture of a nested list, an adjustment over the whole frame, and a
+    // turned adjustment, whose transform carries its reveal only, with the list's frame carried back to its coordinates,
+    // and with a feathered mask turned with it, with the bounds of what the mask lets through.
     private static let wholeReveals: [(DisplayItem, Rectangle)] = {
         let turn = AffineTransform(a: 0.866, b: 0.5, c: -0.5, d: 0.866, tx: 60.3, ty: 20.7)
         let stroked = PathItem(
@@ -238,12 +241,25 @@ struct FrameDrawerTests {
         let destination = Rectangle(x: 0.3, y: 0.6, width: 40.2, height: 20.3)
         let picture = PictureItem(source: .displayList(nested), rectangle: Rectangle(x: 0, y: 0, width: 40, height: 20), destination: destination)
         let adjust = AdjustItem(filter: [FilterEntry(operations: [.exposure(ev: 1)])])
+        let frame = Rectangle(x: 0, y: 0, width: 120, height: 120)
+        let empty = Rectangle(x: 0, y: 0, width: 0, height: 0)
+        let carried = adjust.drawnBounds(carriedBy: turn, masks: [], over: frame) ?? empty
+        let mask = ItemMask(
+            geometry: .ellipse(Rectangle(x: 10.3, y: 20.6, width: 40.2, height: 30.1)),
+            transform: turn,
+            feather: 3,
+            isInverted: false,
+            mode: .add
+        )
+        let masked = adjust.drawnBounds(carriedBy: turn, masks: [mask], over: frame) ?? empty
 
         return [
             (DisplayItem(transform: turn, content: .path(stroked)), stroked.drawnBounds(carriedBy: turn)),
             (DisplayItem(transform: turn, content: .path(shadowed)), shadowed.drawnBounds(carriedBy: turn)),
             (DisplayItem(transform: turn, opacity: 0.5, content: .picture(picture)), destination),
-            (DisplayItem(content: .adjust(adjust)), Rectangle(x: 0, y: 0, width: 120, height: 120))
+            (DisplayItem(content: .adjust(adjust)), frame),
+            (DisplayItem(transform: turn, content: .adjust(adjust)), carried),
+            (DisplayItem(transform: turn, mask: [mask], content: .adjust(adjust)), masked)
         ]
     }()
 
