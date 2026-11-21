@@ -237,7 +237,7 @@ HEXDIG is a hexadecimal digit of either case, DIGIT a decimal digit and SP a spa
 
 ### Media
 
-The decoder converts every picture it reads (a video's frames, an image, an image sequence's frames, a transition's cover or matte media) to working values.
+The decoder converts every picture it reads (a video's frames, a still, an image sequence's frames, a transition's cover or matte media) to working values.
 
 - Its colour space is the `colorSpace` written where it is named, on the media clip that shows it or on the transition's cover or matte, or where none is written the one its tags name ([Colour spaces](#colour-spaces)). A video's Y'CbCr is taken to R'G'B' by the matrix and the range (narrow or full) the file says, as BT.709 and BT.2100 quantise them, and a value beyond the nominal range is kept, until an HDR transfer clips it ([Colour spaces](#colour-spaces)). An image whose ICC profile describes a space of the table (its primaries, white point and transfer) is in that space.
 - **The media colour spaces are open, and every conversion is fixed.** A picture read by its tags outside the table is converted to linear sRGB by formulas, with no gamut clipped, so two decoders agree on it as on a picture of the table:

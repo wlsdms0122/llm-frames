@@ -55,7 +55,7 @@ every media file is read through the decoder
 - **Decoder, renderer, mixer, encoder:** the four roles that read media and make pixels, sound and files ([FRAMES-21](FRAMES-21/SPEC.md)). Between the decoder and the encoder every picture holds working values, one extended-range sRGB for every sequence with one set of formulas. The sequence's colour space decides how its output is encoded and clipped, and by its peak, for `rec2100-pq` its `format.peak`, with each media clip's `toneMap`, whether an HDR picture brighter than that peak is tone mapped down to it on the way in ([FRAMES-26](FRAMES-26/SPEC.md)).
 - **Providers:** OCR, shaping and tracking, which resolve and the analysis tools call ([FRAMES-21](FRAMES-21/SPEC.md)). They read media files (through the decoder) and fonts, never drawn pixels, so no resolved value depends on a renderer. A resolved document needs neither again.
 - **Analysis:** commands that give the agent and extensions facts to write a document with, as versioned JSON ([FRAMES-23](FRAMES-23/SPEC.md)). They take no part in rendering.
-- **Transcode:** writes a delivery file at a quality level from an image, audio or video file with the encoder role. It is not part of rendering.
+- **Transcode:** writes a delivery file at a quality level from a still, an audio file or a video file with the encoder role. It is not part of rendering.
 
 ### What frames leaves out
 
