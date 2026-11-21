@@ -385,10 +385,147 @@ struct AudioFilterTests {
         try checker.check(document: document)
     }
 
+    @Test("a limiter resolves with its defaults written and its lookahead a plain number")
+    func resolvesLimiterWithDefaults() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "limiter" } } ] }
+            """#)
+
+        // Then
+        guard case let .list(entries) = plan.sound[1].audioFilter, case let .list(operations)? = entries.first?["ops"],
+            case let .form("op:limiter", limiter)? = operations.first
+        else {
+            Issue.record("expected one limiter, got \(plan.sound[1].audioFilter)")
+            return
+        }
+        #expect(limiter["lookahead"] == .fixed(.number(0.005)))
+        let sampled = try #require(operation(of: limiter, at: 0))
+        #expect(sampled["gain"]?.number == 0)
+        #expect(sampled["ceiling"]?.number == -1)
+        #expect(sampled["release"]?.number == 0.1)
+    }
+
+    @Test("a limiter's gain, ceiling and release move under keyframes, and a ceiling an ease carries past 0 is clamped")
+    func sweepsLimiter() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter", "lookahead": 0.01 },
+                "keyframes": [
+                  { "at": 0, "audioFilter": { "gain": 0, "ceiling": -6, "release": 0.1 }, "ease": "back-out" },
+                  { "at": 2, "audioFilter": { "gain": 6, "ceiling": 0, "release": 0.3 } } ] } ] }
+            """#)
+
+        // Then
+        let middle = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 1.5))
+        #expect(middle["ceiling"]?.number == 0)
+        #expect(middle["lookahead"] == .fixed(.number(0.01)))
+        let start = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 0))
+        #expect(start["gain"]?.number == 0)
+        #expect(start["release"]?.number == 0.1)
+    }
+
+    @Test(
+        "a limiter's parameter outside its range stops where the clip writes it",
+        arguments: [
+            (#"{ "op": "limiter", "ceiling": 0.5 }"#, "ceiling", 0.5, NumberDomain.range(-Double.infinity...0)),
+            (#"{ "op": "limiter", "lookahead": 0.001 }"#, "lookahead", 0.001, NumberDomain.range(0.0015...0.05)),
+            (#"{ "op": "limiter", "lookahead": 0.06 }"#, "lookahead", 0.06, NumberDomain.range(0.0015...0.05)),
+            (#"{ "op": "limiter", "release": 0 }"#, "release", 0, NumberDomain.positive)
+        ]
+    )
+    func refusesLimiterOutOfRange(
+        filter: String,
+        key: String,
+        value: Double,
+        domain: NumberDomain
+    ) throws {
+        // When, Then
+        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: key), value: value, domain: domain)) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
+                """#)
+        }
+    }
+
+    @Test("a keyframe that writes a limiter's lookahead stops, naming the keyframe")
+    func refusesKeyframedLookahead() throws {
+        // When, Then
+        #expect(throws: LookError.keyframedStatic(place: clip.appending(key: "keyframes").appending(index: 1).appending(key: "audioFilter").appending(key: "lookahead"))) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter" },
+                    "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 2, "audioFilter": { "lookahead": 0.01 } } ] } ] }
+                """#)
+        }
+    }
+
+    @Test("a preset's limiter takes its lookahead from an argument, and a keyframe that writes that argument stops")
+    func refusesKeyframedLookaheadArgument() throws {
+        // Given
+        let document = { (keyframes: String) in
+            #"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "preset": "mine/limit", "args": { "ahead": 0.02 } },
+                    "keyframes": \#(keyframes) } ] }
+                """#
+        }
+
+        // When
+        let plan = try plan(document(#"[ { "at": 0, "audioFilter": { "args": { "boost": 0 } } }, { "at": 2, "audioFilter": { "args": { "boost": 4 } } } ]"#))
+
+        // Then
+        let limiter = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 1))
+        #expect(limiter["lookahead"] == .fixed(.number(0.02)))
+        #expect(limiter["gain"]?.number == 2)
+        #expect(throws: LookError.keyframedStatic(place: clip.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter").appending(key: "args").appending(key: "ahead"))) {
+            try self.plan(document(#"[ { "at": 0, "audioFilter": { "args": { "ahead": 0.01 } } } ]"#))
+        }
+    }
+
+    @Test("the key tables take a limiter on a clip and in its keyframes")
+    func acceptsLimiter() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "limiter", "gain": 3, "ceiling": -1, "lookahead": 0.005, "release": 0.1, "mix": 1 },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } } ] } ] }
+            """#)
+
+        // When, Then
+        try checker.check(document: document)
+    }
+
     // MARK: - Private
     @discardableResult
     private func plan(_ document: String) throws -> SequencePlan {
         try sut.plan(Fixture.planner.plan(document: Fixture.json(document)))
+    }
+
+    private func operation(
+        of body: TimedValue,
+        at time: Double
+    ) -> SampledValue? {
+        body.sampled(at: time, as: LookStructureTable.audioOperation("limiter"))
+    }
+
+    private func sampledLimiter(
+        of filter: TimedValue,
+        at time: Double
+    ) -> SampledValue? {
+        guard
+            case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedAudioFilter),
+            let entry = entries.first,
+            let operation = operation(of: entry),
+            operation.name == "op:limiter"
+        else {
+            return nil
+        }
+
+        return operation.body
     }
 
     private func operation(of entry: SampledValue) -> (name: String, body: SampledValue)? {
