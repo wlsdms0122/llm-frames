@@ -132,7 +132,8 @@ struct ClipEvaluator: Sendable {
                 radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
                 border: MediaBorder(
                     sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
-                    factor: sample.lengthFactor
+                    factor: sample.lengthFactor,
+                    isSample: time.sample.isSample
                 ),
                 shadow: DropShadow(
                     sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow),

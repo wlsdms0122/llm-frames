@@ -347,7 +347,8 @@ package struct Evaluator: Sendable {
                 radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
                 border: MediaBorder(
                     sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
-                    factor: factor
+                    factor: factor,
+                    isSample: time.sample.isSample
                 ),
                 shadow: DropShadow(
                     sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow),

@@ -43,13 +43,16 @@ struct MovesTable: Sendable {
             "filter": filter,
             "matte": .members(["progress": .moves], other: .fixed),
             "radius": .moves,
-            "border": .moves,
+            "border": .members(["width": .moves, "color": .moves], other: .fixed),
             "shadow": .moves
         ],
         "path": [
             "geometry": .moves,
             "fill": .moves,
-            "stroke": .members(["width": .moves, "paint": .moves, "dash": .moves, "dashOffset": .moves], other: .fixed),
+            "stroke": .members(
+                ["width": .moves, "paint": .moves, "dash": .elements(.moves), "dashOffset": .moves],
+                other: .fixed
+            ),
             "trim": .moves,
             "shadow": .moves
         ],

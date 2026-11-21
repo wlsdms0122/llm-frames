@@ -16,6 +16,47 @@ struct MotionBlurEvaluationTests {
     // MARK: - Property
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
+    // Each leaf that can pass through 0, keyframed so that it does inside the exposure of the frame at the time given: a
+    // picture's border width, written in output pixels at the clip's scale factor, by a picture popping in from scale 0,
+    // a stroke's width from 0, a dash whose `back-out` overshoot clamps every length to 0 from a progress of about 0.43,
+    // and a stroked, dashed and shadowed shape popping in from scale 0.
+    private static let leavesThroughZero: [(String, String?, Double)] = [
+        (
+            #"""
+            { "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "border": true, "motionBlur": true,
+              "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
+            """#,
+            #"{ "shutterPhase": -180 }"#,
+            1.01
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+              "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
+              "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
+            """#,
+            nil,
+            0.99
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+              "stroke": { "width": 2, "color": "#FFFFFF" }, "motionBlur": true,
+              "keyframes": [ { "at": 0, "stroke": { "dash": [10, 10] }, "ease": "back-out" }, { "at": 1, "stroke": { "dash": [0.5, 0.5] } } ] }
+            """#,
+            nil,
+            0.42
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "stroke": { "width": 2, "color": "#FFFFFF", "dash": [4, 2] }, "shadow": { "radius": 4, "offset": [2, 2], "color": "#000000" },
+              "motionBlur": true, "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
+            """#,
+            #"{ "shutterPhase": -180 }"#,
+            1.01
+        )
+    ]
 
     // MARK: - Initializer
     // MARK: - Test
@@ -152,6 +193,30 @@ struct MotionBlurEvaluationTests {
         #expect(widths.first == 0)
         #expect((widths.last.flatMap { $0 } ?? 0) > 0)
         #expect(path.stroke == nil)
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test(
+        "a leaf keyframed through 0 over an exposure is written with the same keys in every sample, and the samples read back",
+        arguments: leavesThroughZero
+    )
+    func keepsKeysOfLeafThroughZero(
+        clip: String,
+        shutter: String?,
+        time: Double
+    ) throws {
+        // Given
+        let sequence = try resolved(clips: [clip], shutter: shutter)
+
+        // When
+        let list = sut.displayList(of: sequence, at: time)
+
+        // Then
+        let written = try #require(try JSONReader().read(DisplayListWriter().write(list)).objectValue)
+        let samples = try #require(written["samples"]?.arrayValue)
+        let firstKeys = keys(of: samples[0])
+        #expect(samples.count == 16)
+        #expect(samples.allSatisfy { keys(of: $0) == firstKeys })
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
     }
 
@@ -546,6 +611,23 @@ struct MotionBlurEvaluationTests {
             clips: [],
             audio: []
         )
+    }
+
+    // The keys a written value holds at every depth, each leaf and `null` kept apart and every other value one mark.
+    private func keys(of value: JSONValue) -> JSONValue {
+        switch value {
+        case .null:
+            .null
+
+        case let .object(object):
+            .object(JSONObject(members: object.members.map { JSONMember(key: $0.key, value: keys(of: $0.value)) }))
+
+        case let .array(elements):
+            .array(elements.map(keys(of:)))
+
+        case .bool, .number, .string:
+            .bool(true)
+        }
     }
 
     private func item(

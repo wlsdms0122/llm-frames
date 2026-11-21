@@ -146,7 +146,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     }
 
     func border(at time: Double = 0) -> MediaBorder? {
-        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1)
+        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1, isSample: false)
     }
 
     func filter(at time: Double = 0) -> [FilterEntry] {
