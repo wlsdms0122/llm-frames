@@ -133,6 +133,20 @@ struct LoudnessCommandTests {
         #expect(sut.standardError == "frames: media \"\(image)\" has no sound to measure\n")
     }
 
+    @Test("--args with a medium stops, since a medium has no params to take them")
+    func stopsOnArgumentsOfMedium() async throws {
+        // Given
+        let tone = try await sound(named: "tone.wav", end: 1)
+        let arguments = try sut.write("{}", named: "args.json")
+
+        // When
+        let code = sut.run(["loudness", tone, "--args", arguments])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: loudness: media \"\(tone)\" has no params, so it takes no --args\n")
+    }
+
     @Test("--from and --to outside the sound or out of order stop before anything is measured", arguments: [
         (["--from", "1"], "--from: second 1 is at or after the end of the sound at 1"),
         (["--to", "1.5"], "--to: second 1.5 is after the end of the sound at 1"),

@@ -9,7 +9,8 @@ import Frames
 
 // Measures the loudness and peaks of one mix with the mixer role, without rendering pictures: a document's mix, or
 // the mix of one clip of a medium. A `.json` file, a pack template or `-` is a document, which it resolves first, and
-// any other path a medium. It prints the text for people, or with `--json` the machine output, and writes no file.
+// any other path a medium, which takes no `--args`. It prints the text for people, or with `--json` the machine output,
+// and writes no file.
 struct LoudnessCommand: Command {
     // MARK: - Property
     let name = "loudness"
@@ -36,6 +37,7 @@ struct LoudnessCommand: Command {
             loudness = try reporter.loudness(of: try document.resolved(in: context), from: options.from, to: options.to)
 
         case let .video(path):
+            guard options.arguments == nil else { throw CommandError.argumentsOfMedium(command: name, path: path) }
             loudness = try reporter.loudness(ofMedium: path, from: options.from, to: options.to)
         }
 
