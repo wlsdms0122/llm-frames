@@ -169,7 +169,7 @@ Ink bounds of text, the box of its glyphs' outlines: evaluation would have to op
 
 A separate command for text layout: it would be a second report of the same instant, where `evaluate` already names the clip and the time.
 
-Text placement under `locate`: a point names what lies under it, and cannot list a caption's words. A program hit tests a point against the characters' rects and their items' `transform` itself.
+Text placement under `locate`: a point names what lies under it, and cannot list a caption's words. A program hit tests a point against the characters' rects and their items' `transform` and `cornerPins` itself.
 
 Entries for glyphs: a glyph id means nothing without its font, and a character's rect already places it.
 
@@ -194,6 +194,8 @@ Text placement carried on the display list's `glyphs` items: a renderer would ca
 `transform` only on items that draw text: the map from an item's coordinates to the output is a fact of every item, and a program that covers a region of a rotated picture needs it, with the picture's `rect`, as a caption fitter needs a title's lines with its `transform`.
 
 `transform` without `rect`: a map with no domain, since `bounds` is cut by masks and reveal and cannot give back where a picture's `dest`, a path's geometry or a title's glyphs lie whole.
+
+`transform` as a 3 × 3 matrix, the whole map under a corner pin: it changes the form of every item's `transform`, a major change ([FRAMES-17](../FRAMES-17/SPEC.md)), for the few items a corner pin carries, and it composes a picture's corner pin into one matrix with the affine maps around it, so a program could not tell where an item lies on its plane. The plane's map with the corner pins as `{dest, cornerPin}` gives both, each corner pin in the terms the display list writes it.
 
 A title's box left out of `texts`: a boxed title covers its background's padding as well as its text box, and a program that keeps captions clear of other text would know only half of what it covers.
 
