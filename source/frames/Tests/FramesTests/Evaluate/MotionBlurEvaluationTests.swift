@@ -288,16 +288,25 @@ struct MotionBlurEvaluationTests {
     }
 
     @Test(
-        "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the list's frame carried back to the item's coordinates",
+        "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the bounds of what the adjustment draws",
         arguments: [
-            (#""animation": "mine/wipe-in", "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#, 2.0),
-            (#""animation": "mine/wipe-in", "mask": { "shape": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#, 2.0),
-            (#""animation": "mine/drift""#, 0.5)
+            (
+                #""animation": "mine/wipe-in", "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#,
+                2.0,
+                Rectangle(x: 68, y: 68, width: 464, height: 364) as Rectangle?
+            ),
+            (
+                #""animation": "mine/wipe-in", "mask": { "shape": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#,
+                2.0,
+                Rectangle(x: 0, y: 0, width: 1920, height: 1080)
+            ),
+            (#""animation": "mine/drift""#, 0.5, nil)
         ]
     )
-    func writesWholeFrameOfCompleteAdjustmentWipe(
+    func writesDrawnBoundsOfCompleteAdjustmentWipe(
         written: String,
-        time: Double
+        time: Double,
+        drawn: Rectangle?
     ) throws {
         // Given
         let sequence = try resolved(#"""
@@ -311,19 +320,36 @@ struct MotionBlurEvaluationTests {
         let list = sut.displayList(of: sequence, at: time)
 
         // Then
+        // A feathered mask lets its adjustment through as far as four times its feather past its box.
         let samples = try #require(list.samples)
         let items = try samples.map { try item("grade", in: $0) }
         #expect(items.allSatisfy { item in
             guard case let .adjust(adjust) = item.content else { return false }
 
-            return item.reveal == adjust.drawnBounds(carriedBy: item.transform, over: frame)
+            return item.reveal == adjust.drawnBounds(carriedBy: item.transform, masks: item.mask, over: frame)
         })
-        #expect(time != 2 || items.allSatisfy { $0.reveal == frame })
+        #expect(drawn == nil || items.allSatisfy { $0.reveal == drawn })
         #expect((items.first?.transform == items.last?.transform) == (time == 2))
     }
 
-    @Test("a wipe under way on an adjustment with a mask wipes across the list's frame, which the adjustment draws over")
-    func wipesFrameOfMaskedAdjustment() throws {
+    @Test("a wipe under way on an adjustment with a hard-edged mask wipes across the mask's box, value for value")
+    func wipesBoxOfHardEdgedMask() throws {
+        // Given
+        let sequence = try resolved(clips: [#"""
+            { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
+              "mask": { "shape": "rect", "area": [10.1, 20.3, 30.7, 40.9] } }
+            """#])
+        let box = Rectangle(x: 10.1, y: 20.3, width: 30.7, height: 40.9)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.25)
+
+        // Then
+        #expect(try item("grade", in: list.items).reveal == Reveal(amount: 0.5).rectangle(wiping: box, from: .left))
+    }
+
+    @Test("a wipe under way on an adjustment with a feathered mask wipes across the mask's box grown by four times its feather")
+    func wipesGrownBoxOfFeatheredMask() throws {
         // Given
         let sequence = try resolved(clips: [#"""
             { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
@@ -334,7 +360,7 @@ struct MotionBlurEvaluationTests {
         let list = sut.displayList(of: sequence, at: 0.25)
 
         // Then
-        #expect(try item("grade", in: list.items).reveal == Rectangle(x: 0, y: 0, width: 960, height: 1080))
+        #expect(try item("grade", in: list.items).reveal == Rectangle(x: 68, y: 68, width: 232, height: 364))
     }
 
     @Test("a clip and a storyline entry give the time their values are read at, by their own switch, held in their windows")
