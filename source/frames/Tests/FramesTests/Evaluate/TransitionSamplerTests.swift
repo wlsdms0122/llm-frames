@@ -153,7 +153,7 @@ struct TransitionSamplerTests {
         ])
 
         // When
-        let value = sut.coverOpacity(of: cover, at: progress)
+        let value = sut.coverOpacity(of: cover, at: SampleProgress(progress))
 
         // Then
         #expect(abs(value - opacity) < 1e-9)
@@ -165,7 +165,7 @@ struct TransitionSamplerTests {
         let ease = Ease.easeIn
 
         // When
-        let value = sut.matteProgress(easedBy: ease, at: 0.5)
+        let value = sut.matteProgress(easedBy: ease, at: SampleProgress(0.5))
 
         // Then
         #expect(value == 0.125)

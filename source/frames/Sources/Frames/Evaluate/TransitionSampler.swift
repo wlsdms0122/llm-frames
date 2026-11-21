@@ -23,16 +23,20 @@ struct TransitionSampler: Sendable {
         min(max((time - range.start) / range.length, 0), 1)
     }
 
-    // The progress of the transition the entry at `index` brings in, at that entry's value time.
+    // The progress of the transition the entry at `index` brings in, at that entry's value time and at T.
     func progress(
+        of transition: ResolvedTransition,
         broughtBy index: Int,
         in storyline: [ResolvedStorylineClip],
         at sample: SampleInstant
-    ) -> Double {
-        guard let transition = storyline[index].transition else { return 0 }
-
+    ) -> SampleProgress {
+        let range = TimeRange(start: transition.start, end: transition.end)
         let time = storyline.valueTime(ofEntry: index, in: sample)
-        return progress(through: TimeRange(start: transition.start, end: transition.end), at: time.instant)
+
+        return SampleProgress(
+            instant: progress(through: range, at: time.instant),
+            frameProgress: progress(through: range, at: sample.frameTime)
+        )
     }
 
     // The motion at a time outside a sample of a frame with motion blur.
@@ -65,37 +69,19 @@ struct TransitionSampler: Sendable {
     // A cover's keys take only opacity.
     func coverOpacity(
         of span: Span,
-        at progress: Double
+        at progress: SampleProgress
     ) -> Double {
-        coverOpacity(of: span, at: progress, onSideOf: progress)
+        evaluator.motion(of: span, at: progress.instant, onSideOf: progress.frameProgress).value(of: .opacity)
     }
 
-    // `frameProgress` is the transition's progress at T.
-    func coverOpacity(
-        of span: Span,
-        at progress: Double,
-        onSideOf frameProgress: Double
-    ) -> Double {
-        evaluator.motion(of: span, at: progress, onSideOf: frameProgress).value(of: .opacity)
-    }
-
-    // The luminance below which a matte shows the incoming storyline picture.
+    // The luminance below which a matte shows the incoming storyline picture. A `step` ease holds T's side of its end.
     func matteProgress(
         easedBy ease: Ease,
-        at progress: Double
+        at progress: SampleProgress
     ) -> Double {
-        matteProgress(easedBy: ease, at: progress, onSideOf: progress)
-    }
+        let isStepEnd = ease == .step && (progress.frameProgress < 1) != (progress.instant < 1)
 
-    // A `step` ease holds T's side of its end.
-    func matteProgress(
-        easedBy ease: Ease,
-        at progress: Double,
-        onSideOf frameProgress: Double
-    ) -> Double {
-        let isStepEnd = ease == .step && (frameProgress < 1) != (progress < 1)
-
-        return ease.value(at: isStepEnd ? frameProgress : progress)
+        return ease.value(at: isStepEnd ? progress.frameProgress : progress.instant)
     }
 
     // MARK: - Private
@@ -108,12 +94,10 @@ struct TransitionSampler: Sendable {
     ) -> MotionSample {
         guard let span else { return .none }
 
-        let range = TimeRange(start: transition.start, end: transition.end)
-        let frameProgress = progress(through: range, at: sample.frameTime)
-        let progress = progress(broughtBy: index, in: storyline, at: sample)
+        let progress = progress(of: transition, broughtBy: index, in: storyline, at: sample)
 
         return MotionSample(
-            motion: evaluator.motion(of: span, at: progress, onSideOf: frameProgress),
+            motion: evaluator.motion(of: span, at: progress.instant, onSideOf: progress.frameProgress),
             revealFrom: span.revealFrom
         )
     }

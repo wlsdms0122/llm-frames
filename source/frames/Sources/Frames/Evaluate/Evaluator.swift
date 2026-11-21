@@ -45,10 +45,10 @@ package struct Evaluator: Sendable {
 
         let format = sequence.format
         let evaluator = Evaluator(targetPeak: format.peakLuminance)
-        let reads = OwnerReads()
+        let reads = MotionBlurReads()
         let instants = format.shutter.instants(at: time, fps: format.fps)
         let sample = { (instant: Double) in
-            evaluator.items(of: sequence, at: SampleInstant(time: instant, frameTime: time, reads: reads), seed: list.seed)
+            evaluator.items(of: sequence, at: SampleInstant(instant: instant, frameTime: time, reads: reads), seed: list.seed)
         }
 
         // The first sample tells whether the frame reads a value a clip with `motionBlur` owns.
@@ -242,9 +242,13 @@ package struct Evaluator: Sendable {
                 }
         }
 
-        let frameProgress = transitionSampler.progress(through: transition.range, at: sample.frameTime)
-        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: sequence.storyline, at: sample)
         let spans = transition.transition
+        let progress = transitionSampler.progress(
+            of: transition.transition,
+            broughtBy: transition.incoming,
+            in: sequence.storyline,
+            at: sample
+        )
         return spans.over.bottomFirst.map { order in
             switch order {
             case .incoming:
@@ -252,7 +256,7 @@ package struct Evaluator: Sendable {
                     of: transition.incoming,
                     in: sequence,
                     parents: parents,
-                    matte: spans.matte.map { matte(of: $0, at: progress, onSideOf: frameProgress) },
+                    matte: spans.matte.map { matte(of: $0, at: progress) },
                     at: sample,
                     seed: seed
                 )
@@ -401,26 +405,25 @@ package struct Evaluator: Sendable {
 
             // The clock carries the instant whatever the switch, its input clamped to T's side of its jumps: the
             // window's ends and those of its `timeRemap` (FRAMES-29).
-            let instant = clock?.mediaTime(atSequenceTime: window.held(sample.time), onSideOf: sample.frameTime)
+            let instant = clock?.mediaTime(atSequenceTime: window.held(sample.instant), onSideOf: sample.frameTime)
                 ?? mediaTime
-            let nested = SampleInstant(time: instant, frameTime: mediaTime, reads: reads)
+            let nested = SampleInstant(instant: instant, frameTime: mediaTime, reads: reads)
             return .displayList(displayList(of: sequence, at: nested, seed: seed, colorSpace: nil))
         }
     }
 
-    // The matte's media frame is picked at the progress at T, `frameProgress`.
+    // The matte's media frame is picked at the progress at T.
     private func matte(
         of matte: ResolvedMatte,
-        at progress: Double,
-        onSideOf frameProgress: Double
+        at progress: SampleProgress
     ) -> PictureMatte {
         PictureMatte(
             frame: MediaFrame(
                 media: matte.media,
-                progress: frameProgress,
+                progress: progress.frameProgress,
                 reading: .analysis(colorSpace: matte.media.colorSpace)
             ),
-            progress: transitionSampler.matteProgress(easedBy: matte.ease, at: progress, onSideOf: frameProgress),
+            progress: transitionSampler.matteProgress(easedBy: matte.ease, at: progress),
             softness: matte.softness,
             isInverted: matte.isInverted
         )
@@ -435,9 +438,13 @@ package struct Evaluator: Sendable {
     ) -> [DisplayItem] {
         guard let transition, let cover = transition.transition.cover else { return [] }
 
-        let frameProgress = transitionSampler.progress(through: transition.range, at: sample.frameTime)
-        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: storyline, at: sample)
-        let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress, onSideOf: frameProgress)
+        let progress = transitionSampler.progress(
+            of: transition.transition,
+            broughtBy: transition.incoming,
+            in: storyline,
+            at: sample
+        )
+        let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress)
         switch cover.source {
         case let .color(color):
             return [DisplayItem(opacity: opacity, content: .path(PathItem(filling: frame, color: color)))]
@@ -446,7 +453,7 @@ package struct Evaluator: Sendable {
             let picture = PictureItem(
                 source: .media(MediaFrame(
                     media: media,
-                    progress: frameProgress,
+                    progress: progress.frameProgress,
                     reading: .working(colorSpace: media.colorSpace, targetPeak: targetPeak)
                 )),
                 rectangle: nil,

@@ -11,7 +11,7 @@ extension ResolvedClip {
     // MARK: - Initializer
     // MARK: - Public
     func valueTime(in sample: SampleInstant) -> SampleTime {
-        sample.time(ownedBy: isMotionBlurred, in: TimeRange(start: start, end: end))
+        sample.readTime(ownedBy: isMotionBlurred, in: TimeRange(start: start, end: end))
     }
 
     // MARK: - Private

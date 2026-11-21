@@ -159,7 +159,8 @@ struct MotionBlurEvaluationTests {
     func givesOwnersValueTime() throws {
         // Given
         let sequence = try resolved(clips: [slider(isMotionBlurred: true)])
-        let sample = SampleInstant(time: 4.5, frameTime: 3.99, reads: OwnerReads())
+        let reads = MotionBlurReads()
+        let sample = SampleInstant(instant: 4.5, frameTime: 3.99, reads: reads)
 
         // When
         let clip = sequence.clips[0].valueTime(in: sample)
@@ -170,6 +171,24 @@ struct MotionBlurEvaluationTests {
         #expect(clip.frameTime == 3.99)
         #expect(entry.instant == 3.99)
         #expect(sequence.storyline.drawnRange(ofEntry: 0) == TimeRange(start: 0, end: 4))
+        #expect(reads.readsMotionBlur)
+    }
+
+    @Test("a read of a value whose owner has no motionBlur is not recorded")
+    func recordsNoReadWithoutSwitch() throws {
+        // Given
+        let sequence = try resolved(clips: [slider(isMotionBlurred: false)])
+        let reads = MotionBlurReads()
+        let sample = SampleInstant(instant: 4.5, frameTime: 3.99, reads: reads)
+
+        // When
+        let clip = sequence.clips[0].valueTime(in: sample)
+        let entry = sequence.storyline.valueTime(ofEntry: 0, in: sample)
+
+        // Then
+        #expect(clip.instant == 3.99)
+        #expect(entry.instant == 3.99)
+        #expect(!reads.readsMotionBlur)
     }
 
     @Test("a step keyframe at 1.53 holds every instant of the frame at 1.52 at the old place")

@@ -27,7 +27,7 @@ extension Array where Element == ResolvedStorylineClip {
         ofEntry index: Int,
         in sample: SampleInstant
     ) -> SampleTime {
-        sample.time(ownedBy: self[index].isMotionBlurred, in: drawnRange(ofEntry: index))
+        sample.readTime(ownedBy: self[index].isMotionBlurred, in: drawnRange(ofEntry: index))
     }
 
     // MARK: - Private
