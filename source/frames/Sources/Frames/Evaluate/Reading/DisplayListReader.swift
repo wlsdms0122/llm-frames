@@ -10,7 +10,8 @@
 // every list nested in it share one seed: the first `grain` written gives it, and a `grain` with another stops. A list
 // with no `grain` reads with seed 0, since only `grain` reads the seed. Only the outermost list carries `colorSpace`
 // and `peak`, and it carries `items` or, for a frame with motion blur, `samples`: at least two sample lists, each
-// differing from the first only in the members `MovesTable` marks. A nested list carries `items` only.
+// differing from the first only in the members `MovesTable` marks. A nested list carries `items` only. A corner pin is
+// strictly convex, or, in a sample list and the lists nested in it, four points at [0, 0] (FRAMES-20 Pictures).
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "compositing", "items"]
@@ -21,6 +22,8 @@ package struct DisplayListReader: Sendable {
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
     private let moves = MovesTable()
+    // Whether the items read are a sample list's or in a list nested in one.
+    private let isInSample: Bool
 
     // MARK: - Initializer
     package init() {
@@ -28,7 +31,15 @@ package struct DisplayListReader: Sendable {
     }
 
     init(checker: ResolvedDocumentChecker) {
+        self.init(checker: checker, isInSample: false)
+    }
+
+    private init(
+        checker: ResolvedDocumentChecker,
+        isInSample: Bool
+    ) {
         self.checker = checker
+        self.isInSample = isInSample
     }
 
     // MARK: - Public
@@ -171,7 +182,8 @@ package struct DisplayListReader: Sendable {
             )
         }
 
-        let samples = try elements.map { element in try items(element, in: size, seed: seed) }
+        let reader = DisplayListReader(checker: checker, isInSample: true)
+        let samples = try elements.map { element in try reader.items(element, in: size, seed: seed) }
         for element in elements.dropFirst() {
             if let difference = moves.difference(of: element, from: elements[0]) {
                 throw EvaluateError.differentSample(place: difference.place, kind: difference.kind)
@@ -372,18 +384,22 @@ package struct DisplayListReader: Sendable {
     }
 
     // Four points the corners of `dest` go to, strictly convex, so the homography that carries the picture onto them
-    // takes `dest` onto their inside without passing through infinity (FRAMES-27).
+    // takes `dest` onto their inside without passing through infinity (FRAMES-27). In a sample list they may also be
+    // four points at [0, 0], where a clip's group draws nothing.
     private func cornerPin(_ value: PlacedJSONValue) throws -> Quad {
         let elements = try value.elements()
         guard elements.count == 4 else { throw value.wrongType("a list of 4 points") }
 
         let corners = try elements.map(values.point)
         let quad = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-        guard quad.isStrictlyConvex else {
+        guard quad.isStrictlyConvex || (isInSample && quad == .collapsed) else {
+            let form = isInSample
+                ? "a corner pin in a sample list is a strictly convex quadrilateral or four points at [0, 0]"
+                : "a corner pin is a strictly convex quadrilateral"
             throw ModelError.invalidValue(
                 place: value.place,
                 kind: value.kind,
-                reason: "a corner pin is a strictly convex quadrilateral, found \(value.value.written)"
+                reason: "\(form), found \(value.value.written)"
             )
         }
 

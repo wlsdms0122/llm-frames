@@ -395,8 +395,9 @@ package struct Evaluator: Sendable {
     // A storyline clip with a corner pin drawn flat in its box B, `[0, 0, w, h]`, in a nested list of D, B and its
     // shadow, with B's top left at (-x, -y) for D at (x, y), its masks inside. The group's `rect` is B in the list, its
     // `dest` B and its corner pin Q(t); it carries the clip's track matte, and its opacity and blend are the outer
-    // item's. Nil for a solid, which takes no corner pin, and where the corner pin draws nothing: B has no area or Q(t)
-    // is not strictly convex. A storyline clip's corner pin is in output pixels and does not track.
+    // item's. Nil for a solid, which takes no corner pin. Where the corner pin draws nothing, B having no area or Q(t)
+    // not being strictly convex, the group is nil, and in a sample list it is there with four points at [0, 0] as its
+    // corner pin (FRAMES-20 Pictures). A storyline clip's corner pin is in output pixels and does not track.
     private func group(
         of entry: ResolvedStorylineClip,
         cornerPin: ResolvedCornerPin,
@@ -407,9 +408,8 @@ package struct Evaluator: Sendable {
         seed: Int
     ) -> DisplayItem? {
         let quad = cornerPin.points.mapValues { $0.sampled(\.fixed) }.value(at: time)
-        guard let media = entry.media, cornerPin.size.width > 0, cornerPin.size.height > 0, quad.isStrictlyConvex else {
-            return nil
-        }
+        let isDrawn = cornerPin.size.width > 0 && cornerPin.size.height > 0 && quad.isStrictlyConvex
+        guard let media = entry.media, isDrawn || time.sample.isSample else { return nil }
 
         let box = Rectangle(x: 0, y: 0, width: cornerPin.size.width, height: cornerPin.size.height)
         let item = PictureItem(
@@ -458,7 +458,7 @@ package struct Evaluator: Sendable {
                 )),
                 rectangle: Rectangle(x: -bounds.x, y: -bounds.y, width: box.width, height: box.height),
                 destination: box,
-                cornerPin: quad
+                cornerPin: isDrawn ? quad : .collapsed
             )),
             origin: ItemOrigin(entry: entry)
         )

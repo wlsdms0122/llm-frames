@@ -44,7 +44,8 @@ struct MovesTable: Sendable {
             "matte": .members(["progress": .moves], other: .fixed),
             "radius": .moves,
             "border": .members(["width": .moves, "color": .moves], other: .fixed),
-            "shadow": .moves
+            "shadow": .moves,
+            "cornerPin": .moves
         ],
         "path": [
             "geometry": .moves,

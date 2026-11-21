@@ -173,9 +173,10 @@ struct ClipEvaluator: Sendable {
     // with the transform part of its animation about B's centre, opacity 1 and `normal` blend, its reveal, and its masks
     // in its own space, in a nested list of D, the box its reveal wipes, with B's top left at (-x, -y) for D at (x, y).
     // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
-    // animation's included, and its blend. Nil where the corner pin draws nothing, and for an adjustment, which takes
-    // no corner pin. A rect or an ellipse is drawn in the box its `width` and `height` give at the time, its own masks
-    // in that box.
+    // animation's included, and its blend. Where the corner pin draws nothing the group is nil, and in a sample list it
+    // is there with four points at [0, 0] as its corner pin (FRAMES-20 Pictures). Nil for an adjustment, which takes no
+    // corner pin. A rect or an ellipse is drawn in the box its `width` and `height` give at the time, its own masks in
+    // that box.
     private func group(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -238,7 +239,10 @@ struct ClipEvaluator: Sendable {
         }
 
         let box = Size(width: flat.box.width, height: flat.box.height)
-        guard let cornerPin = clip.drawnCornerPin(box: box, areas: space.areas, clock: space.clock, at: time) else {
+        guard
+            let cornerPin = clip.drawnCornerPin(box: box, areas: space.areas, clock: space.clock, at: time)
+                ?? (time.sample.isSample ? Quad.collapsed : nil)
+        else {
             return nil
         }
 
