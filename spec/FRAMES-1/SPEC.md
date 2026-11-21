@@ -26,7 +26,7 @@ A value means one thing only when its unit and origin are fixed. A document is w
 | Angles | degrees, clockwise positive |
 | Colours | a colour value: `#RRGGBB`, `#RRGGBBAA`, `color(<space> r g b / a)`, or the name of a theme colour, as [FRAMES-26](../FRAMES-26/SPEC.md) gives them |
 
-A clip's own size is that of its box: a title's box (its text box, `width` wide or fitted to its text, with its background, [FRAMES-11](../FRAMES-11/SPEC.md)), a media clip's box, a storyline picture's box (the frame, which its conformed crop fills, [FRAMES-9](../FRAMES-9/SPEC.md)), a rect or ellipse shape's box, and the bounding box of a path's points. Scale and rotation act around the clip's anchor point ([Placement](#placement)).
+A clip's own size is that of its box: a title's box (its text box, `width` wide or fitted to its text, with its background, [FRAMES-11](../FRAMES-11/SPEC.md)), a media clip's box, a storyline picture's box (the frame, which its conformed crop fills, [FRAMES-9](../FRAMES-9/SPEC.md)), a rect or ellipse shape's box, and the bounding box of a path's points. Scale and rotation act around the clip's anchor point ([Placement](#placement)). For placing, a clip with a corner pin takes the bounding box of its corner pin as its own size, and its box stays what it draws ([FRAMES-27](../FRAMES-27/SPEC.md#the-key)).
 
 Media time, in media seconds, is a media file's presentation timeline after its edit list, with 0 at the first presented frame. The decoder converts pictures to working values, and tone maps an HDR picture whose source peak is above the sequence's peak to that peak where the clip's `toneMap` is true ([FRAMES-26](../FRAMES-26/SPEC.md)). Everything that reads media reads it by these definitions.
 
@@ -34,7 +34,7 @@ The length scale is `width / baseWidth`, where width is the width of the frame t
 
 ### Placement
 
-A clip with a box of its own (a title, a media clip, a rect or ellipse shape given by `width` and `height`) is placed by `placement` or by `position`, never both. A clip with both stops. A storyline clip is placed by `position` only. A shape given by `area` or `points` is placed by its geometry, and its `position`, when written, moves its anchor point there.
+A clip with a box of its own (a title, a media clip, a rect or ellipse shape given by `width` and `height`) is placed by `placement` or by `position`, never both. A clip with both stops. A storyline clip is placed by `position` only. A clip with a box of its own and a storyline clip with media may instead be placed by `cornerPin`, the four points its box's corners go to, and then take no placement key beside it ([FRAMES-27](../FRAMES-27/SPEC.md)). A shape given by `area` or `points` is placed by its geometry, and its `position`, when written, moves its anchor point there.
 
 - `placement` is a name: `top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right`. The clip's box sits at that place inside the frame, kept in from every edge by the theme `placement.padding`, the title safe margin. A text style's `offset` replaces that margin on the top or bottom edge, when the name has one (a subtitle sits `offset` above the bottom of the frame).
 - `position` is a point ([FRAMES-2](../FRAMES-2/SPEC.md)) in the clip's coordinate space: where the clip's anchor point goes. It is `[x, y]`, or `{"area": <area>, "point": <placement name>}` where an area is allowed. It is keyframable.
@@ -50,7 +50,8 @@ Placement names are measured on the frame. The defaults:
 | title | the placement of its text style. A title whose style gives none has no default, and without `placement` or `position` it stops |
 | rect or ellipse shape by `width` and `height` | `placement` `center` |
 | shape by `area` or `points` | its geometry where it is written, `anchor` the centre of its geometry's box |
-| parented clip | none: a parented clip with a box of its own needs `position` (or `area` or `points` for a shape), and one with a `placement` stops, since a placement names the frame and not the parent's space |
+| a clip with `cornerPin` | none: its corner pin places it ([FRAMES-27](../FRAMES-27/SPEC.md)) |
+| parented clip | none: a parented clip with a box of its own needs `position` (or `area` or `points` for a shape, or `cornerPin`), and one with a `placement` stops, since a placement names the frame and not the parent's space |
 
 On a sequence whose size is measured from its content, the defaults that name the frame do not apply and a `placement` stops, as [FRAMES-6](../FRAMES-6/SPEC.md) says.
 
@@ -60,11 +61,11 @@ On a sequence whose size is measured from its content, the defaults that name th
 
 A scale stretches the clip's picture and geometry along each axis. **Geometry follows the map: a corner `radius`, an `outset` and a stroke's dash lengths and `dashOffset` are part of the outline, drawn in the clip's own coordinates and carried by its transform with it**, so under a per-axis scale a rounded corner is elliptical and the dashes along the wider axis are longer, as After Effects draws a shape under its layer's scale. A run's highlight radius is a corner of the same kind. **The widths of drawn lines do not stretch: a stroke's width, a border's width, a run's stroke width and a shadow's radius are multiplied by the clip's scale factor, the geometric mean √(|sx| × |sy|), and drawn the same in every direction** ([FRAMES-10](../FRAMES-10/SPEC.md), [FRAMES-20](../FRAMES-20/SPEC.md)), so a stroke keeps one width around a stretched outline. A shadow's offset is multiplied by the scale factor too, and is a direction in the clip's picture, so it turns, stretches and mirrors with it. For a number s the scale factor is |s|, and a clip's animation multiplies it by the animation's scale.
 
-Skew is not a key. Every linear map of the plane is a rotation, a scale per axis and a second rotation, so a compound clip whose picture is rotated inside it, scaled per axis and rotated again by the clip that shows it gives any affine map of that picture ([FRAMES-9](../FRAMES-9/SPEC.md)). A shape placed by its geometry under a parent rotated and scaled per axis follows its parent's map whole ([FRAMES-10](../FRAMES-10/SPEC.md)), and is skewed with it.
+Skew is not a key. Every linear map of the plane is a rotation, a scale per axis and a second rotation, so a compound clip whose picture is rotated inside it, scaled per axis and rotated again by the clip that shows it gives any affine map of that picture ([FRAMES-9](../FRAMES-9/SPEC.md)). A shape placed by its geometry under a parent rotated and scaled per axis follows its parent's map whole ([FRAMES-10](../FRAMES-10/SPEC.md)), and is skewed with it. A projective map of a picture, under which parallel edges converge, is not affine, and a corner pin gives it ([FRAMES-27](../FRAMES-27/SPEC.md)).
 
 ## Interactions
 
-Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md). Parented coordinates are [FRAMES-10](../FRAMES-10/SPEC.md). A storyline picture's box and conform are [FRAMES-9](../FRAMES-9/SPEC.md). The theme lengths come from [FRAMES-22](../FRAMES-22/SPEC.md). A content-fit frame and what it does to placement are [FRAMES-6](../FRAMES-6/SPEC.md). Transition offsets are applied as [FRAMES-14](../FRAMES-14/SPEC.md) says. Colour values and what the decoder does with a picture's colours are [FRAMES-26](../FRAMES-26/SPEC.md).
+Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md). Parented coordinates are [FRAMES-10](../FRAMES-10/SPEC.md). A corner pin is [FRAMES-27](../FRAMES-27/SPEC.md). A storyline picture's box and conform are [FRAMES-9](../FRAMES-9/SPEC.md). The theme lengths come from [FRAMES-22](../FRAMES-22/SPEC.md). A content-fit frame and what it does to placement are [FRAMES-6](../FRAMES-6/SPEC.md). Transition offsets are applied as [FRAMES-14](../FRAMES-14/SPEC.md) says. Colour values and what the decoder does with a picture's colours are [FRAMES-26](../FRAMES-26/SPEC.md).
 
 ## Alternatives considered
 
