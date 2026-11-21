@@ -21,11 +21,11 @@ struct PageReadingTests {
         arguments: [
             (
                 #"{ "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 2 }, "duration": 2, "toneMap": false } ] }"#,
-                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/logo.pdf", "at": [0, 1], "toneMap": true } ] } ] }"#,
-                #"storyline[0].connected[0] (page): unknown key "toneMap". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, media, colorSpace, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow"#
+                #"storyline[0].connected[0] (page): unknown key "toneMap". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, media, colorSpace, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow"#
             )
         ]
     )
@@ -65,7 +65,7 @@ struct PageReadingTests {
         arguments: [
             (
                 #""toneMap": false"#,
-                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 #""colorSpace": "rec2100-pq""#,
