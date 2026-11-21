@@ -115,7 +115,7 @@ package struct DisplayListWriter: Sendable {
         }
     }
 
-    // `rect` is `null` where the picture shows its whole source.
+    // `rect` is `null` where the picture shows its whole source, and `cornerPin` where it has none.
     private func members(
         of picture: PictureItem,
         seed: Int
@@ -145,7 +145,8 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "matte", value: matte ?? .null),
             JSONMember(key: "radius", value: .number(picture.radius)),
             JSONMember(key: "border", value: border ?? .null),
-            JSONMember(key: "shadow", value: shadow(picture.shadow))
+            JSONMember(key: "shadow", value: shadow(picture.shadow)),
+            JSONMember(key: "cornerPin", value: picture.cornerPin.map { .array($0.corners.map(values.point)) } ?? .null)
         ]
     }
 

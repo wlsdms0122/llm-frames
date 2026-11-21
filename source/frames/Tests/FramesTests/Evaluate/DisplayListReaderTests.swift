@@ -186,6 +186,17 @@ struct DisplayListReaderTests {
             unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
             unitGlyphBox: Rectangle(x: 3, y: 2, width: 4, height: 6),
             background: nil
+        ))),
+        DisplayItem(content: .picture(PictureItem(
+            source: .displayList(DisplayList(size: Size(width: 120, height: 80), background: .transparent, seed: 0, items: [])),
+            rectangle: Rectangle(x: -10, y: -10, width: 100, height: 60),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 60),
+            cornerPin: Quad(
+                topLeft: Point(x: 812, y: 304),
+                topRight: Point(x: 1131, y: 352),
+                bottomRight: Point(x: 1102, y: 918),
+                bottomLeft: Point(x: 779, y: 861)
+            )
         )))
     ]
 
@@ -386,6 +397,48 @@ struct DisplayListReaderTests {
         // Then
         #expect(item?["rect"] == .null)
         #expect(item?["origin"] == .null)
+    }
+
+    @Test("a picture writes its corner pin as four points after its shadow, and null without one")
+    func writesCornerPin() throws {
+        // Given
+        let list = list(items: [Self.items[1], Self.items[Self.items.count - 1]])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue)
+
+        // Then
+        #expect(items?[0].members.last?.key == "cornerPin")
+        #expect(items?[0]["cornerPin"] == .null)
+        #expect(items?[1]["cornerPin"] == (try Fixture.json("[[812, 304], [1131, 352], [1102, 918], [779, 861]]")))
+    }
+
+    @Test(
+        "a picture's corner pin that is not four points or not strictly convex stops, naming its place",
+        arguments: [
+            ("[[0, 0], [10, 0], [10, 10]]", "items[0].cornerPin (picture): expected a list of 4 points, found a list of 3"),
+            ("[[0, 0], [10, 0], [10, 10], [10, 20]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [10, 0], [10, 10], [10, 20]]")
+        ]
+    )
+    func refusesCornerPin(
+        written: String,
+        message: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "peak": null, "compositing": "encoded", "items": [
+              { "item": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
+                "trackMatte": null, "reveal": null, "source": { "list": { "size": [10, 10], "background": "color(srgb 0 0 0 / 0)",
+                "compositing": "encoded", "items": [] } }, "rect": null, "dest": [0, 0, 10, 10], "filter": [], "matte": null,
+                "radius": 0, "border": null, "shadow": null, "cornerPin": \#(written) } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
     }
 
     @Test("an item without masks writes its mask as null, and each mask holds its geometry in the path's form")

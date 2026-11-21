@@ -146,7 +146,7 @@ package struct DisplayListReader: Sendable {
     private func keys(of name: String) -> [String] {
         switch name {
         case "picture":
-            ["source", "rect", "dest", "filter", "matte", "radius", "border", "shadow"]
+            ["source", "rect", "dest", "filter", "matte", "radius", "border", "shadow", "cornerPin"]
 
         case "path":
             ["geometry", "fill", "stroke", "trim", "shadow"]
@@ -271,7 +271,8 @@ package struct DisplayListReader: Sendable {
                     color: try values.color(border.member("color"))
                 )
             },
-            shadow: try item.member("shadow").optional(shadow)
+            shadow: try item.member("shadow").optional(shadow),
+            cornerPin: try item.member("cornerPin").optional(cornerPin)
         )
     }
 
@@ -296,6 +297,25 @@ package struct DisplayListReader: Sendable {
             trim: try trim(item.member("trim")),
             shadow: try item.member("shadow").optional(shadow)
         )
+    }
+
+    // Four points the corners of `dest` go to, strictly convex, so the homography that carries the picture onto them
+    // takes `dest` onto their inside without passing through infinity (FRAMES-27).
+    private func cornerPin(_ value: PlacedJSONValue) throws -> Quad {
+        let elements = try value.elements()
+        guard elements.count == 4 else { throw value.wrongType("a list of 4 points") }
+
+        let corners = try elements.map(values.point)
+        let quad = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
+        guard quad.isStrictlyConvex else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a corner pin is a strictly convex quadrilateral, found \(value.value.written)"
+            )
+        }
+
+        return quad
     }
 
     private func trim(_ value: PlacedJSONValue) throws -> Trim {
