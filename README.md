@@ -245,7 +245,7 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| adjustment clip | every clip with a picture's but `motionBlur`, and `adjust` |
+| adjustment clip | every clip with a picture's, `adjust` |
 
 - `id` names a clip for `parent`, a track matte's `clip`, messages, machine output and the programs that change a document. It is unique within its document, and a duplicate stops.
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
@@ -457,15 +457,16 @@ An adjustment clip applies a filter choice (`adjust`) to everything below it in 
 
 ### Motion blur
 
-A clip with `"motionBlur": true` shows the motion frames gives it during each frame's exposure, as After Effects' Motion Blur switch does: its keyframes, animation, transition motion and its parent's motion. Every storyline clip takes it, and so do titles, shapes and media clips. An adjustment clip does not. The sequence's `format.motionBlur` is the shutter of every frame:
+A clip with `"motionBlur": true` shows the motion frames gives it during each frame's exposure, as After Effects' Motion Blur switch does: its keyframes, animation, transition motion and its parent's motion. Every clip with a picture takes it, storyline clips, titles, shapes, media clips and adjustment clips. The sequence's `format.motionBlur` is the shutter of every frame:
 
 | Key | Value | Default |
 | --- | --- | --- |
 | `shutterAngle` | how long the shutter is open, in degrees of a frame, above 0 and at most 720 | 180 |
-| `shutterPhase` | when it opens, in degrees from the frame's instant, from -360 to 360 | half the angle, negative, so the blur is centred on the frame |
+| `shutterPhase` | when it opens, in degrees before the frame's instant, from minus the angle to 0, so the exposure always holds the instant | half the angle, negative, so the blur is centred on the frame |
 | `samplesPerFrame` | how many instants of the exposure are drawn, a whole number from 2 to 256 | 16 |
 
-- The clip is drawn at the midpoints of `samplesPerFrame` equal parts of the exposure, each kept inside its window, and shows their mean. Which clips show, the media frame of footage and tracked motion are those of the frame's own instant, so footage is never exposed twice and motion inside footage is not blurred.
+- The clip is drawn at the midpoints of `samplesPerFrame` equal parts of the exposure, cut to the part where it is visible, and shows their mean. A sample moves the clip's pose (its keyframes, animation, parent, transition motion, mask and track matte) and holds its content: which clips show, the media frame of footage, the picture of a compound clip and tracked motion are those of the frame's own instant, so a cut stays a cut, footage is never exposed twice and motion inside footage is not blurred.
+- Clips with motion blur and `normal` blend next to each other in the stack are drawn together at each instant, so both sides of a push, or a title and the bar parented to it, blur as one picture with no seam. Turn it on for both sides of a push: with one side on, what is below the storyline shows through along the blurred edge.
 - A compound clip's own shutter applies only when it is rendered alone. Inside another sequence its clips with motion blur take the outer shutter through its speed and `timeRemap`, so a held frame shows no blur.
 - A fast move shows steps where the samples are far apart: raise `samplesPerFrame`. Each sample is a full drawing of the clip, so a clip with motion blur costs that many times as much to render.
 
