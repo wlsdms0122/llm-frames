@@ -233,7 +233,7 @@ struct PageReaderTests {
         #expect(p3[1] > 1)
     }
 
-    @Test("a written colour space for the untagged colour of a page that draws tagged colour too is refused")
+    @Test("a written colour space for the untagged colour of a page that draws tagged colour too is refused, saying why")
     func refusesWrittenSpaceOverTaggedColor() throws {
         // Given
         let path = directory.file("mixed.pdf")
@@ -250,6 +250,7 @@ struct PageReaderTests {
         #expect(throws: DecoderError.unreadablePage(file: path, page: 1, fault: .untaggedColor(.displayP3))) {
             try sut.check(file, reading: .working(colorSpace: .displayP3, targetPeak: nil))
         }
+        #expect(PageFault.untaggedColor(.displayP3).reason.contains("Core Graphics draws DeviceRGB and DeviceGray as sRGB"))
     }
 
     // MARK: - Private
