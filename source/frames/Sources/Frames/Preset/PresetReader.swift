@@ -357,8 +357,11 @@ struct PresetReader: Sendable {
         ease: Ease
     ) throws -> Cover {
         let object = value.objectValue ?? JSONObject()
-        let source: CoverSource = object["media"]?.stringValue.map(CoverSource.media)
-            ?? .color(object["color"]?.stringValue ?? "")
+        let source: CoverSource = if let page = object["media"]?.objectValue {
+            .page(page["file"]?.stringValue ?? "", page: Self.page(of: page))
+        } else {
+            object["media"]?.stringValue.map(CoverSource.media) ?? .color(object["color"]?.stringValue ?? "")
+        }
         return Cover(
             source: source,
             colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init(rawValue:)),
@@ -371,13 +374,20 @@ struct PresetReader: Sendable {
         ease: Ease
     ) -> Matte {
         let object = value.objectValue ?? JSONObject()
+        let page = object["media"]?.objectValue
         return Matte(
-            media: object["media"]?.stringValue ?? "",
+            media: page?["file"]?.stringValue ?? object["media"]?.stringValue ?? "",
+            page: page.map(Self.page(of:)),
             colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init(rawValue:)),
             softness: object["softness"]?.numberValue ?? 0,
             isInverted: object["invert"]?.boolValue ?? false,
             ease: object["ease"].flatMap(Ease.init(value:)) ?? ease
         )
+    }
+
+    // The number of a page `{file, page}` names, which the key check found a whole number from 1.
+    private static func page(of object: JSONObject) -> Int {
+        object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 1
     }
 
     private func operation(_ object: JSONObject) -> FilterOperation {

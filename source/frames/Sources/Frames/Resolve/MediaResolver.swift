@@ -132,15 +132,20 @@ struct MediaResolver: Sendable {
         )
     }
 
-    // A transition's cover or matte file, by the absolute path its preset was resolved to, with the `colorSpace` its
-    // preset writes for it. A preset names a file, so it is never an image sequence or a document. A transition always
-    // reads its picture, so its colour is checked here.
+    // A transition's cover or matte file, by the absolute path its preset was resolved to, with the page of a PDF and
+    // the `colorSpace` its preset writes for it. A preset names a file, so it is never an image sequence or a document.
+    // A transition always reads its picture, so its colour is checked here. No key check probes a preset's media, so
+    // the stops of a page come here (FRAMES-3 PDF pages).
     func transitionMedia(
         at path: String,
+        page: Int?,
         place: Place,
         kind: PlaceKind,
         colorSpace: ColorSpace?
     ) throws -> TransitionMedia {
+        if let file = try pageFile(at: path, page: page, place: place, kind: kind, reference: path) {
+            return TransitionMedia(file: file, duration: 0)
+        }
         guard
             let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
         else {
@@ -161,6 +166,60 @@ struct MediaResolver: Sendable {
     }
 
     // MARK: - Private
+    // A page is a still, of no length and no sound.
+    private func pagePlan(
+        _ file: MediaFile,
+        reference: String
+    ) -> MediaPlan {
+        MediaPlan(kind: .page, reference: reference, source: .file(file), duration: 0)
+    }
+
+    // Page `page` of the PDF at `path`, or where no page is written the one page of a PDF of one page, checked by the
+    // probe's decoder. A page's untagged colour is `srgb`, which a written `colorSpace` replaces, so every colour space
+    // converts it. Nil for a file that is no PDF and names no page. A PDF of more pages named as a file, a page above
+    // its count and a page of a file that is no PDF stop (FRAMES-3 PDF pages).
+    private func pageFile(
+        at path: String,
+        page: Int?,
+        place: Place,
+        kind: PlaceKind,
+        reference: String
+    ) throws -> MediaFile? {
+        let pageCount = try probed(place: place, kind: kind, reference: reference, {
+            try mediaFacts.pageCount(of: path)
+        })
+        guard let pageCount else {
+            guard page != nil else { return nil }
+            guard try probed(place: place, kind: kind, reference: reference, { try mediaFacts.probedMedia(of: path) }) != nil
+            else {
+                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            }
+
+            throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: reference)
+        }
+        guard let number = page ?? (pageCount == 1 ? 1 : nil) else {
+            throw ModelError.unnamedPage(place: place, kind: kind.label, reference: reference, pageCount: pageCount)
+        }
+        guard number <= pageCount else {
+            throw ModelError.missingPage(
+                place: place,
+                kind: kind.label,
+                reference: reference,
+                page: number,
+                pageCount: pageCount
+            )
+        }
+        guard
+            let probed = try probed(place: place, kind: kind, reference: reference, {
+                try mediaFacts.probedPage(number, of: path)
+            })
+        else {
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+        }
+
+        return MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
+    }
+
     // A document named by its file stands as if written there, so it starts from the theme in effect there. What it
     // holds is read on the way through its file, so media that holds the document again stops.
     private func document(

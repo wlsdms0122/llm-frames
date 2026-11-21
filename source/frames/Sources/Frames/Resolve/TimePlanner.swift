@@ -369,17 +369,23 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> TransitionPlan {
         let length = lengths.reduce(seconds, min)
-        let media = { (path: String, colorSpace: ColorSpace?) in
+        let media = { (path: String, page: Int?, colorSpace: ColorSpace?) in
             try resolver.transitionMedia(
                 at: path,
+                page: page,
                 place: place.appending(key: "transition"),
                 kind: .clip(kind),
                 colorSpace: colorSpace
             )
         }
-        let cover: TransitionMedia? = if case let .media(path) = definition.cover?.source {
-            try media(path, definition.cover?.colorSpace)
-        } else {
+        let cover: TransitionMedia? = switch definition.cover?.source {
+        case let .media(path):
+            try media(path, nil, definition.cover?.colorSpace)
+
+        case let .page(path, page):
+            try media(path, page, definition.cover?.colorSpace)
+
+        case .color, nil:
             nil
         }
 
@@ -389,7 +395,7 @@ struct TimePlanner: Sendable {
             range: TimeRange(start: editPoint - length / 2, end: editPoint + length / 2),
             definition: definition,
             coverMedia: cover,
-            matteMedia: try definition.matte.map { try media($0.media, $0.colorSpace) }
+            matteMedia: try definition.matte.map { try media($0.media, $0.page, $0.colorSpace) }
         )
     }
 
