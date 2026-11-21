@@ -41,8 +41,7 @@ extension ResolvedText {
 
         let moves = glyphMoves(at: time)
         let characters = unit.characters
-        let stretch = characters.first..<(characters.first + characters.count)
-        let glyphBoxes = glyphBoxes(ofCharacters: stretch, on: characters.line, moves: moves, at: time)
+        let glyphBoxes = glyphBoxes(ofCharacters: characters.clusters, on: characters.line, moves: moves, at: time)
             + unit.hangingLines.flatMap { line in glyphBoxes(of: lines[line].hanging, on: line, moves: moves, at: time) }
         guard let first = glyphBoxes.first else { return glyphBox(of: index, at: time) }
 
@@ -111,8 +110,7 @@ extension ResolvedText {
     private func heldGlyphs(of unit: PlacedUnit) -> (first: (run: Int, index: Int), last: (run: Int, index: Int))? {
         let scalars = Array(text.unicodeScalars)
         let clusters = lines[unit.characters.line].clusters
-        let stretch = unit.characters.first..<(unit.characters.first + unit.characters.count)
-        let owners = stretch
+        let owners = unit.characters.clusters
             .filter { !scalars[clusters[$0].range].isSpace }
             .compactMap { index in clusters[...index].last { $0.glyphs.count > 0 }?.glyphs }
         guard let first = owners.first, let last = owners.last else { return nil }

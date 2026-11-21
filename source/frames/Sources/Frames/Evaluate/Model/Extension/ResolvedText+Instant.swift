@@ -69,14 +69,14 @@ extension ResolvedText {
             var before = 0.0
             var last = 0.0
             for cluster in line.clusters.map(\.glyphs) where cluster.count > 0 {
-                for index in cluster.first..<(cluster.first + cluster.count) {
+                for index in cluster.glyphs {
                     moves[cluster.run][index] = Point(x: before + shift, y: drop)
                 }
                 last = before
                 before += steps[cluster.run]
             }
             for space in line.hanging.map(\.glyphs) {
-                for index in space.first..<(space.first + space.count) {
+                for index in space.glyphs {
                     moves[space.run][index] = Point(x: last + shift, y: drop)
                 }
             }

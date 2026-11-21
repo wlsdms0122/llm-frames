@@ -31,7 +31,7 @@ struct PlacedUnit: Equatable, Sendable {
         box: Rectangle,
         parts: [UnitPart]
     ) {
-        let stretch = lines[characters.line].clusters[characters.first..<(characters.first + characters.count)]
+        let stretch = lines[characters.line].clusters[characters.clusters]
         let clusters = Array(stretch) + hangingLines.flatMap { lines[$0].hanging }
 
         self.characters = characters
@@ -50,7 +50,7 @@ struct PlacedUnit: Equatable, Sendable {
             let glyphs = cluster.glyphs
             guard glyphs.count > 0 else { return }
 
-            if let last = ranges.last, last.run == glyphs.run, last.first + last.count == glyphs.first {
+            if let last = ranges.last, last.run == glyphs.run, last.glyphs.upperBound == glyphs.first {
                 ranges[ranges.count - 1] = GlyphRange(
                     run: last.run,
                     first: last.first,

@@ -26,5 +26,10 @@ struct GlyphRange: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The indices of its glyphs among its run's glyphs.
+    var glyphs: Range<Int> {
+        first..<(first + count)
+    }
+
     // MARK: - Private
 }

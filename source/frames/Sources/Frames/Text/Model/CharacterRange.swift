@@ -24,5 +24,10 @@ struct CharacterRange: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The indices of its clusters among its line's clusters.
+    var clusters: Range<Int> {
+        first..<(first + count)
+    }
+
     // MARK: - Private
 }

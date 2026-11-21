@@ -47,7 +47,7 @@ struct UnitFinder: Sendable {
         for (index, run) in runs.enumerated() {
             let carriers = stretches.indices.filter { unit in
                 let stretch = stretches[unit]
-                return stretch.line == run.line && lines[stretch.line].clusters[range(of: stretch)].contains {
+                return stretch.line == run.line && lines[stretch.line].clusters[stretch.clusters].contains {
                     runs[$0.glyphs.run].source == run.source
                 }
             }
@@ -65,7 +65,7 @@ struct UnitFinder: Sendable {
         return stretches.indices.map { index in
             let stretch = stretches[index]
             let line = lines[stretch.line]
-            let held = range(of: stretch).filter { !spaces[stretch.line][$0] }
+            let held = stretch.clusters.filter { !spaces[stretch.line][$0] }
             let first = held.first.map { spans[stretch.line][$0].lowerBound } ?? 0
             let last = held.last.map { spans[stretch.line][$0].upperBound } ?? first
             let box = Rectangle(
@@ -141,10 +141,6 @@ struct UnitFinder: Sendable {
         }
 
         return groups.isEmpty ? visible.map { [$0] } : groups
-    }
-
-    private func range(of stretch: CharacterRange) -> Range<Int> {
-        stretch.first..<(stretch.first + stretch.count)
     }
 
     // Where a unit's first character's glyph box starts across its line.

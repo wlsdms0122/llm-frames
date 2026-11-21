@@ -149,7 +149,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                         bands: parts.map { band(of: $0, across: underline.rects[$0.piece]) }
                     )
             },
-            glyphs: ranges.flatMap { range in glyphs[range.first..<range.first + range.count] }
+            glyphs: ranges.flatMap { range in glyphs[range.glyphs] }
         )
     }
 

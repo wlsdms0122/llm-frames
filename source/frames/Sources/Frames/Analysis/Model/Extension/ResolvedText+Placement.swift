@@ -42,7 +42,7 @@ extension ResolvedText {
         let stretch = units[index].characters
 
         return characters(
-            stretch.first..<(stretch.first + stretch.count),
+            stretch.clusters,
             on: stretch.line,
             moves: glyphMoves(at: time),
             at: time
