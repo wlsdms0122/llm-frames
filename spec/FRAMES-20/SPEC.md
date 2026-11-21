@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-`evaluate(resolved, t)`: the display list at a time, its four item kinds (`picture`, `path`, `glyphs`, `adjust`) with the fields every item shares (transform, opacity, blend, mask, track matte, reveal), and the mix plan of a sequence's sound.
+`evaluate(resolved, t)`: the display list at a time, its four item kinds (`picture`, `path`, `glyphs`, `adjust`) with the fields every item shares (transform, opacity, blend, mask, track matte, reveal), and the mix plan of a sequence's sound with its master chain.
 
 ## Motivation
 
@@ -119,7 +119,7 @@ Evaluation has done everything above pixels: keyframes and eases (springs includ
 
 ### The mix plan
 
-The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its media start and speed, the sequence times it starts and ends, its audio filter, a gain envelope and a pan envelope.
+The mix plan is the sound of a whole sequence: a list of segments, each with a media file, its media start and speed, the sequence times it starts and ends, its audio filter, a gain envelope and a pan envelope, and the master chain the mixer runs over their sum.
 
 - A storyline clip's segment runs over its drawn range with its edges moved by its `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), and its gain envelope's crossfade at an edge is moved with that edge. A visual media clip's segment, connected or in `clips`, runs over its visible window with its edges moved by its `split`.
 - The gain envelope is a list of points `[t, gain]` joined in straight lines. It already holds volume keyframes and their eases, fades, and transition crossfades on the transition's `audio` curve ([FRAMES-13](../FRAMES-13/SPEC.md)): with u the progress through the transition, `constant-power` gives the outgoing sound cos(uπ/2) and the incoming sin(uπ/2), and `constant-gain` gives them 1 - u and u. Eased keyframes and the crossfade curve are sampled at the frame rate.
@@ -127,11 +127,12 @@ The mix plan is the sound of a whole sequence: a list of segments, each with a m
 - An envelope has a point at both ends of its segment, at every keyframe and every end of a fade or transition, and at every frame time k / fps inside a span where its value moves: between two keyframes of different values, or over a fade or transition. A value that holds has no points between its bends.
 - The audio filter is the segment's entries `{ops, mix}` ([FRAMES-13](../FRAMES-13/SPEC.md)), `[]` when it has none. A number in it, a `mix` included, that holds over the segment is written as a number, and one that moves as an envelope of `[t, value]` points joined in straight lines, with its points where a gain envelope has them, a `frequency` sampled in log space. The mixer runs each entry's ops on the segment's sound and mixes the result with the entry's input by its `mix`, before the gain and pan envelopes, takes each moving value from its envelope at the sample, and computes an op's coefficients again at least every 32 samples while one of its values moves.
 - The mixer mixes each segment's channels into the output's as its role decides ([FRAMES-21](../FRAMES-21/SPEC.md)). A loop is one segment per repeat, and a compound clip's sounds are segments of their own. A clip with `timeRemap` has no segment.
-- In the JSON form a segment is `{media, mediaStart, speed, start, end, filter, envelope, pan}`, `media` the pinned media, `filter` its entries, each envelope point `[t, gain]` and each pan point `[t, pan]`.
+- The master is the sequence's `audioFilter` ([FRAMES-28](../FRAMES-28/SPEC.md#the-master)) as entries `{ops, mix}`, `[]` when it has none, every value in it a number, since it is static. The mixer sums the segments, each after its filter, gain and pan, then runs the master's entries over the stereo sum from sequence time 0 to the end of the mix, its ops at rest at 0, and mixes each entry's result with its input by its `mix`.
+- In the JSON form the mix plan is `{mixPlan, segments, master}`, `mixPlan` its version ([FRAMES-19](../FRAMES-19/SPEC.md)). A segment is `{media, mediaStart, speed, start, end, filter, envelope, pan}`, `media` the pinned media, `filter` its entries, each envelope point `[t, gain]` and each pan point `[t, pan]`, and `master` is the master's entries.
 
 ## Interactions
 
-It reads [FRAMES-19](../FRAMES-19/SPEC.md) and feeds the roles of [FRAMES-21](../FRAMES-21/SPEC.md). Stacking is [FRAMES-9](../FRAMES-9/SPEC.md), parent transforms [FRAMES-10](../FRAMES-10/SPEC.md), shapes, masks, track mattes and blend modes [FRAMES-11](../FRAMES-11/SPEC.md), tracked motion [FRAMES-12](../FRAMES-12/SPEC.md), the pan law and crossfade curves [FRAMES-13](../FRAMES-13/SPEC.md), transitions and reveal [FRAMES-14](../FRAMES-14/SPEC.md), filter ops [FRAMES-15](../FRAMES-15/SPEC.md), colours, compositing and luma [FRAMES-26](../FRAMES-26/SPEC.md).
+It reads [FRAMES-19](../FRAMES-19/SPEC.md) and feeds the roles of [FRAMES-21](../FRAMES-21/SPEC.md). Stacking is [FRAMES-9](../FRAMES-9/SPEC.md), parent transforms [FRAMES-10](../FRAMES-10/SPEC.md), shapes, masks, track mattes and blend modes [FRAMES-11](../FRAMES-11/SPEC.md), tracked motion [FRAMES-12](../FRAMES-12/SPEC.md), the pan law and crossfade curves [FRAMES-13](../FRAMES-13/SPEC.md), the master chain [FRAMES-28](../FRAMES-28/SPEC.md), transitions and reveal [FRAMES-14](../FRAMES-14/SPEC.md), filter ops [FRAMES-15](../FRAMES-15/SPEC.md), colours, compositing and luma [FRAMES-26](../FRAMES-26/SPEC.md).
 
 ## Alternatives considered
 
