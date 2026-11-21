@@ -28,6 +28,7 @@ struct OCRReporterTests {
             size: Size(width: 400, height: 300)
         ),
         "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 400, height: 300)),
+        "/abs/logo.pdf": ProbedMedia(kind: .page, size: Size(width: 200, height: 100)),
         "/abs/ding.wav": ProbedMedia(kind: .audio, duration: 1, sound: ProbedSound(channels: 1, sampleRate: 48_000))
     ])
     private let first = RecognisedLine(text: "First", rectangle: Rectangle(x: 10, y: 20, width: 100, height: 30))
@@ -154,7 +155,12 @@ struct OCRReporterTests {
             (
                 "/abs/card.png",
                 .at(0),
-                #"media "/abs/card.png" is an image, whose one frame is at time 0, so it takes neither --at nor a range"#
+                #"media "/abs/card.png" is a still, whose one picture is at time 0, so it takes neither --at nor a range"#
+            ),
+            (
+                "/abs/logo.pdf",
+                .range(FrameRange(from: nil, to: nil, step: 1)),
+                #"media "/abs/logo.pdf" is a still, whose one picture is at time 0, so it takes neither --at nor a range"#
             ),
             ("/abs/ding.wav", .start, #"media "/abs/ding.wav" is sound, so it has no picture to read"#),
             ("/abs/absent.mov", .start, #"media "/abs/absent.mov" is not there"#)

@@ -42,7 +42,7 @@ package struct ProbeReport: Equatable, Sendable {
         self.init(
             kind: probed.kind.rawValue,
             size: probed.size,
-            duration: probed.kind == .image ? nil : probed.duration,
+            duration: probed.kind.isStill ? nil : probed.duration,
             fps: probed.fps,
             hasAlpha: probed.hasAlpha,
             colorSpace: probed.colorSpace,

@@ -97,7 +97,7 @@ struct AnalysisCommandTests {
         // Then
         #expect(code == 1)
         #expect(sut.standardError == """
-            frames: media "\(image)" is an image, whose one frame is at time 0, so it takes neither --at nor a range
+            frames: media "\(image)" is a still, whose one picture is at time 0, so it takes neither --at nor a range
 
             """)
     }

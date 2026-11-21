@@ -81,8 +81,8 @@ package struct OCRReporter: Sendable {
         in probed: ProbedMedia,
         file: String
     ) throws -> [Double] {
-        if probed.kind == .image {
-            guard selection == .start else { throw AnalysisError.timeOnImage(file: file) }
+        if probed.kind.isStill {
+            guard selection == .start else { throw AnalysisError.timeOnStill(file: file) }
 
             return [0]
         }

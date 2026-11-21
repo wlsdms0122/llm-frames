@@ -9,7 +9,7 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingMedia(file: String)
     case noPicture(file: String)
     case notVideo(file: String, kind: MediaKind)
-    case timeOnImage(file: String)
+    case timeOnStill(file: String)
     case beforeMediaStart(option: String, time: Double, file: String)
     case atOrAfterMediaEnd(option: String, time: Double, file: String, end: Double)
     case afterMediaEnd(option: String, time: Double, file: String, end: Double)
@@ -26,10 +26,10 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
             "media \(quoted(file)) is sound, so it has no picture to read"
 
         case let .notVideo(file, kind):
-            "media \(quoted(file)) is \(kind == .audio ? "sound" : "an image"), and only a video has frames to follow"
+            "media \(quoted(file)) is \(kind == .audio ? "sound" : "a still"), and only a video has frames to follow"
 
-        case let .timeOnImage(file):
-            "media \(quoted(file)) is an image, whose one frame is at time 0, so it takes neither --at nor a range"
+        case let .timeOnStill(file):
+            "media \(quoted(file)) is a still, whose one picture is at time 0, so it takes neither --at nor a range"
 
         case let .beforeMediaStart(option, time, file):
             "\(option): media second \(number(time)) is before the start of \(quoted(file))"

@@ -160,7 +160,7 @@ struct TrackReporterTests {
         ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from, clip"),
         ("/abs/clip.mov", #"{"text": "Missing"}"#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
         ("/abs/clip.mov", #"{"text": "Send"}"#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
-        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is an image, and only a video has frames"#),
+        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is a still, and only a video has frames"#),
         ("/abs/clip.mov", #"{"text": "Total"}"#, 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
         ("/abs/clip.mov", #"{"text": "Total"}"#, 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
         ("/abs/absent.mov", #"{"text": "Total"}"#, 0, nil, #"media "/abs/absent.mov" is not there"#)

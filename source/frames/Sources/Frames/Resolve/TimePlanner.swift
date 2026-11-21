@@ -119,7 +119,7 @@ struct TimePlanner: Sendable {
             kind: .genericClip(.storyline)
         )
         let kind = ClipKind.media(media.kind)
-        guard media.kind != .image else {
+        guard !media.kind.isStill else {
             let duration = try stillDuration(of: clip, kind: kind)
             return StorylineSource(kind: kind, media: media, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
@@ -489,7 +489,7 @@ struct TimePlanner: Sendable {
                     kind: .genericClip(clip.clipPlace)
                 )
             }
-            guard media.kind != .image else { return ClipSource(kind: kind, media: media) }
+            guard !media.kind.isStill else { return ClipSource(kind: kind, media: media) }
             guard let timeRemap = clipMedia.timeRemap else {
                 return ClipSource(
                     kind: kind,

@@ -76,6 +76,19 @@ struct ProbeReporterTests {
         ])))
     }
 
+    @Test("a still has no duration, a page of a PDF as an image")
+    func writesNoDurationForStill() {
+        // Given
+        let page = ProbedMedia(kind: .page, duration: 5, size: Size(width: 595.276, height: 841.89))
+
+        // When
+        let report = ProbeReport(page)
+
+        // Then
+        #expect(report.kind == "page")
+        #expect(report.duration == nil)
+    }
+
     @Test("the text gives one fact a line, none where the medium has none")
     func writesText() throws {
         // Given
