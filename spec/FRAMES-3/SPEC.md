@@ -29,6 +29,7 @@ Every role and provider must read the same frame for the same time, or a mask tr
 - A compound clip's duration is the length of its nested sequence ([FRAMES-8](../FRAMES-8/SPEC.md)).
 - Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha) and compound clips. This is how graphics made elsewhere come in, and how a compound clip whose background is transparent sits over what is below it.
 - At media time s, a video or an image sequence shows the frame whose presentation interval holds s: its timestamp is at or before s, and the next one is after s. OCR, tracking, extraction and drawing all pick frames by this rule, and the resolved document pins each such file's frame timestamps, so evaluation picks the frame once and names it by index. Times are measured to the microsecond: a media time and a timestamp are compared rounded to the nearest microsecond, so floating point noise in a computed media time picks no earlier frame.
+- A video's media time is the time its frames are presented at after the file's edit list, the timestamps the resolved document pins: time 0 is the start of that timeline, not a timecode, and not the first frame's timestamp where the two differ. An image sequence's media time is frame index / fps, so its first file is at 0 whatever number its name carries.
 - A compound clip has no frames of its own. It is evaluated at whatever time is asked, clamped into `[0, duration)`.
 
 ## Interactions
