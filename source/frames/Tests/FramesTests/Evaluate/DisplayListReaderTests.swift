@@ -441,6 +441,24 @@ struct DisplayListReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test("a picture of a media frame with a corner pin stops, naming its corner pin")
+    func refusesMediaCornerPin() throws {
+        // Given
+        let media = PictureItem(
+            source: .media(MediaFrame(media: Self.still, index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 60),
+            cornerPin: Quad(Rectangle(x: 10, y: 10, width: 100, height: 60))
+        )
+        let text = writer.write(list(items: [DisplayItem(content: .picture(media))]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "items[0].cornerPin (picture): a picture of a media frame carries no corner pin")
+    }
+
     @Test("an item without masks writes its mask as null, and each mask holds its geometry in the path's form")
     func writesMaskMembers() throws {
         // Given

@@ -242,7 +242,7 @@ package struct DisplayListReader: Sendable {
         _ item: PlacedJSONObject,
         seed: Int
     ) throws -> PictureItem {
-        PictureItem(
+        let picture = PictureItem(
             source: try source(item.member("source"), seed: seed),
             rectangle: try item.member("rect").optional(values.rectangle),
             destination: try values.rectangle(item.member("dest")),
@@ -274,6 +274,17 @@ package struct DisplayListReader: Sendable {
             shadow: try item.member("shadow").optional(shadow),
             cornerPin: try item.member("cornerPin").optional(cornerPin)
         )
+        // Only a clip's group carries a corner pin, and its source is a nested list (FRAMES-20 Pictures).
+        if case .media = picture.source, picture.cornerPin != nil {
+            let value = try item.member("cornerPin")
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a picture of a media frame carries no corner pin"
+            )
+        }
+
+        return picture
     }
 
     private func path(_ item: PlacedJSONObject) throws -> PathItem {
