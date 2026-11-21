@@ -171,6 +171,8 @@ A nested sequence's `audioFilter` ignored, as a compound clip's `colorSpace` is 
 
 A sequence's chain set for a delivery codec: the chain is part of the sequence's own sound, and the master and the delivery file are both encoded from the one mix ([FRAMES-21](../FRAMES-21/SPEC.md)). A limit for one delivery is another render of the document, a document an extension writes with its own `audioFilter`.
 
+`audioFilter` on a sequence with no sound stopping, as on a clip that plays no sound: a template is checked once, before its arguments ([FRAMES-17](../FRAMES-17/SPEC.md)), and whether a template plays sound can depend on them, a `video` argument without a sound track, so the check could not be made there, and a chain on silence gives silence. A clip's `audioFilter` on a clip that plays no sound stops, a rule of the clip ([FRAMES-13](../FRAMES-13/SPEC.md#audio-filters)).
+
 A compound clip's `pan` after its bus, as a balance on the sum: a mono sound inside it is placed by the equal-power pan law and a stereo one by a balance ([FRAMES-13](../FRAMES-13/SPEC.md#level-and-position)), so a balance after the sum would change the sound of every compound clip that holds a mono sound and whose `pan` is not 0.
 
 A compound clip's level before its bus, multiplied into each of its sounds' gains: a fade would then reach the chain before its ops, and a compressor or a limiter in it would undo the fade.
