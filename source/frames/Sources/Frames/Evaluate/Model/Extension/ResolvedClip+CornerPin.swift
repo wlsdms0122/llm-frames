@@ -27,11 +27,8 @@ extension ResolvedClip {
             keyframe: { points, at in broughtBack(points, on: clock, at: at) },
             onTrackFrame: { $0 }
         )
-        let keyframes = areas?.points(of: brought, at: time) ?? brought.mapValues { points in points.map(\.fixed) }
-        let points = keyframes.value(at: time)
-        guard points.count == 4 else { return nil }
-
-        return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
+        let keyframes = areas?.quads(of: brought, at: time) ?? brought.mapValues { $0.sampled(\.fixed) }
+        return keyframes.value(at: time)
     }
 
     func cornerPinBounds(
@@ -76,10 +73,10 @@ extension ResolvedClip {
     // A keyframe brought back to the track's frame at its own time, where its clip follows its parent's media; resolve
     // has checked that every keyframe of numbers comes back.
     private func broughtBack(
-        _ points: [GeometryPoint],
+        _ points: GeometryQuad,
         on clock: MediaClock?,
         at time: Double
-    ) -> [GeometryPoint] {
+    ) -> GeometryQuad {
         guard let track = parentTrack, let clock else { return points }
 
         return track.track.broughtBack(points, atMediaTime: clock.mediaTime(atSequenceTime: time)) ?? points

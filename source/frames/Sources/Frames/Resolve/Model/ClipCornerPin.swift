@@ -11,12 +11,12 @@
 struct ClipCornerPin: Equatable, Sendable {
     // MARK: - Property
     let size: Size
-    let points: PropertyValue<[GeometryPoint]>
+    let points: PropertyValue<GeometryQuad>
 
     // MARK: - Initializer
     init(
         size: Size,
-        points: PropertyValue<[GeometryPoint]>
+        points: PropertyValue<GeometryQuad>
     ) {
         self.size = size
         self.points = points

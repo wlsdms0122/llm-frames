@@ -76,6 +76,13 @@ struct ClipAreaSampler: Sendable {
         keyframes.mapValues { points in points.map { point(of: $0, at: time) } }
     }
 
+    func quads(
+        of keyframes: FollowedValue<GeometryQuad>,
+        at time: Double
+    ) -> FollowedValue<Quad> {
+        keyframes.mapValues { quad in quad.sampled { point(of: $0, at: time) } }
+    }
+
     // MARK: - Private
     private func rectangle(
         of area: ClipArea,

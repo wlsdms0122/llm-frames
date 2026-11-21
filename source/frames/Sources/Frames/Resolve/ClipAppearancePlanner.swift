@@ -40,7 +40,7 @@ struct ClipAppearancePlanner: Sendable {
     // target is one keyframe at the clip's instant, and is brought back there as a keyframe is (FRAMES-19 Timed
     // values). A keyframe holding a clip area is the named clip's box at each instant, which only evaluation knows.
     private func checkBroughtBack(
-        of points: PropertyValue<[GeometryPoint]>,
+        of points: PropertyValue<GeometryQuad>,
         written: PropertyValue<[PositionForm]>,
         track: TrackedMedia,
         isOnTrackFrame: Bool,
@@ -70,7 +70,7 @@ struct ClipAppearancePlanner: Sendable {
 
     // Whether a corner pin at the time comes back to the track's frame, as evaluation brings it back.
     private func isBroughtBack(
-        _ points: [GeometryPoint],
+        _ points: GeometryQuad,
         track: TrackedMedia,
         at time: Double
     ) -> Bool {
@@ -156,7 +156,7 @@ struct ClipAppearancePlanner: Sendable {
         shape: ShapeAppearance?,
         format: FormatPlan
     ) throws -> ClipCornerPin? {
-        guard let pin = written.cornerPin, let points else { return nil }
+        guard let pin = written.cornerPin, let points = points?.map(GeometryQuad.init(corners:)) else { return nil }
 
         let kind = PlaceKind.clip(plan.kind)
         let isPlacedByBox = if case .box = shape?.geometry { true } else { false }
@@ -349,7 +349,7 @@ struct ClipAppearancePlanner: Sendable {
         )
         let kind = PlaceKind.clip(plan.source.kind)
         let pinned: ClipCornerPin?
-        if let cornerPin, let pin = written.cornerPin {
+        if let cornerPin = cornerPin?.map(GeometryQuad.init(corners:)), let pin = written.cornerPin {
             let key = placementKey(
                 at: written.place,
                 placement: nil,
@@ -445,18 +445,12 @@ struct ClipAppearancePlanner: Sendable {
     // checked in doubles as FRAMES-27 writes the test. One that holds a clip area takes that clip's box at each instant,
     // which only evaluation knows. A keyframe is named with its time as written.
     private func checkConvexity(
-        of points: PropertyValue<[GeometryPoint]>,
+        of points: PropertyValue<GeometryQuad>,
         written: PropertyValue<[PositionForm]>,
         place: Place,
         kind: PlaceKind
     ) throws {
-        let isConvex = { (points: [GeometryPoint]) in
-            guard points.count == 4, points.allSatisfy({ $0.clipArea == nil }) else { return true }
-
-            let corners = points.map(\.fixed)
-            return Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-                .isStrictlyConvex
-        }
+        let isConvex = { (points: GeometryQuad) in points.fixed?.isStrictlyConvex ?? true }
         switch (points, written) {
         case let (.value(points), _):
             guard isConvex(points) else {

@@ -191,7 +191,7 @@ struct TrackFormTests {
         let clip = plan.clips[0]
         #expect(clip.track?.file.path == "/abs/screen.mp4")
         #expect(clip.track?.track.target == Quad(moved))
-        #expect(clip.cornerPin?.points == .value(Quad(moved).corners.map(GeometryPoint.point)))
+        #expect(clip.cornerPin?.points == .value(GeometryQuad(Quad(moved))))
     }
 
     @Test("a track object with a time stops where the geometry it follows is keyframed")

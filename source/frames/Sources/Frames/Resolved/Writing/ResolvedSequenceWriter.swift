@@ -49,7 +49,7 @@ struct ResolvedSequenceWriter: Sendable {
     // its position, anchor, scale and rotation as null. A solid writes no corner pin.
     private func storyline(_ entry: ResolvedStorylineClip) -> JSONValue {
         let cornerPin = entry.cornerPin.map { pin in
-            values.followed(pin.points) { points in .array(points.map(values.geometryPoint)) }
+            values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
         }
         let size = entry.box?.size ?? entry.cornerPin?.size
 
@@ -101,7 +101,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "rotation", value: clip.rotation.map(number) ?? .null)
         ]
         let cornerPin = clip.cornerPin.map { pin in
-            values.followed(pin.points) { points in .array(points.map(values.geometryPoint)) }
+            values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
         }
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement

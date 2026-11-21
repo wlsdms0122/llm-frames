@@ -343,7 +343,7 @@ struct ResolvedSequenceReader: Sendable {
             let points = try value.elements()
             guard points.count == 4 else { throw value.wrongType("four points") }
 
-            return try points.map { try values.geometryPoint($0) }
+            return GeometryQuad(corners: try points.map { try values.geometryPoint($0) })
         }
         for key in ["position", "anchor", "scale", "rotation"] {
             let value = try clip.member(key)

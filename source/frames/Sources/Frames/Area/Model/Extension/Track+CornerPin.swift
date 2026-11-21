@@ -15,13 +15,10 @@ extension Track {
     // MARK: - Initializer
     // MARK: - Public
     func broughtBack(
-        _ cornerPin: [GeometryPoint],
+        _ cornerPin: GeometryQuad,
         atMediaTime time: Double
-    ) -> [GeometryPoint]? {
-        guard cornerPin.count == 4, cornerPin.allSatisfy({ $0.clipArea == nil }) else { return cornerPin }
-
-        let corners = cornerPin.map(\.fixed)
-        let pin = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
+    ) -> GeometryQuad? {
+        guard let pin = cornerPin.fixed else { return cornerPin }
         guard
             let homography = homography(atMediaTime: time),
             let frame = homography.apply(to: target),
@@ -31,7 +28,7 @@ extension Track {
             return nil
         }
 
-        return broughtBack.corners.map(GeometryPoint.point)
+        return GeometryQuad(broughtBack)
     }
 
     // MARK: - Private

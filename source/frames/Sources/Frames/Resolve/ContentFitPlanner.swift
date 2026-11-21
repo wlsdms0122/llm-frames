@@ -137,7 +137,7 @@ struct ContentFitPlanner: Sendable {
         let parents = ParentEvaluator(sequence: sequence)
         let storyline = sequence.storyline.filter { $0.media != nil }.compactMap { entry -> Rectangle? in
             if let pin = entry.cornerPin {
-                return Rectangle(bounding: pin.points.mapValues { $0.map(\.fixed) }.value(at: 0))
+                return Rectangle(bounding: pin.points.mapValues { $0.sampled(\.fixed) }.value(at: 0).corners)
             }
             guard let box = entry.box else { return nil }
 
@@ -221,7 +221,7 @@ struct ContentFitPlanner: Sendable {
             ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
         }
         let cornerPin = appearance.cornerPin.map { pin in
-            ClipCornerPin(size: pin.size, points: pin.points.map { points in points.map { $0.map { moved($0, by: offset) } } })
+            ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
         }
 
         return StorylineGeometry(
@@ -270,7 +270,7 @@ struct ContentFitPlanner: Sendable {
                 ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
             },
             cornerPin: geometry.cornerPin.map { pin in
-                ClipCornerPin(size: pin.size, points: pin.points.map { points in points.map { $0.map { moved($0, by: offset) } } })
+                ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
             },
             crop: geometry.crop,
             mask: space == .parent

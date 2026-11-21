@@ -341,12 +341,10 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> DisplayItem? {
-        let points = cornerPin.points.mapValues { $0.map(\.fixed) }.value(at: time)
-        guard let media = entry.media, cornerPin.size.width > 0, cornerPin.size.height > 0, points.count == 4 else {
+        let quad = cornerPin.points.mapValues { $0.sampled(\.fixed) }.value(at: time)
+        guard let media = entry.media, cornerPin.size.width > 0, cornerPin.size.height > 0, quad.isStrictlyConvex else {
             return nil
         }
-        let quad = Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
-        guard quad.isStrictlyConvex else { return nil }
 
         let box = Rectangle(x: 0, y: 0, width: cornerPin.size.width, height: cornerPin.size.height)
         let item = PictureItem(

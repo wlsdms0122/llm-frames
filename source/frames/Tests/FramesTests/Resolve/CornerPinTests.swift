@@ -15,9 +15,12 @@ struct CornerPinTests {
     // MARK: - Property
     private let sut = Fixture.sequencePlanner
     private static let pin = "[[100, 100], [500, 120], [480, 400], [120, 380]]"
-    private static let points = [
-        Point(x: 100, y: 100), Point(x: 500, y: 120), Point(x: 480, y: 400), Point(x: 120, y: 380)
-    ].map(GeometryPoint.point)
+    private static let points = GeometryQuad(Quad(
+        topLeft: Point(x: 100, y: 100),
+        topRight: Point(x: 500, y: 120),
+        bottomRight: Point(x: 480, y: 400),
+        bottomLeft: Point(x: 120, y: 380)
+    ))
 
     // MARK: - Initializer
     // MARK: - Test
@@ -173,8 +176,8 @@ struct CornerPinTests {
             Issue.record("expected a static corner pin")
             return
         }
-        #expect(points[0].clipArea?.clip == "card")
-        #expect(Array(points[1...]) == Array(Self.points[1...]))
+        #expect(points.topLeft.clipArea?.clip == "card")
+        #expect(Array(points.corners[1...]) == Array(Self.points.corners[1...]))
     }
 
     @Test("a storyline clip takes no clip area in its corner pin, since the storyline places it in output pixels")
