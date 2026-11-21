@@ -34,6 +34,7 @@ struct CommandUsageTests {
             evaluate  <document.json> --at <t> [--args <args.json>]
             locate    <document.json> --at <t> --point <x,y> [--args <args.json>]
             probe     <media> [--json]
+            loudness  <media | document.json> [--from <t>] [--to <t>] [--args <args.json>] [--json]
             ocr       <image | video> [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]
             track     <video> --at <t> --area <area> [--to <t>] [--color-space <name>]
             extract   <video | document.json> <outdir> [--from <t>] [--to <t>] [--step 1]

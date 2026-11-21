@@ -147,6 +147,16 @@ struct ValueTypeStructureTests {
                     KeyRule("hold", .number(.any)),
                     KeyRule("release", .number(.any))
                 ]
+            ),
+            ObjectTable(
+                kind: "limiter",
+                rules: [
+                    operation,
+                    KeyRule("gain", .number(.any)),
+                    KeyRule("ceiling", .number(.any)),
+                    KeyRule("lookahead", .number(.any)),
+                    KeyRule("release", .number(.any))
+                ]
             )
         ])
         let type = KeyRule("type", .literal(AudioFilterKeyTable.bandTypes), isRequired: true)

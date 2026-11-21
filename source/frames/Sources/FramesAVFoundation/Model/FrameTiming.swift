@@ -7,11 +7,11 @@
 
 import CoreMedia
 import Foundation
+import Frames
 
-// When each frame of a video at `fps` is presented: frame k at k / fps, on a timescale that holds those times
-// exactly. A rate within a hundred-thousandth of itself from a whole rate n or the NTSC rate n × 1000 / 1001 is that
-// rate, so the 29.999998 a container's timescale makes of 30 is 30. Any other rate rounds each time on its own to a
-// microsecond, so times never drift.
+// When each frame of a video at `fps` is presented: frame k at k / fps at the rate frames presents (`FrameRate`), on a
+// timescale that holds those times exactly: n × 1000 for a whole rate n or an NTSC rate n × 1000 / 1001. Any other rate
+// rounds each time on its own to a microsecond, so times never drift.
 struct FrameTiming: Equatable, Sendable {
     // MARK: - Property
     private static let fineTimescale: CMTimeScale = 1_000_000
@@ -21,19 +21,19 @@ struct FrameTiming: Equatable, Sendable {
 
     // MARK: - Initializer
     init(fps: Double) {
-        let whole = fps.rounded()
-        let ntsc = (fps * 1.001).rounded()
+        let presented = FrameRate(fps: fps)
 
-        if abs(fps - whole) <= fps * 1e-5 {
-            timescale = CMTimeScale(whole * 1000)
-            rate = whole
-        } else if abs(fps - ntsc * 1000 / 1001) <= fps * 1e-5 {
-            timescale = CMTimeScale(ntsc * 1000)
-            rate = ntsc * 1000 / 1001
-        } else {
+        switch presented {
+        case let .whole(rate):
+            timescale = CMTimeScale(rate * 1000)
+
+        case let .ntsc(base):
+            timescale = CMTimeScale(base * 1000)
+
+        case .other:
             timescale = Self.fineTimescale
-            rate = fps
         }
+        rate = presented.value
     }
 
     // MARK: - Public

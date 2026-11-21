@@ -45,7 +45,7 @@ document.json ─▶ resolve ─▶ resolved document ─▶ evaluate ─┬─�
                   ▲   ▲                                    └─▶ mix plan ──────▶ mixer ────┴─▶ encoder ─▶ PNG / MOV / MP4
       OCR, shaping and tracker providers
 
-analysis: probe, ocr, track, extract, sheet, timeline, evaluate, locate          delivery: transcode (decoder, encoder)
+analysis: probe, loudness, ocr, track, extract, sheet, timeline, evaluate, locate          delivery: transcode (decoder, encoder)
 every media file is read through the decoder
 ```
 
@@ -61,7 +61,7 @@ every media file is read through the decoder
 
 - Effects as code run by a renderer: shaders and scripts. Packs carry data only, so every role can draw them. Filters, LUTs, matte transitions and blend modes cover most of what such effects are bought for, and the rest is made outside and arrives as media (the effects how-to). A per-pixel kernel carried as data in a portable shading language is where a later contract would add them.
 - Stabilisation.
-- Processing a mix of several sounds: audio filters on a compound clip, a bus or the master, a limiter, a loudness target. Each clip's own sound takes audio filters ([FRAMES-13](FRAMES-13/SPEC.md)).
+- A loudness target. frames measures loudness with `loudness` and limits with the `limiter` op, and an extension writes the gain that reaches a target ([FRAMES-28](FRAMES-28/SPEC.md)).
 - A built-in tracker that follows perspective. The `point` tracker reports each quad as a similarity image of the target, and a perspective track made outside frames comes in as track data ([FRAMES-12](FRAMES-12/SPEC.md#track-data)), which a corner pin rides ([FRAMES-27](FRAMES-27/SPEC.md)).
 - Curved paths. A path shape is straight segments between its points ([FRAMES-11](FRAMES-11/SPEC.md)).
 - Right-to-left and mixed-direction text. Text is laid out left to right, so `align` names physical sides.
@@ -98,7 +98,7 @@ frames as it stands is every accepted spec that no accepted spec supersedes, the
 Read the specs by area, in this order:
 
 - Values every document uses: [FRAMES-1](FRAMES-1/SPEC.md) units and placement, [FRAMES-2](FRAMES-2/SPEC.md) areas and points, [FRAMES-3](FRAMES-3/SPEC.md) media, [FRAMES-4](FRAMES-4/SPEC.md) keyframes, [FRAMES-5](FRAMES-5/SPEC.md) text layout, [FRAMES-26](FRAMES-26/SPEC.md) colour.
-- Documents: [FRAMES-6](FRAMES-6/SPEC.md) documents and stills, then the sequence: [FRAMES-7](FRAMES-7/SPEC.md) keys, [FRAMES-8](FRAMES-8/SPEC.md) time, [FRAMES-9](FRAMES-9/SPEC.md) format and lanes, [FRAMES-10](FRAMES-10/SPEC.md) parenting, [FRAMES-11](FRAMES-11/SPEC.md) clip kinds, masks and track mattes, [FRAMES-12](FRAMES-12/SPEC.md) tracking, [FRAMES-27](FRAMES-27/SPEC.md) corner pin, [FRAMES-13](FRAMES-13/SPEC.md) audio.
+- Documents: [FRAMES-6](FRAMES-6/SPEC.md) documents and stills, then the sequence: [FRAMES-7](FRAMES-7/SPEC.md) keys, [FRAMES-8](FRAMES-8/SPEC.md) time, [FRAMES-9](FRAMES-9/SPEC.md) format and lanes, [FRAMES-10](FRAMES-10/SPEC.md) parenting, [FRAMES-11](FRAMES-11/SPEC.md) clip kinds, masks and track mattes, [FRAMES-12](FRAMES-12/SPEC.md) tracking, [FRAMES-27](FRAMES-27/SPEC.md) corner pin, [FRAMES-13](FRAMES-13/SPEC.md) audio, [FRAMES-28](FRAMES-28/SPEC.md) buses and loudness.
 - Looks and reuse: [FRAMES-14](FRAMES-14/SPEC.md), [FRAMES-15](FRAMES-15/SPEC.md) and [FRAMES-16](FRAMES-16/SPEC.md) presets, [FRAMES-22](FRAMES-22/SPEC.md) theme, [FRAMES-17](FRAMES-17/SPEC.md) packs and templates, [FRAMES-18](FRAMES-18/SPEC.md) versions.
 - The engine: [FRAMES-19](FRAMES-19/SPEC.md) resolved document, [FRAMES-20](FRAMES-20/SPEC.md) evaluation, [FRAMES-21](FRAMES-21/SPEC.md) roles and providers.
 - Using it: [FRAMES-23](FRAMES-23/SPEC.md) commands and machine output, [FRAMES-24](FRAMES-24/SPEC.md) what a result keeps, [FRAMES-25](FRAMES-25/SPEC.md) forms, guides and extensions.

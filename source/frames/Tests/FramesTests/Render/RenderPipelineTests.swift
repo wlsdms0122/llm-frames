@@ -40,7 +40,7 @@ struct RenderPipelineTests {
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
         #expect(log.calls == checks(of: sequence) + [
-            .mix(duration: 1),
+            .mix(length: 48_000),
             .videoWriter(.master(path: master, alpha: false), size: size, fps: 2, sound: silence),
             .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence),
             .draw(frame: 0),
@@ -56,8 +56,8 @@ struct RenderPipelineTests {
 
     @Test("a role that refuses stops the render after the checks before it, with nothing drawn or written", arguments: [
         (RoleRefusal.decoder, 1),
-        (RoleRefusal.renderer, 3),
-        (RoleRefusal.mixer, 5),
+        (RoleRefusal.mixer, 3),
+        (RoleRefusal.renderer, 4),
         (RoleRefusal.encoder, 6)
     ])
     func stopsOnRefusal(
@@ -161,17 +161,21 @@ struct RenderPipelineTests {
         #expect(log.calls.isEmpty)
     }
 
-    @Test("frames are drawn at k / fps while inside the sequence, and the sound lasts as long as they do", arguments: [
-        (10.0, 1.0, 10),
-        (10.0, 1.01, 11),
-        (29.97, 2.0, 60),
-        (10.0, 0.1 + 0.2, 3),
-        (30.0, 0.01, 1)
+    // A minute at a written 29.97 mixes round(1799 × 1601.6) samples at the presented 30000 / 1001, 3 fewer than the
+    // written rate gives.
+    @Test("frames are drawn at k / fps while inside the sequence, and the sound lasts as long as they do at the presented rate", arguments: [
+        (10.0, 1.0, 10, 48_000),
+        (10.0, 1.01, 11, 52_800),
+        (29.97, 2.0, 60, 96_096),
+        (29.97, 60.0, 1799, 2_881_278),
+        (10.0, 0.1 + 0.2, 3, 14_400),
+        (30.0, 0.01, 1, 1_600)
     ])
     func countsFrames(
         fps: Double,
         duration: Double,
-        count: Int
+        count: Int,
+        length: Int
     ) throws {
         // Given
         let log = RoleCallLog()
@@ -187,7 +191,7 @@ struct RenderPipelineTests {
         #expect(drawn == Array(0..<count))
         #expect(Double(count - 1) / fps < duration)
         #expect(abs(Double(count) / fps - duration) <= 1 / fps)
-        #expect(log.calls.contains(.mix(duration: Double(count) / fps)))
+        #expect(log.calls.contains(.mix(length: length)))
     }
 
     @Test("a sequence without sound is mixed from an empty plan, so its master carries a silent track")
@@ -201,7 +205,7 @@ struct RenderPipelineTests {
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
-        #expect(log.calls.contains(.checkPlan(MixPlan(segments: []))))
+        #expect(log.calls.contains(.checkPlan(MixPlan(length: 48000, segments: []))))
         let target = EncodeTarget.master(path: master, alpha: false)
         #expect(log.calls.contains(.videoWriter(target, size: size, fps: 2, sound: silence)))
     }
@@ -369,15 +373,15 @@ struct RenderPipelineTests {
         )
     }
 
-    // The checks of a two frame sequence of `video` and `music` rendered with a delivery: each media once, each frame,
-    // the plan, and each target.
+    // The checks of a two frame sequence of `video` and `music` rendered with a delivery: each media once, the plan,
+    // each frame, and each target.
     private func checks(of sequence: ResolvedSequence) -> [RoleCall] {
         [
             .checkMedia(path: "/abs/run.mp4"),
             .checkMedia(path: "/abs/bgm.m4a"),
+            .checkPlan(MixPlanner().mix(of: sequence)),
             .checkList(frame: 0),
             .checkList(frame: 1),
-            .checkPlan(MixPlanner().mix(of: sequence)),
             .checkTarget(.master(path: master, alpha: false)),
             .checkTarget(.delivery(path: delivery))
         ]

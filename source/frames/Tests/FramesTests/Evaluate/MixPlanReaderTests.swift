@@ -22,8 +22,8 @@ struct MixPlanReaderTests {
     )
     private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
 
-    // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, and a gate
-    // fading in by its `mix`.
+    // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, a gate
+    // fading in by its `mix`, and a limiter whose `gain` moves.
     private static let filter = [
         MixFilterEntry(
             operations: [
@@ -61,16 +61,28 @@ struct MixPlanReaderTests {
                 ))
             ],
             mix: .envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.5, value: 1), EnvelopePoint(time: 3, value: 1)])
+        ),
+        MixFilterEntry(
+            operations: [
+                .limiter(MixLimiter(
+                    gain: .envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 4.5)]),
+                    ceiling: .constant(-1),
+                    lookahead: 0.005,
+                    release: .constant(0.1)
+                ))
+            ],
+            mix: .constant(1)
         )
     ]
 
-    // A video's sound at speed 2 with a fade in and an audio filter, a loop of music as one segment per repeat under a
-    // ducking envelope and panning left, and a compound clip's sound as a segment of its own.
+    // A silent plan; a video's sound at speed 2 with a fade in and an audio filter, a loop of music as one segment per
+    // repeat under a ducking envelope and panning left, and a sound at speed 0.5; and a compound clip's bus holding a
+    // sound and the bus of a compound clip inside it, its chain and level moving, under the sequence's chain.
     private static let plans = [
-        MixPlan(segments: []),
-        MixPlan(segments: [
+        MixPlan(length: 0, segments: []),
+        MixPlan(length: 192_000, segments: [
             MixSegment(
-                media: video,
+                media: .pinned(video),
                 mediaStart: 2,
                 speed: 2,
                 start: 0,
@@ -80,7 +92,7 @@ struct MixPlanReaderTests {
                 pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 3, value: 0)]
             ),
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 0,
@@ -89,7 +101,7 @@ struct MixPlanReaderTests {
                 pan: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 2.5, value: -0.4)]
             ),
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 2.5,
@@ -97,8 +109,40 @@ struct MixPlanReaderTests {
                 envelope: [EnvelopePoint(time: 2.5, value: 0.3), EnvelopePoint(time: 3.033333, value: 0.15), EnvelopePoint(time: 4, value: 0)],
                 pan: [EnvelopePoint(time: 2.5, value: -0.4), EnvelopePoint(time: 4, value: -0.4)]
             ),
-            MixSegment(media: video, mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
-        ])
+            MixSegment(media: .pinned(video), mediaStart: 0.125, speed: 0.5, start: 3, end: 4, envelope: [], pan: [])
+        ]),
+        MixPlan(
+            length: 4805,
+            segments: [],
+            buses: [
+                MixBus(
+                    start: 0,
+                    end: 0.1,
+                    segments: [
+                        MixSegment(
+                            media: .pinned(music),
+                            mediaStart: 1,
+                            speed: 1,
+                            start: 0,
+                            end: 0.1,
+                            envelope: [EnvelopePoint(time: 0, value: 1), EnvelopePoint(time: 0.1, value: 1)],
+                            pan: [EnvelopePoint(time: 0, value: 0.5), EnvelopePoint(time: 0.1, value: 0.5)]
+                        )
+                    ],
+                    buses: [
+                        MixBus(
+                            start: 0.05,
+                            end: 0.1,
+                            segments: [MixSegment(media: .pinned(video), mediaStart: 0, speed: 2, start: 0.05, end: 0.1, envelope: [], pan: [])],
+                            envelope: [EnvelopePoint(time: 0.05, value: 0.8), EnvelopePoint(time: 0.1, value: 0)]
+                        )
+                    ],
+                    filter: Array(filter.suffix(2)),
+                    envelope: [EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.033367, value: 1), EnvelopePoint(time: 0.1, value: 1)]
+                )
+            ],
+            filter: Array(filter.prefix(1))
+        )
     ]
 
     // MARK: - Initializer
@@ -164,7 +208,9 @@ struct MixPlanReaderTests {
             (#""mixPlan": "1.0.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
             (#""speed": 2,"#, "", #"segments[0] (segment): missing key "speed""#),
             (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, filter, envelope, pan"#),
-            (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, segments"#),
+            (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, length, segments, buses, filter"#),
+            (#""length": 192000,"#, "", #"top level (mix plan): missing key "length""#),
+            (#""length": 192000,"#, #""length": 192000.5,"#, #"length (mix plan): expected a whole number, found 192000.5"#),
             (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)
         ]
     )
@@ -198,7 +244,23 @@ struct MixPlanReaderTests {
         #expect(band?.objectValue?.keys == ["type", "frequency", "q"])
         #expect(band?.objectValue?["frequency"] == .array([.array([.number(0), .number(80)]), .array([.number(1), .number(160)])]))
         #expect(band?.objectValue?["q"] == .number(0.7071))
-        #expect(entries?.last?.objectValue?["mix"]?.arrayValue?.count == 3)
+        #expect(entries?[1].objectValue?["mix"]?.arrayValue?.count == 3)
+    }
+
+    @Test("a limiter is written with its parameters in the op table's order, its static `lookahead` a plain number")
+    func writesLimiter() throws {
+        // Given
+        let plan = Self.plans[1]
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+        let limiter = segment?["filter"]?.arrayValue?.last?.objectValue?["ops"]?.arrayValue?.first?.objectValue
+
+        // Then
+        #expect(limiter?.keys == ["op", "gain", "ceiling", "lookahead", "release"])
+        #expect(limiter?["op"] == .string("limiter"))
+        #expect(limiter?["gain"] == .array([.array([.number(0), .number(0)]), .array([.number(3), .number(4.5)])]))
+        #expect(limiter?["ceiling"] == .number(-1) && limiter?["lookahead"] == .number(0.005))
     }
 
     @Test(
@@ -216,8 +278,18 @@ struct MixPlanReaderTests {
             ),
             (
                 #""op": "compressor","#,
+                #""op": "saturator","#,
+                #"segments[0].filter[0].ops[1].op (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter"#
+            ),
+            (
+                #""lookahead": 0.005"#,
+                #""lookahead": [[0, 0.005]]"#,
+                #"segments[0].filter[2].ops[0].lookahead (limiter): expected a number, found a list of 1"#
+            ),
+            (
                 #""op": "limiter","#,
-                #"segments[0].filter[0].ops[1].op (audio op): unknown value "limiter". Allowed: eq, compressor, gate"#
+                #""op": "limiter", "threshold": -1,"#,
+                #"segments[0].filter[2].ops[0] (limiter): unknown key "threshold". Allowed: op, gain, ceiling, lookahead, release"#
             ),
             (
                 #""op": "compressor","#,
@@ -249,6 +321,18 @@ struct MixPlanReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("a segment of a file nothing pins writes its media as the file alone")
+    func writesUnpinnedMedia() throws {
+        // Given
+        let plan = MixPlanner().mix(ofMedium: "/abs/tone.wav", duration: 1)
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+
+        // Then
+        #expect(segment?["media"] == .object(JSONObject(members: [JSONMember(key: "file", value: .string("/abs/tone.wav"))])))
     }
 
     // MARK: - Private

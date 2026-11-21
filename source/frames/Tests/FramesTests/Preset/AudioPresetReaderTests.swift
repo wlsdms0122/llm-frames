@@ -66,6 +66,27 @@ struct AudioPresetReaderTests {
         }
     }
 
+    @Test("a preset's limiter reads with its lookahead from a parameter, and a lookahead outside its range stops when read")
+    func readsLimiter() throws {
+        // Given
+        let preset = #"""
+            { "description": "", "params": { "ahead": { "type": "number", "default": 0.01, "description": "look-ahead" } },
+              "ops": [ { "op": "limiter", "ceiling": -2, "lookahead": { "param": "ahead" } } ] }
+            """#
+
+        // When
+        let published = try sut.publishedAudio(from: json(preset), place: file)
+
+        // Then
+        #expect(published.defaults.operations.first?["lookahead"] == .number(0.01))
+        #expect(throws: LookError.outsideDomain(place: file.appending(key: "ops").appending(index: 0).appending(key: "lookahead"), value: 0.1, domain: .range(0.0015...0.05))) {
+            try sut.publishedAudio(from: json(preset.replacingOccurrences(of: #""default": 0.01"#, with: #""default": 0.1"#)), place: file)
+        }
+        #expect(throws: PresetError.self) {
+            try sut.audio(published, instance: PresetInstance(name: "mine/voice", arguments: JSONObject(members: [JSONMember(key: "ahead", value: .number(0.001))])))
+        }
+    }
+
     @Test(
         "a colour or choice parameter, an op's mix and an unknown op stop",
         arguments: [

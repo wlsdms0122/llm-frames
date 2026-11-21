@@ -39,7 +39,7 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place): lengths that are all 0, which draw no dash"
 
         case let .keyframedStatic(place):
-            "\(place) (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+            "\(place) (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
 
         case let .keyframedOff(place):
             "\(place) (keyframe): false or \"none\" turns a value off and is written on the clip, not in a keyframe"

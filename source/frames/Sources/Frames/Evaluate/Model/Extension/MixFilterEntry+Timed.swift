@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// An entry of a sound's resolved audio filter, `{ops, mix}`, as a segment carries it, each leaf written by `sampler`.
+// An entry of a resolved audio filter, `{ops, mix}`, as a segment's filter or a bus's chain carries it, each leaf
+// written by `sampler`.
 // Resolve writes every parameter, its default included, so an op or a band missing one is left out.
 extension MixFilterEntry {
     // MARK: - Property
@@ -25,6 +26,16 @@ extension MixFilterEntry {
     }
 
     // MARK: - Public
+    // A sound's or a sequence's resolved audio filter as entries, `[]` for none.
+    static func entries(
+        of filter: TimedValue,
+        sampler: MixValueSampler
+    ) -> [MixFilterEntry] {
+        guard case let .list(entries) = filter else { return [] }
+
+        return entries.compactMap { MixFilterEntry(timed: $0, sampler: sampler) }
+    }
+
     // MARK: - Private
     private static func operation(
         _ value: TimedValue,
@@ -71,6 +82,18 @@ extension MixFilterEntry {
                 makeup: makeup
             ))
 
+        case "op:limiter":
+            guard
+                let gain = number("gain"),
+                let ceiling = number("ceiling"),
+                let lookahead = staticNumber(body["lookahead"], sampler: sampler),
+                let release = number("release")
+            else {
+                return nil
+            }
+
+            return .limiter(MixLimiter(gain: gain, ceiling: ceiling, lookahead: lookahead, release: release))
+
         default:
             guard
                 let threshold = number("threshold"),
@@ -84,6 +107,19 @@ extension MixFilterEntry {
 
             return .gate(MixGate(threshold: threshold, range: range, attack: attack, hold: hold, release: release))
         }
+    }
+
+    // A static number, such as a limiter's `lookahead`: written as it is, or one value over the whole sound.
+    private static func staticNumber(
+        _ value: TimedValue?,
+        sampler: MixValueSampler
+    ) -> Double? {
+        if case let .fixed(written) = value {
+            return written.numberValue
+        }
+        guard case let .constant(number) = sampler.value(value, as: .number()) else { return nil }
+
+        return number
     }
 
     private static func band(

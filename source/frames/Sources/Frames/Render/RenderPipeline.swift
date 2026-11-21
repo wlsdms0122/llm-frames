@@ -10,8 +10,8 @@ import Foundation
 // Renders a resolved sequence through the roles: one frame of it to a PNG of 16 bits per channel, or every frame to a
 // master and, when asked, a delivery from the same frames in the same pass, each in the sequence's colour space and
 // clipped to its peak. Everything that can refuse does before the first frame, in this order: the output paths and the
-// time, every pinned file's hash, the decoder on every pinned media, the renderer on every frame's display list, the
-// mixer on the mix plan, and the encoder on each target.
+// time, every pinned file's hash, the decoder on every pinned media, the mixer on the mix plan, the renderer on every
+// frame's display list, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let renderer: any Renderer
@@ -19,7 +19,6 @@ package struct RenderPipeline: Sendable {
     private let encoder: any Encoder
     private let pinned: PinnedReferenceChecker
     private let evaluator = Evaluator()
-    private let planner = MixPlanner()
 
     // MARK: - Initializer
     package init(
@@ -101,7 +100,7 @@ package struct RenderPipeline: Sendable {
             throw RenderError.deliveryExtension(path: delivery)
         }
 
-        try pinned.check(sequence.pinnedReferences)
+        let mix = try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
 
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
@@ -109,17 +108,14 @@ package struct RenderPipeline: Sendable {
             try renderer.check(evaluator.displayList(of: sequence, at: time))
         }
 
-        let plan = planner.mix(of: sequence)
-        try mixer.check(plan)
-
         let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)
         let targets = [master] + (delivery.map { [EncodeTarget.delivery(path: $0, output: format.output)] } ?? [])
         for target in targets {
             try encoder.check(target)
         }
 
-        // A sequence without sound gets silence, so every master and delivery carries the same tracks.
-        let sound = try mixer.mix(plan, duration: format.renderedDuration)
+        // A sequence without sound mixes to silence, so every master and delivery carries one sound track.
+        let sound = try mix.mixed()
         let writers = try targets.map { target in
             try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
         }
