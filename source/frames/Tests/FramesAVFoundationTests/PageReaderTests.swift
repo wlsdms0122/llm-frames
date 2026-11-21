@@ -262,6 +262,46 @@ struct PageReaderTests {
         #expect(throws: DecoderError.self) { try sut.check(file, reading: nil) }
     }
 
+    @Test("a form drawn under two parents' resources, the second naming DeviceCMYK by the name the first gives DeviceRGB, is refused")
+    func refusesFormUnderSecondResources() throws {
+        // Given
+        let path = directory.file("forms.pdf")
+        var writer = PDFFileWriter()
+        let form = writer.add(.stream(
+            ["Type": .name("XObject"), "Subtype": .name("Form"), "BBox": .array([0, 0, 10, 10].map(PDFValue.integer))],
+            Data("/CS0 cs 0 0 10 10 re f".utf8)
+        ))
+        let parent = { (space: String) in
+            PDFValue.stream(
+                [
+                    "Type": .name("XObject"),
+                    "Subtype": .name("Form"),
+                    "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)),
+                    "Resources": .dictionary([
+                        "ColorSpace": .dictionary(["CS0": .name(space)]),
+                        "XObject": .dictionary(["Fm0": form])
+                    ])
+                ],
+                Data("/Fm0 Do".utf8)
+            )
+        }
+        try PageFile.write(
+            [PageFile.page(
+                "/P1 Do /P2 Do",
+                resources: ["XObject": .dictionary(["P1": parent("DeviceRGB"), "P2": parent("DeviceCMYK")])],
+                mediaBox: [0, 0, 10, 10]
+            )],
+            to: path,
+            writer: writer
+        )
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.probedPage(1, of: path) }
+
+        // Then
+        #expect(error?.description.contains("it draws in DeviceCMYK") == true)
+    }
+
     @Test(
         "a colour space whose structure numbers are no whole number in their range is refused with the reason, not a trap",
         arguments: [

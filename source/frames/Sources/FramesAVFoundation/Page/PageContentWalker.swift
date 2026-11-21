@@ -146,6 +146,7 @@ final class PageContentWalker {
         let current = state
         let context = ContentStreamScan(
             stream: dictionary,
+            resources: streamResources,
             state: current,
             isHidden: isHidden,
             isUncolored: uncoloredPatternDepth > 0
