@@ -11,8 +11,8 @@ import Frames
 // A chain of audio filter entries over a stereo sound at the mix plan's sample rate: a segment's `audioFilter`, after
 // the downmix, the resampling and the time stretch and before the gain and the pan, a bus's chain, over the bus's sum
 // and before its level, or the plan's chain, over the whole mix. It is made at rest, so each segment and each bus, and
-// so each repeat of a loop, starts every op at rest. Entries none of whose ops reads ahead run together sample by
-// sample, and an entry with a limiter runs over the whole sound, reading silence before its start and past its end.
+// so each repeat of a loop, starts every op at rest. Each entry runs over the whole sound in turn, reading the buffer's
+// 32-bit samples, and its result is rounded to them before the next entry reads it.
 final class AudioFilterChain {
     // MARK: - Property
     private let entries: [FilterEntryProcessor]
@@ -43,22 +43,8 @@ final class AudioFilterChain {
         frames: Int,
         first: Int
     ) {
-        var start = 0
-        while start < entries.count {
-            guard !entries[start].readsAhead else {
-                entries[start].process(channels, frames: frames, first: first)
-                start += 1
-                continue
-            }
-
-            let run = entries[start...].prefix { !$0.readsAhead }
-            for frame in 0..<frames {
-                let input = StereoSample(left: Double(channels[0][frame]), right: Double(channels[1][frame]))
-                let output = run.reduce(input) { output, entry in entry.process(output, atSample: first + frame) }
-                channels[0][frame] = Float(output.left)
-                channels[1][frame] = Float(output.right)
-            }
-            start += run.count
+        for entry in entries {
+            entry.process(channels, frames: frames, first: first)
         }
     }
 

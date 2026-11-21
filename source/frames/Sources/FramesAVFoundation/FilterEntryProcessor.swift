@@ -9,11 +9,8 @@ import Frames
 
 // One entry of a filter: its ops in order on the entry's input, and that input mixed with their result by the entry's
 // `mix`, clamped to 0 to 1. The ops run at every `mix`, so their state is current when `mix` moves up from 0.
-final class FilterEntryProcessor: AudioOperationProcessor {
+final class FilterEntryProcessor {
     // MARK: - Property
-    // Whether one of its ops reads ahead in its input, so the entry runs over the whole sound at once.
-    let readsAhead: Bool
-
     private let sampleRate: Double
     private let stages: [FilterStage]
     private let isWholeWet: Bool
@@ -26,26 +23,8 @@ final class FilterEntryProcessor: AudioOperationProcessor {
     ) {
         self.sampleRate = sampleRate
         self.stages = FilterStage.stages(of: entry.operations, sampleRate: sampleRate)
-        self.readsAhead = stages.contains { $0.readsAhead }
         self.isWholeWet = if case let .constant(mix) = entry.mix { mix >= 1 } else { false }
         self.mix = EnvelopeCursor(value: entry.mix)
-    }
-
-    // MARK: - Lifecycle
-    // One sample of an entry none of whose ops reads ahead, whose ops are one stage of ops that take one sample at a
-    // time, or none.
-    func process(
-        _ input: StereoSample,
-        atSample sample: Int
-    ) -> StereoSample {
-        let wet = stages.reduce(input) { output, stage in
-            guard case let .samples(processors) = stage else { return output }
-
-            return processors.reduce(output) { output, processor in processor.process(output, atSample: sample) }
-        }
-        let mix = min(max(mix.value(at: Double(sample) / sampleRate), 0), 1)
-
-        return input.mixed(with: wet, by: mix)
     }
 
     // MARK: - Public

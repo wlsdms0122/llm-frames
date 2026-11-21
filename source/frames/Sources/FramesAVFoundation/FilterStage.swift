@@ -14,16 +14,6 @@ enum FilterStage {
     case limiter(LimiterProcessor)
 
     // MARK: - Property
-    var readsAhead: Bool {
-        switch self {
-        case .samples:
-            false
-
-        case .limiter:
-            true
-        }
-    }
-
     // MARK: - Initializer
     // MARK: - Public
     // The stages of `operations` in order, each run of ops that take one sample at a time one stage.
