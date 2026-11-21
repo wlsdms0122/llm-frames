@@ -292,7 +292,7 @@ struct TitleGroupTests {
         #expect(read == list)
     }
 
-    @Test("a title's units cover only their boxes, and its background only where it has one")
+    @Test("a title's units cover only their glyph boxes, and its background item only its background, or nothing")
     func flattensGroup() throws {
         // Given
         let plain = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
@@ -327,7 +327,9 @@ struct TitleGroupTests {
         let boxedItems = flattened(boxed)
 
         // Then
-        #expect(plainItems.count == 8)
+        // The background item of a title with no background is reported and covers nothing.
+        #expect(plainItems.count == 9)
+        #expect(plainItems[0].coverage.bounds == nil)
         #expect(plainItems.filter { $0.coverage.contains(gap) }.isEmpty)
         #expect(plainItems.filter { $0.coverage.contains(word) }.count == 4)
         #expect(boxedItems.count == 9)

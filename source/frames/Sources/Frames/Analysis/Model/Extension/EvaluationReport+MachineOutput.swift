@@ -6,7 +6,8 @@
 //
 
 // `{"evaluate": "1.0.0", time, size, items}`, the object `evaluate` prints, each item `{place, id, kind, item,
-// bounds, opacity}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers nothing.
+// bounds, opacity, transform, rect}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers
+// nothing, `transform` as `[a, b, c, d, tx, ty]` and `rect` as `[x, y, w, h]` in the item's own coordinates.
 extension EvaluationReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -22,14 +23,20 @@ extension EvaluationReport {
     // MARK: - Public
     // MARK: - Private
     private func output(_ item: EvaluationItem) -> JSONValue {
-        let bounds = item.bounds.map { bounds in
-            JSONValue.array([.measure(bounds.x), .measure(bounds.y), .measure(bounds.width), .measure(bounds.height)])
-        }
+        let transform = item.transform
 
         return .object(JSONObject(members: item.origin.machineOutput + [
             JSONMember(key: "item", value: .string(item.item.rawValue)),
-            JSONMember(key: "bounds", value: bounds ?? .null),
-            JSONMember(key: "opacity", value: .measure(item.opacity))
+            JSONMember(key: "bounds", value: item.bounds.map(output) ?? .null),
+            JSONMember(key: "opacity", value: .measure(item.opacity)),
+            JSONMember(key: "transform", value: .array(
+                [transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty].map(JSONValue.measure)
+            )),
+            JSONMember(key: "rect", value: output(item.rect))
         ]))
+    }
+
+    private func output(_ rectangle: Rectangle) -> JSONValue {
+        .array([.measure(rectangle.x), .measure(rectangle.y), .measure(rectangle.width), .measure(rectangle.height)])
     }
 }
