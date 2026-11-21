@@ -289,7 +289,7 @@ struct TrackPlanner: Sendable {
         instant: Double
     ) -> PropertyValue<FoundArea> {
         let start = masks.flatMap(\.geometryTimes).min() ?? instant
-        let bounds = masks.map { $0.sampled(at: start) }.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
+        let bounds = masks.map { $0.sampled(at: SampleTime(start)) }.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
         let found = FoundArea(
             rectangle: bounds,
             target: bounds,

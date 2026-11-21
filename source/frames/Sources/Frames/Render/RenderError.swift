@@ -12,6 +12,7 @@ package enum RenderError: Error, Equatable, CustomStringConvertible, Sendable {
     case timeOfMaster(path: String)
     case changedFile(path: String, place: String)
     case unreadableFile(path: String, place: String)
+    case sampledFrame(time: Double, reason: String)
 
     // MARK: - Property
     package var description: String {
@@ -33,6 +34,9 @@ package enum RenderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unreadableFile(path, place):
             "\(subject(path, place)) cannot be read, so its SHA-256 cannot be checked against the pinned one"
+
+        case let .sampledFrame(time, reason):
+            "the frame at \(JSONValue.time(time).written) is given as samples of its exposure: \(reason)"
         }
     }
 

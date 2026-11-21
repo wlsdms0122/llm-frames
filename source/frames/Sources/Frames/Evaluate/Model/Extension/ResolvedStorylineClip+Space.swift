@@ -13,13 +13,13 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func spaceTransform(at time: Double) -> AffineTransform {
+    func spaceTransform(at time: SampleTime) -> AffineTransform {
         guard cornerPin == nil else { return .identity }
 
         return pictureTransform(at: time)
     }
 
-    func pictureTransform(at time: Double) -> AffineTransform {
+    func pictureTransform(at time: SampleTime) -> AffineTransform {
         let own = presentation(at: time).transform
         guard media != nil, let size = box?.size ?? cornerPin?.size else { return own }
 

@@ -7,9 +7,9 @@
 
 // A connected or sequence clip as written, its keyframes on the clip's clock. `parent` is the id the clip names.
 // `width` is a title's wrapping width, and with `height` and `conform` a media clip's box. `radius`, `border` and
-// `shadow` are a media clip's; a shape's own keys are in its content. `animation` and `filter` are preset choices
-// as written, which resolve merges over the theme's defaults, `filter` with its keyframes; `filter` is a media clip's
-// `filter` or an adjustment's `adjust`.
+// `shadow` are a media clip's; a shape's own keys are in its content. `isMotionBlurred` is its `motionBlur`.
+// `animation` and `filter` are preset choices as written, which resolve merges over the theme's defaults, `filter` with
+// its keyframes; `filter` is a media clip's `filter` or an adjustment's `adjust`.
 struct Clip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -40,6 +40,7 @@ struct Clip: Equatable, Sendable {
     let scale: PropertyValue<Scale>?
     let rotation: PropertyValue<Double>?
     let blend: String?
+    let isMotionBlurred: Bool
     let filter: LookProperty?
 
     // MARK: - Initializer
@@ -72,6 +73,7 @@ struct Clip: Equatable, Sendable {
         scale: PropertyValue<Scale>? = nil,
         rotation: PropertyValue<Double>? = nil,
         blend: String? = nil,
+        isMotionBlurred: Bool = false,
         filter: LookProperty? = nil
     ) {
         self.place = place
@@ -102,6 +104,7 @@ struct Clip: Equatable, Sendable {
         self.scale = scale
         self.rotation = rotation
         self.blend = blend
+        self.isMotionBlurred = isMotionBlurred
         self.filter = filter
     }
 

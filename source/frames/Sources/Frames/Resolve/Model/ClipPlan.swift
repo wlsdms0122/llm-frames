@@ -21,6 +21,7 @@ struct ClipPlan: Equatable, Sendable {
     let storyline: Int?
     let parent: ClipParent?
     let trackMatte: TrackMatte?
+    let isMotionBlurred: Bool
     let lane: Int?
     let clock: TimeMap
     let window: TimeRange
@@ -46,6 +47,7 @@ struct ClipPlan: Equatable, Sendable {
         storyline: Int?,
         parent: ClipParent? = nil,
         trackMatte: TrackMatte?,
+        isMotionBlurred: Bool = false,
         lane: Int?,
         clock: TimeMap,
         window: TimeRange,
@@ -64,6 +66,7 @@ struct ClipPlan: Equatable, Sendable {
         self.storyline = storyline
         self.parent = parent
         self.trackMatte = trackMatte
+        self.isMotionBlurred = isMotionBlurred
         self.lane = lane
         self.clock = clock
         self.window = window
@@ -86,6 +89,7 @@ struct ClipPlan: Equatable, Sendable {
             storyline: storyline,
             parent: parent,
             trackMatte: trackMatte,
+            isMotionBlurred: isMotionBlurred,
             lane: lane,
             clock: clock,
             window: window,
@@ -108,6 +112,7 @@ struct ClipPlan: Equatable, Sendable {
             storyline: storyline,
             parent: parent,
             trackMatte: trackMatte,
+            isMotionBlurred: isMotionBlurred,
             lane: lane,
             clock: clock,
             window: window,

@@ -144,4 +144,100 @@ struct KeyframeTrackTests {
         #expect(whole.upperBound > 65.9)
         #expect(abs(early.upperBound - 60 * Ease.backOut.value(at: 0.5)) < 1e-9)
     }
+
+    @Test("an instant past a step end from T takes the value before it, so the FRAMES-29 title shows its old place and then its new one")
+    func clampsStepEndFromBefore() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 1, value: 100.0, ease: .step),
+            Keyframe(at: 1.53, value: 900.0),
+            Keyframe(at: 3, value: 900.0)
+        ])
+        let before = (0..<16).map { 1.52 + (Double($0) + 0.5) / 16 * 0.02 }
+        let after = (0..<16).map { 1.56 + (Double($0) + 0.5) / 16 * 0.02 }
+
+        // When
+        let first = before.map { sut.value(at: $0, onSideOf: 1.52) }
+        let next = after.map { sut.value(at: $0, onSideOf: 1.56) }
+        let onTheEnd = sut.value(at: 1.53, onSideOf: 1.52)
+
+        // Then
+        #expect(first.allSatisfy { $0 == 100 })
+        #expect(next.allSatisfy { $0 == 900 })
+        #expect(onTheEnd == 100)
+    }
+
+    @Test("an instant before T across a step end takes the value at the end, the side T reads")
+    func clampsStepEndFromAfter() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 1, value: 100.0, ease: .step),
+            Keyframe(at: 1.53, value: 900.0, ease: .linear),
+            Keyframe(at: 2.53, value: 1900.0)
+        ])
+
+        // When
+        let crossing = sut.value(at: 1.525, onSideOf: 1.54)
+        let onTheEnd = sut.value(at: 1.52, onSideOf: 1.53)
+
+        // Then
+        #expect(crossing == 900)
+        #expect(onTheEnd == 900)
+    }
+
+    @Test("two keyframes at one instant clamp an instant to T's side: the first value from before, the second from it")
+    func clampsDoubleKeyframe() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: 0.0),
+            Keyframe(at: 1, value: 10.0),
+            Keyframe(at: 1, value: 50.0),
+            Keyframe(at: 2, value: 60.0)
+        ])
+
+        // When
+        let fromBefore = sut.value(at: 1.1, onSideOf: 0.9)
+        let fromAfter = sut.value(at: 0.95, onSideOf: 1.05)
+        let fromOn = sut.value(at: 0.95, onSideOf: 1)
+        let onwards = sut.value(at: 1.05, onSideOf: 1)
+
+        // Then
+        #expect(fromBefore == 10)
+        #expect(fromAfter == 50)
+        #expect(fromOn == 50)
+        #expect(abs((onwards ?? 0) - 50.5) < 1e-9)
+    }
+
+    @Test("a step span that ends on two keyframes is clamped to its start value from before")
+    func clampsStepIntoDoubleKeyframe() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: 0.0, ease: .step),
+            Keyframe(at: 1, value: 10.0),
+            Keyframe(at: 1, value: 50.0)
+        ])
+
+        // When
+        let value = sut.value(at: 1.2, onSideOf: 0.5)
+
+        // Then
+        #expect(value == 0)
+    }
+
+    @Test("without a jump between T and the instant, the instant reads the curve as it is, past the keyframes too")
+    func readsWithoutJump() {
+        // Given
+        let sut = KeyframeTrack(keyframes: [
+            Keyframe(at: 0, value: 0.0, ease: .easeInOut),
+            Keyframe(at: 1, value: 10.0)
+        ])
+
+        // When
+        let inside = sut.value(at: 0.7, onSideOf: 0.6)
+        let past = sut.value(at: 1.2, onSideOf: 0.95)
+
+        // Then
+        #expect(inside == sut.value(at: 0.7))
+        #expect(past == 10)
+    }
 }

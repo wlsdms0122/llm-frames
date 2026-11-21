@@ -54,7 +54,7 @@ struct ResolvedMask: Equatable, Sendable {
 
     // MARK: - Public
     // A feather sampled below 0 by an ease that overshoots is 0.
-    func sampled(at time: Double) -> MaskSample {
+    func sampled(at time: SampleTime) -> MaskSample {
         MaskSample(
             geometry: geometry.sampled(at: time),
             feather: max(feather.value(at: time), 0),

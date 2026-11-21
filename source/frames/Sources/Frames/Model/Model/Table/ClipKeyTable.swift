@@ -167,8 +167,8 @@ enum ClipKeyTable {
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
-        "id", "metadata", "at", "lane", "parent", "opacity", "blend", "mask", "trackMatte", "track", "animation",
-        "keyframes"
+        "id", "metadata", "at", "lane", "parent", "opacity", "blend", "motionBlur", "mask", "trackMatte", "track",
+        "animation", "keyframes"
     ]
 
     // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, with the corner pin
@@ -186,19 +186,19 @@ enum ClipKeyTable {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
                 "id", "metadata", "media", "colorSpace", "toneMap", "in", "out", "speed", "crop", "filter", "transition",
-                "anchor", "position", "scale", "rotation", "cornerPin", "opacity", "blend", "mask", "trackMatte", "track",
-                "radius", "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes",
-                "connected"
+                "anchor", "position", "scale", "rotation", "cornerPin", "opacity", "blend", "motionBlur", "mask",
+                "trackMatte", "track", "radius", "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter",
+                "split", "keyframes", "connected"
             ]
 
         case (_, .solid):
-            return ["id", "metadata", "solid", "duration", "transition", "connected"]
+            return ["id", "metadata", "solid", "duration", "transition", "motionBlur", "connected"]
 
         case (.storyline, .media):
             return [
                 "id", "metadata", "media", "colorSpace", "toneMap", "duration", "crop", "filter", "transition", "anchor",
-                "position", "scale", "rotation", "cornerPin", "opacity", "blend", "mask", "trackMatte", "radius", "border",
-                "shadow", "keyframes", "connected"
+                "position", "scale", "rotation", "cornerPin", "opacity", "blend", "motionBlur", "mask", "trackMatte",
+                "radius", "border", "shadow", "keyframes", "connected"
             ]
 
         case (_, .media(.audio)):
@@ -270,7 +270,7 @@ enum ClipKeyTable {
         case "solid":
             .color
 
-        case "loop", "closed", "picture", "toneMap":
+        case "loop", "closed", "picture", "toneMap", "motionBlur":
             .bool
 
         case "colorSpace":

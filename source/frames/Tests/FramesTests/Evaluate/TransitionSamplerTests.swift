@@ -59,7 +59,7 @@ struct TransitionSamplerTests {
         let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
         #expect(presentation.transform == AffineTransform(translation: translation))
         #expect(presentation.opacity == 1)
-        #expect(sample.reveal.rectangle(wiping: frame, from: sample.revealFrom) == nil)
+        #expect(sample.revealRectangle(wiping: frame) == nil)
     }
 
     @Test("a storyline picture scales about the centre of the frame")
@@ -90,7 +90,7 @@ struct TransitionSamplerTests {
         let sample = sut.motion(of: 1, in: storyline, at: 1.75)
 
         // Then
-        #expect(sample.reveal.rectangle(wiping: frame, from: sample.revealFrom) == Rectangle(
+        #expect(sample.revealRectangle(wiping: frame) == Rectangle(
             x: 810,
             y: 0,
             width: 270,
@@ -153,7 +153,7 @@ struct TransitionSamplerTests {
         ])
 
         // When
-        let value = sut.coverOpacity(of: cover, at: progress)
+        let value = sut.coverOpacity(of: cover, at: SampleProgress(progress))
 
         // Then
         #expect(abs(value - opacity) < 1e-9)
@@ -165,7 +165,7 @@ struct TransitionSamplerTests {
         let ease = Ease.easeIn
 
         // When
-        let value = sut.matteProgress(easedBy: ease, at: 0.5)
+        let value = sut.matteProgress(easedBy: ease, at: SampleProgress(0.5))
 
         // Then
         #expect(value == 0.125)
@@ -181,6 +181,24 @@ struct TransitionSamplerTests {
 
         // Then
         #expect(order == bottomFirst)
+    }
+
+    @Test("in a sample of a frame with motion blur, a transition whose span writes reveal sets the reveal, and one that does not sets none")
+    func setsRevealInSample() {
+        // Given
+        let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
+        let push = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.x: 1]), SpanKey(t: 1, values: [.x: 0])])
+        let sample = SampleInstant(instant: 2.51, frameTime: 2.49, reads: MotionBlurReads())
+
+        // When
+        let wiped = sut.motion(of: 1, in: storyline(incoming: wipe), at: sample)
+        let pushed = sut.motion(of: 1, in: storyline(incoming: push), at: sample)
+        let outsideSample = sut.motion(of: 1, in: storyline(incoming: wipe), at: 2.49)
+
+        // Then
+        #expect(wiped.isRevealSet)
+        #expect(!pushed.isRevealSet)
+        #expect(!outsideSample.isRevealSet)
     }
 
     // MARK: - Private

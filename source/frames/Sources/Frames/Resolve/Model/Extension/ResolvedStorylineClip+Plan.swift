@@ -70,6 +70,7 @@ extension ResolvedStorylineClip {
             scale: cornerPin == nil ? (appearance.scale.keyframes(at: plan.instant) { $0 }) : nil,
             rotation: cornerPin == nil ? (appearance.rotation.keyframes(at: plan.instant) { $0 }) : nil,
             blend: appearance.blend,
+            isMotionBlurred: plan.isMotionBlurred,
             radius: appearance.radius,
             border: appearance.border,
             shadow: appearance.shadow,

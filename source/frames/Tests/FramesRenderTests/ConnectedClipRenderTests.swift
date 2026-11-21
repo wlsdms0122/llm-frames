@@ -225,11 +225,13 @@ struct ConnectedClipRenderTests {
               "clips": [ { "title": "WAVE", "style": "headline", "width": 300 } ] }
             """#)
         let list = Evaluator().displayList(of: document, at: 0.5)
+        guard case let .items(items) = list.content else { Issue.record("the list holds samples"); return }
+
         let unstroked = DisplayList(
             size: list.size,
             background: list.background,
             seed: list.seed,
-            items: list.items.map { item in
+            items: items.map { item in
                 guard case let .glyphs(glyphs) = item.content else { return item }
 
                 return DisplayItem(

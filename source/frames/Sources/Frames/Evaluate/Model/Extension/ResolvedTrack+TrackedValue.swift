@@ -7,7 +7,9 @@
 
 // Each keyframe of a tracked clip's geometry is brought back through the motion at its own `at` to the track's frame,
 // in the media pixels the clip follows, and interpolated there. A value true on the track's frame is not brought back,
-// since the motion is the identity there. `transform` carries the track's frame to the frame shown at a time.
+// since the motion is the identity there. `transform` carries the track's frame to the frame shown at a time. The
+// motion that carries a value is the motion of the media frame shown at T, the time's `frameTime`, so it adds no blur
+// inside a frame (FRAMES-29).
 extension ResolvedTrack {
     // MARK: - Property
     // MARK: - Initializer
@@ -15,7 +17,7 @@ extension ResolvedTrack {
     func area(
         of keyframes: FollowedValue<Rectangle>,
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         broughtBack(keyframes, on: clock) { $0.bringBack($1) }.value(at: time)
     }
@@ -23,7 +25,7 @@ extension ResolvedTrack {
     func point(
         of keyframes: FollowedValue<Point>,
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         broughtBack(keyframes, on: clock) { $0.bringBack($1) }.value(at: time)
     }
@@ -31,7 +33,7 @@ extension ResolvedTrack {
     func points(
         of keyframes: FollowedValue<[Point]>,
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> [Point] {
         broughtBack(keyframes, on: clock) { motion, points in points.map { motion.bringBack($0) } }.value(at: time)
     }
@@ -41,7 +43,7 @@ extension ResolvedTrack {
     func masks(
         of masks: [ResolvedMask],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> [MaskSample] {
         let motion = { (time: Double) in self.motion(atMediaTime: clock.mediaTime(atSequenceTime: time)) }
 
@@ -59,18 +61,18 @@ extension ResolvedTrack {
     func crop(
         of keyframes: FollowedValue<Crop>,
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let brought = broughtBack(keyframes, on: clock) { motion, crop in Crop(motion.upright.bringBack(crop.rectangle)) }
 
-        return uprightMotion(on: clock, at: time).carry(brought.value(at: time).rectangle)
+        return uprightMotion(on: clock, at: time.frameTime).carry(brought.value(at: time).rectangle)
     }
 
     func transform(
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
-        motion(atMediaTime: clock.mediaTime(atSequenceTime: time)).transform
+        motion(atMediaTime: clock.mediaTime(atSequenceTime: time.frameTime)).transform
     }
 
     // MARK: - Private

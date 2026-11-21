@@ -48,6 +48,16 @@ enum FollowedValue<Value: Equatable & Sendable>: Equatable, Sendable {
         }
     }
 
+    func value(at time: SampleTime) -> Value where Value: Interpolable {
+        switch self {
+        case let .onTrackFrame(value):
+            value
+
+        case let .keyframes(keyframes):
+            keyframes.value(at: time)
+        }
+    }
+
     // The same value with each value transformed alike, at whatever time it holds.
     func mapValues<Other: Equatable & Sendable>(_ transform: (Value) throws -> Other) rethrows -> FollowedValue<Other> {
         switch self {

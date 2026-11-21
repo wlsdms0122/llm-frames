@@ -82,7 +82,7 @@ struct LocationReporterTests {
         let item = DisplayItem(transform: transform, content: .picture(picture), origin: clip)
 
         // When
-        let report = sut.report(of: list([item]), point: Point(x: 95, y: 20))
+        let report = try sut.report(of: list([item]), point: Point(x: 95, y: 20))
 
         // Then
         // (95, 20) is 5 in from the right and 10 down from the top: box (5, 2.5), media (50, 25).
@@ -123,8 +123,8 @@ struct LocationReporterTests {
         let item = DisplayItem(content: .picture(picture), origin: ItemOrigin(place: "clips[1]#shot", id: "shot", kind: "video"))
 
         // When
-        let centre = sut.report(of: list([item]), point: Point(x: 97.5, y: 50))
-        let outside = sut.report(of: list([item]), point: Point(x: 30, y: 50))
+        let centre = try sut.report(of: list([item]), point: Point(x: 97.5, y: 50))
+        let outside = try sut.report(of: list([item]), point: Point(x: 30, y: 50))
 
         // Then
         let hit = try #require(centre.hits.first)
@@ -158,7 +158,7 @@ struct LocationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([item]), point: Point(x: 150, y: 75))
+        let report = try sut.report(of: list([item]), point: Point(x: 150, y: 75))
 
         // Then
         // The nested list's centre (50, 25) shows the media's centre (200, 100).
@@ -169,7 +169,7 @@ struct LocationReporterTests {
     }
 
     @Test("hits come topmost first, and a point beside a fill, in a stroked rect's middle or outside a mask is not under it")
-    func listsHitsTopmostFirst() {
+    func listsHitsTopmostFirst() throws {
         // Given
         let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
         let outside = DisplayItem(content: .path(PathItem(
@@ -198,9 +198,9 @@ struct LocationReporterTests {
         )
 
         // When
-        let onEdge = sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 81, y: 40))
-        let inMiddle = sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 100, y: 40))
-        let inMargin = sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 20, y: 40))
+        let onEdge = try sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 81, y: 40))
+        let inMiddle = try sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 100, y: 40))
+        let inMargin = try sut.report(of: list([outside, picture, stroke, masked]), point: Point(x: 20, y: 40))
 
         // Then
         #expect(onEdge.hits.map(\.origin) == [rect, clip])
@@ -218,7 +218,7 @@ struct LocationReporterTests {
         )))
 
         // When
-        let report = sut.report(of: list([cover]), point: Point(x: 10, y: 10))
+        let report = try sut.report(of: list([cover]), point: Point(x: 10, y: 10))
 
         // Then
         #expect(report.hits == [
@@ -227,7 +227,7 @@ struct LocationReporterTests {
     }
 
     @Test("a path with an arrowhead is under the point on its line and its head, but not beside the head's tip")
-    func hitsArrowShape() {
+    func hitsArrowShape() throws {
         // Given
         let arrow = DisplayItem(
             content: .path(PathItem(
@@ -239,8 +239,8 @@ struct LocationReporterTests {
         )
 
         // When
-        let hits = [Point(x: 50, y: 51), Point(x: 95, y: 56), Point(x: 108, y: 58)].map { point in
-            sut.report(of: list([arrow]), point: point).hits.count
+        let hits = try [Point(x: 50, y: 51), Point(x: 95, y: 56), Point(x: 108, y: 58)].map { point in
+            try sut.report(of: list([arrow]), point: point).hits.count
         }
 
         // Then
@@ -248,7 +248,7 @@ struct LocationReporterTests {
     }
 
     @Test("a trimmed path's arrowhead sits at the end of its drawn stroke, and nothing past it is under the point")
-    func hitsTrimmedArrowShape() {
+    func hitsTrimmedArrowShape() throws {
         // Given
         // Half of the line is drawn, to x = 60, its head from its base at x = 44 to its tip there.
         let arrow = DisplayItem(content: .path(PathItem(
@@ -259,8 +259,8 @@ struct LocationReporterTests {
         )))
 
         // When
-        let hits = [Point(x: 30, y: 51), Point(x: 50, y: 54), Point(x: 90, y: 50)].map { point in
-            sut.report(of: list([arrow]), point: point).hits.count
+        let hits = try [Point(x: 30, y: 51), Point(x: 50, y: 54), Point(x: 90, y: 50)].map { point in
+            try sut.report(of: list([arrow]), point: point).hits.count
         }
 
         // Then
@@ -268,7 +268,7 @@ struct LocationReporterTests {
     }
 
     @Test("a trimmed rect's arrowhead past its outline is under the point, and nothing beside the head is")
-    func hitsTrimmedRectArrowhead() {
+    func hitsTrimmedRectArrowhead() throws {
         // Given
         // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, where the head points down with
         // its tip at (80, 41) and its base 16 above it, from x = 72 to 88 at y = 25, above the stroked rect's top at 38.
@@ -280,8 +280,8 @@ struct LocationReporterTests {
         )))
 
         // When
-        let hits = [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
-            sut.report(of: list([arrow]), point: point).hits.count
+        let hits = try [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
+            try sut.report(of: list([arrow]), point: point).hits.count
         }
 
         // Then
@@ -296,7 +296,7 @@ struct LocationReporterTests {
         masks: [ItemMask],
         point: Point,
         isHit: Bool
-    ) {
+    ) throws {
         // Given
         let item = DisplayItem(
             mask: masks,
@@ -305,14 +305,14 @@ struct LocationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([item]), point: point)
+        let report = try sut.report(of: list([item]), point: point)
 
         // Then
         #expect(report.hits.map(\.origin) == (isHit ? [rect] : []))
     }
 
     @Test("an adjustment covers its list's frame, not carried by its own transform, cut by its mask")
-    func coversAdjustmentFrame() {
+    func coversAdjustmentFrame() throws {
         // Given
         let adjust = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
@@ -322,8 +322,8 @@ struct LocationReporterTests {
         )
 
         // When
-        let inside = sut.report(of: list([adjust]), point: Point(x: 150, y: 80))
-        let outside = sut.report(of: list([adjust]), point: Point(x: 50, y: 20))
+        let inside = try sut.report(of: list([adjust]), point: Point(x: 150, y: 80))
+        let outside = try sut.report(of: list([adjust]), point: Point(x: 50, y: 20))
 
         // Then
         #expect(inside.hits.map(\.origin) == [rect])

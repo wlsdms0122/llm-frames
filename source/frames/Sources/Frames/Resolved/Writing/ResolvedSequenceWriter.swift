@@ -41,7 +41,16 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "conform", value: .string(format.conform.rawValue)),
             JSONMember(key: "colorSpace", value: .string(format.colorSpace.rawValue)),
             JSONMember(key: "peak", value: format.peak.map { .number($0) } ?? .null),
-            JSONMember(key: "compositing", value: .string(format.compositing.rawValue))
+            JSONMember(key: "compositing", value: .string(format.compositing.rawValue)),
+            JSONMember(key: "motionBlur", value: shutter(format.shutter))
+        ]))
+    }
+
+    private func shutter(_ shutter: Shutter) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "shutterAngle", value: .number(shutter.angle)),
+            JSONMember(key: "shutterPhase", value: .number(shutter.phase)),
+            JSONMember(key: "samplesPerFrame", value: .number(Double(shutter.samplesPerFrame)))
         ]))
     }
 
@@ -81,6 +90,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "scale", value: entry.scale.map(values.scales) ?? .null),
             JSONMember(key: "rotation", value: entry.rotation.map { values.numbers($0) } ?? .null),
             JSONMember(key: "blend", value: .string(entry.blend)),
+            JSONMember(key: "motionBlur", value: .bool(entry.isMotionBlurred)),
             JSONMember(key: "filter", value: values.timed(entry.filter)),
             JSONMember(key: "radius", value: values.timed(entry.radius)),
             JSONMember(key: "border", value: values.timed(entry.border)),
@@ -96,9 +106,13 @@ struct ResolvedSequenceWriter: Sendable {
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
         let isAdjustment = if case .adjustment = clip.content { true } else { false }
-        let transform = isAdjustment ? [] : [
+        let scaleAndRotation = isAdjustment ? [] : [
             JSONMember(key: "scale", value: clip.scale.map(values.scales) ?? .null),
             JSONMember(key: "rotation", value: clip.rotation.map(number) ?? .null)
+        ]
+        let transform = scaleAndRotation + [
+            JSONMember(key: "blend", value: .string(clip.blend)),
+            JSONMember(key: "motionBlur", value: .bool(clip.isMotionBlurred))
         ]
         let cornerPin = clip.cornerPin.map { pin in
             values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
@@ -130,7 +144,6 @@ struct ResolvedSequenceWriter: Sendable {
         ] + geometry + [
             JSONMember(key: "opacity", value: number(clip.opacity))
         ] + transform + [
-            JSONMember(key: "blend", value: .string(clip.blend)),
             JSONMember(key: "animation", value: values.animation(clip.animation))
         ]))
     }

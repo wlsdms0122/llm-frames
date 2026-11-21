@@ -159,7 +159,7 @@ struct CornerPinEvaluationTests {
         #expect(picture.rectangle?.y == 16.875)
         #expect(group.mask.isEmpty)
         #expect(item.transform == shift)
-        #expect(item.mask.map(\.transform) == entry.masks(at: 1).map { $0.transform.concatenating(shift) })
+        #expect(item.mask.map(\.transform) == entry.masks(at: SampleTime(1)).map { $0.transform.concatenating(shift) })
     }
 
     @Test("a shadow past the box grows the nested list, with the box's top left at minus the list's origin")

@@ -12,7 +12,7 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func masks(at time: Double) -> [ItemMask] {
+    func masks(at time: SampleTime) -> [ItemMask] {
         guard let mask else { return [] }
 
         let factor = scale?.value(at: time).factor ?? 1

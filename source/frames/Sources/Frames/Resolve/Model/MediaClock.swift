@@ -41,10 +41,14 @@ struct MediaClock: Equatable, Sendable {
 
     // MARK: - Public
     func mediaTime(atSequenceTime time: Double) -> Double {
-        let mediaTime = playback.mediaTime(atSequenceTime: time)
-        guard let frames else { return mediaTime }
+        clamped(playback.mediaTime(atSequenceTime: time))
+    }
 
-        return min(max(mediaTime, frames.lowerBound), frames.upperBound)
+    func mediaTime(
+        atSequenceTime time: Double,
+        onSideOf frameTime: Double
+    ) -> Double {
+        clamped(playback.mediaTime(atSequenceTime: time, onSideOf: frameTime))
     }
 
     // The sequence time its playback reaches a media time at, nil where the playback does not move one way.
@@ -53,4 +57,9 @@ struct MediaClock: Equatable, Sendable {
     }
 
     // MARK: - Private
+    private func clamped(_ mediaTime: Double) -> Double {
+        guard let frames else { return mediaTime }
+
+        return min(max(mediaTime, frames.lowerBound), frames.upperBound)
+    }
 }

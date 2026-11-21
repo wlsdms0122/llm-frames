@@ -15,7 +15,7 @@ struct ResolvedSequenceReader: Sendable {
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
         "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
-        "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
+        "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
     ]
 
     // The keys of anything drawn, which an adjustment does not hold.
@@ -178,7 +178,7 @@ struct ResolvedSequenceReader: Sendable {
     private func format(_ value: PlacedJSONValue) throws -> ResolvedFormat {
         let format = try value.object(
             kind: "format",
-            keys: ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"]
+            keys: ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing", "motionBlur"]
         )
         let colorSpace = try format.member("colorSpace").name(among: VocabularyTable.colorSpaces, ColorSpace.init)
 
@@ -190,8 +190,47 @@ struct ResolvedSequenceReader: Sendable {
             conform: try conform(format.member("conform")),
             colorSpace: colorSpace,
             peak: try peak(format.member("peak"), colorSpace: colorSpace),
-            compositing: try format.member("compositing").name(among: VocabularyTable.compositings, Compositing.init)
+            compositing: try format.member("compositing").name(among: VocabularyTable.compositings, Compositing.init),
+            shutter: try shutter(format.member("motionBlur"))
         )
+    }
+
+    // The shutter with every key, each within its range: the angle above 0 and at most 720, the phase from minus the
+    // angle to 0, and the samples per frame a whole number from 2 to 256.
+    private func shutter(_ value: PlacedJSONValue) throws -> Shutter {
+        let shutter = try value.object(kind: "motion blur", keys: ["shutterAngle", "shutterPhase", "samplesPerFrame"])
+        let angle = try shutter.member("shutterAngle")
+        let phase = try shutter.member("shutterPhase")
+        let samples = try shutter.member("samplesPerFrame")
+        let shutterAngle = try angle.number()
+        guard Shutter.angles.contains(shutterAngle) else {
+            throw ModelError.invalidValue(
+                place: angle.place,
+                kind: angle.kind,
+                reason: "a shutter angle lies \(Shutter.angles.description), found \(angle.value.written)"
+            )
+        }
+
+        let shutterPhase = try phase.number()
+        let phases = Shutter.phases(under: shutterAngle)
+        guard phases.contains(shutterPhase) else {
+            throw ModelError.invalidValue(
+                place: phase.place,
+                kind: phase.kind,
+                reason: "a shutter phase lies from \(JSONValue.number(-shutterAngle).written) to 0, found \(phase.value.written)"
+            )
+        }
+
+        let samplesPerFrame = try samples.integer()
+        guard Shutter.samples.contains(Double(samplesPerFrame)) else {
+            throw ModelError.invalidValue(
+                place: samples.place,
+                kind: samples.kind,
+                reason: "samples per frame lie from 2 to 256, found \(samples.value.written)"
+            )
+        }
+
+        return Shutter(angle: shutterAngle, phase: shutterPhase, samplesPerFrame: samplesPerFrame)
     }
 
     // A `rec2100-pq` sequence's mastering peak, from 400 to 10000 cd/m², and null in any other space.
@@ -243,7 +282,7 @@ struct ResolvedSequenceReader: Sendable {
         let keys = [
             "place", "id", "media", "solid", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start", "end",
             "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
-            "rotation", "blend", "filter", "radius", "border", "shadow", "transition"
+            "rotation", "blend", "motionBlur", "filter", "radius", "border", "shadow", "transition"
         ]
         let isMedia = try !value.object(kind: "storyline clip", keys: keys).member("media").isNull
         let entry = try value.object(kind: "storyline clip", keys: keys.filter { isMedia || $0 != "cornerPin" })
@@ -281,6 +320,7 @@ struct ResolvedSequenceReader: Sendable {
             scale: cornerPin == nil ? try values.scales(entry.member("scale")) : nil,
             rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
+            isMotionBlurred: try entry.member("motionBlur").bool(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
             border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
             shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow"),
@@ -330,6 +370,7 @@ struct ResolvedSequenceReader: Sendable {
             scale: isPlaced ? try values.scales(clip.member("scale")) : nil,
             rotation: isPlaced ? try values.numbers(clip.member("rotation")) : nil,
             blend: try clip.member("blend").string(),
+            isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
         )
     }

@@ -53,8 +53,8 @@ struct ParentSpacePlannerTests {
         let box = try #require(title.box)
         let parents = ParentEvaluator(sequence: resolved)
         for time in [2.0, 2.5, 3.5] {
-            let space = parents.space(of: title, at: time)
-            let anchor = space.transform.apply(to: space.anchor(of: box, track: nil, at: time))
+            let space = parents.space(of: title, at: SampleTime(time))
+            let anchor = space.transform.apply(to: space.anchor(of: box, track: nil, at: SampleTime(time)))
             // The padding is found at the title's instant and grows with the text from there.
             let text = Self.text(at: time, growth: growth)
             let padding = Self.padding * (1 + growth * time) / (1 + growth * 2)
@@ -194,7 +194,7 @@ struct ParentSpacePlannerTests {
         let parents = ParentEvaluator(sequence: resolved)
         let anchor = Self.anchor(of: resolved.clips[1], by: parents, at: 2)
         let text = Self.text(at: 2, growth: 0)
-        let beside = parents.space(of: resolved.clips[0], at: 2).transform
+        let beside = parents.space(of: resolved.clips[0], at: SampleTime(2)).transform
             .apply(to: Point(x: text.x + text.width + Self.padding, y: text.center.y))
         #expect(isClose(anchor, beside), "the title is at \(anchor), the text's right at \(beside)")
     }
@@ -360,8 +360,8 @@ struct ParentSpacePlannerTests {
     ) -> Point {
         guard let box = clip.box else { return Point(x: 0, y: 0) }
 
-        let space = parents.space(of: clip, at: time)
-        return space.transform.apply(to: space.anchor(of: box, track: nil, at: time))
+        let space = parents.space(of: clip, at: SampleTime(time))
+        return space.transform.apply(to: space.anchor(of: box, track: nil, at: SampleTime(time)))
     }
 
     // "Total" on the frame shown at a media time.

@@ -528,6 +528,29 @@ struct PathDrawerTests {
         expect(bitmap, at: [(30, 50), (34, 54), (40, 50)], inked: inked)
     }
 
+    @Test("a dash whose lengths are all 0, as a sample of a frame with motion blur writes one, draws the stroke whole")
+    func drawsAllZeroDashWhole() throws {
+        // Given
+        let stroke = { (dash: [Double]?) in
+            PathStroke(width: 4, paint: .color(Self.black), join: .miter, cap: .round, start: .none, end: .arrow, dash: dash)
+        }
+        let path = { (dash: [Double]?) in
+            PathItem(
+                geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false),
+                fill: nil,
+                stroke: stroke(dash),
+                trim: Trim(start: 0, end: 0.8)
+            )
+        }
+
+        // When
+        let bitmap = try sut.frame(of: list([path([0, 0])]))
+
+        // Then
+        #expect(bitmap == (try sut.frame(of: list([path(nil)]))))
+        expect(bitmap, at: [(20, 50), (40, 50)], inked: [true, true])
+    }
+
     // A circle of radius 20 about (50, 50), stretched 2 along x about its centre into an ellipse 40 by 20. Dashes of a
     // quarter of the circle's length from its top, clockwise, fall on the top right and bottom left quarters.
     @Test("dashes on an ellipse stretched along x follow the outline as carried, longer along the stretched axis")

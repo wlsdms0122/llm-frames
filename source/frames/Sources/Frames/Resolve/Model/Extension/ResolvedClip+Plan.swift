@@ -55,6 +55,7 @@ extension ResolvedClip {
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,
             blend: appearance.blend,
+            isMotionBlurred: plan.isMotionBlurred,
             animation: ResolvedAnimation(plan: plan.animation)
         )
     }

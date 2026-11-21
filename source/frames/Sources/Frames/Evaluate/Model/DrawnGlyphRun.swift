@@ -46,7 +46,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
     init(
         run: ResolvedGlyphRun,
         factor: Double,
-        at time: Double,
+        at time: SampleTime,
         moves: [Point],
         pieceMove: PieceMove
     ) {

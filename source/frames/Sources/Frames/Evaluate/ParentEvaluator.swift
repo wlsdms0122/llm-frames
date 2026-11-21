@@ -7,7 +7,8 @@
 
 // The space a clip's coordinates are in: its parent's map to output pixels, composed down the parent chain. A parent
 // outside its window holds its values at the window's edge, and a storyline parent's map includes its transition
-// motion. Opacity and reveal take no part.
+// motion. Each parent's values are its own, read by its own switch under motion blur (FRAMES-29). Opacity and reveal
+// take no part.
 struct ParentEvaluator: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -22,7 +23,7 @@ struct ParentEvaluator: Sendable {
     // MARK: - Public
     func space(
         of clip: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> ClipSpace {
         let frame = sequence.format.frame
         var chain: [ResolvedClip] = []
@@ -42,12 +43,12 @@ struct ParentEvaluator: Sendable {
         }
 
         let parentSpace = chain.reversed().reduce(outer) { space, parent in
-            let held = TimeRange(start: parent.start, end: parent.end).held(time)
-            return ClipSpace(
-                frame: frame,
-                transform: clipEvaluator.childTransform(of: parent, in: space.drawing(parent, of: sequence), at: held),
-                clock: parent.clock
+            let transform = clipEvaluator.childTransform(
+                of: parent,
+                in: space.drawing(parent, of: sequence),
+                at: parent.valueTime(in: time.sample)
             )
+            return ClipSpace(frame: frame, transform: transform, clock: parent.clock)
         }
 
         return parentSpace.drawing(clip, of: sequence)
@@ -56,12 +57,14 @@ struct ParentEvaluator: Sendable {
     // MARK: - Private
     private func transform(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
-        let entry = sequence.storyline[index]
-        let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
+        let storyline = sequence.storyline
+        let entry = storyline[index]
+        let own = entry.spaceTransform(at: storyline.valueTime(ofEntry: index, in: time.sample))
+        let sample = transitionSampler.motion(of: index, in: storyline, at: time.sample)
         let motion = ItemPresentation(area: sequence.format.frame, opacity: 1, motion: sample.motion).transform
 
-        return entry.spaceTransform(at: time).concatenating(motion)
+        return own.concatenating(motion)
     }
 }

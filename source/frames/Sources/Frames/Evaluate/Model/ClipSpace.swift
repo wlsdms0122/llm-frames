@@ -11,8 +11,9 @@
 // and `clock` the parent's media clock, which a tracked clip follows. A tracked clip's keyframes are each brought back
 // to the track's frame through its track, so `area`, `point`, `points`, `masks` and `anchor` answer in the clip's
 // values' coordinates, and `tracked(by:at:)` is the space that maps those to output pixels: the track's motion, then
-// this space's map. `areas` gives the clip areas of the clip drawn in the space at the instant, and a space without it
-// takes a clip area as an empty rectangle at the origin.
+// this space's map. The track's motion is content, taken at T under motion blur (FRAMES-29). `areas` gives the clip
+// areas of the clip drawn in the space at the instant, and a space without it takes a clip area as an empty rectangle
+// at the origin.
 struct ClipSpace: Sendable {
     // MARK: - Property
     let frame: Rectangle
@@ -37,7 +38,7 @@ struct ClipSpace: Sendable {
     func area(
         of areas: FollowedValue<GeometryArea>,
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let keyframes = self.areas?.rectangles(of: areas, at: time) ?? areas.mapValues(\.fixed)
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -48,7 +49,7 @@ struct ClipSpace: Sendable {
     func point(
         of points: FollowedValue<GeometryPoint>,
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         let keyframes = sampled(points, at: time)
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -59,7 +60,7 @@ struct ClipSpace: Sendable {
     func points(
         of points: FollowedValue<[GeometryPoint]>,
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> [Point] {
         let keyframes = areas?.points(of: points, at: time) ?? points.mapValues { $0.map(\.fixed) }
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -70,7 +71,7 @@ struct ClipSpace: Sendable {
     func masks(
         of masks: [ResolvedMask],
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> [MaskSample] {
         let masks = areas.map { areas in masks.map { $0.taking(areas, at: time) } } ?? masks
         guard let track, let clock else { return masks.map { $0.sampled(at: time) } }
@@ -82,7 +83,7 @@ struct ClipSpace: Sendable {
     func anchor(
         of box: ResolvedBox,
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         let anchors = sampled(box.position, at: time)
         guard let track, let clock else { return anchors.value(at: time) }
@@ -100,13 +101,14 @@ struct ClipSpace: Sendable {
 
     func tracked(
         by track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> ClipSpace {
         guard let track, let clock else { return self }
 
+        let tracked = track.transform(on: clock, at: time)
         return ClipSpace(
             frame: frame,
-            transform: track.transform(on: clock, at: time).concatenating(transform),
+            transform: tracked.concatenating(transform),
             clock: clock,
             areas: areas
         )
@@ -115,7 +117,7 @@ struct ClipSpace: Sendable {
     // MARK: - Private
     private func sampled(
         _ points: FollowedValue<GeometryPoint>,
-        at time: Double
+        at time: SampleTime
     ) -> FollowedValue<Point> {
         areas?.points(of: points, at: time) ?? points.mapValues(\.fixed)
     }

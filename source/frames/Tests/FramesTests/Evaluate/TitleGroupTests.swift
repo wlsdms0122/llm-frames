@@ -29,8 +29,8 @@ struct TitleGroupTests {
         let whole = animated(clip, entrance: fade, stagger: nil)
 
         // When
-        let items = sut.items(of: byWord, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: 1)
-        let single = try #require(sut.items(of: whole, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: 1).first)
+        let items = sut.items(of: byWord, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: SampleTime(1))
+        let single = try #require(sut.items(of: whole, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 7, at: SampleTime(1)).first)
 
         // Then
         let group = try #require(items.first)
@@ -73,8 +73,8 @@ struct TitleGroupTests {
         // Then
         // Each unit draws its glyphs grown by 2 for half its stroke, which is its box: "ab" from 0 to 40 and "cd" from
         // 50 to 90, each from -32 to 8 about the baseline at 32.
-        let first = text.unitBox(of: 0, at: 0.25)
-        let second = text.unitBox(of: 1, at: 0.25)
+        let first = text.unitBox(of: 0, at: SampleTime(0.25))
+        let second = text.unitBox(of: 1, at: SampleTime(0.25))
         #expect(first == Rectangle(x: -2, y: -2, width: 44, height: 44))
         #expect(second == Rectangle(x: 48, y: -2, width: 44, height: 44))
         #expect(list.items[0].reveal == nil)
@@ -102,7 +102,7 @@ struct TitleGroupTests {
         // "ab" has entered, and "cd" is half way. "cd", from 50 to 90 and from 0 to 40, draws 2 past it for its stroke,
         // and its part of the piece cut to its band, with the highlight's padding of 4 above and below and 10 past the
         // piece's end at 90. Its box holds both.
-        let second = text.unitBox(of: 1, at: 0.75)
+        let second = text.unitBox(of: 1, at: SampleTime(0.75))
         let carried = try #require(highlight(of: list.items[2]))
         let band = try #require(carried.bands?.first)
         let piece = try #require(carried.rects.first)
@@ -186,7 +186,7 @@ struct TitleGroupTests {
             trackMatte: nil,
             compositing: .encoded,
             seed: 0,
-            at: 0.25
+            at: SampleTime(0.25)
         ).first)
 
         // When
@@ -203,11 +203,11 @@ struct TitleGroupTests {
         #expect(highlight(of: list.items[1]) == DrawnHighlight(rects: [piece], radius: 0, color: red, bands: [0...50]))
         #expect(highlight(of: list.items[2]) == DrawnHighlight(rects: [piece], radius: 0, color: red, bands: [50...90]))
         #expect(list.items[1].transform.apply(to: origin) == title.transform.apply(to: Point(
-            x: text.unitBox(of: 0, at: 0.25).width / 2,
+            x: text.unitBox(of: 0, at: SampleTime(0.25)).width / 2,
             y: 0
         )))
         #expect(list.items[2].transform.apply(to: origin) == title.transform.apply(to: Point(
-            x: text.unitBox(of: 1, at: 0.25).width,
+            x: text.unitBox(of: 1, at: SampleTime(0.25)).width,
             y: 0
         )))
     }
@@ -227,7 +227,7 @@ struct TitleGroupTests {
             trackMatte: nil,
             compositing: .encoded,
             seed: 0,
-            at: 1
+            at: SampleTime(1)
         ).first)
         let pieces = glyphs(of: whole)?.runs.compactMap { $0.highlight?.rects.first } ?? []
 
@@ -257,7 +257,7 @@ struct TitleGroupTests {
             self.animated(clip, entrance: self.fade, loop: AnimationSpan(length: 1, span: half), stagger: stagger)
         }
         let title = try #require(
-            sut.items(of: animation(nil), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1).first
+            sut.items(of: animation(nil), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1)).first
         )
 
         // When
@@ -268,6 +268,38 @@ struct TitleGroupTests {
         let reveal = try #require(title.reveal)
         #expect(reveal == Rectangle(x: -2, y: -2, width: 47, height: 44))
         #expect(list.items.map(\.reveal) == Array(repeating: reveal, count: 9))
+    }
+
+    @Test("in a sample of a frame with motion blur, a loop whose wipe is complete writes the title's whole box on the background and every unit, which holds what each unit draws")
+    func writesCompleteLoopOnUnits() throws {
+        // Given
+        let whole = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 1]), SpanKey(t: 1, values: [.reveal: 1])])
+        let grow = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.2]), SpanKey(t: 1, values: [.scale: 1])])
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let animated = animated(
+            clip,
+            entrance: AnimationSpan(length: 0.5, span: grow),
+            loop: AnimationSpan(length: 1, span: whole),
+            stagger: 0.5
+        )
+        let time = SampleTime(instant: 0.25, frameTime: 0.25, sample: SampleInstant(instant: 0.25, frameTime: 0.25, reads: MotionBlurReads()))
+
+        // When
+        let item = try #require(
+            sut.items(of: animated, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time).first
+        )
+
+        // Then
+        guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
+            Issue.record("the title draws a group")
+            return
+        }
+        let background = try #require(list.items.first?.reveal)
+        let units = list.items.dropFirst().compactMap { unit in
+            glyphs(of: unit).map { (reveal: unit.reveal, drawn: $0.drawnBounds(carriedBy: unit.transform)) }
+        }
+        #expect(units.count == 8)
+        #expect(units.allSatisfy { $0.reveal == background && background.contains($0.drawn) })
     }
 
     @Test("a title's group reads back as written, each unit's item with its layer and its bands")
@@ -282,7 +314,7 @@ struct TitleGroupTests {
             background: Color(written: "#000000"),
             colorSpace: .srgb,
             seed: 0,
-            items: sut.items(of: animated(clip, entrance: fade, stagger: 0.1), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 0.2)
+            items: sut.items(of: animated(clip, entrance: fade, stagger: 0.1), in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.2))
         )
 
         // When
@@ -302,7 +334,7 @@ struct TitleGroupTests {
             """#)
         let flattener = DisplayListFlattener()
         let flattened = { (clip: ResolvedClip) in
-            flattener.items(of: DisplayList(
+            try flattener.items(of: DisplayList(
                 size: Size(width: 1920, height: 1080),
                 background: Color(written: "#00000000"),
                 seed: 0,
@@ -313,7 +345,7 @@ struct TitleGroupTests {
                     trackMatte: nil,
                     compositing: .encoded,
                     seed: 0,
-                    at: 1
+                    at: SampleTime(1)
                 )
             ))
         }
@@ -323,8 +355,8 @@ struct TitleGroupTests {
         let word = Point(x: 400 + 15, y: 225)
 
         // When
-        let plainItems = flattened(plain)
-        let boxedItems = flattened(boxed)
+        let plainItems = try flattened(plain)
+        let boxedItems = try flattened(boxed)
 
         // Then
         #expect(plainItems.count == 8)
@@ -352,7 +384,7 @@ struct TitleGroupTests {
         at time: Double
     ) throws -> DisplayList {
         let item = try #require(
-            sut.items(of: clip, in: space ?? self.space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time).first
+            sut.items(of: clip, in: space ?? self.space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(time)).first
         )
         guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
             Issue.record("the title draws a group")

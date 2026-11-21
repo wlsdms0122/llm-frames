@@ -12,7 +12,7 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func presentation(at time: Double) -> ItemPresentation {
+    func presentation(at time: SampleTime) -> ItemPresentation {
         guard let box, let scale, let rotation else {
             let size = cornerPin?.size ?? Size(width: 0, height: 0)
             return ItemPresentation(

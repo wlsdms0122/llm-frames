@@ -111,6 +111,7 @@ A span is:
 - On a short clip the entrance runs first and the exit takes what time is left.
 - `{entrance, exit}` as a choice takes the entrance span from one preset and the exit span from another, each with its own arguments, and no loop. Both sides are written, and a side without a span is `"none"`.
 - An animation is applied over the clip's keyframes, about the same point: its scale and opacity multiply, and its x, y and rotation add. A preset's look is the same for every anchor point, made about that point.
+- Under motion blur the keyframes and each span are read at a sample's instant, each clamped to its own jumps, and then combine as here ([FRAMES-29](../FRAMES-29/SPEC.md#jumps)).
 
 ### By character, word or line
 

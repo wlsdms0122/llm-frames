@@ -131,7 +131,7 @@ struct TrackedCornerPinRenderTests {
 
     // The corners of the area clip's rect carried by its item's transform to output pixels.
     private func areaCorners(in list: DisplayList) throws -> [Point] {
-        let item = try #require(list.items.first { $0.origin?.id == "area" })
+        let item = try #require(list.drawnItems.first { $0.origin?.id == "area" })
         guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else {
             Issue.record("the area clip is not a rect")
             return []
@@ -142,7 +142,7 @@ struct TrackedCornerPinRenderTests {
 
     // The pinned clip's corner pin carried by its group's transform to output pixels.
     private func pinnedCorners(in list: DisplayList) throws -> [Point] {
-        let item = try #require(list.items.first { $0.origin?.id == "pinned" })
+        let item = try #require(list.drawnItems.first { $0.origin?.id == "pinned" })
         guard case let .picture(picture) = item.content else {
             Issue.record("the pinned clip's group is not a picture")
             return []

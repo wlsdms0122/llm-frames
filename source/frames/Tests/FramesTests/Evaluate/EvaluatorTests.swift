@@ -628,7 +628,7 @@ struct EvaluatorTests {
         let transform = item.transform
         #expect([transform.a, transform.b, transform.c, transform.d] == [1, 0, 0, 1])
         #expect(abs(transform.tx - position.x) < 1e-9 && abs(transform.ty - position.y) < 1e-9)
-        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: time)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: SampleTime(time))))
     }
 
     @Test(
@@ -660,7 +660,7 @@ struct EvaluatorTests {
         // The anchor point (160, 75) in the picture follows the parent's whole map.
         let item = try #require(list.items.last)
         let transform = item.transform
-        let parent = ParentEvaluator(sequence: sequence).space(of: title, at: 1).transform
+        let parent = ParentEvaluator(sequence: sequence).space(of: title, at: SampleTime(1)).transform
         #expect(zip([transform.a, transform.b, transform.c, transform.d], linear).allSatisfy { abs($0 - $1) < 1e-9 })
         #expect(isClose(transform.apply(to: Point(x: 30, y: 10)), parent.apply(to: Point(x: 160, y: 75))))
     }
@@ -696,7 +696,7 @@ struct EvaluatorTests {
             Issue.record("the child is a stroked path")
             return
         }
-        let parent = ParentEvaluator(sequence: sequence).space(of: child, at: 1).transform
+        let parent = ParentEvaluator(sequence: sequence).space(of: child, at: SampleTime(1)).transform
         let transform = item.transform
         #expect(zip(transform.matrix, parent.matrix).allSatisfy { abs($0 - $1) < 1e-9 })
         // The images of the x and y axes are not at right angles.
@@ -733,7 +733,7 @@ struct EvaluatorTests {
         let item = try #require(list.items.last)
         #expect(paths.isEmpty)
         #expect([item.transform.a, item.transform.b, item.transform.c, item.transform.d] == [1, 0, 0, 1])
-        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: 1)))
+        #expect(item.content == .glyphs(GlyphsItem(text: text, factor: 1, at: SampleTime(1))))
     }
 
     @Test("a tracked box on a scrolling picture is where each keyframe puts it at its own time, carried by the scroll")

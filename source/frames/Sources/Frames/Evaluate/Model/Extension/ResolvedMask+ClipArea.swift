@@ -13,7 +13,7 @@ extension ResolvedMask {
     // MARK: - Public
     func taking(
         _ areas: ClipAreaSampler,
-        at time: Double
+        at time: SampleTime
     ) -> ResolvedMask {
         let area = { (area: GeometryArea) in GeometryArea.rectangle(areas.rectangle(of: area, at: time)) }
         let point = { (point: GeometryPoint) in GeometryPoint.point(areas.point(of: point, at: time)) }

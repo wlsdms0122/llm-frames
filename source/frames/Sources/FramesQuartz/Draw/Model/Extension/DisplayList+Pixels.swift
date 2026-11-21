@@ -9,9 +9,18 @@ import Frames
 
 extension DisplayList {
     // MARK: - Property
-    // Whether the list draws a picture of pixels, a media frame, itself, in a nested list or in a track matte's source.
+    // Whether the list draws a picture of pixels, a media frame, itself, in a nested list or in a track matte's source,
+    // in any of its sample lists for a list with samples.
     var holdsPixels: Bool {
-        items.contains { item in
+        let items = switch content {
+        case let .items(items):
+            items
+
+        case let .samples(samples):
+            samples.flatMap { $0 }
+        }
+
+        return items.contains { item in
             if case let .picture(picture) = item.content {
                 switch picture.source {
                 case .media:

@@ -51,7 +51,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: resolved)
 
         // When
-        let space = sut.space(of: child, at: time)
+        let space = sut.space(of: child, at: SampleTime(time))
 
         // Then
         #expect(isClose(space.transform, transform))
@@ -75,7 +75,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [child]))
 
         // When
-        let space = sut.space(of: child, at: time)
+        let space = sut.space(of: child, at: SampleTime(time))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(translation: Point(x: x, y: 0))))
@@ -104,7 +104,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
 
         // When
-        let space = sut.space(of: child, at: 1)
+        let space = sut.space(of: child, at: SampleTime(1))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(a: 0.2, b: 0, c: 0, d: 0.2, tx: 10, ty: 20)))
@@ -119,7 +119,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
 
         // When
-        let space = sut.space(of: child, at: 1)
+        let space = sut.space(of: child, at: SampleTime(1))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 120)))
@@ -154,7 +154,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
 
         // When
-        let space = sut.space(of: child, at: 1)
+        let space = sut.space(of: child, at: SampleTime(1))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0)))
@@ -178,7 +178,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [bar, label, child]))
 
         // When
-        let space = sut.space(of: child, at: 1)
+        let space = sut.space(of: child, at: SampleTime(1))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(translation: Point(x: 0, y: 60))))
@@ -234,7 +234,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: SampleTime(time)), picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(time))
 
         // Then
         let item = try #require(items.first)
@@ -282,10 +282,10 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [card, box]))
 
         // When
-        let space = sut.space(of: box, at: 1.5)
+        let space = sut.space(of: box, at: SampleTime(1.5))
 
         // Then
-        let corner = space.tracked(by: box.parentTrack, at: 1.5).transform.apply(to: Point(x: 0, y: 0))
+        let corner = space.tracked(by: box.parentTrack, at: SampleTime(1.5)).transform.apply(to: Point(x: 0, y: 0))
         // The hold is a time resolution before the edge, 2e-5 px short of (30, 20) on this move.
         #expect(space.clock == card.clock)
         #expect(abs(corner.x - 36) < 1e-4)
@@ -328,7 +328,7 @@ struct ParentEvaluatorTests {
         let sut = ClipEvaluator()
 
         // When
-        let items = sut.items(of: label, in: parents.space(of: label, at: time), picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time)
+        let items = sut.items(of: label, in: parents.space(of: label, at: SampleTime(time)), picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(time))
 
         // Then
         let item = try #require(items.first)
@@ -367,7 +367,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
 
         // When
-        let space = sut.space(of: child, at: time)
+        let space = sut.space(of: child, at: SampleTime(time))
 
         // Then
         #expect(isClose(space.transform, AffineTransform(translation: Point(x: x, y: 0))))
@@ -380,7 +380,7 @@ struct ParentEvaluatorTests {
         let sut = ParentEvaluator(sequence: sequence(clips: [child]))
 
         // When
-        let space = sut.space(of: child, at: 1)
+        let space = sut.space(of: child, at: SampleTime(1))
 
         // Then
         #expect(space.transform == .identity)

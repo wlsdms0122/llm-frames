@@ -16,6 +16,8 @@ enum NumberDomain: Equatable, Sendable {
     // Greater than the first bound and less than the second, at every sample too: a value interpolated geometrically
     // has no 0.
     case between(Double, Double)
+    // Greater than the first bound and at most the second.
+    case leftOpen(Double, Double)
 
     // MARK: - Property
     // A positive length or size may be 0 where it is sampled.
@@ -48,6 +50,9 @@ enum NumberDomain: Equatable, Sendable {
 
         case let .between(lower, upper):
             "above \(Self.written(lower)) and below \(Self.written(upper))"
+
+        case let .leftOpen(lower, upper):
+            "above \(Self.written(lower)) and at most \(Self.written(upper))"
         }
     }
 
@@ -69,6 +74,9 @@ enum NumberDomain: Equatable, Sendable {
 
         case let .between(lower, upper):
             lower < number && number < upper
+
+        case let .leftOpen(lower, upper):
+            lower < number && number <= upper
         }
     }
 
@@ -108,6 +116,9 @@ enum NumberDomain: Equatable, Sendable {
 
         case let .between(lower, upper):
             min(max(number, lower.nextUp), upper.nextDown)
+
+        case let .leftOpen(lower, upper):
+            min(max(number, lower.nextUp), upper)
         }
     }
 

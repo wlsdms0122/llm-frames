@@ -15,8 +15,8 @@
 // `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed by its position and anchor,
 // and `opacity`, `scale` and `rotation` are keyframes in sequence time. A clip with a corner pin has `cornerPin`, its
 // box's size and the four points in output pixels its corners go to, and no `box`, `scale` or `rotation` (FRAMES-27).
-// `blend` is how its storyline picture is drawn over what lies below, and `radius`, `border` and `shadow` how its box
-// is drawn. A solid keeps their plain values.
+// `blend` is how its storyline picture is drawn over what lies below, `isMotionBlurred` its `motionBlur`, and `radius`,
+// `border` and `shadow` how its box is drawn. A solid keeps their plain values.
 struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -42,6 +42,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let scale: [Keyframe<Scale>]?
     let rotation: [Keyframe<Double>]?
     let blend: String
+    let isMotionBlurred: Bool
     let radius: TimedValue
     let border: TimedValue
     let shadow: TimedValue
@@ -81,6 +82,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         scale: [Keyframe<Scale>]?,
         rotation: [Keyframe<Double>]?,
         blend: String,
+        isMotionBlurred: Bool = false,
         radius: TimedValue,
         border: TimedValue,
         shadow: TimedValue,
@@ -109,6 +111,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         self.scale = scale
         self.rotation = rotation
         self.blend = blend
+        self.isMotionBlurred = isMotionBlurred
         self.radius = radius
         self.border = border
         self.shadow = shadow

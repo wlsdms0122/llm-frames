@@ -485,7 +485,7 @@ struct ClipAreaEndToEndTests {
         }
 
         let anchor = box.position.values[0].fixed
-        let drawn = text.box(at: time)
+        let drawn = text.box(at: SampleTime(time))
         return Rectangle(
             x: anchor.x - box.anchor.x + drawn.x,
             y: anchor.y - box.anchor.y + drawn.y,

@@ -15,7 +15,7 @@ enum ResolvedMaskGeometry: Equatable, Sendable {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func sampled(at time: Double) -> PathGeometry {
+    func sampled(at time: SampleTime) -> PathGeometry {
         switch self {
         case let .rect(rectangle, radius):
             .rect(rectangle.sampled(at: time), radius: max(radius.value(at: time), 0))

@@ -234,7 +234,7 @@ struct ShippedTransitionPresetTests {
         of preset: TransitionPreset,
         at progress: Double
     ) -> Double {
-        preset.cover.map { sampler.coverOpacity(of: $0.span, at: progress) } ?? 0
+        preset.cover.map { sampler.coverOpacity(of: $0.span, at: SampleProgress(progress)) } ?? 0
     }
 
     // What a storyline picture's outer item takes from a span at a progress: its transform about the centre of the
@@ -247,7 +247,7 @@ struct ShippedTransitionPresetTests {
             MotionSample(motion: SpanEvaluator().motion(of: span, at: progress), revealFrom: span.revealFrom)
         } ?? .none
         let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
-        let reveal = sample.reveal.rectangle(wiping: frame, from: sample.revealFrom)
+        let reveal = sample.revealRectangle(wiping: frame)
 
         return (presentation.transform, presentation.opacity, reveal)
     }

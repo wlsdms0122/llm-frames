@@ -13,7 +13,8 @@
 // clip's every crop conformed to its box. `mask` is the clip's masks in its own coordinate space, nil for none, a
 // keyframe's where it lies at its own time when tracked, and `trackMatte` its track matte, nil for none. Keyframes are
 // in sequence time. `scale` and `rotation` belong to anything but an adjustment, whose entry has no such key, and are
-// nil for an adjustment and for a clip with a corner pin, whose entry writes them as null.
+// nil for an adjustment and for a clip with a corner pin, whose entry writes them as null. `isMotionBlurred` is its
+// `motionBlur`.
 struct ResolvedClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -34,6 +35,7 @@ struct ResolvedClip: Equatable, Sendable {
     let scale: [Keyframe<Scale>]?
     let rotation: [Keyframe<Double>]?
     let blend: String
+    let isMotionBlurred: Bool
     let animation: ResolvedAnimation
     // The clip's own coordinate space, which its mask is in and which it gives its children.
     var space: OwnSpace {
@@ -67,6 +69,7 @@ struct ResolvedClip: Equatable, Sendable {
         scale: [Keyframe<Scale>]?,
         rotation: [Keyframe<Double>]?,
         blend: String,
+        isMotionBlurred: Bool = false,
         animation: ResolvedAnimation
     ) {
         self.place = place
@@ -87,6 +90,7 @@ struct ResolvedClip: Equatable, Sendable {
         self.scale = scale
         self.rotation = rotation
         self.blend = blend
+        self.isMotionBlurred = isMotionBlurred
         self.animation = animation
     }
 

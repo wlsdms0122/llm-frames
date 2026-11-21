@@ -302,6 +302,11 @@ struct SequencePlanner: Sendable {
             colorSpace: colorSpace,
             peak: colorSpace == .rec2100PQ ? format.peak ?? colorSpace.peakLuminance : nil,
             compositing: format.compositing ?? .encoded,
+            shutter: Shutter(
+                angle: format.shutterAngle ?? Shutter.default.angle,
+                phase: format.shutterPhase ?? Shutter.default.phase,
+                samplesPerFrame: format.samplesPerFrame ?? Shutter.default.samplesPerFrame
+            ),
             margin: margin
         )
     }

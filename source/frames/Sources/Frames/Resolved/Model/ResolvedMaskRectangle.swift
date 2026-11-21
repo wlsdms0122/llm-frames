@@ -16,7 +16,7 @@ enum ResolvedMaskRectangle: Equatable, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // A size sampled below 0 by an ease that overshoots is 0.
-    func sampled(at time: Double) -> Rectangle {
+    func sampled(at time: SampleTime) -> Rectangle {
         switch self {
         case let .area(area):
             let rectangle = area.mapValues(\.fixed).value(at: time)

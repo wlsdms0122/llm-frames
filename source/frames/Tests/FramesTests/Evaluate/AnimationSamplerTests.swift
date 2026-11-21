@@ -140,4 +140,212 @@ struct AnimationSamplerTests {
         #expect(sample == .none)
         #expect(sample.reveal == .full)
     }
+
+    @Test("an instant past the window's end from T stands at the last pose, and one before its start at the first")
+    func holdsWindowEnds() {
+        // Given
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 6)
+
+        // When
+        let pastEnd = sut.sample(of: animation, in: window, at: 6.01, onSideOf: 5.99)
+        let beforeStart = sut.sample(of: animation, in: window, at: 1.99, onSideOf: 2)
+
+        // Then
+        #expect(pastEnd == sut.sample(of: animation, in: window, at: window.held(6.01)))
+        #expect(pastEnd != .none)
+        #expect(beforeStart == sut.sample(of: animation, in: window, at: 2))
+    }
+
+    @Test("an instant of a frame whose T lies outside the window takes no motion")
+    func addsNoneOutsideWindow() {
+        // Given
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+
+        // When
+        let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: 2.01, onSideOf: 1.99)
+
+        // Then
+        #expect(sample == .none)
+    }
+
+    @Test("a seamless loop is read through its seam as it is, and so is the handover from the entrance to the loop")
+    func readsLoopSeamAndHandover() {
+        // Given
+        let spin = AnimationSpan(length: 1, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.rotation: 0]),
+            SpanKey(t: 1, values: [.rotation: 360])
+        ]))
+        let animation = ResolvedAnimation(entrance: entrance, loop: spin, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 9)
+
+        // When
+        let throughSeam = sut.sample(of: animation, in: window, at: 3.51, onSideOf: 3.49)
+        let throughHandover = sut.sample(of: animation, in: window, at: 2.51, onSideOf: 2.49)
+
+        // Then
+        #expect(abs(throughSeam.motion.value(of: .rotation) - 3.6) < 1e-9)
+        #expect(abs(throughHandover.motion.value(of: .rotation) - 3.6) < 1e-9)
+        #expect(throughHandover.motion.value(of: .opacity) == 1)
+    }
+
+    @Test("an entrance eased by step is clamped at its end, the jump the editor wrote, to T's side")
+    func clampsStepEntrance() {
+        // Given
+        let step = AnimationSpan(length: 0.5, span: Span(ease: .step, keys: [
+            SpanKey(t: 0, values: [.opacity: 0]),
+            SpanKey(t: 1, values: [.opacity: 1])
+        ]))
+        let animation = ResolvedAnimation(entrance: step, loop: loop, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 6)
+
+        // When
+        let fromBefore = sut.sample(of: animation, in: window, at: 2.51, onSideOf: 2.49)
+        let fromAfter = sut.sample(of: animation, in: window, at: 2.49, onSideOf: 2.51)
+
+        // Then
+        #expect(fromBefore.motion.value(of: .opacity) == 0)
+        #expect(fromAfter == sut.sample(of: animation, in: window, at: 2.5))
+    }
+
+    @Test("across a loop seam each property is clamped by its own jumps: a double key at the seam holds one, and the other reads on")
+    func clampsEachPropertyAcrossSeam() {
+        // Given
+        let spin = AnimationSpan(length: 1, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.rotation: 0, .opacity: 1]),
+            SpanKey(t: 1, values: [.rotation: 360, .opacity: 0.5]),
+            SpanKey(t: 1, values: [.opacity: 1])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: spin, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 9)
+
+        // When
+        let sample = sut.sample(of: animation, in: window, at: 3.01, onSideOf: 2.99)
+
+        // Then
+        #expect(sample.motion.value(of: .opacity) == 0.5)
+        #expect(abs(sample.motion.value(of: .rotation) - 3.6) < 1e-9)
+    }
+
+    @Test("a double key of the instant's pass just after a loop seam clamps an instant past it to the first key")
+    func clampsDoubleKeyAfterSeam() {
+        // Given
+        let blink = AnimationSpan(length: 0.1, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.opacity: 0]),
+            SpanKey(t: 0.1, values: [.opacity: 0.2]),
+            SpanKey(t: 0.1, values: [.opacity: 0.8]),
+            SpanKey(t: 1, values: [.opacity: 1])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: blink, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 9)
+
+        // When
+        let pastJump = sut.sample(of: animation, in: window, at: 2.515, onSideOf: 2.495)
+        let beforeJump = sut.sample(of: animation, in: window, at: 2.505, onSideOf: 2.495)
+
+        // Then
+        #expect(pastJump.motion.value(of: .opacity) == 0.2)
+        #expect(abs(beforeJump.motion.value(of: .opacity) - 0.1) < 1e-9)
+    }
+
+    @Test("a loop eased by step ends at each seam, so an instant across its end into the exit takes T's period's start value, and one back from the exit the exit's start")
+    func clampsStepLoopAtSeam() {
+        // Given
+        let hold = AnimationSpan(length: 0.4, span: Span(ease: .step, keys: [
+            SpanKey(t: 0, values: [.scale: 3]),
+            SpanKey(t: 1, values: [.scale: 4])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: hold, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 3.3)
+
+        // When
+        let throughSeam = sut.sample(of: animation, in: window, at: 2.41, onSideOf: 2.39)
+        let intoExit = sut.sample(of: animation, in: window, at: 2.81, onSideOf: 2.79)
+        let fromExit = sut.sample(of: animation, in: window, at: 2.79, onSideOf: 2.81)
+
+        // Then
+        #expect(throughSeam.motion.value(of: .scale) == 3)
+        #expect(intoExit.motion.value(of: .scale) == 3)
+        #expect(intoExit.motion.value(of: .opacity) == 1)
+        #expect(fromExit.motion.value(of: .opacity) == 1)
+        #expect(fromExit.motion.value(of: .scale) == 1)
+    }
+
+    @Test(
+        "a double key of a loop period that lies whole between T and the instant clamps the instant, forward to the first key and back to the second",
+        arguments: [(2.008, 2.022, 0.6, 72.0), (2.022, 2.008, 0.4, 288.0)]
+    )
+    func clampsDoubleKeyOfPassBetween(frameTime: Double, time: Double, opacity: Double, rotation: Double) {
+        // Given
+        let flicker = AnimationSpan(length: 0.01, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.opacity: 1, .rotation: 0]),
+            SpanKey(t: 0.5, values: [.opacity: 0.6]),
+            SpanKey(t: 0.5, values: [.opacity: 0.4]),
+            SpanKey(t: 1, values: [.opacity: 1, .rotation: 360])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: flicker, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 9)
+
+        // When
+        let sample = sut.sample(of: animation, in: window, at: time, onSideOf: frameTime)
+
+        // Then
+        #expect(abs(sample.motion.value(of: .opacity) - opacity) < 1e-9)
+        #expect(abs(sample.motion.value(of: .rotation) - rotation) < 1e-6)
+    }
+
+    @Test("a loop period the exit takes over before its end has no step end on the way, so an instant in the exit reads it as it is")
+    func readsCutPeriodIntoExit() {
+        // Given
+        let hold = AnimationSpan(length: 0.4, span: Span(ease: .step, keys: [
+            SpanKey(t: 0, values: [.scale: 3]),
+            SpanKey(t: 1, values: [.scale: 4])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: hold, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 3.2)
+
+        // When
+        let sample = sut.sample(of: animation, in: window, at: 2.81, onSideOf: 2.69)
+
+        // Then
+        #expect(sample.motion.value(of: .scale) == 1)
+        #expect(abs(sample.motion.value(of: .opacity) - 0.78) < 1e-9)
+    }
+
+    @Test(
+        "in a sample of a frame with motion blur, an animation with a span that writes reveal sets the reveal, whichever span plays",
+        arguments: [(2.25, true), (4.0, true), (5.75, true)]
+    )
+    func setsRevealInSample(time: Double, isRevealSet: Bool) {
+        // Given
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+        let sampled = SampleTime(
+            instant: time,
+            frameTime: time,
+            sample: SampleInstant(instant: time, frameTime: time, reads: MotionBlurReads())
+        )
+
+        // When
+        let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: sampled)
+
+        // Then
+        #expect(sample.isRevealSet == isRevealSet)
+    }
+
+    @Test("an animation with no span that writes reveal sets none in a sample, and no animation sets one outside a sample")
+    func leavesRevealUnset() {
+        // Given
+        let unrevealed = ResolvedAnimation(entrance: nil, loop: loop, exit: exit, units: nil)
+        let revealed = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 6)
+        let sampled = SampleTime(instant: 4, frameTime: 4, sample: SampleInstant(instant: 4, frameTime: 4, reads: MotionBlurReads()))
+
+        // When
+        let inSample = sut.sample(of: unrevealed, in: window, at: sampled)
+        let outsideSample = sut.sample(of: revealed, in: window, at: SampleTime(2.25))
+
+        // Then
+        #expect(!inSample.isRevealSet)
+        #expect(!outsideSample.isRevealSet)
+    }
 }

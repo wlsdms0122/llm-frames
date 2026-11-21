@@ -249,6 +249,9 @@ struct KeyChecker: Sendable {
             if table.kind == DocumentKeyTable.format.kind {
                 try checkPeak(of: object, place: place)
             }
+            if table.kind == DocumentKeyTable.motionBlur.kind {
+                try checkShutter(object, place: place)
+            }
 
         case let .oneOf(types):
             try checkAlternatives(value, as: types, place: place, kind: kind, scope: &scope)
@@ -377,6 +380,29 @@ struct KeyChecker: Sendable {
                 kind: DocumentKeyTable.format.kind,
                 reason: "only a rec2100-pq sequence takes a peak, and this one's colorSpace is \(colorSpace)"
             )
+        }
+    }
+
+    // A shutter's samples are a whole number from 2 to 256, and its phase lies from minus the angle in effect, the
+    // written one or the default, to 0, so the exposure holds the frame's instant.
+    private func checkShutter(
+        _ shutter: JSONObject,
+        place: Place
+    ) throws {
+        let kind = DocumentKeyTable.motionBlur.kind
+        if let samples = shutter["samplesPerFrame"]?.numberValue, !Shutter.samples.contains(samples) {
+            throw ModelError.outsideDomain(
+                place: place.appending(key: "samplesPerFrame"),
+                kind: kind,
+                value: samples,
+                domain: Shutter.samples
+            )
+        }
+
+        let angle = shutter["shutterAngle"]?.numberValue ?? Shutter.default.angle
+        let phases = Shutter.phases(under: angle)
+        if let phase = shutter["shutterPhase"]?.numberValue, !phases.contains(phase) {
+            throw ModelError.outsideDomain(place: place.appending(key: "shutterPhase"), kind: kind, value: phase, domain: phases)
         }
     }
 
