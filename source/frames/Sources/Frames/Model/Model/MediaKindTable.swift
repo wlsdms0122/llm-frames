@@ -25,12 +25,10 @@ struct MediaKindTable: MediaKindProvider {
     }
 
     // MARK: - Public
-    func mediaKind(of reference: String) -> MediaKind? {
-        kinds[reference]
-    }
+    func mediaKind(of reference: String) -> ProbedKind? {
+        if let pageCount = pageCounts[reference] { return .pdf(pageCount: pageCount) }
 
-    func pageCount(of reference: String) -> Int? {
-        pageCounts[reference]
+        return kinds[reference].map(ProbedKind.media)
     }
 
     func hasTemplate(named name: String) -> Bool {

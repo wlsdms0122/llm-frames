@@ -233,9 +233,9 @@ package struct FrameExporter: Sendable {
         ofVideo path: String,
         range: FrameRange
     ) throws -> SampledFrames {
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw ExportError.missingMedia(path: path) }
-        guard probed.kind == .video, let size = probed.size else {
-            throw ExportError.notVideo(path: path, kind: probed.kind)
+        guard let medium = try mediaFacts.probedMedium(of: path) else { throw ExportError.missingMedia(path: path) }
+        guard case let .media(probed) = medium, probed.kind == .video, let size = probed.size else {
+            throw ExportError.notVideo(path: path, kind: medium.kind)
         }
 
         let times = try range.times(end: probed.duration, kind: "video")

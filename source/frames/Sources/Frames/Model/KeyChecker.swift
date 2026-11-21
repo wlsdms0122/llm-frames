@@ -864,21 +864,13 @@ struct KeyChecker: Sendable {
         place: Place,
         kind: String
     ) throws -> MediaKind {
-        if let pageCount = try pageCount(of: reference, place: place, kind: kind) {
-            return try pageKind(of: reference, page: nil, pageCount: pageCount, place: place, kind: kind)
-        }
+        switch try referencedKind(of: reference, place: place, kind: kind) {
+        case let .pdf(pageCount):
+            try pageKind(of: reference, page: nil, pageCount: pageCount, place: place, kind: kind)
 
-        let probed: MediaKind?
-        do {
-            probed = try mediaKinds.mediaKind(of: reference)
-        } catch let error as UnreadableMediaError {
-            throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
+        case let .media(probed):
+            probed
         }
-        guard let probed else {
-            throw ModelError.missingMedia(place: place, kind: kind, reference: reference)
-        }
-
-        return probed
     }
 
     // A page names its PDF, and media that is there but is not a PDF holds no page.
@@ -888,8 +880,7 @@ struct KeyChecker: Sendable {
         place: Place,
         kind: String
     ) throws -> MediaKind {
-        guard let pageCount = try pageCount(of: reference, place: place, kind: kind) else {
-            _ = try probedKind(of: reference, place: place, kind: kind)
+        guard case let .pdf(pageCount) = try referencedKind(of: reference, place: place, kind: kind) else {
             throw ModelError.pageOfNonPDF(place: place.appending(key: "page"), kind: kind, reference: reference)
         }
 
@@ -925,16 +916,21 @@ struct KeyChecker: Sendable {
         }
     }
 
-    private func pageCount(
+    // What `reference` names. Media that is not there stops, and so does media the probe cannot read, with why.
+    private func referencedKind(
         of reference: String,
         place: Place,
         kind: String
-    ) throws -> Int? {
+    ) throws -> ProbedKind {
+        let found: ProbedKind?
         do {
-            return try mediaKinds.pageCount(of: reference)
+            found = try mediaKinds.mediaKind(of: reference)
         } catch let error as UnreadableMediaError {
             throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
         }
+        guard let found else { throw ModelError.missingMedia(place: place, kind: kind, reference: reference) }
+
+        return found
     }
 
     private func checkDocument(

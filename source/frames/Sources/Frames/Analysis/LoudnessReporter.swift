@@ -59,9 +59,8 @@ package struct LoudnessReporter: Sendable {
         if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue {
             throw AnalysisError.noSound(file: path)
         }
-        guard try mediaFacts.pageCount(of: path) == nil else { throw AnalysisError.noSound(file: path) }
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
-        guard probed.sound != nil else { throw AnalysisError.noSound(file: path) }
+        guard let medium = try mediaFacts.probedMedium(of: path) else { throw AnalysisError.missingMedia(file: path) }
+        guard case let .media(probed) = medium, probed.sound != nil else { throw AnalysisError.noSound(file: path) }
 
         let mix = try SequenceMix(ofMedium: path, duration: probed.duration, mixer: mixer)
 

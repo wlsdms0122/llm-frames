@@ -45,25 +45,23 @@ struct MediaResolver: Sendable {
             guard let file = try library.mediaFile(named: reference) else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
-            // A PDF of one page named as a file is that page.
-            if let page = try pageFile(at: file, page: nil, place: place, kind: kind, reference: reference) {
-                return pagePlan(page, reference: reference)
-            }
-            guard
-                let probed = try probed(place: place, kind: kind, reference: reference, {
-                    try mediaFacts.probedMedia(of: file)
-                })
-            else {
-                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
-            }
+            switch try medium(at: file, place: place, kind: kind, reference: reference) {
+            case let .pdf(pageCount):
+                // A PDF of one page named as a file is that page.
+                return pagePlan(
+                    try pageFile(at: file, page: nil, of: pageCount, place: place, kind: kind, reference: reference),
+                    reference: reference
+                )
 
-            return MediaPlan(
-                kind: probed.kind,
-                reference: reference,
-                source: .file(MediaFile(path: file, probed: probed)),
-                duration: probed.duration,
-                hasSound: probed.hasSound
-            )
+            case let .media(probed):
+                return MediaPlan(
+                    kind: probed.kind,
+                    reference: reference,
+                    source: .file(MediaFile(path: file, probed: probed)),
+                    duration: probed.duration,
+                    hasSound: probed.hasSound
+                )
+            }
 
         case let .imageSequence(reference, fps):
             guard
@@ -92,14 +90,17 @@ struct MediaResolver: Sendable {
             )
 
         case let .page(reference, page):
-            guard
-                let file = try library.mediaFile(named: reference),
-                let page = try pageFile(at: file, page: page, place: place, kind: kind, reference: reference)
-            else {
+            guard let file = try library.mediaFile(named: reference) else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
+            guard case let .pdf(pageCount) = try medium(at: file, place: place, kind: kind, reference: reference) else {
+                throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: reference)
+            }
 
-            return pagePlan(page, reference: reference)
+            return pagePlan(
+                try pageFile(at: file, page: page, of: pageCount, place: place, kind: kind, reference: reference),
+                reference: reference
+            )
 
         case let .compound(document):
             return nested(try planner(library: library).plan(document, theme: theme), reference: nil)
@@ -171,7 +172,9 @@ struct MediaResolver: Sendable {
         kind: PlaceKind,
         colorSpace: ColorSpace?
     ) throws -> TransitionMedia {
-        if let file = try pageFile(at: path, page: page, place: place, kind: kind, reference: path) {
+        switch try medium(at: path, place: place, kind: kind, reference: path) {
+        case let .pdf(pageCount):
+            let file = try pageFile(at: path, page: page, of: pageCount, place: place, kind: kind, reference: path)
             if case let .colorSpace(refused) = file.pageRefusal(colorSpace: colorSpace, isToneMapped: nil),
                 let page = file.page
             {
@@ -185,24 +188,22 @@ struct MediaResolver: Sendable {
             }
 
             return TransitionMedia(file: file, duration: 0)
-        }
-        guard
-            let probed = try probed(place: place, kind: kind, reference: path, { try mediaFacts.probedMedia(of: path) })
-        else {
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: path)
-        }
-        try checkColor(
-            of: probed.colorSpace?.reading,
-            colorSpace: colorSpace,
-            place: place,
-            kind: kind,
-            reference: path
-        )
 
-        return TransitionMedia(
-            file: MediaFile(path: path, probed: probed),
-            duration: probed.duration
-        )
+        case let .media(probed):
+            guard page == nil else { throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: path) }
+            try checkColor(
+                of: probed.colorSpace?.reading,
+                colorSpace: colorSpace,
+                place: place,
+                kind: kind,
+                reference: path
+            )
+
+            return TransitionMedia(
+                file: MediaFile(path: path, probed: probed),
+                duration: probed.duration
+            )
+        }
     }
 
     // MARK: - Private
@@ -214,29 +215,36 @@ struct MediaResolver: Sendable {
         MediaPlan(kind: .page, reference: reference, source: .file(file), duration: 0)
     }
 
-    // Page `page` of the PDF at `path`, or where no page is written the one page of a PDF of one page, checked by the
-    // probe's decoder. A page's untagged colour is `srgb`, which a written `colorSpace` replaces, so every colour space
-    // converts it. Nil for a file that is no PDF and names no page. A PDF of more pages named as a file, a page above
-    // its count and a page of a file that is no PDF stop (FRAMES-3 PDF pages).
-    private func pageFile(
+    // What the file at `path` is. A file that is not there stops, and so does one the probe cannot read, with why.
+    private func medium(
         at path: String,
-        page: Int?,
         place: Place,
         kind: PlaceKind,
         reference: String
-    ) throws -> MediaFile? {
-        let pageCount = try probed(place: place, kind: kind, reference: reference, {
-            try mediaFacts.pageCount(of: path)
-        })
-        guard let pageCount else {
-            guard page != nil else { return nil }
-            guard try probed(place: place, kind: kind, reference: reference, { try mediaFacts.probedMedia(of: path) }) != nil
-            else {
-                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
-            }
-
-            throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: reference)
+    ) throws -> ProbedMedium {
+        guard
+            let medium = try probed(place: place, kind: kind, reference: reference, {
+                try mediaFacts.probedMedium(of: path)
+            })
+        else {
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
         }
+
+        return medium
+    }
+
+    // Page `page` of the PDF of `pageCount` pages at `path`, or where no page is written the one page of a PDF of one
+    // page, checked by the probe's decoder. A page's untagged colour is `srgb`, which a written `colorSpace` replaces,
+    // so every colour space converts it. A PDF of more pages named as a file and a page above its count stop (FRAMES-3
+    // PDF pages).
+    private func pageFile(
+        at path: String,
+        page: Int?,
+        of pageCount: Int,
+        place: Place,
+        kind: PlaceKind,
+        reference: String
+    ) throws -> MediaFile {
         let number: Int
         switch PageChoice(page: page, pageCount: pageCount) {
         case let .page(chosen):

@@ -169,27 +169,25 @@ struct ReferenceLibraryTests {
 
         // Then
         #expect(file == leak)
-        #expect(kind == .video)
+        #expect(kind == .media(.video))
         #expect(try sut.mediaFile(named: "leak.mov") == nil)
         #expect(try sut.mediaFile(named: "nopack/leak.mov") == nil)
     }
 
-    @Test("a PDF named <pack>/<file> has the page count its probe finds, and media that is not a PDF has none")
+    @Test("a PDF named <pack>/<file> is a PDF of the page count its probe finds, and media that is not there is nothing")
     func countsPackPages() throws {
         // Given
         let deck = directory.installed.appendingPathComponent("shorts/media/deck.pdf").path
         let sut = directory.library(mediaFacts: MediaFactTable(files: [:], pages: [deck: Array(repeating: Size(width: 612, height: 792), count: 3)]))
         try directory.write("%PDF-1.7", in: "shorts", at: "media/deck.pdf")
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/deck.pdf" } ] }"#, in: "shorts", at: "media/intro.json")
 
         // When
-        let count = try sut.pageCount(of: "shorts/deck.pdf")
+        let kind = try sut.mediaKind(of: "shorts/deck.pdf")
 
         // Then
-        #expect(count == 3)
-        #expect(try sut.pageCount(of: "shorts/intro.json") == nil)
-        #expect(try sut.pageCount(of: "shorts/leak.mov") == nil)
-        #expect(try sut.pageCount(of: "nopack/deck.pdf") == nil)
+        #expect(kind == .pdf(pageCount: 3))
+        #expect(try sut.mediaKind(of: "shorts/leak.mov") == nil)
+        #expect(try sut.mediaKind(of: "nopack/deck.pdf") == nil)
     }
 
     @Test("a .json document used as media is read from the pack's media, checked, and has the kind of document it is")
@@ -201,7 +199,7 @@ struct ReferenceLibraryTests {
         let kind = try sut.mediaKind(of: "shorts/intro.json")
 
         // Then
-        #expect(kind == .sequence)
+        #expect(kind == .media(.sequence))
     }
 
     @Test("a document used by file may not be a template, and its errors name it")

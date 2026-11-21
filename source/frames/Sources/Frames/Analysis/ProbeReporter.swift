@@ -42,12 +42,12 @@ package struct ProbeReporter: Sendable {
         case let .unnamed(pageCount):
             return ProbeReport(pageCount: pageCount)
 
-        case .notPDF:
-            break
-        }
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
+        case let .media(probed):
+            return ProbeReport(probed)
 
-        return ProbeReport(probed)
+        case nil:
+            throw AnalysisError.missingMedia(file: path)
+        }
     }
 
     // MARK: - Private

@@ -55,16 +55,27 @@ package struct OCRReporter: Sendable {
         page: Int?,
         selection: TimeSelection
     ) throws -> (MediaFile, Size, [Double]) {
-        if let (number, probed) = try mediaFacts.namedPage(page, of: path) {
+        switch try mediaFacts.commandPage(page, of: path) {
+        case let .page(number):
+            guard let probed = try mediaFacts.probedPage(number, of: path) else {
+                throw AnalysisError.missingMedia(file: path)
+            }
             guard selection == .start else { throw AnalysisError.timeOnStill(file: path) }
             let file = MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
 
             return (file, probed.size, [0])
-        }
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
-        guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
 
-        return (MediaFile(path: path, probed: probed), size, try times(selection, in: probed, file: path))
+        case let .unnamed(pageCount):
+            throw AnalysisError.unnamedPage(file: path, pageCount: pageCount)
+
+        case let .media(probed):
+            guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
+
+            return (MediaFile(path: path, probed: probed), size, try times(selection, in: probed, file: path))
+
+        case nil:
+            throw AnalysisError.missingMedia(file: path)
+        }
     }
 
     // A failure names the option that chose the frame, or the command when none did.

@@ -170,6 +170,14 @@ package final class AVFoundationDecoder: Sendable {
 
 extension AVFoundationDecoder: MediaFactProvider {
     // MARK: - Lifecycle
+    // A file is a PDF where it has a page count, and media of another kind by its facts otherwise.
+    package func probedMedium(of file: String) throws -> ProbedMedium? {
+        if let pageCount = try pageCount(of: file) { return .pdf(pageCount: pageCount) }
+
+        return try probedMedia(of: file).map(ProbedMedium.media)
+    }
+
+    // The facts of a file that is no PDF. A PDF is read here as no media.
     package func probedMedia(of file: String) throws -> ProbedMedia? {
         guard FileManager.default.fileExists(atPath: file) else { return nil }
         if let still = try StillReader(path: file) {
@@ -224,6 +232,8 @@ extension AVFoundationDecoder: MediaFactProvider {
         )
     }
 
+    // The page count of `file` where it is a PDF, nil where it is not there or is no PDF. A PDF that opens only with a
+    // password throws.
     package func pageCount(of file: String) throws -> Int? {
         guard FileManager.default.fileExists(atPath: file) else { return nil }
 

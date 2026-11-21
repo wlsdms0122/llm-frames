@@ -47,6 +47,7 @@ package struct Transcoder: Sendable {
         if let maximumSide = request.maximumSide, maximumSide <= 0 {
             throw TranscodeError.maximumSide(maximumSide)
         }
+        let media: ProbedMedia
         switch try facts.commandPage(request.page, of: request.input) {
         case let .page(number):
             try checkPaths(of: request)
@@ -63,10 +64,10 @@ package struct Transcoder: Sendable {
         case let .unnamed(pageCount):
             throw AnalysisError.unnamedPage(file: request.input, pageCount: pageCount)
 
-        case .notPDF:
-            break
-        }
-        guard let media = try facts.probedMedia(of: request.input) else {
+        case let .media(probed):
+            media = probed
+
+        case nil:
             throw TranscodeError.missingInput(path: request.input)
         }
         if request.scale != nil, media.kind != .audio { throw TranscodeError.scaleOfRaster(input: request.input) }

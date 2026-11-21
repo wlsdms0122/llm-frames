@@ -32,22 +32,17 @@ struct MediaFactTable: MediaFactProvider {
     }
 
     // MARK: - Public
-    func probedMedia(of file: String) throws -> ProbedMedia? {
+    func probedMedium(of file: String) throws -> ProbedMedium? {
         if let failure = failures[file] { throw failure }
+        if let sizes = pages[file] { return .pdf(pageCount: sizes.count) }
 
-        return files[file]
+        return files[file].map(ProbedMedium.media)
     }
 
     func probedImageSequence(at directory: String) throws -> ProbedImageSequence? {
         if let failure = failures[directory] { throw failure }
 
         return imageSequences[directory].map { ProbedImageSequence(files: $0, size: imageSequenceSize) }
-    }
-
-    func pageCount(of file: String) throws -> Int? {
-        if let failure = failures[file] { throw failure }
-
-        return pages[file]?.count
     }
 
     func probedPage(
