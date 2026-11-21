@@ -32,7 +32,7 @@ A parented clip's coordinates are in its parent's space: its `position`, its `ar
 | a rect or ellipse placed by `width` and `height` | its box, origin at the box's top left | its transform |
 | a shape placed by `area` or `points` | the space its geometry is written in: its parent's space, or output pixels when it has none | its transform |
 | an adjustment clip | the space its mask is written in: its parent's space, or output pixels when it has none | its transform |
-| a clip with a corner pin ([FRAMES-27](../FRAMES-27/SPEC.md)) | the space its corner pin is written in: its parent's space, or output pixels when it has none, and not its plane | its transform, which is its tracked motion alone, and for a storyline clip then its transition motion (below) |
+| a clip with a corner pin ([FRAMES-27](../FRAMES-27/SPEC.md)) | the space its corner pin is written in: its parent's space, or output pixels when it has none, and not its plane | its transform, which is its tracked motion alone, the identity for a storyline clip, which `track` stops on ([FRAMES-12](../FRAMES-12/SPEC.md#what-is-tracked)), and for a storyline clip then its transition motion (below) |
 
 The other rows are clips without a corner pin.
 
