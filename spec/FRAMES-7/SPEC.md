@@ -89,7 +89,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | adjustment clip | every clip with a picture's, `adjust` |
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
-| track data (a `track` written as an object holding `frames`, [FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `frames` |
+| track data (a `track` written as an object holding `frames`, [FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `time, frames` |
 | track data frame | `time, quad` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args`, `preset` left out to merge over the theme's default ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-22](../FRAMES-22/SPEC.md)) |
