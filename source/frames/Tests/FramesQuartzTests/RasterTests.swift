@@ -74,19 +74,19 @@ struct RasterTests {
         #expect(sut == nil)
     }
 
-    @Test("a list carried by an affine homography is drawn at its larger axis scale, the same along both axes")
+    @Test("a list carried larger by an affine homography is drawn at its larger axis scale, the same along both axes")
     func drawsCarriedListAtStretch() throws {
         // Given
-        let map = Homography(CGAffineTransform(a: 0.5, b: 0, c: 0, d: 0.75, tx: 10, ty: 20))
+        let map = Homography(CGAffineTransform(a: 1.5, b: 0, c: 0, d: 2, tx: 10, ty: 20))
 
         // When
         let sut = try #require(
-            Raster(showing: Self.size, through: map, within: CGRect(x: 0, y: 0, width: 200, height: 200), reading: 0)
+            Raster(showing: Self.size, through: map, within: CGRect(x: 0, y: 0, width: 400, height: 400), reading: 0)
         )
 
         // Then
-        #expect(sut.transform.a == 0.75 && sut.transform.d == 0.75)
-        #expect(sut.width == 75 && sut.height == 75)
+        #expect(sut.transform.a == 2 && sut.transform.d == 2)
+        #expect(sut.width == 200 && sut.height == 200)
     }
 
     @Test("a list carried towards a horizon holds at most twice the pixels of the area it lands in")
@@ -106,11 +106,26 @@ struct RasterTests {
         let sut = try #require(Raster(showing: Size(width: 1024, height: 1400), through: map, within: area, reading: 0))
 
         // Then
-        // Its near edge stretches rows about tenfold, so the scale is held below it.
+        // Its near edge stretches rows about tenfold, past the limit, so the list is drawn at its own size.
         let stretch = try #require(map.stretch(at: Point(x: 512, y: 1024)))
         #expect(stretch > 9)
-        #expect(sut.transform.a < stretch)
+        #expect(sut.transform.a == 1 && sut.transform.d == 1)
         #expect(sut.width * sut.height <= 2 * 1024 * 1024 + 2 * (sut.width + sut.height) + 4)
+    }
+
+    @Test("a list carried smaller by a homography is drawn at its own size, so its pictures keep their own pixels")
+    func drawsShrunkCarriedListAtOwnSize() throws {
+        // Given
+        let map = Homography(CGAffineTransform(a: 0.5, b: 0, c: 0, d: 0.4, tx: 10, ty: 20))
+
+        // When
+        let sut = try #require(
+            Raster(showing: Self.size, through: map, within: CGRect(x: 0, y: 0, width: 200, height: 200), reading: 0)
+        )
+
+        // Then
+        #expect(sut.transform == .identity)
+        #expect(sut.width == 100 && sut.height == 100)
     }
 
     @Test("a list carried wholly outside the area has no raster")

@@ -60,9 +60,12 @@ struct Raster: Equatable {
     // The raster of a list of `size` carried by `map`, a homography from the list's coordinates into the pixels of the
     // bitmap that shows it, of which only `area` is drawn, as a picture with a corner pin shows its whole list (FRAMES-20
     // Pictures). It covers the part of the list that lands in the area, grown by `margin`, how far its items read past
-    // what is drawn in the list's own pixels, at the largest factor by which the map stretches a length, in any
-    // direction, at the points it carries into the area. Those are sampled on a grid over that part and at its corners.
-    // Nil when none of the list lands in the area.
+    // what is drawn in the list's own pixels. It is drawn at the largest factor by which the map stretches a length, in
+    // any direction, at the points it carries into the area, sampled on a grid over that part and at its corners, where
+    // that factor is above 1 and the pixel limit allows the whole of it. Otherwise it is drawn at its own size, held to
+    // the pixel limit: that is the one scale at which the pictures it holds are drawn at their own pixels, so the
+    // warp's mean is taken of them and not of them resampled, and a scale between would not keep the list sharp
+    // either. Nil when none of the list lands in the area.
     init?(
         showing size: Size,
         through map: Homography,
@@ -105,7 +108,9 @@ struct Raster: Equatable {
             .intersection(list)
         guard !visible.isNull, !visible.isEmpty else { return nil }
 
-        self.init(size: size, visible: visible, scale: CGSize(width: stretch, height: stretch), area: area)
+        let isWithinLimit = visible.width * visible.height * stretch * stretch <= Self.pixelLimit * area.width * area.height
+        let scale = stretch > 1 && isWithinLimit ? stretch : 1
+        self.init(size: size, visible: visible, scale: CGSize(width: scale, height: scale), area: area)
     }
 
     // The raster of `visible`, the part of a list of `size` drawn, at `scale` pixels per unit of the list, held to the
