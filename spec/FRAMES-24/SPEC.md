@@ -23,6 +23,8 @@ These are the acceptance tests.
 - A mask cuts the region it names: the picture shows inside it (outside it when inverted), fades across its edge, the part from 16 to 84 percent about twice its feather wide, and several masks combine in order by their modes. A track matte shows its clip where the matte clip's alpha or luma is high (low when inverted), and the matte clip itself is not drawn.
 - Sounds that overlap are mixed, each at its volume and pan. A storyline transition crossfades on its preset's `audio` curve: `constant-power` with no dip in loudness at the middle for uncorrelated sounds, `constant-gain` with a 3 dB dip there.
 - Keyframes interpolate with their eases: each property reaches its keyframe's value at the keyframe's time, `ease-in-out` is symmetric about the middle of its span, and a spring with bounce 0 settles without passing its value, while a spring with bounce above 1 − √3/2 (about 0.134) passes it and comes back, and one with a lower bounce does not pass it ([FRAMES-4](../FRAMES-4/SPEC.md)).
+- A clip with motion blur that moves is smeared along its motion over the distance it moves while the shutter is open, in `samplesPerFrame` steps, and one that does not move over a frame's exposure draws as it does without motion blur ([FRAMES-29](../FRAMES-29/SPEC.md)).
+- Footage in a clip with motion blur shows one media frame on each output frame, never two, and a tracked clip with motion blur stays on its target as it does without it.
 - A path draws with its joins, caps and arrowheads: an arrowhead's tip lies on the end point, and a trimmed stroke draws only the part of the outline its `trim` names.
 - A content-fit still has the measured size: the bounding box of its pictures at time 0, plus its margin, rounded up to even numbers ([FRAMES-6](../FRAMES-6/SPEC.md)).
 - The output length matches the `timeline` duration to within one frame.
@@ -39,6 +41,8 @@ These are the acceptance tests.
 ## Interactions
 
 Each check restates a rule of [FRAMES-4](../FRAMES-4/SPEC.md), [FRAMES-6](../FRAMES-6/SPEC.md), [FRAMES-8](../FRAMES-8/SPEC.md), [FRAMES-9](../FRAMES-9/SPEC.md), [FRAMES-10](../FRAMES-10/SPEC.md), [FRAMES-11](../FRAMES-11/SPEC.md), [FRAMES-12](../FRAMES-12/SPEC.md), [FRAMES-13](../FRAMES-13/SPEC.md), [FRAMES-20](../FRAMES-20/SPEC.md) or [FRAMES-21](../FRAMES-21/SPEC.md), which holds it. The checks are made with the commands of [FRAMES-23](../FRAMES-23/SPEC.md).
+
+The checks of motion blur restate [FRAMES-29](../FRAMES-29/SPEC.md).
 
 ## Alternatives considered
 
