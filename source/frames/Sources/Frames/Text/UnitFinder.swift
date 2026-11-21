@@ -8,6 +8,9 @@
 // Splits laid out text into the units a title animated by unit moves, in reading order. Spaces belong to no unit, and
 // no unit crosses a line. Units that would share a glyph, as a ligature sets two clusters in one, are one unit.
 struct UnitFinder: Sendable {
+    // A character of a line: its cluster, its text, and its glyph box's span across the line.
+    typealias Cluster = (cluster: PlacedCluster, character: Character, span: ClosedRange<Double>)
+
     // MARK: - Property
     private let segmenter = WordSegmenter()
 
@@ -15,13 +18,13 @@ struct UnitFinder: Sendable {
     init() { }
 
     // MARK: - Public
-    // `lines` are the clusters of each line up to its last visible one, `extents` each line's span down the text's box
-    // from its baseline less its largest ascent to its baseline plus its largest descent, and `runs` the text's glyph
-    // runs, which hold the highlight and underline pieces. A run's glyphs may lie in no cluster, as a cluster split over
-    // two faces leaves its glyphs in the earlier face, so a run's line is its own.
+    // `lines` are the characters of each line, `extents` each line's span down the text's box from its baseline less
+    // its largest ascent to its baseline plus its largest descent, and `runs` the text's glyph runs, which hold the
+    // highlight and underline pieces. A run's glyphs may lie in no character, as the spaces that hang past a line's
+    // end do, so a run's line is its own.
     func units(
         by unit: TextUnit,
-        lines: [[PlacedCluster]],
+        lines: [[Cluster]],
         extents: [ClosedRange<Double>],
         runs: [GlyphRun]
     ) -> [PlacedUnit] {
@@ -33,9 +36,9 @@ struct UnitFinder: Sendable {
 
                 let extent = extents[line]
                 let box = Rectangle(
-                    x: first.start,
+                    x: first.span.lowerBound,
                     y: extent.lowerBound,
-                    width: last.end - first.start,
+                    width: last.span.upperBound - first.span.lowerBound,
                     height: extent.upperBound - extent.lowerBound
                 )
                 units.append((line, PlacedUnit(glyphs: glyphs(of: members), glyphBox: box, box: box, parts: [])))
@@ -87,7 +90,7 @@ struct UnitFinder: Sendable {
 
     // The clusters of each unit on a line, by their index, in order.
     private func groups(
-        of clusters: [PlacedCluster],
+        of clusters: [Cluster],
         by unit: TextUnit
     ) -> [[Int]] {
         let visible = clusters.indices.filter { !clusters[$0].character.isWhitespace }
@@ -106,7 +109,7 @@ struct UnitFinder: Sendable {
         return groups.reduce(into: [[Int]]()) { merged, group in
             guard
                 let first = group.first,
-                clusters[first].glyphs.count == 0,
+                clusters[first].cluster.glyphs.count == 0,
                 let previous = merged.last?.last,
                 previous == first - 1
             else {
@@ -121,7 +124,7 @@ struct UnitFinder: Sendable {
     // A piece between word boundaries that holds a letter, a digit or an ideograph is a word. A piece of punctuation
     // or symbols, with the pieces of them it touches, joins the word it touches, the one before it when it touches
     // two, and is a unit of its own when it touches none.
-    private func words(of clusters: [PlacedCluster]) -> [[Int]] {
+    private func words(of clusters: [Cluster]) -> [[Int]] {
         let characters = clusters.map(\.character)
         let segments = segmenter.segments(of: characters)
         let isSpace = { (segment: Range<Int>) in characters[segment].allSatisfy(\.isWhitespace) }
@@ -163,9 +166,9 @@ struct UnitFinder: Sendable {
     }
 
     // A unit's glyphs, each run of them a range.
-    private func glyphs(of clusters: [PlacedCluster]) -> [GlyphRange] {
+    private func glyphs(of clusters: [Cluster]) -> [GlyphRange] {
         clusters.reduce(into: [GlyphRange]()) { ranges, cluster in
-            let glyphs = cluster.glyphs
+            let glyphs = cluster.cluster.glyphs
             guard glyphs.count > 0 else { return }
 
             if let last = ranges.last, last.run == glyphs.run, last.first + last.count == glyphs.first {

@@ -5,27 +5,25 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A grapheme cluster as set on its line: its glyphs, its text, and its span across the line from the origin of its
-// first glyph to the end of the advance of its last. A cluster set inside the glyph of the one before it has no glyphs
-// of its own and that glyph's span.
+// A grapheme cluster as set on its line: its glyphs, its range of the title's text in Unicode scalars, and `advance`,
+// the sum of its glyphs' advances, which holds no tracking. Its glyph box starts at its first glyph's pen. A later
+// character of a group of glyphs has no glyph of its own: a range of count 0 after its group's glyphs, `advance` 0,
+// lying where its group's first character lies.
 struct PlacedCluster: Equatable, Sendable {
     // MARK: - Property
     let glyphs: GlyphRange
-    let character: Character
-    let start: Double
-    let end: Double
+    let range: Range<Int>
+    let advance: Double
 
     // MARK: - Initializer
     init(
         glyphs: GlyphRange,
-        character: Character,
-        start: Double,
-        end: Double
+        range: Range<Int>,
+        advance: Double
     ) {
         self.glyphs = glyphs
-        self.character = character
-        self.start = start
-        self.end = end
+        self.range = range
+        self.advance = advance
     }
 
     // MARK: - Public

@@ -61,10 +61,10 @@ struct UnitFinderTests {
     @Test("characters set in one glyph are one unit")
     func mergesUnitsSharingAGlyph() {
         // Given
-        let clusters = [
-            PlacedCluster(glyphs: range(0, 0, 1), character: "f", start: 0, end: 30),
-            PlacedCluster(glyphs: range(0, 1, 0), character: "i", start: 0, end: 30),
-            PlacedCluster(glyphs: range(0, 1, 1), character: "x", start: 30, end: 50)
+        let clusters: [UnitFinder.Cluster] = [
+            (PlacedCluster(glyphs: range(0, 0, 1), range: 0..<1, advance: 30), "f", 0...30),
+            (PlacedCluster(glyphs: range(0, 1, 0), range: 1..<2, advance: 0), "i", 0...30),
+            (PlacedCluster(glyphs: range(0, 1, 1), range: 2..<3, advance: 20), "x", 30...50)
         ]
 
         // When
@@ -169,8 +169,8 @@ struct UnitFinderTests {
     @Test("a piece held by a run whose glyphs lie in no cluster goes with the unit of its text run on its line")
     func keepsPiecesOfRunsInNoCluster() {
         // Given
-        // A cluster split over two faces leaves its glyph in the first face, run 0, in no cluster.
-        let lines = [[PlacedCluster(glyphs: range(1, 0, 1), character: "a", start: 0, end: 40)]]
+        // Run 0 holds the piece and the glyphs of no character.
+        let lines: [[UnitFinder.Cluster]] = [[(PlacedCluster(glyphs: range(1, 0, 1), range: 0..<1, advance: 40), "a", 0...40)]]
         let runs = [
             run(count: 1, highlight: Rectangle(x: 0, y: 0, width: 40, height: 40)),
             run(count: 1)
@@ -188,10 +188,12 @@ struct UnitFinderTests {
         of text: String,
         run: Int = 0,
         from start: Int = 0
-    ) -> [PlacedCluster] {
+    ) -> [UnitFinder.Cluster] {
         text.enumerated().map { index, character in
             let x = Double(start + index) * 20
-            return PlacedCluster(glyphs: range(run, index, 1), character: character, start: x, end: x + 20)
+            let cluster = PlacedCluster(glyphs: range(run, index, 1), range: (start + index)..<(start + index + 1), advance: 20)
+
+            return (cluster, character, x...(x + 20))
         }
     }
 

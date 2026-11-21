@@ -6,43 +6,28 @@
 //
 
 // A shaped glyph with the face it was set in, and the run it belongs to: its index among the text's runs, its
-// character style and the style's own face. Its offset is into its whole paragraph, and `isSpace` says the scalar it
-// starts at is white space, which hangs at a line's end. `clusters` are the grapheme clusters that end in it,
-// `tracking` the space added after it at the run's static tracking, in output pixels, and `widestTracking` at the
-// widest tracking the run takes, once for each of those clusters.
+// character style and the style's own face. Its offset is into its whole paragraph.
 struct StyledGlyph: Equatable, Sendable {
     // MARK: - Property
     let glyph: ShapedGlyph
-    let isSpace: Bool
     let face: FontFace
     let source: Int
     let style: CharacterStyle
     let runFace: FontFace
-    let clusters: [Character]
-    let tracking: Double
-    let widestTracking: Double
 
     // MARK: - Initializer
     init(
         glyph: ShapedGlyph,
-        isSpace: Bool,
         face: FontFace,
         source: Int,
         style: CharacterStyle,
-        runFace: FontFace,
-        clusters: [Character],
-        tracking: Double,
-        widestTracking: Double
+        runFace: FontFace
     ) {
         self.glyph = glyph
-        self.isSpace = isSpace
         self.face = face
         self.source = source
         self.style = style
         self.runFace = runFace
-        self.clusters = clusters
-        self.tracking = tracking
-        self.widestTracking = widestTracking
     }
 
     // MARK: - Public

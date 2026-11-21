@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// Glyphs of one glyph run: `count` glyphs from its `first`, the run its index among the text's glyph runs. A grapheme
-// cluster set inside the glyph of the one before it, as a ligature sets two, is a range of count 0 after that glyph.
+// Glyphs of one glyph run: `count` glyphs from its `first`, the run its index among the text's glyph runs. A later
+// character of a group of glyphs, as a ligature sets two characters in one glyph, is a range of count 0 after the
+// group's glyphs.
 struct GlyphRange: Equatable, Sendable {
     // MARK: - Property
     let run: Int

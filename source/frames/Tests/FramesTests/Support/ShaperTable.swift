@@ -12,7 +12,8 @@
 // wide in ems, `fi` is one ligature glyph an em wide unless `liga` is 0, and `AV` kerns by a tenth of an em unless
 // `kern` is 0. A grapheme cluster with a scalar `lacks` names for a family is set whole in the next face, and one with
 // a scalar in `missing` or that no face has whole in `fallback`, default ignorable scalars left out of both. A scalar
-// in `placements` is placed that far from the pen, in ems.
+// in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in its
+// face, as a pre-base matra is.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
@@ -25,6 +26,7 @@ struct ShaperTable: ShapingProvider {
     let lacks: [String: Set<Unicode.Scalar>]
     let styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]]
     let placements: [Unicode.Scalar: Point]
+    let prebase: Set<Unicode.Scalar>
 
     // MARK: - Initializer
     init(
@@ -33,7 +35,8 @@ struct ShaperTable: ShapingProvider {
         missing: Set<Unicode.Scalar> = [],
         lacks: [String: Set<Unicode.Scalar>] = [:],
         styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]] = [:],
-        placements: [Unicode.Scalar: Point] = [:]
+        placements: [Unicode.Scalar: Point] = [:],
+        prebase: Set<Unicode.Scalar> = []
     ) {
         self.installed = installed
         self.advances = advances
@@ -41,6 +44,7 @@ struct ShaperTable: ShapingProvider {
         self.lacks = lacks
         self.styles = styles
         self.placements = placements
+        self.prebase = prebase
     }
 
     // MARK: - Public
@@ -129,7 +133,10 @@ struct ShaperTable: ShapingProvider {
             )
 
             if let last = runs.last, last.face == runFace {
-                runs[runs.count - 1] = ShapedRun(face: runFace, glyphs: last.glyphs + [glyph])
+                let glyphs = prebase.contains(scalar) && !last.glyphs.isEmpty
+                    ? Array(last.glyphs.dropLast()) + [glyph, last.glyphs[last.glyphs.count - 1]]
+                    : last.glyphs + [glyph]
+                runs[runs.count - 1] = ShapedRun(face: runFace, glyphs: glyphs)
             } else {
                 runs.append(ShapedRun(face: runFace, glyphs: [glyph]))
             }

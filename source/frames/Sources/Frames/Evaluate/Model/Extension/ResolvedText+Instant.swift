@@ -37,7 +37,7 @@ extension ResolvedText {
             let shift = align.offset(of: line.width + added, in: textBox.width)
                 - align.offset(of: line.width, in: textBox.width)
             var before = 0.0
-            for cluster in line.clusters {
+            for cluster in line.clusters.map(\.glyphs) {
                 for index in cluster.first..<(cluster.first + cluster.count) {
                     moves[cluster.run][index] = Point(x: before + shift, y: drop)
                 }
@@ -57,10 +57,10 @@ extension ResolvedText {
 
         for line in lines {
             var ends: [Int: Point] = [:]
-            for cluster in line.clusters where cluster.count > 0 {
+            for cluster in line.clusters.map(\.glyphs) where cluster.count > 0 {
                 ends[runs[cluster.run].source] = moves[cluster.run][cluster.first + cluster.count - 1]
             }
-            for run in Set(line.clusters.map(\.run)) {
+            for run in Set(line.clusters.map(\.glyphs.run)) {
                 guard let start = moves[run].first, let end = ends[runs[run].source] else { continue }
 
                 pieces[run] = PieceMove(start: start, end: end)
@@ -118,6 +118,6 @@ extension ResolvedText {
         of line: PlacedLine,
         steps: [Double]
     ) -> Double {
-        line.clusters.dropLast().map { steps[$0.run] }.reduce(0, +)
+        line.clusters.dropLast().map { steps[$0.glyphs.run] }.reduce(0, +)
     }
 }

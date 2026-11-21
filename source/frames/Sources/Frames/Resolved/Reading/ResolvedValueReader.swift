@@ -487,12 +487,18 @@ struct ResolvedValueReader: Sendable {
             lineHeight: try timed(text.member("lineHeight"), as: length),
             lines: try text.member("lines").optional { value in
                 try value.elements().map { element in
-                    let line = try element.object(keys: ["width", "baseline", "clusters"])
+                    let line = try element.object(keys: [
+                        "width", "baseline", "ascent", "descent", "range", "clusters", "hanging"
+                    ])
 
                     return PlacedLine(
                         width: try line.member("width").number(),
                         baseline: try line.member("baseline").number(),
-                        clusters: try line.member("clusters").elements().map(glyphRange)
+                        ascent: try line.member("ascent").number(),
+                        descent: try line.member("descent").number(),
+                        range: try scalarRange(line.member("range")),
+                        clusters: try line.member("clusters").elements().map(cluster),
+                        hanging: try line.member("hanging").elements().map(cluster)
                     )
                 }
             },
@@ -731,6 +737,35 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
+    // A line's cluster is `[run, first, count, start, end, advance]`.
+    private func cluster(_ value: PlacedJSONValue) throws -> PlacedCluster {
+        let numbers = try value.numbers(count: 6)
+        guard
+            let run = Int(exactly: numbers[0]),
+            let first = Int(exactly: numbers[1]),
+            let count = Int(exactly: numbers[2]),
+            let start = Int(exactly: numbers[3]),
+            let end = Int(exactly: numbers[4]),
+            start <= end
+        else {
+            throw value.wrongType("[run, first, count, start, end, advance]")
+        }
+
+        let glyphs = GlyphRange(run: run, first: first, count: count)
+
+        return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5])
+    }
+
+    // A range is `[start, end]`, counted in Unicode scalars.
+    private func scalarRange(_ value: PlacedJSONValue) throws -> Range<Int> {
+        let numbers = try value.numbers(count: 2)
+        guard let start = Int(exactly: numbers[0]), let end = Int(exactly: numbers[1]), start <= end else {
+            throw value.wrongType("[start, end]")
+        }
+
+        return start..<end
+    }
+
     private func glyphRange(_ value: PlacedJSONValue) throws -> GlyphRange {
         let numbers = try value.numbers(count: 3)
         guard
@@ -744,7 +779,7 @@ struct ResolvedValueReader: Sendable {
         return GlyphRange(run: run, first: first, count: count)
     }
 
-    // A glyph is `[id, x, y]`, its baseline origin in the text's box.
+    // A glyph is `[id, x, y]`, its pen position in the text's box, read with no placement offset.
     private func glyphs(_ value: PlacedJSONValue) throws -> [PositionedGlyph] {
         try value.elements().map { element in
             let numbers = try element.numbers(count: 3)

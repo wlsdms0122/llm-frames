@@ -323,8 +323,8 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
-    // underline pieces, and each glyph as `[id, x, y]`, its baseline origin in the text's box. A unit's part is
-    // `[run, piece, x0, x1]`.
+    // underline pieces, and each glyph as `[id, x, y]`, its pen position in the text's box without its placement
+    // offset. A line's range is `[start, end]` and a unit's part `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
@@ -339,9 +339,11 @@ struct ResolvedValueWriter: Sendable {
                 .object(JSONObject(members: [
                     JSONMember(key: "width", value: .number(line.width)),
                     JSONMember(key: "baseline", value: .number(line.baseline)),
-                    JSONMember(key: "clusters", value: .array(line.clusters.map { cluster in
-                        numbers([Double(cluster.run), Double(cluster.first), Double(cluster.count)])
-                    }))
+                    JSONMember(key: "ascent", value: .number(line.ascent)),
+                    JSONMember(key: "descent", value: .number(line.descent)),
+                    JSONMember(key: "range", value: numbers([line.range.lowerBound, line.range.upperBound].map { Double($0) })),
+                    JSONMember(key: "clusters", value: .array(line.clusters.map(cluster))),
+                    JSONMember(key: "hanging", value: .array(line.hanging.map(cluster)))
                 ]))
             })
         }
@@ -482,6 +484,20 @@ struct ResolvedValueWriter: Sendable {
 
     private func bands(_ bands: [ClosedRange<Double>]?) -> JSONValue {
         bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
+    }
+
+    // A line's cluster is `[run, first, count, start, end, advance]`: its glyphs, its range and its advance.
+    private func cluster(_ cluster: PlacedCluster) -> JSONValue {
+        let glyphs = cluster.glyphs
+
+        return numbers([
+            Double(glyphs.run),
+            Double(glyphs.first),
+            Double(glyphs.count),
+            Double(cluster.range.lowerBound),
+            Double(cluster.range.upperBound),
+            cluster.advance
+        ])
     }
 
     private func glyphs(_ glyphs: [PositionedGlyph]) -> JSONValue {

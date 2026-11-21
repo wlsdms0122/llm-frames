@@ -224,6 +224,46 @@ struct TitleKeyframeTests {
         #expect(title.layout.runs[0].glyphs.prefix(2).map(\.x) == [0, 20])
     }
 
+    @Test("a resolved title's lines carry their extent, range, characters and hanging spaces, and read back as written")
+    func roundTripsLines() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab \ncd", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+        let writer = ResolvedValueWriter()
+        let reader = ResolvedValueReader()
+
+        // When
+        let read = try reader.text(PlacedJSONValue(writer.text(text), place: .root, kind: "title"))
+
+        // Then
+        let cluster = { (run: Int, first: Int, count: Int, range: Range<Int>, advance: Double) in
+            PlacedCluster(glyphs: GlyphRange(run: run, first: first, count: count), range: range, advance: advance)
+        }
+        #expect(text.lines == [
+            PlacedLine(
+                width: 40,
+                baseline: 32,
+                ascent: 32,
+                descent: 8,
+                range: 0..<2,
+                clusters: [cluster(0, 0, 1, 0..<1, 20), cluster(0, 1, 1, 1..<2, 20)],
+                hanging: [cluster(0, 2, 1, 2..<3, 10)]
+            ),
+            PlacedLine(
+                width: 40,
+                baseline: 82,
+                ascent: 32,
+                descent: 8,
+                range: 4..<6,
+                clusters: [cluster(1, 0, 1, 4..<5, 20), cluster(1, 1, 1, 5..<6, 20)],
+                hanging: []
+            )
+        ])
+        #expect(read == text)
+    }
+
     @Test("a `null` tracking keyframe is each run's own tracking, so each run steps from its own")
     func stepsEachRunFromItsOwnTracking() throws {
         // When

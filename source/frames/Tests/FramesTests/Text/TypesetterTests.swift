@@ -30,6 +30,7 @@ struct TypesetterTests {
 
         // Then
         #expect(layout == TextLayout(
+            text: "ab",
             size: Size(width: 40, height: 40),
             textBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
             width: nil,
@@ -37,7 +38,11 @@ struct TypesetterTests {
                 PlacedLine(
                     width: 40,
                     baseline: 32,
-                    clusters: [GlyphRange(run: 0, first: 0, count: 1), GlyphRange(run: 0, first: 1, count: 1)]
+                    ascent: 32,
+                    descent: 8,
+                    range: 0..<2,
+                    clusters: [cluster(0, 0, 1, 0..<1, 20), cluster(0, 1, 1, 1..<2, 20)],
+                    hanging: []
                 )
             ],
             runs: [
@@ -310,6 +315,131 @@ struct TypesetterTests {
         #expect(layout.runs.flatMap(\.glyphs).map(\.x) == [0, 20, 44])
     }
 
+    @Test("a glyph keeps its placement offset apart from its pen, and the pen moves by advances alone")
+    func keepsPlacementOffsetApart() throws {
+        // Given
+        let shaper = ShaperTable(
+            advances: [" ": 0.25, "\u{303}": 0],
+            placements: ["\u{303}": Point(x: -0.25, y: -0.5)]
+        )
+        let sut = Typesetter(shaper: shaper)
+
+        // When
+        let layout = try sut.layout([run("q\u{303}x")], paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.flatMap(\.glyphs) == [
+            glyph("q", 0, 32),
+            PositionedGlyph(id: 0x303, x: 20, y: 32, placementOffset: Point(x: -10, y: -20)),
+            glyph("x", 20, 32)
+        ])
+        #expect(layout.lines.map(\.clusters) == [[cluster(0, 0, 2, 0..<2, 20), cluster(0, 2, 1, 2..<3, 20)]])
+        #expect(layout.lines.map(\.width) == [40])
+    }
+
+    @Test("glyphs set out of text order are one group, owned by its first character, and the later one has no glyph")
+    func groupsReorderedGlyphs() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(prebase: ["r"]))
+        let runs = [run("arb", style: character(tracking: 100))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, unit: .character, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.flatMap(\.glyphs) == [glyph("r", 0, 32), glyph("a", 20, 32), glyph("b", 44, 32)])
+        #expect(layout.lines == [
+            PlacedLine(
+                width: 64,
+                baseline: 32,
+                ascent: 32,
+                descent: 8,
+                range: 0..<3,
+                clusters: [cluster(0, 0, 2, 0..<1, 40), cluster(0, 2, 0, 1..<2, 0), cluster(0, 2, 1, 2..<3, 20)],
+                hanging: []
+            )
+        ])
+        #expect(layout.units?.map(\.glyphBox.x) == [0, 44])
+        #expect(layout.units?.map(\.glyphBox.width) == [40, 20])
+    }
+
+    @Test("a ligature kept under tracking is followed by one tracking, and its later character has no glyph")
+    func tracksLigatureOnce() throws {
+        // Given
+        let style = character(tracking: 100, features: [FontFeature(tag: "liga", value: 1)])
+
+        // When
+        let layout = try sut.layout([run("fia", style: style)], paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.flatMap(\.glyphs).map(\.x) == [0, 44])
+        #expect(layout.lines.map(\.width) == [64])
+        #expect(layout.lines.map(\.clusters) == [
+            [cluster(0, 0, 1, 0..<1, 40), cluster(0, 1, 0, 1..<2, 0), cluster(0, 1, 1, 2..<3, 20)]
+        ])
+    }
+
+    @Test("a space is a cluster whose first scalar is white space, and the spaces ending a line hang past it untracked")
+    func hangsSpacesUntracked() throws {
+        // Given
+        let runs = [run("ab \u{301} ", style: character(tracking: 100))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.flatMap(\.glyphs).map(\.x) == [0, 24, 44, 54, 74])
+        #expect(layout.lines == [
+            PlacedLine(
+                width: 44,
+                baseline: 32,
+                ascent: 32,
+                descent: 8,
+                range: 0..<2,
+                clusters: [cluster(0, 0, 1, 0..<1, 20), cluster(0, 1, 1, 1..<2, 20)],
+                hanging: [cluster(0, 2, 2, 2..<4, 30), cluster(0, 4, 1, 4..<5, 10)]
+            )
+        ])
+    }
+
+    @Test(
+        "a line's range runs over its characters in the text of all runs, and a line with no character has the empty range where it starts",
+        arguments: [
+            (["\nab"], [0..<0, 1..<3]),
+            (["a b\n", "\ncd"], [0..<3, 4..<4, 5..<7]),
+            (["ab  \n", "  "], [0..<2, 5..<5])
+        ] as [([String], [Range<Int>])]
+    )
+    func measuresLineRanges(
+        texts: [String],
+        ranges: [Range<Int>]
+    ) throws {
+        // Given
+        let runs = texts.map { run($0) }
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.text == texts.joined())
+        #expect(layout.lines.map(\.range) == ranges)
+    }
+
+    @Test("a grapheme cluster a run boundary falls inside is set whole in the run of its first scalar")
+    func keepsClusterInOneRun() throws {
+        // Given
+        let runs = [run("a"), run("\u{301}b", style: character(size: 20))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.text == "a\u{301}b")
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[97, 0x301], [98]])
+        #expect(layout.runs.map(\.size) == [40, 20])
+        #expect(layout.lines.map(\.clusters) == [[cluster(0, 0, 2, 0..<2, 40), cluster(1, 0, 1, 2..<3, 10)]])
+    }
+
     @Test("lines break at the widest tracking a run takes and its glyphs are placed at its static tracking")
     func breaksAtWidestTracking() throws {
         // Given
@@ -562,6 +692,16 @@ struct TypesetterTests {
         _ y: Double
     ) -> PositionedGlyph {
         PositionedGlyph(id: Int(character.value), x: x, y: y)
+    }
+
+    private func cluster(
+        _ run: Int,
+        _ first: Int,
+        _ count: Int,
+        _ range: Range<Int>,
+        _ advance: Double
+    ) -> PlacedCluster {
+        PlacedCluster(glyphs: GlyphRange(run: run, first: first, count: count), range: range, advance: advance)
     }
 
     private func ids(_ text: String) -> [Int] {
