@@ -87,6 +87,7 @@ Track data stops at `resolve`, naming its place, `...track` or `...track.frames[
 - a key other than `time` and `quad` in a frame, or a missing one;
 - a point that is not two finite numbers, or a quad that is not four points;
 - a quad that is not strictly convex, or whose orientation is not that of the quad of the frame `time` names ([FRAMES-27](../FRAMES-27/SPEC.md#the-homography));
+- a frame whose `time` names no frame of the tracked media, before its first frame or past the end of its last;
 - frames out of time order, or two frames that name one media frame;
 - a gap: a media frame between the first frame named and the last that no frame names;
 - a `time` that names no frame of `frames`, since the data would give no target;
