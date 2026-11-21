@@ -20,7 +20,7 @@ import os
 // picture it holds is 16384 pixels on a side.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
-    // The largest texture side of Metal on Apple GPUs, which bounds what Core Image draws.
+    // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
     package let largestPictureSide = 16_384
 
     private let converter = PictureConverter()
