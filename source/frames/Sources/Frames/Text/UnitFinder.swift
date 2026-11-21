@@ -126,7 +126,8 @@ struct UnitFinder: Sendable {
         }
     }
 
-    // The characters each unit of a line holds, by their index, in order. A character that is not a space, on a line
+    // The characters each unit of a line holds, by their index, in order. A word holds the characters of its range but
+    // its spaces, a character in no word goes with the unit before it, and a character that is not a space, on a line
     // that would hold no unit, is a unit of its own.
     private func held(
         _ characters: [Character],
@@ -139,7 +140,7 @@ struct UnitFinder: Sendable {
             groups = visible.map { [$0] }
 
         case .word:
-            groups = words(of: characters)
+            groups = segmenter.words(of: characters).map(Array.init)
 
         case .line:
             groups = visible.isEmpty ? [] : [visible]
@@ -148,69 +149,9 @@ struct UnitFinder: Sendable {
         return groups.isEmpty ? visible.map { [$0] } : groups
     }
 
-    // A piece between word boundaries that holds a letter, a digit or an ideograph is a word. A piece of punctuation
-    // or symbols, general categories P and S, with the pieces of them it touches, joins the word it touches, the one
-    // before it when it touches two, and is a word of its own when it touches none. A default ignorable character takes
-    // no part, and a piece of other characters is held by no word here: it goes with the unit before it on its line.
-    private func words(of characters: [Character]) -> [[Int]] {
-        var groups: [[Int]] = []
-        var punctuation: [Int] = []
-        var isAfterWord = false
-        for segment in segmenter.segments(of: characters) {
-            let marks = characters[segment].filter { !isIgnorable($0) }
-            if marks.isEmpty {
-                continue
-            } else if marks.allSatisfy(isSpace) {
-                if !punctuation.isEmpty {
-                    groups.append(punctuation)
-                    punctuation = []
-                }
-                isAfterWord = false
-            } else if marks.contains(where: isWordCharacter) {
-                groups.append(punctuation + Array(segment))
-                punctuation = []
-                isAfterWord = true
-            } else if marks.allSatisfy(isPunctuation) {
-                if isAfterWord {
-                    groups[groups.count - 1] += Array(segment)
-                } else {
-                    punctuation += Array(segment)
-                }
-            }
-        }
-        if !punctuation.isEmpty {
-            groups.append(punctuation)
-        }
-
-        return groups
-    }
-
     // A space is a cluster whose first scalar is `White_Space`.
     private func isSpace(_ character: Character) -> Bool {
         character.unicodeScalars.first?.properties.isWhitespace ?? false
-    }
-
-    private func isIgnorable(_ character: Character) -> Bool {
-        character.unicodeScalars.allSatisfy(\.properties.isDefaultIgnorableCodePoint)
-    }
-
-    private func isWordCharacter(_ character: Character) -> Bool {
-        character.unicodeScalars.first.map { scalar in
-            scalar.properties.isAlphabetic
-                || scalar.properties.isIdeographic
-                || scalar.properties.generalCategory == .decimalNumber
-        } ?? false
-    }
-
-    private func isPunctuation(_ character: Character) -> Bool {
-        switch character.unicodeScalars.first?.properties.generalCategory {
-        case .connectorPunctuation, .dashPunctuation, .openPunctuation, .closePunctuation, .initialPunctuation,
-            .finalPunctuation, .otherPunctuation, .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
-            true
-
-        default:
-            false
-        }
     }
 
     private func range(of stretch: CharacterRange) -> Range<Int> {

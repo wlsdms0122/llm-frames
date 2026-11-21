@@ -31,6 +31,7 @@ struct TypesetterTests {
         // Then
         #expect(layout == TextLayout(
             text: "ab",
+            words: [0..<2],
             size: Size(width: 40, height: 40),
             textBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
             width: nil,
@@ -610,6 +611,19 @@ struct TypesetterTests {
             try sut.layout([run(text)], paragraph: style, width: width, place: place, kind: "title")
         }
         #expect(error?.description == "title (title): the text takes 3 lines, and its style allows at most 2")
+    }
+
+    @Test("a title's words are its words over its whole text, each its range, a word broken over lines one range")
+    func findsWords() throws {
+        // Given
+        let runs = [run("Hi, a-b\n\"c\"d ab"), run("cd")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 60, place: place, kind: "title")
+
+        // Then
+        // "abcd" is set over two runs and is one word.
+        #expect(layout.words == [0..<3, 4..<6, 6..<7, 8..<11, 11..<12, 13..<17])
     }
 
     @Test("a unit runs across its glyphs and down its line, and one spaced apart sets no ligature")

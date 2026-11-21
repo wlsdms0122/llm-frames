@@ -371,6 +371,9 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
             JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "words", value: .array(text.words.map { word in
+                numbers([word.lowerBound, word.upperBound].map { Double($0) })
+            })),
             JSONMember(key: "lines", value: lines),
             JSONMember(key: "units", value: units ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))

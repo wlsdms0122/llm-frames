@@ -75,6 +75,7 @@ extension ResolvedText {
             align: plan.layout.align,
             lineHeight: lineHeight,
             text: plan.layout.text,
+            words: plan.layout.words,
             lines: plan.layout.lines,
             units: plan.layout.units.map { units in
                 units.map { PlacedUnit(drawing: $0, lines: plan.layout.lines, runs: runs) }
@@ -106,6 +107,7 @@ extension ResolvedText {
             align: layout.align,
             lineHeight: held(.number(layout.lineHeight)),
             text: layout.text,
+            words: layout.words,
             lines: layout.lines,
             units: nil,
             runs: try layout.runs.map { run in

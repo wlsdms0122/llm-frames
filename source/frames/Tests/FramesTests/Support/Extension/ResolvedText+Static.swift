@@ -38,6 +38,7 @@ extension ResolvedText {
             align: .left,
             lineHeight: .off,
             text: "",
+            words: [],
             lines: [],
             units: nil,
             runs: runs

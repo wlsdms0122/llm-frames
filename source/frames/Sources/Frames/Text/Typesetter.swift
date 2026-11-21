@@ -13,6 +13,7 @@ struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
     private let breaker = LineBreaker()
+    private let segmenter = WordSegmenter()
     private let finder = UnitFinder()
 
     // MARK: - Initializer
@@ -77,8 +78,14 @@ struct Typesetter: Sendable {
             + (lines.last?.descent ?? 0)
 
         let text = runs.map(\.text).joined()
+        let characters = Array(text)
+        let starts = characters.reduce(into: [0]) { starts, character in
+            starts.append(starts[starts.count - 1] + character.unicodeScalars.count)
+        }
+
         return TextLayout(
             text: text,
+            words: segmenter.words(of: characters).map { starts[$0.lowerBound]..<starts[$0.upperBound] },
             size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
             textBox: Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight),
             width: width,

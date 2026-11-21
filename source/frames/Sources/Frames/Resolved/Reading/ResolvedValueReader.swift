@@ -465,7 +465,7 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "align", "lineHeight", "text", "lines", "units", "runs"
+            "size", "textBox", "width", "background", "align", "lineHeight", "text", "words", "lines", "units", "runs"
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
@@ -499,6 +499,7 @@ struct ResolvedValueReader: Sendable {
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
             text: try text.member("text").string(),
+            words: try text.member("words").elements().map(scalarRange),
             lines: lines,
             units: try text.member("units").optional { value in
                 try value.elements().map { element in

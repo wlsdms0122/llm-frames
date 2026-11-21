@@ -213,6 +213,9 @@ struct ResolvedDocumentWriterTests {
                   }
                 ],
                 "text": "Hi",
+                "words": [
+                  [0, 2]
+                ],
                 "lines": [
                   {
                     "width": 20.25,
