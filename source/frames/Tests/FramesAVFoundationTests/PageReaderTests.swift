@@ -198,6 +198,31 @@ struct PageReaderTests {
         #expect(throws: DecoderError.self) { try sut.check(file, reading: nil) }
     }
 
+    @Test("a page drawn in a spot colour whose tint transform is a PostScript calculator function is read by it")
+    func readsCalculatorTint() throws {
+        // Given
+        let path = directory.file("spot.pdf")
+        let tint = PDFValue.stream(
+            ["FunctionType": .integer(4), "Domain": .array([.integer(0), .integer(1)]), "Range": .array([0, 1, 0, 1, 0, 1].map(PDFValue.integer))],
+            Data("{ dup 0.5 mul 0 }".utf8)
+        )
+        let spot = PDFValue.array([.name("Separation"), .name("Spot"), .name("DeviceRGB"), tint])
+        try PageFile.write(
+            [PageFile.page("/C0 cs 1 scn 0 0 10 10 re f", resources: ["ColorSpace": .dictionary(["C0": spot])], mediaBox: [0, 0, 10, 10])],
+            to: path
+        )
+        let file = MediaFile(path: path, page: 1)
+
+        // When
+        let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged)
+            .floatPixels()
+
+        // Then
+        #expect(abs(pixels[0] - 1) < 1e-3)
+        #expect(abs(pixels[1] - 0.5) < 1e-3)
+        #expect(abs(pixels[2]) < 1e-3)
+    }
+
     @Test("a PDF that opens only with a password is refused, and one with an empty user password opens")
     func refusesPassword() throws {
         // Given
