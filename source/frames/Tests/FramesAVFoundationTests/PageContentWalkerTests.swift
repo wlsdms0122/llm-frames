@@ -43,6 +43,19 @@ struct PageContentWalkerTests {
         #expect(content.faults.isEmpty)
     }
 
+    @Test("a font a graphics state's /Font sets is the font text is set in")
+    func readsGraphicsStateFont() {
+        // Given
+        let state = PDFValue.dictionary(["Font": .array([PageFile.helvetica, .integer(12)])])
+        let page = PageFile.page("BT /G0 gs 10 10 Td (a) Tj ET", resources: ["ExtGState": .dictionary(["G0": state])])
+
+        // When
+        let content = walked(page)
+
+        // Then
+        #expect(content.faults == [.unembeddedFont("Helvetica")])
+    }
+
     @Test("text outside the crop box is drawn in this sense, so its font is checked")
     func checksTextOutsideCropBox() {
         // Given

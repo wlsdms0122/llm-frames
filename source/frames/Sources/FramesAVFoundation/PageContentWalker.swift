@@ -389,11 +389,21 @@ final class PageContentWalker {
         record(resolved(expanded(PDFValue(space))))
     }
 
+    // A graphics state parameter dictionary may set the font, by its `/Font` [font size], and a soft mask.
     private func setGraphicsState(_ scanner: CGPDFScannerRef) {
         var name: UnsafePointer<CChar>?
         guard CGPDFScannerPopName(scanner, &name), let name else { return }
+        guard let parameters = resource("ExtGState", String(cString: name)).flatMap(Self.dictionary) else { return }
+
+        var fontEntry: CGPDFArrayRef?
+        var font: CGPDFDictionaryRef?
+        if CGPDFDictionaryGetArray(parameters, "Font", &fontEntry), let fontEntry,
+            CGPDFArrayGetDictionary(fontEntry, 0, &font), let font
+        {
+            state.font = font
+            state.fontName = Self.name(font, "BaseFont") ?? "of the graphics state \(String(cString: name))"
+        }
         guard
-            let parameters = resource("ExtGState", String(cString: name)).flatMap(Self.dictionary),
             let mask = Self.dictionary(parameters, "SMask"),
             let group = Self.object(mask, "G").flatMap(Self.stream),
             let groupDictionary = CGPDFStreamGetDictionary(group)
