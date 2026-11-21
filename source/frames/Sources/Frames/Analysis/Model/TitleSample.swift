@@ -6,15 +6,15 @@
 //
 
 // A resolved title and the time of the sequence that holds it, which the list without motion blur draws the title at.
-struct TitleSample: Equatable, Sendable {
+struct TitleSample {
     // MARK: - Property
     let text: ResolvedText
-    let time: Double
+    let time: SampleTime
 
     // MARK: - Initializer
     init(
         text: ResolvedText,
-        time: Double
+        time: SampleTime
     ) {
         self.text = text
         self.time = time

@@ -50,13 +50,12 @@ package struct EvaluationReporter: Sendable {
             if !texts.contains(where: { $0.place == origin.place }) {
                 texts.append(text(of: title, origin: origin, transform: item.transform))
             }
-            let titleTime = SampleTime(title.time)
             switch item.characters {
             case .title:
-                items.append(EvaluationItem(item, characters: title.text.characters(at: titleTime)))
+                items.append(EvaluationItem(item, characters: title.text.characters(at: title.time)))
 
             case let .unit(unit):
-                items.append(EvaluationItem(item, characters: try title.text.characters(of: unit, at: titleTime, drawnBy: origin)))
+                items.append(EvaluationItem(item, characters: try title.text.characters(of: unit, at: title.time, drawnBy: origin)))
 
             case .none:
                 items.append(EvaluationItem(item))
@@ -74,7 +73,7 @@ package struct EvaluationReporter: Sendable {
         transform: AffineTransform
     ) -> EvaluationText {
         let text = title.text
-        let time = SampleTime(title.time)
+        let time = title.time
         let textBox = text.textBox(at: time)
         let box = text.box(at: time)
 
