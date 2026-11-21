@@ -10,6 +10,7 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableVersion(place: Place, kind: String, form: String, written: String, current: String)
     case differentSeed(place: Place, kind: String, seed: Int, listSeed: Int)
     case frameOutOfRange(place: Place, kind: String, frame: Int, count: Int)
+    case frameOfPage(place: Place, kind: String, written: String)
     case trackMatteSize(place: Place, kind: String, size: Size, listSize: Size)
 
     // MARK: - Property
@@ -26,6 +27,10 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .frameOutOfRange(place, kind, frame, count):
             "\(place) (\(kind)): frame \(frame) is not a frame of the media, whose frames are 0 to \(count - 1)"
+
+        case let .frameOfPage(place, kind, written):
+            "\(place) (\(kind)): frame \(written) is given for a page of a PDF, which is read by region and scale, "
+                + "so its frame is null"
 
         case let .trackMatteSize(place, kind, size, listSize):
             "\(place) (\(kind)): the track matte's source is \(written(size)), and a track matte's source is the size "

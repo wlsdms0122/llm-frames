@@ -254,7 +254,7 @@ package struct DisplayListReader: Sendable {
                 return PictureMatte(
                     frame: MediaFrame(
                         media: frame.media,
-                        index: frame.index,
+                        index: frame.index ?? 0,
                         reading: .analysis(colorSpace: try colorSpace(matte.member("colorSpace")))
                     ),
                     progress: try matte.member("progress").number(),
@@ -337,7 +337,7 @@ package struct DisplayListReader: Sendable {
 
             return .media(MediaFrame(
                 media: frame.media,
-                index: frame.index,
+                index: frame.index ?? 0,
                 reading: .working(
                     colorSpace: try colorSpace(source.member("colorSpace")),
                     targetPeak: try source.member("targetPeak").optional(targetPeak)
@@ -357,13 +357,22 @@ package struct DisplayListReader: Sendable {
         return try self.list(list, colorSpace: nil, seed: seed)
     }
 
-    // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it.
+    // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it. A page of a
+    // PDF has frame null.
     private func frame(
         of object: PlacedJSONObject,
         mediaKey: String
     ) throws -> MediaFrame {
         let media = try values.media(object.member(mediaKey))
         let frame = try object.member("frame")
+        guard media.page == nil else {
+            guard frame.isNull else {
+                throw EvaluateError.frameOfPage(place: frame.place, kind: frame.kind, written: frame.value.written)
+            }
+
+            return MediaFrame(media: media, index: 0)
+        }
+
         let index = try frame.integer()
         let count = frameCount(of: media)
         guard (0..<count).contains(index) else {
@@ -392,7 +401,7 @@ package struct DisplayListReader: Sendable {
         return peak
     }
 
-    // An image sequence has a frame per file, a video one per frame time, and a still the one frame 0.
+    // An image sequence has a frame per file, a video one per frame time, and an image the one frame 0.
     private func frameCount(of media: PinnedMedia) -> Int {
         switch media.source {
         case let .imageSequence(files):

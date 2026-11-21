@@ -21,6 +21,7 @@ struct DisplayListReaderTests {
         frameTimes: [0, 0.033367, 0.066733]
     )
     private static let still = PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: hash)))
+    private static let page = PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: hash), page: 3))
     private static let imageSequence = PinnedMedia(
         source: .imageSequence([
             PinnedFile(path: "/abs/frames/0001.png", sha256: hash),
@@ -360,6 +361,59 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(error?.description == "items[0].trackMatte.source (path): the track matte's source is 540 by 960, and a track matte's source is the size of the list that holds its item, 1080 by 1920")
+    }
+
+    @Test("a page source is written with its page, frame null and target peak null, and reads back, as a page matte does")
+    func writesPageSource() throws {
+        // Given
+        let matte = PictureMatte(
+            frame: MediaFrame(media: Self.page, index: 0, reading: .analysis(colorSpace: nil)),
+            progress: 0.5,
+            softness: 0.1,
+            isInverted: false
+        )
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: Self.page, index: 0, reading: .working(colorSpace: .srgb, targetPeak: 203))),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
+            matte: matte
+        )
+        let list = list(items: [DisplayItem(content: .picture(picture))])
+
+        // When
+        let written = writer.write(list)
+        let read = try sut.read(written)
+
+        // Then
+        #expect(written.contains(#""page": 3"#))
+        #expect(written.ranges(of: #""frame": null"#).count == 2)
+        #expect(written.contains(#""targetPeak": 203"#) == false)
+        #expect(read == list)
+    }
+
+    @Test("a page source with a frame index stops, naming its place")
+    func refusesFrameOfPage() throws {
+        // Given
+        let picture = PictureItem(
+            source: .media(MediaFrame(media: Self.page, index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
+        )
+        let text = replacingFirst(
+            #""frame": null"#,
+            with: #""frame": 0"#,
+            in: writer.write(list(items: [DisplayItem(content: .picture(picture))]))
+        )
+
+        // When
+        let error = #expect(throws: (any Error).self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            (error as? CustomStringConvertible)?.description
+                == "items[0].source.frame (picture): frame 0 is given for a page of a PDF, which is read by region and "
+                + "scale, so its frame is null"
+        )
     }
 
     @Test("a list with no grain reads with seed 0, since only a grain carries the seed")
