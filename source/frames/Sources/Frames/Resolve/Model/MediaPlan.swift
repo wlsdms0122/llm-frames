@@ -10,7 +10,7 @@
 // nil for a still, which simply goes on, and for sound. `hasSound` says whether it plays sound: a file with a sound
 // track, or a nested sequence that holds one. `colorSpace` and `isToneMapped` are how the clip that shows it reads its
 // pictures: the space that overrides the file's tags, nil where they apply, and its `toneMap`, nil for a nested
-// sequence, whose pictures are working values already.
+// sequence, whose pictures are working values already, and for a page, which takes none.
 struct MediaPlan: Equatable, Sendable {
     // MARK: - Property
     let kind: MediaKind
@@ -51,7 +51,8 @@ struct MediaPlan: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The media as `clip` reads it, its pictures tone mapped unless it says not. A nested sequence takes neither.
+    // The media as `clip` reads it, its pictures tone mapped unless it says not, and a page's never, since a page is
+    // not HDR. A nested sequence takes neither.
     func read(by clip: ClipMedia) -> MediaPlan {
         guard kind != .sequence else { return self }
 
@@ -62,7 +63,7 @@ struct MediaPlan: Equatable, Sendable {
             duration: duration,
             hasSound: hasSound,
             colorSpace: clip.colorSpace,
-            isToneMapped: clip.isToneMapped ?? true
+            isToneMapped: kind == .page ? nil : clip.isToneMapped ?? true
         )
     }
     // MARK: - Private

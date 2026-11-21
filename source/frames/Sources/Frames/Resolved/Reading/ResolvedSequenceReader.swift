@@ -644,25 +644,26 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func transitionMedia(_ object: PlacedJSONObject) throws -> ResolvedTransitionMedia {
-        ResolvedTransitionMedia(
-            media: try values.media(object),
-            colorSpace: try object.member("colorSpace").optional { value in
-                try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
-            },
-            duration: try object.member("duration").number()
-        )
+        let media = try values.media(object)
+        let colorSpace = try object.member("colorSpace")
+        let read = try colorSpace.optional { value in
+            try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
+        }
+        try checkPageReading(of: MediaFile(media: media), colorSpace: colorSpace, read: read, toneMap: nil, isToneMapped: nil)
+
+        return ResolvedTransitionMedia(media: media, colorSpace: read, duration: try object.member("duration").number())
     }
 
     // How an entry's pictures are read: media of a file in its `colorSpace`, null where the file's tags apply, and by its
-    // `toneMap`, true or false. A nested sequence's pictures are working values already and a solid shows no media, so
-    // both are null there.
+    // `toneMap`, true or false, null for a page, which takes none. A nested sequence's pictures are working values
+    // already and a solid shows no media, so both are null there.
     private func reading(
         of entry: PlacedJSONObject,
         media: ResolvedMediaContent?
     ) throws -> (colorSpace: ColorSpace?, isToneMapped: Bool?) {
         let colorSpace = try entry.member("colorSpace")
         let toneMap = try entry.member("toneMap")
-        guard case .pinned = media else {
+        guard case let .pinned(pinned) = media else {
             for value in [colorSpace, toneMap] where !value.isNull {
                 throw ModelError.invalidValue(
                     place: value.place,
@@ -675,10 +676,43 @@ struct ResolvedSequenceReader: Sendable {
             return (nil, nil)
         }
 
-        return (
-            try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) },
-            try toneMap.bool()
-        )
+        let file = MediaFile(media: pinned)
+        let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
+        let isToneMapped = file.page == nil ? try toneMap.bool() : try toneMap.optional { try $0.bool() }
+        try checkPageReading(of: file, colorSpace: colorSpace, read: read, toneMap: toneMap, isToneMapped: isToneMapped)
+
+        return (read, isToneMapped)
+    }
+
+    // Stops where `file` is a page read as a page is not (`MediaFile.pageRefusal`): tone mapped, or in a colour space of
+    // high dynamic range.
+    private func checkPageReading(
+        of file: MediaFile,
+        colorSpace: PlacedJSONValue,
+        read: ColorSpace?,
+        toneMap: PlacedJSONValue?,
+        isToneMapped: Bool?
+    ) throws {
+        switch file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
+        case .toneMap:
+            guard let toneMap else { return }
+            throw ModelError.invalidValue(
+                place: toneMap.place,
+                kind: toneMap.kind,
+                reason: "a page is not HDR and takes no toneMap, so it is null here, found \(toneMap.value.written)"
+            )
+
+        case let .colorSpace(refused):
+            throw ModelError.unknownValue(
+                place: colorSpace.place,
+                kind: colorSpace.kind,
+                value: refused.rawValue,
+                allowed: VocabularyTable.standardDynamicRangeColorSpaces
+            )
+
+        case nil:
+            return
+        }
     }
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {

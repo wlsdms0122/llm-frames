@@ -12,6 +12,11 @@ import Testing
 @Suite("Page Pinning Tests")
 struct PagePinningTests {
     // MARK: - Property
+    private static let pageClips = #"""
+        { "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
+            { "media": { "file": "/abs/deck.pdf", "page": 2 }, "at": [0, 1] } ] } ] }
+        """#
+
     private let hashes = FileHashTable()
 
     // MARK: - Initializer
@@ -63,6 +68,52 @@ struct PagePinningTests {
         // Then
         #expect(media == PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: "abc"), page: 3)))
         #expect(error?.description.contains("a whole number, 1 or more") == true)
+    }
+
+    @Test("a page's storyline entry and media clip write toneMap null, as media that takes none, and read back as written")
+    func writesNoToneMapOfPage() throws {
+        // Given
+        let sut = ResolvedDocumentWriter()
+        let resolved = try resolved(Self.pageClips)
+
+        // When
+        let text = sut.write(resolved)
+
+        // Then
+        let root = try #require(try JSONReader().read(text).objectValue)
+        #expect(root["storyline"]?.arrayValue?.first?.objectValue?["toneMap"] == .null)
+        #expect(root["clips"]?.arrayValue?.first?.objectValue?["toneMap"] == .null)
+        #expect(try ResolvedDocumentReader().read(text) == resolved)
+    }
+
+    @Test(
+        "a resolved page entry that writes a toneMap or a colour space of high dynamic range stops, naming its place",
+        arguments: [
+            ("storyline", "toneMap", "true", #"storyline[0].toneMap (storyline clip): a page is not HDR and takes no toneMap, so it is null here, found true"#),
+            ("clips", "toneMap", "false", #"clips[0].toneMap (clip): a page is not HDR and takes no toneMap, so it is null here, found false"#),
+            ("storyline", "colorSpace", #""rec2100-pq""#, #"storyline[0].colorSpace (storyline clip): unknown value "rec2100-pq""#),
+            ("clips", "colorSpace", #""rec2100-hlg""#, #"clips[0].colorSpace (clip): unknown value "rec2100-hlg""#)
+        ]
+    )
+    func refusesHighDynamicRangePageReading(
+        list: String,
+        key: String,
+        value: String,
+        message: String
+    ) throws {
+        // Given
+        let sut = ResolvedDocumentReader()
+        let root = try #require(try JSONReader().read(ResolvedDocumentWriter().write(resolved(Self.pageClips))).objectValue)
+        var entries = try #require(root[list]?.arrayValue)
+        let entry = try #require(entries[0].objectValue)
+        entries[0] = .object(entry.setting(key, to: try Fixture.json(value)))
+        let text = JSONWriter().write(.object(root.setting(list, to: .array(entries))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description.hasPrefix(message) == true)
     }
 
     @Test("two places that read one page in different colour spaces stop, an unwritten one read as srgb")
