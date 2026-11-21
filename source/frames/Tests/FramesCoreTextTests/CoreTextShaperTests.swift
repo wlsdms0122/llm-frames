@@ -238,6 +238,24 @@ struct CoreTextShaperTests {
         #expect(runs.flatMap(\.glyphs).map(\.offset) == [0, 2])
     }
 
+    @Test(
+        "a zero width non-joiner the face lacks keeps apart the glyphs the face would join, and is set as nothing",
+        .enabled(if: !CoreTextShaper().installedFaces(family: "Hoefler Text").isEmpty)
+    )
+    func keepsNonJoinerApart() throws {
+        // Given
+        let face = try face("Hoefler Text", "HoeflerText-Regular")
+
+        // When
+        let joined = try shape("Auflage", [face])
+        let apart = try shape("Auf\u{200C}lage", [face])
+
+        // Then
+        #expect(joined.flatMap(\.glyphs).map(\.offset) == [0, 1, 2, 4, 5, 6])
+        #expect(apart.map(\.face) == [face])
+        #expect(apart.flatMap(\.glyphs).map(\.offset) == [0, 1, 2, 4, 5, 6, 7])
+    }
+
     @Test("a variation sequence the face maps is set in its variant glyph")
     func keepsVariationSequence() throws {
         // Given

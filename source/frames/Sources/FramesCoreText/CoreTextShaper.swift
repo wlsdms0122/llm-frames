@@ -21,6 +21,7 @@ package struct CoreTextShaper: Sendable {
     private static let weightClassOffset = 4
     private static let widthClassOffset = 6
     private static let selectionOffset = 62
+    private static let nonJoiner: Unicode.Scalar = "\u{200C}"
 
     // MARK: - Initializer
     package init() {}
@@ -182,9 +183,21 @@ package struct CoreTextShaper: Sendable {
         CTFontCopyPostScriptName(font) as String
     }
 
+    // Whether CoreText set `run` in `font`.
+    private func isSet(
+        _ run: CTRun,
+        in font: CTFont
+    ) -> Bool {
+        guard let value = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] else { return true }
+
+        return name(of: value as! CTFont) == name(of: font)
+    }
+
     // The scalars a stretch is set from: a default ignorable scalar the font maps neither as a character nor, for a
     // variation selector, in a variation sequence with the scalar before it is set as nothing, since CoreText would
-    // set its cluster in a face that maps it.
+    // set its cluster in a face that maps it. A zero width non-joiner is always set, since it keeps apart glyphs the
+    // font would join, and CoreText sets one the font does not map alone in another face. A zero width joiner the font
+    // does not map is not, since CoreText would set the scalars beside it in another face too.
     private func settable(
         _ scalars: [(index: Int, scalar: Unicode.Scalar)],
         in font: CTFont
@@ -193,7 +206,8 @@ package struct CoreTextShaper: Sendable {
 
         return scalars.indices.filter { position in
             let scalar = scalars[position].scalar
-            guard scalar.properties.isDefaultIgnorableCodePoint, !maps(font, [scalar]) else { return true }
+            guard scalar.properties.isDefaultIgnorableCodePoint, scalar != Self.nonJoiner, !maps(font, [scalar])
+            else { return true }
             guard scalar.properties.isVariationSelector, position > 0 else { return false }
             let table = sequences ?? VariationSequenceTable(font: font)
             sequences = table
@@ -206,7 +220,8 @@ package struct CoreTextShaper: Sendable {
     // Glyphs of one stretch in glyph order. `CTRunGetAdvances` is the distance from one glyph's drawn position to the
     // next one's, a mark's attachment included. Base advances leave out what the font's tables place relative to
     // another glyph, so the pen moves by them and a glyph's placement offset is its drawn position less the pen, with
-    // CoreText's y, which points up, turned down.
+    // CoreText's y, which points up, turned down. A run CoreText sets in another face from default ignorable scalars
+    // alone, a non-joiner the font does not map, is set as nothing.
     private func shape(
         _ scalars: [(index: Int, scalar: Unicode.Scalar)],
         in font: CTFont,
@@ -220,7 +235,7 @@ package struct CoreTextShaper: Sendable {
         }
         let text = String(String.UnicodeScalarView(scalars.map(\.scalar)))
         let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
-        let indices = scalars.flatMap { Array(repeating: $0.index, count: UTF16.width($0.scalar)) }
+        let units = scalars.flatMap { Array(repeating: $0, count: UTF16.width($0.scalar)) }
 
         var runs: [ShapedRun] = []
         var pen = 0.0
@@ -235,6 +250,10 @@ package struct CoreTextShaper: Sendable {
             CTRunGetBaseAdvancesAndOrigins(run, all, &advances, nil)
             CTRunGetPositions(run, all, &positions)
             CTRunGetStringIndices(run, all, &offsets)
+            let isIgnorable = offsets.allSatisfy { units[$0].scalar.properties.isDefaultIgnorableCodePoint }
+            if isIgnorable && !isSet(run, in: font) {
+                continue
+            }
 
             var shaped: [ShapedGlyph] = []
             for index in 0..<count {
@@ -242,7 +261,7 @@ package struct CoreTextShaper: Sendable {
                     ShapedGlyph(
                         id: Int(glyphs[index]),
                         advance: Double(advances[index].width),
-                        offset: indices[offsets[index]],
+                        offset: units[offsets[index]].index,
                         placementOffset: Point(
                             x: Double(positions[index].x) - pen,
                             y: -Double(positions[index].y)
