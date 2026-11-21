@@ -138,7 +138,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         at time: Double = 0,
         box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
     ) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box)
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box, isSample: false)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {

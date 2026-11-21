@@ -80,6 +80,82 @@ struct MotionBlurEvaluationTests {
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
     }
 
+    @Test("a shape popping in from scale 0 gives its item in every sample, drawing nothing where it is flat, and the samples read back")
+    func keepsPoppingShapeInEverySample() throws {
+        // Given
+        let popping = #"""
+            { "id": "pop", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "motionBlur": true, "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
+            """#
+        let sequence = try resolved(clips: [popping], shutter: #"{ "shutterPhase": -180 }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.01)
+
+        // Then
+        let samples = try #require(list.samples)
+        let popped = try samples.map { try item("pop", in: $0) }
+        #expect(samples.allSatisfy { $0.count { $0.origin?.id == "pop" } == 1 })
+        #expect(popped.first?.transform.lengthFactor == 0)
+        #expect((popped.last?.transform.lengthFactor ?? 0) > 0)
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a shape placed by area under a parent that passes through scale 0 gives its item in every sample, and the samples read back")
+    func keepsChildOfFlatParentInEverySample() throws {
+        // Given
+        let parent = #"""
+            { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+              "motionBlur": true,
+              "keyframes": [ { "at": 0.9, "scale": 1 }, { "at": 1, "scale": 0 }, { "at": 1.005, "scale": 0 }, { "at": 1.1, "scale": 1 } ] }
+            """#
+        let child = #"""
+            { "id": "child", "shape": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "slider", "area": [0, 0, 20, 10] }
+            """#
+        let sequence = try resolved(clips: [parent, child])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.99)
+
+        // Then
+        let samples = try #require(list.samples)
+        let children = try samples.map { try item("child", in: $0) }
+        #expect(samples.allSatisfy { $0.count { $0.origin?.id == "child" } == 1 && $0.count { $0.origin?.id == "slider" } == 1 })
+        #expect(children.contains { $0.transform.lengthFactor == 0 })
+        #expect(children.contains { $0.transform.lengthFactor > 0 })
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a stroke growing from width 0 is written in every sample with its width, 0 included, and kept out of the list at T")
+    func keepsGrowingStrokeInEverySample() throws {
+        // Given
+        let stroked = #"""
+            { "id": "stroked", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+              "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
+              "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
+            """#
+        let sequence = try resolved(clips: [stroked])
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.99)
+
+        // Then
+        let samples = try #require(list.samples)
+        let widths = try samples.map { sample -> Double? in
+            guard case let .path(path) = try item("stroked", in: sample).content else { return nil }
+
+            return path.stroke?.width
+        }
+        let atT = try item("stroked", in: sut.displayListWithoutMotionBlur(of: sequence, at: 0.99).items)
+        guard case let .path(path) = atT.content else { Issue.record("not a path"); return }
+
+        #expect(widths.allSatisfy { $0 != nil })
+        #expect(widths.first == 0)
+        #expect((widths.last.flatMap { $0 } ?? 0) > 0)
+        #expect(path.stroke == nil)
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
     @Test("a step keyframe at 1.53 holds every instant of the frame at 1.52 at the old place")
     func clampsStepKeyframe() throws {
         // Given
@@ -349,9 +425,14 @@ struct MotionBlurEvaluationTests {
             """#
     }
 
-    private func resolved(clips: [String]) throws -> ResolvedSequence {
-        try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+    // Under the default shutter, or under `shutter` written as the format's `motionBlur`.
+    private func resolved(
+        clips: [String],
+        shutter: String? = nil
+    ) throws -> ResolvedSequence {
+        let motionBlur = shutter.map { #", "motionBlur": \#($0)"# } ?? ""
+        return try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25\#(motionBlur) },
               "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
             """#)
     }

@@ -23,10 +23,12 @@ struct ShapeEvaluator: Sendable {
         at time: SampleTime
     ) -> [DisplayItem] {
         // A transform at scale 0 flattens the shape to a point, where its carried lengths cannot be kept, so it draws
-        // nothing.
-        guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time), let carried = laid.carried else {
-            return []
-        }
+        // nothing. In a sample of a frame with motion blur its item is there all the same, every carried length 0, since
+        // whether an item is there is decided at T (FRAMES-29).
+        guard
+            let laid = laid(shape, clip: clip, sample: sample, in: space, at: time),
+            let carried = laid.carried ?? (time.sample.isSample ? 0 : nil)
+        else { return [] }
 
         let factor = sample.lengthFactor
 
@@ -38,7 +40,8 @@ struct ShapeEvaluator: Sendable {
                 sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
                 factor: factor,
                 carried: carried,
-                box: laid.box
+                box: laid.box,
+                isSample: time.sample.isSample
             ),
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
             shadow: DropShadow(

@@ -5,8 +5,10 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A shape's stroke at one instant, nil where it is off or its width is sampled at 0, where it draws nothing. Resolve
-// completed every leaf, so a leaf is always there, and its paint is its `gradient` laid over `box` or its `color`.
+// A shape's stroke at one instant, nil where it is off, and where its width is sampled at 0, where it draws nothing,
+// outside a sample of a frame with motion blur. In such a sample a stroke that is on is there at any width, 0 included,
+// since whether it is there is decided at T (FRAMES-29). Resolve completed every leaf, so a leaf is always there, and
+// its paint is its `gradient` laid over `box` or its `color`.
 // Its width is drawn in output pixels at the clip's scale factor, and its dash lengths and offset are carried by the
 // item's transform, so they are multiplied by `carried`, that factor over the transform's length factor. An odd dash
 // list is taken twice over.
@@ -17,11 +19,12 @@ extension PathStroke {
         sampled: SampledValue,
         factor: Double,
         carried: Double,
-        box: Rectangle
+        box: Rectangle,
+        isSample: Bool
     ) {
         guard
             let width = sampled["width"]?.number,
-            width > 0,
+            width > 0 || isSample,
             let paint = Paint(sampled: sampled["gradient"], box: box) ?? sampled["color"]?.color.map(Paint.color)
         else { return nil }
 
