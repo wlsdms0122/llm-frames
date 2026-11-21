@@ -77,23 +77,28 @@ struct ResolvedSequenceWriter: Sendable {
     }
 
     // What a clip draws comes after its id, a media clip's timing, filter and appearance with it, and a shape's
-    // geometry and appearance. Scale and rotation belong to anything drawn but an adjustment. A shape
-    // placed by its geometry writes its position and anchor where a box would, and its area with its own keys.
+    // geometry and appearance. Scale, rotation and a corner pin belong to anything drawn but an adjustment, and a clip
+    // with a corner pin writes its box's size and its position, anchor, scale and rotation as null. A shape placed by
+    // its geometry writes its position and anchor where a box would, and its area with its own keys.
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
-        let transform = [
-            clip.scale.map { JSONMember(key: "scale", value: values.scales($0)) },
-            clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
-            JSONMember(key: "blend", value: .string(clip.blend))
-        ].compactMap { $0 }
+        let isAdjustment = if case .adjustment = clip.content { true } else { false }
+        let transform = isAdjustment ? [] : [
+            JSONMember(key: "scale", value: clip.scale.map(values.scales) ?? .null),
+            JSONMember(key: "rotation", value: clip.rotation.map(number) ?? .null)
+        ]
+        let cornerPin = clip.cornerPin.map { pin in
+            values.keyframes(pin.points) { points in .array(points.map(values.geometryPoint)) }
+        }
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement
         let position = clip.box?.position ?? placement?.position
         let anchor = clip.box.map { values.point($0.anchor) } ?? placement?.anchor.map(values.geometryAnchor)
         let geometry = [
-            JSONMember(key: "size", value: clip.box.map { values.size($0.size) } ?? .null),
+            JSONMember(key: "size", value: (clip.box?.size ?? clip.cornerPin?.size).map(values.size) ?? .null),
             JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.geometryPoint) } ?? .null),
-            JSONMember(key: "anchor", value: anchor ?? .null),
+            JSONMember(key: "anchor", value: anchor ?? .null)
+        ] + (isAdjustment ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
             JSONMember(key: "mask", value: values.masks(clip.mask)),
             JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
@@ -112,6 +117,7 @@ struct ResolvedSequenceWriter: Sendable {
         ] + geometry + [
             JSONMember(key: "opacity", value: number(clip.opacity))
         ] + transform + [
+            JSONMember(key: "blend", value: .string(clip.blend)),
             JSONMember(key: "animation", value: values.animation(clip.animation))
         ]))
     }

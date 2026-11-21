@@ -25,7 +25,9 @@ struct ClipAreaFinder: Sendable {
         storylineLinks: [TrackMatteLink]
     ) throws {
         for (clip, link) in zip(storyline, storylineLinks) {
-            if let reference = references(position: clip.position, place: clip.place).first {
+            let references = references(position: clip.position, place: clip.place)
+                + references(points: clip.cornerPin, key: "cornerPin", place: clip.place)
+            if let reference = references.first {
                 throw ResolveError.clipAreaOnStoryline(place: reference.place, kind: link.kind)
             }
         }
@@ -123,7 +125,8 @@ struct ClipAreaFinder: Sendable {
         return nil
     }
 
-    // Every clip area a clip writes in its `area`, `position` and a path's `points`, statically and in keyframes.
+    // Every clip area a clip writes in its `area`, `position`, a path's `points` and its `cornerPin`, statically and in
+    // keyframes.
     private func references(of clip: Clip) -> [ClipAreaReference] {
         geometryReferences(of: clip) + references(position: clip.position, place: clip.place)
     }
@@ -134,19 +137,29 @@ struct ClipAreaFinder: Sendable {
                 form.clip.map { ClipAreaReference(place: place, clip: $0) }
             }
         } ?? []
-        let points: [ClipAreaReference] = if case let .shape(shape) = clip.content, let points = shape.points {
-            entries(points, key: "points", place: clip.place).flatMap { forms, place in
-                forms.enumerated().compactMap { index, form in
-                    form.clip.map { clip in
-                        ClipAreaReference(place: place.appending(index: index).appending(key: "area"), clip: clip)
-                    }
-                }
-            }
+        let points: [ClipAreaReference] = if case let .shape(shape) = clip.content {
+            references(points: shape.points, key: "points", place: clip.place)
         } else {
             []
         }
 
-        return area + points
+        return area + points + references(points: clip.cornerPin, key: "cornerPin", place: clip.place)
+    }
+
+    private func references(
+        points: PropertyValue<[PositionForm]>?,
+        key: String,
+        place: Place
+    ) -> [ClipAreaReference] {
+        guard let points else { return [] }
+
+        return entries(points, key: key, place: place).flatMap { forms, place in
+            forms.enumerated().compactMap { index, form in
+                form.clip.map { clip in
+                    ClipAreaReference(place: place.appending(index: index).appending(key: "area"), clip: clip)
+                }
+            }
+        }
     }
 
     private func references(

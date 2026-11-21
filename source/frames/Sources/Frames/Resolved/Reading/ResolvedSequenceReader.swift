@@ -14,9 +14,12 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-        "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
+        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
+        "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
     ]
+
+    // The keys of anything drawn, which an adjustment does not hold.
+    private static let drawnKeys = ["cornerPin", "scale", "rotation"]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
@@ -276,48 +279,75 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // What a clip draws decides the keys it holds: its content's, then scale and rotation for anything but an
-    // adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
+    // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything
+    // but an adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
+    // A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let contentKeys = try self.contentKeys(of: written)
         let isTransformed = !written.contains("adjust")
         let clip = try value.object(
             kind: "clip",
-            keys: Self.clipKeys.filter { key in
-                isTransformed || key != "scale" && key != "rotation"
-            } + contentKeys
+            keys: Self.clipKeys.filter { key in isTransformed || !Self.drawnKeys.contains(key) } + contentKeys
         )
         let size = try clip.member("size")
         let position = try clip.member("position")
         let anchor = try clip.member("anchor")
         let isShape = clip.contains("shape")
-        let box: ResolvedBox? = if size.isNull && (isShape || position.isNull && anchor.isNull) {
+        let cornerPin = isTransformed ? try cornerPin(of: clip) : nil
+        let box: ResolvedBox? = if cornerPin != nil || size.isNull && (isShape || position.isNull && anchor.isNull) {
             nil
         } else {
             try box(size: size, position: position, anchor: anchor)
         }
+        let isPlaced = isTransformed && cornerPin == nil
 
         return ResolvedClip(
             place: try clip.member("place").string(),
             id: try clip.member("id").optional { try $0.string() },
-            content: try content(of: clip, isPlacedByBox: box != nil),
+            content: try content(of: clip, isPlacedByBox: box != nil || cornerPin != nil),
             start: try clip.member("start").number(),
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
             box: box,
+            cornerPin: cornerPin,
             crop: try clip.member("crop").optional(values.crops),
             mask: try values.masks(clip.member("mask")),
             trackMatte: try clip.member("trackMatte").optional(trackMatte),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
-            scale: isTransformed ? try values.scales(clip.member("scale")) : nil,
-            rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
+            scale: isPlaced ? try values.scales(clip.member("scale")) : nil,
+            rotation: isPlaced ? try values.numbers(clip.member("rotation")) : nil,
             blend: try clip.member("blend").string(),
             animation: try values.animation(clip.member("animation"))
         )
+    }
+
+    // A corner pin is keyframes of four points, and the box it places has a size and no other placement.
+    private func cornerPin(of clip: PlacedJSONObject) throws -> ResolvedCornerPin? {
+        let written = try clip.member("cornerPin")
+        guard !written.isNull else { return nil }
+
+        let points = try values.keyframes(written) { value in
+            let points = try value.elements()
+            guard points.count == 4 else { throw value.wrongType("four points") }
+
+            return try points.map { try values.geometryPoint($0) }
+        }
+        for key in ["position", "anchor", "scale", "rotation"] {
+            let value = try clip.member(key)
+            guard value.isNull else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "a clip with a corner pin is placed by it, so its \(key) is null, found \(value.value.written)"
+                )
+            }
+        }
+
+        return ResolvedCornerPin(size: try values.size(clip.member("size")), points: points)
     }
 
     // A title, a shape by its name, an adjustment or a media clip, timed when it has `in`.

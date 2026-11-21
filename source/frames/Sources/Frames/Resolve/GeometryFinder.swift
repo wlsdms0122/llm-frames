@@ -98,9 +98,11 @@ struct GeometryFinder: Sendable {
         }
     }
 
-    // A path's points, each found as a position is, at the place of its index in the list.
+    // A list of points under `key`, a path's points or a corner pin, each found as a position is, at the place of its
+    // index in the list.
     func points(
         _ property: PropertyValue<[PositionForm]>,
+        key: String,
         in picture: Picture,
         pictureClock: PictureClock,
         clock: TimeMap,
@@ -109,7 +111,7 @@ struct GeometryFinder: Sendable {
         place: Place,
         kind: String
     ) throws -> PropertyValue<[GeometryPoint]> {
-        try values(property, key: "points", clock: clock, instant: instant, place: place) { forms, time, place in
+        try values(property, key: key, clock: clock, instant: instant, place: place) { forms, time, place in
             try forms.enumerated().map { index, form in
                 try point(
                     form,

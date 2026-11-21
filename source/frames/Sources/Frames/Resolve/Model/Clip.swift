@@ -25,6 +25,7 @@ struct Clip: Equatable, Sendable {
     let keyframes: [KeyframeInstant]
     let area: PropertyValue<AreaForm>?
     let position: PropertyValue<PositionForm>?
+    let cornerPin: PropertyValue<[PositionForm]>?
     let crop: PropertyValue<CropForm>?
     let mask: LookProperty?
     let trackMatte: TrackMatte?
@@ -56,6 +57,7 @@ struct Clip: Equatable, Sendable {
         keyframes: [KeyframeInstant],
         area: PropertyValue<AreaForm>? = nil,
         position: PropertyValue<PositionForm>? = nil,
+        cornerPin: PropertyValue<[PositionForm]>? = nil,
         crop: PropertyValue<CropForm>? = nil,
         mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
@@ -85,6 +87,7 @@ struct Clip: Equatable, Sendable {
         self.keyframes = keyframes
         self.area = area
         self.position = position
+        self.cornerPin = cornerPin
         self.crop = crop
         self.mask = mask
         self.trackMatte = trackMatte

@@ -112,6 +112,7 @@ struct ContentFitPlanner: Sendable {
                     storyline: clip.storyline,
                     parent: clip.parent,
                     box: clip.box,
+                    cornerPin: clip.cornerPin,
                     crop: clip.crop,
                     mask: clip.mask,
                     trackMatte: clip.trackMatte,
@@ -254,6 +255,9 @@ struct ContentFitPlanner: Sendable {
             position: geometry.position?.map { $0.map { moved($0, by: offset) } },
             box: geometry.box.map { box in
                 ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
+            },
+            cornerPin: geometry.cornerPin.map { pin in
+                ClipCornerPin(size: pin.size, points: pin.points.map { points in points.map { $0.map { moved($0, by: offset) } } })
             },
             crop: geometry.crop,
             mask: space == .parent

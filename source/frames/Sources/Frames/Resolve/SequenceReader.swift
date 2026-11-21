@@ -81,6 +81,7 @@ struct SequenceReader: Sendable {
             filter: look("filter", of: object),
             anchor: object["anchor"]?.stringValue,
             position: property("position", of: object, read: PositionForm.init(value:)),
+            cornerPin: property("cornerPin", of: object, read: cornerPin),
             scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             opacity: property("opacity", of: object, read: \.numberValue),
@@ -113,6 +114,7 @@ struct SequenceReader: Sendable {
             keyframes: keyframes,
             area: property("area", of: object, read: AreaForm.init(value:)),
             position: property("position", of: object, read: PositionForm.init(value:)),
+            cornerPin: property("cornerPin", of: object, read: cornerPin),
             crop: property("crop", of: object, read: CropForm.init(value:)),
             mask: look("mask", of: object),
             trackMatte: object["trackMatte"].flatMap(TrackMatte.init(value:)),
@@ -176,6 +178,11 @@ struct SequenceReader: Sendable {
             },
             shadow: look("shadow", of: clip)
         )
+    }
+
+    // The key tables let only four points through.
+    private func cornerPin(_ value: JSONValue) -> [PositionForm]? {
+        value.arrayValue.map { elements in elements.compactMap(PositionForm.init(value:)) }
     }
 
     private func media(

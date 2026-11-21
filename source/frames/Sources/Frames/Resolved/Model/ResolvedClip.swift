@@ -8,11 +8,12 @@
 // A clips entry: a title, shape, adjustment or media clip. `start` and `end` are its visible window, already narrowed.
 // `storyline` is the index of the storyline entry a connected clip belongs to, nil for a sequence clip, and `parent`
 // the id of the clip whose space it is placed in, nil for an unparented clip. `box` places a title, a media clip or a
-// shape given by `width` and `height`, and a shape placed by its geometry carries it in its content. `crop` is a media
+// shape given by `width` and `height`, `cornerPin` places one with a corner pin in place of `box`, and a shape placed
+// by its geometry carries its placement in its content. `crop` is a media
 // clip's every crop conformed to its box. `mask` is the clip's masks in its own coordinate space, nil for none, a
 // keyframe's where it lies at its own time when tracked, and `trackMatte` its track matte, nil for none. Keyframes are
-// in sequence time. `scale` and `rotation` belong to anything but an adjustment, and each is nil where its entry has no
-// such key.
+// in sequence time. `scale` and `rotation` belong to anything but an adjustment, whose entry has no such key, and are
+// nil for an adjustment and for a clip with a corner pin, whose entry writes them as null.
 struct ResolvedClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -24,6 +25,7 @@ struct ResolvedClip: Equatable, Sendable {
     let storyline: Int?
     let parent: String?
     let box: ResolvedBox?
+    let cornerPin: ResolvedCornerPin?
     let crop: [Keyframe<Crop>]?
     let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
@@ -56,6 +58,7 @@ struct ResolvedClip: Equatable, Sendable {
         storyline: Int?,
         parent: String?,
         box: ResolvedBox?,
+        cornerPin: ResolvedCornerPin? = nil,
         crop: [Keyframe<Crop>]?,
         mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
@@ -75,6 +78,7 @@ struct ResolvedClip: Equatable, Sendable {
         self.storyline = storyline
         self.parent = parent
         self.box = box
+        self.cornerPin = cornerPin
         self.crop = crop
         self.mask = mask
         self.trackMatte = trackMatte

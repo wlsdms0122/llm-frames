@@ -260,6 +260,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "anchor": [19.125, 14.625],
+              "cornerPin": null,
               "crop": null,
               "mask": null,
               "trackMatte": null,
@@ -342,6 +343,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "anchor": [100, 80],
+              "cornerPin": null,
               "crop": [
                 {
                   "at": 0,

@@ -53,6 +53,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
+    case cornerPinOnGeometry(place: Place, kind: PlaceKind)
+    case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
@@ -250,6 +253,17 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
+
+        case let .cornerPinWithPlacement(place, kind, key):
+            "\(place) (\(kind.label)): a clip placed by \"cornerPin\" takes no \(quoted(key)), since its corner pin places it"
+
+        case let .cornerPinOnGeometry(place, kind):
+            "\(place) (\(kind.label)): a shape placed by its area or points takes no \"cornerPin\", "
+                + "since its outline is in its space already"
+
+        case let .cornerPinNotConvex(place, kind, time):
+            "\(place) (\(kind.label)): the corner pin\(time.map { " at \(number($0))" } ?? "") is not strictly convex, "
+                + "so no homography takes the clip's box to it"
 
         case let .textMaskInOwnBox(place, kind):
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"

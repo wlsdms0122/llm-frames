@@ -7,7 +7,8 @@
 
 // A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, and whether media is
 // timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
-// and `shadow` are its transform and how its box is drawn, as on a media clip. `transition` and `filter` are preset
+// and `shadow` are its transform and how its box is drawn, as on a media clip, and `cornerPin` the four points its box's
+// corners go to in place of a position. `transition` and `filter` are preset
 // choices as written, which resolve merges over the theme's defaults, `filter` with its keyframes.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
@@ -25,6 +26,7 @@ struct StorylineClip: Equatable, Sendable {
     let filter: LookProperty?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
+    let cornerPin: PropertyValue<[PositionForm]>?
     let scale: PropertyValue<Scale>?
     let rotation: PropertyValue<Double>?
     let opacity: PropertyValue<Double>?
@@ -50,6 +52,7 @@ struct StorylineClip: Equatable, Sendable {
         filter: LookProperty? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,
+        cornerPin: PropertyValue<[PositionForm]>? = nil,
         scale: PropertyValue<Scale>? = nil,
         rotation: PropertyValue<Double>? = nil,
         opacity: PropertyValue<Double>? = nil,
@@ -73,6 +76,7 @@ struct StorylineClip: Equatable, Sendable {
         self.filter = filter
         self.anchor = anchor
         self.position = position
+        self.cornerPin = cornerPin
         self.scale = scale
         self.rotation = rotation
         self.opacity = opacity

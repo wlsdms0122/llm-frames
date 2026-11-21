@@ -23,6 +23,7 @@ struct ParentSpacePlanner: Sendable {
     private let areas: [PropertyValue<AreaValue>?]
     private let points: [PropertyValue<[GeometryPoint]>?]
     private let positions: [PropertyValue<GeometryPoint>?]
+    private let cornerPins: [PropertyValue<[GeometryPoint]>?]
     private let masks: [[FoundMask]?]
     // The transform of each shape placed by its geometry, nil for every other clip. Each is planned once, its
     // parents' first, since what a shape finds is brought back through its parents' transforms.
@@ -30,7 +31,7 @@ struct ParentSpacePlanner: Sendable {
 
     // MARK: - Initializer
     // Each list is in the time plan's order of clips: the clips as written, their shapes as planned, and the areas,
-    // points, positions and masks found for them, in the media searched.
+    // points, positions, corner pins and masks found for them, in the media searched.
     init(
         tracked: TrackPlan,
         written: [Clip],
@@ -38,6 +39,7 @@ struct ParentSpacePlanner: Sendable {
         areas: [PropertyValue<AreaValue>?],
         points: [PropertyValue<[GeometryPoint]>?],
         positions: [PropertyValue<GeometryPoint>?],
+        cornerPins: [PropertyValue<[GeometryPoint]>?],
         masks: [[FoundMask]?]
     ) throws {
         self.tracked = tracked
@@ -46,6 +48,7 @@ struct ParentSpacePlanner: Sendable {
         self.areas = areas
         self.points = points
         self.positions = positions
+        self.cornerPins = cornerPins
         self.masks = masks
         self.transforms = Array(repeating: nil, count: written.count)
 
@@ -75,21 +78,13 @@ struct ParentSpacePlanner: Sendable {
     }
 
     func points(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
-        let plan = tracked.time.clips[index]
-        guard let found = points[index],
-            case let .shape(shape) = written[index].content,
-            let written = shape.points,
-            let parent = plan.parent
-        else { return points[index] }
+        guard case let .shape(shape) = written[index].content else { return points[index] }
 
-        return try values(found, written: written, instant: plan.instant) { points, forms, time in
-            guard forms.contains(where: \.isFoundByText) else { return points }
+        return try points(points[index], written: shape.points, of: index, key: "points")
+    }
 
-            let inverses = try inverseLinks(under: parent, at: time, of: index, key: "points")
-            return zip(points, forms).map { point, form in
-                form.isFoundByText ? point.map { bringBack($0, through: inverses) } : point
-            }
-        }
+    func cornerPin(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
+        try points(cornerPins[index], written: written[index].cornerPin, of: index, key: "cornerPin")
     }
 
     func position(of index: Int) throws -> PropertyValue<GeometryPoint>? {
@@ -132,6 +127,26 @@ struct ParentSpacePlanner: Sendable {
     }
 
     // MARK: - Private
+    // A list of points brought back point by point, those found by text.
+    private func points(
+        _ found: PropertyValue<[GeometryPoint]>?,
+        written: PropertyValue<[PositionForm]>?,
+        of index: Int,
+        key: String
+    ) throws -> PropertyValue<[GeometryPoint]>? {
+        let plan = tracked.time.clips[index]
+        guard let found, let written, let parent = plan.parent else { return found }
+
+        return try values(found, written: written, instant: plan.instant) { points, forms, time in
+            guard forms.contains(where: \.isFoundByText) else { return points }
+
+            let inverses = try inverseLinks(under: parent, at: time, of: index, key: key)
+            return zip(points, forms).map { point, form in
+                form.isFoundByText ? point.map { bringBack($0, through: inverses) } : point
+            }
+        }
+    }
+
     // The map of each shape and adjustment from the parent out to the clip whose media is searched, the outermost
     // first, each from the space its children are written in to that of its own parent at the time its window holds.
     // Only one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no

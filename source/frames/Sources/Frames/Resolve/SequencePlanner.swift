@@ -108,6 +108,7 @@ struct SequencePlanner: Sendable {
             areas: found.map(\.area),
             points: found.map(\.points),
             positions: found.map(\.position),
+            cornerPins: found.map(\.cornerPin),
             masks: found.map(\.mask)
         )
         let placed = try time.clips.indices.map { index in
@@ -115,6 +116,7 @@ struct SequencePlanner: Sendable {
                 area: try parentSpace.area(of: index),
                 points: try parentSpace.points(of: index),
                 position: try parentSpace.position(of: index),
+                cornerPin: try parentSpace.cornerPin(of: index),
                 crop: found[index].crop,
                 mask: try parentSpace.mask(of: index)
             )
@@ -178,11 +180,22 @@ struct SequencePlanner: Sendable {
                 format: format,
                 theme: time.theme
             )
+            let cornerPin = try appearances.cornerPin(
+                of: tracked.time.clips[index],
+                written: written[index],
+                points: placed[index].cornerPin,
+                crop: placed[index].crop,
+                title: title?.layout,
+                picture: clipPictures[index],
+                shape: shape,
+                format: format
+            )
             return ClipGeometry(
                 area: placed[index].area,
                 points: placed[index].points,
                 position: placed[index].position,
                 box: box,
+                cornerPin: cornerPin,
                 crop: placed[index].crop,
                 mask: placed[index].mask,
                 track: tracked.clips[index],
@@ -192,7 +205,7 @@ struct SequencePlanner: Sendable {
                 appearance: try appearances.appearance(
                     of: tracked.time.clips[index],
                     written: written[index],
-                    box: box,
+                    box: box?.size ?? cornerPin?.size,
                     crop: placed[index].crop,
                     picture: clipPictures[index],
                     shape: shape,
@@ -514,13 +527,14 @@ struct SequencePlanner: Sendable {
                 kind: plan.kind.label
             )
         }
-        let points = try shapePoints(of: written).map { points in
-            if space.isOutputPixels, let text = byText(points, place: written.place) {
+        let points = { (points: PropertyValue<[PositionForm]>, key: String) in
+            if space.isOutputPixels, let text = byText(points, key: key, place: written.place) {
                 throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.points(
                 points,
+                key: key,
                 in: space.picture,
                 pictureClock: space.clock,
                 clock: plan.clock,
@@ -592,8 +606,9 @@ struct SequencePlanner: Sendable {
 
         return FoundGeometry(
             area: area,
-            points: points,
+            points: try shapePoints(of: written).map { try points($0, "points") },
             position: position,
+            cornerPin: try written.cornerPin.map { try points($0, "cornerPin") },
             crop: crop,
             mask: mask,
             isInOutputPixels: space.isOutputPixels
@@ -645,20 +660,21 @@ struct SequencePlanner: Sendable {
         return shape.points
     }
 
-    // The place of the first point given by an area written with text.
+    // The place of the first point of the list under `key` given by an area written with text.
     private func byText(
         _ points: PropertyValue<[PositionForm]>,
+        key: String,
         place: Place
     ) -> Place? {
         switch points {
         case let .value(forms):
-            return forms.firstIndex(where: \.isFoundByText).map { place.appending(key: "points").appending(index: $0) }
+            return forms.firstIndex(where: \.isFoundByText).map { place.appending(key: key).appending(index: $0) }
 
         case let .keyframes(keyframes):
             for keyframe in keyframes {
                 guard let index = keyframe.value.firstIndex(where: \.isFoundByText) else { continue }
 
-                return place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "points")
+                return place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: key)
                     .appending(index: index)
             }
             return nil
