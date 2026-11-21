@@ -398,7 +398,7 @@ package struct DisplayListReader: Sendable {
         case let .imageSequence(files):
             files.count
 
-        case .file:
+        case .file, .page:
             max(media.frameTimes.count, 1)
         }
     }

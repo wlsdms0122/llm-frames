@@ -220,8 +220,8 @@ package struct TimelineReporter: Sendable {
             case .nested:
                 ClipKind.media(.sequence).label
 
-            case .pinned:
-                ClipKind.media(clip.timing == nil ? .image : .video).label
+            case let .pinned(media):
+                ClipKind.media(clip.timing != nil ? .video : media.page != nil ? .page : .image).label
             }
         }
     }
@@ -236,6 +236,9 @@ package struct TimelineReporter: Sendable {
 
         case let .imageSequence(files):
             return files.first.map { URL(fileURLWithPath: $0.path).deletingLastPathComponent().path }
+
+        case let .page(file, _):
+            return file.path
         }
     }
 

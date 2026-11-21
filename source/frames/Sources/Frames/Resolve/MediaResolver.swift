@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Turns the media a document names into what time knows of it: the probed facts of a file, the length and frames an
-// image sequence's rate gives, and the time plan of a compound clip, a document named by its file or a template
-// instance. Media named by `<pack>/<file>` is found through the library before it is probed.
+// Turns the media a document names into what time knows of it: the probed facts of a file or a page of a PDF, the
+// length and frames an image sequence's rate gives, and the time plan of a compound clip, a document named by its file
+// or a template instance. Media named by `<pack>/<file>` is found through the library before it is probed.
 struct MediaResolver: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
@@ -42,8 +42,14 @@ struct MediaResolver: Sendable {
             return try document(named: reference, place: place, kind: kind, theme: theme)
 
         case let .file(reference):
+            guard let file = try library.mediaFile(named: reference) else {
+                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            }
+            // A PDF of one page named as a file is that page.
+            if let page = try pageFile(at: file, page: nil, place: place, kind: kind, reference: reference) {
+                return pagePlan(page, reference: reference)
+            }
             guard
-                let file = try library.mediaFile(named: reference),
                 let probed = try probed(place: place, kind: kind, reference: reference, {
                     try mediaFacts.probedMedia(of: file)
                 })
@@ -85,14 +91,15 @@ struct MediaResolver: Sendable {
                 duration: duration
             )
 
-        // The probe reads no page of a PDF, so a page is media it cannot read.
         case let .page(reference, page):
-            throw ResolveError.unreadableMedia(
-                place: place,
-                kind: kind,
-                reference: reference,
-                reason: "the probe reads no page of a PDF, page \(page) among them"
-            )
+            guard
+                let file = try library.mediaFile(named: reference),
+                let page = try pageFile(at: file, page: page, place: place, kind: kind, reference: reference)
+            else {
+                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            }
+
+            return pagePlan(page, reference: reference)
 
         case let .compound(document):
             return nested(try planner(library: library).plan(document, theme: theme), reference: nil)

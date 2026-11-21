@@ -7,8 +7,8 @@
 
 import Foundation
 
-// The file a decoder reads for pinned media. An image sequence is found at the directory of its frame files. The
-// frame rate and size are not pinned, so a decoder reads them from the file.
+// The file a decoder reads for pinned media. An image sequence is found at the directory of its frame files, and a page
+// is its file with its number. The frame rate and size are not pinned, so a decoder reads them from the file.
 extension MediaFile {
     // MARK: - Property
     // MARK: - Initializer
@@ -22,6 +22,9 @@ extension MediaFile {
             let directory = paths.first.map { URL(fileURLWithPath: $0).deletingLastPathComponent().path } ?? ""
 
             self.init(path: directory, frameTimes: media.frameTimes, frameFiles: paths)
+
+        case let .page(file, page):
+            self.init(path: file.path, page: page)
         }
     }
 
