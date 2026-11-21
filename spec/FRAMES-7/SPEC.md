@@ -64,7 +64,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 
 | Object | Keys |
 | --- | --- |
-| sequence | `kind, format, theme, params, storyline, clips, audioFilter`. `kind` is required and is `"sequence"` |
+| sequence | `kind, format, theme, params, storyline, clips, audioFilter, keyframes`. `kind` is required and is `"sequence"`. Its `keyframes` time its `audioFilter` on sequence time ([FRAMES-4](../FRAMES-4/SPEC.md), [FRAMES-28](../FRAMES-28/SPEC.md#buses)) |
 | format | `size, fps, background, conform, colorSpace, peak, compositing` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
 | storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video or a compound clip ([FRAMES-13](../FRAMES-13/SPEC.md)) |
@@ -112,6 +112,7 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 
 | Clip | Properties |
 | --- | --- |
+| sequence, by its own `keyframes` | `audioFilter` |
 | storyline clip with media | `crop, position, scale, rotation, opacity, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video and compound clips with sound |
 | storyline clip, solid | `solid` |
 | media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video and compound clips with sound |
