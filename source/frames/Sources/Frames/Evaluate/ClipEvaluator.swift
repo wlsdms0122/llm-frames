@@ -215,7 +215,7 @@ struct ClipEvaluator: Sendable {
                     opacity: presentation.opacity,
                     reveal: reveal,
                     content: .glyphs(layer),
-                    origin: origin
+                    origin: origin.drawing(unit: index)
                 )
             }
         }

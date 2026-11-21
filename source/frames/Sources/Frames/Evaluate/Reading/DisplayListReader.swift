@@ -209,12 +209,17 @@ package struct DisplayListReader: Sendable {
     }
 
     private func origin(_ value: PlacedJSONValue) throws -> ItemOrigin {
-        let origin = try value.object(keys: ["place", "id", "kind"])
+        let origin = try value.object(keys: ["place", "id", "kind", "unit"])
 
         return ItemOrigin(
             place: try origin.member("place").string(),
             id: try origin.member("id").optional { try $0.string() },
-            kind: try origin.member("kind").string()
+            kind: try origin.member("kind").string(),
+            unit: try origin.member("unit").optional { value in
+                guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
+
+                return unit
+            }
         )
     }
 

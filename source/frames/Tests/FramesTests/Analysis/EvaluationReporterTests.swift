@@ -380,6 +380,36 @@ struct EvaluationReporterTests {
         ])
     }
 
+    @Test("a unit's item reports the characters of the unit its origin names, whatever its place among the title's items")
+    func reportsUnitByOrigin() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "ab cd", "animation": { "preset": "frames/fade", "by": "word" } }"#))
+        let titles = document.titles(at: 1)
+        let place = try #require(titles.keys.first)
+        let fills = GlyphsItem(
+            size: Size(width: 100, height: 40),
+            runs: [run(stroke: nil, highlight: nil)],
+            layer: .fills,
+            unitBox: Rectangle(x: 0, y: 0, width: 50, height: 40),
+            extent: Rectangle(x: 0, y: 0, width: 50, height: 40),
+            background: nil
+        )
+        let origin = { (unit: Int) in ItemOrigin(place: place, id: "t", kind: "title", unit: unit) }
+
+        // When
+        let report = sut.report(
+            of: list([
+                DisplayItem(content: .glyphs(fills), origin: origin(1)),
+                DisplayItem(content: .glyphs(fills), origin: origin(0))
+            ]),
+            titles: titles,
+            at: 1
+        )
+
+        // Then
+        #expect(report.items.map { $0.characters?.map(\.text) } == [["c", "d"], ["a", "b", " "]])
+    }
+
     @Test("a resolved document is evaluated at the time, its clips reporting places, ids, kinds, bounds and rects")
     func reportsResolvedDocument() throws {
         // Given

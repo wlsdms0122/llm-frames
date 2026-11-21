@@ -46,7 +46,8 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "place", value: .string(origin.place)),
                 JSONMember(key: "id", value: origin.id.map(JSONValue.string) ?? .null),
-                JSONMember(key: "kind", value: .string(origin.kind))
+                JSONMember(key: "kind", value: .string(origin.kind)),
+                JSONMember(key: "unit", value: origin.unit.map { .number(Double($0)) } ?? .null)
             ]))
         }
         let members = [

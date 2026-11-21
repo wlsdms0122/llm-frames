@@ -9,7 +9,7 @@
 // nested lists flattened, with the text of every title drawn then. A title's text is read from the resolved title at
 // the time evaluation samples it at, not from its items. A title's first item names it and gives its text box's map
 // to output pixels: its one item, or the background item under its units, which carries the title's transform without
-// a unit's motion. A unit's `fills` item is the k-th unit's when it is the title's k-th `fills` item.
+// a unit's motion. A unit's `fills` item reports the characters of the unit its origin names.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()
@@ -36,7 +36,6 @@ package struct EvaluationReporter: Sendable {
     ) -> EvaluationReport {
         var items: [EvaluationItem] = []
         var texts: [EvaluationText] = []
-        var units: [String: Int] = [:]
         for item in flattener.items(of: list) {
             guard item.item == .glyphs, let origin = item.origin, let title = titles[origin.place] else {
                 items.append(EvaluationItem(item))
@@ -50,9 +49,7 @@ package struct EvaluationReporter: Sendable {
             case .title:
                 items.append(EvaluationItem(item, characters: title.text.characters(at: title.time)))
 
-            case .unit:
-                let unit = units[origin.place, default: 0]
-                units[origin.place] = unit + 1
+            case let .unit(unit):
                 items.append(EvaluationItem(item, characters: title.text.characters(of: unit, at: title.time)))
 
             case .none:

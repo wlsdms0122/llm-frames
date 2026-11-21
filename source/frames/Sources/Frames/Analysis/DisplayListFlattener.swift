@@ -75,7 +75,7 @@ struct DisplayListFlattener: Sendable {
             rect = glyphs.extent
             let drawn = drawn(by: glyphs, carriedBy: item.transform)
             coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
-            characters = scope(of: glyphs)
+            characters = scope(of: glyphs, origin: own.origin)
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
@@ -153,15 +153,18 @@ struct DisplayListFlattener: Sendable {
         return glyphs.drawnBounds(carriedBy: transform)
     }
 
-    // A title's one item that draws its runs reports every character, and a unit's `fills` item its unit's. A title's
-    // background drawn alone and every other layer of a unit report none.
-    private func scope(of glyphs: GlyphsItem) -> CharacterScope? {
+    // A title's one item that draws its runs reports every character, and a unit's `fills` item the characters of the
+    // unit its origin names. A title's background drawn alone and every other layer of a unit report none.
+    private func scope(
+        of glyphs: GlyphsItem,
+        origin: ItemOrigin?
+    ) -> CharacterScope? {
         switch glyphs.layer {
         case .none:
             glyphs.runs.isEmpty ? nil : .title
 
         case .fills:
-            .unit
+            origin?.unit.map(CharacterScope.unit)
 
         case .highlights, .underlines, .strokes:
             nil
