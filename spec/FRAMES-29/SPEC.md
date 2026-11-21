@@ -58,7 +58,7 @@ tᵢ = T + (P + A × (i + 0.5) / N) × d      for i = 0, 1, ..., N - 1
 
 **A sample moves pose and holds content and membership.**
 
-- **Pose** is every value that can change with time: a keyframed value with its eases and springs, an animation's and a title's unit animation's progress ([FRAMES-14](../FRAMES-14/SPEC.md)), a transition's progress with the motion, cover opacity and matte progress it drives, and a time map ([FRAMES-8](../FRAMES-8/SPEC.md)), whatever they move: transform, masks, opacity, geometry, colours, filter values and clip areas ([FRAMES-2](../FRAMES-2/SPEC.md)).
+- **Pose** is every value that can change with time: a keyframed value with its eases and springs, an animation's and a title's unit animation's progress ([FRAMES-14](../FRAMES-14/SPEC.md)), a transition's progress with the motion, cover opacity and matte progress it drives, whatever they move: transform, masks, opacity, geometry, colours, filter values and clip areas ([FRAMES-2](../FRAMES-2/SPEC.md)).
 - **Content** is what a clip shows from its media: its media frames, the grain seed, and its tracked motion, which is a fact about the media frame it was followed on. Content is that of T.
 - **Membership** is which clips draw and their order in the stack ([FRAMES-9](../FRAMES-9/SPEC.md)), the storyline clips a transition holds and whether a matte clip gives its track matte ([FRAMES-11](../FRAMES-11/SPEC.md)) included. Membership is decided at T.
 
@@ -70,7 +70,7 @@ tᵢ = T + (P + A × (i + 0.5) / N) × d      for i = 0, 1, ..., N - 1
 - A clip area or a point that names another clip is read from that clip's values, each by its owner's switch ([FRAMES-2](../FRAMES-2/SPEC.md)).
 - A track matte's values are its matte clip's ([FRAMES-11](../FRAMES-11/SPEC.md)).
 - A transition's progress belongs to the clip that brings it in ([FRAMES-8](../FRAMES-8/SPEC.md)), and it holds 0 before the transition and 1 after it. So both sides of a push move by one progress in every sample and meet at the seam on every frame, the first and the last included. The outgoing clip's switch moves its own values and not the transition.
-- A compound clip's time map is the compound clip's ([Compound clips and template instances](#compound-clips-and-template-instances)).
+- A compound clip's time map belongs to no switch: it is the clock that carries an instant into the compound clip ([Compound clips and template instances](#compound-clips-and-template-instances)).
 
 A title with `motionBlur` slides, and a bar without it is parented to the title or placed by `area: {"clip": "title"}`: in each sample the title's position is at tᵢ, so the bar moves with the title and the two blur as one picture. With the switches the other way round, and the bar growing by keyframes of its own `width`, the bar is blurred by its growth alone and stays sharp along the title's motion, as the title does.
 
@@ -88,6 +88,7 @@ A title with `motionBlur` slides, and a bar without it is parented to the title 
 - the end of a span eased by `step` ([FRAMES-4](../FRAMES-4/SPEC.md)), a keyframe's or a preset span's,
 - two keys that name one property at the same `t` of a span ([FRAMES-14](../FRAMES-14/SPEC.md)),
 - a loop seam, where one period of an animation's `loop` meets the next, or one repetition of looped media under a time map meets the next ([FRAMES-8](../FRAMES-8/SPEC.md)),
+- the instant where one of a clip's animations hands over to the next, its entrance to its loop and its loop to its exit ([FRAMES-14](../FRAMES-14/SPEC.md)), since their values need not meet there,
 - the ends of its owner's window ([FRAMES-8](../FRAMES-8/SPEC.md): a storyline clip's drawn range, any other clip's visible window). Clip time is held at the window's ends, so a clip stands at its first pose before its window starts and at its last after it ends, as a parent does ([FRAMES-10](../FRAMES-10/SPEC.md)).
 
 Where tᵢ lies on T's piece, the value is the value at tᵢ. Where it lies on another piece, the value is the value at the end of T's piece on that side, held, so a jump stays a jump and is never averaged.
@@ -124,7 +125,7 @@ An adjustment clip takes `motionBlur` like any clip: the values it owns (its rev
 
 A compound clip or a template instance C shown on a frame of instant T is evaluated at m(T), where m maps the time of the sequence that holds C to C's nested time by C's time map: its `in`, `speed`, `loop` and `timeRemap` ([FRAMES-8](../FRAMES-8/SPEC.md)), clamped into `[0, duration)` as [FRAMES-3](../FRAMES-3/SPEC.md) clamps a compound clip's time. m(T) is the frame's instant inside C: which of C's clips draw, their media frames and their tracked motion are taken there.
 
-**Nested time is mapped per instant.** C's time map is C's value. In sample i C's nested time is m(tᵢ) where C has `motionBlur` and m(T) where it has not, read on the piece of the map that holds T (a `timeRemap` `step` end, a loop seam and C's window ends end its pieces), and clamped into `[0, duration)`. Inside C every value is read at that nested time by the same rule: at it where its owner has `motionBlur` and at m(T) where it has not, on the piece of its curve that holds m(T), with m(T) as T. C's own item takes C's values at tᵢ. Through compound clips nested in compound clips each map applies in turn, from the outermost sequence in. So motion composes as trajectories under any map, an eased one included, the outermost sequence's shutter exposes the whole output with the same weight on each of its instants, and the shutter of C's own format plays no part.
+**Nested time is mapped per instant.** C's time map is a clock, not a pose: it carries the frame's instants into C whatever C's own `motionBlur` is. In sample i C's nested time is m(tᵢ), read on the piece of the map that holds T (a `timeRemap` `step` end, a loop seam and C's window ends end its pieces), and clamped into `[0, duration)`. Inside C every value is read at that nested time by the same rule: at it where its owner has `motionBlur` and at m(T) where it has not, on the piece of its curve that holds m(T), with m(T) as T. C's own item takes C's values at tᵢ. Through compound clips nested in compound clips each map applies in turn, from the outermost sequence in. So motion composes as trajectories under any map, an eased one included, the outermost sequence's shutter exposes the whole output with the same weight on each of its instants, and the shutter of C's own format plays no part.
 
 - Under `speed` s the nested time moves s times as fast, so a clip inside C is blurred by the motion it shows on the output.
 - Where `timeRemap` holds a frame over the exposure, every nested time is m(T), and C's clips stand still, as a held frame shows no motion.
@@ -134,7 +135,7 @@ With C sliding right at v pixels a second, a clip X inside it sliding left at v 
 
 - **Both on.** Sample i reads C at tᵢ and X at m(tᵢ), the same instant, so X's place on the output is the same in every sample: X is sharp, and what else C shows blurs with C.
 - **C on, X off.** X stands at m(T) inside C in every sample and C carries it, so X is smeared by C's motion, the motion C's switch exposes.
-- **C off, X on.** C's nested time is m(T) in every sample, so X is sharp: motion inside a compound clip blurs only where the compound clip has the switch, as in After Effects a precomposition's layers blur only where its layer has the switch on.
+- **C off, X on.** C stands as at T in every sample and X is read at m(tᵢ), so X is blurred by its own motion inside C, and what else C shows is sharp: a clip's switch blurs its motion wherever the clip sits.
 
 ### Roles
 
