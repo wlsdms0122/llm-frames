@@ -138,7 +138,7 @@ With C sliding right at v pixels a second, a clip X inside it sliding left at v 
 
 - The renderer draws a frame given as samples by the mean above ([FRAMES-21](../FRAMES-21/SPEC.md)). A renderer that lacks it refuses before it starts, naming the first frame that holds samples, as for any item it lacks.
 - The `evaluate` and `locate` commands report the frame as at T ([FRAMES-23](../FRAMES-23/SPEC.md)): the list the frame would have without motion blur, every field at T, `bounds` included, and `locate` tests each item's shape as it is at T. Neither takes a union over the samples.
-- The decoder is asked for the media frames of T only, the same in every sample. The mixer and the mix plan are unchanged: motion blur acts on pictures only ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). The encoder is unchanged.
+- The decoder is asked for the media frames of T only, the same in every sample. A page of a PDF ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) is the page of T in every sample, and is asked for by the region and scale each sample list shows it at ([FRAMES-20](../FRAMES-20/SPEC.md#pictures)): samples whose region and scale agree read one picture of it, and where a blurred zoom makes the scale differ between samples, each sample asks for its own. The mixer and the mix plan are unchanged: motion blur acts on pictures only ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). The encoder is unchanged.
 
 ## Interactions
 

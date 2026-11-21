@@ -228,7 +228,18 @@ struct DisplayListReaderTests {
             .lut(file: PinnedFile(path: "/abs/film.cube", sha256: hash), amount: 0.5),
             .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
             .levels(input: [0.05, 0.95], output: [0, 1])
-        ])])))
+        ])]))),
+        DisplayItem(content: .picture(PictureItem(
+            source: .media(MediaFrame(media: page, index: 0)),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50),
+            destination: Rectangle(x: 0, y: 0, width: 400, height: 200),
+            matte: PictureMatte(
+                frame: MediaFrame(media: page, index: 0, reading: .analysis(colorSpace: nil)),
+                progress: 0.5,
+                softness: 0.1,
+                isInverted: false
+            )
+        )))
     ]
 
     // A path in the written list with samples, what is put there or nil to remove it, and the message of the stop.
@@ -289,7 +300,10 @@ struct DisplayListReaderTests {
             "samples[1][14].filter[0].ops[0].sha256 (adjust)"
         ),
         (["1", "14", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][14].filter[0].ops[0].space (adjust)"),
-        (["1", "14"], nil, "samples[1] (display list)")
+        (["1", "14"], nil, "samples[1] (display list)"),
+        (["1", "15", "source", "media", "file"], #""/abs/other.pdf""#, "samples[1][15].source.media.file (picture)"),
+        (["1", "15", "source", "media", "page"], "1", "samples[1][15].source.media.page (picture)"),
+        (["1", "15", "matte", "source", "page"], "1", "samples[1][15].matte.source.page (picture)")
     ]
 
     // A path in the second sample list and what is written there.
@@ -335,7 +349,9 @@ struct DisplayListReaderTests {
         (["14", "filter", "0", "ops", "1", "radius"], "8"),
         (["14", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
         (["14", "filter", "0", "ops", "2", "input"], "[0, 1]"),
-        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]")
+        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]"),
+        (["15", "rect"], "[10, 5, 50, 25]"),
+        (["15", "dest"], "[0, 0, 440, 220]")
     ]
 
     // MARK: - Initializer

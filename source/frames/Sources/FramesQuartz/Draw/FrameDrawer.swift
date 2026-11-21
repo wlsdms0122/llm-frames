@@ -375,8 +375,9 @@ final class FrameDrawer {
         )
     }
 
-    // A page is drawn from one picture the decoder gives at a scale its frame alone decides (FRAMES-20 Pictures): the
-    // longer axis stretch of `map`, from the page's media pixels to the raster's pixels, rounded up to a power of two.
+    // A page is drawn from one picture the decoder gives at a scale its frame alone decides (FRAMES-20 Pictures), each
+    // sample list of a frame by its own items, so samples that agree on region and scale read one picture: the longer
+    // axis stretch of `map`, from the page's media pixels to the raster's pixels, rounded up to a power of two.
     // The picture is the whole page where the decoder holds it at that scale in at most `wholePagePixels`, so a pan at
     // one scale reads one picture. Otherwise it is the part of `region`, the whole page where it is nil, that lands on
     // the raster grown by `margin` of its pixels, at that scale or at the largest scale at which the decoder holds that

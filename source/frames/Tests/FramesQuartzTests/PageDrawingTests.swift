@@ -68,6 +68,37 @@ struct PageDrawingTests {
         ])
     }
 
+    @Test(
+        "the samples of a frame read one page picture where their scales agree, and each scale its own where a zoom changes it",
+        arguments: [
+            ([2.01, 2.03, 2.06, 2.1], [4.0]),
+            ([1.9, 1.97, 2.03, 2.1], [2.0, 4.0])
+        ]
+    )
+    func asksForPagePerSampleScale(
+        stretches: [Double],
+        scales: [Double]
+    ) throws {
+        // Given
+        let decoder = ReadingDecoder(pageSize: Size(width: 100, height: 100))
+        let sut = QuartzRenderer(decoder: decoder)
+        let samples = stretches.map { stretch in
+            [DisplayItem(
+                transform: Frames.AffineTransform(a: stretch, b: 0, c: 0, d: stretch, tx: 0, ty: 0),
+                content: .picture(picture(of: "/abs/deck.pdf", destination: Rectangle(x: 0, y: 0, width: 100, height: 100)))
+            )]
+        }
+        let frame = DisplayList(size: Size(width: 200, height: 200), background: Self.clear, seed: 0, samples: samples)
+
+        // When
+        _ = try sut.frame(of: frame)
+
+        // Then
+        #expect(decoder.regions(of: "/abs/deck.pdf") == scales.map { scale in
+            PageRegionRequest(region: PageRegion(x: 0, y: 0, width: Int(100 * scale), height: Int(100 * scale)), scale: scale)
+        })
+    }
+
     @Test("a page too large to read whole is asked for only the part of its rect that reaches the output")
     func asksForShownPartOfRect() throws {
         // Given
