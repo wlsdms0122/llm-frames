@@ -91,6 +91,32 @@ struct TrackFrameTests {
         #expect(radius.keyframeTimes.count == 1)
     }
 
+    @Test("a corner pin tracked where every quad is a similarity image of the target is drawn as written, inside the track's motion")
+    func drawsTrackedCornerPinAsWritten() throws {
+        // Given
+        let sequence = try resolved(#"""
+            { "id": "tracked", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": true },
+            { "id": "still", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] }
+            """#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.5)
+
+        // Then
+        // The track's frame is the one the instant shows, media 1, and at media 1.5 the target has moved 5 pixels down.
+        let tracked = try #require(list.items.first { $0.origin?.id == "tracked" })
+        let still = try #require(list.items.first { $0.origin?.id == "still" })
+        guard case let .picture(trackedPicture) = tracked.content, case let .picture(stillPicture) = still.content else {
+            Issue.record("a group is not a picture")
+            return
+        }
+        let trackedPin = try #require(trackedPicture.cornerPin)
+        let stillPin = try #require(stillPicture.cornerPin)
+        #expect(zip(trackedPin.corners, stillPin.corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+        #expect(tracked.transform.tx == still.transform.tx)
+        #expect(abs(tracked.transform.ty - (still.transform.ty + 5 * still.transform.d)) < 1e-9)
+    }
+
     // MARK: - Private
     private func resolved(_ connected: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(

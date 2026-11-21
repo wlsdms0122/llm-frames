@@ -235,6 +235,52 @@ struct CornerPinEvaluationTests {
         #expect(child.transform == .identity)
     }
 
+    @Test("a title animated by unit with a corner pin draws its units' group as the one item of its own group's list")
+    func drawsUnitGroupInGroup() throws {
+        // Given
+        let sequence = try resolved(#"{ "id": "card", "title": "ab cd", "style": "title", "at": [0, 4], "cornerPin": \#(Self.pin), "animation": { "preset": "frames/fade", "by": "word" } }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        guard
+            case let .picture(picture) = list.items.last?.content,
+            case let .displayList(nested) = picture.source,
+            case let .picture(units) = nested.items.first?.content,
+            case let .displayList(unitList) = units.source
+        else {
+            Issue.record("the group's list does not hold the title's units as a picture of a nested list")
+            return
+        }
+        #expect(picture.cornerPin == Self.quad)
+        #expect(nested.items.count == 1)
+        #expect(unitList.size == nested.size)
+        #expect(unitList.items.count > 1)
+    }
+
+    @Test("a clip with a corner pin cuts its item by its masks inside the group, in its box, and the group by none")
+    func cutsMasksInsideGroup() throws {
+        // Given
+        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "mask": [ { "shape": "rect", "area": [0, 0, 500, 400] } ] }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let group = try #require(list.items.last)
+        guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source else {
+            Issue.record("the group is not a picture of a nested list")
+            return
+        }
+        // The mask is in the media's pixels, 1000 by 800, which the box of 300 by 240 shows.
+        let mask = try #require(nested.items.first?.mask.first)
+        let corner = mask.transform.apply(to: Point(x: 500, y: 400))
+        #expect(group.mask.isEmpty)
+        #expect(nested.items.first?.mask.count == 1)
+        #expect(abs(corner.x - 150) < 1e-9 && abs(corner.y - 120) < 1e-9)
+    }
+
     // MARK: - Private
     private func resolved(_ clips: String) throws -> ResolvedSequence {
         try resolved(document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#)
