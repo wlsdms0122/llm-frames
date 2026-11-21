@@ -162,9 +162,7 @@ struct ContentFitPlanner: Sendable {
         case let .title(text):
             // The child map places the title's box at the time, and its glyphs item lies in its text box inside it.
             let time = SampleTime(0)
-            let box = text.box(at: time)
-            let textBox = text.textBox(at: time)
-            let transform = AffineTransform(translation: Point(x: textBox.x - box.x, y: textBox.y - box.y))
+            let transform = text.textBoxInBox(at: time)
                 .concatenating(clipEvaluator.childTransform(of: clip, in: space, at: time))
             return GlyphsItem(text: text, factor: 1, at: time).filledRects()
                 .map { bounds(of: $0, by: transform) }
