@@ -5,17 +5,21 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"evaluate": "1.0.0", time, size, items}`, the object `evaluate` prints, each item `{place, id, kind, item,
-// bounds, opacity, transform, rect}` with `bounds` as `[x, y, w, h]` in output pixels, or `null` where it covers
-// nothing, `transform` as `[a, b, c, d, tx, ty]` and `rect` as `[x, y, w, h]` in the item's own coordinates.
+// `{"evaluate": "1.0.0", time, size, items, texts}`, the object `evaluate` prints. Each item is `{place, id, kind,
+// item, bounds, opacity, transform, rect, characters}` with `bounds` as `[x, y, w, h]` in output pixels, or `null`
+// where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
+// coordinates, and `characters` a list of `{text, range, rect, baseline}`, or `null` on an item that reports none. Each
+// text is `{place, id, text, size, box, transform, lines, words}`, each line `{text, range, baseline, ascent, descent}`
+// and each word `{text, range}`. A range is `[start, end]` in whole Unicode scalars.
 extension EvaluationReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "evaluate", value: .string(FramesVersion.current)),
             JSONMember(key: "time", value: .time(time)),
-            JSONMember(key: "size", value: .array([.measure(size.width), .measure(size.height)])),
-            JSONMember(key: "items", value: .array(items.map(output)))
+            JSONMember(key: "size", value: output(size)),
+            JSONMember(key: "items", value: .array(items.map(output))),
+            JSONMember(key: "texts", value: .array(texts.map(output)))
         ]))
     }
 
@@ -23,20 +27,68 @@ extension EvaluationReport {
     // MARK: - Public
     // MARK: - Private
     private func output(_ item: EvaluationItem) -> JSONValue {
-        let transform = item.transform
-
-        return .object(JSONObject(members: item.origin.machineOutput + [
+        .object(JSONObject(members: item.origin.machineOutput + [
             JSONMember(key: "item", value: .string(item.item.rawValue)),
             JSONMember(key: "bounds", value: item.bounds.map(output) ?? .null),
             JSONMember(key: "opacity", value: .measure(item.opacity)),
-            JSONMember(key: "transform", value: .array(
-                [transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty].map(JSONValue.measure)
-            )),
-            JSONMember(key: "rect", value: output(item.rect))
+            JSONMember(key: "transform", value: output(item.transform)),
+            JSONMember(key: "rect", value: output(item.rect)),
+            JSONMember(key: "characters", value: item.characters.map { .array($0.map(output)) } ?? .null)
         ]))
+    }
+
+    private func output(_ character: EvaluationCharacter) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "text", value: .string(character.text)),
+            JSONMember(key: "range", value: output(character.range)),
+            JSONMember(key: "rect", value: output(character.rect)),
+            JSONMember(key: "baseline", value: .measure(character.baseline))
+        ]))
+    }
+
+    private func output(_ text: EvaluationText) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "place", value: .string(text.place)),
+            JSONMember(key: "id", value: text.id.map(JSONValue.string) ?? .null),
+            JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "size", value: output(text.size)),
+            JSONMember(key: "box", value: output(text.box)),
+            JSONMember(key: "transform", value: output(text.transform)),
+            JSONMember(key: "lines", value: .array(text.lines.map(output))),
+            JSONMember(key: "words", value: .array(text.words.map(output)))
+        ]))
+    }
+
+    private func output(_ line: EvaluationLine) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "text", value: .string(line.text)),
+            JSONMember(key: "range", value: output(line.range)),
+            JSONMember(key: "baseline", value: .measure(line.baseline)),
+            JSONMember(key: "ascent", value: .measure(line.ascent)),
+            JSONMember(key: "descent", value: .measure(line.descent))
+        ]))
+    }
+
+    private func output(_ word: EvaluationWord) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "text", value: .string(word.text)),
+            JSONMember(key: "range", value: output(word.range))
+        ]))
+    }
+
+    private func output(_ transform: AffineTransform) -> JSONValue {
+        .array([transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty].map(JSONValue.measure))
     }
 
     private func output(_ rectangle: Rectangle) -> JSONValue {
         .array([.measure(rectangle.x), .measure(rectangle.y), .measure(rectangle.width), .measure(rectangle.height)])
+    }
+
+    private func output(_ size: Size) -> JSONValue {
+        .array([.measure(size.width), .measure(size.height)])
+    }
+
+    private func output(_ range: Range<Int>) -> JSONValue {
+        .array([.number(Double(range.lowerBound)), .number(Double(range.upperBound))])
     }
 }

@@ -59,6 +59,7 @@ struct DisplayListFlattener: Sendable {
         let transform: AffineTransform
         let rect: Rectangle
         let coverage: ItemCoverage
+        let characters: CharacterScope?
         switch item.content {
         case let .picture(picture):
             return items(of: picture, own: own)
@@ -67,18 +68,21 @@ struct DisplayListFlattener: Sendable {
             transform = own.transform
             rect = box(of: path.geometry)
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
+            characters = nil
 
         case let .glyphs(glyphs):
             transform = own.transform
             rect = glyphs.extent
             let drawn = drawn(by: glyphs, carriedBy: item.transform)
             coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
+            characters = scope(of: glyphs)
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
             transform = state.transform
             rect = frame
             coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
+            characters = nil
         }
 
         return [FlattenedItem(
@@ -87,7 +91,8 @@ struct DisplayListFlattener: Sendable {
             opacity: own.opacity,
             transform: transform,
             rect: rect,
-            coverage: coverage
+            coverage: coverage,
+            characters: characters
         )]
     }
 
@@ -146,6 +151,21 @@ struct DisplayListFlattener: Sendable {
         guard !glyphs.runs.isEmpty || glyphs.layer != nil else { return glyphs.background?.rectangle }
 
         return glyphs.drawnBounds(carriedBy: transform)
+    }
+
+    // A title's one item that draws its runs reports every character, and a unit's `fills` item its unit's. A title's
+    // background drawn alone and every other layer of a unit report none.
+    private func scope(of glyphs: GlyphsItem) -> CharacterScope? {
+        switch glyphs.layer {
+        case .none:
+            glyphs.runs.isEmpty ? nil : .title
+
+        case .fills:
+            .unit
+
+        case .highlights, .underlines, .strokes:
+            nil
+        }
     }
 
     // The transform that carries `rectangle` onto `other`.

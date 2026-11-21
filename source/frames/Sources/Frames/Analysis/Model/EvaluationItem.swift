@@ -7,8 +7,9 @@
 
 // One item `evaluate` reports: the clip that drew it, nil for the background and a transition cover, what it draws,
 // the axis-aligned box of what it covers of the output, nil when it covers nothing, its opacity times that of every
-// picture holding it, the map from its own coordinates to output pixels, and its extent in its own coordinates before
-// its reveal, its masks and the pictures holding it cut it.
+// picture holding it, the map from its own coordinates to output pixels, its extent in its own coordinates before
+// its reveal, its masks and the pictures holding it cut it, and the characters it reports, nil on an item that reports
+// none.
 package struct EvaluationItem: Equatable, Sendable {
     // MARK: - Property
     package let origin: ItemOrigin?
@@ -17,6 +18,7 @@ package struct EvaluationItem: Equatable, Sendable {
     package let opacity: Double
     package let transform: AffineTransform
     package let rect: Rectangle
+    package let characters: [EvaluationCharacter]?
 
     // MARK: - Initializer
     init(
@@ -25,7 +27,8 @@ package struct EvaluationItem: Equatable, Sendable {
         bounds: Rectangle?,
         opacity: Double,
         transform: AffineTransform,
-        rect: Rectangle
+        rect: Rectangle,
+        characters: [EvaluationCharacter]? = nil
     ) {
         self.origin = origin
         self.item = item
@@ -33,16 +36,21 @@ package struct EvaluationItem: Equatable, Sendable {
         self.opacity = opacity
         self.transform = transform
         self.rect = rect
+        self.characters = characters
     }
 
-    init(_ item: FlattenedItem) {
+    init(
+        _ item: FlattenedItem,
+        characters: [EvaluationCharacter]? = nil
+    ) {
         self.init(
             origin: item.origin,
             item: item.item,
             bounds: item.coverage.bounds,
             opacity: item.opacity,
             transform: item.transform,
-            rect: item.rect
+            rect: item.rect,
+            characters: characters
         )
     }
 

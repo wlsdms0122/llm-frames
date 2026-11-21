@@ -130,10 +130,9 @@ extension ResolvedText {
         return pieces
     }
 
-    // MARK: - Private
     // How far each line moves down at `time`: the first baseline stays, and each later one lies the line height then
     // below the one before it.
-    private func lineDrops(at time: Double) -> [Double] {
+    func lineDrops(at time: Double) -> [Double] {
         guard let first = lines.first else { return [] }
         guard let lineHeight = lineHeight.sampled(at: time, as: .leaf(.length(.any))).number else {
             return lines.map { _ in 0 }
@@ -142,6 +141,7 @@ extension ResolvedText {
         return lines.enumerated().map { index, line in first.baseline + Double(index) * lineHeight - line.baseline }
     }
 
+    // MARK: - Private
     // The background's padding at `time`, written vertical then horizontal.
     private func padding(at time: Double) -> Size {
         let structure = ValueStructure.leaf(.lengths(count: 2, domain: .nonNegative))

@@ -535,7 +535,8 @@ struct EvaluationReporterTests {
                   "bounds": [0, 0, 200, 100],
                   "opacity": 1,
                   "transform": [1, 0, 0, 1, 0, 0],
-                  "rect": [0, 0, 200, 100]
+                  "rect": [0, 0, 200, 100],
+                  "characters": null
                 },
                 {
                   "place": "clips[0]#title",
@@ -545,10 +546,312 @@ struct EvaluationReporterTests {
                   "bounds": [90, 30, 20, 40],
                   "opacity": 0.3,
                   "transform": [0, 1, -1, 0, 150, -50],
-                  "rect": [80, 40, 40, 20]
+                  "rect": [80, 40, 40, 20],
+                  "characters": null
+                }
+              ],
+              "texts": []
+            }
+
+            """#)
+    }
+
+    @Test("a title by unit mid entrance reports each unit's characters on its fills item in the text box, and its text box's map without their motion")
+    func reportsUnitCharacters() throws {
+        // Given
+        let rise = AnimationPreset(
+            description: "",
+            entrance: AnimationSpan(
+                length: 1,
+                span: Span(ease: .linear, keys: [SpanKey(t: 0, values: [.y: 1]), SpanKey(t: 1, values: [.y: 0])])
+            ),
+            loop: nil,
+            exit: nil
+        )
+        let animated = try resolved(
+            titled(#"{ "title": "ab cd", "animation": { "preset": "mine/rise", "by": "character", "stagger": 0.25 } }"#),
+            animations: ["mine/rise": rise]
+        )
+        let still = try resolved(titled(#"{ "title": "ab cd" }"#))
+
+        // When
+        let report = try sut.report(of: animated, at: 0.5)
+        let rest = try sut.report(of: still, at: 0.5)
+
+        // Then
+        let glyphs = report.items.filter { $0.item == .glyphs }
+        let fills = glyphs.filter { $0.characters != nil }
+        let text = try #require(report.texts.first)
+        #expect(report.texts.count == 1)
+        #expect(text.transform == glyphs.first?.transform)
+        #expect(text.transform == rest.texts.first?.transform)
+        #expect(glyphs.count == 1 + 4 * fills.count)
+        #expect(fills.map { $0.characters?.map(\.text) ?? [] } == [["a"], ["b", " "], ["c"], ["d"]])
+        #expect(fills.flatMap { $0.characters ?? [] } == rest.items.compactMap(\.characters).flatMap { $0 })
+        // The word "ab" lies on the items of its two characters, each moved by its own unit's motion.
+        let word = try #require(text.words.first)
+        let holders = fills.filter { item in
+            item.characters?.contains { word.range.contains($0.range.lowerBound) } ?? false
+        }
+        #expect(word.text == "ab")
+        #expect(holders.count == 2)
+        #expect(holders.allSatisfy { $0.transform != text.transform })
+        #expect(holders[0].transform != holders[1].transform)
+    }
+
+    @Test("a title not animated by unit reports every character on its one item, with its text box, lines and words")
+    func reportsTitleCharacters() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "ab cd" }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let height = 40.0
+        #expect(item.characters == [
+            EvaluationCharacter(text: "a", range: 0..<1, rect: Rectangle(x: 0, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: "b", range: 1..<2, rect: Rectangle(x: 20, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: " ", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 10, height: height), baseline: 32),
+            EvaluationCharacter(text: "c", range: 3..<4, rect: Rectangle(x: 50, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: "d", range: 4..<5, rect: Rectangle(x: 70, y: 0, width: 20, height: height), baseline: 32)
+        ])
+        #expect(report.texts == [
+            EvaluationText(
+                place: "clips[0]#t",
+                id: "t",
+                text: "ab cd",
+                size: Size(width: 90, height: 40),
+                box: Rectangle(x: 0, y: 0, width: 90, height: 40),
+                transform: item.transform,
+                lines: [EvaluationLine(text: "ab cd", range: 0..<5, baseline: 32, ascent: 32, descent: 8)],
+                words: [EvaluationWord(text: "ab", range: 0..<2), EvaluationWord(text: "cd", range: 3..<5)]
+            )
+        ])
+    }
+
+    @Test("a right aligned title reports its characters at the right of its text box, which its item's coordinates are")
+    func reportsRightAlignedTitle() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "ab", "width": 200, "paragraph": { "align": "right" } }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        #expect(item.characters?.map(\.rect) == [
+            Rectangle(x: 160, y: 0, width: 20, height: 40),
+            Rectangle(x: 180, y: 0, width: 20, height: 40)
+        ])
+        #expect(report.texts.first?.size == Size(width: 200, height: 40))
+        #expect(report.texts.first?.lines.map(\.baseline) == [32])
+    }
+
+    @Test("a character of a base and a combining mark is one character over both scalars, as wide as both glyphs")
+    func reportsCombiningMark() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "éx" }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        #expect(item.characters == [
+            EvaluationCharacter(text: "e\u{301}", range: 0..<2, rect: Rectangle(x: 0, y: 0, width: 40, height: 40), baseline: 32),
+            EvaluationCharacter(text: "x", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
+        ])
+        #expect(report.texts.first?.words == [EvaluationWord(text: "e\u{301}x", range: 0..<3)])
+    }
+
+    @Test("the characters of a ligature share its box, which the character with no glyph of its own takes from the first")
+    func reportsLigature() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "fix" }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let ligature = Rectangle(x: 0, y: 0, width: 40, height: 40)
+        #expect(item.characters == [
+            EvaluationCharacter(text: "f", range: 0..<1, rect: ligature, baseline: 32),
+            EvaluationCharacter(text: "i", range: 1..<2, rect: ligature, baseline: 32),
+            EvaluationCharacter(text: "x", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
+        ])
+    }
+
+    @Test("spaces hanging past a line's end are no characters and no part of the line's range, and a line with no character has an empty one")
+    func leavesHangingSpacesOut() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "ab  \n\ncd" }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let lines = try #require(report.texts.first?.lines)
+        let step = lines[1].baseline - lines[0].baseline
+        #expect(item.characters?.map(\.text) == ["a", "b", "c", "d"])
+        #expect(item.characters?.map(\.range) == [0..<1, 1..<2, 6..<7, 7..<8])
+        #expect(lines.map(\.text) == ["ab", "", "cd"])
+        #expect(lines.map(\.range) == [0..<2, 5..<5, 6..<8])
+        #expect(step > 0)
+        #expect(lines[2].baseline - lines[1].baseline == step)
+        #expect(item.characters?.map(\.baseline) == [32, 32, lines[2].baseline, lines[2].baseline])
+    }
+
+    @Test("a title by unit with no character reports an empty list on its one item, and its one line with no character")
+    func reportsTitleWithoutCharacter() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "  ", "animation": { "preset": "frames/fade", "by": "word" } }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let glyphs = report.items.filter { $0.item == .glyphs }
+        let text = try #require(report.texts.first)
+        #expect(glyphs.map(\.characters) == [[]])
+        #expect(text.text == "  ")
+        #expect(text.lines.map(\.range) == [0..<0])
+        #expect(text.lines.map(\.text) == [""])
+        #expect(text.words == [])
+    }
+
+    @Test("a title's box is its text box grown by its background's padding, in its text box, and its characters stay put")
+    func reportsPaddedBox() throws {
+        // Given
+        let document = try resolved(titled(#"""
+            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            """#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        #expect(report.texts.first?.box == Rectangle(x: -12, y: -8, width: 64, height: 56))
+        #expect(report.texts.first?.size == Size(width: 40, height: 40))
+        #expect(item.rect == Rectangle(x: 0, y: 0, width: 40, height: 40))
+        #expect(item.characters?.first?.rect == Rectangle(x: 0, y: 0, width: 20, height: 40))
+    }
+
+    @Test("a title in a compound clip is reported in its continued place, sampled at the time its sequence shows")
+    func reportsNestedTitle() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4,
+                               "connected": [ { "media": { "kind": "sequence", "format": { "size": [1080, 1920] },
+                                                           "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+                                                           "storyline": [ { "solid": "#000000", "duration": 2 } ],
+                                                           "clips": [ { "id": "n", "title": "ab", "style": "caption", "position": [400, 225], "at": [1, 2] } ] },
+                                                "at": [1, 3] } ] } ] }
+            """#)
+
+        // When
+        let early = try sut.report(of: document, at: 1.5)
+        let late = try sut.report(of: document, at: 2.5)
+
+        // Then
+        #expect(early.texts == [])
+        #expect(late.texts.map(\.place) == ["storyline[0].connected[0].media.clips[0]#n"])
+        #expect(late.items.first { $0.item == .glyphs }?.characters?.map(\.text) == ["a", "b"])
+    }
+
+    @Test("a title drawn at no time of its window, and one used as a track matte, have no text entry")
+    func leavesUndrawnTitlesOut() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [
+                { "id": "late", "title": "ab", "style": "caption", "position": [400, 225], "at": [2, 3] },
+                { "id": "m", "title": "cd", "style": "caption", "position": [400, 225], "at": [0, 3] },
+                { "id": "a", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 3],
+                  "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        #expect(report.texts == [])
+        #expect(report.items.allSatisfy { $0.characters == nil })
+    }
+
+    @Test("a glyphs item's characters and a title's text are written as FRAMES-23 gives them, each range in whole scalars")
+    func writesTextMachineOutput() throws {
+        // Given
+        let document = try resolved(titled(#"""
+            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            """#))
+        let output = try sut.report(of: document, at: 1).machineOutput.objectValue
+
+        // When
+        let glyphs = try #require(output?["items"]?.arrayValue?.last)
+        let texts = try #require(output?["texts"])
+        let text = JSONWriter().write(.array([glyphs, texts]))
+
+        // Then
+        #expect(text == #"""
+            [
+              {
+                "place": "clips[0]#t",
+                "id": "t",
+                "kind": "title",
+                "item": "glyphs",
+                "bounds": [368, 197, 64, 56],
+                "opacity": 1,
+                "transform": [1, 0, 0, 1, 380, 205],
+                "rect": [0, 0, 40, 40],
+                "characters": [
+                  {
+                    "text": "a",
+                    "range": [0, 1],
+                    "rect": [0, 0, 20, 40],
+                    "baseline": 32
+                  },
+                  {
+                    "text": "b",
+                    "range": [1, 2],
+                    "rect": [20, 0, 20, 40],
+                    "baseline": 32
+                  }
+                ]
+              },
+              [
+                {
+                  "place": "clips[0]#t",
+                  "id": "t",
+                  "text": "ab",
+                  "size": [40, 40],
+                  "box": [-12, -8, 64, 56],
+                  "transform": [1, 0, 0, 1, 380, 205],
+                  "lines": [
+                    {
+                      "text": "ab",
+                      "range": [0, 2],
+                      "baseline": 32,
+                      "ascent": 32,
+                      "descent": 8
+                    }
+                  ],
+                  "words": [
+                    {
+                      "text": "ab",
+                      "range": [0, 2]
+                    }
+                  ]
                 }
               ]
-            }
+            ]
 
             """#)
     }
@@ -590,6 +893,36 @@ struct EvaluationReporterTests {
 
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    private func resolved(
+        _ document: String,
+        animations: [String: AnimationPreset]
+    ) throws -> ResolvedSequence {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: PresetTable(transitions: [:], animations: animations, filters: [:]),
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    // A document of one title `t` in the caption style, 40 pixels, over a screen recording, drawn from 0 to 2, its
+    // other fields `clip`'s.
+    private func titled(_ clip: String) -> String {
+        let fields = clip.drop { $0 != "{" }.dropFirst()
+
+        return #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "id": "t", "style": "caption", "position": [400, 225], "at": [0, 2], \#(fields) ] }
+            """#
     }
 
     private func isClose(
