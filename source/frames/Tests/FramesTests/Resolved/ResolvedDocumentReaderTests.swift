@@ -218,6 +218,25 @@ struct ResolvedDocumentReaderTests {
         #expect(read == document)
     }
 
+    @Test("a tracked media clip of video with a corner pin reads back with the track of its parent's media")
+    func readsPinnedTrack() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "connected": [
+                { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 2], "width": 300,
+                  "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": { "time": 1 } } ] } ] }
+            """#)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        #expect(read.clips[0].ownTrackedMedia == nil)
+        #expect(read.clips[0].parentTrack?.track.mediaTime == 1)
+    }
+
     @Test("a run's stroke reads back with the run, and a run without one reads back without")
     func readsRunStroke() throws {
         // Given

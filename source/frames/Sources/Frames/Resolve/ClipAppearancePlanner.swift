@@ -33,6 +33,38 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Public
+    // Each keyframe of a tracked corner pin is brought back through the inverse of the track's homography at its own
+    // time, on the frame shown there or the nearest frame followed, and a corner at or beyond that inverse's horizon, or
+    // a corner pin brought back that is not strictly convex, stops (FRAMES-27 A tracked corner pin). A static corner pin
+    // is written on the track's frame, where the homography is the identity. A keyframe holding a clip area is the named
+    // clip's box at each instant, which only evaluation knows.
+    private func checkBroughtBack(
+        of points: PropertyValue<[GeometryPoint]>,
+        written: PropertyValue<[PositionForm]>,
+        track: TrackedMedia,
+        place: Place,
+        kind: PlaceKind
+    ) throws {
+        guard case let .keyframes(keyframes) = points, case let .keyframes(writtenKeyframes) = written else { return }
+
+        for keyframe in keyframes where keyframe.value.count == 4 && keyframe.value.allSatisfy({ $0.clipArea == nil }) {
+            let corners = keyframe.value.map(\.fixed)
+            let pin = Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
+            let homography = track.homography(at: keyframe.at)
+            let frame = homography.flatMap { $0.apply(to: track.track.target) }
+            let broughtBack = homography.flatMap { homography in
+                frame.flatMap { homography.inverse.apply(to: pin, inFrontOf: $0) }
+            }
+            guard broughtBack?.isStrictlyConvex != true else { continue }
+
+            throw ResolveError.cornerPinNotBroughtBack(
+                place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
+                kind: kind,
+                time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
+            )
+        }
+    }
+
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
     // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where
     // its position puts its anchor point, or where its placement sets it: a title by default where its style places it,
@@ -105,6 +137,7 @@ struct ClipAppearancePlanner: Sendable {
         of plan: ClipPlan,
         written: Clip,
         points: PropertyValue<[GeometryPoint]>?,
+        track: TrackedMedia?,
         crop: PropertyValue<FoundArea>?,
         title: TextLayout?,
         picture: Picture?,
@@ -130,6 +163,9 @@ struct ClipAppearancePlanner: Sendable {
             throw ResolveError.cornerPinWithPlacement(place: place, kind: kind, key: key)
         }
         try checkConvexity(of: points, written: pin, place: written.place, kind: kind)
+        if let track {
+            try checkBroughtBack(of: points, written: pin, track: track, place: written.place, kind: kind)
+        }
         guard
             let size = boxSize(of: plan, written: written, crop: crop, title: title, picture: picture, shape: shape, format: format)
         else {

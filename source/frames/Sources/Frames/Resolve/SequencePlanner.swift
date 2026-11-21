@@ -193,6 +193,7 @@ struct SequencePlanner: Sendable {
                 of: tracked.time.clips[index],
                 written: written[index],
                 points: placed[index].cornerPin,
+                track: tracked.clips[index],
                 crop: placed[index].crop,
                 title: title?.layout,
                 picture: clipPictures[index],

@@ -302,7 +302,93 @@ struct CornerPinTests {
         #expect(error?.description == #"storyline[0]#screen.connected[2].area (rect): text found under "card" is brought back through its transform when resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when evaluated"#)
     }
 
+    @Test("true on a clip with a corner pin follows its corner pin in its parent's media, its own video included")
+    func followsCornerPinInParent() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin),
+                  "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "track": true } ] } ] }
+            """#
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        let track = try #require(plan.clips[0].track)
+        #expect(track.file.path == "/abs/screen.mp4")
+        #expect(track.track.target == Quad(topLeft: Point(x: 100, y: 100), topRight: Point(x: 500, y: 120), bottomRight: Point(x: 480, y: 400), bottomLeft: Point(x: 120, y: 380)))
+        #expect(track.track.mediaTime == 0)
+    }
+
+    @Test("a title with a corner pin takes true, since its corner pin is its geometry in its parent's media")
+    func followsTitleCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "title": "a", "style": "title", "parent": "screen", "at": [0, 3], "cornerPin": \#(Self.pin), "track": { "time": 1 } } ] } ] }
+            """#
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        #expect(plan.clips[0].track?.track.mediaTime == 1)
+    }
+
+    @Test("a clip parented to a clip with a corner pin has no media to follow, since its parent gives the space its corner pin is written in")
+    func refusesTrackUnderPinnedParent() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) },
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [0, 0, 10, 10], "at": [0, 3], "track": [0, 0, 100, 100] } ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == "storyline[0]#screen.connected[1].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here")
+    }
+
+    @Test("a tracked corner pin keyframe that would come back through the horizon of the inverse homography stops, naming the keyframe")
+    func refusesKeyframeBeyondHorizon() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid whose left and right edges meet at
+        // (50, 62.5) and whose top and bottom stay level, so the horizon of the inverse homography is the line y = 62.5.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let sut = planner(tracker: QuadTrackerTable(base: target, quads: quads))
+        let document = { (far: String) in #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
+                                 { "at": 0.5, "cornerPin": \#(far) } ] } ] } ] }
+            """# }
+
+        // When
+        let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(document("[[10, 10], [90, 10], [90, 40], [10, 40]]"))))
+
+        // Then
+        #expect(plan.clips[0].cornerPin != nil)
+        let error = #expect(throws: ResolveError.self) {
+            try sut.plan(Fixture.planner.plan(document: Fixture.json(document("[[10, 10], [90, 10], [90, 70], [10, 70]]"))))
+        }
+        #expect(error?.description == "storyline[0]#screen.connected[0].keyframes[1].cornerPin (image): the corner pin at 0.5, brought back through the inverse of the track's homography there, does not lie wholly in front of its horizon or is not strictly convex")
+    }
+
     // MARK: - Private
+    private func planner(tracker: any TrackerProvider) -> SequencePlanner {
+        SequencePlanner(
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: tracker,
+            shaper: Fixture.shaper,
+            presets: Fixture.presets,
+            library: Fixture.library
+        )
+    }
+
     private func geometry(of clip: String) throws -> ClipGeometry {
         try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
     }

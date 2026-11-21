@@ -31,6 +31,10 @@ struct TrackedMedia: Equatable, Sendable {
         track.motion(atMediaTime: clock.mediaTime(atSequenceTime: time))
     }
 
+    func homography(at time: Double) -> Homography? {
+        track.homography(atMediaTime: clock.mediaTime(atSequenceTime: time))
+    }
+
     // A clip area is the named clip's box at each instant evaluated, so it is not brought back.
     func area(_ keyframes: [Keyframe<GeometryArea>]) -> [Keyframe<GeometryArea>] {
         keyframes.map { keyframe in

@@ -351,11 +351,11 @@ struct TrackPlanner: Sendable {
         )
     }
 
-    // The target before padding and the sequence time it is found at, on the track's frame: for `true` the one of the
-    // clip's own candidates it has, at its first keyframe or else at the clip's instant, and otherwise the area `form`
-    // names, found at the clip's instant. With a `time` the track's frame is the frame it names, and the clip's own
-    // geometry is static, since a keyframe's value is where it is at its own time. A named target does not look at the
-    // candidates.
+    // The target's quad before padding, the media time of the track's frame and the sequence time the window is
+    // narrowed from: for `true` the one of the clip's own candidates it has, at its first keyframe or else at the clip's
+    // instant, and otherwise the area `form` names, found on the track's frame. With a `time` the track's frame is the
+    // frame it names, and the clip's own geometry is static, since a keyframe's value is where it is at its own time. A
+    // named target does not look at the candidates.
     private func target(
         _ form: AreaForm?,
         time: Double?,
