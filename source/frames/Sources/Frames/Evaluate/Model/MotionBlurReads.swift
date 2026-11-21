@@ -6,9 +6,9 @@
 //
 
 // The record of whether the samples of one frame read a value owned by a clip with `motionBlur`, which decides whether
-// the frame is given as samples (FRAMES-29). Each frame has its own record, and its samples are evaluated one after
-// another, so the record is written by one sample at a time and takes no lock.
-final class MotionBlurReads: @unchecked Sendable {
+// the frame is given as samples (FRAMES-29). Each frame has its own record. It is not `Sendable`: it holds its flag
+// without a lock, so it is written from one task.
+final class MotionBlurReads {
     // MARK: - Property
     private(set) var readsMotionBlur = false
 

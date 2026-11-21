@@ -8,7 +8,7 @@
 // One instant of a frame's exposure as the clips of one sequence read it (FRAMES-29): `instant`, the time it stands
 // for, and `frameTime`, the frame's instant T, both on that sequence's clock, and `reads`, the record of what the
 // frame's samples read. Outside a sample of a frame with motion blur the instant is T and there is no record.
-struct SampleInstant: Sendable {
+struct SampleInstant {
     // MARK: - Property
     let instant: Double
     let frameTime: Double
