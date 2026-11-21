@@ -9,7 +9,7 @@
 // nested lists flattened, with the text of every title drawn then. A title's text is read from the resolved title at
 // the time evaluation samples it at, not from its items. A title's first item names it and gives its text box's map
 // to output pixels: its one item, or the background item under its units, which carries the title's transform without
-// a unit's motion. A unit's `fills` item reports the characters of the unit its origin names.
+// a unit's motion. A unit's `fills` item reports the characters of the unit it names, of the title its origin names.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
     private let evaluator = Evaluator()

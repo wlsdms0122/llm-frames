@@ -183,10 +183,11 @@ struct DisplayListReaderTests {
             size: Size(width: 10, height: 10),
             runs: [],
             layer: .strokes,
+            unit: 3,
             unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
             extent: Rectangle(x: 3, y: 2, width: 4, height: 6),
             background: nil
-        )))
+        )), origin: ItemOrigin(place: "clips[1]", id: "lower", kind: "title"))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -554,6 +555,24 @@ struct DisplayListReaderTests {
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
         #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test("a unit's item writes its unit beside its unit box, and its origin names only the clip that drew it")
+    func writesUnitOfGlyphs() throws {
+        // Given
+        let list = list(items: [Self.items[6], Self.items[11]])
+
+        // When
+        let written = writer.document(list).objectValue?["items"]?.arrayValue
+        let items = try #require(written).compactMap(\.objectValue)
+
+        // Then
+        #expect(items.map(\.keys) == Array(repeating: [
+            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "runs", "layer", "unit",
+            "unitBox", "extent", "background"
+        ], count: 2))
+        #expect(items.map { $0["unit"] } == [.null, .number(3)])
+        #expect(items.map { $0["origin"]?.objectValue?.keys } == [["place", "id", "kind"], ["place", "id", "kind"]])
     }
 
     @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")

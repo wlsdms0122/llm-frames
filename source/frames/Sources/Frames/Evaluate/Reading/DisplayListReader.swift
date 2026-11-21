@@ -152,7 +152,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "layer", "unitBox", "extent", "background"]
+            ["size", "runs", "layer", "unit", "unitBox", "extent", "background"]
 
         default:
             ["filter"]
@@ -209,17 +209,12 @@ package struct DisplayListReader: Sendable {
     }
 
     private func origin(_ value: PlacedJSONValue) throws -> ItemOrigin {
-        let origin = try value.object(keys: ["place", "id", "kind", "unit"])
+        let origin = try value.object(keys: ["place", "id", "kind"])
 
         return ItemOrigin(
             place: try origin.member("place").string(),
             id: try origin.member("id").optional { try $0.string() },
-            kind: try origin.member("kind").string(),
-            unit: try origin.member("unit").optional { value in
-                guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
-
-                return unit
-            }
+            kind: try origin.member("kind").string()
         )
     }
 
@@ -413,6 +408,11 @@ package struct DisplayListReader: Sendable {
             size: try values.size(item.member("size")),
             runs: try values.drawnRuns(item.member("runs")),
             layer: try item.member("layer").optional { try literal($0) },
+            unit: try item.member("unit").optional { value in
+                guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
+
+                return unit
+            },
             unitBox: try item.member("unitBox").optional { try values.rectangle($0) },
             extent: try values.rectangle(item.member("extent")),
             background: try item.member("background").optional { value in

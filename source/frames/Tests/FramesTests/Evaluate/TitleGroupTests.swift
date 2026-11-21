@@ -49,9 +49,8 @@ struct TitleGroupTests {
         #expect(picture.destination == Self.frame)
         #expect(list.size == Size(width: 1920, height: 1080))
         #expect(list.seed == 7)
-        let origin = ItemOrigin(clip: clip)
-        #expect(list.items.map(\.origin) == [origin] + (0..<4).flatMap { _ in [origin.drawing(unit: 0), origin.drawing(unit: 1)] })
-        #expect(list.items.map(\.origin?.unit) == [nil] + (0..<4).flatMap { _ in [0, 1] })
+        #expect(list.items.map(\.origin) == Array(repeating: ItemOrigin(clip: clip), count: 9))
+        #expect(list.items.map { self.glyphs(of: $0)?.unit } == [nil] + (0..<4).flatMap { _ in [0, 1] })
         #expect(list.items.map(\.transform) == Array(repeating: single.transform, count: 9))
         #expect(list.items.map { layer(of: $0) } == [GlyphLayer?.none] + GlyphLayer.allCases.flatMap { [$0, $0] })
         // "ab" draws the space after it.
@@ -383,7 +382,7 @@ struct TitleGroupTests {
         #expect(plainItems.filter { $0.coverage.contains(word) }.count == 4)
         #expect(boxedItems.count == 9)
         #expect(boxedItems.filter { $0.coverage.contains(gap) }.count == 5)
-        #expect(boxedItems.map(\.origin?.place).allSatisfy { $0 == ItemOrigin(clip: boxed).place })
+        #expect(boxedItems.allSatisfy { $0.origin == ItemOrigin(clip: boxed) })
     }
 
     // MARK: - Private

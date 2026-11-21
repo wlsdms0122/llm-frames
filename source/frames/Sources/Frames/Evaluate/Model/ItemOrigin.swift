@@ -6,26 +6,22 @@
 //
 
 // The clip that drew a display item: its place in the document, continued into a nested sequence from the clip that
-// holds it, its `id`, and its kind as `timeline` names it. `unit` is the index among its title's units of the unit
-// that drew an item of a title animated by unit, and nil for any other item.
+// holds it, its `id`, and its kind as `timeline` names it.
 package struct ItemOrigin: Equatable, Sendable {
     // MARK: - Property
     package let place: String
     package let id: String?
     package let kind: String
-    package let unit: Int?
 
     // MARK: - Initializer
     package init(
         place: String,
         id: String?,
-        kind: String,
-        unit: Int? = nil
+        kind: String
     ) {
         self.place = place
         self.id = id
         self.kind = kind
-        self.unit = unit
     }
 
     init(clip: ResolvedClip) {
@@ -53,11 +49,6 @@ package struct ItemOrigin: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The same clip, drawing the unit at `index` of its title.
-    func drawing(unit index: Int) -> ItemOrigin {
-        ItemOrigin(place: place, id: id, kind: kind, unit: index)
-    }
-
     // MARK: - Private
     // Pinned media with frame times is a video or image sequence, and without them a still. A nested sequence is a
     // compound clip or a template instance.
