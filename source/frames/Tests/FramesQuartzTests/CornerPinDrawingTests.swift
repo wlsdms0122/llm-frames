@@ -123,6 +123,39 @@ struct CornerPinDrawingTests {
         expect(bitmap, at: Point(x: middle.x + 3, y: middle.y), equals: [0, 0, 1, 1], tolerance: 0.02)
     }
 
+    @Test("a list of shapes carried towards a horizon past the pixel limit is drawn at the scale the limit allows, so its near edges stay sharp")
+    func drawsShapesTowardsHorizonSharp() throws {
+        // Given
+        let halves = list(
+            size: 8,
+            items: [
+                fill(Rectangle(x: 0, y: 0, width: 4, height: 8), Self.red),
+                fill(Rectangle(x: 4, y: 0, width: 4, height: 8), Self.blue)
+            ]
+        )
+        let cornerPin = Quad(
+            topLeft: Point(x: 60, y: 8),
+            topRight: Point(x: 68, y: 8),
+            bottomRight: Point(x: 124, y: 120),
+            bottomLeft: Point(x: 4, y: 120)
+        )
+        let destination = Rectangle(x: 0, y: 0, width: 8, height: 8)
+        let picture = pinned(halves, destination: destination, cornerPin: cornerPin)
+
+        // When
+        let bitmap = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+
+        // Then
+        // The corner pin stretches the list's bottom row more than 30 times, past the limit, while 12 output pixels
+        // above the bottom edge a list pixel spans about 13 output pixels across. At the list's own size the halves
+        // would blend over that width.
+        let map = try #require(Homography(from: Quad(destination), to: cornerPin))
+        let stretch = try #require(map.stretch(at: Point(x: 4, y: 8)))
+        #expect(stretch > 30)
+        expect(bitmap, at: Point(x: 60, y: 108), equals: [1, 0, 0, 1], tolerance: 0.02)
+        expect(bitmap, at: Point(x: 67, y: 108), equals: [0, 0, 1, 1], tolerance: 0.02)
+    }
+
     @Test("a picture with a corner pin shows its whole list, the part outside its region carried past its destination")
     func showsWholeList() throws {
         // Given

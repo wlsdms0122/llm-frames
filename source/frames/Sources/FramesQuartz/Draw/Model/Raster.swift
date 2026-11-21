@@ -60,17 +60,18 @@ struct Raster: Equatable {
     // The raster of a list of `size` carried by `map`, a homography from the list's coordinates into the pixels of the
     // bitmap that shows it, of which only `area` is drawn, as a picture with a corner pin shows its whole list (FRAMES-20
     // Pictures). It covers the part of the list that lands in the area, grown by `margin`, how far its items read past
-    // what is drawn in the list's own pixels. It is drawn at the largest factor by which the map stretches a length, in
+    // what is drawn in the list's own pixels. Its scale is the largest factor by which the map stretches a length, in
     // any direction, at the points it carries into the area, sampled on a grid over that part and at its corners, where
-    // that factor is above 1 and the pixel limit allows the whole of it. Otherwise it is drawn at its own size, held to
-    // the pixel limit: that is the one scale at which the pictures it holds are drawn at their own pixels, so the
-    // warp's mean is taken of them and not of them resampled, and a scale between would not keep the list sharp
-    // either. Nil when none of the list lands in the area.
+    // that factor is above 1, and 1 where it is not, so a picture of pixels the list holds is resampled once, in the
+    // warp. Where the pixel limit does not allow the whole factor, a list that `holdsPixels` is drawn at its own size
+    // for the same reason, and any other at the largest scale the limit allows. Either is held to the limit. Nil when
+    // none of the list lands in the area.
     init?(
         showing size: Size,
         through map: Homography,
         within area: CGRect,
-        reading margin: CGFloat
+        reading margin: CGFloat,
+        holdingPixels holdsPixels: Bool
     ) {
         let list = CGRect(x: 0, y: 0, width: size.width, height: size.height)
         let corners = map.inverse.corners(
@@ -109,7 +110,7 @@ struct Raster: Equatable {
         guard !visible.isNull, !visible.isEmpty else { return nil }
 
         let isWithinLimit = visible.width * visible.height * stretch * stretch <= Self.pixelLimit * area.width * area.height
-        let scale = stretch > 1 && isWithinLimit ? stretch : 1
+        let scale = stretch > 1 && (isWithinLimit || !holdsPixels) ? stretch : 1
         self.init(size: size, visible: visible, scale: CGSize(width: scale, height: scale), area: area)
     }
 

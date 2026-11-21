@@ -175,6 +175,36 @@ struct CornerPinRenderTests {
         #expect(bitmap.pixel(x: 512, y: 512)[3] > 0.999)
     }
 
+    @Test("a title pinned onto its box enlarged 4 times has edges as sharp as the title scaled 4 times without a pin")
+    func drawsEnlargedTitleSharp() throws {
+        // Given
+        let resolver = try DocumentResolver()
+        let placeholder = try resolver.resolve(title(#""cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]"#))
+        guard case let .title(text) = try #require(placeholder.clips.first).content else {
+            Issue.record("the clip is not a title")
+            return
+        }
+        let (width, height) = (text.size.width * 4, text.size.height * 4)
+        let enlarged = Quad(Rectangle(x: 320 - width / 2, y: 320 - height / 2, width: width, height: height))
+        let pinned = try resolver.resolve(title(#""cornerPin": \#(written(enlarged))"#))
+        let scaled = try resolver.resolve(title(#""placement": "center", "scale": 4"#))
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+
+        // When
+        let pinnedBitmap = try sut.frame(of: Evaluator().displayList(of: pinned, at: 0))
+        let scaledBitmap = try sut.frame(of: Evaluator().displayList(of: scaled, at: 0))
+
+        // Then
+        // The title scaled without a pin is drawn at its scale, an edge at most one pixel of partial coverage. The
+        // warp's area mean over the bilinear reconstruction of the raster spreads an edge over at most one pixel more,
+        // so each edge is within 2 pixels, while a title drawn at its own size and enlarged 4 times after would spread
+        // it over 5 or 6.
+        let pinnedEdges = partialPixels(in: pinnedBitmap)
+        let scaledEdges = partialPixels(in: scaledBitmap)
+        #expect(scaledEdges.allSatisfy { $0 <= 1 }, "\(scaledEdges)")
+        #expect(pinnedEdges.allSatisfy { $0 <= 2 }, "\(pinnedEdges) against \(scaledEdges)")
+    }
+
     // MARK: - Private
     // A 1024 × 1024 sequence on a transparent background whose storyline clip shows the still at its own pixels.
     private func document(
@@ -187,6 +217,38 @@ struct CornerPinRenderTests {
             { "kind": "sequence", "format": { "size": [1024, 1024], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
               "storyline": [ { "media": "\##(path)", "duration": 1\##(pin) } ] }
             """##
+    }
+
+    // A 640 × 640 sequence on a transparent background holding a white "I" with the given keys.
+    private func title(_ keys: String) -> String {
+        #"""
+            { "kind": "sequence", "format": { "size": [640, 640], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
+              "theme": { "baseWidth": 640, "styles": { "headline": { "size": 100, "color": "#FFFFFF" } } },
+              "storyline": [ { "solid": "#00000000", "duration": 1 } ],
+              "clips": [ { "title": "I", "style": "headline", "at": [0, 1], \#(keys) } ] }
+            """#
+    }
+
+    // The number of pixels whose alpha lies between 0.1 and 0.9 at each of the four edges the middle row and the
+    // middle column of what is drawn cross: left, right, top, bottom.
+    private func partialPixels(in bitmap: Bitmap) -> [Int] {
+        let alpha = { (x: Int, y: Int) in bitmap.pixel(x: x, y: y)[3] }
+        let drawn = (0..<bitmap.height).flatMap { y in (0..<bitmap.width).map { x in (x, y) } }
+            .filter { x, y in alpha(x, y) > 0.5 }
+        let columns = drawn.map { $0.0 }
+        let rows = drawn.map { $0.1 }
+        let column = ((columns.min() ?? 0) + (columns.max() ?? 0)) / 2
+        let row = ((rows.min() ?? 0) + (rows.max() ?? 0)) / 2
+        let isPartial = { (value: Double) in value > 0.1 && value < 0.9 }
+        let across = (0..<bitmap.width).filter { isPartial(alpha($0, row)) }
+        let down = (0..<bitmap.height).filter { isPartial(alpha(column, $0)) }
+
+        return [
+            across.filter { $0 < column }.count,
+            across.filter { $0 > column }.count,
+            down.filter { $0 < row }.count,
+            down.filter { $0 > row }.count
+        ]
     }
 
     private func written(_ quad: Quad) -> String {

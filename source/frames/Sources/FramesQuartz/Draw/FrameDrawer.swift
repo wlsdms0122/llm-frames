@@ -342,9 +342,9 @@ final class FrameDrawer {
     }
 
     // A picture carried onto its corner pin by W = H(`dest` → `cornerPin`) and then by its item's transform onto the
-    // raster (FRAMES-20 Pictures). Its whole list is drawn at the scale that map stretches it, warped onto the raster
-    // in the frame's form, and drawn back in the raster's pixels, which the item's matrix is undone for. The checker
-    // lets through only a clip's group, a picture of a nested list with no filter, matte, radius, border or shadow.
+    // raster (FRAMES-20 Pictures). Its whole list is drawn at the scale its raster takes from that map, warped onto the
+    // raster in the frame's form, and drawn back in the raster's pixels, which the item's matrix is undone for. The
+    // checker lets through only a clip's group, a picture of a nested list with no filter, matte, radius, border or shadow.
     private func carried(
         _ picture: PictureItem,
         onto cornerPin: Quad,
@@ -363,7 +363,15 @@ final class FrameDrawer {
         }
 
         let map = Homography(placement).concatenating(cornerPinMap).concatenating(Homography(matrix))
-        guard let nested = Raster(showing: list.size, through: map, within: raster.bounds, reading: reach(of: list)) else {
+        guard
+            let nested = Raster(
+                showing: list.size,
+                through: map,
+                within: raster.bounds,
+                reading: reach(of: list),
+                holdingPixels: list.holdsPixels
+            )
+        else {
             return { _ in }
         }
 
