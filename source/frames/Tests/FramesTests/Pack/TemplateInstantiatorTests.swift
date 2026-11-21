@@ -222,7 +222,53 @@ struct TemplateInstantiatorTests {
         #expect(instance.arguments.map(\.place.description) == ["storyline[0].media", "storyline[2].media"])
     }
 
+    @Test(
+        "an image parameter takes every still, an image or a page of a PDF",
+        arguments: [#""/abs/card.png""#, #""/abs/logo.pdf""#, #"{ "file": "/abs/deck.pdf", "page": 4 }"#]
+    )
+    func takesPageAsImage(argument: String) throws {
+        // Given
+        let template = try template(stillTemplate)
+        let arguments = try Fixture.object(#"{ "still": \#(argument) }"#)
+
+        // When
+        let instance = try sut.instance(of: template, arguments: arguments, place: place)
+
+        // Then
+        let media = instance.document.objectValue?["storyline"]?.arrayValue?[0].objectValue?["media"]
+        #expect(media == (try Fixture.json(argument)))
+    }
+
+    @Test("a video parameter takes no page of a PDF")
+    func refusesPageAsVideo() throws {
+        // Given
+        let template = try template(template)
+        let arguments = try Fixture.object(#"{ "clip": { "file": "/abs/deck.pdf", "page": 4 } }"#)
+
+        // When, Then
+        let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description == #"storyline[0].media.args.clip (template arguments): parameter "clip" takes video media, found page"#)
+    }
+
+    @Test("a PDF of several pages named as a file stops at the parameter type check, naming its page count")
+    func refusesPdfOfSeveralPagesAsArgument() throws {
+        // Given
+        let template = try template(stillTemplate)
+        let arguments = try Fixture.object(#"{ "still": "/abs/deck.pdf" }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
+        #expect(error?.description == #"storyline[0].media.args.still (template arguments): media "/abs/deck.pdf" is a PDF of 12 pages, more than one picture, so a page of it is named as {"file", "page"}"#)
+    }
+
     // MARK: - Private
+    private var stillTemplate: String {
+        #"""
+        { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
+          "storyline": [ { "media": { "param": "still" }, "duration": 2 } ] }
+        """#
+    }
+
     private func template(_ text: String) throws -> Template {
         try TemplateReader(mediaKinds: Fixture.library)
             .template(from: Fixture.json(text), place: Place(file: "shorts/leak", components: []))

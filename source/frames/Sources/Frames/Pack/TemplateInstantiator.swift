@@ -110,10 +110,10 @@ struct TemplateInstantiator: Sendable {
         place: Place,
         kind: String
     ) throws {
-        guard let type = parameter.type.mediaKind else { return }
+        guard parameter.type.mediaKind != nil else { return }
 
         let found = try checker.mediaKind(of: media, place: place, kind: kind)
-        guard found == type else {
+        guard parameter.type.takes(found) else {
             throw PackError.argumentOfWrongKind(
                 place: place,
                 kind: kind,
