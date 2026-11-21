@@ -10,7 +10,7 @@ import CoreGraphics
 // The part of a page's graphics state (ISO 32000-1 8.4) that decides what drawn content paints in and sets glyphs in:
 // the fill and stroke colour spaces, the pattern each paints with where its space is a Pattern space, the font, and
 // the text rendering mode. A content stream starts in DeviceGray with mode 0.
-struct PageGraphicsState {
+struct PageGraphicsState: Hashable {
     // MARK: - Property
     var fill: PDFValue = .name("DeviceGray")
     var stroke: PDFValue = .name("DeviceGray")

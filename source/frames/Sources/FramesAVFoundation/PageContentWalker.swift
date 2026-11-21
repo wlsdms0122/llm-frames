@@ -30,7 +30,7 @@ final class PageContentWalker {
     private var colorSpaces: [PDFValue] = []
     private var seenColorSpaces: Set<PDFValue> = []
     private var checkedFonts: Set<CGPDFDictionaryRef> = []
-    private var scannedStreams: Set<String> = []
+    private var scannedStreams: Set<ContentStreamScan> = []
     private var operators: CGPDFOperatorTableRef?
     private var contentStreams: [CGPDFContentStreamRef] = []
     private var uncoloredPatternDepth = 0
@@ -129,7 +129,7 @@ final class PageContentWalker {
     }
 
     // Scans `stream` with `streamResources`, or the resources in force where it has none, in a copy of the graphics
-    // state in force. A stream is scanned once for each state that bears on what it records.
+    // state in force. A stream is scanned once for each `ContentStreamScan`.
     private func scan(
         _ stream: CGPDFStreamRef,
         resources streamResources: CGPDFDictionaryRef?
@@ -142,9 +142,13 @@ final class PageContentWalker {
             return
         }
         let current = state
-        let key = "\(dictionary.rawValue)|\(current.renderMode)|\(current.fill.hashValue)|"
-            + "\(current.stroke.hashValue)|\(current.font.map { "\($0.rawValue)" } ?? "")"
-        guard scannedStreams.insert(key).inserted else { return }
+        let context = ContentStreamScan(
+            stream: dictionary,
+            state: current,
+            isHidden: isHidden,
+            isUncolored: uncoloredPatternDepth > 0
+        )
+        guard scannedStreams.insert(context).inserted else { return }
 
         states.append(current)
         resources.append(streamResources)

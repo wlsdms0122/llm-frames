@@ -286,6 +286,32 @@ struct PageContentWalkerTests {
         #expect(content.colorSpaces == [.name("DeviceRGB")])
     }
 
+    @Test("a stream first read where nothing it paints is drawn is read again where it is drawn, so its DeviceCMYK is found")
+    func rereadsStreamWhereDrawn() {
+        // Given
+        var writer = PDFFileWriter()
+        let hidden = writer.add(.dictionary(["Type": .name("OCG"), "Name": .string(Data("hidden".utf8))]))
+        let group = PDFValue.stream(
+            ["Type": .name("XObject"), "Subtype": .name("Form"), "BBox": .array([0, 0, 10, 10].map(PDFValue.integer))],
+            Data("0 0 0 1 k 0 0 10 10 re f".utf8)
+        )
+        let mask = PDFValue.dictionary(["SMask": .dictionary(["S": .name("Luminosity"), "G": group])])
+        let page = PageFile.page(
+            "/OC /Hidden BDC /GS0 gs EMC /GS0 gs 1 0 0 rg 0 0 5 5 re f",
+            resources: ["Properties": .dictionary(["Hidden": hidden]), "ExtGState": .dictionary(["GS0": mask])]
+        )
+        let catalog: [String: PDFValue] = ["OCProperties": .dictionary([
+            "OCGs": .array([hidden]),
+            "D": .dictionary(["OFF": .array([hidden])])
+        ])]
+
+        // When
+        let content = walked(page, catalog: catalog, writer: writer)
+
+        // Then
+        #expect(content.colorSpaces.contains(.name("DeviceCMYK")))
+    }
+
     @Test("a JPEG 2000 image whose dictionary names no colour space is a fault")
     func findsJPXWithoutSpace() {
         // Given
