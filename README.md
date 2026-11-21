@@ -235,21 +235,21 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
-| title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
-| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
+| title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation, cornerPin` |
+| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
 | adjustment clip | every clip with a picture's, `adjust` |
 
 - `id` names a clip for `parent`, a track matte's `clip`, messages, machine output and the programs that change a document. It is unique within its document, and a duplicate stops.
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
 - `lane` is a non-zero integer, 1 by default. Negative lanes are below the storyline (lane 0) and positive lanes above it ([Lanes and stacking](#lanes-and-stacking)).
-- A storyline clip is placed by `position` (default the centre of the frame) and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
+- A storyline clip is placed by `position` (default the centre of the frame) or by `cornerPin` and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
 - `colorSpace` on a media clip names the colour space its media are in, over what the file says, and `toneMap` (`true` by default) whether an HDR picture of it is tone mapped to the sequence's peak ([Colour](#colour)). A clip whose media is a compound clip or a template instance takes neither.
 - `filter` and `transition` take preset choices ([Presets and choices](#presets-and-choices)). `"none"` turns off the theme's default filter for one clip, and `"cut"` its default transition. The first storyline clip takes no transition. To open from black, put a solid there and give the clip after it a transition.
 
@@ -310,11 +310,11 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 
 | Clip | Keyframable |
 | --- | --- |
-| storyline clip with media | `crop, position, scale, rotation, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
-| media clip | `position, scale, rotation, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
+| storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
+| media clip | `position, scale, rotation, cornerPin, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
 | audio clip | `volume, pan` |
-| title clip | `position, scale, rotation, opacity, mask` |
-| shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, mask` |
+| title clip | `position, scale, rotation, cornerPin, opacity, mask` |
+| shape clip | `area, width, height, points, position, scale, rotation, cornerPin, opacity, trim, radius, mask` |
 | adjustment clip | `opacity, mask` |
 
 | ease | Shape |
