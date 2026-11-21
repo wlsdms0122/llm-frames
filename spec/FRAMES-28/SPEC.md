@@ -44,7 +44,7 @@ Every compound clip or template instance plays its nested sequence's bus, one wh
 
 **Note.** A compound clip's `pan` is added to its sounds before their sum, so the chain inside it reads the sound panned, and a compressor, a gate or a limiter there, which reads the louder of the two channels, acts on the panned sound.
 
-**Note.** The mixer applies a compound clip's level to its bus's sum, at each sample from the bus's level envelope as the mix plan writes it, and each inner sound's gain to that sound from its own envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). Where an inner gain and the clip's level both move, the sound is the product of the two envelopes, each joined in straight lines between its own points, which is not one envelope of their product joined between frame points. The mix plan is a wire form ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)), and this gives it a new shape for every document that holds a compound clip with sound: the clip's sounds are in a bus that carries its level, and no segment's gain envelope carries a compound clip's level.
+**Note.** The mixer applies a compound clip's level to its bus's sum, at each sample from the bus's level envelope as the mix plan writes it, and each inner sound's gain to that sound from its own envelope ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). Where an inner gain and the clip's level both move, the sound is the product of the two envelopes, each joined in straight lines between its own points, which is not one envelope of their product joined between frame points. The mix plan's shape for buses, and the version it carries, are in [FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan).
 
 ### Limiter
 
@@ -197,3 +197,5 @@ The gain smoothed by a mean of linear gains: the compressor and the gate smooth 
 **Note.** The mixer holds the whole mix in memory, and the buses' chains and the meter each pass over all of it: the limiter's interpolation costs 48 multiplications and additions per sample per channel, and the meter's `momentaryMax` and `shortTermMax` read a window at every sample, which running sums make one pass. An hour of stereo at 48 kHz in 32-bit floats is about 1.4 GB per copy of the mix.
 
 **Note.** Lossy coding such as AAC can raise a true peak, so a delivery file can read above the limited mix it is encoded from. frames has not measured how far its own delivery AAC raises it.
+
+**Note.** A document that holds a compound clip whose inner gains and level both move mixes to slightly different samples than a frames before buses mixed it, since the level is applied to the bus's sum and no longer multiplied into each inner sound's gain envelope.
