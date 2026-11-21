@@ -270,4 +270,45 @@ struct AnimationSamplerTests {
         #expect(fromExit.motion.value(of: .opacity) == 1)
         #expect(fromExit.motion.value(of: .scale) == 1)
     }
+
+    @Test(
+        "a double key of a loop period that lies whole between T and the instant clamps the instant, forward to the first key and back to the second",
+        arguments: [(2.008, 2.022, 0.6, 72.0), (2.022, 2.008, 0.4, 288.0)]
+    )
+    func clampsDoubleKeyOfPassBetween(frameTime: Double, time: Double, opacity: Double, rotation: Double) {
+        // Given
+        let flicker = AnimationSpan(length: 0.01, span: Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.opacity: 1, .rotation: 0]),
+            SpanKey(t: 0.5, values: [.opacity: 0.6]),
+            SpanKey(t: 0.5, values: [.opacity: 0.4]),
+            SpanKey(t: 1, values: [.opacity: 1, .rotation: 360])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: flicker, exit: nil, units: nil)
+        let window = TimeRange(start: 2, end: 9)
+
+        // When
+        let sample = sut.sample(of: animation, in: window, at: time, onSideOf: frameTime)
+
+        // Then
+        #expect(abs(sample.motion.value(of: .opacity) - opacity) < 1e-9)
+        #expect(abs(sample.motion.value(of: .rotation) - rotation) < 1e-6)
+    }
+
+    @Test("a loop period the exit takes over before its end has no step end on the way, so an instant in the exit reads it as it is")
+    func readsCutPeriodIntoExit() {
+        // Given
+        let hold = AnimationSpan(length: 0.4, span: Span(ease: .step, keys: [
+            SpanKey(t: 0, values: [.scale: 3]),
+            SpanKey(t: 1, values: [.scale: 4])
+        ]))
+        let animation = ResolvedAnimation(entrance: nil, loop: hold, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 3.2)
+
+        // When
+        let sample = sut.sample(of: animation, in: window, at: 2.81, onSideOf: 2.69)
+
+        // Then
+        #expect(sample.motion.value(of: .scale) == 1)
+        #expect(abs(sample.motion.value(of: .opacity) - 0.78) < 1e-9)
+    }
 }

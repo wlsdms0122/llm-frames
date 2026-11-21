@@ -55,7 +55,13 @@ struct AnimationSampler: Sendable {
     ) -> MotionSample {
         guard window.contains(frameTime) else { return .none }
 
-        return passes.sample(at: window.held(time), onSideOf: frameTime) { pass(of: animation, in: window, at: $0) }
+        let instant = window.held(time)
+
+        return passes.sample(
+            at: instant,
+            onSideOf: frameTime,
+            passes: passes(of: animation, in: window, between: min(instant, frameTime), and: max(instant, frameTime))
+        )
     }
 
     // MARK: - Private
@@ -66,30 +72,49 @@ struct AnimationSampler: Sendable {
         MotionSample(motion: evaluator.motion(of: span, at: progress), revealFrom: span.revealFrom)
     }
 
-    // The entrance from the window start, the exit to its end, and the loop's period between them that holds the time.
-    private func pass(
+    // The entrance from the window start, the loop's periods after it, and the exit to the window's end, each that
+    // plays at some time from `lower` to `upper`, in time order.
+    private func passes(
         of animation: ResolvedAnimation,
         in window: TimeRange,
-        at time: Double
-    ) -> AnimationPass? {
+        between lower: Double,
+        and upper: Double
+    ) -> [AnimationPass] {
         let entranceLength = min(animation.entrance?.length ?? 0, window.length)
         let exitLength = min(animation.exit?.length ?? 0, window.length - entranceLength)
         let loopStart = window.start + entranceLength
         let exitStart = window.end - exitLength
+        var passes = [AnimationPass]()
 
-        if let entrance = animation.entrance, time < loopStart {
-            return AnimationPass(span: entrance.span, start: window.start, length: entrance.length)
-        }
-
-        if let exit = animation.exit, exitLength > 0, time >= exitStart {
-            return AnimationPass(span: exit.span, start: exitStart, length: exitLength)
+        if let entrance = animation.entrance, entranceLength > 0, lower < loopStart {
+            passes.append(AnimationPass(
+                span: entrance.span,
+                start: window.start,
+                length: entrance.length,
+                plays: TimeRange(start: window.start, end: loopStart)
+            ))
         }
 
         if let loop = animation.loop {
-            let period = ((time - loopStart) / loop.length).rounded(.down)
-            return AnimationPass(span: loop.span, start: loopStart + period * loop.length, length: loop.length)
+            passes += AnimationPass.periods(
+                of: loop.span,
+                length: loop.length,
+                from: loopStart,
+                until: exitStart,
+                between: lower,
+                and: upper
+            )
         }
 
-        return nil
+        if let exit = animation.exit, exitLength > 0, exitStart <= upper {
+            passes.append(AnimationPass(
+                span: exit.span,
+                start: exitStart,
+                length: exitLength,
+                plays: TimeRange(start: exitStart, end: window.end)
+            ))
+        }
+
+        return passes
     }
 }
