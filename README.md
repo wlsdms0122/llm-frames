@@ -457,18 +457,18 @@ An adjustment clip applies a filter choice (`adjust`) to everything below it in 
 
 ### Motion blur
 
-A clip with `"motionBlur": true` shows the motion frames gives it during each frame's exposure, as After Effects' Motion Blur switch does: its keyframes, animation, transition motion and its parent's motion. Every clip with a picture takes it, storyline clips, titles, shapes, media clips and adjustment clips. The sequence's `format.motionBlur` is the shutter of every frame:
+A clip with `"motionBlur": true` shows the motion frames gives it during each frame's exposure, as After Effects' Motion Blur switch does: its keyframes, animation and transition motion, and the motion it gives the clips parented to it. Every clip with a picture takes it, storyline clips, titles, shapes, media clips and adjustment clips. The sequence's `format.motionBlur` is the shutter of every frame:
 
 | Key | Value | Default |
 | --- | --- | --- |
 | `shutterAngle` | how long the shutter is open, in degrees of a frame, above 0 and at most 720 | 180 |
 | `shutterPhase` | when it opens, in degrees before the frame's instant, from minus the angle to 0, so the exposure always holds the instant | half the angle, negative, so the blur is centred on the frame |
-| `samplesPerFrame` | how many instants of the exposure are drawn, a whole number from 2 to 256 | 16 |
+| `samplesPerFrame` | how many pictures of the frame its exposure is the mean of, a whole number from 2 to 256 | 16 |
 
-- The clip is drawn at the midpoints of `samplesPerFrame` equal parts of the exposure, cut to the part where it is visible, and shows their mean. A sample moves the clip's pose (its keyframes, animation, parent, transition motion, mask and track matte) and holds its content: which clips show, the media frame of footage, the picture of a compound clip and tracked motion are those of the frame's own instant, so a cut stays a cut, footage is never exposed twice and motion inside footage is not blurred.
-- Clips with motion blur and `normal` blend next to each other in the stack are drawn together at each instant, so both sides of a push, or a title and the bar parented to it, blur as one picture with no seam. Turn it on for both sides of a push: with one side on, what is below the storyline shows through along the blurred edge.
-- A compound clip's own shutter applies only when it is rendered alone. Inside another sequence its clips with motion blur take the outer shutter through its speed and `timeRemap`, so a held frame shows no blur.
-- A fast move shows steps where the samples are far apart: raise `samplesPerFrame`. Each sample is a full drawing of the clip, so a clip with motion blur costs that many times as much to render.
+- The frame is the mean of `samplesPerFrame` pictures of the whole frame. In each, a clip with motion blur stands at one of the midpoints of equal parts of the exposure, cut to where it is visible and its pose runs on without a `step` jump, and every other clip stands as at the frame's instant. Which clips show, the media frame of footage and tracked motion are those of the frame's instant in every picture, so a cut stays a cut, footage is never exposed twice and motion inside footage is not blurred.
+- The switch moves the clip's own values wherever they act: a bar without it parented to a title with it moves with the title, and the two blur as one picture with no seam. Turn it on for both sides of a push: with one side on, what is below the storyline shows through along the blurred edge.
+- A compound clip's own shutter applies only when it is rendered alone. Inside another sequence its clips with motion blur take the outer shutter through its speed and `timeRemap`, so a held frame shows no blur, and a clip moving inside it against its motion stays sharp when both have the switch.
+- A fast move shows steps where the samples are far apart: raise `samplesPerFrame`. Each sample is a full drawing of the frame, so a frame with motion blur costs up to that many times as much to render.
 
 ```json
 { "at": [1, 3], "title": "Fast", "style": "title", "motionBlur": true,
