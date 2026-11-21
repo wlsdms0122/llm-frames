@@ -188,24 +188,38 @@ extension CoreTextShaper: ShapingProvider {
         let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
         let scalars = scalarIndices(of: text)
 
+        // `CTRunGetAdvances` is the distance from one glyph's drawn position to the next one's, a mark's attachment
+        // included. Base advances leave out what the font's tables place relative to another glyph, so the pen moves
+        // by them and a glyph's placement offset is its drawn position less the pen.
         var runs: [ShapedRun] = []
+        var pen = 0.0
         for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
             let count = CTRunGetGlyphCount(run)
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var advances = [CGSize](repeating: .zero, count: count)
+            var positions = [CGPoint](repeating: .zero, count: count)
             var offsets = [CFIndex](repeating: 0, count: count)
             let all = CFRange(location: 0, length: count)
             CTRunGetGlyphs(run, all, &glyphs)
-            CTRunGetAdvances(run, all, &advances)
+            CTRunGetBaseAdvancesAndOrigins(run, all, &advances, nil)
+            CTRunGetPositions(run, all, &positions)
             CTRunGetStringIndices(run, all, &offsets)
 
             let runFace = try self.face(of: run, asked: faces)
-            let shaped = (0..<count).map { index in
-                ShapedGlyph(
-                    id: Int(glyphs[index]),
-                    advance: Double(advances[index].width),
-                    offset: scalars[offsets[index]]
+            var shaped: [ShapedGlyph] = []
+            for index in 0..<count {
+                shaped.append(
+                    ShapedGlyph(
+                        id: Int(glyphs[index]),
+                        advance: Double(advances[index].width),
+                        offset: scalars[offsets[index]],
+                        placementOffset: Point(
+                            x: Double(positions[index].x) - pen,
+                            y: -Double(positions[index].y)
+                        )
+                    )
                 )
+                pen += Double(advances[index].width)
             }
 
             if let last = runs.last, last.face == runFace {

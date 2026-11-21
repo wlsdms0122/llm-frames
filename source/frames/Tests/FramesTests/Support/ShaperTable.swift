@@ -117,7 +117,8 @@ struct ShaperTable: ShapingProvider {
             let glyph = ShapedGlyph(
                 id: isLigature ? Self.ligature : Int(scalar.value),
                 advance: advance * size,
-                offset: offset
+                offset: offset,
+                placementOffset: Point(x: 0, y: 0)
             )
 
             if let last = runs.last, last.face == runFace {

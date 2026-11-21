@@ -206,7 +206,12 @@ struct Typesetter: Sendable {
             glyphs += zip(runGlyphs, clusters).map { element, clusters in
                 let (face, glyph) = element
                 return StyledGlyph(
-                    glyph: ShapedGlyph(id: glyph.id, advance: glyph.advance, offset: glyph.offset + start),
+                    glyph: ShapedGlyph(
+                        id: glyph.id,
+                        advance: glyph.advance,
+                        offset: glyph.offset + start,
+                        placementOffset: glyph.placementOffset
+                    ),
                     isSpace: scalars[glyph.offset].properties.isWhitespace,
                     face: face,
                     source: source,

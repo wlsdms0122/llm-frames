@@ -162,6 +162,32 @@ struct CoreTextShaperTests {
         #expect(unligated.map(\.offset) == [0, 1, 2])
     }
 
+    @Test(
+        "a mark the face's GPOS table attaches has no advance and its placement offset from the pen puts it where CoreText draws it",
+        arguments: [("Times New Roman", "TimesNewRomanPSMT"), ("Arial", "ArialMT"), ("Courier New", "CourierNewPSMT")]
+    )
+    func placesMarkByOffset(family: String, name: String) throws {
+        // Given
+        let face = try face(family, name)
+        let text = "xq\u{303}x"
+
+        // When
+        let glyphs = try shape(text, [face]).flatMap(\.glyphs)
+
+        // Then
+        #expect(glyphs.map(\.offset) == [0, 1, 2, 3])
+        #expect(glyphs[2].advance == 0)
+        #expect(glyphs[2].placementOffset.x < 0)
+        #expect(glyphs[2].placementOffset.y != 0)
+        #expect([0, 1, 3].allSatisfy { glyphs[$0].placementOffset == Point(x: 0, y: 0) })
+        let pens = glyphs.indices.map { index in glyphs[..<index].map(\.advance).reduce(0, +) }
+        let drawn = zip(pens, glyphs).map { pen, glyph in
+            Point(x: pen + glyph.placementOffset.x, y: glyph.placementOffset.y)
+        }
+        let positions = positions(text, face: face.name, size: 48)
+        #expect(zip(drawn, positions).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
     @Test("characters the first face lacks are set in the later faces given, in order")
     func cascades() throws {
         // Given
@@ -243,5 +269,23 @@ struct CoreTextShaperTests {
         let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
 
         return CTLineGetTypographicBounds(line, nil, nil, nil)
+    }
+
+    // Where CoreText draws each glyph of `text` in one line, y down.
+    private func positions(
+        _ text: String,
+        face name: String,
+        size: Double
+    ) -> [Point] {
+        let font = CTFontCreateWithName(name as CFString, size, nil)
+        let attributes = [NSAttributedString.Key(kCTFontAttributeName as String): font]
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+
+        return (CTLineGetGlyphRuns(line) as? [CTRun] ?? []).flatMap { run in
+            var positions = [CGPoint](repeating: .zero, count: CTRunGetGlyphCount(run))
+            CTRunGetPositions(run, CFRange(location: 0, length: positions.count), &positions)
+
+            return positions.map { Point(x: Double($0.x), y: -Double($0.y)) }
+        }
     }
 }
