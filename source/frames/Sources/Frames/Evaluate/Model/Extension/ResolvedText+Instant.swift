@@ -43,6 +43,16 @@ extension ResolvedText {
         )
     }
 
+    // Where the title's text box lies in its box at `time`: the map from the text box's coordinates, its top left at
+    // the origin, to the box's, its top left at the origin. A title's items and its masks lie in its text box, so each
+    // takes this map into its box.
+    func textBoxInBox(at time: SampleTime) -> AffineTransform {
+        let box = box(at: time)
+        let textBox = textBox(at: time)
+
+        return AffineTransform(translation: Point(x: textBox.x - box.x, y: textBox.y - box.y))
+    }
+
     // The title's drawn extent at `time`, in its text box then: the text box grown to hold the glyph box then of every
     // character and of every space hanging at a line's end, each raised by its run's baseline shift then.
     func extent(at time: SampleTime) -> Rectangle {

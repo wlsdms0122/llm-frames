@@ -105,12 +105,11 @@ struct ClipEvaluator: Sendable {
 
             // Its item lies in its text box, inside its box at the time.
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
-            let textBox = text.textBox(at: time)
             let item = boxItem(
                 of: clip,
                 box: box,
                 drawn: text.box(at: time),
-                origin: Point(x: textBox.x, y: textBox.y),
+                origin: text.textBoxInBox(at: time),
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
@@ -158,7 +157,7 @@ struct ClipEvaluator: Sendable {
                 of: clip,
                 box: box,
                 drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
-                origin: Point(x: 0, y: 0),
+                origin: .identity,
                 sample: sample,
                 in: space,
                 content: .picture(item),
@@ -179,8 +178,8 @@ struct ClipEvaluator: Sendable {
     // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
     // animation's included, and its blend. Where the corner pin draws nothing the group is nil, and in a sample list it
     // is there with four points at [0, 0] as its corner pin (FRAMES-20 Pictures). Nil for an adjustment, which takes no
-    // corner pin. A title's item lies in its text box, inside B as inside its box at the time. A rect or an ellipse is
-    // drawn in the box its `width` and `height` give at the time, its own masks in that box.
+    // corner pin. A title's item and its masks lie in its text box, inside B as inside its box at the time. A rect or an
+    // ellipse is drawn in the box its `width` and `height` give at the time, its own masks in that box.
     private func group(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -190,23 +189,23 @@ struct ClipEvaluator: Sendable {
         at time: SampleTime
     ) -> DisplayItem? {
         let sample = ClipSample(clip: clip, at: time)
-        // `origin` carries the content's own coordinates into B, and `masks` the clip's own space into B.
+        // `origin` carries the content's own coordinates into B, and `ownSpace` the clip's own space into the content's
+        // own coordinates, which are a title's own space and a shape's.
         let flat: (
             box: Rectangle,
             content: DisplayContent,
             origin: AffineTransform,
             receiver: (AffineTransform) -> Rectangle,
-            masks: AffineTransform
+            ownSpace: AffineTransform
         )
         switch clip.content {
         case let .title(text):
             let drawn = text.box(at: time)
-            let textBox = text.textBox(at: time)
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
             flat = (
                 Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height),
                 .glyphs(glyphs),
-                AffineTransform(translation: Point(x: textBox.x - drawn.x, y: textBox.y - drawn.y)),
+                text.textBoxInBox(at: time),
                 { glyphs.drawnBounds(carriedBy: $0) },
                 .identity
             )
@@ -283,7 +282,7 @@ struct ClipEvaluator: Sendable {
             origin: ItemOrigin(clip: clip)
         )
         let mask = clip.ownMasks(at: time).map { mask in
-            ItemMask(mask: mask, transform: flat.masks.concatenating(transform), factor: sample.lengthFactor)
+            ItemMask(mask: mask, transform: flat.ownSpace.concatenating(itemTransform), factor: sample.lengthFactor)
         }
         var items = [item]
         if case let .title(text) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
@@ -404,14 +403,14 @@ struct ClipEvaluator: Sendable {
         return unit.intersection(loop) ?? Rectangle(x: unit.x, y: unit.y, width: 0, height: 0)
     }
 
-    // `drawn` is the clip's box at the time, in its box at its placed size, `origin` where the item's own coordinates
-    // start in that box, and `receiver` what the item draws in its own coordinates under the item's transform, which
+    // `drawn` is the clip's box at the time, in its box at its placed size, `origin` the map from the item's own
+    // coordinates into the box at the time, and `receiver` what the item draws in its own coordinates under the item's transform, which
     // the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
         drawn: Rectangle,
-        origin: Point,
+        origin: AffineTransform,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
@@ -420,7 +419,9 @@ struct ClipEvaluator: Sendable {
     ) -> DisplayItem {
         let size = Size(width: drawn.width, height: drawn.height)
         let presentation = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time)
-        let transform = AffineTransform(translation: origin).concatenating(presentation.transform)
+        let transform = origin
+            .concatenating(AffineTransform(translation: Point(x: drawn.x, y: drawn.y)))
+            .concatenating(presentation.transform)
 
         return DisplayItem(
             transform: transform,
@@ -508,10 +509,7 @@ struct ClipEvaluator: Sendable {
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
             : clip.ownMasks(at: time)
         let inBox = if case let .title(text) = clip.content {
-            AffineTransform(translation: Point(
-                x: text.textBox(at: time).x - text.box(at: time).x,
-                y: text.textBox(at: time).y - text.box(at: time).y
-            ))
+            text.textBoxInBox(at: time)
         } else {
             AffineTransform.identity
         }
