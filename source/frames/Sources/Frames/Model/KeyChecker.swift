@@ -858,6 +858,10 @@ struct KeyChecker: Sendable {
             )
         }
 
+        if let keyframes = object["keyframes"] {
+            try keyframeReader.checkEases(in: keyframes, place: place.appending(key: "keyframes"))
+        }
+
         guard !isNested else {
             guard !object.contains("params") else {
                 throw ModelError.nestedTemplate(place: place, kind: table.kind)

@@ -62,7 +62,8 @@ struct ContentFitPlanner: Sendable {
                     ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset)
                     : plan.clips[index]
             },
-            sound: plan.sound
+            sound: plan.sound,
+            audioFilter: plan.audioFilter
         )
     }
 

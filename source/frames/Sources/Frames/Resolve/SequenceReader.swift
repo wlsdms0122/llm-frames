@@ -37,7 +37,9 @@ struct SequenceReader: Sendable {
             theme: object["theme"].map(ThemeReference.init(value:)),
             format: format(object["format"]?.objectValue ?? JSONObject()),
             storyline: storyline,
-            clips: clips
+            clips: clips,
+            audioFilter: look("audioFilter", of: object),
+            keyframes: keyframes(object["keyframes"])
         )
     }
 
