@@ -26,7 +26,8 @@ struct LoudnessCommand: Command {
         _ options: LoudnessOptions,
         in context: CommandContext
     ) throws {
-        let reporter = LoudnessReporter(mediaFacts: context.roles.decoder, mixer: context.roles.mixer)
+        let roles = context.roles
+        let reporter = LoudnessReporter(decoder: roles.decoder, mixer: roles.mixer, mediaFacts: roles.decoder)
         let loudness: Loudness
         // The argument is told apart as `sheet` and `extract` tell theirs, its path a medium here.
         switch FrameSourceArgument(options.source) {

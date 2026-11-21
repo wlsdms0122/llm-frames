@@ -50,7 +50,7 @@ struct LoudnessRenderTests {
             encoder: AVFoundationEncoder()
         )
         try pipeline.render(document, to: output.file("out.mov"), at: nil, delivery: nil)
-        let sut = LoudnessReporter(mediaFacts: decoder, mixer: mixer)
+        let sut = LoudnessReporter(decoder: decoder, mixer: mixer, mediaFacts: decoder)
 
         // When
         let mixed = try sut.loudness(of: document, from: nil, to: nil)

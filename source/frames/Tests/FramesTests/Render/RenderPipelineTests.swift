@@ -56,8 +56,8 @@ struct RenderPipelineTests {
 
     @Test("a role that refuses stops the render after the checks before it, with nothing drawn or written", arguments: [
         (RoleRefusal.decoder, 1),
-        (RoleRefusal.renderer, 3),
-        (RoleRefusal.mixer, 5),
+        (RoleRefusal.mixer, 3),
+        (RoleRefusal.renderer, 4),
         (RoleRefusal.encoder, 6)
     ])
     func stopsOnRefusal(
@@ -373,15 +373,15 @@ struct RenderPipelineTests {
         )
     }
 
-    // The checks of a two frame sequence of `video` and `music` rendered with a delivery: each media once, each frame,
-    // the plan, and each target.
+    // The checks of a two frame sequence of `video` and `music` rendered with a delivery: each media once, the plan,
+    // each frame, and each target.
     private func checks(of sequence: ResolvedSequence) -> [RoleCall] {
         [
             .checkMedia(path: "/abs/run.mp4"),
             .checkMedia(path: "/abs/bgm.m4a"),
+            .checkPlan(MixPlanner().mix(of: sequence)),
             .checkList(frame: 0),
             .checkList(frame: 1),
-            .checkPlan(MixPlanner().mix(of: sequence)),
             .checkTarget(.master(path: master, alpha: false)),
             .checkTarget(.delivery(path: delivery))
         ]
