@@ -23,7 +23,7 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
     case unmeasurable(path: String)
     case maximumSideOfPage(input: String)
     case scaleOfRaster(input: String)
-    case pageTooLarge(path: String, scale: Double, width: Int, height: Int, largest: Int)
+    case pageTooLarge(path: String, scale: Double, size: Size, largest: Int)
 
     // MARK: - Property
     package var description: String {
@@ -84,9 +84,10 @@ package enum TranscodeError: Error, Equatable, CustomStringConvertible, Sendable
             "--scale: \(quoted(input)) has pixels of its own, and --scale is the pixels per point of a page of a PDF, "
                 + "so --max caps its longer side"
 
-        case let .pageTooLarge(path, scale, width, height, largest):
-            "\(quoted(path)): --scale \(JSONValue.number(scale).written) draws the page at \(width)x\(height), and the "
-                + "decoder holds at most \(largest) pixels on a side"
+        case let .pageTooLarge(path, scale, size, largest):
+            "\(quoted(path)): --scale \(JSONValue.number(scale).written) draws the page at "
+                + "\(JSONValue.number(size.width).written)x\(JSONValue.number(size.height).written), and the decoder "
+                + "holds at most \(largest) pixels on a side"
         }
     }
 

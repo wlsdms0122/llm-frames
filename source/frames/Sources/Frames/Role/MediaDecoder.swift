@@ -92,9 +92,7 @@ extension MediaDecoder {
         ofPage file: MediaFile,
         reading: PictureReading
     ) throws -> (picture: Bitmap, scale: Double) {
-        let size = try pageSize(of: file)
-        let scale = providerScale(ofPageSize: size)
-        let region = PageRegion(wholePageOf: size, scale: scale)
+        let (region, scale) = PageRegion.wholePage(of: try pageSize(of: file), atMost: 4, largest: largestPictureSide)
 
         return (try picture(of: file, region: region, scale: scale, reading: reading), scale)
     }

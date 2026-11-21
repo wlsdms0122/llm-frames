@@ -307,8 +307,10 @@ final class FrameDrawer {
 
         let largest = CGFloat(pictures.largestPictureSide)
         let scale = Self.pageScale(shownBy: map)
-        let whole = PageRegion(wholePageOf: pageSize, scale: scale)
-        if CGFloat(max(whole.width, whole.height)) <= largest, whole.width * whole.height <= Self.wholePagePixels {
+        if
+            let whole = PageRegion(wholePageOf: pageSize, scale: scale, largest: pictures.largestPictureSide),
+            whole.width * whole.height <= Self.wholePagePixels
+        {
             let image = try pictures.image(of: frame, region: whole, scale: scale)
             return SourceImage(image, of: size, transform: CGAffineTransform(scaleX: scale, y: scale))
         }
@@ -349,10 +351,13 @@ final class FrameDrawer {
 
         let size = try pictures.pageSize(of: matte.frame)
         let stretch = CGAffineTransform(scaleX: destination.width / size.width, y: destination.height / size.height)
-        let held = CGFloat(pictures.largestPictureSide) / max(size.width, size.height)
-        let scale = min(Self.pageScale(shownBy: stretch.concatenating(matrix)), held)
+        let (region, scale) = PageRegion.wholePage(
+            of: size,
+            atMost: Self.pageScale(shownBy: stretch.concatenating(matrix)),
+            largest: pictures.largestPictureSide
+        )
 
-        return try pictures.image(of: matte.frame, region: PageRegion(wholePageOf: size, scale: scale), scale: scale)
+        return try pictures.image(of: matte.frame, region: region, scale: scale)
     }
 
     // The scale a page is drawn at through `map`: its longer axis stretch, rounded up to a power of two.

@@ -30,19 +30,47 @@ package struct PageRegion: Equatable, Hashable, Sendable {
         self.height = height
     }
 
-    // The whole page of `size` media pixels at `scale`: [0, 0, max(1, round(w × s)), max(1, round(h × s))].
-    package init(
+    // The whole page of `size` media pixels at `scale`: [0, 0, max(1, round(w × s)), max(1, round(h × s))]. Nil where
+    // a side is over `largest`, the most pixels on a side the decoder holds, judged before a side is a whole number.
+    package init?(
         wholePageOf size: Size,
-        scale: Double
+        scale: Double,
+        largest: Int
     ) {
-        self.init(
+        let side = Self.wholePageSide(of: size, scale: scale)
+        guard max(side.width, side.height) <= Double(largest) else { return nil }
+
+        self.init(x: 0, y: 0, width: Int(side.width), height: Int(side.height))
+    }
+
+    // The whole page of `size` media pixels at `scale`, or where the decoder does not hold it at `scale`, at the
+    // largest scale at which it holds the whole page, its longer side `largest` (FRAMES-21 Rules), with that scale.
+    package static func wholePage(
+        of size: Size,
+        atMost scale: Double,
+        largest: Int
+    ) -> (region: PageRegion, scale: Double) {
+        let held = min(scale, Double(largest) / max(size.width, size.height))
+        let side = wholePageSide(of: size, scale: held)
+        let region = PageRegion(
             x: 0,
             y: 0,
-            width: max(1, Int((size.width * scale).rounded())),
-            height: max(1, Int((size.height * scale).rounded()))
+            width: Int(min(side.width, Double(largest))),
+            height: Int(min(side.height, Double(largest)))
         )
+
+        return (region, held)
     }
 
     // MARK: - Public
+    // The sides of the whole page of `size` media pixels at `scale` in grid pixels, max(1, round(w × s)) by
+    // max(1, round(h × s)), which may be past every whole number.
+    package static func wholePageSide(
+        of size: Size,
+        scale: Double
+    ) -> Size {
+        Size(width: max(1, (size.width * scale).rounded()), height: max(1, (size.height * scale).rounded()))
+    }
+
     // MARK: - Private
 }

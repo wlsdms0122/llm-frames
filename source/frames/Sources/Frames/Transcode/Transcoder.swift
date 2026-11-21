@@ -155,13 +155,11 @@ package struct Transcoder: Sendable {
         try decoder.check(file, reading: platform)
         let size = try decoder.pageSize(of: file)
         let scale = request.scale ?? decoder.providerScale(ofPageSize: size)
-        let region = PageRegion(wholePageOf: size, scale: scale)
-        guard max(region.width, region.height) <= decoder.largestPictureSide else {
+        guard let region = PageRegion(wholePageOf: size, scale: scale, largest: decoder.largestPictureSide) else {
             throw TranscodeError.pageTooLarge(
                 path: request.output,
                 scale: scale,
-                width: region.width,
-                height: region.height,
+                size: PageRegion.wholePageSide(of: size, scale: scale),
                 largest: decoder.largestPictureSide
             )
         }

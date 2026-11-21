@@ -152,11 +152,15 @@ struct TranscoderTests {
         let large = #expect(throws: TranscodeError.self) {
             try sut.transcode(TranscodeRequest(input: page, output: output, scale: 200))
         }
+        let huge = #expect(throws: TranscodeError.self) {
+            try sut.transcode(TranscodeRequest(input: page, output: output, scale: 1e300))
+        }
 
         // Then
         #expect(capped == .maximumSideOfPage(input: page))
         #expect(scaled == .scaleOfRaster(input: image))
-        #expect(large == .pageTooLarge(path: output, scale: 200, width: 20_000, height: 10_000, largest: 16_384))
+        #expect(large == .pageTooLarge(path: output, scale: 200, size: Size(width: 20_000, height: 10_000), largest: 16_384))
+        #expect(huge == .pageTooLarge(path: output, scale: 1e300, size: Size(width: 100 * 1e300, height: 50 * 1e300), largest: 16_384))
         #expect(large?.description == """
             \(JSONValue.string(output).written): --scale 200 draws the page at 20000x10000, and the decoder holds at \
             most 16384 pixels on a side

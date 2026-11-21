@@ -80,7 +80,7 @@ struct PageReaderTests {
         let path = directory.file("rectangles.pdf")
         try PageFile.write([PageFile.page(Self.rectangles)], to: path)
         let file = MediaFile(path: path, page: 1)
-        let whole = PageRegion(wholePageOf: Size(width: 400, height: 300), scale: 1.5)
+        let whole = try #require(PageRegion(wholePageOf: Size(width: 400, height: 300), scale: 1.5, largest: sut.largestPictureSide))
         let region = PageRegion(x: 150, y: 90, width: 300, height: 180)
 
         // When
