@@ -38,7 +38,7 @@ struct EvaluationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([turned, scaled]), at: 0)
+        let report = try sut.report(of: list([turned, scaled]), at: 0)
 
         // Then
         let bounds = report.items.map(\.bounds)
@@ -47,7 +47,7 @@ struct EvaluationReporterTests {
     }
 
     @Test("bounds are cut by the mask, the reveal and the output frame, and an item they leave nothing of has none")
-    func cutsBoundsByMasks() {
+    func cutsBoundsByMasks() throws {
         // Given
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 100, height: 100), color: red)
         let masked = DisplayItem(mask: mask(Rectangle(x: 50, y: 20, width: 100, height: 100)), content: .path(fill))
@@ -59,7 +59,7 @@ struct EvaluationReporterTests {
         let hidden = DisplayItem(mask: mask(Rectangle(x: 300, y: 0, width: 10, height: 10)), content: .path(fill))
 
         // When
-        let report = sut.report(of: list([masked, revealed, hidden]), at: 0)
+        let report = try sut.report(of: list([masked, revealed, hidden]), at: 0)
 
         // Then
         #expect(report.items.map(\.bounds) == [
@@ -80,7 +80,7 @@ struct EvaluationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([diamond]), at: 0)
+        let report = try sut.report(of: list([diamond]), at: 0)
 
         // Then
         let reach = 10 * 2.0.squareRoot()
@@ -113,7 +113,7 @@ struct EvaluationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([item], background: black), at: 0)
+        let report = try sut.report(of: list([item], background: black), at: 0)
 
         // Then
         // The nested background and the fill without a clip of its own are the compound clip's picture.
@@ -146,7 +146,7 @@ struct EvaluationReporterTests {
     }
 
     @Test("a nested list shows only the source rect its picture draws, scaled into the picture's destination")
-    func cutsNestedListBySourceRect() {
+    func cutsNestedListBySourceRect() throws {
         // Given
         let inner = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [
             DisplayItem(
@@ -161,7 +161,7 @@ struct EvaluationReporterTests {
         )
 
         // When
-        let report = sut.report(of: list([DisplayItem(content: .picture(picture), origin: entry)]), at: 0)
+        let report = try sut.report(of: list([DisplayItem(content: .picture(picture), origin: entry)]), at: 0)
 
         // Then
         #expect(report.items == [
@@ -172,7 +172,7 @@ struct EvaluationReporterTests {
     @Test(
         "a stroked rect covers half its stroke to each side of its edge, and a filled polyline its points and its stroke"
     )
-    func boundsPaths() {
+    func boundsPaths() throws {
         // Given
         let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .arrow)
         let rect = DisplayItem(content: .path(PathItem(
@@ -187,7 +187,7 @@ struct EvaluationReporterTests {
         )))
 
         // When
-        let report = sut.report(of: list([rect, polyline]), at: 0)
+        let report = try sut.report(of: list([rect, polyline]), at: 0)
 
         // Then
         // The arrowhead at (160, 50) is 16 long and 16 wide, its base from x = 152 to 168.
@@ -321,7 +321,7 @@ struct EvaluationReporterTests {
             content: .path(PathItem(filling: Rectangle(x: 80, y: 40, width: 40, height: 20), color: red)),
             origin: title
         )
-        let report = sut.report(of: list([turned], background: black), at: 1.0000004)
+        let report = try sut.report(of: list([turned], background: black), at: 1.0000004)
 
         // When
         let text = JSONWriter().write(report.machineOutput)

@@ -35,7 +35,9 @@ struct NestedListDrawingTests {
         // Given
         let scene = scene()
         let shown = DisplayItem(transform: transform, content: .picture(picture(of: scene)))
-        let inPlace = scene.items.map { item in moved(item, by: transform) }
+        guard case let .items(items) = scene.content else { Issue.record("the scene holds samples"); return }
+
+        let inPlace = items.map { item in moved(item, by: transform) }
 
         // When
         let nested = try sut.frame(of: list(size: 40, items: [shown]))
@@ -62,7 +64,9 @@ struct NestedListDrawingTests {
         )
         let scene = scene()
         let shown = DisplayItem(transform: transform, content: .picture(picture(of: scene)))
-        let inPlace = scene.items.map { item in moved(item, by: transform) }
+        guard case let .items(items) = scene.content else { Issue.record("the scene holds samples"); return }
+
+        let inPlace = items.map { item in moved(item, by: transform) }
 
         // When
         let nested = try sut.frame(of: list(size: 40, items: [shown]))

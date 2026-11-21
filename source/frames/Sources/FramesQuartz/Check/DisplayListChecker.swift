@@ -7,10 +7,10 @@
 
 import Frames
 
-// Walks a display list and the lists nested in it for what the quartz renderer cannot draw, naming each refusal with
-// its place in the list. It draws every item kind and filter operation, so what it refuses is a blend mode it has no
-// kernel for and a `lut` whose `.cube` does not read as a 3D LUT. It reads each LUT through the renderer's cache, so
-// drawing reads none again.
+// Walks a display list, each of its sample lists and the lists nested in it for what the quartz renderer cannot draw,
+// naming each refusal with its place in the list. It draws every item kind and filter operation, so what it refuses is
+// a blend mode it has no kernel for and a `lut` whose `.cube` does not read as a 3D LUT. It reads each LUT through the
+// renderer's cache, so drawing reads none again.
 struct DisplayListChecker {
     // MARK: - Property
     private let tables: LookUpTableCache
@@ -26,8 +26,25 @@ struct DisplayListChecker {
         _ list: DisplayList,
         place: String = ""
     ) throws {
-        for (index, item) in list.items.enumerated() {
-            let itemPlace = "\(place)items[\(index)]"
+        switch list.content {
+        case let .items(items):
+            try check(items, place: "\(place)items")
+
+        case let .samples(samples):
+            for (index, sample) in samples.enumerated() {
+                try check(sample, place: "\(place)samples[\(index)]")
+            }
+        }
+    }
+
+    // MARK: - Private
+    // `place` is the path of the items in the outermost list.
+    private func check(
+        _ items: [DisplayItem],
+        place: String
+    ) throws {
+        for (index, item) in items.enumerated() {
+            let itemPlace = "\(place)[\(index)]"
             guard BlendMode(rawValue: item.blend) != nil else {
                 throw QuartzError.unsupportedBlend(name: item.blend, place: "\(itemPlace).blend")
             }
@@ -51,7 +68,6 @@ struct DisplayListChecker {
         }
     }
 
-    // MARK: - Private
     // `place` is the item's.
     private func check(
         _ filter: [FilterEntry],

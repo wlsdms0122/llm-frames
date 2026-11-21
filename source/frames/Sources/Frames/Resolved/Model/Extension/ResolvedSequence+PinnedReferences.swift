@@ -88,7 +88,7 @@ extension ResolvedSequence {
         of filter: TimedValue,
         place: String
     ) -> [PinnedReference] {
-        FilterEntry.entries(of: filter, at: 0).flatMap(\.operations).compactMap { operation in
+        FilterEntry.entries(of: filter, at: SampleTime(0)).flatMap(\.operations).compactMap { operation in
             guard case let .lut(file, _, _) = operation else { return nil }
 
             return .file(file, place: place)

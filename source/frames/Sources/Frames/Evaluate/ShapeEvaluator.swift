@@ -20,13 +20,15 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> [DisplayItem] {
         // A transform at scale 0 flattens the shape to a point, where its carried lengths cannot be kept, so it draws
-        // nothing.
-        guard let laid = laid(shape, clip: clip, sample: sample, in: space, at: time), let carried = laid.carried else {
-            return []
-        }
+        // nothing. In a sample of a frame with motion blur its item is there all the same, every carried length 0, since
+        // whether an item is there is decided at T (FRAMES-29).
+        guard
+            let laid = laid(shape, clip: clip, sample: sample, in: space, at: time),
+            let carried = laid.carried ?? (time.sample.isSample ? 0 : nil)
+        else { return [] }
 
         let factor = sample.lengthFactor
 
@@ -38,7 +40,8 @@ struct ShapeEvaluator: Sendable {
                 sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
                 factor: factor,
                 carried: carried,
-                box: laid.box
+                box: laid.box,
+                isSample: time.sample.isSample
             ),
             trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
             shadow: DropShadow(
@@ -63,7 +66,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
         laid(shape, clip: clip, sample: sample, in: space, at: time)?.transform
             ?? space.tracked(by: clip.parentTrack, at: time).transform
@@ -78,7 +81,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?)? {
         let tracked = space.tracked(by: clip.parentTrack, at: time)
         let geometry: (Double) -> PathGeometry
@@ -140,7 +143,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?) {
         let size = Size(width: width.value(at: time), height: height.value(at: time))
         let anchor = Point(
@@ -180,7 +183,7 @@ struct ShapeEvaluator: Sendable {
 
     private func length(
         _ value: TimedValue,
-        at time: Double
+        at time: SampleTime
     ) -> Double {
         value.sampled(at: time, as: LookStructureTable.length).number ?? 0
     }

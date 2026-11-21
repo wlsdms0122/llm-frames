@@ -78,6 +78,39 @@ struct RenderPipelineTests {
         #expect(log.calls == Array(checks(of: sequence).prefix(checkCount)))
     }
 
+    @Test("a renderer that cannot draw samples refuses before the first frame is drawn, naming the first frame that holds them")
+    func namesSampledFrame() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = RenderPipeline(
+            decoder: RecordingDecoder(log: log),
+            renderer: RecordingRenderer(log: log, refusesSamples: true),
+            mixer: RecordingMixer(log: log),
+            encoder: RecordingEncoder(log: log),
+            hasher: FileHashTable()
+        )
+        let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": [40, 30], "fps": 4 },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "shape": "rect", "fill": "#FF0000", "at": [0.5, 1], "width": 10, "height": 10, "motionBlur": true,
+                           "keyframes": [ { "at": 0.5, "position": [10, 15] }, { "at": 1, "position": [30, 15] } ] } ] }
+            """#)), hashes: FileHashTable())
+
+        // When
+        let error = #expect(throws: RenderError.self) {
+            try sut.render(sequence, to: master, at: nil, delivery: nil)
+        }
+
+        // Then
+        #expect(error == .sampledFrame(time: 0.5, reason: "\(RoleRefusal.renderer)"))
+        #expect(log.calls == [
+            .checkPlan(MixPlanner().mix(of: sequence)),
+            .checkList(frame: 0),
+            .checkList(frame: 1),
+            .checkList(frame: 2)
+        ])
+    }
+
     @Test("a pinned file whose hash changed is refused at the place that pins it before any role is called")
     func refusesChangedHash() {
         // Given

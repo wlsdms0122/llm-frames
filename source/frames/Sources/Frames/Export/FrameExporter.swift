@@ -120,8 +120,10 @@ package struct FrameExporter: Sendable {
         to directory: String
     ) throws -> [String] {
         let frames = try frames(of: source, range: range).frames
-        for case let .displayList(list) in frames.map(\.picture) {
-            try renderer.check(list)
+        for frame in frames {
+            guard case let .displayList(list) = frame.picture else { continue }
+
+            try renderer.check(list, ofFrameAt: frame.time)
         }
 
         do {
@@ -141,10 +143,11 @@ package struct FrameExporter: Sendable {
     }
 
     // MARK: - Private
-    // A sequence frame of a colour space other than `srgb` is first written as its analysis picture to a folder of its
-    // own, removed after, and drawn on the sheet from there, so its label lies on the analysis picture. An `srgb`
-    // frame's analysis picture is its working values clipped, which the sheet's output clips. A video's frame is read as
-    // its analysis picture.
+    // A sequence frame of a colour space other than `srgb`, and one given as samples, is first drawn and written as its
+    // analysis picture to a folder of its own, removed after, and drawn on the sheet from there, so its label lies on
+    // the analysis picture and a frame with motion blur shows the mean of its samples (FRAMES-29), since a nested list
+    // holds none. Any other frame's list is nested in the sheet: an `srgb` frame's analysis picture is its working
+    // values clipped, which the sheet's output clips. A video's frame is read as its analysis picture.
     private func draw(
         _ frames: SampledFrames,
         in sequenceOutput: ColorConversion,
@@ -153,23 +156,28 @@ package struct FrameExporter: Sendable {
         labelFace: FontFace,
         to output: String
     ) throws {
-        let lists = frames.frames.compactMap { frame -> DisplayList? in
-            guard case let .displayList(list) = frame.picture else { return nil }
-
-            return list
+        let isDrawn = { (list: DisplayList) in
+            switch list.content {
+            case .items: sequenceOutput.space != .srgb
+            case .samples: true
+            }
         }
-        let isAnalyzed = sequenceOutput.space != .srgb && !lists.isEmpty
-        for list in lists where isAnalyzed {
-            try renderer.check(list)
+        let drawn = frames.frames.compactMap { frame -> (time: Double, list: DisplayList)? in
+            guard case let .displayList(list) = frame.picture, isDrawn(list) else { return nil }
+
+            return (frame.time, list)
+        }
+        for frame in drawn {
+            try renderer.check(frame.list, ofFrameAt: frame.time)
         }
 
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        if isAnalyzed {
+        if !drawn.isEmpty {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         }
         let cells = try frames.frames.enumerated().map { index, frame in
-            guard isAnalyzed, case let .displayList(list) = frame.picture else { return ContactSheetCell(frame) }
+            guard case let .displayList(list) = frame.picture, isDrawn(list) else { return ContactSheetCell(frame) }
 
             let path = folder.appendingPathComponent("\(index).png").path
             try encoder.writeAnalysisPicture(of: renderer.frame(of: list), in: sequenceOutput, to: path)

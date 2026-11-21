@@ -41,7 +41,16 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "conform", value: .string(format.conform.rawValue)),
             JSONMember(key: "colorSpace", value: .string(format.colorSpace.rawValue)),
             JSONMember(key: "peak", value: format.peak.map { .number($0) } ?? .null),
-            JSONMember(key: "compositing", value: .string(format.compositing.rawValue))
+            JSONMember(key: "compositing", value: .string(format.compositing.rawValue)),
+            JSONMember(key: "motionBlur", value: shutter(format.shutter))
+        ]))
+    }
+
+    private func shutter(_ shutter: Shutter) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "shutterAngle", value: .number(shutter.angle)),
+            JSONMember(key: "shutterPhase", value: .number(shutter.phase)),
+            JSONMember(key: "samplesPerFrame", value: .number(Double(shutter.samplesPerFrame)))
         ]))
     }
 
@@ -70,6 +79,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "scale", value: values.scales(entry.scale)),
             JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
             JSONMember(key: "blend", value: .string(entry.blend)),
+            JSONMember(key: "motionBlur", value: .bool(entry.isMotionBlurred)),
             JSONMember(key: "filter", value: values.timed(entry.filter)),
             JSONMember(key: "radius", value: values.timed(entry.radius)),
             JSONMember(key: "border", value: values.timed(entry.border)),
@@ -86,7 +96,8 @@ struct ResolvedSequenceWriter: Sendable {
         let transform = [
             clip.scale.map { JSONMember(key: "scale", value: values.scales($0)) },
             clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
-            JSONMember(key: "blend", value: .string(clip.blend))
+            JSONMember(key: "blend", value: .string(clip.blend)),
+            JSONMember(key: "motionBlur", value: .bool(clip.isMotionBlurred))
         ].compactMap { $0 }
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement

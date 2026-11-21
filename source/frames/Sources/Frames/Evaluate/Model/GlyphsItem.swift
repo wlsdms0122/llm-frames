@@ -41,7 +41,7 @@ package struct GlyphsItem: Equatable, Sendable {
     init(
         text: ResolvedText,
         factor: Double,
-        at time: Double
+        at time: SampleTime
     ) {
         let box = text.box(at: time)
         let moves = text.glyphMoves(at: time)

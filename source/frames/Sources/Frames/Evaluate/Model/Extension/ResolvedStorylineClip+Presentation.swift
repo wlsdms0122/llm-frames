@@ -12,7 +12,7 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func presentation(at time: Double) -> ItemPresentation {
+    func presentation(at time: SampleTime) -> ItemPresentation {
         let anchor = box.position.map { $0.map(\.fixed) }.value(at: time)
 
         return ItemPresentation(

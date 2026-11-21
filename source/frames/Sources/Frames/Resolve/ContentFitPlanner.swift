@@ -50,6 +50,7 @@ struct ContentFitPlanner: Sendable {
             colorSpace: plan.format.colorSpace,
             peak: plan.format.peak,
             compositing: plan.format.compositing,
+            shutter: plan.format.shutter,
             margin: margin
         )
 
@@ -96,6 +97,7 @@ struct ContentFitPlanner: Sendable {
                     scale: entry.scale,
                     rotation: entry.rotation,
                     blend: entry.blend,
+                    isMotionBlurred: entry.isMotionBlurred,
                     radius: entry.radius,
                     border: entry.border,
                     shadow: entry.shadow,
@@ -121,6 +123,7 @@ struct ContentFitPlanner: Sendable {
                     scale: clip.scale,
                     rotation: clip.rotation,
                     blend: clip.blend,
+                    isMotionBlurred: clip.isMotionBlurred,
                     animation: .none
                 )
             },
@@ -134,10 +137,10 @@ struct ContentFitPlanner: Sendable {
         let parents = ParentEvaluator(sequence: sequence)
         let storyline = sequence.storyline.filter { $0.media != nil }.map { entry in
             let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
-            return bounds(of: box, by: entry.presentation(at: 0).transform)
+            return bounds(of: box, by: entry.presentation(at: SampleTime(0)).transform)
         }
         let clips = sequence.clips.filter { !sequence.isMatte($0) }.compactMap { clip in
-            extent(of: clip, in: parents.space(of: clip, at: 0))
+            extent(of: clip, in: parents.space(of: clip, at: SampleTime(0)))
         }
 
         return storyline + clips
@@ -150,8 +153,8 @@ struct ContentFitPlanner: Sendable {
         switch clip.content {
         case let .title(text):
             // The child map places the title's box at the time, which its glyphs item fills.
-            let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
-            return GlyphsItem(text: text, factor: 1, at: 0).filledRects()
+            let transform = clipEvaluator.childTransform(of: clip, in: space, at: SampleTime(0))
+            return GlyphsItem(text: text, factor: 1, at: SampleTime(0)).filledRects()
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
@@ -159,8 +162,8 @@ struct ContentFitPlanner: Sendable {
             guard let box = clip.box else { return nil }
 
             // The child map carries the media's crop onto the box.
-            let transform = clipEvaluator.childTransform(of: clip, in: space, at: 0)
-            let drawn = clip.crop(at: 0)
+            let transform = clipEvaluator.childTransform(of: clip, in: space, at: SampleTime(0))
+            let drawn = clip.crop(at: SampleTime(0))
                 ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: drawn, by: transform)
 
@@ -179,8 +182,8 @@ struct ContentFitPlanner: Sendable {
         clip: ResolvedClip,
         in space: ClipSpace
     ) -> Rectangle? {
-        let sample = ClipSample(clip: clip, at: 0)
-        let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: 0)
+        let sample = ClipSample(clip: clip, at: SampleTime(0))
+        let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: SampleTime(0))
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
         return path.drawnBounds(carriedBy: item.transform, under: item.transform)

@@ -244,7 +244,7 @@ struct ContentFitTests {
 
         // When
         let resolved = try ResolvedSequence(plan: plan, hashes: PlaceholderHasher())
-        let space = ParentEvaluator(sequence: resolved).space(of: resolved.clips[0], at: 0)
+        let space = ParentEvaluator(sequence: resolved).space(of: resolved.clips[0], at: SampleTime(0))
 
         // Then
         #expect(plan.format.size == Size(width: 408, height: 258))

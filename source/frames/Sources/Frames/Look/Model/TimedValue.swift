@@ -25,9 +25,17 @@ indirect enum TimedValue: Equatable, Sendable {
         return members.first { $0.key == key }?.value
     }
 
-    // Each timed leaf at `time`, clamped to its domain where it is sampled, before it is combined with anything.
+    // Each timed leaf at a time outside a sample of a frame with motion blur, as resolve and the mix plan read it.
     func sampled(
         at time: Double,
+        as structure: ValueStructure
+    ) -> SampledValue {
+        sampled(at: SampleTime(time), as: structure)
+    }
+
+    // Each timed leaf at `time`, clamped to its domain where it is sampled, before it is combined with anything.
+    func sampled(
+        at time: SampleTime,
         as structure: ValueStructure
     ) -> SampledValue {
         switch (self, structure) {

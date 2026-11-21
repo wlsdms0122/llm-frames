@@ -24,7 +24,7 @@ struct ClipSample: Equatable, Sendable {
     // MARK: - Initializer
     init(
         clip: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) {
         let window = TimeRange(start: clip.start, end: clip.end)
         let schedule = clip.unitSchedule

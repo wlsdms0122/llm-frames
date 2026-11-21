@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The format keys resolve reads. Each is nil when the document leaves it to its default.
+// The format keys resolve reads, the shutter's by its keys. Each is nil when the document leaves it to its default.
 struct SequenceFormat: Equatable, Sendable {
     // MARK: - Property
     private static let frameRates: [Double] = [24, 25, 30, 50, 60]
@@ -18,6 +18,9 @@ struct SequenceFormat: Equatable, Sendable {
     let colorSpace: ColorSpace?
     let peak: Double?
     let compositing: Compositing?
+    let shutterAngle: Double?
+    let shutterPhase: Double?
+    let samplesPerFrame: Int?
 
     // MARK: - Initializer
     init(
@@ -27,7 +30,10 @@ struct SequenceFormat: Equatable, Sendable {
         background: String? = nil,
         colorSpace: ColorSpace? = nil,
         peak: Double? = nil,
-        compositing: Compositing? = nil
+        compositing: Compositing? = nil,
+        shutterAngle: Double? = nil,
+        shutterPhase: Double? = nil,
+        samplesPerFrame: Int? = nil
     ) {
         self.fps = fps
         self.size = size
@@ -36,6 +42,9 @@ struct SequenceFormat: Equatable, Sendable {
         self.colorSpace = colorSpace
         self.peak = peak
         self.compositing = compositing
+        self.shutterAngle = shutterAngle
+        self.shutterPhase = shutterPhase
+        self.samplesPerFrame = samplesPerFrame
     }
 
     // MARK: - Public
