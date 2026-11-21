@@ -53,6 +53,12 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
+    case cornerPinOnGeometry(place: Place, kind: PlaceKind)
+    case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
+    // `time` is the keyframe's, nil for a static corner pin found at the clip's instant.
+    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double?)
+    case trackOnStorylineCornerPin(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
@@ -79,6 +85,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
+    case trackOwnKeyframed(place: Place, kind: PlaceKind)
+    case trackTimeOutside(place: Place, kind: PlaceKind, time: Double)
+    case instantNotFollowed(place: Place, kind: PlaceKind, mediaTime: Double)
+    case trackData(place: Place, kind: PlaceKind, reason: TrackDataRefusal)
     case flatParent(place: Place, kind: PlaceKind, instant: Double)
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
@@ -251,6 +261,27 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .shapeWithoutGeometry(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
 
+        case let .cornerPinWithPlacement(place, kind, key):
+            "\(place) (\(kind.label)): a clip placed by \"cornerPin\" takes no \(quoted(key)), since its corner pin places it"
+
+        case let .cornerPinOnGeometry(place, kind):
+            "\(place) (\(kind.label)): a shape placed by its area or points takes no \"cornerPin\", "
+                + "since its outline is in its space already"
+
+        case let .cornerPinNotBroughtBack(place, kind, time):
+            "\(place) (\(kind.label)): the corner pin"
+                + (time.map { " at \(number($0))" } ?? ", found at the clip's instant")
+                + ", brought back through the inverse of the track's homography there, does not lie wholly in front of its "
+                + "horizon or is not strictly convex"
+
+        case let .cornerPinNotConvex(place, kind, time):
+            "\(place) (\(kind.label)): the corner pin\(time.map { " at \(number($0))" } ?? "") is not strictly convex, "
+                + "so no homography takes the clip's box to it"
+
+        case let .trackOnStorylineCornerPin(place, kind):
+            "\(place) (\(kind.label)): a storyline clip with a corner pin is placed in the frame, which has no media "
+                + "to follow, so it takes no \"track\""
+
         case let .textMaskInOwnBox(place, kind):
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
 
@@ -331,7 +362,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .textUnderClipArea(place, kind, parent):
             "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "
-                + "resolved, and its geometry or position holds a clip area, whose box is known only when evaluated"
+                + "resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when "
+                + "evaluated"
 
         case let .trackWithoutVideo(place, kind):
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "
@@ -357,6 +389,20 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
 
+        case let .trackOwnKeyframed(place, kind):
+            "\(place) (\(kind.label)): the geometry \"track\" follows is keyframed, and a keyframe's value is where it "
+                + "is at its own time, so none is written on the frame \"time\" names"
+
+        case let .trackTimeOutside(place, kind, time):
+            "\(place) (\(kind.label)): media time \(number(time)) names no frame of the tracked media"
+
+        case let .instantNotFollowed(place, kind, mediaTime):
+            "\(place) (\(kind.label)): the clip's instant shows media time \(number(mediaTime)), a frame the track does "
+                + "not follow, so its window holds none"
+
+        case let .trackData(place, kind, reason):
+            "\(place) (\(kind.label)): \(words(of: reason))"
+
         case let .flatParent(place, kind, instant):
             "\(place) (\(kind.label)): found by text at \(number(instant)), where its parent's transform has a scale "
                 + "of 0 on an axis and cannot be undone to bring it into the parent's space"
@@ -381,6 +427,31 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    private func words(of refusal: TrackDataRefusal) -> String {
+        switch refusal {
+        case .outsideMedia:
+            "the frame's time names no frame of the tracked media"
+
+        case .notConvex:
+            "the quad is not strictly convex"
+
+        case .otherOrientation:
+            "the quad runs the other way round than the quad of the frame \"time\" names"
+
+        case .outOfOrder:
+            "the frames are not in time order"
+
+        case .sameFrame:
+            "two frames name one media frame"
+
+        case .gap:
+            "a media frame between this frame and the one before it has no frame of the data"
+
+        case .noTarget:
+            "\"time\" names no frame of \"frames\", so the data gives no target"
+        }
+    }
+
     private func words(of refusal: TrackMatteRefusal) -> String {
         switch refusal {
         case .storyline:

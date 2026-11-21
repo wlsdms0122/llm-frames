@@ -125,7 +125,7 @@ struct ResolvedSequencePinnedReferencesTests {
             speed: 1,
             start: 0,
             end: 1,
-            crop: [Keyframe(at: 0, value: Crop(whole))],
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: nil,
             filter: .filter(filter),
             transition: transition,

@@ -113,7 +113,7 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: .rectangle(Self.area))],
+                .keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]),
                 outset: 0,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
@@ -229,7 +229,7 @@ struct ShapeEvaluatorTests {
         let shape = ResolvedShape(
             kind: .rect,
             geometry: .area(
-                [Keyframe(at: 0, value: .rectangle(Self.area))],
+                .keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]),
                 outset: 4,
                 placement: GeometryPlacement(
                     position: [Keyframe(at: 0, value: Point(x: 150, y: 50))],
@@ -284,7 +284,7 @@ struct ShapeEvaluatorTests {
         ]))
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            geometry: .area(.keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]), outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: trim)],
             fill: .off,
@@ -323,7 +323,7 @@ struct ShapeEvaluatorTests {
         let stroke = PathStroke(width: 2, paint: .color(Self.red), join: .round, cap: .butt, start: .none, end: .none, dash: written, dashOffset: 5)
         let shape = ResolvedShape(
             kind: .rect,
-            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            geometry: .area(.keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]), outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: .whole)],
             fill: .off,
@@ -350,7 +350,7 @@ struct ShapeEvaluatorTests {
         // Given
         let shape = ResolvedShape(
             kind: .ellipse,
-            geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+            geometry: .area(.keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]), outset: 0, placement: GeometryPlacement()),
             radius: 0,
             trim: [Keyframe(at: 0, value: Trim(start: -1, end: 3))],
             fill: .off,
@@ -429,7 +429,7 @@ struct ShapeEvaluatorTests {
             ResolvedShape(
                 kind: .path,
                 geometry: .points(
-                    [Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])],
+                    .keyframes([Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])]),
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),
@@ -443,7 +443,7 @@ struct ShapeEvaluatorTests {
         default:
             ResolvedShape(
                 kind: placement == "ellipse by area" ? .ellipse : .rect,
-                geometry: .area([Keyframe(at: 0, value: .rectangle(Self.area))], outset: 0, placement: GeometryPlacement()),
+                geometry: .area(.keyframes([Keyframe(at: 0, value: .rectangle(Self.area))]), outset: 0, placement: GeometryPlacement()),
                 radius: 2,
                 trim: [Keyframe(at: 0, value: .whole)],
                 fill: .off,

@@ -5,14 +5,17 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Flattens a display list into its items, bottom first, each with the map from its own coordinates to output pixels,
-// its extent in them, and what it covers of the output frame. A picture of a nested list is replaced by that list's
-// background and items, carried through the picture's source rect, destination and transform and cut by its mask,
-// reveal and destination, so they cover only what the picture shows. What an item covers follows its shape in convex
-// pieces: a picture's destination, a path's geometry with its stroke and arrowheads, what a glyphs item draws, and an
-// adjustment's list frame, each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners,
-// transition mattes and track mattes are left out: a track matte's source is not drawn as items of the list, and does
-// not cut what its item covers.
+// Flattens a display list into its items, bottom first, each with its transform, its extent in its own coordinates, and
+// what it covers of the output frame. A picture of a nested list is replaced by that list's background and items,
+// carried through the picture's source rect, destination and transform and cut by its mask, reveal and destination, so
+// they cover only what the picture shows. A picture with a corner pin shows its whole list and carries it on from its
+// destination to its corner pin by their homography, each shape cut to the part in front of its horizon first
+// (FRAMES-20, FRAMES-23). An item's transform is P_n R_n ... P_1 R_1 T of FRAMES-23, the affine maps of the pictures
+// that hold it with their corner pins left out, and the corner pins it reports finish that map.
+// What an item covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke
+// and arrowheads, what a glyphs item draws, and an adjustment's list frame, each cut to the region its masks bound
+// (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
+// source is not drawn as items of the list, and does not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
     // A source rect with no width or height has nothing to show, so it maps everything to one point.
@@ -25,7 +28,7 @@ struct DisplayListFlattener: Sendable {
     // The list's background comes first, unless it is transparent and draws nothing. A list given as samples is an
     // exposure and has no one place for an item, so it stops (FRAMES-29).
     func items(of list: DisplayList) throws -> [FlattenedItem] {
-        try items(of: list, state: GraphicsState(transform: .identity, clips: [], opacity: 1, origin: nil))
+        try items(of: list, state: GraphicsState(innerTransform: .identity, clips: [], opacity: 1, origin: nil))
     }
 
     // MARK: - Private
@@ -44,7 +47,8 @@ struct DisplayListFlattener: Sendable {
                 origin: state.origin,
                 item: .background,
                 opacity: state.opacity,
-                transform: state.transform,
+                transform: state.planeTransform,
+                cornerPins: state.planeCornerPins,
                 rect: frame,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
@@ -68,13 +72,13 @@ struct DisplayListFlattener: Sendable {
             return try items(of: picture, own: own)
 
         case let .path(path):
-            transform = own.transform
+            transform = own.planeTransform
             rect = box(of: path.geometry)
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
             characters = nil
 
         case let .glyphs(glyphs):
-            transform = own.transform
+            transform = own.planeTransform
             rect = glyphs.extent
             let drawn = drawn(by: glyphs, carriedBy: item.transform)
             coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
@@ -82,9 +86,9 @@ struct DisplayListFlattener: Sendable {
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
-            transform = state.transform
+            transform = state.planeTransform
             rect = frame
-            coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
+            coverage = own.cut(ItemCoverage(pieces: [state.carried(ConvexPolygon(rectangle: frame))]))
             characters = nil
         }
 
@@ -93,6 +97,7 @@ struct DisplayListFlattener: Sendable {
             item: ItemKind(content: item.content),
             opacity: own.opacity,
             transform: transform,
+            cornerPins: own.planeCornerPins,
             rect: rect,
             coverage: coverage,
             characters: characters
@@ -106,8 +111,11 @@ struct DisplayListFlattener: Sendable {
         switch picture.source {
         case let .media(media):
             // Without a source rect the picture shows the whole frame, whose size in pixels is not known here.
+            let map = own.map
             let transform = picture.rectangle.flatMap { rectangle in
-                own.transform.inverse.map { $0.concatenating(transform(from: picture.destination, onto: rectangle)) }
+                map.determinant == 0
+                    ? nil
+                    : map.inverse.concatenating(Homography(transform(from: picture.destination, onto: rectangle)))
             }
             let placement = MediaPlacement(frame: media, transform: transform)
             let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
@@ -115,7 +123,8 @@ struct DisplayListFlattener: Sendable {
                 origin: own.origin,
                 item: .picture,
                 opacity: own.opacity,
-                transform: own.transform,
+                transform: own.planeTransform,
+                cornerPins: own.planeCornerPins,
                 rect: picture.destination,
                 coverage: coverage,
                 media: placement
@@ -124,11 +133,16 @@ struct DisplayListFlattener: Sendable {
         case let .displayList(list):
             let rectangle = picture.rectangle
                 ?? Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
-            let nested = own.nesting(
-                rectangle: rectangle,
-                transform: transform(from: rectangle, onto: picture.destination),
-                destination: picture.destination
-            )
+            let transform = transform(from: rectangle, onto: picture.destination)
+            guard let cornerPin = picture.cornerPin else {
+                let nested = own.nesting(rectangle: rectangle, transform: transform, destination: picture.destination)
+                return try items(of: list, state: nested)
+            }
+            guard let nested = own.nesting(transform: transform, destination: picture.destination, cornerPin: cornerPin)
+            else {
+                return []
+            }
+
             return try items(of: list, state: nested)
         }
     }

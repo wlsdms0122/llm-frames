@@ -13,9 +13,11 @@
 // sequence time. `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes
 // in sequence time. `mask` is its masks in the media pixels of its media, nil for none, a keyframe's where it lies at
 // its own time when tracked, and `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed
-// by its position and anchor, and `opacity`, `scale` and `rotation` are keyframes in sequence time. `blend` is how its
-// storyline picture is drawn over what lies below, `isMotionBlurred` its `motionBlur`, and `radius`, `border` and
-// `shadow` how its box is drawn. A solid keeps their plain values.
+// by its position and anchor, and `opacity`, `scale` and `rotation` are keyframes in sequence time. A clip with a
+// corner pin has `cornerPin`, its box's size and the four points in output pixels its corners go to, and no `box`,
+// `scale` or `rotation` (FRAMES-27). `blend` is how its storyline picture is drawn over what lies below,
+// `isMotionBlurred` its `motionBlur`, and `radius`, `border` and `shadow` how its box is drawn. A solid keeps their
+// plain values.
 struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -30,15 +32,16 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let timeRemap: [Keyframe<Double>]?
     let start: Double
     let end: Double
-    let crop: [Keyframe<Crop>]
+    let crop: FollowedValue<Crop>
     let mask: [ResolvedMask]?
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let filter: TimedValue
-    let box: ResolvedBox
+    let box: ResolvedBox?
+    let cornerPin: ResolvedCornerPin?
     let opacity: [Keyframe<Double>]
-    let scale: [Keyframe<Scale>]
-    let rotation: [Keyframe<Double>]
+    let scale: [Keyframe<Scale>]?
+    let rotation: [Keyframe<Double>]?
     let blend: String
     let isMotionBlurred: Bool
     let radius: TimedValue
@@ -69,15 +72,16 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         timeRemap: [Keyframe<Double>]?,
         start: Double,
         end: Double,
-        crop: [Keyframe<Crop>],
+        crop: FollowedValue<Crop>,
         mask: [ResolvedMask]?,
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         filter: TimedValue,
-        box: ResolvedBox,
+        box: ResolvedBox?,
+        cornerPin: ResolvedCornerPin? = nil,
         opacity: [Keyframe<Double>],
-        scale: [Keyframe<Scale>],
-        rotation: [Keyframe<Double>],
+        scale: [Keyframe<Scale>]?,
+        rotation: [Keyframe<Double>]?,
         blend: String,
         isMotionBlurred: Bool = false,
         radius: TimedValue,
@@ -103,6 +107,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         self.track = track
         self.filter = filter
         self.box = box
+        self.cornerPin = cornerPin
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

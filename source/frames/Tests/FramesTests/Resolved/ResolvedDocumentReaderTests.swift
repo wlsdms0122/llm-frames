@@ -162,6 +162,8 @@ struct ResolvedDocumentReaderTests {
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
+        cornerPinDocument,
+        storylineCornerPinDocument,
         // A sequence's own audio filter moved by its keyframes, and a compound clip's sound alone, which carries its nested
         // sequence's audio filter beside its own.
         #"""
@@ -182,6 +184,28 @@ struct ResolvedDocumentReaderTests {
                        "at": [0, 2], "position": [200, 200] } ] }
         """#
     ]
+
+    // A still, a title and a rect with corner pins, one keyframed and one with a point of another clip's area.
+    private static let cornerPinDocument = #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "storyline": [ { "media": "/abs/run.mp4" } ],
+          "clips": [ { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300,
+                       "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                                      { "at": 2, "cornerPin": [[110, 100], [510, 120], [490, 400], [130, 380]] } ] },
+                     { "title": "Hi", "style": "title", "at": [0, 3], "cornerPin": [[600, 100], [900, 100], [900, 200], [600, 200]] },
+                     { "shape": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3],
+                       "cornerPin": [ { "area": { "clip": "card" }, "point": "bottom-left" }, [500, 500], [500, 600], [400, 600] ] } ] }
+        """#
+
+    // A storyline entry with a corner pin, one without and a solid.
+    private static let storylineCornerPinDocument = #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "storyline": [ { "media": "/abs/run.mp4", "out": 1,
+                           "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                                          { "at": 1, "cornerPin": [[110, 100], [510, 120], [490, 400], [130, 380]] } ] },
+                         { "media": "/abs/run.mp4", "out": 1 },
+                         { "solid": "#000000", "duration": 1 } ] }
+        """#
 
     // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
     // follows its own media.
@@ -236,6 +260,25 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(read == document)
+    }
+
+    @Test("a tracked media clip of video with a corner pin reads back with the track of its parent's media")
+    func readsPinnedTrack() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "connected": [
+                { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 2], "width": 300,
+                  "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": { "time": 1 } } ] } ] }
+            """#)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        #expect(read.clips[0].ownTrackedMedia == nil)
+        #expect(read.clips[0].parentTrack?.track.mediaTime == 1)
     }
 
     @Test("a run's stroke reads back with the run, and a run without one reads back without")
@@ -374,6 +417,30 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description.hasPrefix(#"clips[4] (clip): unknown key "scale""#) == true)
+    }
+
+    @Test(
+        "a clip with a corner pin whose position or rotation is not null stops, and so does a corner pin of other than four points",
+        arguments: [
+            ("position", 0, #"[ { "at": 0, "value": [0, 0], "ease": "linear" } ]"#, "clips[0].position (clip): a clip with a corner pin is placed by it, so its position is null"),
+            ("rotation", 1, #"[ { "at": 0, "value": 0, "ease": "linear" } ]"#, "clips[1].rotation (clip): a clip with a corner pin is placed by it, so its rotation is null"),
+            ("cornerPin", 1, #"[ { "at": 0, "value": [[0, 0], [10, 0], [10, 10]], "ease": "linear" } ]"#, "clips[1].cornerPin[0].value (")
+        ]
+    )
+    func refusesCornerPinPlacement(
+        key: String,
+        index: Int,
+        value: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacing(key, ofClip: index, with: value, in: written(Self.cornerPinDocument))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description.hasPrefix(message) == true)
     }
 
     @Test(

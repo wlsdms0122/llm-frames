@@ -411,7 +411,7 @@ struct ClipEvaluatorTests {
             storyline: nil,
             parent: nil,
             box: box,
-            crop: crop.map { [Keyframe(at: 0, value: Crop($0))] },
+            crop: crop.map { .keyframes([Keyframe(at: 0, value: Crop($0))]) },
             mask: mask,
             trackMatte: nil,
             track: nil,

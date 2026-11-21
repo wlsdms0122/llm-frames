@@ -34,7 +34,7 @@ struct KernelLibraryTests {
 
     @Test(
         "a kernel that samples its images anywhere is handed out as a general kernel, not a colour kernel",
-        arguments: ["filterLookUp", "filterBlockMean", "filterBlockFill"]
+        arguments: ["filterLookUp", "filterBlockMean", "filterBlockFill", "cornerPinHalve", "cornerPinWarp"]
     )
     func handsOutGeneralKernel(name: String) throws {
         // Given

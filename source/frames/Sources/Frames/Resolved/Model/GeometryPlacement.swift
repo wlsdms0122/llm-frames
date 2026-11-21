@@ -10,12 +10,12 @@
 // names, nil for the centre of that box at each time. Both are in the coordinates its geometry is written in.
 struct GeometryPlacement: Equatable, Sendable {
     // MARK: - Property
-    let position: [Keyframe<GeometryPoint>]?
+    let position: FollowedValue<GeometryPoint>?
     let anchor: GeometryAnchor?
 
     // MARK: - Initializer
     init(
-        position: [Keyframe<GeometryPoint>]? = nil,
+        position: FollowedValue<GeometryPoint>? = nil,
         anchor: GeometryAnchor? = nil
     ) {
         self.position = position

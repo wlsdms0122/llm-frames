@@ -21,6 +21,13 @@ struct EvaluationReporterTests {
     private let title = ItemOrigin(place: "clips[0]#title", id: "title", kind: "title")
     private let entry = ItemOrigin(place: "storyline[0]", id: nil, kind: "compound")
     private let nested = ItemOrigin(place: "storyline[0].media.storyline[2]", id: nil, kind: "video")
+    // The homography from [0, 0, 100, 100] to this corner pin has w = 1 - 0.004 x, its horizon at x = 250.
+    private let trapezoid = Quad(
+        topLeft: Point(x: 60, y: 20),
+        topRight: Point(x: 160, y: 0),
+        bottomRight: Point(x: 160, y: 100),
+        bottomLeft: Point(x: 60, y: 80)
+    )
 
     // MARK: - Initializer
     // MARK: - Test
@@ -152,6 +159,25 @@ struct EvaluationReporterTests {
                 rect: Rectangle(x: 50, y: 25, width: 50, height: 25)
             )
         ])
+    }
+
+    @Test("an item inside a picture with a corner pin is bounded after the corner pin carries it, its list past the source rect included")
+    func boundsItemUnderCornerPin() throws {
+        // Given
+        // The wide list's source rect is its left 100 x 100: the rest reaches the horizon at x = 250, and the
+        // output's right edge before it.
+        let narrow = pinned(listWidth: 100)
+        let wide = pinned(listWidth: 300)
+
+        // When
+        let report = try sut.report(of: list([narrow]), at: 0)
+        let wideReport = try sut.report(of: list([wide]), at: 0)
+
+        // Then
+        let bounds = try #require(report.items.first?.bounds)
+        let wideBounds = try #require(wideReport.items.first?.bounds)
+        #expect(isClose(bounds, Rectangle(x: 60, y: 0, width: 100, height: 100)))
+        #expect(isClose(wideBounds, Rectangle(x: 60, y: 0, width: 140, height: 100)))
     }
 
     @Test("a nested list shows only the source rect its picture draws, scaled into the picture's destination")
@@ -605,6 +631,7 @@ struct EvaluationReporterTests {
                   "opacity": 1,
                   "transform": [1, 0, 0, 1, 0, 0],
                   "rect": [0, 0, 200, 100],
+                  "cornerPins": null,
                   "characters": null
                 },
                 {
@@ -616,6 +643,7 @@ struct EvaluationReporterTests {
                   "opacity": 0.3,
                   "transform": [0, 1, -1, 0, 150, -50],
                   "rect": [80, 40, 40, 20],
+                  "cornerPins": null,
                   "characters": null
                 }
               ],
@@ -857,6 +885,204 @@ struct EvaluationReporterTests {
         #expect(item.characters?.first?.rect == Rectangle(x: 0, y: 0, width: 20, height: 40))
     }
 
+    @Test("a title with a corner pin reports its text and characters in its text box as without one, and as its transform its text box's place in its box followed by its tracked motion, none untracked")
+    func reportsPinnedTitle() throws {
+        // Given
+        let pinned = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "id": "t", "style": "caption", "at": [0, 2], "title": "ab",
+                           "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                           "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] } ] }
+            """#)
+        let placed = try resolved(titled(#"""
+            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            """#))
+
+        // When
+        let report = try sut.report(of: pinned, at: 1)
+        let unpinned = try sut.report(of: placed, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let text = try #require(report.texts.first)
+        let expected = try #require(unpinned.texts.first)
+        #expect(item.characters == unpinned.items.first { $0.item == .glyphs }?.characters)
+        #expect(item.rect == Rectangle(x: 0, y: 0, width: 40, height: 40))
+        #expect(text.size == expected.size)
+        #expect(text.box == expected.box)
+        #expect(text.lines == expected.lines)
+        #expect(text.words == expected.words)
+        #expect(text.transform == AffineTransform(translation: Point(x: 12, y: 8)))
+        #expect(item.transform == text.transform)
+    }
+
+    @Test("a title with a corner pin under a turned parent reports as its transform its text box's place in its box followed by the parent's map, which the corner pin does not interrupt")
+    func reportsPinnedTitleUnderParent() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [
+                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                  "rotation": 30, "at": [0, 2] },
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                  "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                  "cornerPin": [[10, 10], [150, 10], [150, 80], [10, 80]] } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let parent = try #require(report.items.first { $0.origin?.id == "box" })
+        let text = try #require(report.texts.first)
+        let expected = AffineTransform(translation: Point(x: 12, y: 8)).concatenating(parent.transform)
+        #expect(isClose(text.transform, expected))
+        #expect(report.items.first { $0.item == .glyphs }?.transform == text.transform)
+    }
+
+    @Test("a character of a title with a corner pin under a turned parent, carried by its item's transform and then by its corner pins, lands where locate finds the title, and its text entry reports the same corner pins")
+    func carriesCharacterByCornerPins() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [
+                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                  "rotation": 30, "at": [0, 2] },
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                  "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                  "cornerPin": [[200, 150], [500, 180], [480, 260], [220, 290]] } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let text = try #require(report.texts.first)
+        let pins = try #require(item.cornerPins)
+        let rect = try #require(item.characters?.first?.rect)
+        let centre = Point(x: rect.x + rect.width / 2, y: rect.y + rect.height / 2)
+        let onPlane = item.transform.apply(to: centre)
+        let carried = try pins.reduce(onPlane) { point, pin in
+            try #require(Homography(from: pin.destination, to: pin.cornerPin)?.apply(to: point))
+        }
+        let hits = try LocationReporter().report(of: document, at: 1, point: carried).hits
+        let missed = try LocationReporter().report(of: document, at: 1, point: onPlane).hits
+        #expect(pins.count == 1)
+        #expect(text.cornerPins == item.cornerPins)
+        #expect(report.items.first { $0.origin?.id == "box" }?.cornerPins == nil)
+        #expect(hits.contains { $0.origin?.id == "t" && $0.item == .glyphs })
+        #expect(!missed.contains { $0.origin?.id == "t" && $0.item == .glyphs })
+    }
+
+    @Test("an item inside two pictures with corner pins reports both, the innermost first, each carried into its transform's coordinates, so its point lands where the whole map takes it")
+    func reportsNestedCornerPins() throws {
+        // Given
+        // The inner picture is the trapezoid's, scaled by 2 and moved inside an outer picture whose corner pin is the
+        // trapezoid again.
+        let inner = pinned(listWidth: 100)
+        let scaled = DisplayItem(
+            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 10, ty: 5),
+            content: inner.content,
+            origin: entry
+        )
+        let middle = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [scaled])
+        let outer = DisplayItem(
+            transform: AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 20, ty: 0),
+            content: .picture(PictureItem(
+                source: .displayList(middle),
+                rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
+                destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+                cornerPin: trapezoid
+            )),
+            origin: entry
+        )
+        let point = Point(x: 30, y: 60)
+
+        // When
+        let report = try sut.report(of: list([outer]), at: 0)
+
+        // Then
+        let item = try #require(report.items.first)
+        let pins = try #require(item.cornerPins)
+        let carried = try pins.reduce(item.transform.apply(to: point)) { point, pin in
+            try #require(Homography(from: pin.destination, to: pin.cornerPin)?.apply(to: point))
+        }
+        let toInner = try #require(Homography(from: Quad(Rectangle(x: 0, y: 0, width: 100, height: 100)), to: trapezoid))
+        let inMiddle = try #require(toInner.apply(to: point))
+        let inOuter = try #require(toInner.apply(to: Point(x: inMiddle.x * 0.5 + 10, y: inMiddle.y * 0.5 + 5)))
+        #expect(pins.count == 2)
+        #expect(pins.first?.destination == Quad(Rectangle(x: 30, y: 5, width: 50, height: 50)))
+        #expect(pins.last?.cornerPin == trapezoid.applying(AffineTransform(translation: Point(x: 20, y: 0))))
+        #expect(abs(carried.x - inOuter.x - 20) < 1e-9 && abs(carried.y - inOuter.y) < 1e-9)
+    }
+
+    @Test("a clip with a corner pin and motion blur reports its corner pins as at the asked time, as without motion blur, though its corner pin moves over the exposure")
+    func reportsCornerPinsAtTimeUnderMotionBlur() throws {
+        // Given
+        let document = { (isMotionBlurred: Bool) in
+            #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "card", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
+                           "motionBlur": \#(isMotionBlurred),
+                           "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]] },
+                                          { "at": 2, "cornerPin": [[300, 100], [700, 100], [700, 400], [300, 400]] } ] } ] }
+            """#
+        }
+        let blurred = try resolved(document(true))
+        let sharp = try resolved(document(false))
+
+        // When
+        let report = try sut.report(of: blurred, at: 1)
+        let expected = try sut.report(of: sharp, at: 1)
+
+        // Then
+        // The corner pin moves 100 pixels a second, so the frame at 1 has samples, and its report is the pin at 1.
+        let cornerPins = try #require(report.items.first { $0.origin?.id == "card" }?.cornerPins)
+        let cornerPin = try #require(cornerPins.first?.cornerPin)
+        let atTime = Quad(Rectangle(x: 200, y: 100, width: 400, height: 300))
+        #expect(Evaluator().displayList(of: blurred, at: 1).samples != nil)
+        #expect(cornerPins.count == 1)
+        #expect(cornerPins == expected.items.first { $0.origin?.id == "card" }?.cornerPins)
+        #expect(zip(cornerPin.corners, atTime.corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
+    @Test("an item's corner pins are written as FRAMES-23 gives them, each its dest and its corner pin as four points")
+    func writesCornerPins() throws {
+        // Given
+        let report = try sut.report(of: list([pinned(listWidth: 100)]), at: 0)
+
+        // When
+        let text = JSONWriter().write(report.machineOutput)
+
+        // Then
+        #expect(text.contains(#"""
+                  "cornerPins": [
+                    {
+                      "dest": [
+                        [0, 0],
+                        [100, 0],
+                        [100, 100],
+                        [0, 100]
+                      ],
+                      "cornerPin": [
+                        [60, 20],
+                        [160, 0],
+                        [160, 100],
+                        [60, 80]
+                      ]
+                    }
+                  ],
+            """#))
+    }
+
     @Test("a title in a compound clip is reported in its continued place, sampled at the time its sequence shows")
     func reportsNestedTitle() throws {
         // Given
@@ -927,6 +1153,7 @@ struct EvaluationReporterTests {
                 "opacity": 1,
                 "transform": [1, 0, 0, 1, 380, 205],
                 "rect": [0, 0, 40, 40],
+                "cornerPins": null,
                 "characters": [
                   {
                     "text": "a",
@@ -950,6 +1177,7 @@ struct EvaluationReporterTests {
                   "size": [40, 40],
                   "box": [-12, -8, 64, 56],
                   "transform": [1, 0, 0, 1, 380, 205],
+                  "cornerPins": null,
                   "lines": [
                     {
                       "text": "ab",
@@ -976,6 +1204,22 @@ struct EvaluationReporterTests {
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {
         [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
+    // A picture with the trapezoid as its corner pin, showing a list `listWidth` wide and 100 high filled with a path,
+    // its source rect and destination [0, 0, 100, 100].
+    private func pinned(listWidth: Double) -> DisplayItem {
+        let fill = Rectangle(x: 0, y: 0, width: listWidth, height: 100)
+        let inner = DisplayList(size: Size(width: listWidth, height: 100), background: transparent, seed: 0, items: [
+            DisplayItem(content: .path(PathItem(filling: fill, color: black)), origin: nested)
+        ])
+        let picture = PictureItem(
+            source: .displayList(inner),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            cornerPin: trapezoid
+        )
+        return DisplayItem(content: .picture(picture), origin: entry)
     }
 
     private func list(

@@ -287,6 +287,37 @@ struct MotionBlurEvaluationTests {
         #expect(try samples.allSatisfy { try item("back", in: $0).reveal == nil })
     }
 
+    @Test("a wipe on a clip with a corner pin that ends inside the exposure is written in every sample on the item inside its group, not on the group, and the samples read back")
+    func keepsPinnedRevealInEverySample() throws {
+        // Given
+        let wiped = #"""
+            { "id": "wiped", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50,
+              "cornerPin": [[400, 400], [600, 420], [580, 560], [420, 540]], "animation": "mine/wipe-in", "motionBlur": true }
+            """#
+        let sequence = try resolved(clips: [wiped], shutter: #"{ "shutterPhase": -180 }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.51)
+
+        // Then
+        // The group carries the corner pin, and the clip's reveal acts on its plane, on the item inside the group.
+        let samples = try #require(list.samples)
+        let groups = try samples.map { try item("wiped", in: $0) }
+        let inner = groups.compactMap { group -> DisplayItem? in
+            guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source else {
+                return nil
+            }
+
+            return nested.items.first
+        }
+        let reveals = inner.map(\.reveal)
+        #expect(inner.count == 16)
+        #expect(groups.allSatisfy { $0.reveal == nil })
+        #expect(reveals.allSatisfy { $0 != nil })
+        #expect((reveals.first??.width ?? 0) < (reveals.last??.width ?? 0))
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
     @Test(
         "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the bounds of what the adjustment draws",
         arguments: [
@@ -826,7 +857,7 @@ struct MotionBlurEvaluationTests {
                 speed: 1,
                 start: start,
                 end: end,
-                crop: [Keyframe(at: start, value: Crop(frame))],
+                crop: .keyframes([Keyframe(at: start, value: Crop(frame))]),
                 track: nil,
                 filter: .off,
                 isMotionBlurred: isMotionBlurred,

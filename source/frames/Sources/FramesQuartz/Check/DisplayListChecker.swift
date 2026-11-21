@@ -9,7 +9,10 @@ import Frames
 
 // Walks a display list, each of its sample lists and the lists nested in it for what the quartz renderer cannot draw,
 // naming each refusal with its place in the list. It draws every item kind and filter operation, so what it refuses is
-// a blend mode it has no kernel for and a `lut` whose `.cube` does not read as a 3D LUT. It reads each LUT through the
+// a blend mode it has no kernel for, a `lut` whose `.cube` does not read as a 3D LUT, a corner pin on a picture other
+// than a clip's group (FRAMES-20 Pictures), since it warps a nested list's raster onto the corner pin and a group has no
+// filter, matte, radius, border, shadow or reveal, and a corner pin that is not strictly convex, except four points at
+// [0, 0] in a sample list and the lists nested in it, where a group draws nothing. It reads each LUT through the
 // renderer's cache, so drawing reads none again.
 struct DisplayListChecker {
     // MARK: - Property
@@ -26,22 +29,32 @@ struct DisplayListChecker {
         _ list: DisplayList,
         place: String = ""
     ) throws {
+        try check(list, place: place, isInSample: false)
+    }
+
+    // MARK: - Private
+    // `isInSample` is whether the list is nested in a sample list.
+    private func check(
+        _ list: DisplayList,
+        place: String,
+        isInSample: Bool
+    ) throws {
         switch list.content {
         case let .items(items):
-            try check(items, place: "\(place)items")
+            try check(items, place: "\(place)items", isInSample: isInSample)
 
         case let .samples(samples):
             for (index, sample) in samples.enumerated() {
-                try check(sample, place: "\(place)samples[\(index)]")
+                try check(sample, place: "\(place)samples[\(index)]", isInSample: true)
             }
         }
     }
 
-    // MARK: - Private
     // `place` is the path of the items in the outermost list.
     private func check(
         _ items: [DisplayItem],
-        place: String
+        place: String,
+        isInSample: Bool
     ) throws {
         for (index, item) in items.enumerated() {
             let itemPlace = "\(place)[\(index)]"
@@ -49,14 +62,17 @@ struct DisplayListChecker {
                 throw QuartzError.unsupportedBlend(name: item.blend, place: "\(itemPlace).blend")
             }
             if let trackMatte = item.trackMatte {
-                try check(trackMatte.source, place: "\(itemPlace).trackMatte.source.")
+                try check(trackMatte.source, place: "\(itemPlace).trackMatte.source.", isInSample: isInSample)
             }
 
             switch item.content {
             case let .picture(picture):
+                if let cornerPin = picture.cornerPin {
+                    try checkCornerPin(cornerPin, of: picture, reveal: item.reveal, isInSample: isInSample, place: itemPlace)
+                }
                 try check(picture.filter, place: itemPlace)
                 if case let .displayList(nested) = picture.source {
-                    try check(nested, place: "\(itemPlace).source.")
+                    try check(nested, place: "\(itemPlace).source.", isInSample: isInSample)
                 }
 
             case let .adjust(adjust):
@@ -65,6 +81,30 @@ struct DisplayListChecker {
             case .path, .glyphs:
                 break
             }
+        }
+    }
+
+    // `place` is the item's.
+    private func checkCornerPin(
+        _ cornerPin: Quad,
+        of picture: PictureItem,
+        reveal: Rectangle?,
+        isInSample: Bool,
+        place: String
+    ) throws {
+        guard
+            case .displayList = picture.source,
+            picture.filter.isEmpty,
+            picture.matte == nil,
+            picture.radius == 0,
+            picture.border == nil,
+            picture.shadow == nil,
+            reveal == nil
+        else {
+            throw QuartzError.unsupportedCornerPin(place: "\(place).cornerPin")
+        }
+        guard cornerPin.isCornerPin(inSampleList: isInSample) else {
+            throw QuartzError.nonConvexCornerPin(place: "\(place).cornerPin")
         }
     }
 

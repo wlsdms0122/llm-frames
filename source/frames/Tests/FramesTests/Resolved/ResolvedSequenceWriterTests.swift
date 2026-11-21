@@ -443,8 +443,8 @@ struct ResolvedSequenceWriterTests {
         // Then
         #expect(clips[0].keys == [
             "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
-            "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
+            "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
+            "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)
@@ -530,6 +530,59 @@ struct ResolvedSequenceWriterTests {
                 "feather": [ { "at": 3, "value": 2, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[2]["mask"] == .null)
+    }
+
+    @Test("a clip with a corner pin writes its box's size, its corner pin as keyframes of four points, and its position, anchor, scale and rotation as null")
+    func writesCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
+                { "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                { "title": "Hello", "style": "subtitle", "at": [0, 3] },
+                { "adjust": "mine/grade", "at": [0, 3] } ] } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        let pinned = clips[0]
+        #expect(pinned["size"] == .array([.number(300), .number(375)]))
+        #expect(pinned["position"] == .null)
+        #expect(pinned["anchor"] == .null)
+        #expect(pinned["scale"] == .null)
+        #expect(pinned["rotation"] == .null)
+        #expect(pinned["cornerPin"] == held(.array([[100, 100], [500, 120], [480, 400], [120, 380]].map { .array($0.map(JSONValue.number)) })))
+        #expect(pinned.members.map(\.key).firstIndex(of: "cornerPin") == pinned.members.map(\.key).firstIndex(of: "anchor").map { $0 + 1 })
+        #expect(clips[1]["cornerPin"] == .null)
+        #expect(clips[2]["cornerPin"] == nil)
+        #expect(clips[2]["scale"] == nil)
+    }
+
+    @Test("a storyline entry with media writes its corner pin after its anchor, null without one, and a solid entry writes none")
+    func writesStorylineCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [
+                { "media": "/abs/run.mp4", "out": 1, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                { "media": "/abs/run.mp4", "out": 1 },
+                { "solid": "#000000", "duration": 1 } ] }
+            """#
+
+        // When
+        let storyline = try #require(try write(document)["storyline"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        let pinned = storyline[0]
+        #expect(pinned["size"] == .array([.number(1920), .number(1080)]))
+        #expect(pinned["position"] == .null)
+        #expect(pinned["anchor"] == .null)
+        #expect(pinned["scale"] == .null)
+        #expect(pinned["rotation"] == .null)
+        #expect(pinned["cornerPin"] == held(.array([[100, 100], [500, 120], [480, 400], [120, 380]].map { .array($0.map(JSONValue.number)) })))
+        #expect(pinned.members.map(\.key).firstIndex(of: "cornerPin") == pinned.members.map(\.key).firstIndex(of: "anchor").map { $0 + 1 })
+        #expect(storyline[1]["cornerPin"] == .null)
+        #expect(storyline[2]["cornerPin"] == nil)
     }
 
     // MARK: - Private

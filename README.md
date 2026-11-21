@@ -238,21 +238,21 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (image or page, a page without `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (image or page, a page without `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
-| title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
-| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
+| title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation, cornerPin` |
+| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
 | adjustment clip | every clip with a picture's, `adjust` |
 
 - `id` names a clip for `parent`, a track matte's `clip`, messages, machine output and the programs that change a document. It is unique within its document, and a duplicate stops.
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
 - `lane` is a non-zero integer, 1 by default. Negative lanes are below the storyline (lane 0) and positive lanes above it ([Lanes and stacking](#lanes-and-stacking)).
-- A storyline clip is placed by `position` (default the centre of the frame) and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
+- A storyline clip is placed by `position` (default the centre of the frame) or by `cornerPin` and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
 - `colorSpace` on a media clip names the colour space its media are in, over what the file says, and `toneMap` (`true` by default) whether an HDR picture of it is tone mapped to the sequence's peak ([Colour](#colour)). A clip whose media is a compound clip or a template instance takes neither.
 - `filter` and `transition` take preset choices ([Presets and choices](#presets-and-choices)). `"none"` turns off the theme's default filter for one clip, and `"cut"` its default transition. The first storyline clip takes no transition. To open from black, put a solid there and give the clip after it a transition.
 
@@ -314,11 +314,11 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 
 | Clip | Keyframable |
 | --- | --- |
-| storyline clip with media | `crop, position, scale, rotation, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
-| media clip | `position, scale, rotation, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
+| storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
+| media clip | `position, scale, rotation, cornerPin, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
 | audio clip | `volume, pan` |
-| title clip | `position, scale, rotation, opacity, mask` |
-| shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, mask` |
+| title clip | `position, scale, rotation, cornerPin, opacity, mask` |
+| shape clip | `area, width, height, points, position, scale, rotation, cornerPin, opacity, trim, radius, mask` |
 | adjustment clip | `opacity, mask` |
 
 | ease | Shape |
@@ -337,11 +337,12 @@ A clip with a box of its own (a title, a media clip, a rect or ellipse given by 
 
 - `placement` is a placement name: the box sits there inside the frame, kept in from every edge by the theme `placement.padding`, the title safe margin. A text style's `offset` replaces that margin on the top or bottom edge.
 - `position` is where the clip's anchor point goes, a point ([Areas and points](#areas-and-points)). `anchor` names that point of the clip's box, `center` by default, or for a placed clip the point its placement names, so a `bottom` subtitle grows upwards.
+- `cornerPin` places a clip by the four points its box's corners go to, top left, top right, bottom right and bottom left, so a picture lies on a plane seen in perspective. It takes no other placement key. The clip is drawn flat in its box with everything it does, its animation included, and carried onto the four points by one homography, so an entrance slides and scales on the plane. A child of a clip with a corner pin follows its tracked motion, not the plane, and what should lie on the plane goes inside it as a compound clip.
 - `scale` and `rotation` act around the anchor point. `opacity` runs from 0 to 1, and `blend` composites the clip onto what is below ([Blend modes and adjustment clips](#blend-modes-and-adjustment-clips)).
 - A media clip's `width` and `height` size its box. Given one, the other follows the aspect ratio of its first crop. Given both, the crop conforms to the box by `conform`. Given neither, the box is the picture fitted to the frame. `radius` rounds its corners, `border` (`true` or a colour) draws the theme border inside it, and `shadow` (`true`, `false` or `{radius, offset, color}`) drops the theme shadow below it.
 - A media clip with video or an image sequence is picture in picture. One with alpha is how a motion graphic made elsewhere comes in.
 
-[FRAMES-1](spec/FRAMES-1/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
+[FRAMES-1](spec/FRAMES-1/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md), [FRAMES-27](spec/FRAMES-27/SPEC.md)
 
 ### Areas and points
 
@@ -353,7 +354,7 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 | `{"text": "Flat white", "nth": 0, "padding": 8}` | the recognised line that contains the text, compared without whitespace. More than one match stops and lists them, and `nth` picks one, counted from 0, top to bottom and left to right |
 | `{"from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around both lines and every line between them |
 
-`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, a still's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
+`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, a still's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start, and a `track` object's target on the frame its `time` names. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
 
 ### Titles and runs
 
@@ -528,7 +529,7 @@ From the bottom, a frame is the background, the clips on negative lanes, the sto
 
 ### Tracking
 
-`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area, or `true` for the clip's own `area`, `mask` or `crop`. A storyline or media clip of video or an image sequence follows its own media, and the motion moves its crop and mask. Any other clip follows its parent's media, and the motion carries it as a moving parent would. The tracker provider follows the target's four corners on each frame, and a similarity motion (a move, a uniform scale and a rotation) is fitted to them. `frames track` reports the same for a video. [FRAMES-12](spec/FRAMES-12/SPEC.md)
+`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area, `true` for the clip's own `area`, `mask`, `crop` or `cornerPin`, or an object whose `time` names the frame of the media the clip's values are written on, so a trim of the clip's head moves nothing: `{time}` follows the clip's own geometry from that frame, `{time, area}` an area found there, and track data, `{time, frames}`, is a track made outside frames whose quad on that frame is the target. `true` and a bare area take the frame the clip's start shows, which a head trim moves. What `track` follows is how the clip is placed: a clip placed by points in its parent's space (an area, points, a corner pin) follows its parent's media, and the motion carries those points as a moving parent would; a clip placed by its box follows inside its own media, and the motion moves its crop and mask; a title, still or compound clip, with no frames of its own, follows its parent's media by its position. A clip with a corner pin follows its parent's media, and its crop and mask ride its plane. The tracker provider follows the target's four corners on each frame, a similarity motion (a move, a uniform scale and a rotation) is fitted to them, and evaluation computes the homography they give. A clip with a corner pin rides the homography, so its corners stay on a screen's corners. `frames track` reports the same for a video. [FRAMES-12](spec/FRAMES-12/SPEC.md), [FRAMES-27](spec/FRAMES-27/SPEC.md)
 
 ### Sound
 
@@ -661,7 +662,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, `media` for a page of a PDF the `{file, page}` object, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
-| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, characters}`, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
+| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, cornerPins, characters}`, `transform` and `rect` where an item lies with the corner pins that carry it left out and `cornerPins` those corner pins, innermost first, each `{dest, cornerPin}` as four points, or `null` where none carries it, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
 | `locate` | `{locate, hits}`, topmost first, each `{place, id, kind, item}`, and for a picture of a media file `{media, mediaTime, point, page}`, `page` the page of a PDF or `null` |
 
 Times are rounded to the microsecond and positions, sizes, opacities and the numbers of a `transform` to the millionth. A new field is an addition within a version, and a removed or changed one a new major version ([FRAMES-18](spec/FRAMES-18/SPEC.md)). [FRAMES-23](spec/FRAMES-23/SPEC.md)

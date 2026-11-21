@@ -14,9 +14,12 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-        "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
+        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
+        "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
     ]
+
+    // The keys of anything drawn, which an adjustment does not hold.
+    private static let drawnKeys = ["cornerPin", "scale", "rotation"]
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
@@ -273,14 +276,19 @@ struct ResolvedSequenceReader: Sendable {
         return duration
     }
 
+    // An entry with media has a corner pin, and a solid has none. An entry with a corner pin has `size`, and its
+    // `position`, `anchor`, `scale` and `rotation` are null.
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
-        let entry = try value.object(kind: "storyline clip", keys: [
+        let keys = [
             "place", "id", "media", "solid", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start", "end",
-            "size", "position", "anchor", "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend",
-            "motionBlur", "filter", "radius", "border", "shadow", "transition"
-        ])
+            "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
+            "rotation", "blend", "motionBlur", "filter", "radius", "border", "shadow", "transition"
+        ]
+        let isMedia = try !value.object(kind: "storyline clip", keys: keys).member("media").isNull
+        let entry = try value.object(kind: "storyline clip", keys: keys.filter { isMedia || $0 != "cornerPin" })
         let media = try entry.member("media").optional(self.media)
         let reading = try reading(of: entry, media: media)
+        let cornerPin = isMedia ? try self.cornerPin(of: entry) : nil
 
         return ResolvedStorylineClip(
             place: try entry.member("place").string(),
@@ -300,14 +308,17 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
             filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
-            box: ResolvedBox(
-                size: try values.size(entry.member("size")),
-                position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
-                anchor: try values.point(entry.member("anchor"))
-            ),
+            box: cornerPin == nil
+                ? ResolvedBox(
+                    size: try values.size(entry.member("size")),
+                    position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
+                    anchor: try values.point(entry.member("anchor"))
+                )
+                : nil,
+            cornerPin: cornerPin,
             opacity: try values.numbers(entry.member("opacity")),
-            scale: try values.scales(entry.member("scale")),
-            rotation: try values.numbers(entry.member("rotation")),
+            scale: cornerPin == nil ? try values.scales(entry.member("scale")) : nil,
+            rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
             isMotionBlurred: try entry.member("motionBlur").bool(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
@@ -317,49 +328,76 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // What a clip draws decides the keys it holds: its content's, then scale and rotation for anything but an
-    // adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
+    // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything
+    // but an adjustment. A shape without `size` is placed by its geometry, and its `position` and `anchor` are its own.
+    // A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let contentKeys = try self.contentKeys(of: written)
         let isTransformed = !written.contains("adjust")
         let clip = try value.object(
             kind: "clip",
-            keys: Self.clipKeys.filter { key in
-                isTransformed || key != "scale" && key != "rotation"
-            } + contentKeys
+            keys: Self.clipKeys.filter { key in isTransformed || !Self.drawnKeys.contains(key) } + contentKeys
         )
         let size = try clip.member("size")
         let position = try clip.member("position")
         let anchor = try clip.member("anchor")
         let isShape = clip.contains("shape")
-        let box: ResolvedBox? = if size.isNull && (isShape || position.isNull && anchor.isNull) {
+        let cornerPin = isTransformed ? try cornerPin(of: clip) : nil
+        let box: ResolvedBox? = if cornerPin != nil || size.isNull && (isShape || position.isNull && anchor.isNull) {
             nil
         } else {
             try box(size: size, position: position, anchor: anchor)
         }
+        let isPlaced = isTransformed && cornerPin == nil
 
         return ResolvedClip(
             place: try clip.member("place").string(),
             id: try clip.member("id").optional { try $0.string() },
-            content: try content(of: clip, isPlacedByBox: box != nil),
+            content: try content(of: clip, isPlacedByBox: box != nil || cornerPin != nil),
             start: try clip.member("start").number(),
             end: try clip.member("end").number(),
             lane: try clip.member("lane").optional { try $0.integer() },
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
             box: box,
+            cornerPin: cornerPin,
             crop: try clip.member("crop").optional(values.crops),
             mask: try values.masks(clip.member("mask")),
             trackMatte: try clip.member("trackMatte").optional(trackMatte),
             track: try clip.member("track").optional(track),
             opacity: try values.numbers(clip.member("opacity")),
-            scale: isTransformed ? try values.scales(clip.member("scale")) : nil,
-            rotation: isTransformed ? try values.numbers(clip.member("rotation")) : nil,
+            scale: isPlaced ? try values.scales(clip.member("scale")) : nil,
+            rotation: isPlaced ? try values.numbers(clip.member("rotation")) : nil,
             blend: try clip.member("blend").string(),
             isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
         )
+    }
+
+    // A corner pin is keyframes of four points, and the box it places has a size and no other placement.
+    private func cornerPin(of clip: PlacedJSONObject) throws -> ResolvedCornerPin? {
+        let written = try clip.member("cornerPin")
+        guard !written.isNull else { return nil }
+
+        let points = try values.followedKeyframes(written) { value in
+            let points = try value.elements()
+            guard points.count == 4 else { throw value.wrongType("four points") }
+
+            return GeometryQuad(corners: try points.map { try values.geometryPoint($0) })
+        }
+        for key in ["position", "anchor", "scale", "rotation"] {
+            let value = try clip.member(key)
+            guard value.isNull else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "a clip with a corner pin is placed by it, so its \(key) is null, found \(value.value.written)"
+                )
+            }
+        }
+
+        return ResolvedCornerPin(size: try values.size(clip.member("size")), points: points)
     }
 
     // A title, a shape by its name, an adjustment or a media clip, timed when it has `in`.
@@ -425,7 +463,7 @@ struct ResolvedSequenceReader: Sendable {
         let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
-                try values.keyframes(clip.member("points")) { points in
+                try values.followedKeyframes(clip.member("points")) { points in
                     try points.elements().map { try values.geometryPoint($0) }
                 },
                 isClosed: try clip.member("closed").bool(),
@@ -439,7 +477,7 @@ struct ResolvedSequenceReader: Sendable {
             )
         } else {
             .area(
-                try values.keyframes(clip.member("area"), read: values.geometryArea),
+                try values.followedKeyframes(clip.member("area"), read: values.geometryArea),
                 outset: try values.timed(clip.member("outset"), as: LookStructureTable.length),
                 placement: try placement(of: clip)
             )
@@ -468,7 +506,7 @@ struct ResolvedSequenceReader: Sendable {
     ) throws -> ResolvedBox {
         ResolvedBox(
             size: try values.size(size),
-            position: try values.keyframes(position) { try values.geometryPoint($0) },
+            position: try values.followedKeyframes(position) { try values.geometryPoint($0) },
             anchor: try values.point(anchor)
         )
     }
@@ -476,7 +514,7 @@ struct ResolvedSequenceReader: Sendable {
     private func placement(of clip: PlacedJSONObject) throws -> GeometryPlacement {
         GeometryPlacement(
             position: try clip.member("position").optional { value in
-                try values.keyframes(value) { try values.geometryPoint($0) }
+                try values.followedKeyframes(value) { try values.geometryPoint($0) }
             },
             anchor: try clip.member("anchor").optional(values.geometryAnchor)
         )
@@ -649,8 +687,8 @@ struct ResolvedSequenceReader: Sendable {
         let read = try colorSpace.optional { value in
             try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
         }
-        if let refusal = MediaFile(media: media).pageRefusal(colorSpace: read, isToneMapped: nil) {
-            throw refusal.error(colorSpace: colorSpace, toneMap: nil)
+        if let refused = MediaFile(media: media).pageRefusedColorSpace(read) {
+            throw pageColorSpaceError(colorSpace, refused: refused)
         }
 
         return ResolvedTransitionMedia(media: media, colorSpace: read, duration: try object.member("duration").number())
@@ -681,11 +719,34 @@ struct ResolvedSequenceReader: Sendable {
         let file = MediaFile(media: pinned)
         let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
         let isToneMapped = file.page == nil ? try toneMap.bool() : try toneMap.optional { try $0.bool() }
-        if let refusal = file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
-            throw refusal.error(colorSpace: colorSpace, toneMap: toneMap)
-        }
+        switch file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {
+        case .toneMap:
+            throw ModelError.invalidValue(
+                place: toneMap.place,
+                kind: toneMap.kind,
+                reason: "a page is not HDR and takes no toneMap, so it is null here, found \(toneMap.value.written)"
+            )
 
-        return (read, isToneMapped)
+        case let .colorSpace(refused):
+            throw pageColorSpaceError(colorSpace, refused: refused)
+
+        case nil:
+            return (read, isToneMapped)
+        }
+    }
+
+    // The stop of an entry that reads a page in the colour space `refused`, written at `colorSpace`: a page is not HDR,
+    // so it takes only the spaces of standard dynamic range.
+    private func pageColorSpaceError(
+        _ colorSpace: PlacedJSONValue,
+        refused: ColorSpace
+    ) -> ModelError {
+        ModelError.unknownValue(
+            place: colorSpace.place,
+            kind: colorSpace.kind,
+            value: refused.rawValue,
+            allowed: VocabularyTable.standardDynamicRangeColorSpaces
+        )
     }
 
     private func conform(_ value: PlacedJSONValue) throws -> Conform {

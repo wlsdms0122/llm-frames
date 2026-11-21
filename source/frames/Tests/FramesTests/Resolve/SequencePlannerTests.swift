@@ -930,8 +930,8 @@ struct SequencePlannerTests {
             ),
             MaskSample(geometry: .polyline(triangle(10), isClosed: true), feather: 0, isInverted: false, mode: .subtract)
         ])
-        guard case let .rect(.area(area), _) = masks[0].geometry else {
-            Issue.record("expected a rect mask given by its area")
+        guard case let .rect(.area(.keyframes(area)), _) = masks[0].geometry else {
+            Issue.record("expected a rect mask given by its area as keyframes")
             return
         }
         #expect(area.map(\.at) == [1, 3])
@@ -1073,11 +1073,11 @@ struct SequencePlannerTests {
         mode: MaskMode = .add
     ) -> ResolvedMask {
         let box = ResolvedMaskRectangle.box(
-            width: [Keyframe(at: 0, value: width)],
-            height: [Keyframe(at: 0, value: height)],
-            position: [Keyframe(at: 0, value: .point(position))]
+            width: .keyframes([Keyframe(at: 0, value: width)]),
+            height: .keyframes([Keyframe(at: 0, value: height)]),
+            position: .keyframes([Keyframe(at: 0, value: .point(position))])
         )
-        let geometry: ResolvedMaskGeometry = shape == .rect ? .rect(box, radius: [Keyframe(at: 0, value: 0)]) : .ellipse(box)
+        let geometry: ResolvedMaskGeometry = shape == .rect ? .rect(box, radius: .keyframes([Keyframe(at: 0, value: 0)])) : .ellipse(box)
 
         return ResolvedMask(geometry: geometry, feather: [Keyframe(at: 0, value: 0)], isInverted: false, mode: mode)
     }

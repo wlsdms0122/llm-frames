@@ -23,7 +23,7 @@ extension ResolvedStorylineClip {
         timeRemap: [Keyframe<Double>]? = nil,
         start: Double,
         end: Double,
-        crop: [Keyframe<Crop>],
+        crop: FollowedValue<Crop>,
         track: ResolvedTrack?,
         filter: TimedValue,
         isMotionBlurred: Bool = false,

@@ -35,9 +35,7 @@ package struct OCRReporter: Sendable {
         colorSpace: ColorSpace? = nil
     ) throws -> OCRReport {
         let (file, size, times) = try media(at: path, page: page, selection: selection)
-        if case let .colorSpace(refused) = file.pageRefusal(colorSpace: colorSpace, isToneMapped: nil),
-            let page = file.page
-        {
+        if let refused = file.pageRefusedColorSpace(colorSpace), let page = file.page {
             throw AnalysisError.highDynamicRangePage(file: path, page: page, colorSpace: refused)
         }
         let frames = try times.map { time in

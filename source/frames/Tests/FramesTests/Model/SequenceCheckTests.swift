@@ -485,11 +485,11 @@ struct SequenceCheckTests {
         arguments: [
             (#"{ "adjust": "frames/vivid", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, opacity, mask, adjust"#),
             (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, fill, stroke, shadow, mask"#),
-            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, opacity, trim, outset, fill, stroke, shadow, mask"#),
-            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, opacity, mask, character, paragraph"#),
+            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, cornerPin, opacity, trim, outset, fill, stroke, shadow, mask"#),
+            (#"{ "title": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, mask, character, paragraph"#),
             (#"{ "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan, audioFilter"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow"#),
-            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow"),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow"#),
+            (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow"),
             (#"{ "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "scale": 1 } ] }"#, #"clips[0].keyframes[0] (keyframe): missing key "at""#)
         ]
     )
@@ -578,11 +578,11 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,

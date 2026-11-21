@@ -11,13 +11,13 @@
 struct ResolvedBox: Equatable, Sendable {
     // MARK: - Property
     let size: Size
-    let position: [Keyframe<GeometryPoint>]
+    let position: FollowedValue<GeometryPoint>
     let anchor: Point
 
     // MARK: - Initializer
     init(
         size: Size,
-        position: [Keyframe<GeometryPoint>],
+        position: FollowedValue<GeometryPoint>,
         anchor: Point
     ) {
         self.size = size

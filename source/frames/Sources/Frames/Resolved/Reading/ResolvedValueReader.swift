@@ -294,8 +294,25 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
+    // A followed value of a tracked clip is a keyframe list, or its value where it is true on the track's frame
+    // (FRAMES-19 Timed values). A keyframe list is a list of objects that hold `at`, and no value of such a leaf is one.
+    func followedKeyframes<Value: Equatable & Sendable>(
+        _ value: PlacedJSONValue,
+        read: (PlacedJSONValue) throws -> Value
+    ) throws -> FollowedValue<Value> {
+        guard value.value.arrayValue?.first?.objectValue?.contains("at") == true else {
+            return .onTrackFrame(try read(value))
+        }
+
+        return .keyframes(try keyframes(value, read: read))
+    }
+
     func numbers(_ value: PlacedJSONValue) throws -> [Keyframe<Double>] {
         try keyframes(value) { try $0.number() }
+    }
+
+    func followedNumbers(_ value: PlacedJSONValue) throws -> FollowedValue<Double> {
+        try followedKeyframes(value) { try $0.number() }
     }
 
     func scales(_ value: PlacedJSONValue) throws -> [Keyframe<Scale>] {
@@ -306,8 +323,8 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    func crops(_ value: PlacedJSONValue) throws -> [Keyframe<Crop>] {
-        try keyframes(value) { Crop(try rectangle($0)) }
+    func crops(_ value: PlacedJSONValue) throws -> FollowedValue<Crop> {
+        try followedKeyframes(value) { Crop(try rectangle($0)) }
     }
 
     // A timed value as the writer writes it, read by its structure: `null` is `off`, a timed leaf a keyframe list, and
@@ -605,7 +622,7 @@ struct ResolvedValueReader: Sendable {
         switch name {
         case "rect":
             let rect = try form.object(keys: ["rect", "width", "height", "position", "radius"])
-            return .rect(try maskRectangle(rect), radius: try numbers(rect.member("radius")))
+            return .rect(try maskRectangle(rect), radius: try followedNumbers(rect.member("radius")))
 
         case "ellipse":
             return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
@@ -613,7 +630,7 @@ struct ResolvedValueReader: Sendable {
         default:
             let polyline = try form.object(keys: ["points", "closed"])
             let written = try polyline.member("points")
-            let points = try written.elements().map { try keyframes($0, read: geometryPoint) }
+            let points = try written.elements().map { try followedKeyframes($0, read: geometryPoint) }
             guard try polyline.member("closed").bool(), points.count >= 3 else {
                 throw ModelError.invalidValue(
                     place: value.place,
@@ -632,13 +649,13 @@ struct ResolvedValueReader: Sendable {
                 throw ModelError.conflictingKeys(place: object.place, kind: object.kind, keys: ["rect", box])
             }
 
-            return .area(try keyframes(object.member("rect"), read: geometryArea))
+            return .area(try followedKeyframes(object.member("rect"), read: geometryArea))
         }
 
         return .box(
-            width: try numbers(object.member("width")),
-            height: try numbers(object.member("height")),
-            position: try keyframes(object.member("position"), read: geometryPoint)
+            width: try followedNumbers(object.member("width")),
+            height: try followedNumbers(object.member("height")),
+            position: try followedKeyframes(object.member("position"), read: geometryPoint)
         )
     }
 

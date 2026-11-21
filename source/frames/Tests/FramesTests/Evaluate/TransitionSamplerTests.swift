@@ -243,7 +243,7 @@ struct TransitionSamplerTests {
             speed: 1,
             start: start,
             end: end,
-            crop: [Keyframe(at: start, value: Crop(frame))],
+            crop: .keyframes([Keyframe(at: start, value: Crop(frame))]),
             track: nil,
             filter: .off,
             transition: transition,

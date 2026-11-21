@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A media clip of video or image sequence tracks its own media on its own clock, which moves its crop and masks in its
-// media pixels while the clip stays where its own transform puts it. Any other clip tracks its parent's media, and the
-// motion is a moving parent of the clip.
+// A media clip of video or image sequence without a corner pin tracks its own media on its own clock, which moves its
+// crop and masks in its media pixels while the clip stays where its own transform puts it. Any other clip, one with a
+// corner pin included, tracks its parent's media, and the motion is a moving parent of the clip (FRAMES-12).
 extension ResolvedClip {
     // MARK: - Property
     // The track that moves the clip in its parent's space, nil when it has none or follows its own media.
@@ -19,6 +19,7 @@ extension ResolvedClip {
     var ownTrackedMedia: PinnedMedia? {
         guard
             track != nil,
+            cornerPin == nil,
             case let .media(media) = content,
             case let .pinned(pinned) = media.media,
             !pinned.frameTimes.isEmpty

@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker followed: `target` is the quad of the area before padding on the frame at `mediaTime`, the clip's
-// instant, and `samples` its quad and fitted motion on every frame followed, in time order. A time before the first
+// What the tracker or track data followed: `target` is the target's quad before padding on the track's frame at
+// `mediaTime`, and `samples` its quad and fitted motion on every frame followed, in time order. A time before the first
 // frame or after the last holds the nearest one, as a handle past the end of the media holds its edge frame.
 struct Track: Equatable, Sendable {
     // MARK: - Property
@@ -47,6 +47,14 @@ struct Track: Equatable, Sendable {
         guard let first = samples.first else { return .identity }
 
         return (samples.last { $0.time.roundedTime <= time.roundedTime } ?? first).motion
+    }
+
+    // The homography on the same frame, H(target → quad) (FRAMES-12 The track), nil where that quad is not strictly
+    // convex, which no frame followed has.
+    func homography(atMediaTime time: Double) -> Homography? {
+        guard let first = samples.first else { return .identity }
+
+        return Homography(from: target, to: (samples.last { $0.time.roundedTime <= time.roundedTime } ?? first).quad)
     }
 
     // MARK: - Private

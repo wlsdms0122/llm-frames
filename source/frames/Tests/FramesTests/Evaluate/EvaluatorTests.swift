@@ -278,7 +278,7 @@ struct EvaluatorTests {
             timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)],
             start: 0,
             end: 2,
-            crop: [Keyframe(at: 0, value: Crop(whole))],
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: nil,
             filter: .off,
             transition: nil,
@@ -563,7 +563,7 @@ struct EvaluatorTests {
                     .shape(ResolvedShape(
                         kind: .rect,
                         geometry: .area(
-                            [Keyframe(at: 0, value: .rectangle(Rectangle(x: 150, y: 75, width: 40, height: 20)))],
+                            .keyframes([Keyframe(at: 0, value: .rectangle(Rectangle(x: 150, y: 75, width: 40, height: 20)))]),
                             outset: 0,
                             placement: GeometryPlacement()
                         ),
@@ -1263,7 +1263,7 @@ struct EvaluatorTests {
             speed: speed,
             start: start,
             end: end,
-            crop: crop,
+            crop: .keyframes(crop),
             track: track,
             filter: .filter(filter),
             transition: transition,
@@ -1284,7 +1284,9 @@ struct EvaluatorTests {
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
-        ResolvedStorylineClip(
+        // The entries restyled here have a box.
+        let box = entry.box!
+        return ResolvedStorylineClip(
             place: entry.place,
             id: entry.id,
             media: entry.media,
@@ -1301,11 +1303,11 @@ struct EvaluatorTests {
             track: entry.track,
             filter: entry.filter,
             box: ResolvedBox(
-                size: entry.box.size,
+                size: box.size,
                 position: topLeft.map { keyframes in
-                    keyframes.map { $0.map { .point(Point(x: $0.x + entry.box.anchor.x, y: $0.y + entry.box.anchor.y)) } }
-                } ?? entry.box.position,
-                anchor: entry.box.anchor
+                    .keyframes(keyframes.map { $0.map { .point(Point(x: $0.x + box.anchor.x, y: $0.y + box.anchor.y)) } })
+                } ?? box.position,
+                anchor: box.anchor
             ),
             opacity: [Keyframe(at: entry.start, value: opacity)],
             scale: scale ?? entry.scale,
@@ -1364,7 +1366,7 @@ struct EvaluatorTests {
         parent: String? = nil,
         mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
-        crop: [Keyframe<Crop>]? = nil,
+        crop: FollowedValue<Crop>? = nil,
         track: ResolvedTrack? = nil,
         opacity: Double = 1,
         blend: String = "normal",
@@ -1441,7 +1443,7 @@ struct EvaluatorTests {
             .media(media),
             start: start,
             box: box,
-            crop: [Keyframe(at: 0, value: Crop(whole))],
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: track,
             blend: blend
         )

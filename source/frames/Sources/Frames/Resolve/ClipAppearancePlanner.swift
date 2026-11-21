@@ -33,12 +33,56 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Public
+    // Each keyframe of a tracked corner pin is brought back through the inverse of the track's homography at its own
+    // time, on the frame shown there or the nearest frame followed, and a corner at or beyond that inverse's horizon, or
+    // a corner pin brought back that is not strictly convex, stops (FRAMES-27 A tracked corner pin). A static corner pin
+    // true on the track's frame is where the homography is the identity; one a text form found other than the track's
+    // target is one keyframe at the clip's instant, and is brought back there as a keyframe is (FRAMES-19 Timed
+    // values). A keyframe holding a clip area is the named clip's box at each instant, which only evaluation knows.
+    private func checkBroughtBack(
+        of points: PropertyValue<GeometryQuad>,
+        written: PropertyValue<[PositionForm]>,
+        track: TrackedMedia,
+        isOnTrackFrame: Bool,
+        instant: Double,
+        place: Place,
+        kind: PlaceKind
+    ) throws {
+        switch (points, written) {
+        case let (.keyframes(keyframes), .keyframes(writtenKeyframes)):
+            for keyframe in keyframes where !isBroughtBack(keyframe.value, track: track, at: keyframe.at) {
+                throw ResolveError.cornerPinNotBroughtBack(
+                    place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
+                    kind: kind,
+                    time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
+                )
+            }
+
+        case let (.value(points), .value):
+            guard !isOnTrackFrame, !isBroughtBack(points, track: track, at: instant) else { return }
+
+            throw ResolveError.cornerPinNotBroughtBack(place: place.appending(key: "cornerPin"), kind: kind, time: nil)
+
+        default:
+            return
+        }
+    }
+
+    // Whether a corner pin at the time comes back to the track's frame, as evaluation brings it back.
+    private func isBroughtBack(
+        _ points: GeometryQuad,
+        track: TrackedMedia,
+        at time: Double
+    ) -> Bool {
+        track.track.broughtBack(points, atMediaTime: track.clock.mediaTime(atSequenceTime: time)) != nil
+    }
+
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
     // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where
     // its position puts its anchor point, or where its placement sets it: a title by default where its style places it,
     // and media and shapes in the centre. Under content fit there is no frame to place on, so a placement stops and a
     // box without a position has its top left at the origin. A shape placed by its geometry or an adjustment has none,
-    // and an audio clip is not drawn.
+    // and an audio clip is not drawn. A clip with a corner pin has none either: its corner pin places its box.
     func box(
         of plan: ClipPlan,
         written: Clip,
@@ -50,34 +94,14 @@ struct ClipAppearancePlanner: Sendable {
         format: FormatPlan,
         theme: MergedTheme
     ) throws -> ClipBox? {
-        let size: Size
-        let style: String?
-        switch written.content {
-        case let .title(written):
-            size = title?.size ?? Size(width: 0, height: 0)
-            style = written.style
-
-        case .media:
-            guard let picture else { return nil }
-
-            size = mediaSize(
-                width: written.width,
-                height: written.height,
-                crop: crop,
-                picture: picture.size,
-                frame: format.isMeasured ? nil : format.size
-            )
-            style = nil
-
-        case .shape:
-            guard case let .box(width, height, _) = shape?.geometry else { return nil }
-
-            size = Size(width: value(of: width, at: plan.instant), height: value(of: height, at: plan.instant))
-            style = nil
-
-        case .adjust:
+        guard
+            written.cornerPin == nil,
+            let size = boxSize(of: plan, written: written, crop: crop, title: title, picture: picture, shape: shape, format: format)
+        else {
             return nil
         }
+
+        let style: String? = if case let .title(title) = written.content { title.style } else { nil }
         guard written.placement == nil || written.position == nil else {
             throw ResolveError.placementWithPosition(place: written.place, kind: .clip(plan.kind))
         }
@@ -115,6 +139,60 @@ struct ClipAppearancePlanner: Sendable {
         )))
 
         return ClipBox(size: size, position: placed, anchor: anchor)
+    }
+
+    // The box a clip with a corner pin draws, sized as every clip's box is, and the points its corners go to, nil for a
+    // clip without one. It takes no other placement, a style's
+    // included, so a key that places a clip stops beside it, and a shape placed by its area or points stops, its
+    // outline being in its space already. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
+    func cornerPin(
+        of plan: ClipPlan,
+        written: Clip,
+        points: PropertyValue<[GeometryPoint]>?,
+        track: TrackedMedia?,
+        crop: PropertyValue<FoundArea>?,
+        title: TextLayout?,
+        picture: Picture?,
+        shape: ShapeAppearance?,
+        format: FormatPlan
+    ) throws -> ClipCornerPin? {
+        guard let pin = written.cornerPin, let points = points?.map(GeometryQuad.init(corners:)) else { return nil }
+
+        let kind = PlaceKind.clip(plan.kind)
+        let isPlacedByBox = if case .box = shape?.geometry { true } else { false }
+        guard shape == nil || isPlacedByBox else {
+            throw ResolveError.cornerPinOnGeometry(place: place(of: pin, key: "cornerPin", at: written.place), kind: kind)
+        }
+        let key = placementKey(
+            at: written.place,
+            placement: written.placement,
+            position: written.position,
+            anchor: written.anchor,
+            scale: written.scale,
+            rotation: written.rotation
+        )
+        if let (place, key) = key {
+            throw ResolveError.cornerPinWithPlacement(place: place, kind: kind, key: key)
+        }
+        try checkConvexity(of: points, written: pin, place: written.place, kind: kind)
+        if let track {
+            try checkBroughtBack(
+                of: points,
+                written: pin,
+                track: track,
+                isOnTrackFrame: plan.onTrackFrame(of: written).contains(.cornerPin),
+                instant: plan.instant,
+                place: written.place,
+                kind: kind
+            )
+        }
+        guard
+            let size = boxSize(of: plan, written: written, crop: crop, title: title, picture: picture, shape: shape, format: format)
+        else {
+            return nil
+        }
+
+        return ClipCornerPin(size: size, points: points)
     }
 
     // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
@@ -190,11 +268,12 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A property not written takes its plain value, and keyframes move to sequence time on the clip's clock. A shape
-    // comes planned by `shape(of:written:scale:theme:)`.
+    // comes planned by `shape(of:written:scale:theme:)`. `box` is the size of the box a media clip's picture fills,
+    // placed by its position or by its corner pin.
     func appearance(
         of plan: ClipPlan,
         written: Clip,
-        box: ClipBox?,
+        box: Size?,
         crop: PropertyValue<FoundArea>?,
         picture: Picture?,
         shape: ShapeAppearance?,
@@ -234,11 +313,14 @@ struct ClipAppearancePlanner: Sendable {
     // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its transform
     // fills the frame exactly, and under content fit the box's top left lies at the origin. Its radius, border and
     // shadow are drawn as a media clip's. A solid has no box and takes no transform, so it keeps the plain values and
-    // its transform is the identity, as its children's space is output pixels.
+    // its transform is the identity, as its children's space is output pixels. A clip with a corner pin, `cornerPin`
+    // its points in output pixels, has its box placed by it and no other placement, so a key that places it otherwise
+    // stops beside it, and keeps the plain scale and rotation (FRAMES-27).
     func appearance(
         of plan: StorylinePlan,
         written: StorylineClip,
         position: PropertyValue<Point>?,
+        cornerPin: PropertyValue<[GeometryPoint]>?,
         box: Size?,
         format: FormatPlan,
         scale: Double,
@@ -265,13 +347,33 @@ struct ClipAppearancePlanner: Sendable {
             scale: scale,
             theme: theme
         )
+        let kind = PlaceKind.clip(plan.source.kind)
+        let pinned: ClipCornerPin?
+        if let cornerPin = cornerPin?.map(GeometryQuad.init(corners:)), let pin = written.cornerPin {
+            let key = placementKey(
+                at: written.place,
+                placement: nil,
+                position: written.position,
+                anchor: written.anchor,
+                scale: written.scale,
+                rotation: written.rotation
+            )
+            if let (place, key) = key {
+                throw ResolveError.cornerPinWithPlacement(place: place, kind: kind, key: key)
+            }
+            try checkConvexity(of: cornerPin, written: pin, place: written.place, kind: kind)
+            pinned = ClipCornerPin(size: box, points: cornerPin)
+        } else {
+            pinned = nil
+        }
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { $0.map(GeometryPoint.point) }
             ?? .value(.point(format.isMeasured ? anchor : format.frame.center))
 
         return StorylineAppearance(
-            box: ClipBox(size: box, position: placed, anchor: anchor),
+            box: pinned == nil ? ClipBox(size: box, position: placed, anchor: anchor) : nil,
+            cornerPin: pinned,
             opacity: property(written.opacity, plain: 1, clock: plan.map),
             scale: property(written.scale, plain: .identity, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
@@ -339,6 +441,117 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Private
+    // A corner pin given as numbers or found by text at a keyframe's time or as a static value is strictly convex,
+    // checked in doubles as FRAMES-27 writes the test. One that holds a clip area takes that clip's box at each instant,
+    // which only evaluation knows. A keyframe is named with its time as written.
+    private func checkConvexity(
+        of points: PropertyValue<GeometryQuad>,
+        written: PropertyValue<[PositionForm]>,
+        place: Place,
+        kind: PlaceKind
+    ) throws {
+        let isConvex = { (points: GeometryQuad) in points.fixed?.isStrictlyConvex ?? true }
+        switch (points, written) {
+        case let (.value(points), _):
+            guard isConvex(points) else {
+                throw ResolveError.cornerPinNotConvex(place: place.appending(key: "cornerPin"), kind: kind, time: nil)
+            }
+
+        case let (.keyframes(keyframes), .keyframes(writtenKeyframes)):
+            for keyframe in keyframes where !isConvex(keyframe.value) {
+                let at = writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
+                throw ResolveError.cornerPinNotConvex(
+                    place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
+                    kind: kind,
+                    time: at
+                )
+            }
+
+        case (.keyframes, .value):
+            return
+        }
+    }
+
+    // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
+    // and `height` at the clip's instant. A shape placed by its geometry, an adjustment and a media clip without a
+    // picture have none.
+    private func boxSize(
+        of plan: ClipPlan,
+        written: Clip,
+        crop: PropertyValue<FoundArea>?,
+        title: TextLayout?,
+        picture: Picture?,
+        shape: ShapeAppearance?,
+        format: FormatPlan
+    ) -> Size? {
+        switch written.content {
+        case .title:
+            return title?.size ?? Size(width: 0, height: 0)
+
+        case .media:
+            guard let picture else { return nil }
+
+            return mediaSize(
+                width: written.width,
+                height: written.height,
+                crop: crop,
+                picture: picture.size,
+                frame: format.isMeasured ? nil : format.size
+            )
+
+        case .shape:
+            guard case let .box(width, height, _) = shape?.geometry else { return nil }
+
+            return Size(width: value(of: width, at: plan.instant), height: value(of: height, at: plan.instant))
+
+        case .adjust:
+            return nil
+        }
+    }
+
+    // The first key beside a corner pin that places a clip otherwise, with its place: on the clip at `place`, or in a
+    // keyframe.
+    private func placementKey(
+        at place: Place,
+        placement: String?,
+        position: PropertyValue<PositionForm>?,
+        anchor: String?,
+        scale: PropertyValue<Scale>?,
+        rotation: PropertyValue<Double>?
+    ) -> (Place, String)? {
+        if placement != nil {
+            return (place.appending(key: "placement"), "placement")
+        }
+        if let position {
+            return (self.place(of: position, key: "position", at: place), "position")
+        }
+        if anchor != nil {
+            return (place.appending(key: "anchor"), "anchor")
+        }
+        if let scale {
+            return (self.place(of: scale, key: "scale", at: place), "scale")
+        }
+        if let rotation {
+            return (self.place(of: rotation, key: "rotation", at: place), "rotation")
+        }
+        return nil
+    }
+
+    // Where a property is written: the key of the clip at `place`, or the first keyframe that writes it.
+    private func place<Value>(
+        of property: PropertyValue<Value>,
+        key: String,
+        at place: Place
+    ) -> Place {
+        switch property {
+        case .value:
+            place.appending(key: key)
+
+        case let .keyframes(keyframes):
+            place.appending(key: "keyframes").appending(index: keyframes.map(\.index).min() ?? 0).appending(key: key)
+        }
+    }
+
     // Given one of `width` and `height`, the other follows the aspect ratio of the first crop, or of the picture when
     // there is no crop. Given neither, that crop or picture fits the output frame, or is its own pixel size when there
     // is no frame yet.
@@ -405,7 +618,7 @@ struct ClipAppearancePlanner: Sendable {
     private func mediaAppearance(
         of plan: ClipPlan,
         written: Clip,
-        box: ClipBox?,
+        box: Size?,
         crop: PropertyValue<FoundArea>?,
         picture: Picture?,
         scale: Double,
@@ -417,13 +630,13 @@ struct ClipAppearancePlanner: Sendable {
         try cropChecker.check(
             crop,
             of: picture,
-            box: box.size,
+            box: box,
             conform: conform,
             isTracked: written.track != nil,
             place: written.place.appending(key: "crop"),
             kind: .clip(plan.kind)
         )
-        let bounds = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+        let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let conformed = { (rectangle: Rectangle) in conformer.conformed(rectangle, to: bounds, by: conform) }
         let crops: PropertyValue<Rectangle>
         switch crop {

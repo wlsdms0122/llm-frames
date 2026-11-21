@@ -54,8 +54,15 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
+    // An entry with media writes its corner pin after its anchor, and one with a corner pin writes its box's size and
+    // its position, anchor, scale and rotation as null. A solid writes no corner pin.
     private func storyline(_ entry: ResolvedStorylineClip) -> JSONValue {
-        .object(JSONObject(members: [
+        let cornerPin = entry.cornerPin.map { pin in
+            values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
+        }
+        let size = entry.box?.size ?? entry.cornerPin?.size
+
+        return .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "media", value: entry.media.map(media) ?? .null),
@@ -68,16 +75,20 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "timeRemap", value: entry.timeRemap.map(values.numbers) ?? .null),
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
-            JSONMember(key: "size", value: values.size(entry.box.size)),
-            JSONMember(key: "position", value: values.keyframes(entry.box.position, value: values.geometryPoint)),
-            JSONMember(key: "anchor", value: values.point(entry.box.anchor)),
+            JSONMember(key: "size", value: size.map(values.size) ?? .null),
+            JSONMember(
+                key: "position",
+                value: entry.box.map { values.followed($0.position, value: values.geometryPoint) } ?? .null
+            ),
+            JSONMember(key: "anchor", value: entry.box.map { values.point($0.anchor) } ?? .null)
+        ] + (entry.media == nil ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "mask", value: values.masks(entry.mask)),
             JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
-            JSONMember(key: "scale", value: values.scales(entry.scale)),
-            JSONMember(key: "rotation", value: values.numbers(entry.rotation)),
+            JSONMember(key: "scale", value: entry.scale.map(values.scales) ?? .null),
+            JSONMember(key: "rotation", value: entry.rotation.map { values.numbers($0) } ?? .null),
             JSONMember(key: "blend", value: .string(entry.blend)),
             JSONMember(key: "motionBlur", value: .bool(entry.isMotionBlurred)),
             JSONMember(key: "filter", value: values.timed(entry.filter)),
@@ -89,24 +100,32 @@ struct ResolvedSequenceWriter: Sendable {
     }
 
     // What a clip draws comes after its id, a media clip's timing, filter and appearance with it, and a shape's
-    // geometry and appearance. Scale and rotation belong to anything drawn but an adjustment. A shape
-    // placed by its geometry writes its position and anchor where a box would, and its area with its own keys.
+    // geometry and appearance. Scale, rotation and a corner pin belong to anything drawn but an adjustment, and a clip
+    // with a corner pin writes its box's size and its position, anchor, scale and rotation as null. A shape placed by
+    // its geometry writes its position and anchor where a box would, and its area with its own keys.
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
-        let transform = [
-            clip.scale.map { JSONMember(key: "scale", value: values.scales($0)) },
-            clip.rotation.map { JSONMember(key: "rotation", value: number($0)) },
+        let isAdjustment = if case .adjustment = clip.content { true } else { false }
+        let scaleAndRotation = isAdjustment ? [] : [
+            JSONMember(key: "scale", value: clip.scale.map(values.scales) ?? .null),
+            JSONMember(key: "rotation", value: clip.rotation.map(number) ?? .null)
+        ]
+        let transform = scaleAndRotation + [
             JSONMember(key: "blend", value: .string(clip.blend)),
             JSONMember(key: "motionBlur", value: .bool(clip.isMotionBlurred))
-        ].compactMap { $0 }
+        ]
+        let cornerPin = clip.cornerPin.map { pin in
+            values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
+        }
         let shape: ResolvedShape? = if case let .shape(shape) = clip.content { shape } else { nil }
         let placement = shape?.geometry.placement
         let position = clip.box?.position ?? placement?.position
         let anchor = clip.box.map { values.point($0.anchor) } ?? placement?.anchor.map(values.geometryAnchor)
         let geometry = [
-            JSONMember(key: "size", value: clip.box.map { values.size($0.size) } ?? .null),
-            JSONMember(key: "position", value: position.map { values.keyframes($0, value: values.geometryPoint) } ?? .null),
-            JSONMember(key: "anchor", value: anchor ?? .null),
+            JSONMember(key: "size", value: (clip.box?.size ?? clip.cornerPin?.size).map(values.size) ?? .null),
+            JSONMember(key: "position", value: position.map { values.followed($0, value: values.geometryPoint) } ?? .null),
+            JSONMember(key: "anchor", value: anchor ?? .null)
+        ] + (isAdjustment ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
             JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
             JSONMember(key: "mask", value: values.masks(clip.mask)),
             JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
@@ -166,10 +185,10 @@ struct ResolvedSequenceWriter: Sendable {
             (.null, numbers(width), numbers(height), .null, .null, values.timed(outset))
 
         case let .area(area, outset, _):
-            (values.keyframes(area, value: values.geometryArea), .null, .null, .null, .null, values.timed(outset))
+            (values.followed(area, value: values.geometryArea), .null, .null, .null, .null, values.timed(outset))
 
         case let .points(points, isClosed, _):
-            (.null, .null, .null, values.keyframes(points) { .array($0.map(values.geometryPoint)) }, .bool(isClosed), .null)
+            (.null, .null, .null, values.followed(points) { .array($0.map(values.geometryPoint)) }, .bool(isClosed), .null)
         }
 
         return [
@@ -284,8 +303,8 @@ struct ResolvedSequenceWriter: Sendable {
         }
     }
 
-    private func crops(_ keyframes: [Keyframe<Crop>]) -> JSONValue {
-        values.keyframes(keyframes) { values.rectangle($0.rectangle) }
+    private func crops(_ crop: FollowedValue<Crop>) -> JSONValue {
+        values.followed(crop) { values.rectangle($0.rectangle) }
     }
 
     // `clip` is the id of the matte clip, which keeps its own entry.

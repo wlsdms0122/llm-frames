@@ -25,12 +25,12 @@ extension ResolvedMask {
         if shape == .path {
             guard case let .list(elements) = timed["points"] else { return nil }
 
-            geometry = .polyline(elements.compactMap { Self.points($0) })
+            geometry = .polyline(elements.compactMap { Self.points($0) }.map { .keyframes($0) })
         } else {
             guard let rectangle = Self.rectangle(of: timed) else { return nil }
 
             if shape == .rect, let radius = Self.numbers(timed["radius"]) {
-                geometry = .rect(rectangle, radius: radius)
+                geometry = .rect(rectangle, radius: .keyframes(radius))
             } else {
                 geometry = .ellipse(rectangle)
             }
@@ -43,7 +43,7 @@ extension ResolvedMask {
     // MARK: - Private
     private static func rectangle(of timed: TimedValue) -> ResolvedMaskRectangle? {
         if let area = track(timed["area"]) {
-            return .area(area.compactMap { keyframe in
+            return .area(.keyframes(area.compactMap { keyframe in
                 let area: GeometryArea
                 switch keyframe.value {
                 case let .numbers(numbers) where numbers.count == 4:
@@ -57,7 +57,7 @@ extension ResolvedMask {
                 }
 
                 return Keyframe(at: keyframe.at, value: area, ease: keyframe.ease)
-            })
+            }))
         }
         guard
             let width = numbers(timed["width"]),
@@ -67,7 +67,7 @@ extension ResolvedMask {
             return nil
         }
 
-        return .box(width: width, height: height, position: position)
+        return .box(width: .keyframes(width), height: .keyframes(height), position: .keyframes(position))
     }
 
     private static func fixed(_ value: TimedValue?) -> JSONValue? {

@@ -7,7 +7,8 @@
 
 // Items come bottom first, in output pixels of the list the clip is drawn in. A clip that follows its parent's media
 // takes that tracked motion before its parent's map; a media clip tracked in its own media moves its crop and masks
-// instead.
+// instead. A clip with a corner pin is drawn as a group: one picture of a nested list holding what it draws flat in
+// its box, carried onto its corner pin, with the tracked motion and its parent's map as its transform (FRAMES-20).
 struct ClipEvaluator: Sendable {
     // MARK: - Property
     private let shapeEvaluator = ShapeEvaluator()
@@ -28,6 +29,11 @@ struct ClipEvaluator: Sendable {
         seed: Int,
         at time: SampleTime
     ) -> [DisplayItem] {
+        if clip.cornerPin != nil {
+            let group = self.group(of: clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
+            return group.map { [$0.cut(by: [], trackMatte: trackMatte)] } ?? []
+        }
+
         let mask = masks(of: clip, in: space, at: time)
 
         return drawn(clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
@@ -36,13 +42,15 @@ struct ClipEvaluator: Sendable {
 
     // The map from the space the clip gives its children to output pixels: a title's box at the time, a media clip's
     // media pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in.
-    // Opacity and reveal take no part.
+    // A clip with a corner pin gives the space its corner pin is written in, moved by its tracked motion and not by its
+    // plane (FRAMES-10). Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
         at time: SampleTime
     ) -> AffineTransform {
         let sample = ClipSample(clip: clip, at: time)
+        guard clip.cornerPin == nil else { return space.tracked(by: clip.parentTrack, at: time).transform }
 
         switch clip.content {
         case let .title(text):
@@ -97,12 +105,11 @@ struct ClipEvaluator: Sendable {
 
             // Its item lies in its text box, inside its box at the time.
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
-            let textBox = text.textBox(at: time)
             let item = boxItem(
                 of: clip,
                 box: box,
                 drawn: text.box(at: time),
-                origin: Point(x: textBox.x, y: textBox.y),
+                origin: text.textBoxInBox(at: time),
                 sample: sample,
                 in: space,
                 content: .glyphs(glyphs),
@@ -150,7 +157,7 @@ struct ClipEvaluator: Sendable {
                 of: clip,
                 box: box,
                 drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
-                origin: Point(x: 0, y: 0),
+                origin: .identity,
                 sample: sample,
                 in: space,
                 content: .picture(item),
@@ -163,6 +170,154 @@ struct ClipEvaluator: Sendable {
         case let .adjustment(filter):
             return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
         }
+    }
+
+    // A clip with a corner pin drawn flat in its box B, `[0, 0, w, h]` at the time: its item as without a corner pin,
+    // with the transform part of its animation about B's centre, opacity 1 and `normal` blend, its reveal, and its masks
+    // in its own space, in a nested list of D, the box its reveal wipes, with B's top left at (-x, -y) for D at (x, y).
+    // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
+    // animation's included, and its blend. Where the corner pin draws nothing the group is nil, and in a sample list it
+    // is there with four points at [0, 0] as its corner pin (FRAMES-20 Pictures). Nil for an adjustment, which takes no
+    // corner pin. A title's item and its masks lie in its text box, inside B as inside its box at the time. A rect or an
+    // ellipse is drawn in the box its `width` and `height` give at the time, its own masks in that box.
+    private func group(
+        of clip: ResolvedClip,
+        in space: ClipSpace,
+        picture: PictureItemSource?,
+        compositing: Compositing,
+        seed: Int,
+        at time: SampleTime
+    ) -> DisplayItem? {
+        let sample = ClipSample(clip: clip, at: time)
+        // `origin` carries the content's own coordinates into B, and `ownSpace` the clip's own space into the content's
+        // own coordinates, which are a title's own space and a shape's.
+        let flat: (
+            box: Rectangle,
+            content: DisplayContent,
+            origin: AffineTransform,
+            receiver: (AffineTransform) -> Rectangle,
+            ownSpace: AffineTransform
+        )
+        switch clip.content {
+        case let .title(text):
+            let drawn = text.box(at: time)
+            let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
+            flat = (
+                Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height),
+                .glyphs(glyphs),
+                text.textBoxInBox(at: time),
+                { glyphs.drawnBounds(carriedBy: $0) },
+                .identity
+            )
+
+        case let .media(media):
+            guard let picture, let size = clip.cornerPin?.size else { return nil }
+
+            let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+            let item = PictureItem(
+                source: picture,
+                rectangle: clip.crop(at: time),
+                destination: box,
+                filter: FilterEntry.entries(of: media.filter, at: time),
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                border: MediaBorder(
+                    sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
+                    factor: sample.lengthFactor,
+                    isSample: time.sample.isSample
+                ),
+                shadow: DropShadow(
+                    sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                    factor: sample.lengthFactor,
+                    carried: 1
+                )
+            )
+            let receiver = item.shadow.map { box.union($0.castBounds(of: box)) } ?? box
+            let crop = clip.crop(at: time).map { crop in
+                AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
+                    .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
+            }
+            flat = (
+                box,
+                .picture(item),
+                .identity,
+                { Rectangle(bounding: $0.apply(toCornersOf: receiver)) },
+                crop ?? .identity
+            )
+
+        case let .shape(shape):
+            let plane = { (box: Rectangle) in
+                ItemPresentation(area: box, opacity: sample.opacity, motion: sample.animation.motion).transform
+            }
+            guard let drawn = shapeEvaluator.flat(shape, sample: sample, plane: plane, at: time) else { return nil }
+
+            flat = (
+                drawn.box,
+                .path(drawn.path),
+                .identity,
+                { shapeEvaluator.receiverBox(of: drawn.path, carriedBy: $0) },
+                .identity
+            )
+
+        case .adjustment:
+            return nil
+        }
+
+        let box = Size(width: flat.box.width, height: flat.box.height)
+        guard
+            let cornerPin = clip.drawnCornerPin(box: box, areas: space.areas, clock: space.clock, at: time)
+                ?? (time.sample.isSample ? Quad.collapsed : nil)
+        else {
+            return nil
+        }
+
+        let plane = ItemPresentation(area: flat.box, opacity: sample.opacity, motion: sample.animation.motion)
+        let bounds = flat.receiver(flat.origin.concatenating(plane.transform))
+        let transform = plane.transform.concatenating(AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y)))
+        let itemTransform = flat.origin.concatenating(transform)
+        let list = ClipSpace(frame: Rectangle(x: 0, y: 0, width: bounds.width, height: bounds.height))
+        let item = DisplayItem(
+            transform: itemTransform,
+            reveal: sample.animation.revealRectangle(wiping: flat.receiver(itemTransform)),
+            content: flat.content,
+            origin: ItemOrigin(clip: clip)
+        )
+        let mask = clip.ownMasks(at: time).map { mask in
+            ItemMask(mask: mask, transform: flat.ownSpace.concatenating(itemTransform), factor: sample.lengthFactor)
+        }
+        var items = [item]
+        if case let .title(text) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
+           let units = text.units, !units.isEmpty {
+            items = [group(
+                of: clip,
+                text: text,
+                units: units,
+                title: item,
+                glyphs: glyphs,
+                schedule: schedule,
+                in: list,
+                compositing: compositing,
+                seed: seed,
+                at: time
+            )]
+        }
+
+        return DisplayItem(
+            transform: space.tracked(by: clip.parentTrack, at: time).transform,
+            opacity: plane.opacity,
+            blend: sample.blend,
+            content: .picture(PictureItem(
+                source: .displayList(DisplayList(
+                    size: Size(width: bounds.width, height: bounds.height),
+                    background: .transparent,
+                    compositing: compositing,
+                    seed: seed,
+                    items: items.map { $0.cut(by: mask, trackMatte: nil) }
+                )),
+                rectangle: Rectangle(x: -bounds.x, y: -bounds.y, width: box.width, height: box.height),
+                destination: flat.box,
+                cornerPin: cornerPin
+            ))
+        )
     }
 
     // A title animated by unit, drawn as one picture of a nested list the size of the list it is drawn in, which carries
@@ -248,14 +403,14 @@ struct ClipEvaluator: Sendable {
         return unit.intersection(loop) ?? Rectangle(x: unit.x, y: unit.y, width: 0, height: 0)
     }
 
-    // `drawn` is the clip's box at the time, in its box at its placed size, `origin` where the item's own coordinates
-    // start in that box, and `receiver` what the item draws in its own coordinates under the item's transform, which
+    // `drawn` is the clip's box at the time, in its box at its placed size, `origin` the map from the item's own
+    // coordinates into the box at the time, and `receiver` what the item draws in its own coordinates under the item's transform, which
     // the reveal wipes across.
     private func boxItem(
         of clip: ResolvedClip,
         box: ResolvedBox,
         drawn: Rectangle,
-        origin: Point,
+        origin: AffineTransform,
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
@@ -264,7 +419,9 @@ struct ClipEvaluator: Sendable {
     ) -> DisplayItem {
         let size = Size(width: drawn.width, height: drawn.height)
         let presentation = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time)
-        let transform = AffineTransform(translation: origin).concatenating(presentation.transform)
+        let transform = origin
+            .concatenating(AffineTransform(translation: Point(x: drawn.x, y: drawn.y)))
+            .concatenating(presentation.transform)
 
         return DisplayItem(
             transform: transform,
@@ -358,10 +515,7 @@ struct ClipEvaluator: Sendable {
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
             : clip.ownMasks(at: time)
         let inBox = if case let .title(text) = clip.content {
-            AffineTransform(translation: Point(
-                x: text.textBox(at: time).x - text.box(at: time).x,
-                y: text.textBox(at: time).y - text.box(at: time).y
-            ))
+            text.textBoxInBox(at: time)
         } else {
             AffineTransform.identity
         }

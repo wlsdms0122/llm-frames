@@ -98,7 +98,7 @@ struct ParentEvaluatorTests {
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
-            crop: [Keyframe(at: 0, value: Crop(whole))]
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
         )
         let child = fill(parent: "card")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
@@ -217,7 +217,7 @@ struct ParentEvaluatorTests {
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
-            crop: [Keyframe(at: 0, value: Crop(whole))]
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
         )
         let box = clip(
             id: "box",
@@ -267,7 +267,7 @@ struct ParentEvaluatorTests {
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40)), Keyframe(at: 2, value: Point(x: 90, y: 40))],
                 anchor: Point(x: 40, y: 20)
             ),
-            crop: [Keyframe(at: 0, value: Crop(whole))]
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
         )
         let box = clip(
             id: "box",
@@ -407,7 +407,7 @@ struct ParentEvaluatorTests {
                     speed: 1,
                     start: 0,
                     end: 2,
-                    crop: crop ?? [Keyframe(at: 0, value: Crop(whole))],
+                    crop: .keyframes(crop ?? [Keyframe(at: 0, value: Crop(whole))]),
                     track: nil,
                     filter: .off,
                     transition: nil,
@@ -423,7 +423,7 @@ struct ParentEvaluatorTests {
                     speed: 1,
                     start: 2,
                     end: 4,
-                    crop: [],
+                    crop: .keyframes([]),
                     track: nil,
                     filter: .off,
                     transition: ResolvedTransition(
@@ -482,7 +482,7 @@ struct ParentEvaluatorTests {
         parent: String? = nil,
         mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
-        crop: [Keyframe<Crop>]? = nil,
+        crop: FollowedValue<Crop>? = nil,
         track: ResolvedTrack? = nil,
         scale: Double = 1
     ) -> ResolvedClip {

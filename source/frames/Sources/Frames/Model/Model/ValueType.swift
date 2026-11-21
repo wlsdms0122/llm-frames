@@ -26,6 +26,11 @@ indirect enum ValueType: Equatable, Sendable {
     case numbers(Int, NumberDomain)
     // A list of at least two points, each as `position` takes it.
     case points
+    // A list of four points, each as `position` takes it: a quadrilateral's corners, top left, top right, bottom right
+    // and bottom left.
+    case quad
+    // A list of four points `[x, y]` of numbers: a quadrilateral in media pixels, as track data writes it.
+    case mediaQuad
     // A dash pattern: a list of at least one length, each 0 or more, not all 0. A pattern of zeros would draw the stroke
     // whole, where the patterns beside it draw fine dots. In a keyframe a length may be `null`, and lengths that are all
     // 0 with the merged value's in place of each `null` stop when the look is merged.
@@ -40,6 +45,8 @@ indirect enum ValueType: Equatable, Sendable {
     case oneOf([ValueType])
     case area
     case crop
+    // `track` (FRAMES-12 The track): `true`, an object holding any of `time`, `area` and `frames`, or else an area.
+    case track
     // A mask, or a list of at least one mask, each taking the keys of its shape.
     case masks
     // A title's text: a string, or a list of at least one run.

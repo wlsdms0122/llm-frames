@@ -5,16 +5,17 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// Brings what a text form found for a clip under a shape or adjustment parent into that parent's space. The text is
-// where it lies in the media searched at the time the value or its keyframe holds, and the chain of shapes and
-// adjustments from the parent out to that media carries the parent's space to it, so the value is brought back through
-// the transform of each at that time, the outermost first, without animation, each held at the edges of its own window
-// as its evaluation holds it: an adjustment's tracked motion, and a shape's own scale and rotation about its anchor
-// point and its position, then its tracked motion. A shape's own geometry and position are brought into its own
-// parent's space the same way first. An area carried back through a rotation is the box bounding its four carried
-// corners. A value written as numbers is in the parent's space already, and so is a clip area. A link with no inverse
-// at that time, a scale of 0 on an axis, stops the clip, and so does a shape whose geometry or position holds a clip
-// area, whose box only evaluation knows.
+// Brings what a text form found for a clip under a shape, adjustment or clip with a corner pin parent into that
+// parent's space. The text is where it lies in the media searched at the time the value or its keyframe holds, and the
+// chain of such parents from the parent out to that media carries the parent's space to it, so the value is brought
+// back through the transform of each at that time, the outermost first, without animation, each held at the edges of
+// its own window as its evaluation holds it: an adjustment's and a clip with a corner pin's tracked motion, and a
+// shape's own scale and rotation about its anchor point and its position, then its tracked motion. A shape's own
+// geometry and position are brought into its own parent's space the same way first. An area carried back through a
+// rotation is the box bounding its four carried corners. A value written as numbers is in the parent's space already,
+// and so is a clip area. A link with no inverse at that time, a scale of 0 on an axis, stops the clip, and so does a
+// shape whose geometry or position holds a clip area, or a clip whose corner pin holds one, whose box or points only
+// evaluation knows.
 struct ParentSpacePlanner: Sendable {
     // MARK: - Property
     private let tracked: TrackPlan
@@ -23,6 +24,7 @@ struct ParentSpacePlanner: Sendable {
     private let areas: [PropertyValue<AreaValue>?]
     private let points: [PropertyValue<[GeometryPoint]>?]
     private let positions: [PropertyValue<GeometryPoint>?]
+    private let cornerPins: [PropertyValue<[GeometryPoint]>?]
     private let masks: [[FoundMask]?]
     // The transform of each shape placed by its geometry, nil for every other clip. Each is planned once, its
     // parents' first, since what a shape finds is brought back through its parents' transforms.
@@ -30,7 +32,7 @@ struct ParentSpacePlanner: Sendable {
 
     // MARK: - Initializer
     // Each list is in the time plan's order of clips: the clips as written, their shapes as planned, and the areas,
-    // points, positions and masks found for them, in the media searched.
+    // points, positions, corner pins and masks found for them, in the media searched.
     init(
         tracked: TrackPlan,
         written: [Clip],
@@ -38,6 +40,7 @@ struct ParentSpacePlanner: Sendable {
         areas: [PropertyValue<AreaValue>?],
         points: [PropertyValue<[GeometryPoint]>?],
         positions: [PropertyValue<GeometryPoint>?],
+        cornerPins: [PropertyValue<[GeometryPoint]>?],
         masks: [[FoundMask]?]
     ) throws {
         self.tracked = tracked
@@ -46,6 +49,7 @@ struct ParentSpacePlanner: Sendable {
         self.areas = areas
         self.points = points
         self.positions = positions
+        self.cornerPins = cornerPins
         self.masks = masks
         self.transforms = Array(repeating: nil, count: written.count)
 
@@ -75,21 +79,13 @@ struct ParentSpacePlanner: Sendable {
     }
 
     func points(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
-        let plan = tracked.time.clips[index]
-        guard let found = points[index],
-            case let .shape(shape) = written[index].content,
-            let written = shape.points,
-            let parent = plan.parent
-        else { return points[index] }
+        guard case let .shape(shape) = written[index].content else { return points[index] }
 
-        return try values(found, written: written, instant: plan.instant) { points, forms, time in
-            guard forms.contains(where: \.isFoundByText) else { return points }
+        return try points(points[index], written: shape.points, of: index, key: "points")
+    }
 
-            let inverses = try inverseLinks(under: parent, at: time, of: index, key: "points")
-            return zip(points, forms).map { point, form in
-                form.isFoundByText ? point.map { bringBack($0, through: inverses) } : point
-            }
-        }
+    func cornerPin(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
+        try points(cornerPins[index], written: written[index].cornerPin, of: index, key: "cornerPin")
     }
 
     func position(of index: Int) throws -> PropertyValue<GeometryPoint>? {
@@ -108,34 +104,73 @@ struct ParentSpacePlanner: Sendable {
 
     // The masks of a shape placed by its geometry or of an adjustment are in its parent's space, and each keyframe of
     // a mask's area, position or point found by text is brought back at its own time as an area, a position or a
-    // point is. A box keeps its written size. Every other clip's mask is in its own space.
+    // point is. A box keeps its written size. Every other clip's mask is in its own space. A followed mask's geometry
+    // leaf written without keyframes is true on the track's frame, but a leaf a text form found other than the track's
+    // target.
     func mask(of index: Int) throws -> [ResolvedMask]? {
         let plan = tracked.time.clips[index]
         guard let found = masks[index] else { return nil }
-        guard let parent = plan.parent, plan.space == .parent else { return found.map(\.mask) }
 
+        let isOnTrackFrame = plan.onTrackFrame(of: written[index]).contains(.mask)
         return try found.map { found in
-            try found.mask.carried(
-                area: { area, time, leaf in
-                    guard found.isFoundByText(leaf, at: time) else { return area }
+            let mask = try broughtBack(found, of: index)
+            guard isOnTrackFrame, let target = written[index].track else { return mask }
 
-                    return bringBack(area, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
-                },
-                point: { point, time, leaf in
-                    guard found.isFoundByText(leaf, at: time) else { return point }
-
-                    return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
-                },
-                scale: { _ in 1 }
-            )
+            return mask.onTrackFrame { leaf in
+                found.staticLeaves.contains(leaf)
+                    && target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
+            }
         }
     }
 
     // MARK: - Private
-    // The map of each shape and adjustment from the parent out to the clip whose media is searched, the outermost
-    // first, each from the space its children are written in to that of its own parent at the time its window holds.
-    // Only one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no
-    // picture to search, and ParentFinder has ruled out a cycle, so the chain ends.
+    private func broughtBack(
+        _ found: FoundMask,
+        of index: Int
+    ) throws -> ResolvedMask {
+        let plan = tracked.time.clips[index]
+        guard let parent = plan.parent, plan.space == .parent else { return found.mask }
+
+        return try found.mask.carried(
+            area: { area, time, leaf in
+                guard let time, found.isFoundByText(leaf, at: time) else { return area }
+
+                return bringBack(area, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
+            },
+            point: { point, time, leaf in
+                guard let time, found.isFoundByText(leaf, at: time) else { return point }
+
+                return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
+            },
+            scale: { _ in 1 }
+        )
+    }
+
+    // A list of points brought back point by point, those found by text.
+    private func points(
+        _ found: PropertyValue<[GeometryPoint]>?,
+        written: PropertyValue<[PositionForm]>?,
+        of index: Int,
+        key: String
+    ) throws -> PropertyValue<[GeometryPoint]>? {
+        let plan = tracked.time.clips[index]
+        guard let found, let written, let parent = plan.parent else { return found }
+
+        return try values(found, written: written, instant: plan.instant) { points, forms, time in
+            guard forms.contains(where: \.isFoundByText) else { return points }
+
+            let inverses = try inverseLinks(under: parent, at: time, of: index, key: key)
+            return zip(points, forms).map { point, form in
+                form.isFoundByText ? point.map { bringBack($0, through: inverses) } : point
+            }
+        }
+    }
+
+    // The map of each shape, adjustment and clip with a corner pin from the parent out to the clip whose media is
+    // searched, the outermost first, each from the space its children are written in to that of its own parent at the
+    // time its window holds: a clip with a corner pin carries its children by its tracked motion only (FRAMES-10). Only
+    // one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no picture to
+    // search, and ParentFinder has ruled out a cycle, so the chain ends.
     private func links(
         under parent: ClipParent,
         at time: Double,
@@ -147,14 +182,17 @@ struct ParentSpacePlanner: Sendable {
         while case let .clip(index, _) = next {
             let plan = tracked.time.clips[index]
             switch plan.kind {
-            case .shape where transforms[index] != nil, .adjust:
+            case _ where plan.isPinned, .shape where transforms[index] != nil, .adjust:
                 break
 
             default:
                 return links.reversed()
             }
 
-            if let transform = transforms[index], transform.geometry.holdsClipArea {
+            let holdsClipArea = plan.isPinned
+                ? cornerPins[index]?.keyframes(at: plan.instant) { $0 }.contains { $0.value.contains { $0.clipArea != nil } } == true
+                : transforms[index]?.geometry.holdsClipArea == true
+            if holdsClipArea {
                 throw ResolveError.textUnderClipArea(
                     place: written[child].place.appending(key: key),
                     kind: .clip(tracked.time.clips[child].kind),
@@ -197,12 +235,16 @@ struct ParentSpacePlanner: Sendable {
         let plan = tracked.time.clips[index]
         let written = written[index]
         let track = tracked.clips[index]
+        let onTrackFrame = plan.onTrackFrame(of: written)
         return ParentTransformPlan(
             geometry: ShapeGeometry(
                 plan: shape.geometry,
-                area: try area(of: index)?.keyframes(at: plan.instant) { $0.geometry },
-                points: try points(of: index)?.keyframes(at: plan.instant) { $0 },
-                position: try position(of: index)?.keyframes(at: plan.instant) { $0 },
+                area: try area(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.area)) { $0.geometry },
+                points: try points(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.points)) { $0 },
+                position: try position(of: index)?
+                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
                 instant: plan.instant,
                 track: track
             ),

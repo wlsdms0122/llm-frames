@@ -7,8 +7,9 @@
 
 // One item `evaluate` reports: the clip that drew it, nil for the background and a transition cover, what it draws,
 // the axis-aligned box of what it covers of the output, nil when it covers nothing, its opacity times that of every
-// picture holding it, the map from its own coordinates to output pixels, its extent in its own coordinates before
-// its reveal, its masks and the pictures holding it cut it, and the characters it reports, nil on an item that reports
+// picture holding it, the map from its own coordinates to output pixels with the corner pins that carry it left out,
+// its extent in its own coordinates before its reveal, its masks and the pictures holding it cut it, those corner pins,
+// innermost first, nil on an item no corner pin carries, and the characters it reports, nil on an item that reports
 // none.
 package struct EvaluationItem: Equatable, Sendable {
     // MARK: - Property
@@ -18,6 +19,7 @@ package struct EvaluationItem: Equatable, Sendable {
     package let opacity: Double
     package let transform: AffineTransform
     package let rect: Rectangle
+    package let cornerPins: [EvaluationCornerPin]?
     package let characters: [EvaluationCharacter]?
 
     // MARK: - Initializer
@@ -28,6 +30,7 @@ package struct EvaluationItem: Equatable, Sendable {
         opacity: Double,
         transform: AffineTransform,
         rect: Rectangle,
+        cornerPins: [EvaluationCornerPin]? = nil,
         characters: [EvaluationCharacter]? = nil
     ) {
         self.origin = origin
@@ -36,6 +39,7 @@ package struct EvaluationItem: Equatable, Sendable {
         self.opacity = opacity
         self.transform = transform
         self.rect = rect
+        self.cornerPins = cornerPins
         self.characters = characters
     }
 
@@ -50,6 +54,7 @@ package struct EvaluationItem: Equatable, Sendable {
             opacity: item.opacity,
             transform: item.transform,
             rect: item.rect,
+            cornerPins: item.cornerPins.isEmpty ? nil : item.cornerPins,
             characters: characters
         )
     }

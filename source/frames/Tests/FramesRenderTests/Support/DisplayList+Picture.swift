@@ -11,6 +11,17 @@ import Foundation
 
 extension DisplayList {
     // MARK: - Property
+    // The list's items, or the items of all its sample lists in order.
+    var drawnItems: [DisplayItem] {
+        switch content {
+        case let .items(items):
+            items
+
+        case let .samples(samples):
+            samples.flatMap { $0 }
+        }
+    }
+
     // MARK: - Initializer
     // MARK: - Public
     // The picture items of media frames from the file named `name`, in this list and the lists nested in it, bottom
@@ -56,14 +67,4 @@ extension DisplayList {
     }
 
     // MARK: - Private
-    // The list's items, or the items of all its sample lists in order.
-    private var drawnItems: [DisplayItem] {
-        switch content {
-        case let .items(items):
-            items
-
-        case let .samples(samples):
-            samples.flatMap { $0 }
-        }
-    }
 }

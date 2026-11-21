@@ -186,7 +186,18 @@ struct DisplayListReaderTests {
             unit: UnitDrawing(layer: .strokes, index: 3, box: Rectangle(x: 2, y: 1, width: 6, height: 8)),
             extent: Rectangle(x: 3, y: 2, width: 4, height: 6),
             background: nil
-        )), origin: ItemOrigin(place: "clips[1]", id: "lower", kind: "title"))
+        )), origin: ItemOrigin(place: "clips[1]", id: "lower", kind: "title")),
+        DisplayItem(content: .picture(PictureItem(
+            source: .displayList(DisplayList(size: Size(width: 120, height: 80), background: .transparent, seed: 0, items: [])),
+            rectangle: Rectangle(x: -10, y: -10, width: 100, height: 60),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 60),
+            cornerPin: Quad(
+                topLeft: Point(x: 812, y: 304),
+                topRight: Point(x: 1131, y: 352),
+                bottomRight: Point(x: 1102, y: 918),
+                bottomLeft: Point(x: 779, y: 861)
+            )
+        )))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -247,9 +258,9 @@ struct DisplayListReaderTests {
         (["samples"], nil, "top level (display list): needs one of items, samples"),
         (["samples", "1"], nil, "samples (display list): a list with samples holds at least two sample lists, found 1"),
         (
-            ["samples", "0", "12", "source", "list", "samples"],
+            ["samples", "0", "13", "source", "list", "samples"],
             JSONValue.array([.array([]), .array([])]),
-            "samples[0][12].source.list.samples (display list): only the outermost list of a frame holds samples"
+            "samples[0][13].source.list.samples (display list): only the outermost list of a frame holds samples"
         )
     ]
 
@@ -283,29 +294,29 @@ struct DisplayListReaderTests {
         (["1", "6", "runs", "0", "glyphs", "1", "0"], "77", "samples[1][6].runs[0].glyphs[1][0] (glyphs)"),
         (["1", "11", "layer"], #""highlights""#, "samples[1][11].layer (glyphs)"),
         (["1", "11", "unit"], "4", "samples[1][11].unit (glyphs)"),
-        (["1", "12", "trackMatte", "mode"], #""alpha""#, "samples[1][12].trackMatte.mode (picture)"),
-        (["1", "12", "trackMatte", "invert"], "true", "samples[1][12].trackMatte.invert (picture)"),
+        (["1", "13", "trackMatte", "mode"], #""alpha""#, "samples[1][13].trackMatte.mode (picture)"),
+        (["1", "13", "trackMatte", "invert"], "true", "samples[1][13].trackMatte.invert (picture)"),
         (
-            ["1", "12", "trackMatte", "source", "list", "items", "0", "origin"],
+            ["1", "13", "trackMatte", "source", "list", "items", "0", "origin"],
             "null",
-            "samples[1][12].trackMatte.source.list.items[0].origin (path)"
+            "samples[1][13].trackMatte.source.list.items[0].origin (path)"
         ),
-        (["1", "12", "source", "list", "size"], "[200, 150]", "samples[1][12].source.list.size[0] (picture)"),
-        (["1", "12", "source", "list", "background"], #""color(srgb 1 1 1 / 1)""#, "samples[1][12].source.list.background (picture)"),
-        (["1", "12", "source", "list", "compositing"], #""linear""#, "samples[1][12].source.list.compositing (picture)"),
-        (["1", "12", "source", "list", "items"], "[]", "samples[1][12].source.list.items (picture)"),
-        (["1", "12", "source", "list", "items", "0", "blend"], #""screen""#, "samples[1][12].source.list.items[0].blend (path)"),
-        (["1", "14", "filter", "0", "ops", "0", "file"], #""/abs/other.cube""#, "samples[1][14].filter[0].ops[0].file (adjust)"),
+        (["1", "13", "source", "list", "size"], "[200, 150]", "samples[1][13].source.list.size[0] (picture)"),
+        (["1", "13", "source", "list", "background"], #""color(srgb 1 1 1 / 1)""#, "samples[1][13].source.list.background (picture)"),
+        (["1", "13", "source", "list", "compositing"], #""linear""#, "samples[1][13].source.list.compositing (picture)"),
+        (["1", "13", "source", "list", "items"], "[]", "samples[1][13].source.list.items (picture)"),
+        (["1", "13", "source", "list", "items", "0", "blend"], #""screen""#, "samples[1][13].source.list.items[0].blend (path)"),
+        (["1", "15", "filter", "0", "ops", "0", "file"], #""/abs/other.cube""#, "samples[1][15].filter[0].ops[0].file (adjust)"),
         (
-            ["1", "14", "filter", "0", "ops", "0", "sha256"],
+            ["1", "15", "filter", "0", "ops", "0", "sha256"],
             "\"\(String(repeating: "b", count: 64))\"",
-            "samples[1][14].filter[0].ops[0].sha256 (adjust)"
+            "samples[1][15].filter[0].ops[0].sha256 (adjust)"
         ),
-        (["1", "14", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][14].filter[0].ops[0].space (adjust)"),
-        (["1", "14"], nil, "samples[1] (display list)"),
-        (["1", "15", "source", "media", "file"], #""/abs/other.pdf""#, "samples[1][15].source.media.file (picture)"),
-        (["1", "15", "source", "media", "page"], "1", "samples[1][15].source.media.page (picture)"),
-        (["1", "15", "matte", "source", "page"], "1", "samples[1][15].matte.source.page (picture)")
+        (["1", "15", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][15].filter[0].ops[0].space (adjust)"),
+        (["1", "15"], nil, "samples[1] (display list)"),
+        (["1", "16", "source", "media", "file"], #""/abs/other.pdf""#, "samples[1][16].source.media.file (picture)"),
+        (["1", "16", "source", "media", "page"], "1", "samples[1][16].source.media.page (picture)"),
+        (["1", "16", "matte", "source", "page"], "1", "samples[1][16].matte.source.page (picture)")
     ]
 
     // A path in the second sample list and what is written there.
@@ -343,17 +354,19 @@ struct DisplayListReaderTests {
         (["8", "filter", "0", "ops", "0", "amount"], "0.5"),
         (["11", "unitBox"], "[0, 0, 1, 1]"),
         (["11", "extent"], "[0, 0, 1, 1]"),
-        (["12", "dest"], "[0, 0, 200, 150]"),
-        (["12", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
-        (["12", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
-        (["13", "filter", "0", "ops", "0", "amount"], "0.4"),
-        (["14", "filter", "0", "ops", "0", "amount"], "0.25"),
-        (["14", "filter", "0", "ops", "1", "radius"], "8"),
-        (["14", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
-        (["14", "filter", "0", "ops", "2", "input"], "[0, 1]"),
-        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]"),
-        (["15", "rect"], "[10, 5, 50, 25]"),
-        (["15", "dest"], "[0, 0, 440, 220]")
+        (["12", "cornerPin"], "[[800, 300], [1131, 352], [1102, 918], [779, 861]]"),
+        (["12", "cornerPin"], "[[0, 0], [0, 0], [0, 0], [0, 0]]"),
+        (["13", "dest"], "[0, 0, 200, 150]"),
+        (["13", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
+        (["13", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
+        (["14", "filter", "0", "ops", "0", "amount"], "0.4"),
+        (["15", "filter", "0", "ops", "0", "amount"], "0.25"),
+        (["15", "filter", "0", "ops", "1", "radius"], "8"),
+        (["15", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
+        (["15", "filter", "0", "ops", "2", "input"], "[0, 1]"),
+        (["15", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]"),
+        (["16", "rect"], "[10, 5, 50, 25]"),
+        (["16", "dest"], "[0, 0, 440, 220]")
     ]
 
     // MARK: - Initializer
@@ -588,6 +601,67 @@ struct DisplayListReaderTests {
         // Then
         #expect(item?["rect"] == .null)
         #expect(item?["origin"] == .null)
+    }
+
+    @Test("a picture writes its corner pin as four points after its shadow, and null without one")
+    func writesCornerPin() throws {
+        // Given
+        let list = list(items: [Self.items[1], Self.items[Self.items.count - 1]])
+
+        // When
+        let items = writer.document(list).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue)
+
+        // Then
+        #expect(items?[0].members.last?.key == "cornerPin")
+        #expect(items?[0]["cornerPin"] == .null)
+        #expect(items?[1]["cornerPin"] == (try Fixture.json("[[812, 304], [1131, 352], [1102, 918], [779, 861]]")))
+    }
+
+    @Test(
+        "a picture's corner pin that is not four points or not strictly convex stops, naming its place",
+        arguments: [
+            ("[[0, 0], [10, 0], [10, 10]]", "items[0].cornerPin (picture): expected a list of 4 points, found a list of 3"),
+            ("[[0, 0], [10, 0], [10, 10], [10, 20]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [10, 0], [10, 10], [10, 20]]"),
+            ("[[0, 0], [0, 0], [0, 0], [0, 0]]", "items[0].cornerPin (picture): a corner pin is a strictly convex quadrilateral, found [[0, 0], [0, 0], [0, 0], [0, 0]]")
+        ]
+    )
+    func refusesCornerPin(
+        written: String,
+        message: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "peak": null, "compositing": "encoded", "items": [
+              { "item": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
+                "trackMatte": null, "reveal": null, "source": { "list": { "size": [10, 10], "background": "color(srgb 0 0 0 / 0)",
+                "compositing": "encoded", "items": [] } }, "rect": null, "dest": [0, 0, 10, 10], "filter": [], "matte": null,
+                "radius": 0, "border": null, "shadow": null, "cornerPin": \#(written) } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test("a picture of a media frame with a corner pin stops, naming its corner pin")
+    func refusesMediaCornerPin() throws {
+        // Given
+        let media = PictureItem(
+            source: .media(MediaFrame(media: Self.still, index: 0)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 60),
+            cornerPin: Quad(Rectangle(x: 10, y: 10, width: 100, height: 60))
+        )
+        let text = writer.write(list(items: [DisplayItem(content: .picture(media))]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "items[0].cornerPin (picture): a picture of a media frame carries no corner pin")
     }
 
     @Test("an item without masks writes its mask as null, and each mask holds its geometry in the path's form")
@@ -1023,17 +1097,35 @@ struct DisplayListReaderTests {
         #expect(read.samples?.last != Self.sampleItems)
     }
 
+    @Test(
+        "a corner pin in a sample list that is neither strictly convex nor four points at [0, 0] stops, naming its place",
+        arguments: ["[[1, 1], [1, 1], [1, 1], [1, 1]]", "[[0, 0], [10, 0], [10, 10], [10, 20]]"]
+    )
+    func refusesCornerPinInSample(written: String) throws {
+        // Given
+        let text = try writtenSamples(replacing: ["samples", "1", "12", "cornerPin"], with: Fixture.json(written))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == """
+            samples[1][12].cornerPin (picture): a corner pin in a sample list is a strictly convex quadrilateral or four \
+            points at [0, 0], found \(written)
+            """)
+    }
+
     @Test("a grain in a later sample list with a seed other than the first grain's stops, naming its place")
     func refusesDifferentSeedInSample() throws {
         // Given
-        let text = try writtenSamples(replacing: ["samples", "1", "13", "filter", "0", "ops", "0", "seed"], with: .number(5))
+        let text = try writtenSamples(replacing: ["samples", "1", "14", "filter", "0", "ops", "0", "seed"], with: .number(5))
 
         // When
         let error = #expect(throws: EvaluateError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == """
-            samples[1][13].filter[0].ops[0].seed (adjust): seed 5 differs from 0, the seed of the first grain in the list, \
+            samples[1][14].filter[0].ops[0].seed (adjust): seed 5 differs from 0, the seed of the first grain in the list, \
             and every grain of an output frame takes that frame's number
             """)
     }
