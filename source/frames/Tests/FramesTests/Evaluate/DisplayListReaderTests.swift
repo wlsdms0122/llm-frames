@@ -269,7 +269,7 @@ struct DisplayListReaderTests {
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
         (["1", "6", "runs", "0", "size"], "30", "samples[1][6].runs[0].size (glyphs)"),
         (["1", "6", "runs", "0", "glyphs", "1", "0"], "77", "samples[1][6].runs[0].glyphs[1][0] (glyphs)"),
-        (["1", "11", "layer"], #""fills""#, "samples[1][11].layer (glyphs)"),
+        (["1", "11", "layer"], #""highlights""#, "samples[1][11].layer (glyphs)"),
         (["1", "11", "unit"], "4", "samples[1][11].unit (glyphs)"),
         (["1", "12", "trackMatte", "mode"], #""alpha""#, "samples[1][12].trackMatte.mode (picture)"),
         (["1", "12", "trackMatte", "invert"], "true", "samples[1][12].trackMatte.invert (picture)"),
@@ -706,6 +706,40 @@ struct DisplayListReaderTests {
         #expect(items.map { $0["origin"]?.objectValue?.keys } == [["place", "id", "kind"], ["place", "id", "kind"]])
     }
 
+    @Test("a list whose fills items name its units 0, 1, 2 and on in order reads back, between items of other layers")
+    func readsFillsInUnitOrder() throws {
+        // Given
+        let list = list(items: [unitItem(unit: 0, layer: .strokes), unitItem(unit: 1, layer: .strokes), unitItem(unit: 0), unitItem(unit: 1)])
+
+        // When
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(read == list)
+    }
+
+    @Test(
+        "a list whose fills items do not name its units 0, 1, 2 and on in order stops, naming the first item out of order",
+        arguments: [
+            ([1, 0], "items[0].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 1 in place of 0"),
+            ([0, 2], "items[1].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 2 in place of 1"),
+            ([0, 0], "items[1].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 0 in place of 1")
+        ]
+    )
+    func refusesFillsOutOfUnitOrder(
+        units: [Int],
+        message: String
+    ) throws {
+        // Given
+        let list = list(items: units.map { unitItem(unit: $0) })
+
+        // When
+        let error = #expect(throws: (any Error).self) { try sut.read(writer.write(list)) }
+
+        // Then
+        #expect((error as? CustomStringConvertible)?.description == message)
+    }
+
     @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")
     func writesPaint() throws {
         // Given
@@ -989,6 +1023,22 @@ struct DisplayListReaderTests {
             Issue.record("\(component) names a member of a value that has none")
             return written
         }
+    }
+
+    // A unit's item with no runs, of `layer`, of the unit at `unit`.
+    private func unitItem(
+        unit: Int,
+        layer: GlyphLayer = .fills
+    ) -> DisplayItem {
+        DisplayItem(content: .glyphs(GlyphsItem(
+            size: Size(width: 10, height: 10),
+            runs: [],
+            layer: layer,
+            unit: unit,
+            unitBox: Rectangle(x: 0, y: 0, width: 5, height: 10),
+            extent: Rectangle(x: 0, y: 0, width: 5, height: 10),
+            background: nil
+        )))
     }
 
     // The outermost list by default, which carries a colour space; a nested one carries none.

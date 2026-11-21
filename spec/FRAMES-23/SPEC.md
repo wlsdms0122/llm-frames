@@ -186,7 +186,7 @@ A character's box from where its glyphs are drawn: a placement offset, which set
 
 A `glyphs` item in the title's box, the text box grown by the background's padding: a padding that takes keyframes would move every character's rect while nothing moves on screen, and a title's mask, which lies in its text box ([FRAMES-11](../FRAMES-11/SPEC.md)), would lie in other coordinates than its glyphs.
 
-A unit's index written on its item: a renderer would carry a field it draws nothing from, as with text placement on the display list. The order a title by unit draws its `fills` items in is a rule of the display list ([FRAMES-20](../FRAMES-20/SPEC.md#glyphs-and-adjustments)), and `evaluate` reads it.
+A unit read from the order of its title's `fills` items: which characters an item draws would hang on the items drawn around it, so a program that reads one item, or a list that items were cut from, could not tell its unit. Which characters an item draws is a fact of what it holds, so a unit's item names its unit as `unit` ([FRAMES-20](../FRAMES-20/SPEC.md#glyphs-and-adjustments)), and the order of a title's `fills` items follows from it.
 
 Text placement carried on the display list's `glyphs` items: a renderer would carry a field it draws nothing from, and the display list, a renderer's contract, would hold the rules of a report. `evaluate` computes it from the resolved title with the moves that place the glyphs, which keeps it on the drawn glyphs as well.
 

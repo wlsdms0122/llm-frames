@@ -147,13 +147,27 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // `size` is the size of the list that holds the items.
+    // `size` is the size of the list that holds the items. A list's `fills` items name the units 0, 1, 2 and on in
+    // order, since a title by unit draws one for each unit in reading order.
     private func items(
         _ value: PlacedJSONValue,
         in size: Size,
         seed: Int
     ) throws -> [DisplayItem] {
-        try value.elements().map { element in try item(element, in: size, seed: seed) }
+        let elements = try value.elements()
+        let items = try elements.map { element in try item(element, in: size, seed: seed) }
+        let fills = zip(elements, items).compactMap { element, item in fillsUnit(of: item).map { (element, $0) } }
+        for (expected, (element, unit)) in fills.enumerated() where unit != expected {
+            let written = try values.member("unit", of: element, kind: "glyphs")
+            throw ModelError.invalidValue(
+                place: written.place,
+                kind: "glyphs",
+                reason: "the list's fills items name the units 0, 1, 2 and on in order, and this one names unit \(unit) "
+                    + "in place of \(expected)"
+            )
+        }
+
+        return items
     }
 
     // Each sample list is read before they are compared, so a member of another shape stops as it does in `items`.
@@ -495,6 +509,12 @@ package struct DisplayListReader: Sendable {
                 )
             }
         )
+    }
+
+    private func fillsUnit(of item: DisplayItem) -> Int? {
+        guard case let .glyphs(glyphs) = item.content, glyphs.layer == .fills else { return nil }
+
+        return glyphs.unit
     }
 
     private func filter(
