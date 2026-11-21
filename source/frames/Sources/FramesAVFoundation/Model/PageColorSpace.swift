@@ -301,9 +301,9 @@ indirect enum PageColorSpace: Equatable, Sendable {
             return base.linear(base.components(ofLookup: bytes))
 
         case let .separation(alternate, tint), let .deviceN(_, alternate, tint):
-            guard let tint else { return nil }
+            guard let tint, let alternateComponents = tint(components) else { return nil }
 
-            return alternate.linear(tint(component(0)))
+            return alternate.linear(alternateComponents)
 
         case .deviceCMYK, .pattern, .unknown:
             return nil

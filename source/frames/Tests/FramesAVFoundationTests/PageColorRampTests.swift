@@ -21,6 +21,14 @@ struct PageColorRampTests {
     private static let srgbMatrix: PDFValue = .array([
         0.4124564, 0.2126729, 0.0193339, 0.3575761, 0.7151522, 0.1191920, 0.1804375, 0.0721750, 0.9503041
     ].map(PDFValue.real))
+    // A sampled tint transform of two samples, (0, 0, 0) and (1, 128 / 255, 0).
+    private static let sampledTint = PDFValue.stream([
+        "FunctionType": .integer(0),
+        "Domain": .array([.integer(0), .integer(1)]),
+        "Range": .array([.integer(0), .integer(1), .integer(0), .integer(1), .integer(0), .integer(1)]),
+        "Size": .array([.integer(2)]),
+        "BitsPerSample": .integer(8)
+    ], Data([0, 0, 0, 255, 128, 0]))
 
     // MARK: - Initializer
     // MARK: - Test
@@ -37,6 +45,14 @@ struct PageColorRampTests {
             icc(ICCProfileWriter.grayProfile(curve: ICCProfileWriter.parametric(functionType: 0, parameters: [1])), components: 1),
             .array([.name("Indexed"), .name("DeviceRGB"), .integer(1), .string(Data([255, 0, 0, 0, 128, 255]))]),
             separation(alternate: .name("DeviceRGB")),
+            separation(alternate: .name("DeviceRGB"), tint: sampledTint),
+            separation(alternate: .name("DeviceRGB"), tint: calculatorTint("{ dup 0.5 mul 0 }", inputs: 1)),
+            .array([
+                .name("DeviceN"),
+                .array([.name("Spot"), .name("Other")]),
+                .name("DeviceRGB"),
+                calculatorTint("{ 0 }", inputs: 2)
+            ]),
             .name("Pattern")
         ]
     )
@@ -114,6 +130,25 @@ struct PageColorRampTests {
         components: Int
     ) -> PDFValue {
         .array([.name("ICCBased"), .stream(["N": .integer(components)], profile ?? Data())])
+    }
+
+    // A PostScript calculator tint transform of `inputs` tints into three components.
+    private static func calculatorTint(
+        _ program: String,
+        inputs: Int
+    ) -> PDFValue {
+        .stream([
+            "FunctionType": .integer(4),
+            "Domain": .array(Array(repeating: [PDFValue.integer(0), .integer(1)], count: inputs).flatMap { $0 }),
+            "Range": .array([.integer(0), .integer(1), .integer(0), .integer(1), .integer(0), .integer(1)])
+        ], Data(program.utf8))
+    }
+
+    private static func separation(
+        alternate: PDFValue,
+        tint: PDFValue
+    ) -> PDFValue {
+        .array([.name("Separation"), .name("Spot"), alternate, tint])
     }
 
     // A spot colour whose tint t is (t, t / 2, 0) in the alternate space, or (t, 0, 0, 0) in a CMYK one.
