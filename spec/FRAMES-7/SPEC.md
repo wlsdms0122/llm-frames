@@ -65,12 +65,13 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | Object | Keys |
 | --- | --- |
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
-| format | `size, fps, background, conform, colorSpace, peak, compositing` |
+| format | `size, fps, background, conform, colorSpace, peak, compositing, motionBlur` |
+| motion blur (`format.motionBlur`) | `shutterAngle, shutterPhase, samplesPerFrame` ([FRAMES-29](../FRAMES-29/SPEC.md)) |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
-| storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
-| every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, keyframes, connected` |
+| every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
@@ -86,7 +87,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
 | radial gradient | `center, radius, stops` |
-| adjustment clip | every clip with a picture's, `adjust` |
+| adjustment clip | every clip with a picture's but `motionBlur`, and `adjust` |
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
@@ -102,6 +103,8 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | parameter | `type, default, description`, and `options` for a choice |
 
 Which keys each shape kind takes, the forms of masks and track mattes, and `radius`, `border` and `shadow`, which act on a media clip's box and on a storyline picture's box alike, are [FRAMES-11](../FRAMES-11/SPEC.md). Every length a clip draws with (a stroke `width`, the `radius` of a shape or a box, `outset`, a mask's `feather`, a border's width, a shadow's sizes and the lengths of a title's `character` and `paragraph`) is a theme length, the unit of the style it overrides ([FRAMES-1](../FRAMES-1/SPEC.md)), and positions, areas and points are in the clip's coordinate space. A media clip's `colorSpace` names the colour space its media are in, over what the file says, wherever that clip's media is read, providers included, as a transition cover's or matte's `colorSpace` does for its media ([FRAMES-14](../FRAMES-14/SPEC.md)), and two places of one file that name two colour spaces stop ([FRAMES-26](../FRAMES-26/SPEC.md#media)); its `toneMap` (a boolean, `true` by default) whether an HDR picture of it is tone mapped to the sequence's peak where its own peak is higher; a clip whose media is a compound clip or a template instance takes neither; the format's `colorSpace`, `peak` and `compositing` are the sequence's colour space, the mastering peak of a `rec2100-pq` sequence and the form it composites in ([FRAMES-26](../FRAMES-26/SPEC.md)). How a preset choice passes its arguments is [FRAMES-14](../FRAMES-14/SPEC.md): an unknown argument name stops, an argument of the wrong type stops, and a missing one takes its parameter's default.
+
+A clip's `motionBlur` (a boolean, `false` by default) is whether it shows the motion it makes during each frame's exposure, and `format.motionBlur` is the shutter of that exposure, the same for every clip the sequence shows ([FRAMES-29](../FRAMES-29/SPEC.md)). An adjustment clip, which draws no picture of its own, takes no `motionBlur`.
 
 `id` names a clip for whatever reads or changes the document, inside it and outside it ([FRAMES-25](../FRAMES-25/SPEC.md)), since a place like `storyline[1].connected[0]` moves when clips are added. It is a string, unique within its document (a nested document has its own), and a duplicate stops. `parent` ([FRAMES-10](../FRAMES-10/SPEC.md)) and a track matte's `clip` ([FRAMES-11](../FRAMES-11/SPEC.md)) name a clip by its `id`. Messages and machine output give it with the place.
 
@@ -128,6 +131,8 @@ Keys are checked over the whole JSON tree before any value is read, except the m
 ## Interactions
 
 A sequence is the one document kind ([FRAMES-6](../FRAMES-6/SPEC.md)). Time is [FRAMES-8](../FRAMES-8/SPEC.md). Each clip kind's keys are explained in [FRAMES-9](../FRAMES-9/SPEC.md) (format and storyline clips), [FRAMES-10](../FRAMES-10/SPEC.md) (`parent`), [FRAMES-11](../FRAMES-11/SPEC.md) (titles, shapes, media and adjustment clips, masks and track mattes), [FRAMES-12](../FRAMES-12/SPEC.md) (`track`) and [FRAMES-13](../FRAMES-13/SPEC.md) (sound). Placement and anchor points are [FRAMES-1](../FRAMES-1/SPEC.md), areas and points [FRAMES-2](../FRAMES-2/SPEC.md), media forms [FRAMES-3](../FRAMES-3/SPEC.md), keyframes and eases [FRAMES-4](../FRAMES-4/SPEC.md), colour spaces and compositing [FRAMES-26](../FRAMES-26/SPEC.md), and templates and their parameters [FRAMES-17](../FRAMES-17/SPEC.md).
+
+Motion blur and the shutter are [FRAMES-29](../FRAMES-29/SPEC.md).
 
 ## Alternatives considered
 
