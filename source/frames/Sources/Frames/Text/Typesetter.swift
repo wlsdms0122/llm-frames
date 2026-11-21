@@ -78,20 +78,19 @@ struct Typesetter: Sendable {
             + (lines.last?.descent ?? 0)
 
         let text = runs.map(\.text).joined()
-        let characters = Array(text)
-        let starts = characters.reduce(into: [0]) { starts, character in
-            starts.append(starts[starts.count - 1] + character.unicodeScalars.count)
-        }
+        let words = text.scalarRanges(of: segmenter.words(of: Array(text)))
 
         return TextLayout(
             text: text,
-            words: segmenter.words(of: characters).map { starts[$0.lowerBound]..<starts[$0.upperBound] },
+            words: words,
             size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
             textBox: Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight),
             width: width,
             lines: placedLines,
             runs: placedRuns,
-            units: unit.map { finder.units(by: $0, text: text, lines: placedLines, spans: spans, runs: placedRuns) },
+            units: unit.map { unit in
+                finder.units(by: unit, text: text, words: words, lines: placedLines, spans: spans, runs: placedRuns)
+            },
             background: style.background,
             align: style.align,
             lineHeight: style.lineHeight

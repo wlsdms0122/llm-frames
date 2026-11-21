@@ -12,24 +12,25 @@
 // or by the title's first unit.
 struct UnitFinder: Sendable {
     // MARK: - Property
-    private let segmenter = WordSegmenter()
-
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // `text` is the text every range counts, `spans` the glyph box span across its line of each character of each line,
-    // and `runs` the text's glyph runs, which hold the highlight and underline pieces.
+    // `text` is the text every range counts, `words` its words in reading order, each its range, `spans` the glyph box
+    // span across its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
+    // and underline pieces.
     func units(
         by unit: TextUnit,
         text: String,
+        words: [Range<Int>],
         lines: [PlacedLine],
         spans: [[ClosedRange<Double>]],
         runs: [GlyphRun]
     ) -> [PlacedUnit] {
-        let characters = lines.map { line in self.characters(of: line, in: text) }
+        let scalars = Array(text.unicodeScalars)
+        let spaces = lines.map { line in line.clusters.map { isSpace(scalars[$0.range]) } }
         let stretches = lines.enumerated().flatMap { index, line in
-            self.stretches(of: characters[index], line: line, by: unit)
+            self.stretches(of: line, spaces: spaces[index], words: words, by: unit)
                 .map { CharacterRange(line: index, first: $0.lowerBound, count: $0.count) }
         }
         guard !stretches.isEmpty else { return [] }
@@ -64,7 +65,7 @@ struct UnitFinder: Sendable {
         return stretches.indices.map { index in
             let stretch = stretches[index]
             let line = lines[stretch.line]
-            let held = range(of: stretch).filter { !isSpace(characters[stretch.line][$0]) }
+            let held = range(of: stretch).filter { !spaces[stretch.line][$0] }
             let first = held.first.map { spans[stretch.line][$0].lowerBound } ?? 0
             let last = held.last.map { spans[stretch.line][$0].upperBound } ?? first
             let box = Rectangle(
@@ -86,30 +87,17 @@ struct UnitFinder: Sendable {
     }
 
     // MARK: - Private
-    // The text of each of a line's characters, which its range holds.
-    private func characters(
-        of line: PlacedLine,
-        in text: String
-    ) -> [Character] {
-        let scalars = text.unicodeScalars
-        return line.clusters.map { cluster in
-            let start = scalars.index(scalars.startIndex, offsetBy: cluster.range.lowerBound)
-            let end = scalars.index(start, offsetBy: cluster.range.count)
-
-            return String(scalars[start..<end]).first ?? " "
-        }
-    }
-
     // The stretches of a line's characters that go with its units, in order. Each unit holds the characters `held`
     // gives it, and the characters after its first up to the next unit's first go with it, the line's first unit also
     // taking those before it. A unit whose first character is a later character of a group of glyphs joins the unit
-    // before it, which the group's first character goes with.
+    // before it, which the group's first character goes with. `spaces` says which of the line's characters are spaces.
     private func stretches(
-        of characters: [Character],
-        line: PlacedLine,
+        of line: PlacedLine,
+        spaces: [Bool],
+        words: [Range<Int>],
         by unit: TextUnit
     ) -> [Range<Int>] {
-        let starts = held(characters, by: unit).compactMap(\.first)
+        let starts = held(of: line, spaces: spaces, words: words, by: unit).compactMap(\.first)
             .reduce(into: [Int]()) { starts, start in
                 let isLater = line.clusters[start].glyphs.count == 0
                     && line.clusters[..<start].contains { $0.glyphs.count > 0 }
@@ -120,27 +108,33 @@ struct UnitFinder: Sendable {
 
         return starts.indices.map { index in
             let start = index == 0 ? 0 : starts[index]
-            let end = starts.indices.contains(index + 1) ? starts[index + 1] : characters.count
+            let end = starts.indices.contains(index + 1) ? starts[index + 1] : line.clusters.count
 
             return start..<end
         }
     }
 
-    // The characters each unit of a line holds, by their index, in order. A word holds the characters of its range but
-    // its spaces, a character in no word goes with the unit before it, and a character that is not a space, on a line
-    // that would hold no unit, is a unit of its own.
+    // The characters each unit of a line holds, by their index, in order. A word holds the characters of its range on
+    // the line but its spaces, so a word a line breaks inside is a unit on each line. A character in no word goes with
+    // the unit before it, and a character that is not a space, on a line that would hold no unit, is a unit of its own.
     private func held(
-        _ characters: [Character],
+        of line: PlacedLine,
+        spaces: [Bool],
+        words: [Range<Int>],
         by unit: TextUnit
     ) -> [[Int]] {
-        let visible = characters.indices.filter { !isSpace(characters[$0]) }
+        let visible = spaces.indices.filter { !spaces[$0] }
         let groups: [[Int]]
         switch unit {
         case .character:
             groups = visible.map { [$0] }
 
         case .word:
-            groups = segmenter.words(of: characters).map(Array.init)
+            groups = words.filter { $0.overlaps(line.range) }.compactMap { word in
+                let held = visible.filter { word.contains(line.clusters[$0].range.lowerBound) }
+
+                return held.isEmpty ? nil : held
+            }
 
         case .line:
             groups = visible.isEmpty ? [] : [visible]
@@ -150,8 +144,8 @@ struct UnitFinder: Sendable {
     }
 
     // A space is a cluster whose first scalar is `White_Space`.
-    private func isSpace(_ character: Character) -> Bool {
-        character.unicodeScalars.first?.properties.isWhitespace ?? false
+    private func isSpace(_ scalars: ArraySlice<Unicode.Scalar>) -> Bool {
+        scalars.first?.properties.isWhitespace ?? false
     }
 
     private func range(of stretch: CharacterRange) -> Range<Int> {

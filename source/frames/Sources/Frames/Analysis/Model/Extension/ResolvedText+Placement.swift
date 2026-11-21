@@ -13,7 +13,7 @@
 extension ResolvedText {
     // MARK: - Property
     var evaluationWords: [EvaluationWord] {
-        words.map { EvaluationWord(text: text(over: $0), range: $0) }
+        words.map { EvaluationWord(text: text.text(over: $0), range: $0) }
     }
 
     // MARK: - Initializer
@@ -46,7 +46,7 @@ extension ResolvedText {
 
         return zip(lines, lineDrops(at: time)).map { line, drop in
             EvaluationLine(
-                text: text(over: line.range),
+                text: text.text(over: line.range),
                 range: line.range,
                 baseline: line.baseline + drop - top,
                 ascent: line.ascent,
@@ -69,19 +69,10 @@ extension ResolvedText {
         else { return nil }
 
         return EvaluationCharacter(
-            text: text(over: cluster.range),
+            text: text.text(over: cluster.range),
             range: cluster.range,
             rect: rect,
             baseline: rect.y + lines[line].ascent
         )
-    }
-
-    // The title's text over `range`, in Unicode scalars.
-    private func text(over range: Range<Int>) -> String {
-        let scalars = text.unicodeScalars
-        let start = scalars.index(scalars.startIndex, offsetBy: range.lowerBound)
-        let end = scalars.index(start, offsetBy: range.count)
-
-        return String(scalars[start..<end])
     }
 }

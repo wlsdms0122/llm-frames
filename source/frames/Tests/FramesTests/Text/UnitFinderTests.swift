@@ -38,7 +38,7 @@ struct UnitFinderTests {
         let title = title([[(text, 0)]])
 
         // When
-        let units = sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: [run(text)])
+        let units = self.units(by: .word, of: title, runs: [run(text)])
 
         // Then
         #expect(units.map { held(by: $0, in: title) } == words)
@@ -53,7 +53,7 @@ struct UnitFinderTests {
 
         // When
         let units = [between, before, raised].map { title in
-            sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: [run(title.text)])
+            units(by: .word, of: title, runs: [run(title.text)])
         }
 
         // Then
@@ -70,10 +70,29 @@ struct UnitFinderTests {
         let runs = [run("ab"), run("\u{2060}", line: 1)]
 
         // When
-        let units = sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: runs)
+        let units = self.units(by: .word, of: title, runs: runs)
 
         // Then
         #expect(units.map(\.characters) == [characters(0, 0, 2), characters(1, 0, 1)])
+    }
+
+    @Test(
+        "a word a line breaks inside is cut by the line, its punctuation kept with the word it belongs to",
+        arguments: [
+            (["Hello", "—world"], ["Hello", "—", "world"]),
+            (["漢字", "「かな」"], ["漢", "字", "「", "か", "な」"])
+        ]
+    )
+    func cutsWordsByLine(lines: [String], units: [String]) {
+        // Given
+        let title = title(lines.enumerated().map { [($1, $0)] }, separator: "")
+        let runs = lines.enumerated().map { run($1, line: $0) }
+
+        // When
+        let found = self.units(by: .word, of: title, runs: runs)
+
+        // Then
+        #expect(found.map { held(by: $0, in: title) } == units)
     }
 
     @Test("a unit draws the spaces that go with it, and a line of spaces is no line unit")
@@ -83,8 +102,8 @@ struct UnitFinderTests {
         let runs = [run(" a b"), run("  ", line: 1)]
 
         // When
-        let characters = sut.units(by: .character, text: title.text, lines: title.lines, spans: title.spans, runs: runs)
-        let lines = sut.units(by: .line, text: title.text, lines: title.lines, spans: title.spans, runs: runs)
+        let characters = self.units(by: .character, of: title, runs: runs)
+        let lines = self.units(by: .line, of: title, runs: runs)
 
         // Then
         #expect(characters.map(\.characters) == [self.characters(0, 0, 3), self.characters(0, 3, 1)])
@@ -109,6 +128,7 @@ struct UnitFinderTests {
         let afterWords = sut.units(
             by: .word,
             text: between.text,
+            words: between.words,
             lines: between.lines,
             spans: between.spans,
             runs: [run("ab "), run("  ", line: 1), run("cd", line: 2)]
@@ -116,6 +136,7 @@ struct UnitFinderTests {
         let beforeWords = sut.units(
             by: .word,
             text: first.text,
+            words: first.words,
             lines: first.lines,
             spans: first.spans,
             runs: [run(" "), run("ab ", line: 1)]
@@ -134,7 +155,7 @@ struct UnitFinderTests {
         let title = title([[("  ", 0)], [("", 0)]])
 
         // When
-        let units = sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: [run("  ")])
+        let units = self.units(by: .word, of: title, runs: [run("  ")])
 
         // Then
         #expect(units.isEmpty)
@@ -166,6 +187,7 @@ struct UnitFinderTests {
         let joined = sut.units(
             by: .character,
             text: "fix",
+            words: words(of: "fix"),
             lines: [ligature],
             spans: [[0...30, 0...30, 30...50]],
             runs: [run("fx")]
@@ -173,6 +195,7 @@ struct UnitFinderTests {
         let led = sut.units(
             by: .character,
             text: "a bc",
+            words: words(of: "a bc"),
             lines: [spaced],
             spans: [[0...20, 20...50, 20...50, 50...70]],
             runs: [run("a c")]
@@ -192,7 +215,7 @@ struct UnitFinderTests {
         let highlighted = run("ab cd ef", highlight: Rectangle(x: 0, y: 0, width: 160, height: 40))
 
         // When
-        let units = sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: [highlighted])
+        let units = self.units(by: .word, of: title, runs: [highlighted])
 
         // Then
         #expect(units.map(\.parts) == [
@@ -220,7 +243,7 @@ struct UnitFinderTests {
         ]
 
         // When
-        let units = sut.units(by: .word, text: title.text, lines: title.lines, spans: title.spans, runs: runs)
+        let units = self.units(by: .word, of: title, runs: runs)
 
         // Then
         #expect(units.map(\.parts) == [
@@ -238,17 +261,21 @@ struct UnitFinderTests {
         let runs = [run("a", highlight: Rectangle(x: 0, y: 0, width: 40, height: 40)), run("a")]
 
         // When
-        let units = sut.units(by: .word, text: "a", lines: [line], spans: [[0...40]], runs: runs)
+        let units = sut.units(by: .word, text: "a", words: words(of: "a"), lines: [line], spans: [[0...40]], runs: runs)
 
         // Then
         #expect(units.map(\.parts) == [[UnitPart(run: 0, piece: 0, span: 0...40)]])
     }
 
     // MARK: - Private
-    // A title of lines, each a list of pieces of text in the glyph run they name, one glyph a character. The lines are
-    // joined by `\n`.
-    private func title(_ lines: [[(text: String, run: Int)]]) -> (
+    // A title of lines, each a list of pieces of text in the glyph run they name, one glyph a character, and its words.
+    // The lines are joined by `separator`, which is empty for lines a width wraps.
+    private func title(
+        _ lines: [[(text: String, run: Int)]],
+        separator: String = "\n"
+    ) -> (
         text: String,
+        words: [Range<Int>],
         lines: [PlacedLine],
         spans: [[ClosedRange<Double>]]
     ) {
@@ -274,7 +301,7 @@ struct UnitFinderTests {
                     offset += count
                 }
             }
-            offset += 1
+            offset += separator.unicodeScalars.count
 
             let visible = clusters.dropLast(clusters.reversed().prefix(while: \.isSpace).count)
             let top = Double(index) * 50
@@ -290,7 +317,22 @@ struct UnitFinderTests {
             spans.append(visible.map(\.span))
         }
 
-        return (lines.map { $0.map(\.text).joined() }.joined(separator: "\n"), placed, spans)
+        let text = lines.map { $0.map(\.text).joined() }.joined(separator: separator)
+
+        return (text, words(of: text), placed, spans)
+    }
+
+    private func units(
+        by unit: TextUnit,
+        of title: (text: String, words: [Range<Int>], lines: [PlacedLine], spans: [[ClosedRange<Double>]]),
+        runs: [GlyphRun]
+    ) -> [PlacedUnit] {
+        sut.units(by: unit, text: title.text, words: title.words, lines: title.lines, spans: title.spans, runs: runs)
+    }
+
+    // The words of `text`, each its range of Unicode scalars.
+    private func words(of text: String) -> [Range<Int>] {
+        text.scalarRanges(of: WordSegmenter().words(of: Array(text)))
     }
 
     private func line(
@@ -344,7 +386,7 @@ struct UnitFinderTests {
     // The text of the characters a unit holds: those of its stretch but its spaces.
     private func held(
         by unit: PlacedUnit,
-        in title: (text: String, lines: [PlacedLine], spans: [[ClosedRange<Double>]])
+        in title: (text: String, words: [Range<Int>], lines: [PlacedLine], spans: [[ClosedRange<Double>]])
     ) -> String {
         let scalars = Array(title.text.unicodeScalars)
         let clusters = title.lines[unit.characters.line].clusters
