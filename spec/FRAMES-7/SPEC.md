@@ -67,20 +67,20 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
 | format | `size, fps, background, conform, colorSpace, peak, compositing` |
 | content fit (a `size` written as an object, [FRAMES-6](../FRAMES-6/SPEC.md)) | `fit, margin` |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
-| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's sound (`"picture": false`) | every audio clip's, `picture` |
 | audio clip of a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's but `audioFilter`, and `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation` |
+| title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
 | run (an item of a `title` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | paragraph (a title's `paragraph`) | `align, lineHeight, background`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
-| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
+| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
@@ -89,6 +89,8 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | adjustment clip | every clip with a picture's, `adjust` |
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | track matte | `clip, mode, invert` |
+| track data (a `track` written as an object holding `frames`, [FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `time, target, frames` |
+| track data frame | `time, quad` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args`, `preset` left out to merge over the theme's default ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-22](../FRAMES-22/SPEC.md)) |
 | animation choice | a preset as `<pack>/<name>` or an absolute path, `"none"`, `{preset, args}`, or `{entrance, exit}`, where each side is a preset, `"none"` or `{preset, args}`. `preset` may be left out of an object to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)). On a title the two object forms also take `by` and `stagger` ([FRAMES-14](../FRAMES-14/SPEC.md)) |
@@ -113,12 +115,12 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 
 | Clip | Properties |
 | --- | --- |
-| storyline clip with media | `crop, position, scale, rotation, opacity, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
+| storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | storyline clip, solid | `solid` |
-| media clip | `position, scale, rotation, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
+| media clip | `position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow`, and `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on video with sound |
 | audio clip | `volume, pan`, and `audioFilter` where it takes one |
-| title clip | `position, scale, rotation, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline`, and in `paragraph` its `lineHeight` and `background` |
-| shape clip | `area, width, height, points, position, scale, rotation, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
+| title clip | `position, scale, rotation, cornerPin, opacity, mask`, and in `character` its `color`, `stroke`, `tracking` ([FRAMES-5](../FRAMES-5/SPEC.md)), `baselineShift`, `highlight` and `underline`, and in `paragraph` its `lineHeight` and `background` |
+| shape clip | `area, width, height, points, position, scale, rotation, cornerPin, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
 | adjustment clip | `opacity, mask, adjust` |
 
 `timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` in a keyframe write the numbers and colours they change, timed over the merged value (the clip's static value, with the structure its keyframes give, merged over its style's), whose names and structure are static, and a leaf written `null` is the merged value at that instant.
@@ -127,7 +129,7 @@ Keys are checked over the whole JSON tree before any value is read, except the m
 
 ## Interactions
 
-A sequence is the one document kind ([FRAMES-6](../FRAMES-6/SPEC.md)). Time is [FRAMES-8](../FRAMES-8/SPEC.md). Each clip kind's keys are explained in [FRAMES-9](../FRAMES-9/SPEC.md) (format and storyline clips), [FRAMES-10](../FRAMES-10/SPEC.md) (`parent`), [FRAMES-11](../FRAMES-11/SPEC.md) (titles, shapes, media and adjustment clips, masks and track mattes), [FRAMES-12](../FRAMES-12/SPEC.md) (`track`) and [FRAMES-13](../FRAMES-13/SPEC.md) (sound). Placement and anchor points are [FRAMES-1](../FRAMES-1/SPEC.md), areas and points [FRAMES-2](../FRAMES-2/SPEC.md), media forms [FRAMES-3](../FRAMES-3/SPEC.md), keyframes and eases [FRAMES-4](../FRAMES-4/SPEC.md), colour spaces and compositing [FRAMES-26](../FRAMES-26/SPEC.md), and templates and their parameters [FRAMES-17](../FRAMES-17/SPEC.md).
+A sequence is the one document kind ([FRAMES-6](../FRAMES-6/SPEC.md)). Time is [FRAMES-8](../FRAMES-8/SPEC.md). Each clip kind's keys are explained in [FRAMES-9](../FRAMES-9/SPEC.md) (format and storyline clips), [FRAMES-10](../FRAMES-10/SPEC.md) (`parent`), [FRAMES-11](../FRAMES-11/SPEC.md) (titles, shapes, media and adjustment clips, masks and track mattes), [FRAMES-12](../FRAMES-12/SPEC.md) (`track` and track data), [FRAMES-13](../FRAMES-13/SPEC.md) (sound) and [FRAMES-27](../FRAMES-27/SPEC.md) (`cornerPin`). Placement and anchor points are [FRAMES-1](../FRAMES-1/SPEC.md), areas and points [FRAMES-2](../FRAMES-2/SPEC.md), media forms [FRAMES-3](../FRAMES-3/SPEC.md), keyframes and eases [FRAMES-4](../FRAMES-4/SPEC.md), colour spaces and compositing [FRAMES-26](../FRAMES-26/SPEC.md), and templates and their parameters [FRAMES-17](../FRAMES-17/SPEC.md).
 
 ## Alternatives considered
 
