@@ -44,10 +44,10 @@ struct ResolvedSequenceWriterTests {
         let resolved = try write(document)
 
         // Then
-        #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
+        #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing", "motionBlur"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
         #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.hasPrefix("color(srgb ") == true)
     }
@@ -358,10 +358,13 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let nested = try #require(resolved["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue)
-        #expect(nested.keys == ["kind", "format", "storyline", "clips", "audio"])
+        #expect(nested.keys == ["kind", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(nested["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue?["file"] == .string("/abs/run.mp4"))
         #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["media"] == .null)
-        #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.arrayValue?.count == 1)
+        let sound = try #require(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.objectValue)
+        #expect(sound.keys == ["audio", "audioFilter"])
+        #expect(sound["audio"]?.arrayValue?.count == 1)
+        #expect(sound["audioFilter"] == .null)
     }
 
     @Test("audio is every source of sound, with its volume and pan in sequence time")
@@ -437,7 +440,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0].keys == [
             "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
             "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
+            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)

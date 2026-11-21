@@ -18,7 +18,7 @@ extension FilterEntry {
     // The entries of a timed filter at `time`, none where it is off.
     static func entries(
         of filter: TimedValue,
-        at time: Double
+        at time: SampleTime
     ) -> [FilterEntry] {
         guard case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedFilter) else { return [] }
 

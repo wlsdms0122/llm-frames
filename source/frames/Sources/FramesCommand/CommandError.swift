@@ -33,6 +33,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPreset(kind: String, name: String)
     case unknownPack(name: String)
     case missingLabelFace(name: String, file: String)
+    case argumentsOfMedium(command: String, path: String)
 
     // MARK: - Property
     var description: String {
@@ -110,6 +111,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingLabelFace(name, file):
             "\(quoted(file)): the file has no face \(quoted(name)), which time labels are set in"
+
+        case let .argumentsOfMedium(command, path):
+            "\(command): media \(quoted(path)) has no params, so it takes no --args"
         }
     }
 

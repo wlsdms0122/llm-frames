@@ -66,7 +66,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
@@ -172,7 +172,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media.args.shot (sequence): unknown key "opz". Allowed: kind, format, theme, params, storyline, clips"#)
+        #expect(error?.description == #"storyline[0].media.args.shot (sequence): unknown key "opz". Allowed: kind, format, theme, params, storyline, clips, audioFilter, keyframes"#)
     }
 
     @Test("a template named by a choice parameter takes the probed kind its options share")
@@ -236,11 +236,11 @@ struct TemplateCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
-                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
-                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset"#
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset"#
             )
         ]
     )

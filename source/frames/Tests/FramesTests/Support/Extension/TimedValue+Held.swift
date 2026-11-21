@@ -138,7 +138,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         at time: Double = 0,
         box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
     ) -> PathStroke? {
-        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box)
+        PathStroke(sampled: sampled(at: time, as: LookStructureTable.stroke), factor: 1, carried: 1, box: box, isSample: false)
     }
 
     func shadow(at time: Double = 0) -> DropShadow? {
@@ -146,11 +146,11 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     }
 
     func border(at time: Double = 0) -> MediaBorder? {
-        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1)
+        MediaBorder(sampled: sampled(at: time, as: LookStructureTable.border), factor: 1, isSample: false)
     }
 
     func filter(at time: Double = 0) -> [FilterEntry] {
-        FilterEntry.entries(of: self, at: time)
+        FilterEntry.entries(of: self, at: SampleTime(time))
     }
 
     func number(at time: Double = 0) -> Double? {

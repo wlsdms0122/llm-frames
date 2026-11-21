@@ -49,7 +49,12 @@ struct ResolvedDocumentWriterTests {
             "conform": "fit",
             "colorSpace": "srgb",
             "peak": null,
-            "compositing": "encoded"
+            "compositing": "encoded",
+            "motionBlur": {
+              "shutterAngle": 180,
+              "shutterPhase": 0,
+              "samplesPerFrame": 16
+            }
           },
           "storyline": [
             {
@@ -119,6 +124,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "screen",
+              "motionBlur": false,
               "filter": [
                 {
                   "ops": [
@@ -286,6 +292,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "normal",
+              "motionBlur": false,
               "animation": {
                 "entrance": {
                   "seconds": 0.25,
@@ -374,6 +381,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "normal",
+              "motionBlur": false,
               "animation": {
                 "entrance": null,
                 "loop": null,
@@ -390,7 +398,7 @@ struct ResolvedDocumentWriterTests {
                 "file": "/abs/run.mp4",
                 "sha256": "9f2c41d07b3e"
               },
-              "nested": [],
+              "nested": null,
               "in": 2,
               "origin": 0,
               "out": 8,
@@ -425,7 +433,7 @@ struct ResolvedDocumentWriterTests {
                 "file": "/abs/bgm.m4a",
                 "sha256": "c07d9a1e44f2"
               },
-              "nested": [],
+              "nested": null,
               "in": 0,
               "origin": 0,
               "out": 20,
@@ -464,7 +472,8 @@ struct ResolvedDocumentWriterTests {
               "outgoing": null,
               "audioFilter": null
             }
-          ]
+          ],
+          "audioFilter": null
         }
 
         """#

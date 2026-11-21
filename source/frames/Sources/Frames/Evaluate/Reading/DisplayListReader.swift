@@ -8,16 +8,19 @@
 // Reads a display list as `DisplayListWriter` writes it. The version is checked before anything else, and a member
 // that is missing or of another type, or a key the writer never writes there, stops naming its place. The list and
 // every list nested in it share one seed: the first `grain` written gives it, and a `grain` with another stops. A list
-// with no `grain` reads with seed 0, since only `grain` reads the seed. Only the outermost list carries `colorSpace`.
+// with no `grain` reads with seed 0, since only `grain` reads the seed. Only the outermost list carries `colorSpace`
+// and `peak`, and it carries `items` or, for a frame with motion blur, `samples`: at least two sample lists, each
+// differing from the first only in the members `MovesTable` marks. A nested list carries `items` only.
 package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "compositing", "items"]
-    private static let outermostKeys = ["size", "background", "colorSpace", "peak", "compositing", "items"]
+    private static let outermostKeys = ["size", "background", "colorSpace", "peak", "compositing", "items", "samples"]
     private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
     private let checker: ResolvedDocumentChecker
     private let values = ResolvedValueReader()
+    private let moves = MovesTable()
 
     // MARK: - Initializer
     package init() {
@@ -47,11 +50,21 @@ package struct DisplayListReader: Sendable {
             )
         }
 
+        let list = try root.object(keys: ["displayList"] + Self.outermostKeys)
+        switch (list.contains("items"), list.contains("samples")) {
+        case (true, true):
+            throw ModelError.conflictingKeys(place: list.place, kind: list.kind, keys: ["items", "samples"])
+
+        case (false, false):
+            throw ModelError.missingKey(place: list.place, kind: list.kind, keys: ["items", "samples"])
+
+        default:
+            break
+        }
+
         let seed = try firstGrain(in: root).map { grain in
             try values.member("seed", of: grain, kind: grain.kind).integer()
         } ?? 0
-
-        let list = try root.object(keys: ["displayList"] + Self.outermostKeys)
 
         return try self.list(
             list,
@@ -62,10 +75,13 @@ package struct DisplayListReader: Sendable {
     }
 
     // MARK: - Private
-    // The first `grain` written in the list or in a list nested in it, found before anything is read, since every
-    // item takes its seed. What is not of the written shape is left for the reading to stop on.
+    // The first `grain` written in the list or in a list nested in it, its items or its sample lists in order, found
+    // before anything is read, since every item takes its seed. What is not of the written shape is left for the reading
+    // to stop on.
     private func firstGrain(in list: PlacedJSONValue) -> PlacedJSONValue? {
-        let elements = (try? values.member("items", of: list, kind: list.kind).elements()) ?? []
+        let items = (try? values.member("items", of: list, kind: list.kind).elements()) ?? []
+        let samples = (try? values.member("samples", of: list, kind: list.kind).elements()) ?? []
+        let elements = items + samples.flatMap { (try? $0.elements()) ?? [] }
 
         for element in elements {
             let item = PlacedJSONValue(
@@ -106,18 +122,63 @@ package struct DisplayListReader: Sendable {
         seed: Int
     ) throws -> DisplayList {
         let size = try values.size(object.member("size"))
+        let background = try values.color(object.member("background"))
+        let compositing = try object.member("compositing").name(among: VocabularyTable.compositings, Compositing.init)
+        guard let written = object.optionalMember("samples") else {
+            return DisplayList(
+                size: size,
+                background: background,
+                colorSpace: colorSpace,
+                peak: peak,
+                compositing: compositing,
+                seed: seed,
+                items: try items(object.member("items"), in: size, seed: seed)
+            )
+        }
 
         return DisplayList(
             size: size,
-            background: try values.color(object.member("background")),
+            background: background,
             colorSpace: colorSpace,
             peak: peak,
-            compositing: try object.member("compositing").name(among: VocabularyTable.compositings, Compositing.init),
+            compositing: compositing,
             seed: seed,
-            items: try object.member("items").elements().map { element in
-                try item(element, in: size, seed: seed)
-            }
+            samples: try samples(written, in: size, seed: seed)
         )
+    }
+
+    // `size` is the size of the list that holds the items.
+    private func items(
+        _ value: PlacedJSONValue,
+        in size: Size,
+        seed: Int
+    ) throws -> [DisplayItem] {
+        try value.elements().map { element in try item(element, in: size, seed: seed) }
+    }
+
+    // Each sample list is read before they are compared, so a member of another shape stops as it does in `items`.
+    private func samples(
+        _ value: PlacedJSONValue,
+        in size: Size,
+        seed: Int
+    ) throws -> [[DisplayItem]] {
+        let elements = try value.elements()
+        guard elements.count >= 2 else {
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a list with samples holds at least two sample lists, found \(elements.count)"
+            )
+        }
+
+        let samples = try elements.map { element in try items(element, in: size, seed: seed) }
+        for element in elements.dropFirst() {
+            if let difference = moves.difference(of: element, from: elements[0]) {
+                throw EvaluateError.differentSample(place: difference.place, kind: difference.kind)
+            }
+        }
+
+        return samples
     }
 
     // `size` is the size of the list that holds the item.
@@ -344,7 +405,16 @@ package struct DisplayListReader: Sendable {
         _ value: PlacedJSONValue,
         seed: Int
     ) throws -> DisplayList {
-        let list = try value.object(keys: ["list"]).member("list").object(kind: "display list", keys: Self.listKeys)
+        let written = try value.object(keys: ["list"]).member("list")
+        guard written.value.objectValue?.contains("samples") != true else {
+            throw ModelError.invalidValue(
+                place: written.place.appending(key: "samples"),
+                kind: "display list",
+                reason: "only the outermost list of a frame holds samples"
+            )
+        }
+
+        let list = try written.object(kind: "display list", keys: Self.listKeys)
 
         return try self.list(list, colorSpace: nil, seed: seed)
     }

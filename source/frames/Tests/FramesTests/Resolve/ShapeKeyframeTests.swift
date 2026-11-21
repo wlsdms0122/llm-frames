@@ -143,7 +143,7 @@ struct ShapeKeyframeTests {
         arguments: [
             (
                 #"{ "at": 0, "stroke": { "cap": "round" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
-                #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"#
+                #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
             (
                 ##"{ "at": 0, "fill": false }, { "at": 1, "fill": "#FFFFFF" }"##,

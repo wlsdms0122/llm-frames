@@ -12,7 +12,7 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func spaceTransform(at time: Double) -> AffineTransform {
+    func spaceTransform(at time: SampleTime) -> AffineTransform {
         let own = presentation(at: time).transform
         guard media != nil else { return own }
 

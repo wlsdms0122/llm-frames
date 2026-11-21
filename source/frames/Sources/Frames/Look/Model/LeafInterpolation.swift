@@ -16,17 +16,18 @@ enum LeafInterpolation: Equatable, Sendable {
     // MARK: - Public
     func value(
         of keyframes: [Keyframe<LeafValue>],
-        at time: Double
+        at time: SampleTime
     ) -> LeafValue {
         switch self {
         case .linear:
-            return KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
+            return KeyframeTrack(keyframes: keyframes).value(at: time.instant, onSideOf: time.frameTime)
+                ?? keyframes[0].value
 
         case .geometric:
             let track = KeyframeTrack(keyframes: keyframes.map { keyframe in
                 Keyframe(at: keyframe.at, value: GeometricLeafValue(keyframe.value), ease: keyframe.ease)
             })
-            return track.value(at: time)?.value ?? keyframes[0].value
+            return track.value(at: time.instant, onSideOf: time.frameTime)?.value ?? keyframes[0].value
         }
     }
 

@@ -10,14 +10,16 @@ import CoreImage
 import Frames
 
 // Draws the display lists of one output frame, items bottom first. An item's masks and track matte multiply its alpha
-// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow.
-// Opacity below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's
-// source among them, is drawn on a raster at the scale it is shown at, once per frame for each raster, so it is as
-// sharp as its items drawn in place; every length in pixels inside it is scaled with it. A page of a PDF is read from
-// the decoder at the scale its raster shows it at, so it is as sharp as its paths drawn there. Each list is drawn in
-// the form of the working values its `compositing` names, which its items are composited, covered, resampled, blurred
-// and mixed in, and its picture is converted to the form of the list that shows it. The frame is a half float bitmap
-// of encoded working values.
+// in output pixels, and an item with a shadow casts it from that masked picture, so they do not cut the shadow. Opacity
+// below 1 and the blend mode apply to the item and its shadow as a whole. A nested list, a track matte's source among
+// them, is drawn on a raster at the scale it is shown at, once per frame or sample for each raster, so it is as sharp
+// as its items drawn in place; every length in pixels inside it is scaled with it. A page of a PDF is read from the
+// decoder at the scale its raster shows it at, so it is as sharp as its paths drawn there. Each list is drawn in the
+// form of the working values its `compositing` names, which its items are composited, covered, resampled, blurred and
+// mixed in, and its picture is converted to the form of the list that shows it. A frame given as sample lists is the
+// mean of their pictures, each drawn as a frame of its items with the list's size, background and compositing, and the
+// nested rasters of one sample are released before the next is drawn. The frame is a half float bitmap of encoded
+// working values.
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
@@ -48,17 +50,44 @@ final class FrameDrawer {
     }
 
     // MARK: - Private
+    // Sample lists that are all equal draw one picture, which is their mean.
     private func draw(
         _ list: DisplayList,
+        on raster: Raster
+    ) throws -> FrameContext {
+        switch list.content {
+        case let .items(items):
+            return try draw(items, of: list, place: "items", on: raster)
+
+        case let .samples(samples):
+            guard let first = samples.first, samples.contains(where: { $0 != first }) else {
+                return try draw(samples.first ?? [], of: list, place: "samples[0]", on: raster)
+            }
+
+            let sum = AccumulationBuffer(width: raster.width, height: raster.height)
+            for (index, sample) in samples.enumerated() {
+                sum.add(try draw(sample, of: list, place: "samples[\(index)]", on: raster))
+                nested.removeAll()
+            }
+
+            return try sum.mean(compositing: list.compositing)
+        }
+    }
+
+    // `items` are the list's own or one of its sample lists, and `place` is their path in the list.
+    private func draw(
+        _ items: [DisplayItem],
+        of list: DisplayList,
+        place: String,
         on raster: Raster
     ) throws -> FrameContext {
         let frame = try FrameContext(width: raster.width, height: raster.height, compositing: list.compositing)
         frame.context.setFillColor(list.background.cgColor)
         frame.context.fill(frame.bounds)
 
-        for (index, item) in list.items.enumerated() {
+        for (index, item) in items.enumerated() {
             guard let mode = BlendMode(rawValue: item.blend) else {
-                throw QuartzError.unsupportedBlend(name: item.blend, place: "items[\(index)].blend")
+                throw QuartzError.unsupportedBlend(name: item.blend, place: "\(place)[\(index)].blend")
             }
             guard item.opacity > 0 else { continue }
 
@@ -438,10 +467,20 @@ final class FrameDrawer {
     // is drawn on the same raster and read as far out as the item casts its shadow from. A nested list's own raster is
     // grown past this raster by its picture's reach, so it adds nothing here.
     private func reach(of list: DisplayList) -> CGFloat {
+        switch list.content {
+        case let .items(items):
+            return reach(of: items)
+
+        case let .samples(samples):
+            return samples.map(reach(of:)).max() ?? 0
+        }
+    }
+
+    private func reach(of items: [DisplayItem]) -> CGFloat {
         let chain = FilterChain(tables: tables)
         var adjustments = 0.0
         var mattes = 0.0
-        for item in list.items {
+        for item in items {
             if case let .adjust(adjust) = item.content {
                 adjustments += chain.reach(of: adjust.filter)
             }

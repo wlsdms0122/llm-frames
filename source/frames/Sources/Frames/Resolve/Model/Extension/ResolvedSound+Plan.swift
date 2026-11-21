@@ -24,6 +24,7 @@ extension ResolvedSound {
             place: plan.place.description,
             media: media,
             nested: try plan.nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
+            nestedAudioFilter: plan.nestedAudioFilter,
             played: plan.played,
             start: plan.range.start,
             end: plan.range.end,

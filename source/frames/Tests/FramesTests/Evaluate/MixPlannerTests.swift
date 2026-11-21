@@ -66,7 +66,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 2,
                 speed: 1,
                 start: 0,
@@ -88,7 +88,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 3,
                 speed: 2,
                 start: 1,
@@ -175,7 +175,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 0,
                 speed: 1,
                 start: 0,
@@ -184,7 +184,7 @@ struct MixPlannerTests {
                 pan: envelope([[0, 0], [2.5, 0]])
             ),
             MixSegment(
-                media: voice,
+                media: .pinned(voice),
                 mediaStart: 9.5,
                 speed: 1,
                 start: 1.5,
@@ -283,7 +283,7 @@ struct MixPlannerTests {
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 1))
 
         // Then
-        let segment = try #require(plan.segments.first)
+        let segment = try #require(plan.buses.first?.segments.first)
         #expect(segment.pan == envelope([[0, -0.5], [0.25, 0], [0.5, 0.5], [0.75, 1], [1, 1]]))
     }
 
@@ -307,7 +307,7 @@ struct MixPlannerTests {
         // Then
         #expect(plan.segments == [
             MixSegment(
-                media: music,
+                media: .pinned(music),
                 mediaStart: 8,
                 speed: 1,
                 start: 0,
@@ -334,7 +334,7 @@ struct MixPlannerTests {
         ])
     }
 
-    @Test("a compound clip's sound is mapped through its clock and its gain multiplied by the compound clip's")
+    @Test("a compound clip is a bus: its sound mapped through its clock, its level on the bus and in no segment's gain")
     func mapsNestedSound() {
         // Given
         let nested = sound(music, in: 0, start: 10, end: 14, fadeIn: TimeRange(start: 10, end: 11))
@@ -346,20 +346,28 @@ struct MixPlannerTests {
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 3))
 
         // Then
-        #expect(plan.segments == [
-            MixSegment(
-                media: music,
-                mediaStart: 0,
-                speed: 2,
+        #expect(plan.segments.isEmpty)
+        #expect(plan.buses == [
+            MixBus(
                 start: 1,
                 end: 3,
-                envelope: envelope([[1, 0], [1.25, 0.25], [1.5, 0.5], [3, 0.5]]),
-                pan: envelope([[1, 0], [3, 0]])
+                segments: [
+                    MixSegment(
+                        media: .pinned(music),
+                        mediaStart: 0,
+                        speed: 2,
+                        start: 1,
+                        end: 3,
+                        envelope: envelope([[1, 0], [1.25, 0.5], [1.5, 1], [3, 1]]),
+                        pan: envelope([[1, 0], [3, 0]])
+                    )
+                ],
+                envelope: envelope([[1, 0.5], [3, 0.5]])
             )
         ])
     }
 
-    @Test("a nested sound that starts before its compound clip is heard is cut to where the compound clip is heard")
+    @Test("a nested sound that starts before its compound clip is heard is cut to the compound clip's span")
     func cutsNestedSoundToOuter() {
         // Given
         let nested = sound(music, in: 5, start: 0, end: 2, fadeIn: TimeRange(start: 0, end: 2))
@@ -369,20 +377,27 @@ struct MixPlannerTests {
         let plan = sut.mix(of: sequence(audio, fps: 2, duration: 4))
 
         // Then
-        #expect(plan.segments == [
-            MixSegment(
-                media: music,
-                mediaStart: 6,
-                speed: 1,
+        #expect(plan.buses == [
+            MixBus(
                 start: 3,
                 end: 4,
-                envelope: envelope([[3, 0.5], [3.5, 0.75], [4, 1]]),
-                pan: envelope([[3, 0], [4, 0]])
+                segments: [
+                    MixSegment(
+                        media: .pinned(music),
+                        mediaStart: 6,
+                        speed: 1,
+                        start: 3,
+                        end: 4,
+                        envelope: envelope([[3, 0.5], [3.5, 0.75], [4, 1]]),
+                        pan: envelope([[3, 0], [4, 0]])
+                    )
+                ],
+                envelope: envelope([[3, 1], [4, 1]])
             )
         ])
     }
 
-    @Test("a looping compound clip plays its sounds again in every repeat, each sound's segments together in time order")
+    @Test("a looping compound clip is a bus for each repeat, each holding the sounds that repeat plays in entry order")
     func repeatsNestedSounds() {
         // Given
         let nested = [
@@ -395,13 +410,218 @@ struct MixPlannerTests {
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2.5))
 
         // Then
-        #expect(plan.segments == [
-            segment(music, mediaStart: 0, speed: 1, start: 0.5, end: 1),
-            segment(music, mediaStart: 0, speed: 1, start: 1.5, end: 2),
-            segment(voice, mediaStart: 0, speed: 1, start: 0, end: 0.25),
-            segment(voice, mediaStart: 0, speed: 1, start: 1, end: 1.25),
-            segment(voice, mediaStart: 0, speed: 1, start: 2, end: 2.25)
+        #expect(plan.buses == [
+            MixBus(
+                start: 0,
+                end: 1,
+                segments: [
+                    segment(music, mediaStart: 0, speed: 1, start: 0.5, end: 1),
+                    segment(voice, mediaStart: 0, speed: 1, start: 0, end: 0.25)
+                ],
+                envelope: envelope([[0, 1], [1, 1]])
+            ),
+            MixBus(
+                start: 1,
+                end: 2,
+                segments: [
+                    segment(music, mediaStart: 0, speed: 1, start: 1.5, end: 2),
+                    segment(voice, mediaStart: 0, speed: 1, start: 1, end: 1.25)
+                ],
+                envelope: envelope([[1, 1], [2, 1]])
+            ),
+            MixBus(
+                start: 2,
+                end: 2.5,
+                segments: [segment(voice, mediaStart: 0, speed: 1, start: 2, end: 2.25)],
+                envelope: envelope([[2, 1], [2.5, 1]])
+            )
         ])
+    }
+
+    @Test("the first repeat's bus of a looping compound clip a split starts early starts where its sound does")
+    func startsFirstRepeatWithSound() {
+        // Given
+        let nested = [sound(music, start: 0, end: 2)]
+        let audio = [
+            sound(nil, nested: nested, in: 0, origin: 1, out: 1, loop: true, start: 0.5, end: 2.5)
+        ]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 3))
+
+        // Then
+        #expect(plan.buses.map { [$0.start, $0.end] } == [[0.5, 2], [2, 2.5]])
+        #expect(plan.buses.first?.segments.map(\.mediaStart) == [0])
+    }
+
+    @Test("a compound clip inside a compound clip is a bus inside its bus, each with its own level, their pans on the sound")
+    func nestsBuses() {
+        // Given
+        let inner = sound(nil, nested: [sound(music, start: 0, end: 2)], start: 0, end: 2, volume: [Keyframe(at: 0, value: 0.8)])
+        let audio = [
+            sound(
+                nil,
+                nested: [inner, sound(voice, start: 0, end: 1)],
+                start: 0,
+                end: 2,
+                volume: [Keyframe(at: 0, value: 0.5)],
+                pan: [Keyframe(at: 0, value: 0.5)]
+            )
+        ]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
+
+        // Then
+        #expect(plan.buses == [
+            MixBus(
+                start: 0,
+                end: 2,
+                segments: [
+                    MixSegment(
+                        media: .pinned(voice),
+                        mediaStart: 0,
+                        speed: 1,
+                        start: 0,
+                        end: 1,
+                        envelope: envelope([[0, 1], [1, 1]]),
+                        pan: envelope([[0, 0.5], [1, 0.5]])
+                    )
+                ],
+                buses: [
+                    MixBus(
+                        start: 0,
+                        end: 2,
+                        segments: [
+                            MixSegment(
+                                media: .pinned(music),
+                                mediaStart: 0,
+                                speed: 1,
+                                start: 0,
+                                end: 2,
+                                envelope: envelope([[0, 1], [2, 1]]),
+                                pan: envelope([[0, 0.5], [2, 0.5]])
+                            )
+                        ],
+                        envelope: envelope([[0, 0.8], [2, 0.8]])
+                    )
+                ],
+                envelope: envelope([[0, 0.5], [2, 0.5]])
+            )
+        ])
+    }
+
+    @Test("a bus that holds no segment and no bus is left out, at every level")
+    func leavesOutSilentBus() {
+        // Given
+        let unheard = sound(nil, nested: [sound(music, start: 5, end: 6)], start: 0, end: 1)
+        let audio = [
+            sound(nil, nested: [unheard], start: 0, end: 1),
+            sound(nil, nested: [unheard, sound(voice, start: 0, end: 1)], start: 1, end: 2)
+        ]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
+
+        // Then
+        #expect(plan.buses.count == 1)
+        #expect(plan.buses.first?.buses == [])
+        #expect(plan.buses.first?.segments.map(\.media) == [.pinned(voice)])
+    }
+
+    @Test("a bus's chain is the nested sequence's entries mapped through the compound clip's clock, then the clip's own")
+    func chainsBusFilter() throws {
+        // Given
+        let nestedChain = TimedValue.list([limiter(gain: [Keyframe(at: 0, value: .number(0)), Keyframe(at: 2, value: .number(6))])])
+        let ownChain = TimedValue.list([limiter(gain: [Keyframe(at: 1, value: .number(3))])])
+        let audio = [
+            sound(
+                nil,
+                nested: [sound(music, start: 0, end: 2)],
+                nestedAudioFilter: nestedChain,
+                speed: 2,
+                start: 1,
+                end: 2,
+                audioFilter: ownChain
+            )
+        ]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
+
+        // Then
+        let filter = try #require(plan.buses.first?.filter)
+        #expect(filter.map(\.mix) == [.constant(1), .constant(1)])
+        guard case let .limiter(nested) = filter[0].operations.first, case let .limiter(own) = filter[1].operations.first else {
+            Issue.record("expected two limiters, got \(filter)")
+            return
+        }
+        #expect(nested.gain == .envelope(envelope([[1, 0], [1.25, 1.5], [1.5, 3], [1.75, 4.5], [2, 6]])))
+        #expect(own.gain == .constant(3))
+        #expect(nested.lookahead == 0.005)
+    }
+
+    @Test("the plan's filter is the sequence's audio filter over the whole mix, and the plan's length is N")
+    func carriesSequenceFilter() throws {
+        // Given
+        let chain = TimedValue.list([limiter(gain: [Keyframe(at: 0, value: .number(0)), Keyframe(at: 1, value: .number(4))])])
+        let resolved = sequence([sound(music, start: 0, end: 1)], fps: 4, duration: 1, audioFilter: chain)
+
+        // When
+        let plan = sut.mix(of: resolved)
+
+        // Then
+        #expect(plan.length == 48000)
+        guard case let .limiter(limiter) = plan.filter.first?.operations.first else {
+            Issue.record("expected a limiter, got \(plan.filter)")
+            return
+        }
+        #expect(limiter.gain == .envelope(envelope([[0, 0], [0.25, 1], [0.5, 2], [0.75, 3], [1, 4]])))
+        #expect(plan.segments.map(\.filter) == [[]])
+    }
+
+    @Test(
+        "the length is the output frames' samples at 48 kHz at the rate frames presents, halves rounded up",
+        arguments: [
+            (25.0, 2.0, 96000),
+            (30000.0 / 1001, 0.1, 4805),
+            (29.97, 0.1, 4805),
+            (30000.0 / 1001, 10.0, 480_480),
+            (24000.0 / 1001, 10.0, 480_480),
+            (23.976, 1.0, 48048),
+            (12.5, 2.0, 96000)
+        ]
+    )
+    func countsLength(
+        fps: Double,
+        duration: Double,
+        length: Int
+    ) {
+        // When
+        let plan = sut.mix(of: sequence([], fps: fps, duration: duration))
+
+        // Then
+        #expect(plan.length == length)
+        #expect(plan.filter.isEmpty)
+    }
+
+    @Test("the plan of one medium plays one clip of it, not pinned, from media time 0 at gain 1, centred, at speed 1 and with no filter, as long as its sound")
+    func plansMedium() {
+        // When
+        let plan = sut.mix(ofMedium: "/abs/tone.wav", duration: 1.50001)
+
+        // Then
+        #expect(plan == MixPlan(length: 72_000, segments: [
+            MixSegment(
+                media: .unpinned(path: "/abs/tone.wav"),
+                mediaStart: 0,
+                speed: 1,
+                start: 0,
+                end: 1.50001,
+                envelope: envelope([[0, 1], [1.50001, 1]]),
+                pan: envelope([[0, 0], [1.50001, 0]])
+            )
+        ]))
     }
 
     // MARK: - Private
@@ -409,6 +629,7 @@ struct MixPlannerTests {
     private func sound(
         _ media: PinnedMedia?,
         nested: [ResolvedSound] = [],
+        nestedAudioFilter: TimedValue = .off,
         in: Double = 0,
         origin: Double? = nil,
         out: Double = 100,
@@ -429,6 +650,7 @@ struct MixPlannerTests {
             place: "sound",
             media: media,
             nested: nested,
+            nestedAudioFilter: nestedAudioFilter,
             played: PlayedRange(
                 map: TimeMap(origin: origin ?? start, in: `in`, speed: speed),
                 out: out,
@@ -450,7 +672,8 @@ struct MixPlannerTests {
     private func sequence(
         _ audio: [ResolvedSound],
         fps: Double,
-        duration: Double
+        duration: Double,
+        audioFilter: TimedValue = .off
     ) -> ResolvedSequence {
         ResolvedSequence(
             format: ResolvedFormat(
@@ -462,8 +685,22 @@ struct MixPlannerTests {
             ),
             storyline: [],
             clips: [],
-            audio: audio
+            audio: audio,
+            audioFilter: audioFilter
         )
+    }
+
+    // A limiter entry at `mix` 1 whose gain takes `gain`, its other parameters held at their defaults.
+    private func limiter(gain: [Keyframe<LeafValue>]) -> TimedValue {
+        TimedValue.object([
+            TimedMember(key: "ops", value: .list([.form("op:limiter", .object([
+                TimedMember(key: "gain", value: .track(gain)),
+                TimedMember(key: "ceiling", value: .track([Keyframe(at: 0, value: .number(-1))])),
+                TimedMember(key: "lookahead", value: .fixed(.number(0.005))),
+                TimedMember(key: "release", value: .track([Keyframe(at: 0, value: .number(0.1))]))
+            ]))])),
+            TimedMember(key: "mix", value: .track([Keyframe(at: 0, value: .number(1))]))
+        ])
     }
 
     // A segment at gain 1 and centred, its envelopes with points only at its ends.
@@ -475,7 +712,7 @@ struct MixPlannerTests {
         end: Double
     ) -> MixSegment {
         MixSegment(
-            media: media,
+            media: .pinned(media),
             mediaStart: mediaStart,
             speed: speed,
             start: start,

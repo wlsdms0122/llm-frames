@@ -20,6 +20,11 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingPage(file: String, page: Int, pageCount: Int)
     case unnamedPage(file: String, pageCount: Int)
     case highDynamicRangePage(file: String, page: Int, colorSpace: ColorSpace)
+    case sampledList
+    case noSound(file: String)
+    case beforeSoundStart(option: String, time: Double)
+    case atOrAfterSoundEnd(option: String, time: Double, end: Double)
+    case afterSoundEnd(option: String, time: Double, end: Double)
 
     // MARK: - Property
     var description: String {
@@ -68,6 +73,21 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
             "--color-space: media \(quoted(file)) page \(page) is not HDR, so it is read in a colour space of standard "
                 + "dynamic range, not \(quoted(colorSpace.rawValue)). Allowed: "
                 + VocabularyTable.standardDynamicRangeColorSpaces.joined(separator: ", ")
+
+        case .sampledList:
+            "the display list holds samples, an exposure in which an item has no one place, and the frame is reported as at its instant"
+
+        case let .noSound(file):
+            "media \(quoted(file)) has no sound to measure"
+
+        case let .beforeSoundStart(option, time):
+            "\(option): second \(number(time)) is before the start of the sound"
+
+        case let .atOrAfterSoundEnd(option, time, end):
+            "\(option): second \(number(time)) is at or after the end of the sound at \(number(end))"
+
+        case let .afterSoundEnd(option, time, end):
+            "\(option): second \(number(time)) is after the end of the sound at \(number(end))"
         }
     }
 

@@ -79,6 +79,32 @@ struct UnitSamplerTests {
         #expect([x(1.5), x(2.25), x(7.5), x(8.5)] == [0, 0.25, 0.5, 0])
     }
 
+    @Test("a unit's instant past the window's end from T stands at its last pose, and T outside the window takes none")
+    func holdsUnitAtWindowEnd() {
+        // Given
+        let schedule = schedule(count: 3, stagger: 0.5, window: TimeRange(start: 0, end: 10))
+
+        // When
+        let pastEnd = sut.unit(2, of: animation(), schedule: schedule, at: 10.01, onSideOf: 9.99)
+        let outside = sut.unit(2, of: animation(), schedule: schedule, at: 9.99, onSideOf: 10.01)
+
+        // Then
+        #expect(pastEnd == sut.unit(2, of: animation(), schedule: schedule, at: schedule.window.held(10.01)))
+        #expect(outside == .none)
+    }
+
+    @Test("the title's loop is read through its seam as it is")
+    func readsTitleLoopThroughSeam() {
+        // Given
+        let schedule = schedule(count: 3, stagger: 0.5, window: TimeRange(start: 0, end: 10))
+
+        // When
+        let sample = sut.title(of: animation(), schedule: schedule, at: 3.01, onSideOf: 2.99)
+
+        // Then
+        #expect(abs(sample.motion.value(of: .x) - 0.01) < 1e-9)
+    }
+
     // MARK: - Private
     private func animation() -> ResolvedAnimation {
         ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: UnitStagger(by: .word, stagger: 0.5))

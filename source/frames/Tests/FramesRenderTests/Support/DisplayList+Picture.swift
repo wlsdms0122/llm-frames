@@ -16,7 +16,7 @@ extension DisplayList {
     // The picture items of media frames from the file named `name`, in this list and the lists nested in it, bottom
     // first.
     func mediaPictures(named name: String) -> [PictureItem] {
-        items.flatMap { item -> [PictureItem] in
+        drawnItems.flatMap { item -> [PictureItem] in
             guard case let .picture(picture) = item.content else { return [] }
 
             switch picture.source {
@@ -33,7 +33,7 @@ extension DisplayList {
 
     // The boxes, in this list's pixels, of the media pictures from the file named `name` drawn in this list itself.
     func placedPictures(named name: String) -> [Rectangle] {
-        items.compactMap { item -> Rectangle? in
+        drawnItems.compactMap { item -> Rectangle? in
             guard
                 case let .picture(picture) = item.content,
                 case let .media(frame) = picture.source,
@@ -56,4 +56,14 @@ extension DisplayList {
     }
 
     // MARK: - Private
+    // The list's items, or the items of all its sample lists in order.
+    private var drawnItems: [DisplayItem] {
+        switch content {
+        case let .items(items):
+            items
+
+        case let .samples(samples):
+            samples.flatMap { $0 }
+        }
+    }
 }

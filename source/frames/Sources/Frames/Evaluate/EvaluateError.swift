@@ -12,6 +12,7 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
     case frameOutOfRange(place: Place, kind: String, frame: Int, count: Int)
     case frameOfPage(place: Place, kind: String, written: String)
     case trackMatteSize(place: Place, kind: String, size: Size, listSize: Size)
+    case differentSample(place: Place, kind: String)
 
     // MARK: - Property
     var description: String {
@@ -35,6 +36,10 @@ enum EvaluateError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .trackMatteSize(place, kind, size, listSize):
             "\(place) (\(kind)): the track matte's source is \(written(size)), and a track matte's source is the size "
                 + "of the list that holds its item, \(written(listSize))"
+
+        case let .differentSample(place, kind):
+            "\(place) (\(kind)): differs from the first sample list, and the sample lists of a frame hold the same items in "
+                + "the same order and differ only in the fields that move"
         }
     }
 

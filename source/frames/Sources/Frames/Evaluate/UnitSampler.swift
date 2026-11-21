@@ -11,12 +11,37 @@
 struct UnitSampler: Sendable {
     // MARK: - Property
     private let evaluator = SpanEvaluator()
+    private let passes = PassSampler()
 
     // MARK: - Initializer
     init() { }
 
     // MARK: - Public
-    // The motion of the whole title: the loop over the schedule's rest, and none outside it.
+    // The title's motion and a unit's, read on T's side of the jumps in a sample of a frame with motion blur.
+    func title(
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: SampleTime
+    ) -> MotionSample {
+        guard time.sample.isSample else { return title(of: animation, schedule: schedule, at: time.instant) }
+
+        return title(of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+    }
+
+    func unit(
+        _ index: Int,
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: SampleTime
+    ) -> MotionSample {
+        guard schedule.window.contains(time.instant) else { return .none }
+        guard time.sample.isSample else { return unit(index, of: animation, schedule: schedule, at: time.instant) }
+
+        return unit(index, of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+    }
+
+    // The motion of the whole title at a time outside a sample of a frame with motion blur: the loop over the
+    // schedule's rest, and none outside it.
     func title(
         of animation: ResolvedAnimation,
         schedule: UnitSchedule,
@@ -54,7 +79,106 @@ struct UnitSampler: Sendable {
         return .none
     }
 
+    // The title's motion and a unit's at an instant on T's side, T being the frame's instant (FRAMES-29): none where T
+    // lies outside the schedule's window, and otherwise the instant held inside it.
+    func title(
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: Double,
+        onSideOf frameTime: Double
+    ) -> MotionSample {
+        guard schedule.window.contains(frameTime) else { return .none }
+
+        let instant = schedule.window.held(time)
+        let between = titlePasses(
+            of: animation,
+            schedule: schedule,
+            between: min(instant, frameTime),
+            and: max(instant, frameTime)
+        )
+
+        return passes.sample(at: instant, onSideOf: frameTime, passes: between)
+    }
+
+    func unit(
+        _ index: Int,
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: Double,
+        onSideOf frameTime: Double
+    ) -> MotionSample {
+        guard schedule.window.contains(frameTime) else { return .none }
+
+        let instant = schedule.window.held(time)
+        let between = unitPasses(
+            index,
+            of: animation,
+            schedule: schedule,
+            between: min(instant, frameTime),
+            and: max(instant, frameTime)
+        )
+
+        return passes.sample(at: instant, onSideOf: frameTime, passes: between)
+    }
+
     // MARK: - Private
+    // The loop's periods over the schedule's rest that play at some time from `lower` to `upper`, in time order.
+    private func titlePasses(
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        between lower: Double,
+        and upper: Double
+    ) -> [AnimationPass] {
+        guard let loop = animation.loop else { return [] }
+
+        let rest = schedule.rest
+
+        return AnimationPass.periods(
+            of: loop.span,
+            length: loop.length,
+            from: rest.start,
+            until: rest.end,
+            between: lower,
+            and: upper
+        )
+    }
+
+    // A unit's entrance up to its end, held at progress 0 before the unit's turn from the window's start, and its exit
+    // from its start to the window's end, each that plays at some time from `lower` to `upper`, in time order.
+    private func unitPasses(
+        _ index: Int,
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        between lower: Double,
+        and upper: Double
+    ) -> [AnimationPass] {
+        var passes = [AnimationPass]()
+        var exitFrom = schedule.window.start
+
+        if let entrance = animation.entrance, schedule.entrance > 0 {
+            let start = schedule.entranceStart(of: index)
+            exitFrom = start + schedule.entrance
+            if lower < exitFrom {
+                passes.append(AnimationPass(
+                    span: entrance.span,
+                    start: start,
+                    length: schedule.entrance,
+                    plays: TimeRange(start: schedule.window.start, end: exitFrom)
+                ))
+            }
+        }
+
+        if let exit = animation.exit, schedule.exit > 0 {
+            let start = schedule.exitStart(of: index)
+            let plays = TimeRange(start: max(start, exitFrom), end: schedule.window.end)
+            if plays.start < plays.end, plays.start <= upper {
+                passes.append(AnimationPass(span: exit.span, start: start, length: schedule.exit, plays: plays))
+            }
+        }
+
+        return passes
+    }
+
     private func sample(
         of span: Span,
         at progress: Double

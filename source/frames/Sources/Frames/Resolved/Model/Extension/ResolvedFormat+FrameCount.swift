@@ -20,11 +20,6 @@ extension ResolvedFormat {
         return count
     }
 
-    // How long the output plays: its frames, each lasting 1 / fps.
-    var renderedDuration: Double {
-        frameTime(frameCount)
-    }
-
     // MARK: - Initializer
     // MARK: - Public
     func frameTime(_ index: Int) -> Double {

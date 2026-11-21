@@ -21,16 +21,19 @@ struct DisplayListFlattener: Sendable {
     init() { }
 
     // MARK: - Public
-    // The list's background comes first, unless it is transparent and draws nothing.
-    func items(of list: DisplayList) -> [FlattenedItem] {
-        items(of: list, state: GraphicsState(transform: .identity, clips: [], opacity: 1, origin: nil))
+    // The list's background comes first, unless it is transparent and draws nothing. A list given as samples is an
+    // exposure and has no one place for an item, so it stops (FRAMES-29).
+    func items(of list: DisplayList) throws -> [FlattenedItem] {
+        try items(of: list, state: GraphicsState(transform: .identity, clips: [], opacity: 1, origin: nil))
     }
 
     // MARK: - Private
     private func items(
         of list: DisplayList,
         state: GraphicsState
-    ) -> [FlattenedItem] {
+    ) throws -> [FlattenedItem] {
+        guard case let .items(listItems) = list.content else { throw AnalysisError.sampledList }
+
         let frame = Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
         // A list is drawn at its own size, so nothing of it shows outside its frame.
         let state = state.clipped(to: frame)
@@ -43,7 +46,7 @@ struct DisplayListFlattener: Sendable {
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
 
-        return background + list.items.flatMap { item in items(of: item, frame: frame, state: state) }
+        return try background + listItems.flatMap { item in try items(of: item, frame: frame, state: state) }
     }
 
     // `frame` is the frame of the list the item is in, in that list's coordinates.
@@ -51,12 +54,12 @@ struct DisplayListFlattener: Sendable {
         of item: DisplayItem,
         frame: Rectangle,
         state: GraphicsState
-    ) -> [FlattenedItem] {
+    ) throws -> [FlattenedItem] {
         let own = state.holding(item)
         let coverage: ItemCoverage
         switch item.content {
         case let .picture(picture):
-            return items(of: picture, own: own)
+            return try items(of: picture, own: own)
 
         case let .path(path):
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
@@ -87,7 +90,7 @@ struct DisplayListFlattener: Sendable {
     private func items(
         of picture: PictureItem,
         own: GraphicsState
-    ) -> [FlattenedItem] {
+    ) throws -> [FlattenedItem] {
         switch picture.source {
         case let .media(media):
             // Without a source rect the picture shows the whole frame, whose size in pixels is not known here.
@@ -112,7 +115,7 @@ struct DisplayListFlattener: Sendable {
                 transform: transform(from: rectangle, onto: picture.destination),
                 destination: picture.destination
             )
-            return items(of: list, state: nested)
+            return try items(of: list, state: nested)
         }
     }
 

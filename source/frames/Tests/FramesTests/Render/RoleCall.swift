@@ -19,7 +19,7 @@ enum RoleCall: Equatable {
     case checkTarget(EncodeTarget)
     case checkImageTarget(ImageTarget)
     case checkSoundTarget(SoundTarget)
-    case mix(duration: Double)
+    case mix(length: Int)
     case draw(frame: Int)
     case writeAnalysisPicture(path: String, frame: Int, output: ColorConversion)
     case writeImageTarget(ImageTarget, frame: Int)

@@ -145,6 +145,12 @@ enum Fixture {
             "mine/gate": #"""
                 { "description": "", "params": { "attack": { "type": "number", "default": 0.01, "description": "the attack" } },
                   "ops": [ { "op": "gate", "threshold": -40, "attack": { "param": "attack" } } ] }
+                """#,
+            "mine/limit": #"""
+                { "description": "", "params": {
+                    "boost": { "type": "number", "default": 0, "description": "the input gain" },
+                    "ahead": { "type": "number", "default": 0.005, "description": "the look-ahead" } },
+                  "ops": [ { "op": "limiter", "gain": { "param": "boost" }, "lookahead": { "param": "ahead" } } ] }
                 """#
         ]
     )
