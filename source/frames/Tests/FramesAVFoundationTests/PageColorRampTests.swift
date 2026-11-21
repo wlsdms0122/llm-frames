@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Foundation
+import Frames
 @testable import FramesAVFoundation
 import Testing
 
@@ -21,6 +22,15 @@ struct PageColorRampTests {
     private static let srgbMatrix: PDFValue = .array([
         0.4124564, 0.2126729, 0.0193339, 0.3575761, 0.7151522, 0.1191920, 0.1804375, 0.0721750, 0.9503041
     ].map(PDFValue.real))
+    // The sRGB primaries adapted by Bradford to the D50 white, so that its columns add up to `d50`.
+    private static let srgbMatrixAtD50: PDFValue = {
+        let matrix = ColorMatrix(
+            bradfordFrom: RGB(red: 0.3127 / 0.3290, green: 1, blue: 0.3583 / 0.3290),
+            to: RGB(red: 0.9642, green: 1, blue: 0.8249)
+        ).multiplied(by: ColorMatrix(normalizedPrimaryOf: .bt709))
+
+        return .array((0..<3).flatMap { column in (0..<3).map { row in PDFValue.real(matrix.rows[row][column]) } })
+    }()
     // A sampled tint transform of two samples, (0, 0, 0) and (1, 128 / 255, 0).
     private static let sampledTint = PDFValue.stream([
         "FunctionType": .integer(0),
@@ -39,7 +49,7 @@ struct PageColorRampTests {
             .name("DeviceGray"),
             calGray(gamma: 1),
             calGray(gamma: 2.2),
-            calRGB(gamma: 2.2),
+            calRGB(gamma: 2.2, white: d50, matrix: srgbMatrixAtD50),
             lab(range: [-127.5, 127.5, -127.5, 127.5]),
             icc(CGColorSpace(name: CGColorSpace.displayP3)?.copyICCData() as Data?, components: 3),
             icc(ICCProfileWriter.grayProfile(curve: ICCProfileWriter.parametric(functionType: 0, parameters: [1])), components: 1),
@@ -71,7 +81,8 @@ struct PageColorRampTests {
         "a space Core Graphics draws otherwise than its formula is refused",
         arguments: [
             calGray(gamma: 1.8),
-            calRGB(gamma: 2.4),
+            calRGB(gamma: 2.4, white: d50, matrix: srgbMatrixAtD50),
+            calRGB(gamma: 2.2, white: d65, matrix: srgbMatrix),
             lab(range: [-100, 100, -100, 100]),
             icc(ICCProfileWriter.grayProfile(curve: ICCProfileWriter.parametric(functionType: 0, parameters: [2.4])), components: 1),
             icc(ICCProfileWriter.grayProfile(curve: ICCProfileWriter.table([0.1, 0.9])), components: 1)
@@ -113,11 +124,17 @@ struct PageColorRampTests {
         .array([.name("CalGray"), .dictionary(["WhitePoint": d50, "Gamma": .real(gamma)])])
     }
 
-    private static func calRGB(gamma: Double) -> PDFValue {
+    // A CalRGB space of the sRGB primaries. Core Graphics draws it at a D65 white 2.4e-4 of linear light from the
+    // formula, on a primary alone, and at a D50 white within the tolerance.
+    private static func calRGB(
+        gamma: Double,
+        white: PDFValue,
+        matrix: PDFValue
+    ) -> PDFValue {
         .array([.name("CalRGB"), .dictionary([
-            "WhitePoint": d65,
+            "WhitePoint": white,
             "Gamma": .array([.real(gamma), .real(gamma), .real(gamma)]),
-            "Matrix": srgbMatrix
+            "Matrix": matrix
         ])])
     }
 

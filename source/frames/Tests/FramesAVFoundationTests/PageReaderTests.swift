@@ -31,7 +31,7 @@ struct PageReaderTests {
     }
 
     // MARK: - Test
-    @Test("a PDF's probe gives its page count, and a page's its size in points turned by its Rotate")
+    @Test("a PDF's probe gives its page count, and a page's its size in points, its crop box cut by its media box and turned by its Rotate")
     func probesPage() throws {
         // Given
         let path = directory.file("pages.pdf")
@@ -53,7 +53,7 @@ struct PageReaderTests {
         // Then
         #expect(count == 2)
         #expect(abs((probed?.size.width ?? 0) - 300) < 1e-9)
-        #expect(abs((probed?.size.height ?? 0) - 400) < 1e-9)
+        #expect(abs((probed?.size.height ?? 0) - 399.5) < 1e-9)
         #expect(probed?.pageCount == 2)
     }
 
@@ -109,7 +109,7 @@ struct PageReaderTests {
         let file = MediaFile(path: path, page: 1)
 
         // When
-        let picture = try sut.picture(of: file, region: PageRegion(x: 50, y: 50, width: 100, height: 100), scale: 1, reading: .tagged)
+        let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 50, width: 100, height: 100), scale: 1, reading: .tagged)
         let pixels = picture.floatPixels()
 
         // Then
