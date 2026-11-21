@@ -179,8 +179,8 @@ struct ClipEvaluator: Sendable {
     // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
     // animation's included, and its blend. Where the corner pin draws nothing the group is nil, and in a sample list it
     // is there with four points at [0, 0] as its corner pin (FRAMES-20 Pictures). Nil for an adjustment, which takes no
-    // corner pin. A rect or an ellipse is drawn in the box its `width` and `height` give at the time, its own masks in
-    // that box.
+    // corner pin. A title's item lies in its text box, inside B as inside its box at the time. A rect or an ellipse is
+    // drawn in the box its `width` and `height` give at the time, its own masks in that box.
     private func group(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -190,14 +190,23 @@ struct ClipEvaluator: Sendable {
         at time: SampleTime
     ) -> DisplayItem? {
         let sample = ClipSample(clip: clip, at: time)
-        let flat: (box: Rectangle, content: DisplayContent, receiver: (AffineTransform) -> Rectangle, masks: AffineTransform)
+        // `origin` carries the content's own coordinates into B, and `masks` the clip's own space into B.
+        let flat: (
+            box: Rectangle,
+            content: DisplayContent,
+            origin: AffineTransform,
+            receiver: (AffineTransform) -> Rectangle,
+            masks: AffineTransform
+        )
         switch clip.content {
         case let .title(text):
             let drawn = text.box(at: time)
+            let textBox = text.textBox(at: time)
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
             flat = (
                 Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height),
                 .glyphs(glyphs),
+                AffineTransform(translation: Point(x: textBox.x - drawn.x, y: textBox.y - drawn.y)),
                 { glyphs.drawnBounds(carriedBy: $0) },
                 .identity
             )
@@ -228,7 +237,13 @@ struct ClipEvaluator: Sendable {
                 AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
                     .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
             }
-            flat = (box, .picture(item), { Rectangle(bounding: $0.apply(toCornersOf: receiver)) }, crop ?? .identity)
+            flat = (
+                box,
+                .picture(item),
+                .identity,
+                { Rectangle(bounding: $0.apply(toCornersOf: receiver)) },
+                crop ?? .identity
+            )
 
         case let .shape(shape):
             let plane = { (box: Rectangle) in
@@ -236,7 +251,13 @@ struct ClipEvaluator: Sendable {
             }
             guard let drawn = shapeEvaluator.flat(shape, sample: sample, plane: plane, at: time) else { return nil }
 
-            flat = (drawn.box, .path(drawn.path), { shapeEvaluator.receiverBox(of: drawn.path, carriedBy: $0) }, .identity)
+            flat = (
+                drawn.box,
+                .path(drawn.path),
+                .identity,
+                { shapeEvaluator.receiverBox(of: drawn.path, carriedBy: $0) },
+                .identity
+            )
 
         case .adjustment:
             return nil
@@ -251,12 +272,13 @@ struct ClipEvaluator: Sendable {
         }
 
         let plane = ItemPresentation(area: flat.box, opacity: sample.opacity, motion: sample.animation.motion)
-        let bounds = flat.receiver(plane.transform)
+        let bounds = flat.receiver(flat.origin.concatenating(plane.transform))
         let transform = plane.transform.concatenating(AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y)))
+        let itemTransform = flat.origin.concatenating(transform)
         let list = ClipSpace(frame: Rectangle(x: 0, y: 0, width: bounds.width, height: bounds.height))
         let item = DisplayItem(
-            transform: transform,
-            reveal: sample.animation.reveal.rectangle(wiping: flat.receiver(transform), from: sample.animation.revealFrom),
+            transform: itemTransform,
+            reveal: sample.animation.revealRectangle(wiping: flat.receiver(itemTransform)),
             content: flat.content,
             origin: ItemOrigin(clip: clip)
         )
@@ -265,7 +287,7 @@ struct ClipEvaluator: Sendable {
         }
         var items = [item]
         if case let .title(text) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
-           let units = text.units {
+           let units = text.units, !units.isEmpty {
             items = [group(
                 of: clip,
                 text: text,
