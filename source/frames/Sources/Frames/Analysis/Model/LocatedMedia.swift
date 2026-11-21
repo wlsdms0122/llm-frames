@@ -33,7 +33,7 @@ package struct LocatedMedia: Equatable, Sendable {
         self.init(
             file: placement.frame.file.path,
             mediaTime: placement.mediaTime,
-            point: placement.transform.map { $0.apply(to: point) }
+            point: placement.transform.flatMap { $0.apply(to: point) }
         )
     }
 

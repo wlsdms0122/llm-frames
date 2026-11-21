@@ -9,9 +9,9 @@
 // to ((a x + c y + tx) / w, (b x + d y + ty) / w) with w = g x + h y + i (FRAMES-27). Its first six numbers are named as
 // in `AffineTransform`, and with g = h = 0 it is affine.
 //
-// Every homography here is the identity or is made from strictly convex quads, so w is above 0 inside the quad it takes
-// from: S(q) has it on the unit square, and an inverse and a product keep it. So a point lies in front of the horizon,
-// where w has the sign it has inside that quad, exactly where w is above 0.
+// Every homography here is affine, with w 1 everywhere, or is made from strictly convex quads, so w is above 0 inside
+// the quad it takes from: S(q) has it on the unit square, and an inverse and a product keep it. So a point lies in
+// front of the horizon, where w has the sign it has inside that quad, exactly where w is above 0.
 package struct Homography: Equatable, Sendable {
     // MARK: - Property
     static let identity = Homography(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0, g: 0, h: 0, i: 1)
@@ -26,6 +26,11 @@ package struct Homography: Equatable, Sendable {
     package let h: Double
     package let i: Double
 
+    // Zero where the homography takes the plane onto a line or a point, and has no inverse.
+    var determinant: Double {
+        a * (d * i - ty * h) + c * (ty * g - b * i) + tx * (b * h - d * g)
+    }
+
     // The homography that takes the destination back to the source, the matrix's adjugate over its determinant. w of
     // the inverse at a point of the destination is 1 over w at the point it comes from, so it is above 0 inside the
     // destination.
@@ -39,7 +44,7 @@ package struct Homography: Equatable, Sendable {
         let cofactor20 = c * ty - tx * d
         let cofactor21 = tx * b - a * ty
         let cofactor22 = a * d - c * b
-        let determinant = a * cofactor00 + c * cofactor01 + tx * cofactor02
+        let determinant = self.determinant
 
         return Homography(
             a: cofactor00 / determinant,
@@ -75,6 +80,21 @@ package struct Homography: Equatable, Sendable {
         self.g = g
         self.h = h
         self.i = i
+    }
+
+    // The affine transform as a homography, with g = h = 0 and i = 1.
+    init(_ transform: AffineTransform) {
+        self.init(
+            a: transform.a,
+            b: transform.b,
+            c: transform.c,
+            d: transform.d,
+            tx: transform.tx,
+            ty: transform.ty,
+            g: 0,
+            h: 0,
+            i: 1
+        )
     }
 
     // S(q), the homography that takes the unit square's corners (0, 0), (1, 0), (1, 1), (0, 1) to the quad's corners
@@ -152,9 +172,8 @@ package struct Homography: Equatable, Sendable {
         return Quad(topLeft: topLeft, topRight: topRight, bottomRight: bottomRight, bottomLeft: bottomLeft)
     }
 
-    // MARK: - Private
     // The homography that applies this one first and `other` after it, the matrix product `other` × self.
-    private func concatenating(_ other: Homography) -> Homography {
+    func concatenating(_ other: Homography) -> Homography {
         Homography(
             a: other.a * a + other.c * b + other.tx * g,
             b: other.b * a + other.d * b + other.ty * g,
@@ -167,4 +186,6 @@ package struct Homography: Equatable, Sendable {
             i: other.g * tx + other.h * ty + other.i * i
         )
     }
+
+    // MARK: - Private
 }

@@ -21,6 +21,13 @@ struct EvaluationReporterTests {
     private let title = ItemOrigin(place: "clips[0]#title", id: "title", kind: "title")
     private let entry = ItemOrigin(place: "storyline[0]", id: nil, kind: "compound")
     private let nested = ItemOrigin(place: "storyline[0].media.storyline[2]", id: nil, kind: "video")
+    // The homography from [0, 0, 100, 100] to this corner pin has w = 1 - 0.004 x, its horizon at x = 250.
+    private let trapezoid = Quad(
+        topLeft: Point(x: 60, y: 20),
+        topRight: Point(x: 160, y: 0),
+        bottomRight: Point(x: 160, y: 100),
+        bottomLeft: Point(x: 60, y: 80)
+    )
 
     // MARK: - Initializer
     // MARK: - Test
@@ -143,6 +150,25 @@ struct EvaluationReporterTests {
                 opacity: 0.5
             )
         ])
+    }
+
+    @Test("an item inside a picture with a corner pin is bounded after the corner pin carries it, its list past the source rect included")
+    func boundsItemUnderCornerPin() throws {
+        // Given
+        // The wide list's source rect is its left 100 x 100: the rest reaches the horizon at x = 250, and the
+        // output's right edge before it.
+        let narrow = pinned(listWidth: 100)
+        let wide = pinned(listWidth: 300)
+
+        // When
+        let report = sut.report(of: list([narrow]), at: 0)
+        let wideReport = sut.report(of: list([wide]), at: 0)
+
+        // Then
+        let bounds = try #require(report.items.first?.bounds)
+        let wideBounds = try #require(wideReport.items.first?.bounds)
+        #expect(isClose(bounds, Rectangle(x: 60, y: 0, width: 100, height: 100)))
+        #expect(isClose(wideBounds, Rectangle(x: 60, y: 0, width: 140, height: 100)))
     }
 
     @Test("a nested list shows only the source rect its picture draws, scaled into the picture's destination")
@@ -359,6 +385,22 @@ struct EvaluationReporterTests {
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {
         [ItemMask(geometry: .rect(rectangle, radius: 0), transform: .identity, feather: 0, isInverted: false, mode: .add)]
+    }
+
+    // A picture with the trapezoid as its corner pin, showing a list `listWidth` wide and 100 high filled with a path,
+    // its source rect and destination [0, 0, 100, 100].
+    private func pinned(listWidth: Double) -> DisplayItem {
+        let fill = Rectangle(x: 0, y: 0, width: listWidth, height: 100)
+        let inner = DisplayList(size: Size(width: listWidth, height: 100), background: transparent, seed: 0, items: [
+            DisplayItem(content: .path(PathItem(filling: fill, color: black)), origin: nested)
+        ])
+        let picture = PictureItem(
+            source: .displayList(inner),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            cornerPin: trapezoid
+        )
+        return DisplayItem(content: .picture(picture), origin: entry)
     }
 
     private func list(

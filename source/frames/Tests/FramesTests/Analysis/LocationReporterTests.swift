@@ -95,6 +95,45 @@ struct LocationReporterTests {
         #expect(abs(point.x - 50) < 1e-9 && abs(point.y - 25) < 1e-9)
     }
 
+    @Test("a point on a picture with a corner pin maps back through the corner pin's homography, and a point of its destination outside the corner pin is under nothing")
+    func mapsPointThroughCornerPin() throws {
+        // Given
+        // The corner pin takes the destination's corners to a trapezoid, and the destination's centre (50, 50) to
+        // (97.5, 50), since its homography's w is 0.8 there.
+        let media = DisplayItem(
+            content: .picture(PictureItem(
+                source: .media(MediaFrame(media: video, index: 0)),
+                rectangle: Rectangle(x: 0, y: 0, width: 200, height: 200),
+                destination: Rectangle(x: 0, y: 0, width: 100, height: 100)
+            )),
+            origin: clip
+        )
+        let nested = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [media])
+        let picture = PictureItem(
+            source: .displayList(nested),
+            rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+            cornerPin: Quad(
+                topLeft: Point(x: 60, y: 20),
+                topRight: Point(x: 160, y: 0),
+                bottomRight: Point(x: 160, y: 100),
+                bottomLeft: Point(x: 60, y: 80)
+            )
+        )
+        let item = DisplayItem(content: .picture(picture), origin: ItemOrigin(place: "clips[1]#shot", id: "shot", kind: "video"))
+
+        // When
+        let centre = sut.report(of: list([item]), point: Point(x: 97.5, y: 50))
+        let outside = sut.report(of: list([item]), point: Point(x: 30, y: 50))
+
+        // Then
+        let hit = try #require(centre.hits.first)
+        let point = try #require(hit.media?.point)
+        #expect(centre.hits.count == 1)
+        #expect(abs(point.x - 100) < 1e-9 && abs(point.y - 100) < 1e-9)
+        #expect(outside.hits.isEmpty)
+    }
+
     @Test("a point in a nested list maps through the list's picture and the item inside it, named by its own clip")
     func mapsPointThroughNestedList() throws {
         // Given

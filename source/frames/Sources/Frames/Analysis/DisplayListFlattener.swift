@@ -7,10 +7,12 @@
 
 // Flattens a display list into what each of its items covers of the output frame, bottom first. A picture of a nested
 // list is replaced by that list's background and items, carried through the picture's source rect, destination and
-// transform and cut by its mask, reveal and destination, so they cover only what the picture shows. What an item
-// covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke and
-// arrowheads, a glyphs item's box (a unit's item cut to its unit's box by its reveal), and an adjustment's list frame,
-// each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
+// transform and cut by its mask, reveal and destination, so they cover only what the picture shows. A picture with a
+// corner pin shows its whole list and carries it on from its destination to its corner pin by their homography, each
+// shape cut to the part in front of its horizon first (FRAMES-20, FRAMES-23). What an item covers follows its shape in
+// convex pieces: a picture's destination, a path's geometry with its stroke and arrowheads, a glyphs item's box (a
+// unit's item cut to its unit's box by its reveal), and an adjustment's list frame, each cut to the region its masks
+// bound (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
 // source is not drawn as items of the list, and does not cut what its item covers.
 struct DisplayListFlattener: Sendable {
     // MARK: - Property
@@ -73,7 +75,7 @@ struct DisplayListFlattener: Sendable {
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
-            coverage = own.cut(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame, transform: state.transform)]))
+            coverage = own.cut(ItemCoverage(pieces: [state.carried(ConvexPolygon(rectangle: frame))]))
         }
 
         return [FlattenedItem(
@@ -91,8 +93,11 @@ struct DisplayListFlattener: Sendable {
         switch picture.source {
         case let .media(media):
             // Without a source rect the picture shows the whole frame, whose size in pixels is not known here.
+            let map = own.map
             let transform = picture.rectangle.flatMap { rectangle in
-                own.transform.inverse.map { $0.concatenating(transform(from: picture.destination, onto: rectangle)) }
+                map.determinant == 0
+                    ? nil
+                    : map.inverse.concatenating(Homography(transform(from: picture.destination, onto: rectangle)))
             }
             let placement = MediaPlacement(frame: media, transform: transform)
             let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
@@ -107,12 +112,15 @@ struct DisplayListFlattener: Sendable {
         case let .displayList(list):
             let rectangle = picture.rectangle
                 ?? Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
-            let nested = own.nesting(
-                rectangle: rectangle,
-                transform: transform(from: rectangle, onto: picture.destination),
-                destination: picture.destination
-            )
-            return items(of: list, state: nested)
+            let transform = transform(from: rectangle, onto: picture.destination)
+            guard let cornerPin = picture.cornerPin else {
+                let nested = own.nesting(rectangle: rectangle, transform: transform, destination: picture.destination)
+                return items(of: list, state: nested)
+            }
+            // A corner pin is strictly convex, so only a destination with no area has no homography to it.
+            guard let homography = Homography(from: Quad(picture.destination), to: cornerPin) else { return [] }
+
+            return items(of: list, state: own.nesting(transform: transform, cornerPin: homography))
         }
     }
 
