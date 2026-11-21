@@ -113,7 +113,7 @@ extension ResolvedText {
         let clusters = lines[unit.characters.line].clusters
         let stretch = unit.characters.first..<(unit.characters.first + unit.characters.count)
         let owners = stretch
-            .filter { !(scalars[clusters[$0].range.lowerBound].properties.isWhitespace) }
+            .filter { !scalars[clusters[$0].range].isSpace }
             .compactMap { index in clusters[...index].last { $0.glyphs.count > 0 }?.glyphs }
         guard let first = owners.first, let last = owners.last else { return nil }
 

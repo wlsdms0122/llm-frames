@@ -28,7 +28,7 @@ struct UnitFinder: Sendable {
         runs: [GlyphRun]
     ) -> [PlacedUnit] {
         let scalars = Array(text.unicodeScalars)
-        let spaces = lines.map { line in line.clusters.map { isSpace(scalars[$0.range]) } }
+        let spaces = lines.map { line in line.clusters.map { scalars[$0.range].isSpace } }
         let stretches = lines.enumerated().flatMap { index, line in
             self.stretches(of: line, spaces: spaces[index], words: words, by: unit)
                 .map { CharacterRange(line: index, first: $0.lowerBound, count: $0.count) }
@@ -141,11 +141,6 @@ struct UnitFinder: Sendable {
         }
 
         return groups.isEmpty ? visible.map { [$0] } : groups
-    }
-
-    // A space is a cluster whose first scalar is `White_Space`.
-    private func isSpace(_ scalars: ArraySlice<Unicode.Scalar>) -> Bool {
-        scalars.first?.properties.isWhitespace ?? false
     }
 
     private func range(of stretch: CharacterRange) -> Range<Int> {

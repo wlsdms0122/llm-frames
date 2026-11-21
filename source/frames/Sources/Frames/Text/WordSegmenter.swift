@@ -54,7 +54,7 @@ struct WordSegmenter: Sendable {
             let marks = characters[segment].filter { !isIgnorable($0) }
             if marks.isEmpty {
                 continue
-            } else if marks.allSatisfy(isSpace) {
+            } else if marks.allSatisfy(\.unicodeScalars.isSpace) {
                 if !punctuation.isEmpty {
                     groups.append(punctuation)
                     punctuation = []
@@ -80,11 +80,6 @@ struct WordSegmenter: Sendable {
     }
 
     // MARK: - Private
-    // A space is a cluster whose first scalar is `White_Space`.
-    private func isSpace(_ character: Character) -> Bool {
-        character.unicodeScalars.first?.properties.isWhitespace ?? false
-    }
-
     private func isIgnorable(_ character: Character) -> Bool {
         character.unicodeScalars.allSatisfy(\.properties.isDefaultIgnorableCodePoint)
     }

@@ -301,7 +301,7 @@ struct Typesetter: Sendable {
                 style: run.style,
                 runFace: run.faces[0],
                 glyphs: indices.map { glyphs[$0] },
-                isSpace: character.unicodeScalars.first?.properties.isWhitespace ?? false,
+                isSpace: character.unicodeScalars.isSpace,
                 tracking: isOwner ? run.style.tracking * em : 0,
                 widestTracking: isOwner ? run.widestTracking * em : 0
             )
