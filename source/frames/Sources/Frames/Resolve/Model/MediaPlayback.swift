@@ -25,7 +25,7 @@ enum MediaPlayback: Equatable, Sendable {
             range.clipTime(atSequenceTime: time)
 
         case let .remapped(keyframes):
-            keyframes.value(at: time)
+            KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
         }
     }
 

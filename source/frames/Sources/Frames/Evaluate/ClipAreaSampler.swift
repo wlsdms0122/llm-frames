@@ -6,13 +6,13 @@
 //
 
 // The clip areas `clip` writes, at an instant, in the space `clip` is drawn in. The named clip's box is taken before
-// its own transform and tracked motion, at the instant held to its window; a title's is its text box with its
-// background at that instant. With the same parent or none, a box of its own keeps its size in output pixels, so its
-// anchor point is carried out to output pixels by the parent's map and the box drawn there is carried back by the
-// map's inverse, bounded where the map turns, and the padding is divided by the map's length factor; a shape placed by
-// its geometry gives its geometry's box. Named as the parent, it is its box in the space it gives its children. Resolve
-// has checked that every id names a clip that may be named and that no cycle holds, so the walk through clip areas the
-// named clip writes ends.
+// its own transform and tracked motion, at the instant held to its window, and under motion blur at its own value time
+// by its own switch (FRAMES-29); a title's is its text box with its background at that instant. With the same parent or
+// none, a box of its own keeps its size in output pixels, so its anchor point is carried out to output pixels by the
+// parent's map and the box drawn there is carried back by the map's inverse, bounded where the map turns, and the
+// padding is divided by the map's length factor; a shape placed by its geometry gives its geometry's box. Named as the
+// parent, it is its box in the space it gives its children. Resolve has checked that every id names a clip that may be
+// named and that no cycle holds, so the walk through clip areas the named clip writes ends.
 struct ClipAreaSampler: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -85,14 +85,16 @@ struct ClipAreaSampler: Sendable {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 
-        let held = TimeRange(start: named.start, end: named.end).held(time)
-        if clip.parent == named.id {
-            return childBox(of: named, at: held).grown(by: area.padding)
-        }
+        let window = TimeRange(start: named.start, end: named.end)
+        return SampleInstant.reading(ownedBy: named.isMotionBlurred, in: window, at: window.held(time)) { held in
+            if clip.parent == named.id {
+                return childBox(of: named, at: held).grown(by: area.padding)
+            }
 
-        let space = ParentEvaluator(sequence: sequence).space(of: named, at: held)
-        let length = space.transform.lengthFactor
-        return box(of: named, in: space, at: held).grown(by: length > 0 ? area.padding / length : 0)
+            let space = ParentEvaluator(sequence: sequence).space(of: named, at: held)
+            let length = space.transform.lengthFactor
+            return box(of: named, in: space, at: held).grown(by: length > 0 ? area.padding / length : 0)
+        }
     }
 
     // The named clip's box in the space it is drawn in.

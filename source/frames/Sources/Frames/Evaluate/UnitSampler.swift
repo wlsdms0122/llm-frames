@@ -23,6 +23,10 @@ struct UnitSampler: Sendable {
         schedule: UnitSchedule,
         at time: Double
     ) -> MotionSample {
+        guard SampleInstant.current == nil else {
+            return title(of: animation, schedule: schedule, at: time, onSideOf: SampleInstant.side(at: time))
+        }
+
         let rest = schedule.rest
         guard let loop = animation.loop, rest.contains(time) else { return .none }
 
@@ -38,6 +42,9 @@ struct UnitSampler: Sendable {
         at time: Double
     ) -> MotionSample {
         guard schedule.window.contains(time) else { return .none }
+        guard SampleInstant.current == nil else {
+            return unit(index, of: animation, schedule: schedule, at: time, onSideOf: SampleInstant.side(at: time))
+        }
 
         if let entrance = animation.entrance, schedule.entrance > 0 {
             let start = schedule.entranceStart(of: index)

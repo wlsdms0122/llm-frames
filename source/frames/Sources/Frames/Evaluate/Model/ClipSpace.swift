@@ -11,8 +11,9 @@
 // and `clock` the parent's media clock, which a tracked clip follows. A tracked clip's keyframes are each brought back
 // to the instant through its track, so `area`, `point`, `points`, `masks` and `anchor` answer in the clip's values'
 // coordinates, and `tracked(by:at:)` is the space that maps those to output pixels: the track's motion, then this
-// space's map. `areas` gives the clip areas of the clip drawn in the space at the instant, and a space without it takes
-// a clip area as an empty rectangle at the origin.
+// space's map. The track's motion is content, taken at T under motion blur (FRAMES-29). `areas` gives the clip areas of
+// the clip drawn in the space at the instant, and a space without it takes a clip area as an empty rectangle at the
+// origin.
 struct ClipSpace: Sendable {
     // MARK: - Property
     let frame: Rectangle
@@ -104,9 +105,10 @@ struct ClipSpace: Sendable {
     ) -> ClipSpace {
         guard let track, let clock else { return self }
 
+        let tracked = track.transform(on: clock, at: SampleInstant.side(at: time))
         return ClipSpace(
             frame: frame,
-            transform: track.transform(on: clock, at: time).concatenating(transform),
+            transform: tracked.concatenating(transform),
             clock: clock,
             areas: areas
         )

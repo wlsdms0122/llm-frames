@@ -22,6 +22,10 @@ struct AnimationSampler: Sendable {
         at time: Double
     ) -> MotionSample {
         guard window.contains(time) else { return .none }
+        // A sample of a frame with motion blur reads on T's side of the jumps.
+        guard SampleInstant.current == nil else {
+            return sample(of: animation, in: window, at: time, onSideOf: SampleInstant.side(at: time))
+        }
 
         let entranceLength = min(animation.entrance?.length ?? 0, window.length)
         let exitLength = min(animation.exit?.length ?? 0, window.length - entranceLength)
