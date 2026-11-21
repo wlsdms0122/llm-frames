@@ -839,11 +839,7 @@ struct KeyChecker: Sendable {
         kind: String
     ) throws -> MediaKind {
         if let pageCount = try pageCount(of: reference, place: place, kind: kind) {
-            guard pageCount == 1 else {
-                throw ModelError.unnamedPage(place: place, kind: kind, reference: reference, pageCount: pageCount)
-            }
-
-            return .page
+            return try pageKind(of: reference, page: nil, pageCount: pageCount, place: place, kind: kind)
         }
 
         let probed: MediaKind?
@@ -870,7 +866,26 @@ struct KeyChecker: Sendable {
             _ = try probedKind(of: reference, place: place, kind: kind)
             throw ModelError.pageOfNonPDF(place: place.appending(key: "page"), kind: kind, reference: reference)
         }
-        guard page <= pageCount else {
+
+        return try pageKind(of: reference, page: page, pageCount: pageCount, place: place, kind: kind)
+    }
+
+    // The kind of the page a reference names of a PDF of `pageCount` pages, by `page`, nil where none is written.
+    private func pageKind(
+        of reference: String,
+        page: Int?,
+        pageCount: Int,
+        place: Place,
+        kind: String
+    ) throws -> MediaKind {
+        switch PageChoice(page: page, pageCount: pageCount) {
+        case .page:
+            return .page
+
+        case let .unnamed(pageCount):
+            throw ModelError.unnamedPage(place: place, kind: kind, reference: reference, pageCount: pageCount)
+
+        case let .missing(page, pageCount):
             throw ModelError.missingPage(
                 place: place.appending(key: "page"),
                 kind: kind,
@@ -878,9 +893,10 @@ struct KeyChecker: Sendable {
                 page: page,
                 pageCount: pageCount
             )
-        }
 
-        return .page
+        case .empty:
+            throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: PageChoice.emptyReason)
+        }
     }
 
     private func pageCount(

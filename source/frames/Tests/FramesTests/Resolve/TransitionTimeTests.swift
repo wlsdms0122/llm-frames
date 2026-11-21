@@ -186,7 +186,7 @@ struct TransitionTimeTests {
     }
 
     @Test(
-        "a cover or matte of a PDF of several pages named as a file, a page above the count and a page of no PDF stop",
+        "a cover or matte of a PDF of several pages named as a file, a page above the count, a page of no PDF and a PDF of no pages stop",
         arguments: [
             (
                 CoverSource.media("/abs/deck.pdf"),
@@ -199,6 +199,10 @@ struct TransitionTimeTests {
             (
                 .page("/abs/card.png", page: 1),
                 #"storyline[1].transition (solid): media "/abs/card.png" is not a PDF, so it has no pages"#
+            ),
+            (
+                .media("/abs/empty.pdf"),
+                #"storyline[1].transition (solid): media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#
             )
         ]
     )

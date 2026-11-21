@@ -158,6 +158,20 @@ struct ProbeReporterTests {
         #expect(missing?.description == #"media "/abs/absent.pdf" is not there"#)
     }
 
+    @Test("a PDF of no pages is media that cannot be read, with a page named or none")
+    func refusesPdfOfNoPages() throws {
+        // Given
+        let sut = ProbeReporter(mediaFacts: MediaFactTable(files: [:], pages: ["/abs/empty.pdf": []]))
+
+        // When
+        let unnamed = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/empty.pdf") }
+        let named = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/empty.pdf", page: 1) }
+
+        // Then
+        #expect(unnamed?.description == #"media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#)
+        #expect(named?.description == #"media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#)
+    }
+
     @Test("the text gives one fact a line, none where the medium has none")
     func writesText() throws {
         // Given

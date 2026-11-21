@@ -10,8 +10,8 @@ extension MediaFactProvider {
     // MARK: - Initializer
     // MARK: - Public
     // The page of `path` that `page` names, or where none is named the one page of a PDF of one page (FRAMES-23). A
-    // page above the page count and a page of a file that is no PDF stop, and so does a page of a file that is not
-    // there.
+    // page above the page count, a page of a file that is no PDF and a PDF of no pages stop, and so does a page of a
+    // file that is not there.
     func commandPage(
         _ page: Int?,
         of path: String
@@ -22,12 +22,19 @@ extension MediaFactProvider {
 
             throw AnalysisError.pageOfNonPDF(file: path, page: page)
         }
-        guard let number = page ?? (pageCount == 1 ? 1 : nil) else { return .unnamed(pageCount: pageCount) }
-        guard number <= pageCount else {
-            throw AnalysisError.missingPage(file: path, page: number, pageCount: pageCount)
-        }
+        switch PageChoice(page: page, pageCount: pageCount) {
+        case let .page(number):
+            return .page(number: number)
 
-        return .page(number: number)
+        case let .unnamed(pageCount):
+            return .unnamed(pageCount: pageCount)
+
+        case let .missing(page, pageCount):
+            throw AnalysisError.missingPage(file: path, page: page, pageCount: pageCount)
+
+        case .empty:
+            throw AnalysisError.unreadableMedia(file: path, reason: PageChoice.emptyReason)
+        }
     }
 
     // The page `page` names of `path`, after its decoder's checks, with its size. A PDF of more than one page with no

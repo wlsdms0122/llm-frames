@@ -86,6 +86,19 @@ struct PageMediaCheckTests {
     }
 
     @Test(
+        "a PDF of no pages is media that cannot be read, named as a file or with a page",
+        arguments: [#""/abs/empty.pdf""#, #"{ "file": "/abs/empty.pdf", "page": 1 }"#]
+    )
+    func refusesPdfOfNoPages(media: String) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": \#(media) } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0].media (storyline clip): media "/abs/empty.pdf" cannot be probed: it is a PDF of no pages"#)
+    }
+
+    @Test(
         "a page the file does not hold stops: one above the page count, and any page of a file that is not a PDF",
         arguments: [
             (

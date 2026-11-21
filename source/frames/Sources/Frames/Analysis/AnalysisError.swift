@@ -7,6 +7,7 @@
 
 enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingMedia(file: String)
+    case unreadableMedia(file: String, reason: String)
     case noPicture(file: String)
     case notVideo(file: String, kind: MediaKind)
     case timeOnStill(file: String)
@@ -25,6 +26,9 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
         switch self {
         case let .missingMedia(file):
             "media \(quoted(file)) is not there"
+
+        case let .unreadableMedia(file, reason):
+            "media \(quoted(file)) cannot be probed: \(reason)"
 
         case let .noPicture(file):
             "media \(quoted(file)) is sound, so it has no picture to read"

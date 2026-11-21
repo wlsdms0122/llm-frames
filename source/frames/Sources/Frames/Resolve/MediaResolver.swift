@@ -237,16 +237,29 @@ struct MediaResolver: Sendable {
 
             throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: reference)
         }
-        guard let number = page ?? (pageCount == 1 ? 1 : nil) else {
+        let number: Int
+        switch PageChoice(page: page, pageCount: pageCount) {
+        case let .page(chosen):
+            number = chosen
+
+        case let .unnamed(pageCount):
             throw ModelError.unnamedPage(place: place, kind: kind.label, reference: reference, pageCount: pageCount)
-        }
-        guard number <= pageCount else {
+
+        case let .missing(page, pageCount):
             throw ModelError.missingPage(
                 place: place,
                 kind: kind.label,
                 reference: reference,
-                page: number,
+                page: page,
                 pageCount: pageCount
+            )
+
+        case .empty:
+            throw ModelError.unreadableMedia(
+                place: place,
+                kind: kind.label,
+                reference: reference,
+                reason: PageChoice.emptyReason
             )
         }
         guard
