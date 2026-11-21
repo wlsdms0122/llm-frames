@@ -4,7 +4,7 @@ Status: draft
 
 ## Summary
 
-How a clip shows the motion frames gives it during the exposure of an output frame, as After Effects' Motion Blur switch does: `format.motionBlur`, the sequence's shutter (`shutterAngle`, `shutterPhase` and `samplesPerFrame`), and a clip's `motionBlur`; the principle of what a sample moves (pose) and holds (content and membership); the groups clips with motion blur form, each a `picture` whose source is the `samples` of its clips at the instants of the frame's exposure cut to where the group is, and their mean, a form-free formula; how the clips inside a compound clip or a template instance take the exposure of the outermost sequence through its time map; and what a renderer does to draw it.
+How a clip shows the motion frames gives it during the exposure of an output frame, as After Effects' Motion Blur switch does: `format.motionBlur`, the sequence's shutter (`shutterAngle`, `shutterPhase` and `samplesPerFrame`), and a clip's `motionBlur`; the principle of what a sample moves (pose) and holds (content and membership); the groups clips with motion blur form, each a `picture` whose source is the `samples` of its clips at the instants of the frame's exposure cut to where the group is, and their mean, a form-free formula; how an adjustment clip with motion blur draws the mean of its samples over what is below it; how the clips inside a compound clip or a template instance take the exposure of the outermost sequence through its time map; and what a renderer, `evaluate` and `locate` do with a group.
 
 ## Motivation
 
@@ -21,17 +21,17 @@ A keyframed move that a camera would smear is drawn today as a sharp picture tha
 | Key | Value | Default | Meaning |
 | --- | --- | --- | --- |
 | `shutterAngle` | degrees, a number above 0 and at most 720 | 180 | how long the shutter is open, A / 360 of a frame: 360 is a whole frame and 720 two |
-| `shutterPhase` | degrees, a number from -360 to 360 | -`shutterAngle` / 2 | when the shutter opens, P / 360 of a frame from the frame's instant, a negative phase before it. The default centres the exposure on the instant |
-| `samplesPerFrame` | a whole number from 2 to 256 | 16 | how many instants of the exposure a clip with motion blur is drawn at |
+| `shutterPhase` | degrees, a number from -`shutterAngle` to 0 | -`shutterAngle` / 2 | when the shutter opens, P / 360 of a frame before the frame's instant, so the exposure always holds the instant. The default centres the exposure on it, -`shutterAngle` closes the shutter at it, and 0 opens the shutter at it |
+| `samplesPerFrame` | a whole number from 2 to 256 | 16 | how many instants of the exposure a group is drawn at |
 
-- A value outside its range, a value of another type and a `samplesPerFrame` that is not a whole number stop at `check`. A format without `motionBlur`, or with some of its keys left out, takes the defaults for what it leaves out, the default phase computed from the angle in effect.
+- A value outside its range, a value of another type and a `samplesPerFrame` that is not a whole number stop at `check`. The range of `shutterPhase` is read against the angle in effect, so a phase of -200 under the default angle of 180 stops. A format without `motionBlur`, or with some of its keys left out, takes the defaults for what it leaves out, the default phase computed from the angle in effect.
 - The shutter is static: it takes no keyframes, and it is the same for every frame and every clip of the output.
 - A compound clip's or a template instance's `format.motionBlur` applies only when it is rendered alone, as its `fps` does ([FRAMES-3](../FRAMES-3/SPEC.md)). Inside another sequence the key is allowed and has no effect, and the outermost sequence's shutter is the shutter of every clip it shows, the clips inside its compound clips and template instances included ([Compound clips and template instances](#compound-clips-and-template-instances)).
 
-A clip's `motionBlur` is `true` or `false`, and `false` by default. It is taken by every storyline clip (timed media, still and solid) and by every clip with a picture but an adjustment clip: a title, a shape, a visual media clip and a still media clip ([FRAMES-7](../FRAMES-7/SPEC.md)).
+A clip's `motionBlur` is `true` or `false`, and `false` by default. It is taken by every storyline clip (timed media, still and solid) and by every clip with a picture: a title, a shape, a visual media clip, a still media clip and an adjustment clip ([FRAMES-7](../FRAMES-7/SPEC.md)).
 
 - It is a boolean, so it is static ([FRAMES-4](../FRAMES-4/SPEC.md)), and a keyframe that writes it stops.
-- On an adjustment clip or an audio clip it is an unknown key and stops at `check`. An adjustment clip draws no picture of its own: it filters what is below it in its list ([FRAMES-11](../FRAMES-11/SPEC.md)), and an audio clip draws nothing.
+- On an audio clip it is an unknown key and stops at `check`, since an audio clip draws nothing.
 - A theme's `defaults` and a style do not set it, as they do not set `blend` ([FRAMES-22](../FRAMES-22/SPEC.md)).
 - It is the clip's own. A parent's `motionBlur` does not reach its children ([FRAMES-10](../FRAMES-10/SPEC.md)), and a compound clip's or a template instance's does not reach the clips inside it.
 ### What a sample moves and what it holds
@@ -53,7 +53,7 @@ Every case follows from this:
 
 ### Groups
 
-In each display list, the outermost one and every nested one, the clips that draw at T and have `motionBlur` form groups. **A run of clips next to each other in the list's stacking order, each with `motionBlur` and `blend` `normal`, is one group.** A clip with `motionBlur` and another blend is a group of its own. A clip without `motionBlur` and a transition cover end a run. A clip used as a track matte takes no place in the stack ([FRAMES-9](../FRAMES-9/SPEC.md)), so it ends no run.
+In each display list, the outermost one and every nested one, the clips that draw at T and have `motionBlur` form groups. **A run of clips next to each other in the list's stacking order, each with `motionBlur` and `blend` `normal`, is one group.** A clip with `motionBlur` and another blend is a group of its own. A clip without `motionBlur`, a transition cover and an adjustment clip end a run, and an adjustment clip with `motionBlur` is a group of its own ([Adjustment clips](#adjustment-clips)). A clip used as a track matte takes no place in the stack ([FRAMES-9](../FRAMES-9/SPEC.md)), so it ends no run.
 
 A group has N samples. Its sample at the instant tᵢ is a display list Lᵢ the size of the list that holds the group, with a transparent background and the holding list's `compositing` and seed, whose items are what all the clips of the group draw at tᵢ ([FRAMES-20](../FRAMES-20/SPEC.md)), with their pose at tᵢ and their content and membership at T, in the order they stack in, each with `blend` `normal`. So the clips of a group are composited onto each other inside each sample, at the same instant. A storyline clip draws its two items there, its inner item with its own track matte inside its outer item, which carries the transition motion, in the order [FRAMES-9](../FRAMES-9/SPEC.md) gives, and a title animated by unit draws the title's group ([FRAMES-20](../FRAMES-20/SPEC.md#glyphs-and-adjustments)).
 
@@ -70,7 +70,7 @@ The group draws one `picture` item in the holding list:
 | `mask`, `reveal`, `trackMatte` | `null` |
 | `filter`, `matte`, `radius`, `border`, `shadow` | none |
 
-The group takes the place of its clips in the stack ([FRAMES-9](../FRAMES-9/SPEC.md)). Its origin is its lowest clip, and the items inside its samples carry their own clips.
+The group takes the place of its clips in the stack ([FRAMES-9](../FRAMES-9/SPEC.md)). Its origin is its lowest clip, and the items inside its samples carry their own clips. Evaluation writes the group for every group, whether or not its samples differ, so the display list has one form for a clip with motion blur.
 
 ### The exposure of a group
 
@@ -121,6 +121,14 @@ A renderer sums the N pictures in the order of the list, from a sum of 0, in flo
 
 **Note.** A push whose two sides should blur as one turns `motionBlur` on for both. With one side on, the seam is the edge of one exposed picture against a picture at T, and which side shows the band is the side whose switch is on.
 
+### Adjustment clips
+
+An adjustment clip has a pose, its reveal, mask, track matte, opacity, animation and filter values, and draws no picture of its own: it filters what is below it in its list ([FRAMES-11](../FRAMES-11/SPEC.md)). What it filters is in the holding list and in none of a sample's, so an adjustment clip with `motionBlur` is a group of its own, and its exposure is cut as any group's.
+
+It draws one `adjust` item whose `samples` are N `adjust` items, each what the clip draws at tᵢ: its filter, `blend`, reveal, mask, track matte and opacity there, with its content and membership at T. The item draws onto what is below it the mean of what its samples draw onto that same picture, each sample's result summed and divided by N as [The mean](#the-mean) sums pictures. Its own `filter` is empty, its transform the identity, its opacity 1, its `blend` `normal`, and its reveal, mask and track matte `null`. So what is below is drawn once and held, and the mean is an exposure of the adjustment over it, under every blend.
+
+**Note.** Where the filters of the samples are equal, as for an adjustment whose filter values are not keyframed, the coverage enters linearly. With F the filtered picture and its alpha αF, B what is below, and mᵢ the coverage of sample i (its reveal, mask, track matte and opacity at a point), sample i gives mᵢ × F + (1 - mᵢ × αF) × B under `normal`, and the mean of these is m × F + (1 - m × αF) × B with m the mean coverage. The same holds under every blend but `plus-lighter`, whose bound at 1 is not linear, since W3C's formula is linear in the source's alpha over a fixed source colour and backdrop. A renderer may then apply the filter once and cover by the mean coverage.
+
 ### Compound clips and template instances
 
 A compound clip or a template instance C shown on a frame of instant T is evaluated at m(T), where m maps the time of the sequence that holds C to C's media time by C's time map: its `in`, `speed`, `loop` and `timeRemap` ([FRAMES-8](../FRAMES-8/SPEC.md)), within its `[0, duration)` ([FRAMES-3](../FRAMES-3/SPEC.md)). m(T) is the frame's instant inside C: which of C's clips draw, their media frames and their tracked motion are taken there.
@@ -136,8 +144,9 @@ A compound clip or a template instance C shown on a frame of instant T is evalua
 
 ### Roles
 
-- The renderer draws the `samples` source by the mean above ([FRAMES-21](../FRAMES-21/SPEC.md)). A renderer that lacks it refuses before it starts, naming the first group and its place, as for any item it lacks.
-- The decoder is asked for each media frame of a clip with motion blur once per output frame, the frame at T. The mixer and the mix plan are unchanged: motion blur acts on pictures only ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). The encoder is unchanged.
+- The renderer draws the `samples` source and an `adjust` item's `samples` by the mean above ([FRAMES-21](../FRAMES-21/SPEC.md)). A renderer that lacks them refuses before it starts, naming the first group and its place, as for any item it lacks.
+- `evaluate` and `locate` report a group as what it is: its clips' items once, as at T, each with its bounds over the whole exposure and its own opacity, and one hit for each item under a point ([FRAMES-23](../FRAMES-23/SPEC.md)).
+- The decoder is asked for each media frame of a group once per output frame, the frame at T. The mixer and the mix plan are unchanged: motion blur acts on pictures only ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)). The encoder is unchanged.
 
 ## Interactions
 
@@ -167,11 +176,19 @@ A mean per clip, each clip's samples holding that clip alone: two opaque picture
 
 A track matte held at T and carried once on the group, which the mean allows since a matte that is the same in every sample multiplies the mean as it multiplies each sample: the matte is the same only because it is held, so a matte that moves with its clip, a rounded rect parented to a picture in picture, would cut the blurred picture with a sharp matte at T, and with the matte clip's own motion blur on with the mean of the matte times the mean of the picture, neither of them the mean of the matte times the picture. The matte is part of what the clip draws at each instant, as a mask is.
 
+A shutter phase from -360 to 360: an exposure that does not hold T, a phase of 30 under an angle of 10 or a phase of 360 under 720, would show content and membership decided at an instant the shutter never saw. A phase from -`shutterAngle` to 0 keeps T inside every exposure, and covers the leading, centred and trailing shutters.
+
+Equal samples drawn as one item by evaluation, the items of the first sample in place of the group where the N lists are equal field by field: the comparison needs the N lists built anyway, so it saves only rasters, which a renderer saves by the same comparison, and it would make the display list and the `evaluate` output switch form on a float comparison, where a spring's remainder of 1e-12 changes one item into a group. Evaluation writes one form, and the saving is the renderer's.
+
+Adjustment clips kept without `motionBlur`: an adjustment has a pose, a sliding mask or a fading opacity, and an adjustment that follows a blurred picture would cut a sharp edge through its blur. Its exposure costs one field of the display list, the `adjust` item's `samples`.
+
+`evaluate` reporting each sample's items at their opacity divided by N, and `locate` an item once for each sample that holds it: the opacity is neither the item's nor the weight it shows with where samples overlap, and an agent asking where a title is would have to merge N boxes. A group is reported as its clips' items, once.
+
 A compound clip's own `format.motionBlur` applied to its inner clips: two shutters in one output, and a template would blur differently in hosts of different rates. The outermost shutter mapped through the time map is the camera of the output, as a compound clip's `colorSpace` gives way to the outermost sequence's ([FRAMES-26](../FRAMES-26/SPEC.md#sequence-colour-space)).
 
 ## Notes
 
-**Note.** A clip with motion blur is drawn N times a frame, so it costs N nested rasters the size of its holding list, and the `evaluate` output and the JSON form of a display list hold N lists for it. A clip with motion blur inside a compound clip with motion blur is drawn N times in each of the N samples of the compound clip unless the renderer draws the nested list once and reuses it, which it can, since the N samples hold the same list. The time per frame against the same frame without motion blur, at 1080p and 4K and at 16 and 64 samples, is not yet measured.
+**Note.** A group is drawn N times a frame, so it costs N nested rasters the size of its holding list, and the JSON form of a display list holds N lists for it. A group inside a compound clip with motion blur is drawn N times in each of the N samples of the compound clip unless the renderer draws the nested list once and reuses it, which it can, since the N samples hold the same list. A renderer may draw a group whose sample lists are equal, a clip that does not move over the exposure, by drawing one of them, since the mean of equal pictures is that picture. The time per frame against the same frame without motion blur, at 1080p and 4K and at 16 and 64 samples, is not yet measured.
 
 **Note.** N samples show a fast move as N copies, steps of v × A / (360 × fps × N) pixels for a clip moving v pixels a second. Under the defaults at 25 fps a clip moving 1600 pixels a second, 64 a frame, shows steps of 2 pixels, which read as a smooth blur, and one moving 10000 pixels a second shows steps of 12.5, which read as echoes. Raising `samplesPerFrame` makes the steps smaller at the cost of the time per frame.
 
