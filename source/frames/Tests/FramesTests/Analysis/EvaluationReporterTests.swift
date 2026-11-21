@@ -1023,6 +1023,37 @@ struct EvaluationReporterTests {
         #expect(abs(carried.x - inOuter.x - 20) < 1e-9 && abs(carried.y - inOuter.y) < 1e-9)
     }
 
+    @Test("a clip with a corner pin and motion blur reports its corner pins as at the asked time, as without motion blur, though its corner pin moves over the exposure")
+    func reportsCornerPinsAtTimeUnderMotionBlur() throws {
+        // Given
+        let document = { (isMotionBlurred: Bool) in
+            #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "card", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
+                           "motionBlur": \#(isMotionBlurred),
+                           "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]] },
+                                          { "at": 2, "cornerPin": [[300, 100], [700, 100], [700, 400], [300, 400]] } ] } ] }
+            """#
+        }
+        let blurred = try resolved(document(true))
+        let sharp = try resolved(document(false))
+
+        // When
+        let report = try sut.report(of: blurred, at: 1)
+        let expected = try sut.report(of: sharp, at: 1)
+
+        // Then
+        // The corner pin moves 100 pixels a second, so the frame at 1 has samples, and its report is the pin at 1.
+        let cornerPins = try #require(report.items.first { $0.origin?.id == "card" }?.cornerPins)
+        let cornerPin = try #require(cornerPins.first?.cornerPin)
+        let atTime = Quad(Rectangle(x: 200, y: 100, width: 400, height: 300))
+        #expect(Evaluator().displayList(of: blurred, at: 1).samples != nil)
+        #expect(cornerPins.count == 1)
+        #expect(cornerPins == expected.items.first { $0.origin?.id == "card" }?.cornerPins)
+        #expect(zip(cornerPin.corners, atTime.corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
     @Test("an item's corner pins are written as FRAMES-23 gives them, each its dest and its corner pin as four points")
     func writesCornerPins() throws {
         // Given
