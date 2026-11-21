@@ -28,7 +28,7 @@ struct DisplayListFlattener: Sendable {
     // The list's background comes first, unless it is transparent and draws nothing. A list given as samples is an
     // exposure and has no one place for an item, so it stops (FRAMES-29).
     func items(of list: DisplayList) throws -> [FlattenedItem] {
-        try items(of: list, state: GraphicsState(transform: .identity, clips: [], opacity: 1, origin: nil))
+        try items(of: list, state: GraphicsState(innerTransform: .identity, clips: [], opacity: 1, origin: nil))
     }
 
     // MARK: - Private
@@ -47,8 +47,8 @@ struct DisplayListFlattener: Sendable {
                 origin: state.origin,
                 item: .background,
                 opacity: state.opacity,
-                transform: state.affineTransform,
-                cornerPins: state.reportedCornerPins,
+                transform: state.planeTransform,
+                cornerPins: state.planeCornerPins,
                 rect: frame,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
@@ -72,13 +72,13 @@ struct DisplayListFlattener: Sendable {
             return try items(of: picture, own: own)
 
         case let .path(path):
-            transform = own.affineTransform
+            transform = own.planeTransform
             rect = box(of: path.geometry)
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
             characters = nil
 
         case let .glyphs(glyphs):
-            transform = own.affineTransform
+            transform = own.planeTransform
             rect = glyphs.extent
             let drawn = drawn(by: glyphs, carriedBy: item.transform)
             coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
@@ -86,7 +86,7 @@ struct DisplayListFlattener: Sendable {
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
-            transform = state.affineTransform
+            transform = state.planeTransform
             rect = frame
             coverage = own.cut(ItemCoverage(pieces: [state.carried(ConvexPolygon(rectangle: frame))]))
             characters = nil
@@ -97,7 +97,7 @@ struct DisplayListFlattener: Sendable {
             item: ItemKind(content: item.content),
             opacity: own.opacity,
             transform: transform,
-            cornerPins: own.reportedCornerPins,
+            cornerPins: own.planeCornerPins,
             rect: rect,
             coverage: coverage,
             characters: characters
@@ -123,8 +123,8 @@ struct DisplayListFlattener: Sendable {
                 origin: own.origin,
                 item: .picture,
                 opacity: own.opacity,
-                transform: own.affineTransform,
-                cornerPins: own.reportedCornerPins,
+                transform: own.planeTransform,
+                cornerPins: own.planeCornerPins,
                 rect: picture.destination,
                 coverage: coverage,
                 media: placement

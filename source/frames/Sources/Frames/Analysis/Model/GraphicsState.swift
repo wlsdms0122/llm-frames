@@ -7,43 +7,43 @@
 
 // What holds an item as it is flattened: the map from the coordinates it is drawn in to output pixels, the clips that
 // cut it in output pixels, the opacity of everything holding it, and the clip that drew what holds it, which an item
-// without an origin of its own is named by. The map is `transform`, then each of `cornerPins` in order: `transform`
-// carries the item to the coordinates of the innermost picture with a corner pin holding it, or to output pixels where
-// none does, and each corner pin is the homography from its picture's destination to its corner pin followed by the
-// transform that carries that picture's coordinates on, innermost first. A shape is cut to the part in front of each
-// corner pin's horizon before that corner pin carries it. `affineTransform` is the same chain with every corner pin left
-// out, the map P_n R_n ... P_1 R_1 T an item reports as its transform, and `reportedCornerPins` are the corner pins an
-// item reports, innermost first, each its picture's destination and corner pin carried into the coordinates
-// `affineTransform` gives (FRAMES-23).
+// without an origin of its own is named by. The map is `innerTransform`, then each of `cornerPins` in order:
+// `innerTransform` carries the item to the coordinates of the innermost picture with a corner pin holding it, or to
+// output pixels where none does, and each corner pin is the homography from its picture's destination to its corner pin
+// followed by the transform that carries that picture's coordinates on, innermost first. A shape is cut to the part in
+// front of each corner pin's horizon before that corner pin carries it. The same map is also `planeTransform`, the
+// chain with every corner pin left out, P_n R_n ... P_1 R_1 T, where the item lies on its plane, then each of
+// `planeCornerPins` in order, the corner pins an item reports, innermost first, each its picture's destination and
+// corner pin carried into the coordinates `planeTransform` gives (FRAMES-23 Item transforms).
 struct GraphicsState: Equatable, Sendable {
     // MARK: - Property
-    let transform: AffineTransform
-    let affineTransform: AffineTransform
+    let innerTransform: AffineTransform
+    let planeTransform: AffineTransform
     let cornerPins: [Homography]
-    let reportedCornerPins: [EvaluationCornerPin]
+    let planeCornerPins: [EvaluationCornerPin]
     let clips: [ConvexPolygon]
     let opacity: Double
     let origin: ItemOrigin?
 
     // The whole map as one homography, in front of whose horizon lies everything the state carries.
     var map: Homography {
-        cornerPins.reduce(Homography(transform)) { map, cornerPin in map.concatenating(cornerPin) }
+        cornerPins.reduce(Homography(innerTransform)) { map, cornerPin in map.concatenating(cornerPin) }
     }
 
     // MARK: - Initializer
     init(
-        transform: AffineTransform,
-        affineTransform: AffineTransform? = nil,
+        innerTransform: AffineTransform,
+        planeTransform: AffineTransform? = nil,
         cornerPins: [Homography] = [],
-        reportedCornerPins: [EvaluationCornerPin] = [],
+        planeCornerPins: [EvaluationCornerPin] = [],
         clips: [ConvexPolygon],
         opacity: Double,
         origin: ItemOrigin?
     ) {
-        self.transform = transform
-        self.affineTransform = affineTransform ?? transform
+        self.innerTransform = innerTransform
+        self.planeTransform = planeTransform ?? innerTransform
         self.cornerPins = cornerPins
-        self.reportedCornerPins = reportedCornerPins
+        self.planeCornerPins = planeCornerPins
         self.clips = clips
         self.opacity = opacity
         self.origin = origin
@@ -54,10 +54,10 @@ struct GraphicsState: Equatable, Sendable {
     // bound, in the list's coordinates, and by its reveal, in its own.
     func holding(_ item: DisplayItem) -> GraphicsState {
         let held = GraphicsState(
-            transform: item.transform.concatenating(transform),
-            affineTransform: item.transform.concatenating(affineTransform),
+            innerTransform: item.transform.concatenating(innerTransform),
+            planeTransform: item.transform.concatenating(planeTransform),
             cornerPins: cornerPins,
-            reportedCornerPins: reportedCornerPins,
+            planeCornerPins: planeCornerPins,
             clips: clips,
             opacity: opacity * item.opacity,
             origin: item.origin ?? origin
@@ -76,10 +76,10 @@ struct GraphicsState: Equatable, Sendable {
         destination: Rectangle
     ) -> GraphicsState {
         let nested = GraphicsState(
-            transform: transform.concatenating(self.transform),
-            affineTransform: transform.concatenating(affineTransform),
+            innerTransform: transform.concatenating(innerTransform),
+            planeTransform: transform.concatenating(planeTransform),
             cornerPins: cornerPins,
-            reportedCornerPins: reportedCornerPins,
+            planeCornerPins: planeCornerPins,
             clips: clips,
             opacity: opacity,
             origin: origin
@@ -103,14 +103,14 @@ struct GraphicsState: Equatable, Sendable {
         guard let homography = Homography(from: Quad(destination), to: cornerPin) else { return nil }
 
         let reported = EvaluationCornerPin(
-            destination: Quad(destination).applying(affineTransform),
-            cornerPin: cornerPin.applying(affineTransform)
+            destination: Quad(destination).applying(planeTransform),
+            cornerPin: cornerPin.applying(planeTransform)
         )
         return GraphicsState(
-            transform: transform,
-            affineTransform: transform.concatenating(affineTransform),
-            cornerPins: [homography.concatenating(Homography(self.transform))] + cornerPins,
-            reportedCornerPins: [reported] + reportedCornerPins,
+            innerTransform: transform,
+            planeTransform: transform.concatenating(planeTransform),
+            cornerPins: [homography.concatenating(Homography(innerTransform))] + cornerPins,
+            planeCornerPins: [reported] + planeCornerPins,
             clips: clips,
             opacity: opacity,
             origin: origin
@@ -124,7 +124,7 @@ struct GraphicsState: Equatable, Sendable {
 
     // A polygon in the coordinates the state draws in, carried to output pixels.
     func carried(_ polygon: ConvexPolygon) -> ConvexPolygon {
-        cornerPins.reduce(polygon.applying(transform)) { polygon, cornerPin in polygon.carried(by: cornerPin) }
+        cornerPins.reduce(polygon.applying(innerTransform)) { polygon, cornerPin in polygon.carried(by: cornerPin) }
     }
 
     // What a shape drawn in this state covers of the output.
@@ -140,10 +140,10 @@ struct GraphicsState: Equatable, Sendable {
     // MARK: - Private
     private func cut(by polygons: [ConvexPolygon]) -> GraphicsState {
         GraphicsState(
-            transform: transform,
-            affineTransform: affineTransform,
+            innerTransform: innerTransform,
+            planeTransform: planeTransform,
             cornerPins: cornerPins,
-            reportedCornerPins: reportedCornerPins,
+            planeCornerPins: planeCornerPins,
             clips: clips + polygons,
             opacity: opacity,
             origin: origin
