@@ -9,7 +9,7 @@
 // its extent in them, and what it covers of the output frame. A picture of a nested list is replaced by that list's
 // background and items, carried through the picture's source rect, destination and transform and cut by its mask,
 // reveal and destination, so they cover only what the picture shows. What an item covers follows its shape in convex
-// pieces: a picture's destination, a path's geometry with its stroke and arrowheads, a glyphs item's box (a unit's item cut to its unit's box by its reveal), and an
+// pieces: a picture's destination, a path's geometry with its stroke and arrowheads, what a glyphs item draws, and an
 // adjustment's list frame, each cut to the region its masks bound (`ConvexPolygon(bounding:)`). Rounded corners,
 // transition mattes and track mattes are left out: a track matte's source is not drawn as items of the list, and does
 // not cut what its item covers.
@@ -69,16 +69,10 @@ struct DisplayListFlattener: Sendable {
             coverage = own.covered(ItemCoverage(path: path, carriedBy: item.transform))
 
         case let .glyphs(glyphs):
-            // A title's background drawn alone, under its units, covers only its rect, or nothing without one, and a
-            // unit's item its unit's box.
-            let box = glyphs.runs.isEmpty && glyphs.layer == nil
-                ? glyphs.background?.rectangle
-                : glyphs.unitBox ?? Rectangle(x: 0, y: 0, width: glyphs.size.width, height: glyphs.size.height)
-            guard let box else { return [] }
-
             transform = own.transform
             rect = extent(of: glyphs)
-            coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: box)]))
+            let drawn = drawn(by: glyphs, carriedBy: item.transform)
+            coverage = own.covered(ItemCoverage(pieces: drawn.map { [ConvexPolygon(rectangle: $0)] } ?? []))
 
         case .adjust:
             // An adjustment covers its list's frame, which its own transform does not carry.
@@ -146,6 +140,20 @@ struct DisplayListFlattener: Sendable {
     // otherwise.
     private func extent(of glyphs: GlyphsItem) -> Rectangle {
         glyphs.unitGlyphBox ?? glyphs.textBox
+    }
+
+    // What a glyphs item draws in its own coordinates, its stroke drawn in the pixels of its list on the outlines
+    // `transform` carries: its glyph box with its stroke and pieces joined with its background's rect, and for a
+    // title's background drawn alone, which holds no runs, its background's rect, or nothing without one.
+    private func drawn(
+        by glyphs: GlyphsItem,
+        carriedBy transform: AffineTransform
+    ) -> Rectangle? {
+        let background = glyphs.background?.rectangle
+        guard !glyphs.runs.isEmpty || glyphs.layer != nil else { return background }
+
+        let drawn = glyphs.drawnBounds(carriedBy: transform)
+        return background.map(drawn.union) ?? drawn
     }
 
     // The transform that carries `rectangle` onto `other`.

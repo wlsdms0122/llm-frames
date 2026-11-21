@@ -308,11 +308,43 @@ struct EvaluationReporterTests {
         ])
     }
 
-    @Test("a whole title's glyphs item reports its text box as its rect, and a unit's item its glyph box")
-    func reportsGlyphsRect() {
+    @Test("a whole title's glyphs item reports its text box and covers it grown by its stroke with its highlights")
+    func reportsTitleGlyphs() throws {
+        // Given
+        let highlight = DrawnHighlight(
+            rects: [Rectangle(x: -10, y: 0, width: 30, height: 20)],
+            radius: 0,
+            color: red,
+            bands: nil
+        )
+        let glyphs = GlyphsItem(
+            size: Size(width: 100, height: 40),
+            runs: [run(stroke: TextStroke(width: 6, color: black), highlight: highlight)],
+            background: nil
+        )
+        let item = DisplayItem(
+            transform: AffineTransform(translation: Point(x: 20, y: 20)),
+            content: .glyphs(glyphs),
+            origin: title
+        )
+
+        // When
+        let report = sut.report(of: list([item]), at: 0)
+        let hits = LocationReporter().report(of: list([item]), point: Point(x: 12, y: 25)).hits
+
+        // Then
+        // Half the stroke reaches 3 past the text box, and the highlight 10 past its left edge.
+        let reported = try #require(report.items.first)
+        #expect(reported.rect == Rectangle(x: 0, y: 0, width: 100, height: 40))
+        #expect(reported.transform == AffineTransform(translation: Point(x: 20, y: 20)))
+        #expect(reported.bounds == Rectangle(x: 10, y: 17, width: 113, height: 46))
+        #expect(hits.map(\.item) == [.glyphs])
+    }
+
+    @Test("a unit's item reports and covers its glyph box, and a title's background alone its background or nothing")
+    func reportsUnitGlyphs() {
         // Given
         let size = Size(width: 100, height: 40)
-        let title = GlyphsItem(size: size, runs: [run(stroke: nil, highlight: nil)], background: nil)
         let unit = GlyphsItem(
             size: size,
             runs: [run(stroke: nil, highlight: nil)],
@@ -321,19 +353,30 @@ struct EvaluationReporterTests {
             unitGlyphBox: Rectangle(x: 5, y: 10, width: 30, height: 20),
             background: nil
         )
-        let moved = AffineTransform(translation: Point(x: 20, y: 20))
+        let background = GlyphsItem(
+            size: size,
+            runs: [],
+            background: GlyphBackground(rectangle: Rectangle(x: 0, y: 0, width: 100, height: 40), radius: 0, color: red)
+        )
+        let bare = GlyphsItem(size: size, runs: [], background: nil)
 
         // When
         let report = sut.report(of: list([
-            DisplayItem(transform: moved, content: .glyphs(title), origin: self.title),
-            DisplayItem(transform: moved, content: .glyphs(unit), origin: self.title)
+            DisplayItem(content: .glyphs(unit), origin: title),
+            DisplayItem(content: .glyphs(background), origin: title),
+            DisplayItem(content: .glyphs(bare), origin: title)
         ]), at: 0)
 
         // Then
-        #expect(report.items.map(\.transform) == [moved, moved])
-        #expect(report.items.map(\.rect) == [
+        #expect(report.items.map(\.bounds) == [
+            Rectangle(x: 5, y: 10, width: 30, height: 20),
             Rectangle(x: 0, y: 0, width: 100, height: 40),
-            Rectangle(x: 5, y: 10, width: 30, height: 20)
+            nil
+        ])
+        #expect(report.items.map(\.rect) == [
+            Rectangle(x: 5, y: 10, width: 30, height: 20),
+            Rectangle(x: 0, y: 0, width: 100, height: 40),
+            Rectangle(x: 0, y: 0, width: 100, height: 40)
         ])
     }
 
