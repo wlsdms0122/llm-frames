@@ -60,6 +60,7 @@ extension ResolvedStorylineClip {
             scale: appearance.scale.keyframes(at: plan.instant) { $0 },
             rotation: appearance.rotation.keyframes(at: plan.instant) { $0 },
             blend: appearance.blend,
+            isMotionBlurred: plan.isMotionBlurred,
             radius: appearance.radius,
             border: appearance.border,
             shadow: appearance.shadow,

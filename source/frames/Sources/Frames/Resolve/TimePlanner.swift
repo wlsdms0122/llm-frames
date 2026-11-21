@@ -285,6 +285,7 @@ struct TimePlanner: Sendable {
                 drawn: drawn,
                 transition: transitions[index],
                 trackMatte: clips[index].trackMatte,
+                isMotionBlurred: clips[index].isMotionBlurred,
                 keyframes: keyframes,
                 timeRemap: timeRemap
             )
@@ -447,6 +448,7 @@ struct TimePlanner: Sendable {
             space: OwnSpace(content: clip.content),
             storyline: owner,
             trackMatte: clip.trackMatte,
+            isMotionBlurred: clip.isMotionBlurred,
             lane: try lane(of: clip, kind: kind),
             clock: clock,
             window: window,

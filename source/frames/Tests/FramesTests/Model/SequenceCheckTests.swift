@@ -65,7 +65,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#)
+        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#)
     }
 
     @Test(
@@ -73,14 +73,14 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "format": { "inset": [10, 10, 10, 10] }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
-                #"format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
+                #"format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing, motionBlur"#
             ),
             (
                 #"""
                 { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "format": { "size": [640, 480], "inset": [10, 10, 10, 10] },
                   "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
                 """#,
-                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing"#
+                #"storyline[0].media.format (format): unknown key "inset". Allowed: size, fps, background, conform, colorSpace, peak, compositing, motionBlur"#
             )
         ]
     )
@@ -578,15 +578,15 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
             ),
             (
                 #"{ "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
-                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, connected"#
+                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, motionBlur, connected"#
             )
         ]
     )
@@ -621,7 +621,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (solid): unknown key "\#(name)". Allowed: id, metadata, solid, duration, transition, connected"#)
+        #expect(error?.description == #"storyline[0] (solid): unknown key "\#(name)". Allowed: id, metadata, solid, duration, transition, motionBlur, connected"#)
     }
 
     @Test("an id is a string unique within its document, and a nested document has its own")

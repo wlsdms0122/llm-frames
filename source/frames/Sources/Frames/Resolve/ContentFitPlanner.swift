@@ -50,6 +50,7 @@ struct ContentFitPlanner: Sendable {
             colorSpace: plan.format.colorSpace,
             peak: plan.format.peak,
             compositing: plan.format.compositing,
+            shutter: plan.format.shutter,
             margin: margin
         )
 
@@ -95,6 +96,7 @@ struct ContentFitPlanner: Sendable {
                     scale: entry.scale,
                     rotation: entry.rotation,
                     blend: entry.blend,
+                    isMotionBlurred: entry.isMotionBlurred,
                     radius: entry.radius,
                     border: entry.border,
                     shadow: entry.shadow,
@@ -120,6 +122,7 @@ struct ContentFitPlanner: Sendable {
                     scale: clip.scale,
                     rotation: clip.rotation,
                     blend: clip.blend,
+                    isMotionBlurred: clip.isMotionBlurred,
                     animation: .none
                 )
             },

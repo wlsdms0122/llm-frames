@@ -85,6 +85,7 @@ struct SequenceReader: Sendable {
             rotation: property("rotation", of: object, read: \.numberValue),
             opacity: property("opacity", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
+            isMotionBlurred: object["motionBlur"]?.boolValue ?? false,
             radius: look("radius", of: object),
             border: look("border", of: object),
             shadow: look("shadow", of: object),
@@ -127,6 +128,7 @@ struct SequenceReader: Sendable {
             scale: property("scale", of: object, read: Scale.init(value:)),
             rotation: property("rotation", of: object, read: \.numberValue),
             blend: object["blend"]?.stringValue,
+            isMotionBlurred: object["motionBlur"]?.boolValue ?? false,
             filter: look("adjust", of: object) ?? look("filter", of: object)
         )
     }
@@ -229,7 +231,10 @@ struct SequenceReader: Sendable {
             background: object["background"]?.stringValue,
             colorSpace: object["colorSpace"]?.stringValue.flatMap(ColorSpace.init),
             peak: object["peak"]?.numberValue,
-            compositing: object["compositing"]?.stringValue.flatMap(Compositing.init)
+            compositing: object["compositing"]?.stringValue.flatMap(Compositing.init),
+            shutterAngle: object["motionBlur"]?.objectValue?["shutterAngle"]?.numberValue,
+            shutterPhase: object["motionBlur"]?.objectValue?["shutterPhase"]?.numberValue,
+            samplesPerFrame: object["motionBlur"]?.objectValue?["samplesPerFrame"]?.numberValue.flatMap { Int(exactly: $0) }
         )
     }
 

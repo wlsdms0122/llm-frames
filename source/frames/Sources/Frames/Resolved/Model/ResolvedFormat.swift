@@ -7,7 +7,8 @@
 
 // The output frame of a sequence in output pixels, its frame rate and duration (the sequence end), the colour behind
 // everything, how storyline crops were conformed to it, the colour space its output is in, the mastering peak of a
-// `rec2100-pq` sequence in cd/m² (nil in any other space), and the form its sums of colours are taken in.
+// `rec2100-pq` sequence in cd/m² (nil in any other space), the form its sums of colours are taken in, and the shutter
+// its frames are exposed by, which applies where the sequence is rendered as the outermost one.
 struct ResolvedFormat: Equatable, Sendable {
     // MARK: - Property
     let size: Size
@@ -18,6 +19,7 @@ struct ResolvedFormat: Equatable, Sendable {
     let colorSpace: ColorSpace
     let peak: Double?
     let compositing: Compositing
+    let shutter: Shutter
 
     var frame: Rectangle {
         Rectangle(x: 0, y: 0, width: size.width, height: size.height)
@@ -42,7 +44,8 @@ struct ResolvedFormat: Equatable, Sendable {
         conform: Conform,
         colorSpace: ColorSpace = .srgb,
         peak: Double? = nil,
-        compositing: Compositing = .encoded
+        compositing: Compositing = .encoded,
+        shutter: Shutter = .default
     ) {
         self.size = size
         self.fps = fps
@@ -52,6 +55,7 @@ struct ResolvedFormat: Equatable, Sendable {
         self.colorSpace = colorSpace
         self.peak = peak
         self.compositing = compositing
+        self.shutter = shutter
     }
 
     // MARK: - Public

@@ -27,7 +27,18 @@ enum DocumentKeyTable {
             KeyRule("conform", .literal(VocabularyTable.conforms)),
             KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("peak", .number(.range(400...10000))),
-            KeyRule("compositing", .literal(VocabularyTable.compositings))
+            KeyRule("compositing", .literal(VocabularyTable.compositings)),
+            KeyRule("motionBlur", .object(motionBlur))
+        ]
+    )
+    // The sequence's shutter. A phase is read against the angle in effect, which the key checker checks once the
+    // object's keys are read.
+    static let motionBlur = ObjectTable(
+        kind: "motion blur",
+        rules: [
+            KeyRule("shutterAngle", .number(Shutter.angles)),
+            KeyRule("shutterPhase", .number(.any)),
+            KeyRule("samplesPerFrame", .integer)
         ]
     )
     static let contentFit = ObjectTable(
