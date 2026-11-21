@@ -104,8 +104,9 @@ struct ParentSpacePlanner: Sendable {
 
     // The masks of a shape placed by its geometry or of an adjustment are in its parent's space, and each keyframe of
     // a mask's area, position or point found by text is brought back at its own time as an area, a position or a
-    // point is. A box keeps its written size. Every other clip's mask is in its own space. A followed mask written
-    // without keyframes is true on the track's frame, but a leaf a text form found other than the track's target.
+    // point is. A box keeps its written size. Every other clip's mask is in its own space. A followed mask's geometry
+    // leaf written without keyframes is true on the track's frame, but a leaf a text form found other than the track's
+    // target.
     func mask(of index: Int) throws -> [ResolvedMask]? {
         let plan = tracked.time.clips[index]
         guard let found = masks[index] else { return nil }
@@ -116,7 +117,8 @@ struct ParentSpacePlanner: Sendable {
             guard isOnTrackFrame, let target = written[index].track else { return mask }
 
             return mask.onTrackFrame { leaf in
-                target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
+                found.staticLeaves.contains(leaf)
+                    && target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
             }
         }
     }

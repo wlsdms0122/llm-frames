@@ -91,12 +91,11 @@ struct ResolvedMask: Equatable, Sendable {
         return ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)
     }
 
-    // The same mask, written without keyframes, with each leaf of its geometry `isOnTrackFrame` takes, and every one
-    // no text form can give, a static value true on the track's frame.
+    // The same mask with each leaf of its geometry that `isOnTrackFrame` takes a static value true on the track's frame.
     func onTrackFrame(where isOnTrackFrame: (MaskLeaf) -> Bool) -> ResolvedMask {
         let geometry: ResolvedMaskGeometry = switch self.geometry {
         case let .rect(box, radius):
-            .rect(Self.onTrackFrame(box, where: isOnTrackFrame), radius: Self.onTrackFrame(radius, true))
+            .rect(Self.onTrackFrame(box, where: isOnTrackFrame), radius: Self.onTrackFrame(radius, isOnTrackFrame(.radius)))
 
         case let .ellipse(box):
             .ellipse(Self.onTrackFrame(box, where: isOnTrackFrame))
@@ -121,8 +120,8 @@ struct ResolvedMask: Equatable, Sendable {
 
         case let .box(width, height, position):
             .box(
-                width: onTrackFrame(width, true),
-                height: onTrackFrame(height, true),
+                width: onTrackFrame(width, isOnTrackFrame(.width)),
+                height: onTrackFrame(height, isOnTrackFrame(.height)),
                 position: onTrackFrame(position, isOnTrackFrame(.position))
             )
         }

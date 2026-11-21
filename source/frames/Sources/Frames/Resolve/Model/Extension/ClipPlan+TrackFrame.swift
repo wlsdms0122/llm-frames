@@ -7,8 +7,8 @@
 
 // The values a tracked clip's track carries, as its placement decides them (FRAMES-12 What is tracked), and those of
 // them it writes without keyframes that are true on the track's frame, which the resolved document writes as values.
-// A mask is true there as a whole when it is written without keyframes; which of its leaves a text form found is
-// decided where its masks are found.
+// Which of a mask's leaves are written without keyframes, and which of them a text form found, is decided where its
+// masks are found.
 extension ClipPlan {
     // MARK: - Property
     var followedKeys: Set<FollowedKey> {
@@ -34,7 +34,7 @@ extension ClipPlan {
             .position: Self.staticValue(of: written.position).map(\.isFoundByText),
             .cornerPin: Self.staticValue(of: written.cornerPin).map { $0.contains(where: \.isFoundByText) },
             .crop: Self.staticValue(of: written.crop).map(\.isFoundByText),
-            .mask: written.mask.flatMap { $0.keyframes.isEmpty ? false : nil }
+            .mask: written.mask.map { _ in false }
         ]
 
         return followedKeys.filter { value in

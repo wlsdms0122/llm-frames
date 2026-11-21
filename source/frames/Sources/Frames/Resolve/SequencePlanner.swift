@@ -472,10 +472,11 @@ struct SequencePlanner: Sendable {
         )
         return try planner.masks(mask, in: picture, pictureClock: ownClock(.storyline(plan), track: written.track))?
             .map { found in
-                guard let target = written.track, mask.keyframes.isEmpty else { return found.mask }
+                guard let target = written.track else { return found.mask }
 
                 return found.mask.onTrackFrame { leaf in
-                    target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
+                    found.staticLeaves.contains(leaf)
+                        && target.isOnTrackFrame(.mask, isFoundByText: found.textTimes[leaf] != nil)
                 }
             }
     }

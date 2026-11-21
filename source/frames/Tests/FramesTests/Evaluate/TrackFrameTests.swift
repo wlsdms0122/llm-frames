@@ -68,6 +68,29 @@ struct TrackFrameTests {
         #expect(abs(atInstant.tracked.y - (atInstant.still.y - 5 * atInstant.scale)) < 1e-9)
     }
 
+    @Test("a mask with keyframes keeps each geometry leaf written without keyframes true on the track's frame, and a leaf one keyframe writes at its time")
+    func keepsStaticMaskLeavesOnTrackFrame() throws {
+        // Given
+        let sequence = try resolved(#"""
+            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+              "mask": [ { "shape": "rect", "area": [110, 110, 50, 20] } ], "keyframes": [ { "at": 1, "mask": [ { "radius": 4 } ] } ] },
+            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
+            """#)
+
+        // When
+        let read = try ResolvedDocumentReader().read(ResolvedDocumentWriter().write(sequence))
+
+        // Then
+        let clip = try #require(read.clips.first { $0.id == "tracked" })
+        guard case let .rect(.area(area), radius) = clip.mask?.first?.geometry else {
+            Issue.record("the tracked clip's mask is not a rect placed by its area")
+            return
+        }
+        #expect(read == sequence)
+        #expect(area == .onTrackFrame(.rectangle(Rectangle(x: 110, y: 110, width: 50, height: 20))))
+        #expect(radius.keyframeTimes.count == 1)
+    }
+
     // MARK: - Private
     private func resolved(_ connected: String) throws -> ResolvedSequence {
         let planner = DocumentPlanner(

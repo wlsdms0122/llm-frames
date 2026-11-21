@@ -75,6 +75,7 @@ struct MaskPlanner: Sendable {
         }
 
         var textTimes: [Int: [MaskLeaf: Set<Double>]] = [:]
+        var staticLeaves: [Int: Set<MaskLeaf>] = [:]
         let timed: TimedValue
         do {
             let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: lookPlace)
@@ -104,6 +105,9 @@ struct MaskPlanner: Sendable {
                     if let index = found.index, let text = found.text {
                         textTimes[index, default: [:]][text, default: []].insert(source.time)
                     }
+                    if source.keyframe == nil, let geometry = geometryLeaf(at: source.place.path.components) {
+                        staticLeaves[geometry.index, default: []].insert(geometry.leaf)
+                    }
 
                     return found.value
                 }
@@ -117,11 +121,43 @@ struct MaskPlanner: Sendable {
         guard case let .list(masks) = timed else { return nil }
 
         return masks.enumerated().compactMap { index, mask in
-            ResolvedMask(timed: mask).map { FoundMask(mask: $0, textTimes: textTimes[index] ?? [:]) }
+            ResolvedMask(timed: mask).map { mask in
+                FoundMask(mask: mask, textTimes: textTimes[index] ?? [:], staticLeaves: staticLeaves[index] ?? [])
+            }
         }
     }
 
     // MARK: - Private
+    // The index of the mask that holds a leaf at the path and the geometry leaf it is, nil for a leaf of no geometry.
+    private func geometryLeaf(at path: [PlaceComponent]) -> (index: Int, leaf: MaskLeaf)? {
+        guard path.count >= 2, case let .index(index, _) = path[0], case let .key(key) = path[1] else { return nil }
+
+        switch key {
+        case "area":
+            return (index, .area)
+
+        case "width":
+            return (index, .width)
+
+        case "height":
+            return (index, .height)
+
+        case "position":
+            return (index, .position)
+
+        case "radius":
+            return (index, .radius)
+
+        case "points":
+            guard path.count >= 3, case let .index(point, _) = path[2] else { return nil }
+
+            return (index, .point(point))
+
+        default:
+            return nil
+        }
+    }
+
     // One leaf's value, the index of the mask that holds it, and the geometry leaf a text form gave.
     private func leaf(
         _ json: JSONValue,
