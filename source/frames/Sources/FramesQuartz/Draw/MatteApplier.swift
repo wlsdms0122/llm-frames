@@ -20,21 +20,22 @@ struct MatteApplier {
 
     // MARK: - Initializer
     // MARK: - Public
-    // `picture` holds the destination's `size` at its top left, in Core Image's y-up coordinates.
+    // `destination` is where the picture's destination lies in `picture`'s Core Image coordinates, y up, which may
+    // hold only part of it.
     func apply(
         _ matte: PictureMatte,
         frame: CGImage,
         to picture: CIImage,
-        size: Size
+        over destination: CGRect
     ) throws -> CIImage {
         let kernel = try KernelLibrary.shared.colorKernel(named: Self.kernelName)
         let stretch = CGAffineTransform(
-            a: size.width / CGFloat(frame.width),
+            a: destination.width / CGFloat(frame.width),
             b: 0,
             c: 0,
-            d: size.height / CGFloat(frame.height),
-            tx: 0,
-            ty: picture.extent.maxY - size.height
+            d: destination.height / CGFloat(frame.height),
+            tx: destination.minX,
+            ty: destination.minY
         )
         let stretched = CIImage(cgImage: frame, options: [.colorSpace: NSNull()])
             .samplingLinear()

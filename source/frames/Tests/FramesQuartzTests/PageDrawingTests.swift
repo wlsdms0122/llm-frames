@@ -152,6 +152,79 @@ struct PageDrawingTests {
         #expect(alphas.max() ?? 1 < 0.001)
     }
 
+    @Test("a filtered page is filtered at the scale it is shown at, its pixelate grid from the destination's top left")
+    func filtersPageAtShownScale() throws {
+        // Given
+        // The square's left and top edges lie 0.3 points into a block of 0.5 points from the page's top left, so that
+        // block is 0.4 covered across each edge. Shown at 40 pixels per point from 3.25 points in, block edges fall on
+        // output pixels 10, 30 and on to 90.
+        let path = directory.file("square.pdf")
+        try PageWriter().write(width: 10, height: 10, content: "0 g 3.3 4 2.7 2.7 re f", to: path)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(frame(of: path)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 10, height: 10),
+            filter: [FilterEntry(operations: [.pixelate(size: 0.5)])]
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 40, b: 0, c: 0, d: 40, tx: -130, ty: -130),
+            content: .picture(picture)
+        )
+
+        // When
+        let drawn = try sut.frame(of: list(size: 100, items: [item]))
+
+        // Then
+        let expected: [(x: Int, y: Int, alpha: Double)] = [
+            (5, 5, 0.16), (9, 9, 0.16), (10, 9, 0.4), (9, 10, 0.4), (10, 10, 1), (50, 50, 1), (95, 5, 0.4)
+        ]
+        for (x, y, alpha) in expected {
+            let found = drawn.pixel(x: x, y: y)[3]
+            #expect(abs(found - alpha) < 0.02, "(\(x), \(y)): \(found) is not \(alpha)")
+        }
+    }
+
+    @Test("a matte on a page filtered in part lies over the whole destination")
+    func placesMatteOverDestination() throws {
+        // Given
+        let path = directory.file("white.pdf")
+        try PageWriter().write(width: 10, height: 10, content: "1 g 0 0 10 10 re f", to: path)
+        let mattePath = directory.file("quadrants.png")
+        let levels = [0.0, 96, 128, 160]
+        try ImageWriter(size: Size(width: 20, height: 20)).write(to: mattePath) { canvas in
+            for (quadrant, level) in levels.enumerated() {
+                let rectangle = Rectangle(x: Double(quadrant % 2) * 10, y: Double(quadrant / 2) * 10, width: 10, height: 10)
+                canvas.fill(rectangle, red: level, green: level, blue: level)
+            }
+        }
+        let matte = MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: mattePath, sha256: ""))), index: 0)
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(frame(of: path)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 10, height: 10),
+            matte: PictureMatte(frame: matte, progress: 0.5, softness: 0.5, isInverted: false)
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 40, b: 0, c: 0, d: 40, tx: -130, ty: -130),
+            content: .picture(picture)
+        )
+
+        // When
+        let drawn = try sut.frame(of: list(size: 100, items: [item]))
+
+        // Then
+        // The quadrants meet at 5 points, output pixel 70.
+        for (quadrant, level) in levels.enumerated() {
+            let x = quadrant % 2 == 0 ? 30 : 90
+            let y = quadrant / 2 == 0 ? 30 : 90
+            let expected = min(max((0.5 * 1.5 - level / 255) / 0.5, 0), 1)
+            let found = drawn.pixel(x: x, y: y)[3]
+            #expect(abs(found - expected) < 2.0 / 255, "quadrant \(quadrant): \(found) is not \(expected)")
+        }
+    }
+
     // MARK: - Private
     private func frame(of path: String) -> MediaFrame {
         MediaFrame(media: PinnedMedia(source: .page(PinnedFile(path: path, sha256: ""), page: 1)), index: 0)
