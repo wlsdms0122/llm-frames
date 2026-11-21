@@ -36,7 +36,7 @@ extension ResolvedClip {
     // MARK: - Initializer
     // MARK: - Public
     // A media clip's crop in its media pixels.
-    func crop(at time: Double) -> Rectangle? {
+    func crop(at time: SampleTime) -> Rectangle? {
         guard let crop else { return nil }
         guard let track, let clock = ownMediaClock else { return crop.value(at: time).rectangle }
 
@@ -44,7 +44,7 @@ extension ResolvedClip {
     }
 
     // The clip's masks in its own space.
-    func ownMasks(at time: Double) -> [MaskSample] {
+    func ownMasks(at time: SampleTime) -> [MaskSample] {
         guard let mask else { return [] }
         guard let track, let clock = ownMediaClock else { return mask.map { $0.sampled(at: time) } }
 
@@ -53,10 +53,10 @@ extension ResolvedClip {
 
     // The motion that carries the clip's own masks in its own space at the time, the identity unless its track follows
     // its own media.
-    func ownMotion(at time: Double) -> AffineTransform {
+    func ownMotion(at time: SampleTime) -> AffineTransform {
         guard let track, let clock = ownMediaClock else { return .identity }
 
-        return track.transform(on: clock, at: time)
+        return track.transform(on: clock, at: time.instant)
     }
 
     // MARK: - Private

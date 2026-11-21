@@ -150,7 +150,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
     }
 
     func filter(at time: Double = 0) -> [FilterEntry] {
-        FilterEntry.entries(of: self, at: time)
+        FilterEntry.entries(of: self, at: SampleTime(time))
     }
 
     func number(at time: Double = 0) -> Double? {

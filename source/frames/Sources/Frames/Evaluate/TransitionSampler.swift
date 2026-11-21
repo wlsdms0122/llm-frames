@@ -27,16 +27,12 @@ struct TransitionSampler: Sendable {
     func progress(
         broughtBy index: Int,
         in storyline: [ResolvedStorylineClip],
-        at time: Double
+        at sample: SampleInstant
     ) -> Double {
         guard let transition = storyline[index].transition else { return 0 }
 
-        let valueTime = SampleInstant.valueTime(
-            ownedBy: storyline[index].isMotionBlurred,
-            in: drawnRange(of: index, in: storyline),
-            at: time
-        )
-        return progress(through: TimeRange(start: transition.start, end: transition.end), at: valueTime)
+        let time = sample.time(ownedBy: storyline[index].isMotionBlurred, in: drawnRange(of: index, in: storyline))
+        return progress(through: TimeRange(start: transition.start, end: transition.end), at: time.instant)
     }
 
     // The range an entry draws in: its edit range, widened by the transitions at its two ends.
@@ -53,17 +49,28 @@ struct TransitionSampler: Sendable {
         )
     }
 
-    // Out of the entry's drawn range this holds the motion at the range's edge.
+    // The motion at a time outside a sample of a frame with motion blur.
     func motion(
         of index: Int,
         in storyline: [ResolvedStorylineClip],
         at time: Double
     ) -> MotionSample {
+        motion(of: index, in: storyline, at: SampleInstant(frameTime: time))
+    }
+
+    // Which transition the entry takes part in is decided at T. Out of the entry's drawn range this holds the motion at
+    // the range's edge.
+    func motion(
+        of index: Int,
+        in storyline: [ResolvedStorylineClip],
+        at sample: SampleInstant
+    ) -> MotionSample {
+        let time = sample.frameTime
         if let incoming = storyline[index].transition, time < incoming.end {
-            return sample(of: incoming.incoming, through: incoming, broughtBy: index, in: storyline, at: time)
+            return self.sample(of: incoming.incoming, through: incoming, broughtBy: index, in: storyline, at: sample)
         }
         if storyline.indices.contains(index + 1), let outgoing = storyline[index + 1].transition, time >= outgoing.start {
-            return sample(of: outgoing.outgoing, through: outgoing, broughtBy: index + 1, in: storyline, at: time)
+            return self.sample(of: outgoing.outgoing, through: outgoing, broughtBy: index + 1, in: storyline, at: sample)
         }
 
         return .none
@@ -111,13 +118,13 @@ struct TransitionSampler: Sendable {
         through transition: ResolvedTransition,
         broughtBy index: Int,
         in storyline: [ResolvedStorylineClip],
-        at time: Double
+        at sample: SampleInstant
     ) -> MotionSample {
         guard let span else { return .none }
 
         let range = TimeRange(start: transition.start, end: transition.end)
-        let frameProgress = progress(through: range, at: SampleInstant.current?.frameTime ?? time)
-        let progress = progress(broughtBy: index, in: storyline, at: time)
+        let frameProgress = progress(through: range, at: sample.frameTime)
+        let progress = progress(broughtBy: index, in: storyline, at: sample)
 
         return MotionSample(
             motion: evaluator.motion(of: span, at: progress, onSideOf: frameProgress),

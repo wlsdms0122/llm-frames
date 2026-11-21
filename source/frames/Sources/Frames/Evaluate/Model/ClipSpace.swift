@@ -38,7 +38,7 @@ struct ClipSpace: Sendable {
     func area(
         of areas: [Keyframe<GeometryArea>],
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let keyframes = self.areas?.rectangles(of: areas, at: time) ?? areas.map { $0.map(\.fixed) }
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -49,7 +49,7 @@ struct ClipSpace: Sendable {
     func point(
         of points: [Keyframe<GeometryPoint>],
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         let keyframes = sampled(points, at: time)
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -60,7 +60,7 @@ struct ClipSpace: Sendable {
     func points(
         of points: [Keyframe<[GeometryPoint]>],
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> [Point] {
         let keyframes = areas?.points(of: points, at: time) ?? points.map { $0.map { $0.map(\.fixed) } }
         guard let track, let clock else { return keyframes.value(at: time) }
@@ -71,7 +71,7 @@ struct ClipSpace: Sendable {
     func masks(
         of masks: [ResolvedMask],
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> [MaskSample] {
         let masks = areas.map { areas in masks.map { $0.taking(areas, at: time) } } ?? masks
         guard let track, let clock else { return masks.map { $0.sampled(at: time) } }
@@ -83,7 +83,7 @@ struct ClipSpace: Sendable {
     func anchor(
         of box: ResolvedBox,
         track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         let anchors = sampled(box.position, at: time)
         guard let track, let clock else { return anchors.value(at: time) }
@@ -101,11 +101,11 @@ struct ClipSpace: Sendable {
 
     func tracked(
         by track: ResolvedTrack?,
-        at time: Double
+        at time: SampleTime
     ) -> ClipSpace {
         guard let track, let clock else { return self }
 
-        let tracked = track.transform(on: clock, at: SampleInstant.side(at: time))
+        let tracked = track.transform(on: clock, at: time.frameTime)
         return ClipSpace(
             frame: frame,
             transform: tracked.concatenating(transform),
@@ -117,7 +117,7 @@ struct ClipSpace: Sendable {
     // MARK: - Private
     private func sampled(
         _ points: [Keyframe<GeometryPoint>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<Point>] {
         areas?.points(of: points, at: time) ?? points.map { $0.map(\.fixed) }
     }

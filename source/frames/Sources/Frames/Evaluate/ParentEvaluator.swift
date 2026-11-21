@@ -23,7 +23,7 @@ struct ParentEvaluator: Sendable {
     // MARK: - Public
     func space(
         of clip: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> ClipSpace {
         let frame = sequence.format.frame
         var chain: [ResolvedClip] = []
@@ -44,9 +44,11 @@ struct ParentEvaluator: Sendable {
 
         let parentSpace = chain.reversed().reduce(outer) { space, parent in
             let window = TimeRange(start: parent.start, end: parent.end)
-            let transform = SampleInstant.reading(ownedBy: parent.isMotionBlurred, in: window, at: window.held(time)) {
-                clipEvaluator.childTransform(of: parent, in: space.drawing(parent, of: sequence), at: $0)
-            }
+            let transform = clipEvaluator.childTransform(
+                of: parent,
+                in: space.drawing(parent, of: sequence),
+                at: time.sample.time(ownedBy: parent.isMotionBlurred, in: window)
+            )
             return ClipSpace(frame: frame, transform: transform, clock: parent.clock)
         }
 
@@ -56,15 +58,13 @@ struct ParentEvaluator: Sendable {
     // MARK: - Private
     private func transform(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
         let storyline = sequence.storyline
         let entry = storyline[index]
         let window = transitionSampler.drawnRange(of: index, in: storyline)
-        let own = SampleInstant.reading(ownedBy: entry.isMotionBlurred, in: window, at: time) {
-            entry.spaceTransform(at: $0)
-        }
-        let sample = transitionSampler.motion(of: index, in: storyline, at: SampleInstant.current?.frameTime ?? time)
+        let own = entry.spaceTransform(at: time.sample.time(ownedBy: entry.isMotionBlurred, in: window))
+        let sample = transitionSampler.motion(of: index, in: storyline, at: time.sample)
         let motion = ItemPresentation(area: sequence.format.frame, opacity: 1, motion: sample.motion).transform
 
         return own.concatenating(motion)

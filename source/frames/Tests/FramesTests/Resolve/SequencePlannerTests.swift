@@ -912,7 +912,7 @@ struct SequencePlannerTests {
         // Then
         let masks = try #require(plan.clips[0].mask)
         let triangle = { (y: Double) in [Point(x: 0, y: y), Point(x: 10, y: y), Point(x: 5, y: y + 10)] }
-        #expect(masks.map { $0.sampled(at: 1) } == [
+        #expect(masks.map { $0.sampled(at: SampleTime(1)) } == [
             MaskSample(
                 geometry: .rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 4),
                 feather: 2,
@@ -921,7 +921,7 @@ struct SequencePlannerTests {
             ),
             MaskSample(geometry: .polyline(triangle(0), isClosed: true), feather: 0, isInverted: false, mode: .subtract)
         ])
-        #expect(masks.map { $0.sampled(at: 3) } == [
+        #expect(masks.map { $0.sampled(at: SampleTime(3)) } == [
             MaskSample(
                 geometry: .rect(Rectangle(x: 50, y: 50, width: 200, height: 100), radius: 8),
                 feather: 2,

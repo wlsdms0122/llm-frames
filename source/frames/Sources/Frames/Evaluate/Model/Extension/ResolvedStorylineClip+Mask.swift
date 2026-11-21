@@ -12,7 +12,7 @@ extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func masks(at time: Double) -> [ItemMask] {
+    func masks(at time: SampleTime) -> [ItemMask] {
         guard let mask else { return [] }
 
         let factor = scale.value(at: time).factor
@@ -21,7 +21,7 @@ extension ResolvedStorylineClip {
             return mask.map { ItemMask(mask: $0.sampled(at: time), transform: transform, factor: factor) }
         }
 
-        let transform = track.transform(on: clock, at: time).concatenating(spaceTransform(at: time))
+        let transform = track.transform(on: clock, at: time.instant).concatenating(spaceTransform(at: time))
         return track.masks(of: mask, on: clock, at: time).map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }
 

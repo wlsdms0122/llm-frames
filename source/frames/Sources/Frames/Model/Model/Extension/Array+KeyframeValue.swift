@@ -5,20 +5,29 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// The value a resolved property's keyframes give at a time, as their `KeyframeTrack` interpolates it, clamped to T's
-// side of their jumps while a sample of a frame with motion blur is evaluated (`SampleInstant`). Resolve leaves every
-// property it keyframes with at least one keyframe, so there is always one.
+// The value a resolved property's keyframes give at a time, as their `KeyframeTrack` interpolates it, clamped to the
+// side of their jumps that the time's `frameTime` is on (FRAMES-29). Resolve leaves every property it keyframes with at
+// least one keyframe, so there is always one.
 extension Array {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
+    // The value at a time outside a sample of a frame with motion blur, as resolve and the mix plan read it.
     func value<Value: Interpolable>(at time: Double) -> Value where Element == Keyframe<Value> {
-        value(at: time, onSideOf: SampleInstant.side(at: time))
+        value(at: time, onSideOf: time)
+    }
+
+    func opacity(at time: Double) -> Double where Element == Keyframe<Double> {
+        opacity(at: time, onSideOf: time)
+    }
+
+    func value<Value: Interpolable>(at time: SampleTime) -> Value where Element == Keyframe<Value> {
+        value(at: time.instant, onSideOf: time.frameTime)
     }
 
     // An ease that overshoots carries an opacity past its keyframes, and an opacity is drawn from 0 to 1.
-    func opacity(at time: Double) -> Double where Element == Keyframe<Double> {
-        opacity(at: time, onSideOf: SampleInstant.side(at: time))
+    func opacity(at time: SampleTime) -> Double where Element == Keyframe<Double> {
+        opacity(at: time.instant, onSideOf: time.frameTime)
     }
 
     // The value at an instant clamped to T's side of the jumps between them, T being the frame's instant.

@@ -15,7 +15,7 @@ extension ResolvedTrack {
     func area(
         of keyframes: [Keyframe<Rectangle>],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let brought = keyframes.map { keyframe in
             Keyframe(
@@ -31,7 +31,7 @@ extension ResolvedTrack {
     func point(
         of keyframes: [Keyframe<Point>],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         let brought = keyframes.map { keyframe in
             Keyframe(
@@ -47,7 +47,7 @@ extension ResolvedTrack {
     func points(
         of keyframes: [Keyframe<[Point]>],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> [Point] {
         let brought = keyframes.map { keyframe in
             let motion = self.motion(atMediaTime: clock.mediaTime(atSequenceTime: keyframe.at))
@@ -66,7 +66,7 @@ extension ResolvedTrack {
     func masks(
         of masks: [ResolvedMask],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> [MaskSample] {
         let motion = { (time: Double) in self.motion(atMediaTime: clock.mediaTime(atSequenceTime: time)) }
 
@@ -84,7 +84,7 @@ extension ResolvedTrack {
     func crop(
         of keyframes: [Keyframe<Crop>],
         on clock: MediaClock,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let brought = keyframes.map { keyframe in
             Keyframe(
@@ -94,7 +94,7 @@ extension ResolvedTrack {
             )
         }
 
-        return uprightMotion(on: clock, at: time).carry(brought.value(at: time).rectangle)
+        return uprightMotion(on: clock, at: time.instant).carry(brought.value(at: time).rectangle)
     }
 
     func transform(

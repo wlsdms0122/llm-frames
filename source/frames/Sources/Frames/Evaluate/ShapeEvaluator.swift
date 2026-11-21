@@ -20,7 +20,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> [DisplayItem] {
         // A transform at scale 0 flattens the shape to a point, where its carried lengths cannot be kept, so it draws
         // nothing.
@@ -63,7 +63,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
         laid(shape, clip: clip, sample: sample, in: space, at: time)?.transform
             ?? space.tracked(by: clip.parentTrack, at: time).transform
@@ -78,7 +78,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?)? {
         let tracked = space.tracked(by: clip.parentTrack, at: time)
         let geometry: (Double) -> PathGeometry
@@ -140,7 +140,7 @@ struct ShapeEvaluator: Sendable {
         clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> (geometry: PathGeometry, box: Rectangle, transform: AffineTransform, opacity: Double, carried: Double?) {
         let size = Size(width: width.value(at: time), height: height.value(at: time))
         let anchor = Point(
@@ -180,7 +180,7 @@ struct ShapeEvaluator: Sendable {
 
     private func length(
         _ value: TimedValue,
-        at time: Double
+        at time: SampleTime
     ) -> Double {
         value.sampled(at: time, as: LookStructureTable.length).number ?? 0
     }

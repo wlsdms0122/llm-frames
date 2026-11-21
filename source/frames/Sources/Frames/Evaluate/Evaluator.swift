@@ -15,8 +15,8 @@
 //
 // A frame where a clip with `motionBlur` owns a value it reads is N samples, each the whole list of the frame at one
 // instant of its exposure (FRAMES-29). Membership and content are those of T in every sample: which clips draw, the
-// active transition, media frames and the seed. Values are read through `SampleInstant`, each by its owner's switch,
-// and a compound clip's clock carries the instant into its nested sequence whatever its switch.
+// active transition, media frames and the seed. Each owner's values are read at the time `SampleInstant` gives it by
+// its switch, and a compound clip's clock carries the instant into its nested sequence whatever its switch.
 package struct Evaluator: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
@@ -48,15 +48,13 @@ package struct Evaluator: Sendable {
         let reads = OwnerReads()
         let instants = format.shutter.instants(at: time, fps: format.fps)
         let sample = { (instant: Double) in
-            SampleInstant.$current.withValue(SampleInstant(time: instant, frameTime: time, reads: reads)) {
-                evaluator.displayList(
-                    of: sequence,
-                    at: time,
-                    seed: list.seed,
-                    colorSpace: format.colorSpace,
-                    peak: format.peak
-                ).items
-            }
+            evaluator.displayList(
+                of: sequence,
+                at: SampleInstant(time: instant, frameTime: time, reads: reads),
+                seed: list.seed,
+                colorSpace: format.colorSpace,
+                peak: format.peak
+            ).items
         }
 
         // The first sample tells whether the frame reads a value a clip with `motionBlur` owns.
@@ -84,7 +82,7 @@ package struct Evaluator: Sendable {
 
         return Evaluator(targetPeak: format.peakLuminance).displayList(
             of: sequence,
-            at: time,
+            at: SampleInstant(frameTime: time),
             seed: seeder.seed(at: time, fps: format.fps),
             colorSpace: format.colorSpace,
             peak: format.peak
@@ -92,21 +90,22 @@ package struct Evaluator: Sendable {
     }
 
     // MARK: - Private
-    // `time` is the frame's instant on the sequence's clock, at which its membership and content are taken.
+    // The sample's `frameTime` is the frame's instant on the sequence's clock, at which its membership and content are
+    // taken.
     private func displayList(
         of sequence: ResolvedSequence,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int,
         colorSpace: ColorSpace?,
         peak: Double? = nil
     ) -> DisplayList {
         let format = sequence.format
-        let transition = ActiveTransition(storyline: sequence.storyline, at: time)
+        let transition = ActiveTransition(storyline: sequence.storyline, at: sample.frameTime)
         let parents = ParentEvaluator(sequence: sequence)
-        let items = clipItems(of: sequence, parents: parents, side: .below, at: time, seed: seed)
-            + storylineItems(of: sequence, parents: parents, transition: transition, at: time, seed: seed)
-            + coverItems(of: transition, in: sequence.storyline, frame: format.frame, at: time)
-            + clipItems(of: sequence, parents: parents, side: .above, at: time, seed: seed)
+        let items = clipItems(of: sequence, parents: parents, side: .below, at: sample, seed: seed)
+            + storylineItems(of: sequence, parents: parents, transition: transition, at: sample, seed: seed)
+            + coverItems(of: transition, in: sequence.storyline, frame: format.frame, at: sample)
+            + clipItems(of: sequence, parents: parents, side: .above, at: sample, seed: seed)
 
         return DisplayList(
             size: format.size,
@@ -123,7 +122,7 @@ package struct Evaluator: Sendable {
         of sequence: ResolvedSequence,
         parents: ParentEvaluator,
         side: LaneSide,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> [DisplayItem] {
         sequence.clips.enumerated()
@@ -131,20 +130,20 @@ package struct Evaluator: Sendable {
                 // Resolution sets every clip's lane.
                 let lane = clip.lane ?? 1
                 return (side == .below ? lane < 0 : lane > 0)
-                    && TimeRange(start: clip.start, end: clip.end).contains(time)
+                    && TimeRange(start: clip.start, end: clip.end).contains(sample.frameTime)
                     && !sequence.isMatte(clip)
             }
             .sorted { left, right in
                 (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
             }
             .flatMap { _, clip in
-                let trackMatte = trackMatte(clip.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
+                let trackMatte = trackMatte(clip.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
                 return items(
                     of: clip,
                     parents: parents,
                     trackMatte: trackMatte,
                     compositing: sequence.format.compositing,
-                    at: time,
+                    at: sample,
                     seed: seed
                 )
             }
@@ -155,24 +154,22 @@ package struct Evaluator: Sendable {
         parents: ParentEvaluator,
         trackMatte: ItemTrackMatte?,
         compositing: Compositing,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> [DisplayItem] {
-        let picture = picture(of: clip, at: time, seed: seed)
+        let picture = picture(of: clip, at: sample, seed: seed)
         let origin = ItemOrigin(clip: clip)
-        let window = TimeRange(start: clip.start, end: clip.end)
+        let time = sample.time(ownedBy: clip.isMotionBlurred, in: TimeRange(start: clip.start, end: clip.end))
 
-        return SampleInstant.reading(ownedBy: clip.isMotionBlurred, in: window, at: time) { valueTime in
-            clipEvaluator.items(
-                of: clip,
-                in: parents.space(of: clip, at: valueTime),
-                picture: picture,
-                trackMatte: trackMatte,
-                compositing: compositing,
-                seed: seed,
-                at: valueTime
-            )
-        }
+        return clipEvaluator.items(
+            of: clip,
+            in: parents.space(of: clip, at: time),
+            picture: picture,
+            trackMatte: trackMatte,
+            compositing: compositing,
+            seed: seed,
+            at: time
+        )
         .map { $0.drawn(by: origin) }
     }
 
@@ -181,17 +178,17 @@ package struct Evaluator: Sendable {
         _ trackMatte: TrackMatte?,
         in sequence: ResolvedSequence,
         parents: ParentEvaluator,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> ItemTrackMatte? {
         sequence.matteChain(from: trackMatte).reversed().reduce(ItemTrackMatte?.none) { inner, link in
-            let items = TimeRange(start: link.clip.start, end: link.clip.end).contains(time)
+            let items = TimeRange(start: link.clip.start, end: link.clip.end).contains(sample.frameTime)
                 ? self.items(
                     of: link.clip,
                     parents: parents,
                     trackMatte: inner,
                     compositing: sequence.format.compositing,
-                    at: time,
+                    at: sample,
                     seed: seed
                 )
                 : []
@@ -210,7 +207,7 @@ package struct Evaluator: Sendable {
     // A still has no clock and shows media time 0.
     private func picture(
         of clip: ResolvedClip,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> PictureItemSource? {
         guard case let .media(media) = clip.content else { return nil }
@@ -221,7 +218,7 @@ package struct Evaluator: Sendable {
             isToneMapped: media.isToneMapped,
             clock: media.clock,
             in: TimeRange(start: clip.start, end: clip.end),
-            at: time,
+            at: sample,
             seed: seed
         )
     }
@@ -231,20 +228,20 @@ package struct Evaluator: Sendable {
         of sequence: ResolvedSequence,
         parents: ParentEvaluator,
         transition: ActiveTransition?,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> [DisplayItem] {
         guard let transition else {
             let storyline = sequence.storyline
             return storyline.indices
-                .filter { TimeRange(start: storyline[$0].start, end: storyline[$0].end).contains(time) }
+                .filter { TimeRange(start: storyline[$0].start, end: storyline[$0].end).contains(sample.frameTime) }
                 .map { index in
-                    storylineItem(of: index, in: sequence, parents: parents, matte: nil, at: time, seed: seed)
+                    storylineItem(of: index, in: sequence, parents: parents, matte: nil, at: sample, seed: seed)
                 }
         }
 
-        let frameProgress = transitionSampler.progress(through: transition.range, at: time)
-        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: sequence.storyline, at: time)
+        let frameProgress = transitionSampler.progress(through: transition.range, at: sample.frameTime)
+        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: sequence.storyline, at: sample)
         let spans = transition.transition
         return spans.over.bottomFirst.map { order in
             switch order {
@@ -254,7 +251,7 @@ package struct Evaluator: Sendable {
                     in: sequence,
                     parents: parents,
                     matte: spans.matte.map { matte(of: $0, at: progress, onSideOf: frameProgress) },
-                    at: time,
+                    at: sample,
                     seed: seed
                 )
 
@@ -264,7 +261,7 @@ package struct Evaluator: Sendable {
                     in: sequence,
                     parents: parents,
                     matte: nil,
-                    at: time,
+                    at: sample,
                     seed: seed
                 )
             }
@@ -279,16 +276,20 @@ package struct Evaluator: Sendable {
         in sequence: ResolvedSequence,
         parents: ParentEvaluator,
         matte: PictureMatte?,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> DisplayItem {
         let frame = sequence.format.frame
         let entry = sequence.storyline[index]
-        let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: time, seed: seed)
+        let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
         let window = transitionSampler.drawnRange(of: index, in: sequence.storyline)
-        let items = SampleInstant.reading(ownedBy: entry.isMotionBlurred, in: window, at: time) { valueTime in
-            innerItems(of: entry, in: window, trackMatte: trackMatte, at: valueTime, frameTime: time, seed: seed)
-        }
+        let items = innerItems(
+            of: entry,
+            in: window,
+            trackMatte: trackMatte,
+            at: sample.time(ownedBy: entry.isMotionBlurred, in: window),
+            seed: seed
+        )
         let list = DisplayList(
             size: sequence.format.size,
             background: .transparent,
@@ -297,26 +298,25 @@ package struct Evaluator: Sendable {
             items: items
         )
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
-        let sample = transitionSampler.motion(of: index, in: sequence.storyline, at: time)
-        let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
+        let motion = transitionSampler.motion(of: index, in: sequence.storyline, at: sample)
+        let presentation = ItemPresentation(area: frame, opacity: 1, motion: motion.motion)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: entry.blend,
-            reveal: sample.reveal.rectangle(wiping: frame, from: sample.revealFrom),
+            reveal: motion.reveal.rectangle(wiping: frame, from: motion.revealFrom),
             content: .picture(picture),
             origin: ItemOrigin(entry: entry)
         )
     }
 
-    // `time` is the entry's value time and `frameTime` T, at which its media is shown.
+    // `time` is the entry's value time, and its sample's T is the time its media is shown at.
     private func innerItems(
         of entry: ResolvedStorylineClip,
         in window: TimeRange,
         trackMatte: ItemTrackMatte?,
-        at time: Double,
-        frameTime: Double,
+        at time: SampleTime,
         seed: Int
     ) -> [DisplayItem] {
         let origin = ItemOrigin(entry: entry)
@@ -333,7 +333,7 @@ package struct Evaluator: Sendable {
                     isToneMapped: entry.isToneMapped,
                     clock: entry.clock,
                     in: window,
-                    at: frameTime,
+                    at: time.sample,
                     seed: seed
                 ),
                 rectangle: entry.crop(at: time),
@@ -367,19 +367,19 @@ package struct Evaluator: Sendable {
         return [item]
     }
 
-    // A nested sequence's list carries no colour space, since its pictures carry what the decoder needs. `time` is T,
-    // and the media time at T picks the media frame and a nested sequence's membership and content. A clip without a
-    // clock shows media time 0.
+    // A nested sequence's list carries no colour space, since its pictures carry what the decoder needs. The media time
+    // at the sample's T picks the media frame and a nested sequence's membership and content. A clip without a clock
+    // shows media time 0.
     private func source(
         of media: ResolvedMediaContent,
         colorSpace: ColorSpace?,
         isToneMapped: Bool?,
         clock: MediaClock?,
         in window: TimeRange,
-        at time: Double,
+        at sample: SampleInstant,
         seed: Int
     ) -> PictureItemSource {
-        let mediaTime = clock?.mediaTime(atSequenceTime: time) ?? 0
+        let mediaTime = clock?.mediaTime(atSequenceTime: sample.frameTime) ?? 0
         switch media {
         case let .pinned(media):
             return .media(MediaFrame(
@@ -389,17 +389,21 @@ package struct Evaluator: Sendable {
             ))
 
         case let .nested(sequence):
-            guard let current = SampleInstant.current else {
-                return .displayList(displayList(of: sequence, at: mediaTime, seed: seed, colorSpace: nil))
+            guard let reads = sample.reads else {
+                return .displayList(displayList(
+                    of: sequence,
+                    at: SampleInstant(frameTime: mediaTime),
+                    seed: seed,
+                    colorSpace: nil
+                ))
             }
 
             // The clock carries the instant whatever the switch, its input clamped to T's side of its jumps: the
             // window's ends and those of its `timeRemap` (FRAMES-29).
-            let instant = clock?.mediaTime(atSequenceTime: window.held(current.time), onSideOf: time) ?? mediaTime
-            let nested = SampleInstant(time: instant, frameTime: mediaTime, reads: current.reads)
-            return .displayList(SampleInstant.$current.withValue(nested) {
-                displayList(of: sequence, at: mediaTime, seed: seed, colorSpace: nil)
-            })
+            let instant = clock?.mediaTime(atSequenceTime: window.held(sample.time), onSideOf: sample.frameTime)
+                ?? mediaTime
+            let nested = SampleInstant(time: instant, frameTime: mediaTime, reads: reads)
+            return .displayList(displayList(of: sequence, at: nested, seed: seed, colorSpace: nil))
         }
     }
 
@@ -426,12 +430,12 @@ package struct Evaluator: Sendable {
         of transition: ActiveTransition?,
         in storyline: [ResolvedStorylineClip],
         frame: Rectangle,
-        at time: Double
+        at sample: SampleInstant
     ) -> [DisplayItem] {
         guard let transition, let cover = transition.transition.cover else { return [] }
 
-        let frameProgress = transitionSampler.progress(through: transition.range, at: time)
-        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: storyline, at: time)
+        let frameProgress = transitionSampler.progress(through: transition.range, at: sample.frameTime)
+        let progress = transitionSampler.progress(broughtBy: transition.incoming, in: storyline, at: sample)
         let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress, onSideOf: frameProgress)
         switch cover.source {
         case let .color(color):

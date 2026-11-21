@@ -30,7 +30,7 @@ struct ClipAreaSampler: Sendable {
     // MARK: - Public
     func rectangle(
         of area: GeometryArea,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         switch area {
         case let .rectangle(rectangle):
@@ -43,7 +43,7 @@ struct ClipAreaSampler: Sendable {
 
     func point(
         of point: GeometryPoint,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         switch point {
         case let .point(point):
@@ -57,21 +57,21 @@ struct ClipAreaSampler: Sendable {
     // Each keyframe at `time`, a clip area in it the named clip's box at `time`, so a span next to one moves with it.
     func rectangles(
         of keyframes: [Keyframe<GeometryArea>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<Rectangle>] {
         keyframes.map { $0.map { rectangle(of: $0, at: time) } }
     }
 
     func points(
         of keyframes: [Keyframe<GeometryPoint>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<Point>] {
         keyframes.map { $0.map { point(of: $0, at: time) } }
     }
 
     func points(
         of keyframes: [Keyframe<[GeometryPoint]>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<[Point]>] {
         keyframes.map { $0.map { points in points.map { point(of: $0, at: time) } } }
     }
@@ -79,29 +79,28 @@ struct ClipAreaSampler: Sendable {
     // MARK: - Private
     private func rectangle(
         of area: ClipArea,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         guard let named = sequence.clips.first(where: { $0.id == area.clip }) else {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 
         let window = TimeRange(start: named.start, end: named.end)
-        return SampleInstant.reading(ownedBy: named.isMotionBlurred, in: window, at: window.held(time)) { held in
-            if clip.parent == named.id {
-                return childBox(of: named, at: held).grown(by: area.padding)
-            }
-
-            let space = ParentEvaluator(sequence: sequence).space(of: named, at: held)
-            let length = space.transform.lengthFactor
-            return box(of: named, in: space, at: held).grown(by: length > 0 ? area.padding / length : 0)
+        let held = time.sample.time(ownedBy: named.isMotionBlurred, in: window)
+        if clip.parent == named.id {
+            return childBox(of: named, at: held).grown(by: area.padding)
         }
+
+        let space = ParentEvaluator(sequence: sequence).space(of: named, at: held)
+        let length = space.transform.lengthFactor
+        return box(of: named, in: space, at: held).grown(by: length > 0 ? area.padding / length : 0)
     }
 
     // The named clip's box in the space it is drawn in.
     private func box(
         of named: ResolvedClip,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
@@ -124,7 +123,7 @@ struct ClipAreaSampler: Sendable {
     // The named parent's box in the space it gives its children.
     private func childBox(
         of named: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
@@ -142,7 +141,7 @@ struct ClipAreaSampler: Sendable {
     private func geometryBox(
         of shape: ResolvedShape,
         writtenBy named: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle? {
         let sampler = ClipAreaSampler(sequence: sequence, clip: named)
         switch shape.geometry {
@@ -163,7 +162,7 @@ struct ClipAreaSampler: Sendable {
     private func extent(
         of named: ResolvedClip,
         box: ResolvedBox,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         switch named.content {
         case let .shape(shape):

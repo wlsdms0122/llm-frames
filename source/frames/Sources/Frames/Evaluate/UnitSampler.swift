@@ -17,16 +17,36 @@ struct UnitSampler: Sendable {
     init() { }
 
     // MARK: - Public
-    // The motion of the whole title: the loop over the schedule's rest, and none outside it.
+    // The title's motion and a unit's, read on T's side of the jumps in a sample of a frame with motion blur.
+    func title(
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: SampleTime
+    ) -> MotionSample {
+        guard time.sample.isSample else { return title(of: animation, schedule: schedule, at: time.instant) }
+
+        return title(of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+    }
+
+    func unit(
+        _ index: Int,
+        of animation: ResolvedAnimation,
+        schedule: UnitSchedule,
+        at time: SampleTime
+    ) -> MotionSample {
+        guard schedule.window.contains(time.instant) else { return .none }
+        guard time.sample.isSample else { return unit(index, of: animation, schedule: schedule, at: time.instant) }
+
+        return unit(index, of: animation, schedule: schedule, at: time.instant, onSideOf: time.frameTime)
+    }
+
+    // The motion of the whole title at a time outside a sample of a frame with motion blur: the loop over the
+    // schedule's rest, and none outside it.
     func title(
         of animation: ResolvedAnimation,
         schedule: UnitSchedule,
         at time: Double
     ) -> MotionSample {
-        guard SampleInstant.current == nil else {
-            return title(of: animation, schedule: schedule, at: time, onSideOf: SampleInstant.side(at: time))
-        }
-
         let rest = schedule.rest
         guard let loop = animation.loop, rest.contains(time) else { return .none }
 
@@ -42,9 +62,6 @@ struct UnitSampler: Sendable {
         at time: Double
     ) -> MotionSample {
         guard schedule.window.contains(time) else { return .none }
-        guard SampleInstant.current == nil else {
-            return unit(index, of: animation, schedule: schedule, at: time, onSideOf: SampleInstant.side(at: time))
-        }
 
         if let entrance = animation.entrance, schedule.entrance > 0 {
             let start = schedule.entranceStart(of: index)

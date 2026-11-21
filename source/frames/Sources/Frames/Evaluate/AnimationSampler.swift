@@ -16,16 +16,25 @@ struct AnimationSampler: Sendable {
     init() { }
 
     // MARK: - Public
+    // A sample of a frame with motion blur reads on T's side of the jumps.
+    func sample(
+        of animation: ResolvedAnimation,
+        in window: TimeRange,
+        at time: SampleTime
+    ) -> MotionSample {
+        guard window.contains(time.instant) else { return .none }
+        guard time.sample.isSample else { return sample(of: animation, in: window, at: time.instant) }
+
+        return sample(of: animation, in: window, at: time.instant, onSideOf: time.frameTime)
+    }
+
+    // The sample at a time outside a sample of a frame with motion blur.
     func sample(
         of animation: ResolvedAnimation,
         in window: TimeRange,
         at time: Double
     ) -> MotionSample {
         guard window.contains(time) else { return .none }
-        // A sample of a frame with motion blur reads on T's side of the jumps.
-        guard SampleInstant.current == nil else {
-            return sample(of: animation, in: window, at: time, onSideOf: SampleInstant.side(at: time))
-        }
 
         let entranceLength = min(animation.entrance?.length ?? 0, window.length)
         let exitLength = min(animation.exit?.length ?? 0, window.length - entranceLength)
