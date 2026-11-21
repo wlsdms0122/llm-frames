@@ -65,7 +65,7 @@ every media file is read through the decoder
 - Perspective tracking (corner pin). The tracker reports a target's four corners, and the motion fitted from them is a move, a uniform scale and a rotation ([FRAMES-12](FRAMES-12/SPEC.md)). The four corners leave room to add a corner pin later.
 - Curved paths. A path shape is straight segments between its points ([FRAMES-11](FRAMES-11/SPEC.md)).
 - Right-to-left and mixed-direction text. Text is laid out left to right, so `align` names physical sides.
-- Ink bounds of text. `evaluate` reports where text lies by its glyph boxes, made of advances, ascents and descents ([FRAMES-5](FRAMES-5/SPEC.md)), and a program that needs the outlines as drawn measures a frame from `extract`.
+- Ink bounds of text. `evaluate` reports where text lies by its characters' glyph boxes, made of advances, ascents and descents ([FRAMES-5](FRAMES-5/SPEC.md#units)), and a program that needs the outlines as drawn measures a frame from `extract`.
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.
